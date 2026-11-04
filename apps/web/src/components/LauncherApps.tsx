@@ -45,6 +45,11 @@ export const LAUNCHER_APPS: Array<{ id: string; name: string; color: string; pat
   { id: 'sms',       name: 'SMS',      color: '#1257c6', path: '/sms'       },
   { id: 'projects',  name: 'Projects', color: '#f59e0b', path: '/projects'  },
   { id: 'developer', name: 'Developer', color: '#0f766e', path: '/developer' },
+  { id: 'tuma',      name: 'Tuma',      color: '#0891b2', path: import.meta.env.VITE_TUMA_PORTAL_URL?.trim() || (import.meta.env.DEV ? 'http://localhost:3100/en/portal' : '/tuma') },
+  { id: 'lexcore',   name: 'LexCore',   color: '#7c3aed', path: import.meta.env.VITE_LEXCORE_URL?.trim() || (import.meta.env.DEV ? 'http://localhost:5175/' : '/lexcore') },
+  { id: 'ngao',      name: 'Ngao',      color: '#059669', path: '/ngao'      },
+  ...(import.meta.env.DEV || import.meta.env.VITE_STRIDE_URL?.trim() ? [{ id: 'stride', name: 'Stride', color: '#4f46e5', path: import.meta.env.VITE_STRIDE_URL?.trim() || 'http://localhost:3101/' }] : []),
+  { id: 'gereji',    name: 'Gereji',    color: '#d97706', path: import.meta.env.VITE_GEREJI_URL?.trim() || (import.meta.env.DEV ? 'http://localhost:3000/' : '/gereji') },
 ];
 
 // ── App SVG icons for launcher ─────────────────────────────────
@@ -93,6 +98,11 @@ export const LAUNCHER_SVG_ICONS: Record<string, React.ReactElement> = {
   // 3x3 grid (an app launcher).
   projects: (<g stroke="white" strokeWidth="2.2" fill="none" strokeLinecap="round" strokeLinejoin="round"><rect x="6" y="8" width="9" height="24" rx="2"/><rect x="16.5" y="8" width="9" height="16" rx="2" opacity="0.8"/><rect x="27" y="8" width="7" height="20" rx="2" opacity="0.6"/></g>),
   developer: (<g stroke="white" strokeWidth="2.4" fill="none" strokeLinecap="round" strokeLinejoin="round"><polyline points="13 14 7 20 13 26" /><polyline points="27 14 33 20 27 26" /><line x1="22" y1="12" x2="18" y2="28" /></g>),
+  tuma: (<g stroke="white" strokeWidth="2.2" fill="none" strokeLinecap="round" strokeLinejoin="round"><rect x="8" y="12" width="24" height="16" rx="3"/><path d="M8 18h24"/><circle cx="14" cy="31" r="2.5" fill="white" stroke="none"/><circle cx="26" cy="31" r="2.5" fill="white" stroke="none"/><path d="M16 8h8v4h-8z" fill="white" stroke="none" opacity="0.7"/></g>),
+  lexcore: (<g stroke="white" strokeWidth="2.2" fill="none" strokeLinecap="round" strokeLinejoin="round"><line x1="20" y1="6" x2="20" y2="18"/><path d="M12 18L20 6L28 18"/><rect x="10" y="18" width="20" height="4" rx="1"/><line x1="15" y1="22" x2="15" y2="34"/><line x1="25" y1="22" x2="25" y2="34"/><line x1="12" y1="34" x2="28" y2="34"/></g>),
+  ngao: (<g stroke="white" strokeWidth="2.2" fill="none" strokeLinecap="round" strokeLinejoin="round"><path d="M20 6L31 11V20C31 27 26.5 31.5 20 34C13.5 31.5 9 27 9 20V11L20 6Z"/><circle cx="20" cy="18" r="4"/><line x1="20" y1="22" x2="20" y2="27"/></g>),
+  stride: (<path d="M8 21h7l4-10 5 18 4-8h4" stroke="white" strokeWidth="2.5" fill="none" strokeLinecap="round" strokeLinejoin="round"/>),
+  gereji: (<g stroke="white" strokeWidth="2.2" fill="none" strokeLinecap="round" strokeLinejoin="round"><path d="M14 8C10 8 7 11 7 15C7 19 10 22 14 22C16 22 17.5 21.2 18.5 20L21.5 20C22.5 21.2 24 22 26 22C30 22 33 19 33 15C33 11 30 8 26 8C24 8 22.5 8.8 21.5 10L18.5 10C17.5 8.8 16 8 14 8Z"/><circle cx="14" cy="15" r="2.5" fill="white" stroke="none"/><circle cx="26" cy="15" r="2.5" fill="white" stroke="none"/><path d="M12 26h16l2 8H10z" opacity="0.7"/></g>),
   route6: (<g stroke="white" strokeWidth="2.2" fill="none" strokeLinecap="round" strokeLinejoin="round"><rect x="4" y="9" width="18" height="15" rx="2.5"/><path d="M22 14h7l4 4.5v5.5h-11z"/><circle cx="10" cy="27.5" r="2.5" fill="white" stroke="none"/><circle cx="27" cy="27.5" r="2.5" fill="white" stroke="none"/><path d="M10 16h6" strokeWidth="2" opacity="0.8"/></g>),
   // Not part of LAUNCHER_APPS (that list is shared with the header/AppLauncher
   // switcher, which every tenant user sees, unfiltered by role) — this icon is

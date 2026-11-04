@@ -1,3 +1,4 @@
+import { Link } from 'react-router-dom';
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Icon } from '../components/Icon.js';
@@ -43,7 +44,7 @@ export function InventoryCounts() {
         body: JSON.stringify({ warehouseId: newWarehouseId, notes: newNotes.trim() || null }),
       });
       setNewWarehouseId(''); setNewNotes(''); setShowNew(false);
-      navigate(`/inventory/counts/${session.id}`);
+      navigate(`/seal/counts/${session.id}`);
     } catch (err: any) {
       showAlert(err.message || 'Failed to start this count session.');
     } finally {
@@ -53,11 +54,12 @@ export function InventoryCounts() {
 
   return (
     <div className="inv-page">
+      <Link className="underline text-sm" to="/seal/adjustments">Back to Counts & Adjustments</Link>
       <div className="inv-page-hdr">
         <div>
           <PageHeader
-            crumbs={['Inventory', 'Stock Counts']}
-            titlePlain="Stock"
+            crumbs={['SEAL', 'Item Inventory', 'Counts']}
+            titlePlain="Item stock"
             titleEm="counts"
             subtitle="Every variance found in a count posts a real ledger correction — the expected quantity is frozen the moment a count starts, never silently recomputed."
           />
@@ -99,7 +101,7 @@ export function InventoryCounts() {
               <thead><tr><th>Warehouse</th><th>Status</th><th>Started</th><th>Notes</th></tr></thead>
               <tbody>
                 {sessions.map(s => (
-                  <tr key={s.id} onClick={() => navigate(`/inventory/counts/${s.id}`)}>
+                  <tr key={s.id} onClick={() => navigate(`/seal/counts/${s.id}`)}>
                     <td style={{ fontWeight: 700, color: 'var(--ink)' }}>{s.warehouseName ?? '—'}</td>
                     <td><Badge variant={STATUS_VARIANT[s.status] ?? 'info'}>{s.status}</Badge></td>
                     <td>{new Date(s.startedAt).toLocaleString()}</td>

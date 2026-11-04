@@ -1,3 +1,5 @@
+import { Banner } from '../components/ui/alert.js';
+import { useSealCompartmentId } from '../hooks/useSealCompartment.js';
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { PageHeader } from '../components/PageHeader.js';
@@ -64,6 +66,8 @@ const BLANK_FORM = {
 
 export function SealConsignments() {
   const navigate = useNavigate();
+  const [compartmentId] = useSealCompartmentId();
+  const [loadError,setLoadError] = useState<string|null>(null);
   const [consignments, setConsignments] = useState<Consignment[]>([]);
   const [compartments, setCompartments] = useState<Compartment[]>([]);
   const [customers, setCustomers] = useState<Customer[]>([]);
@@ -76,13 +80,13 @@ export function SealConsignments() {
 
   function reload() {
     setLoading(true);
-    apiFetch('/v1/seal/consignments')
-      .then((r: any) => setConsignments(Array.isArray(r) ? r : r.data ?? []))
+    apiFetch(`/v1/seal/consignments${compartmentId?`?compartment_id=${compartmentId}`:''}`)
+      .then((r: any) => {setConsignments(Array.isArray(r) ? r : r.data ?? []);setLoadError(null);})
+      .catch(e=>setLoadError(e.message))
       .finally(() => setLoading(false));
   }
 
   useEffect(() => {
-    reload();
     apiFetch('/v1/seal/compartments')
       .then((rows: Compartment[]) => {
         setCompartments(rows);
@@ -93,6 +97,8 @@ export function SealConsignments() {
       .then((res: any) => setCustomers(Array.isArray(res) ? res : res.data || res.customers || []))
       .catch(() => {});
   }, []);
+
+  useEffect(()=>{reload();},[compartmentId]);
 
   async function handleCreate(e: React.FormEvent) {
     e.preventDefault();
@@ -169,6 +175,7 @@ export function SealConsignments() {
 
   return (
     <div className="seal-page">
+      {loadError&&<Banner variant="error">{loadError}</Banner>}
       {/* ── New Consignment Dialog ── */}
       <Dialog open={showNew} onOpenChange={setShowNew}>
         <DialogContent size="lg">

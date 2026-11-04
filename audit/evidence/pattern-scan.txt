@@ -1,0 +1,4 @@
+apps/api/src/services/tradeWizard.service.ts:126:      const id = `PRD-${Math.random().toString(36).slice(2, 10).toUpperCase()}`;
+apps/api/src/services/customs.service.ts:1716:    } catch {}
+apps/web/src/pages/landedcost/print.tsx:234:  w.document.write(`<!DOCTYPE html><html><head><title>Landed Cost Calculator &middot; ${result.hs_code} &middot; ClearOS</title>
+apps/web/src/pages/landedcost/print.tsx:802:  w.document.write(`<!DOCTYPE html><html><head><title>Landed Cost Report (Multi-Item) &middot; ClearOS</title>

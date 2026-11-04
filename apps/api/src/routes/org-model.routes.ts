@@ -3,6 +3,7 @@ import { z } from 'zod';
 import { OrgModelService } from '../services/org-model.service.js';
 import { IndustryRegistryService } from '../services/industry-registry.service.js';
 import { AdminHierarchyService } from '../services/admin-hierarchy.service.js';
+import { dbPlatform } from '../db/client.js';
 import type { UserRole } from '@hudumika/types';
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -357,5 +358,39 @@ export async function industryRegistryRoutes(fastify: FastifyInstance) {
   fastify.get('/:key/capabilities', async (request: any) => {
     const { key } = request.params as { key: string };
     return IndustryRegistryService.listAppCapabilities(key);
+  });
+
+  fastify.get('/:key/solution', async (request: any, reply) => {
+    const { key } = request.params as { key: string };
+    const entry = await IndustryRegistryService.getIndustry(key);
+    if (!entry) return reply.status(404).send({ error: 'Industry not found.' });
+    const capabilities = await IndustryRegistryService.listAppCapabilities(key);
+    const coreApps = capabilities.filter(c => c.capability_key === 'core').map(c => c.app_id);
+    const optionalApps = capabilities.filter(c => c.capability_key === 'optional').map(c => c.app_id);
+
+    let recommendedPackage: { code: string; name: string; monthly_price: number; annual_price: number; currency: string; features: unknown; included_seats: number } | null = null;
+    if ((entry as any).default_package_code) {
+      const pkg = await dbPlatform.selectFrom('packages').selectAll()
+        .where('code', '=', (entry as any).default_package_code)
+        .executeTakeFirst();
+      if (pkg) {
+        recommendedPackage = {
+          code: pkg.code,
+          name: pkg.name,
+          monthly_price: Number(pkg.monthly_price),
+          annual_price: Number(pkg.annual_price),
+          currency: pkg.currency,
+          features: pkg.features,
+          included_seats: pkg.included_seats ?? 0,
+        };
+      }
+    }
+
+    return {
+      industry: { key: entry.key, name: entry.name, description: entry.description },
+      core_apps: coreApps,
+      optional_apps: optionalApps,
+      recommended_package: recommendedPackage,
+    };
   });
 }

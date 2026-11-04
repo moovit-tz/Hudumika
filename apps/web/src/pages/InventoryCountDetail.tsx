@@ -84,7 +84,7 @@ export function InventoryCountDetail() {
   return (
     <div className="inv-page">
       <div>
-        <Button type="button" variant="outline" onClick={() => navigate('/inventory/counts')} style={{ marginBottom: 12 }}>
+        <Button type="button" variant="outline" onClick={() => navigate('/seal/counts')} style={{ marginBottom: 12 }}>
           <Icon name="arrowLeft" size={13} /><span>Back to Stock Counts</span>
         </Button>
         <PageHeader

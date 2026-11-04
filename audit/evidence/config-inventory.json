@@ -1,0 +1,99 @@
+{
+  "DATABASE_URL": {
+    "configured": true,
+    "host": "localhost"
+  },
+  "DATABASE_URL_READONLY": {
+    "configured": true,
+    "host": "localhost"
+  },
+  "DATABASE_URL_APP": {
+    "configured": true,
+    "host": "localhost"
+  },
+  "DATABASE_URL_PLATFORM": {
+    "configured": true,
+    "host": "localhost"
+  },
+  "REDIS_URL": {
+    "configured": true,
+    "host": "localhost"
+  },
+  "MINIO_ENDPOINT": {
+    "configured": true
+  },
+  "MINIO_PORT": {
+    "configured": true
+  },
+  "MINIO_ACCESS_KEY": {
+    "configured": true
+  },
+  "MINIO_SECRET_KEY": {
+    "configured": true
+  },
+  "MINIO_BUCKET": {
+    "configured": true
+  },
+  "MINIO_USE_SSL": {
+    "configured": true
+  },
+  "JWT_SECRET": {
+    "configured": true
+  },
+  "JWT_EXPIRES_IN": {
+    "configured": true
+  },
+  "JWT_REFRESH_EXPIRES_IN": {
+    "configured": true
+  },
+  "META_WA_TOKEN": {
+    "configured": true
+  },
+  "META_PHONE_NUMBER_ID": {
+    "configured": true
+  },
+  "META_VERIFY_TOKEN": {
+    "configured": true
+  },
+  "META_API_VERSION": {
+    "configured": true
+  },
+  "SMTP_HOST": {
+    "configured": true
+  },
+  "SMTP_PORT": {
+    "configured": true
+  },
+  "SMTP_USER": {
+    "configured": true
+  },
+  "SMTP_PASS": {
+    "configured": true
+  },
+  "SMTP_FROM": {
+    "configured": true
+  },
+  "APP_ENV": {
+    "configured": true,
+    "host": "development"
+  },
+  "APP_PORT": {
+    "configured": true
+  },
+  "LOG_LEVEL": {
+    "configured": true
+  },
+  "CORS_ORIGINS": {
+    "configured": true
+  },
+  "OPS_BOARD_URL": {
+    "configured": true,
+    "host": "localhost"
+  },
+  "AIS_API_KEY": {
+    "configured": true
+  },
+  "ANTHROPIC_API_KEY": {
+    "configured": true
+  }
+}

@@ -1,0 +1,56 @@
+{
+  "generated": "2026-11-02T21:00:00Z",
+  "repositories": {
+    "tuma-web": {
+      "url": "https://github.com/moovit-tz/tuma-web.git",
+      "branch": "main",
+      "commit": "1af95b0a3c436c1c311c8e154ba8b4681e31dc09",
+      "message": "Alpha Commit",
+      "inspected": "2026-11-02",
+      "stack": "Next.js 15 / React 19, pnpm, Radix/Tailwind",
+      "package_name": "mysafari-parcel-portal",
+      "local_path": ".source-staging/tuma-web"
+    },
+    "tuma-api": {
+      "url": "https://github.com/moovit-tz/tuma-api.git",
+      "branch": "main",
+      "commit": "9025f305e58869fc6657cd36ddc35932b00f46e5",
+      "message": "Initial Commit",
+      "inspected": "2026-11-02",
+      "stack": "Express / JavaScript / Prisma / Postgres, Redis/Socket.IO",
+      "package_name": "mysafari-parcel-backend",
+      "local_path": ".source-staging/tuma-api"
+    },
+    "LexCore": {
+      "url": "https://github.com/moovit-tz/LexCore.git",
+      "branch": "main",
+      "commit": "4875f43f2a69b6fe9874f1b839fdb44646ca3270",
+      "message": "Merge pull request #1 from moovit-tz/fix/webhook-and-error-handler",
+      "inspected": "2026-11-02",
+      "stack": "pnpm monorepo, Fastify API, React/Vite web, Prisma DB",
+      "local_path": ".source-staging/LexCore",
+      "tree_sha": "d98736384b59b97c68471bba2a387a10f57eeab1"
+    },
+    "ngao": {
+      "url": "https://github.com/moovit-tz/ngao.git",
+      "branch": "main",
+      "commit": "3cebb9b024207345b589aaeeb7c6d45f552ba069",
+      "message": "feat: rebrand to LexCore, add queues/workers, MFA, and payment integrations",
+      "inspected": "2026-11-02",
+      "stack": "pnpm monorepo, Fastify API, React/Vite web, Prisma DB",
+      "local_path": ".source-staging/ngao",
+      "tree_sha": "67c028dcdbe9a43dbb6d65990787259f227d1c5b"
+    }
+  },
+  "deduplication_finding": {
+    "description": "LexCore and Ngao differ in only 5 files at inspected commits",
+    "differing_files": [
+      "apps/api/.env.example",
+      "apps/api/src/app.ts",
+      "apps/api/src/config.ts",
+      "apps/api/src/lib/flutterwave/index.ts",
+      "apps/api/src/routes/billing/index.ts"
+    ],
+    "strategy": "Build shared legal/privacy infrastructure once. LexCore = law firm ERP experience. Ngao = PDPC privacy/data-protection compliance tool. Two app shells, one domain backend."
+  }
+}

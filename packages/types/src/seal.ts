@@ -125,6 +125,9 @@ export interface SealLocation {
 
 export interface SealLot {
   id: string;
+  productId: string | null;
+  updatedAt: string;
+  destinationLabel: string | null;
   compartmentId: string;
   ownerId: string;
   ownerName?: string;
@@ -257,3 +260,109 @@ export const SEAL_DECLARATION_PROCEDURE_LABELS: Record<string, string> = {
   EX_WAREHOUSE_RE_EXPORT: 'Ex-Warehouse for Re-Export',
   EX_WAREHOUSE_TRANSFER: 'Ex-Warehouse for Transfer',
 };
+
+
+export interface SealStockRow {
+  id: string;
+  description: string;
+  compartmentId: string;
+  compartmentName: string;
+  locationCode: string | null;
+  ownerName: string | null;
+  batch: string | null;
+  uom: string;
+  onHand: number;
+  allocated: number;
+  available: number;
+  customsStatus: CustomsStatus;
+  warehousedOn: string | null;
+  expiresOn: string | null;
+  daysStored: number;
+  accrual: { amount: number; currency: string; days: number } | null;
+  accrualError: string | null;
+}
+
+export interface SealCountLine {
+  id: string;
+  lotId: string;
+  description: string;
+  uom: string;
+  systemQty: number;
+  countedQty: number | null;
+  varianceQty: number | null;
+  notes: string | null;
+}
+
+export interface SealCountDetail {
+  id: string;
+  count_ref: string;
+  status: string;
+  notes: string | null;
+  initiated_at: string;
+  closed_at: string | null;
+  lines: SealCountLine[];
+}
+
+export interface SealStorageInvoice {
+  id: string;
+  invoiceNumber: string;
+  customerName: string | null;
+  status: string;
+  billDate: string;
+  notes: string | null;
+  totals: Array<{ currency: string; amount: number }>;
+}
+
+export interface SealMovementHistoryPage {
+  rows: Array<{ id: string; occurred_at: string; movement_type: string; lot_id: string; qty_delta: string; reference: string | null; reason_code: string | null; description: string; uom: string }>;
+  nextCursor: string | null;
+}
+
+export interface SealCatalogProduct { id: string; code: string; name: string; unit: string; }
+
+
+export interface SealLotUpdate {
+  expectedUpdatedAt: string;
+  reason: string;
+  description?: string;
+  productId?: string | null;
+  hsCode?: string | null;
+  countryOfOrigin?: string | null;
+  marksAndNumbers?: string | null;
+  batch?: string | null;
+  serial?: string | null;
+  expiryDate?: string | null;
+  expiresOn?: string | null;
+  volumeCbm?: number | null;
+  grossWeightKg?: number | null;
+  destinationLabel?: string | null;
+  isDangerousGoods?: boolean;
+  unNumber?: string | null;
+  imdgClass?: string | null;
+  requiresReefer?: boolean;
+  reeferSetpointC?: number | null;
+}
+
+export interface SealLotRevision {
+  id: string;
+  actorId: string | null;
+  actorName: string | null;
+  reason: string;
+  changes: Record<string, { before: unknown; after: unknown }>;
+  createdAt: string;
+}
+
+export interface SealAppointment {
+  id: string;
+  compartment_id: string;
+  consignment_id: string | null;
+  appointment_type: 'INBOUND' | 'OUTBOUND';
+  scheduled_at: string;
+  status: string;
+  reference: string | null;
+  vehicle_plate: string | null;
+  driver_name: string | null;
+  notes: string | null;
+  compartment_name?: string | null;
+  consignment_ref?: string | null;
+}

@@ -1,0 +1,20 @@
+.lc-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+.lc-table th {
+  text-align: left; padding: 10px 16px; font-size: 11px; font-weight: 700;
+  text-transform: uppercase; letter-spacing: 0.04em; color: var(--ink3);
+  border-bottom: 1px solid var(--border);
+}
+.lc-table td { padding: 12px 16px; border-bottom: 1px solid var(--border); vertical-align: middle; }
+.lc-table tbody tr { cursor: pointer; transition: background 0.1s; }
+.lc-table tbody tr:hover { background: var(--hover-bg); }
+.lc-table tbody tr:last-child td { border-bottom: none; }
+.lc-empty { padding: 40px 20px; text-align: center; color: var(--ink3); font-size: 13px; }
+.lc-stat-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 16px; margin-bottom: 20px; }
+.lc-stat { padding: 20px; border-radius: var(--r); border: 1px solid var(--border); background: var(--white); }
+.lc-stat-val { font-size: 28px; font-weight: 800; color: var(--ink); }
+.lc-stat-lbl { font-size: 12px; color: var(--ink3); margin-top: 4px; }
+.lc-form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; padding: 20px; }
+.lc-field { display: flex; flex-direction: column; gap: 4px; }
+.lc-field label { font-size: 12px; font-weight: 600; color: var(--ink2); }
+.lc-field-full { grid-column: 1 / -1; }
+.lc-actions { display: flex; gap: 8px; align-items: center; }

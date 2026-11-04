@@ -5,8 +5,16 @@ import { CompanyAvatar } from '../components/PersonAvatar.js';
 import { Button } from '../components/ui/button.js';
 import { Input } from '../components/ui/input.js';
 import { Badge } from '../components/ui/badge.js';
+import { SectionLoading } from '../components/ui/spinner.js';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '../components/ui/select.js';
-import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator } from '../components/ui/dropdown-menu.js';
+import {
+  DropdownMenu,
+  DropdownMenuTrigger,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+} from '../components/ui/dropdown-menu.js';
+import { ListPagination, paginate, useListPagination } from '../components/ui/list-pagination.js';
 import { apiFetch } from '../lib/api.js';
 import { showAlert } from '../lib/alert.js';
 import { showConfirm } from '../lib/confirm.js';
@@ -33,8 +41,17 @@ interface Compartment {
 }
 
 const WAREHOUSE_TYPES = [
-  'public_bonded', 'private_bonded', 'cfs', 'icd', 'virtual_icd',
-  'free_zone', 'duty_free_retail', 'excise', 'sorting_centre', 'fulfillment_centre'
+  'public_bonded',
+  'private_bonded',
+  'cfs',
+  'icd',
+  'virtual_icd',
+  'free_zone',
+  'duty_free_retail',
+  'excise',
+  'sorting_centre',
+  'fulfillment_centre',
+  'standard_warehouse',
 ];
 
 export function SealCompartments() {
@@ -47,27 +64,34 @@ export function SealCompartments() {
   // New Compartment Form State
   const [newCode, setNewCode] = useState('');
   const [newName, setNewName] = useState('');
-  const [newType, setNewType] = useState('cfs');
+  const [newType, setNewType] = useState('standard_warehouse');
   const [newLicence, setNewLicence] = useState('');
-  const [newDays, setNewDays] = useState(180);
+  const [newDays] = useState(180);
   const [saving, setSaving] = useState(false);
+
+  const { page, setPage, pageSize, setPageSize } = useListPagination(10);
 
   function reload() {
     setLoading(true);
     Promise.all([
       apiFetch('/v1/seal/compartments').catch(() => []),
       apiFetch('/v1/seal/compartments/summary').catch(() => []),
-    ]).then(([comps, summary]: any[]) => {
-      setCompartments(comps || []);
-      const counts: Record<string, number> = {};
-      (summary || []).forEach((row: any) => {
-        if (row.compartment_id) counts[row.compartment_id] = parseInt(row.lot_count ?? '0');
-      });
-      setLotCounts(counts);
-    }).finally(() => setLoading(false));
+    ])
+      .then(([comps, summary]: any[]) => {
+        setCompartments(comps || []);
+        window.dispatchEvent(new Event('seal-warehouses-updated'));
+        const counts: Record<string, number> = {};
+        (summary || []).forEach((row: any) => {
+          if (row.compartment_id) counts[row.compartment_id] = parseInt(row.lot_count ?? '0');
+        });
+        setLotCounts(counts);
+      })
+      .finally(() => setLoading(false));
   }
 
-  useEffect(() => { reload(); }, []);
+  useEffect(() => {
+    reload();
+  }, []);
 
   async function handleCreateCompartment(e: React.FormEvent) {
     e.preventDefault();
@@ -84,7 +108,9 @@ export function SealCompartments() {
           defaultStorageDays: newDays,
         }),
       });
-      setNewCode(''); setNewName(''); setNewLicence('');
+      setNewCode('');
+      setNewName('');
+      setNewLicence('');
       setShowNewCompartment(false);
       reload();
     } catch (err: any) {
@@ -114,7 +140,10 @@ export function SealCompartments() {
   }
 
   async function handleDelete(id: string, name: string) {
-    const ok = await showConfirm(`Are you sure you want to delete ${name}?`, { title: 'Delete compartment', confirmLabel: 'Delete' });
+    const ok = await showConfirm(`Are you sure you want to delete ${name}?`, {
+      title: 'Delete compartment',
+      confirmLabel: 'Delete',
+    });
     if (!ok) return;
     try {
       await apiFetch(`/v1/seal/compartments/${id}`, { method: 'DELETE' });
@@ -125,18 +154,19 @@ export function SealCompartments() {
     }
   }
 
+  const { visible: pagedCompartments } = paginate(compartments, page, pageSize);
+
   return (
     <div className="seal-page">
-      {/* Header matching Image Two */}
       <PageHeader
         crumbs={['SEAL', 'Compartments']}
         titlePlain="Bonded"
         titleEm="compartments"
         subtitle="Separately-licensed bonded perimeters — each with its own zones and locations underneath."
         actions={
-          <Button onClick={() => setShowNewCompartment(v => !v)}>
-            <Icon name="plus" size={14} />
-            <span>New Compartment</span>
+          <Button size="sm" onClick={() => setShowNewCompartment(v => !v)}>
+            <Icon name={showNewCompartment ? 'x' : 'plus'} size={14} />
+            <span>{showNewCompartment ? 'Cancel' : 'New Compartment'}</span>
           </Button>
         }
       />
@@ -144,161 +174,215 @@ export function SealCompartments() {
       {/* New Compartment Collapsible Form */}
       {showNewCompartment && (
         <form onSubmit={handleCreateCompartment} className="seal-card" style={{ marginBottom: 20, padding: 20 }}>
-          <h3 style={{ fontSize: 15, fontWeight: 700, margin: '0 0 14px' }}>Register New Bonded Compartment / ICD</h3>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: 12, marginBottom: 16 }}>
+          <h3 style={{ fontSize: 15, fontWeight: 700, margin: '0 0 14px' }}>
+            Register New Bonded Compartment / ICD
+          </h3>
+          <div
+            style={{
+              display: 'grid',
+              gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))',
+              gap: 12,
+              marginBottom: 16,
+            }}
+          >
             <div>
-              <label className="seal-field-label">Code</label>
+              <label className="seal-field-label" style={{ display: 'block', marginBottom: 6 }}>Code</label>
               <Input value={newCode} onChange={e => setNewCode(e.target.value)} placeholder="CFS-DSM-01" required />
             </div>
             <div>
-              <label className="seal-field-label">Name</label>
-              <Input value={newName} onChange={e => setNewName(e.target.value)} placeholder="Dar es Salaam Container Freight Station" required />
+              <label className="seal-field-label" style={{ display: 'block', marginBottom: 6 }}>Name</label>
+              <Input
+                value={newName}
+                onChange={e => setNewName(e.target.value)}
+                placeholder="Dar es Salaam Container Freight Station"
+                required
+              />
             </div>
             <div>
-              <label className="seal-field-label">Type</label>
+              <label className="seal-field-label" style={{ display: 'block', marginBottom: 6 }}>Type</label>
               <Select value={newType} onValueChange={setNewType}>
-                <SelectTrigger className="w-full"><SelectValue /></SelectTrigger>
+                <SelectTrigger className="w-full">
+                  <SelectValue />
+                </SelectTrigger>
                 <SelectContent>
-                  {WAREHOUSE_TYPES.map(t => <SelectItem key={t} value={t}>{t.replace(/_/g, ' ').toUpperCase()}</SelectItem>)}
+                  {WAREHOUSE_TYPES.map(t => (
+                    <SelectItem key={t} value={t}>
+                      {t.replace(/_/g, ' ').toUpperCase()}
+                    </SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
             </div>
             <div>
-              <label className="seal-field-label">License Number</label>
+              <label className="seal-field-label" style={{ display: 'block', marginBottom: 6 }}>License Number</label>
               <Input value={newLicence} onChange={e => setNewLicence(e.target.value)} placeholder="BW-TZ-9821" />
             </div>
           </div>
           <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 10 }}>
-            <Button type="button" variant="outline" onClick={() => setShowNewCompartment(false)}>Cancel</Button>
-            <Button type="submit" disabled={saving}>{saving ? 'Creating…' : 'Create Compartment'}</Button>
+            <Button type="button" variant="outline" size="sm" onClick={() => setShowNewCompartment(false)}>
+              Cancel
+            </Button>
+            <Button type="submit" size="sm" disabled={saving}>
+              {saving ? 'Creating…' : 'Create Compartment'}
+            </Button>
           </div>
         </form>
       )}
 
-      {/* Compartment List Cards matching Image Two */}
+      {/* Compartment List Cards */}
       <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
         {loading ? (
-          <div className="seal-card" style={{ padding: 20 }}><div className="seal-empty">Loading bonded compartments…</div></div>
+          <SectionLoading label="Loading bonded compartments…" />
         ) : compartments.length === 0 ? (
-          <div className="seal-card" style={{ padding: 20 }}><div className="seal-empty">No compartments registered yet.</div></div>
+          <div className="seal-card" style={{ padding: 20 }}>
+            <div className="seal-empty">No compartments registered yet.</div>
+          </div>
         ) : (
-          compartments.map(c => {
-            const isSuspended = !c.active;
+          <>
+            {pagedCompartments.map(c => {
+              const isSuspended = !c.active;
 
-            return (
-              <div
-                key={c.id}
-                className="seal-card"
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'space-between',
-                  flexWrap: 'wrap',
-                  gap: 12,
-                  padding: '16px 20px',
-                  position: 'relative',
-                  opacity: isSuspended ? 0.75 : 1,
-                }}
-              >
-                {/* Left Section: Icon & Info */}
+              return (
                 <div
-                  style={{ display: 'flex', alignItems: 'center', gap: 16, flex: 1, minWidth: 220, cursor: 'pointer' }}
-                  onClick={() => navigate(`/seal/compartments/${c.id}`)}
+                  key={c.id}
+                  className="seal-card"
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    flexWrap: 'wrap',
+                    gap: 12,
+                    padding: '16px 20px',
+                    position: 'relative',
+                    opacity: isSuspended ? 0.75 : 1,
+                  }}
                 >
-                  <CompanyAvatar name={c.name} logoUrl={c.logo_url} size={44} shape="square" />
-                  <div style={{ flex: 1, minWidth: 0 }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                      <span style={{ fontSize: 15, fontWeight: 700, color: 'var(--ink)' }}>{c.name}</span>
-                      {isSuspended && <Badge variant="error">SUSPENDED</Badge>}
-                    </div>
-                    <div className="seal-mono" style={{ fontSize: 12, color: 'var(--ink3)', marginTop: 3 }}>
-                      {c.code} · {c.warehouse_type.toLowerCase()} · {c.jurisdiction} · {c.default_storage_days}d storage
-                    </div>
-                    {/* Capacity bar */}
-                    {(() => {
-                      const count = lotCounts[c.id] ?? 0;
-                      const maxCount = Math.max(...Object.values(lotCounts), 1);
-                      const pct = Math.round((count / maxCount) * 100);
-                      const barColor = pct >= 90 ? 'var(--red)' : pct >= 70 ? 'var(--gold)' : 'var(--teal)';
-                      return (
-                        <div style={{ marginTop: 8, maxWidth: 260 }}>
-                          <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 10, color: 'var(--ink3)', marginBottom: 3 }}>
-                            <span style={{ fontWeight: 600, textTransform: 'uppercase', letterSpacing: '.04em' }}>Lot Occupancy</span>
-                            <span style={{ fontVariantNumeric: 'tabular-nums' }}>{count} lots</span>
+                  {/* Left Section: Icon & Info */}
+                  <div
+                    style={{ display: 'flex', alignItems: 'center', gap: 16, flex: 1, minWidth: 220, cursor: 'pointer' }}
+                    onClick={() => navigate(`/seal/compartments/${c.id}`)}
+                  >
+                    <CompanyAvatar name={c.name} logoUrl={c.logo_url} size={44} shape="square" />
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                        <span style={{ fontSize: 15, fontWeight: 700, color: 'var(--ink)' }}>{c.name}</span>
+                        <Badge variant={isSuspended ? 'gray' : 'brand'}>
+                          {isSuspended ? 'SUSPENDED' : 'ACTIVE'}
+                        </Badge>
+                      </div>
+                      <div className="seal-mono" style={{ fontSize: 12, color: 'var(--ink3)', marginTop: 3 }}>
+                        {c.code} · {c.warehouse_type.replace(/_/g, ' ').toLowerCase()} · {c.jurisdiction} · {c.default_storage_days}d storage
+                      </div>
+                      {/* Capacity bar */}
+                      {(() => {
+                        const count = lotCounts[c.id] ?? 0;
+                        const maxCount = Math.max(...Object.values(lotCounts), 1);
+                        const pct = Math.round((count / maxCount) * 100);
+                        return (
+                          <div style={{ marginTop: 8, maxWidth: 260 }}>
+                            <div
+                              style={{
+                                display: 'flex',
+                                justifyContent: 'space-between',
+                                fontSize: 10,
+                                color: 'var(--ink3)',
+                                marginBottom: 3,
+                              }}
+                            >
+                              <span style={{ fontWeight: 600, textTransform: 'uppercase', letterSpacing: '.04em' }}>
+                                Lot Occupancy
+                              </span>
+                              <span style={{ fontVariantNumeric: 'tabular-nums' }}>{count} lots</span>
+                            </div>
+                            <div style={{ height: 4, background: 'var(--border)', borderRadius: 2, overflow: 'hidden' }}>
+                              <div
+                                style={{
+                                  height: '100%',
+                                  width: `${pct}%`,
+                                  background: 'var(--teal)',
+                                  borderRadius: 2,
+                                  transition: 'width .3s',
+                                }}
+                              />
+                            </div>
                           </div>
-                          <div style={{ height: 4, background: 'var(--border)', borderRadius: 2, overflow: 'hidden' }}>
-                            <div style={{ height: '100%', width: `${pct}%`, background: barColor, borderRadius: 2, transition: 'width .3s' }} />
-                          </div>
-                        </div>
-                      );
-                    })()}
+                        );
+                      })()}
+                    </div>
+                  </div>
+
+                  {/* Right Section: Streamlined Action Buttons per Hudumika Design System */}
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => navigate(`/seal/compartments/${c.id}/layout`)}
+                    >
+                      <Icon name="warehouse" size={14} />
+                      <span>Warehouse Layout</span>
+                    </Button>
+
+                    <Button
+                      size="sm"
+                      onClick={() => navigate(`/seal/compartments/${c.id}`)}
+                    >
+                      <span>Open</span>
+                      <Icon name="arrowRight" size={14} />
+                    </Button>
+
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button variant="outline" size="icon" aria-label="Compartment actions">
+                          <Icon name="moreHorizontal" size={15} />
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end" className="w-56">
+                        <DropdownMenuItem onClick={() => navigate(`/seal/compartments/${c.id}`)}>
+                          <Icon name="fileText" size={14} /> View Compartment Detail
+                        </DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => navigate(`/seal/compartments/${c.id}/heat-grid`)}>
+                          <Icon name="grid" size={14} /> Zone Heat Grid
+                        </DropdownMenuItem>
+                        {c.warehouse_type === 'sorting_centre' && (
+                          <DropdownMenuItem onClick={() => navigate(`/seal/compartments/${c.id}/sorting-dashboard`)}>
+                            <Icon name="arrowUpDown" size={14} /> Sorting Dashboard
+                          </DropdownMenuItem>
+                        )}
+                        <DropdownMenuSeparator />
+                        <DropdownMenuItem onClick={() => navigate(`/seal/compartments/${c.id}/edit`)}>
+                          <Icon name="edit" size={14} /> Edit Details
+                        </DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => handleDuplicate(c.id)}>
+                          <Icon name="copy" size={14} /> Duplicate Perimeter
+                        </DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => handleToggleStatus(c.id)}>
+                          <Icon name={isSuspended ? 'play' : 'pause'} size={14} />
+                          {isSuspended ? 'Reactivate Perimeter' : 'Suspend Operations'}
+                        </DropdownMenuItem>
+                        <DropdownMenuSeparator />
+                        <DropdownMenuItem
+                          onClick={() => handleDelete(c.id, c.name)}
+                          className="text-red-600 focus:text-red-600"
+                        >
+                          <Icon name="trash" size={14} /> Delete Perimeter
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
                   </div>
                 </div>
+              );
+            })}
 
-                {/* Right Section: Action Buttons */}
-                <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap', position: 'relative' }}>
-                  {c.warehouse_type === 'sorting_centre' && (
-                    <button
-                      type="button"
-                      className="btn btn-secondary"
-                      onClick={() => navigate(`/seal/compartments/${c.id}/sorting-dashboard`)}
-                     data-ui-native-button="">
-                      <Icon name="arrowUpDown" size={13} />
-                      <span>Sorting Dashboard</span>
-                    </button>
-                  )}
-
-                  <button
-                    type="button"
-                    className="btn btn-secondary"
-                    onClick={() => navigate(`/seal/compartments/${c.id}/layout`)}
-                   data-ui-native-button="">
-                    <Icon name="warehouse" size={13} />
-                    <span>Warehouse Layout</span>
-                  </button>
-
-                  <button
-                    type="button"
-                    className="btn btn-secondary"
-                    onClick={() => navigate(`/seal/compartments/${c.id}/heat-grid`)}
-                   data-ui-native-button="">
-                    <Icon name="grid" size={13} />
-                    <span>Heat Grid</span>
-                  </button>
-
-                  <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                      <button
-                        type="button"
-                        className="btn btn-secondary"
-                        style={{ padding: '9px', aspectRatio: '1 / 1' }}
-                       data-ui-native-button="">
-                        <Icon name="chevronDown" size={15} />
-                      </button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end" className="w-56">
-                      <DropdownMenuItem onClick={() => navigate(`/seal/compartments/${c.id}`)}>
-                        <Icon name="fileText" size={14} /> View Compartment Detail
-                      </DropdownMenuItem>
-                      <DropdownMenuItem onClick={() => navigate(`/seal/compartments/${c.id}/edit`)}>
-                        <Icon name="edit" size={14} /> Edit Details
-                      </DropdownMenuItem>
-                      <DropdownMenuItem onClick={() => handleDuplicate(c.id)}>
-                        <Icon name="copy" size={14} /> Duplicate Perimeter
-                      </DropdownMenuItem>
-                      <DropdownMenuItem onClick={() => handleToggleStatus(c.id)}>
-                        <Icon name={isSuspended ? 'play' : 'pause'} size={14} /> {isSuspended ? 'Reactivate Perimeter' : 'Suspend Operations'}
-                      </DropdownMenuItem>
-                      <DropdownMenuSeparator />
-                      <DropdownMenuItem onClick={() => handleDelete(c.id, c.name)} className="text-red-600 focus:text-red-600">
-                        <Icon name="trash" size={14} /> Delete Perimeter
-                      </DropdownMenuItem>
-                    </DropdownMenuContent>
-                  </DropdownMenu>
-                </div>
-              </div>
-            );
-          })
+            <ListPagination
+              total={compartments.length}
+              page={page}
+              pageSize={pageSize}
+              onPageChange={setPage}
+              onPageSizeChange={setPageSize}
+              pageSizeOptions={[10, 15, 25, 50]}
+              noun="compartments"
+            />
+          </>
         )}
       </div>
     </div>

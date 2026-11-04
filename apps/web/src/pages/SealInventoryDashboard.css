@@ -1,181 +1,196 @@
-﻿/* ═════════════════════════════════════════════════════════════════════
-   SealInventoryDashboard.css — Modern Warehouse & SKU Inventory Control
-   Matches the exact design specification with high fidelity,
-   fluid responsiveness, and full dark mode support.
-   ═════════════════════════════════════════════════════════════════════ */
+/* ═══════════════════════════════════════════════════════════════════════════
+ * SEAL Warehouse & Inventory Dashboard — Hudumika Design System
+ * Zero hardcoded hex/rgba colors — 100% dynamic theme & app tokens (--teal, etc.)
+ * ═══════════════════════════════════════════════════════════════════════════ */
 
-.sid-root {
+.seal-page {
   display: flex;
   flex-direction: column;
   gap: 20px;
-  width: 100%;
-  max-width: 100%;
-  box-sizing: border-box;
-  font-family: var(--font, system-ui, -apple-system, sans-serif);
-  color: var(--ink);
 }
 
-/* ── Top Header Row ── */
-.sid-header-wrap {
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  flex-wrap: wrap;
-  gap: 16px;
+/* ── Unified Split Action Button in PageHeader ── */
+.sid-split-btn {
+  display: inline-flex;
+  align-items: stretch;
+  border-radius: var(--r-sm, 8px);
+  overflow: hidden;
+  box-shadow: var(--elev-xs);
+  border: 1px solid var(--teal);
+  background: var(--teal);
 }
 
-.sid-eyebrow {
-  font-size: 11.5px;
+.sid-split-btn-main {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  height: 36px;
+  padding: 0 14px;
+  background: var(--teal);
+  color: hsl(var(--primary-foreground));
+  font-family: var(--font);
+  font-size: 13px;
+  font-weight: 700;
+  border: none;
+  cursor: pointer;
+  transition: filter 0.14s ease;
+  white-space: nowrap;
+}
+
+.sid-split-btn-main:hover {
+  filter: brightness(0.93);
+}
+
+.sid-split-btn-trigger {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  height: 36px;
+  padding: 0 10px;
+  background: var(--teal);
+  color: hsl(var(--primary-foreground));
+  border: none;
+  border-left: 1px solid var(--teal-m, var(--border));
+  cursor: pointer;
+  font-family: var(--font);
+  font-size: 12px;
+  font-weight: 600;
+  transition: filter 0.14s ease;
+}
+
+.sid-split-btn-trigger:hover {
+  filter: brightness(0.9);
+}
+
+.sid-menu-section-lbl {
+  padding: 6px 10px 4px;
+  font-size: 10px;
   font-weight: 700;
   text-transform: uppercase;
-  letter-spacing: 0.08em;
+  letter-spacing: 0.06em;
   color: var(--ink3);
-  margin-bottom: 4px;
 }
 
-.sid-title-row {
+.sid-menu-check-row {
   display: flex;
   align-items: center;
-  gap: 12px;
-  flex-wrap: wrap;
-}
-
-.sid-title {
-  font-size: 26px;
-  font-weight: 800;
-  color: var(--ink);
-  letter-spacing: -0.025em;
-  line-height: 1.2;
-  margin: 0;
-}
-
-.sid-warehouse-pill {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  padding: 5px 12px;
-  border-radius: 9999px;
-  background: var(--bg);
-  border: 1px solid var(--border);
-  color: var(--ink);
-  font-size: 13px;
-  font-weight: 600;
-  cursor: pointer;
-  transition: all 0.15s ease;
-}
-
-.sid-warehouse-pill:hover {
-  background: var(--card-sunken, var(--border));
-  border-color: var(--border2);
-}
-
-.sid-subtitle {
-  font-size: 13px;
-  color: var(--ink3);
-  margin-top: 4px;
-  font-weight: 400;
-}
-
-.sid-actions {
-  display: flex;
-  align-items: center;
+  justify-content: space-between;
+  width: 100%;
   gap: 8px;
-  flex-wrap: wrap;
 }
 
-.sid-btn-date {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  padding: 0 14px;
-  height: 36px;
-  border-radius: var(--r-sm, 8px);
-  background: var(--white);
+/* ── 1. Executive 4-Card KPI Horizon Strip ── */
+.sid-kpi-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 14px;
+}
+
+@media (max-width: 1180px) {
+  .sid-kpi-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 640px) {
+  .sid-kpi-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.sid-kpi-card {
+  background: var(--surface, var(--white));
   border: 1px solid var(--border);
-  color: var(--ink);
-  font-size: 13px;
-  font-weight: 600;
+  border-radius: var(--card-radius, 14px);
+  padding: var(--card-pad, 18px 20px);
+  box-shadow: var(--elev-xs);
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: 12px;
+  transition: border-color 0.16s ease, box-shadow 0.16s ease, transform 0.16s ease;
+}
+
+.sid-kpi-card--interactive {
   cursor: pointer;
+}
+
+.sid-kpi-card--interactive:hover {
+  border-color: var(--teal-m, var(--teal));
   box-shadow: var(--elev-sm);
-  transition: all 0.12s ease;
-}
-
-.sid-btn-date:hover {
-  background: var(--hover-bg);
-  border-color: var(--border2);
-}
-
-.sid-btn-outline {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  padding: 0 14px;
-  height: 36px;
-  border-radius: var(--r-sm, 8px);
-  background: var(--white);
-  border: 1px solid var(--border);
-  color: var(--ink2);
-  font-size: 13px;
-  font-weight: 600;
-  cursor: pointer;
-  box-shadow: var(--elev-sm);
-  transition: all 0.12s ease;
-}
-
-.sid-btn-outline:hover {
-  background: var(--hover-bg);
-  color: var(--ink);
-  border-color: var(--border2);
-}
-
-.sid-btn-primary {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  padding: 0 16px;
-  height: 36px;
-  border-radius: var(--r-sm, 8px);
-  background: var(--teal);
-  border: 1px solid var(--teal);
-  color: hsl(var(--primary-foreground));
-  font-size: 13px;
-  font-weight: 700;
-  cursor: pointer;
-  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.08);
-  transition: all 0.12s ease;
-}
-
-.sid-btn-primary:hover {
-  filter: brightness(0.92);
   transform: translateY(-1px);
 }
 
-/* ── Top Bento Grid (2 Cards) ── */
-.sid-bento-grid {
-  display: grid;
-  grid-template-columns: 1.15fr 1fr;
-  gap: 16px;
-  width: 100%;
+.sid-kpi-card--active {
+  border-color: var(--teal);
+  background: var(--teal-l);
 }
 
-@media (max-width: 1050px) {
+.sid-kpi-top {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.sid-kpi-label {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--ink3);
+}
+
+.sid-kpi-value {
+  font-size: 26px;
+  font-weight: 800;
+  letter-spacing: -0.03em;
+  line-height: 1.1;
+  color: var(--ink);
+  margin-top: 4px;
+  font-variant-numeric: tabular-nums;
+}
+
+.sid-kpi-foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding-top: 10px;
+  border-top: 1px solid var(--border);
+  font-size: 12px;
+  color: var(--ink3);
+}
+
+.sid-kpi-foot strong {
+  color: var(--ink2);
+  font-weight: 700;
+}
+
+/* ── 2. Top Bento Analytics Grid (2 Columns) ── */
+.sid-bento-grid {
+  display: grid;
+  grid-template-columns: 1.15fr 0.85fr;
+  gap: 16px;
+}
+
+@media (max-width: 1024px) {
   .sid-bento-grid {
     grid-template-columns: 1fr;
   }
 }
 
 .sid-card {
-  background: var(--white);
+  background: var(--surface, var(--white));
   border: 1px solid var(--border);
-  border-radius: var(--card-radius, 12px);
-  padding: 18px 20px;
-  box-shadow: var(--elev-sm);
+  border-radius: var(--card-radius, 14px);
+  padding: var(--card-pad, 20px);
+  box-shadow: var(--elev-xs);
   display: flex;
   flex-direction: column;
   justify-content: space-between;
-  box-sizing: border-box;
-  overflow: hidden;
-  transition: border-color 0.18s ease, box-shadow 0.18s ease;
+  gap: 16px;
 }
 
 .sid-card-header {
@@ -183,124 +198,162 @@
   align-items: flex-start;
   justify-content: space-between;
   gap: 12px;
-  margin-bottom: 12px;
+}
+
+.sid-card-title-group {
+  display: flex;
+  align-items: center;
+  gap: 10px;
 }
 
 .sid-card-title {
   font-size: 15px;
-  font-weight: 800;
+  font-weight: 700;
   color: var(--ink);
+  margin: 0;
   letter-spacing: -0.01em;
-  margin: 0 0 2px;
 }
 
 .sid-card-sub {
   font-size: 12px;
   color: var(--ink3);
-  font-weight: 500;
-}
-
-.sid-card-badge-success {
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  padding: 3px 8px;
-  border-radius: 9999px;
-  background: rgba(16, 185, 129, 0.12);
-  border: 1px solid rgba(16, 185, 129, 0.25);
-  color: var(--green);
-  font-size: 11.5px;
-  font-weight: 700;
-}
-
-[data-theme="dark"] .sid-card-badge-success {
-  background: rgba(16, 185, 129, 0.18);
-  color: #34d399;
+  margin-top: 2px;
 }
 
 .sid-card-link {
-  font-size: 12px;
-  font-weight: 700;
-  color: var(--teal);
-  text-decoration: none;
   display: inline-flex;
   align-items: center;
   gap: 4px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--teal);
+  background: transparent;
+  border: none;
+  padding: 4px 8px;
+  border-radius: var(--r-sm, 6px);
   cursor: pointer;
-  transition: opacity 0.12s;
+  transition: background 0.14s ease;
 }
 
 .sid-card-link:hover {
-  opacity: 0.8;
-  text-decoration: underline;
+  background: var(--teal-l);
 }
 
-/* ── Stock Level Chart Area ── */
+/* ── Stock Level Trend Chart & Segmented Bars ── */
 .sid-chart-container {
+  height: 190px;
   width: 100%;
-  height: 160px;
-  margin: 4px 0 14px;
-  position: relative;
+  margin-top: 4px;
 }
 
 .sid-chart-stats-row {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 16px;
-  padding-top: 12px;
+  gap: 14px;
+  padding-top: 14px;
   border-top: 1px solid var(--border);
 }
 
+@media (max-width: 640px) {
+  .sid-chart-stats-row {
+    grid-template-columns: 1fr;
+  }
+}
+
 .sid-stat-block {
+  background: var(--card-sunken, var(--bg));
+  border: 1px solid var(--border);
+  border-radius: var(--r, 10px);
+  padding: 12px 14px;
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 8px;
+}
+
+.sid-stat-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
 }
 
 .sid-stat-lbl {
   font-size: 11px;
   font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
   color: var(--ink2);
 }
 
 .sid-segmented-bar {
-  height: 6px;
-  border-radius: 9999px;
-  overflow: hidden;
   display: flex;
-  background: var(--bg);
-  width: 100%;
+  height: 8px;
+  border-radius: 999px;
+  overflow: hidden;
+  background: var(--border);
+  gap: 2px;
 }
 
-.sid-seg-a { background: var(--green); height: 100%; }
-.sid-seg-b { background: var(--gold); height: 100%; }
-.sid-seg-c { background: var(--ink3); height: 100%; }
+.sid-seg-a,
+.sid-seg-age-1 {
+  background: var(--teal);
+  height: 100%;
+}
 
-.sid-seg-age-1 { background: var(--green); height: 100%; }
-.sid-seg-age-2 { background: var(--gold); height: 100%; }
-.sid-seg-age-3 { background: var(--red); height: 100%; }
+.sid-seg-b,
+.sid-seg-age-2 {
+  background: var(--gold);
+  height: 100%;
+}
+
+.sid-seg-c {
+  background: var(--blue);
+  height: 100%;
+}
+
+.sid-seg-age-3 {
+  background: var(--red);
+  height: 100%;
+}
 
 .sid-stat-meta {
-  font-size: 11px;
-  color: var(--ink3);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 6px;
+  font-size: 11.5px;
   font-weight: 600;
+  color: var(--ink3);
 }
 
-/* ── Warehouse Distribution Right Card ── */
+.sid-legend-dot {
+  display: inline-block;
+  width: 7px;
+  height: 7px;
+  border-radius: 999px;
+  margin-right: 4px;
+}
+
+/* ── Warehouse Distribution Card ── */
 .sid-dist-overview {
   display: flex;
   align-items: center;
-  gap: 18px;
-  padding: 4px 0 14px;
-  border-bottom: 1px solid var(--border);
-  margin-bottom: 12px;
+  gap: 16px;
+  padding: 12px 14px;
+  background: var(--card-sunken, var(--bg));
+  border: 1px solid var(--border);
+  border-radius: var(--r, 10px);
 }
 
 .sid-donut-wrap {
-  width: 54px;
-  height: 54px;
   position: relative;
+  width: 56px;
+  height: 56px;
   flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .sid-donut-center {
@@ -309,15 +362,27 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 13px;
+  font-size: 12px;
   font-weight: 800;
   color: var(--ink);
+  font-variant-numeric: tabular-nums;
 }
 
 .sid-dist-stats {
-  display: flex;
-  gap: 24px;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
   flex: 1;
+}
+
+@media (max-width: 480px) {
+  .sid-dist-overview {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+  .sid-dist-stats {
+    width: 100%;
+  }
 }
 
 .sid-dist-stat-item {
@@ -327,151 +392,206 @@
 }
 
 .sid-dist-stat-lbl {
-  font-size: 11px;
-  font-weight: 600;
+  font-size: 10.5px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
   color: var(--ink3);
 }
 
 .sid-dist-stat-val {
-  font-size: 18px;
+  font-size: 15px;
   font-weight: 800;
   color: var(--ink);
-  line-height: 1.2;
+  font-variant-numeric: tabular-nums;
 }
 
 .sid-dist-stat-val--alert {
-  color: var(--red);
+  color: var(--gold);
 }
 
+/* Warehouse Utilization List */
 .sid-wh-list {
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: 8px;
 }
 
 .sid-wh-item {
   display: flex;
   align-items: center;
   gap: 12px;
+  padding: 9px 11px;
+  border-radius: var(--r, 10px);
+  border: 1px solid transparent;
+  background: transparent;
+  cursor: pointer;
+  transition: background 0.14s ease, border-color 0.14s ease;
+  text-align: left;
+  width: 100%;
 }
 
-.sid-wh-icon-wrap {
-  width: 28px;
-  height: 28px;
-  border-radius: 6px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  flex-shrink: 0;
-  font-size: 13px;
+.sid-wh-item:hover {
+  background: var(--card-sunken, var(--bg));
+  border-color: var(--border);
 }
 
-.sid-wh-icon--rose { background: rgba(225, 29, 72, 0.12); color: var(--red); }
-.sid-wh-icon--amber { background: rgba(245, 158, 11, 0.12); color: var(--gold); }
-.sid-wh-icon--teal { background: rgba(13, 148, 136, 0.12); color: var(--teal); }
+.sid-wh-item--active {
+  background: var(--teal-l);
+  border-color: var(--teal-m, var(--teal));
+}
 
 .sid-wh-info {
   flex: 1;
+  min-width: 0;
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: 6px;
 }
 
 .sid-wh-top {
   display: flex;
+  align-items: center;
   justify-content: space-between;
-  font-size: 12.5px;
-  font-weight: 700;
+  gap: 8px;
+  font-size: 13px;
+  font-weight: 600;
   color: var(--ink);
+}
+
+.sid-wh-name-wrap {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+
+.sid-wh-name {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .sid-wh-pct {
   font-size: 12px;
   font-weight: 700;
   color: var(--ink2);
+  font-variant-numeric: tabular-nums;
 }
 
 .sid-wh-track {
-  height: 5px;
-  background: var(--bg);
-  border-radius: 9999px;
+  width: 100%;
+  height: 6px;
+  border-radius: 999px;
+  background: var(--border);
   overflow: hidden;
 }
 
 .sid-wh-fill {
   height: 100%;
-  border-radius: 9999px;
-  transition: width 0.4s ease;
+  border-radius: 999px;
+  transition: width 0.25s ease;
 }
 
-.sid-wh-fill--rose { background: var(--red); }
-.sid-wh-fill--amber { background: var(--gold); }
-.sid-wh-fill--teal { background: var(--teal); }
+.sid-wh-fill--teal {
+  background: var(--teal);
+}
 
-/* ── Filter & Search Bar ── */
-.sid-filter-bar {
+.sid-wh-fill--amber {
+  background: var(--gold);
+}
+
+.sid-wh-fill--rose {
+  background: var(--red);
+}
+
+/* ── 3. Inventory Ledger Section (Status Tabs + Toolbar + Table/Cards) ── */
+.sid-ledger-card {
+  background: var(--surface, var(--white));
+  border: 1px solid var(--border);
+  border-radius: var(--card-radius, 14px);
+  box-shadow: var(--elev-xs);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+.sid-ledger-top {
   display: flex;
   align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
   gap: 12px;
-  background: var(--white);
-  border: 1px solid var(--border);
-  border-radius: var(--card-radius, 10px);
-  padding: 8px 12px;
-  box-shadow: var(--elev-sm);
+  padding: 14px 18px;
+  border-bottom: 1px solid var(--border);
+  background: var(--card-sunken, var(--bg));
+}
+
+.sid-status-tabs {
+  display: flex;
+  align-items: center;
+  gap: 6px;
   flex-wrap: wrap;
 }
 
-.sid-search-wrap {
-  flex: 1;
-  min-width: 220px;
-  display: flex;
+.sid-status-tab {
+  display: inline-flex;
   align-items: center;
-  gap: 8px;
-  color: var(--ink3);
-}
-
-.sid-search-input {
-  width: 100%;
-  border: none;
-  background: transparent;
-  font-family: var(--font);
-  font-size: 13.5px;
-  color: var(--ink);
-  outline: none;
-}
-
-.sid-search-input::placeholder {
-  color: var(--ink3);
-}
-
-.sid-select-filter {
-  height: 34px;
-  padding: 0 10px;
-  border-radius: var(--r-sm, 6px);
-  background: var(--bg);
+  gap: 7px;
+  height: 32px;
+  padding: 0 12px;
+  border-radius: var(--r-sm, 8px);
   border: 1px solid var(--border);
-  font-family: var(--font);
+  background: var(--surface, var(--white));
+  color: var(--ink2);
   font-size: 12.5px;
   font-weight: 600;
-  color: var(--ink);
-  outline: none;
   cursor: pointer;
-  transition: border-color 0.12s;
+  transition: all 0.14s ease;
 }
 
-.sid-select-filter:focus {
+.sid-status-tab:hover {
+  border-color: var(--border2, var(--ink3));
+  color: var(--ink);
+}
+
+.sid-status-tab--active {
+  background: var(--teal-l);
   border-color: var(--teal);
+  color: var(--teal);
+  font-weight: 700;
 }
 
-/* ── Inventory Ledger Table Card ── */
-.sid-table-card {
-  background: var(--white);
-  border: 1px solid var(--border);
-  border-radius: var(--card-radius, 12px);
-  box-shadow: var(--elev-sm);
-  overflow: hidden;
+.sid-status-tab-count {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 5px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 700;
+  background: var(--card-sunken, var(--bg));
+  color: var(--ink2);
+  font-variant-numeric: tabular-nums;
 }
 
+.sid-status-tab--active .sid-status-tab-count {
+  background: var(--teal);
+  color: hsl(var(--primary-foreground));
+}
+
+.sid-ledger-toolbar {
+  padding: 12px 18px;
+  border-bottom: 1px solid var(--border);
+}
+
+.sid-ledger-toolbar .fbar-root {
+  margin-bottom: 0;
+}
+
+/* ── Desktop Table ── */
 .sid-table-wrap {
   width: 100%;
   overflow-x: auto;
@@ -480,188 +600,255 @@
 .sid-table {
   width: 100%;
   border-collapse: collapse;
-  font-size: 13px;
   text-align: left;
 }
 
+.sid-table thead tr {
+  background: var(--card-sunken, var(--bg));
+  border-bottom: 1px solid var(--border);
+}
+
 .sid-table th {
-  padding: 12px 16px;
-  background: var(--card-sunken);
-  color: var(--ink3);
+  padding: 11px 16px;
   font-size: 11px;
   font-weight: 700;
   text-transform: uppercase;
-  letter-spacing: 0.04em;
-  border-bottom: 1px solid var(--border);
+  letter-spacing: 0.06em;
+  color: var(--ink3);
   white-space: nowrap;
 }
 
-[data-theme="dark"] .sid-table th {
-  background: rgba(255, 255, 255, 0.03);
+.sid-table tbody tr {
+  border-bottom: 1px solid var(--border);
+  transition: background 0.12s ease;
+}
+
+.sid-table tbody tr:last-child {
+  border-bottom: none;
+}
+
+.sid-table tbody tr:hover {
+  background: var(--card-sunken, var(--bg));
 }
 
 .sid-table td {
   padding: 13px 16px;
-  border-bottom: 1px solid var(--border);
+  font-size: 13px;
   color: var(--ink);
   vertical-align: middle;
 }
 
-.sid-table tr:last-child td {
-  border-bottom: none;
+.sid-prod-cell {
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  min-width: 200px;
 }
 
-.sid-table tbody tr {
-  transition: background 0.1s ease;
-}
-
-.sid-table tbody tr:hover {
-  background: var(--hover-bg);
+.sid-prod-meta {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
 }
 
 .sid-prod-name {
   font-weight: 700;
   color: var(--ink);
-  display: flex;
-  align-items: center;
-  gap: 8px;
+  font-size: 13.5px;
+  line-height: 1.25;
+}
+
+.sid-prod-cat {
+  font-size: 11.5px;
+  color: var(--ink3);
 }
 
 .sid-sku-code {
-  font-family: var(--font);
-  font-size: 12px;
-  color: var(--ink3);
-  font-weight: 500;
+  display: inline-flex;
+  align-items: center;
+  padding: 3px 8px;
+  border-radius: var(--r-xs, 6px);
+  background: var(--card-sunken, var(--bg));
+  border: 1px solid var(--border);
+  font-family: var(--mono);
+  font-size: 11.5px;
+  font-weight: 600;
+  color: var(--ink2);
+  white-space: nowrap;
 }
 
 .sid-wh-col {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12.5px;
+  font-weight: 600;
   color: var(--ink2);
-  font-weight: 500;
+  white-space: nowrap;
+}
+
+/* Visual Stock Health Cell */
+.sid-stock-cell {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  min-width: 150px;
+}
+
+.sid-stock-numbers {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+  font-variant-numeric: tabular-nums;
+}
+
+.sid-stock-avail {
+  font-size: 13.5px;
+  font-weight: 800;
+  color: var(--ink);
+}
+
+.sid-stock-avail--zero {
+  color: var(--red);
+}
+
+.sid-stock-sub {
+  font-size: 11px;
+  color: var(--ink3);
+}
+
+.sid-stock-bar {
+  width: 100%;
+  height: 5px;
+  border-radius: 999px;
+  background: var(--border);
+  overflow: hidden;
+}
+
+.sid-stock-bar-fill {
+  height: 100%;
+  border-radius: 999px;
+}
+
+.sid-stock-bar-fill--ok {
+  background: var(--green);
+}
+
+.sid-stock-bar-fill--low {
+  background: var(--gold);
+}
+
+.sid-stock-bar-fill--out {
+  background: var(--red);
 }
 
 .sid-val-col {
   font-weight: 700;
   color: var(--ink);
-}
-
-/* ── Stock Status Badges ── */
-.sid-pill {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  padding: 3px 10px;
-  border-radius: 9999px;
-  font-size: 11.5px;
-  font-weight: 700;
+  font-variant-numeric: tabular-nums;
   white-space: nowrap;
 }
 
-.sid-pill-dot {
-  width: 6px;
-  height: 6px;
-  border-radius: 50%;
-  flex-shrink: 0;
-}
-
-.sid-pill--in-stock {
-  background: rgba(16, 185, 129, 0.12);
-  color: var(--green);
-}
-.sid-pill--in-stock .sid-pill-dot { background: var(--green); }
-
-[data-theme="dark"] .sid-pill--in-stock {
-  background: rgba(16, 185, 129, 0.2);
-  color: #34d399;
-}
-
-.sid-pill--low-stock {
-  background: rgba(245, 158, 11, 0.12);
-  color: var(--gold);
-}
-.sid-pill--low-stock .sid-pill-dot { background: var(--gold); }
-
-[data-theme="dark"] .sid-pill--low-stock {
-  background: rgba(245, 158, 11, 0.2);
-  color: #fbbf24;
-}
-
-.sid-pill--out-of-stock {
-  background: rgba(225, 29, 72, 0.12);
-  color: var(--red);
-}
-.sid-pill--out-of-stock .sid-pill-dot { background: var(--red); }
-
-[data-theme="dark"] .sid-pill--out-of-stock {
-  background: rgba(225, 29, 72, 0.2);
-  color: #fb7185;
-}
-
-.sid-action-btn {
-  width: 28px;
-  height: 28px;
-  border-radius: 6px;
-  border: none;
-  background: transparent;
-  color: var(--ink3);
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  cursor: pointer;
-  transition: all 0.12s;
-}
-
-.sid-action-btn:hover {
-  background: var(--hover-bg);
-  color: var(--ink);
-}
-
-/* ── Modal Dialogs ── */
-.sid-modal-backdrop {
-  position: fixed;
-  inset: 0;
-  background: rgba(0, 0, 0, 0.55);
-  backdrop-filter: blur(4px);
-  z-index: 999;
+.sid-row-actions {
   display: flex;
   align-items: center;
-  justify-content: center;
-  padding: 16px;
-  animation: sid-fade-in 0.18s ease;
+  justify-content: flex-end;
+  gap: 6px;
 }
 
-.sid-modal {
-  background: var(--white);
-  border: 1px solid var(--border);
-  border-radius: var(--card-radius, 14px);
-  width: 100%;
-  max-width: 540px;
-  max-height: 90vh;
-  overflow-y: auto;
-  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.25);
-  animation: sid-zoom-in 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-  display: flex;
+/* ── Mobile Card List (< 768px) ── */
+.sid-mobile-list {
+  display: none;
   flex-direction: column;
 }
 
-.sid-modal-hdr {
+.sid-mobile-card {
+  padding: 14px 16px;
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.sid-mobile-card:last-child {
+  border-bottom: none;
+}
+
+.sid-mobile-card-top {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.sid-mobile-metrics {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+  padding: 10px 12px;
+  border-radius: var(--r-sm, 8px);
+  background: var(--card-sunken, var(--bg));
+  border: 1px solid var(--border);
+}
+
+.sid-mobile-metric-lbl {
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--ink3);
+}
+
+.sid-mobile-metric-val {
+  font-size: 13.5px;
+  font-weight: 800;
+  color: var(--ink);
+  margin-top: 2px;
+  font-variant-numeric: tabular-nums;
+}
+
+.sid-mobile-card-foot {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 16px 20px;
-  border-bottom: 1px solid var(--border);
+  gap: 8px;
 }
 
-.sid-modal-title {
-  font-size: 16px;
-  font-weight: 800;
-  color: var(--ink);
+@media (max-width: 768px) {
+  .sid-table-wrap {
+    display: none;
+  }
+  .sid-mobile-list {
+    display: flex;
+  }
 }
 
-.sid-modal-body {
-  padding: 20px;
+/* ── Dialog Form Layout Helpers ── */
+.sid-form-stack {
   display: flex;
   flex-direction: column;
   gap: 14px;
+}
+
+.sid-form-row-2 {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+.sid-form-row-3 {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+}
+
+@media (max-width: 540px) {
+  .sid-form-row-2,
+  .sid-form-row-3 {
+    grid-template-columns: 1fr;
+  }
 }
 
 .sid-form-group {
@@ -674,48 +861,35 @@
   font-size: 11.5px;
   font-weight: 700;
   text-transform: uppercase;
+  letter-spacing: 0.04em;
   color: var(--ink2);
 }
 
-.sid-input {
-  width: 100%;
-  height: 38px;
-  padding: 0 12px;
-  border-radius: var(--r-sm, 6px);
-  background: var(--bg);
-  border: 1px solid var(--border);
-  font-family: var(--font);
-  font-size: 13px;
-  color: var(--ink);
-  outline: none;
-  box-sizing: border-box;
-  transition: border-color 0.12s;
-}
-
-.sid-input:focus {
-  border-color: var(--teal);
-}
-
-.sid-modal-footer {
+.sid-dropzone {
+  border: 2px dashed var(--border2, var(--border));
+  border-radius: var(--r, 12px);
+  padding: 28px 20px;
+  text-align: center;
+  background: var(--card-sunken, var(--bg));
+  cursor: pointer;
   display: flex;
+  flex-direction: column;
   align-items: center;
-  justify-content: flex-end;
   gap: 10px;
-  padding: 14px 20px;
-  border-top: 1px solid var(--border);
-  background: var(--card-sunken);
+  transition: border-color 0.15s ease, background 0.15s ease;
 }
 
-[data-theme="dark"] .sid-modal-footer {
-  background: rgba(255, 255, 255, 0.03);
+.sid-dropzone:hover {
+  border-color: var(--teal);
+  background: var(--teal-l);
 }
 
-@keyframes sid-fade-in {
-  from { opacity: 0; }
-  to { opacity: 1; }
-}
-
-@keyframes sid-zoom-in {
-  from { opacity: 0; transform: scale(0.96); }
-  to { opacity: 1; transform: scale(1); }
+.sid-adjust-summary {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+  padding: 12px 14px;
+  background: var(--card-sunken, var(--bg));
+  border: 1px solid var(--border);
+  border-radius: var(--r, 10px);
 }

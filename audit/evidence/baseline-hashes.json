@@ -1,0 +1,326 @@
+[
+  {
+    "path": "apps/api/src/db/client.ts",
+    "sha256": "ff1ed7c39f638cde8f285fd1752302ae50795e35ab9a38da223cd147498a0ce4"
+  },
+  {
+    "path": "apps/api/src/routes/inventory-catalog.routes.ts",
+    "sha256": "41e212886d8da879e9bec607ed9cc2fcc96dbd23d6d3048c839c9979963c87b7"
+  },
+  {
+    "path": "apps/api/src/routes/inventory-counts.routes.ts",
+    "sha256": "16b6784e1882727b018fd5d69aec488514c9091d29269581e6f81c3a1add4cb9"
+  },
+  {
+    "path": "apps/api/src/routes/inventory-stock.routes.ts",
+    "sha256": "f61a75d9a2b00518b92a67674c74d68641efb9cc09d61e3b244b194d0f6769fd"
+  },
+  {
+    "path": "apps/api/src/routes/seal-automation.routes.ts",
+    "sha256": "99d85fc2789540a5e39cd30bcda057c5b1c8e6d43694706a788c57e7c73bafbb"
+  },
+  {
+    "path": "apps/api/src/routes/seal-billing.routes.ts",
+    "sha256": "bd0b097a6fe805f3462ab14804aadbbf6a2c4b508c030fc2553b7093505d485f"
+  },
+  {
+    "path": "apps/api/src/routes/seal-crm-link.routes.ts",
+    "sha256": "8fca30f02f07dfa6af25d63b0e168ac9ed98f99e2a81151e6695c25f23163758"
+  },
+  {
+    "path": "apps/api/src/routes/seal-declarations.routes.ts",
+    "sha256": "43e0bf62a814e47fc2000373bf67a82b6beed39bcf8d9505073fce8096bc38be"
+  },
+  {
+    "path": "apps/api/src/routes/seal-documents.routes.ts",
+    "sha256": "6f18e72be44d520ae2ebfca9f13e84a58627878f7b234b4784e7c461f6303cfe"
+  },
+  {
+    "path": "apps/api/src/routes/seal-equipment.routes.ts",
+    "sha256": "442fa452464f8e19c1e60f2d7933e414bd2854edfdc5c27e8b9dc8b7ee7efb23"
+  },
+  {
+    "path": "apps/api/src/routes/seal-examinations.routes.ts",
+    "sha256": "20798171f2f32561a071c257e8ef34c1d35d25b729e8a2fed96ada5aac6b1eef"
+  },
+  {
+    "path": "apps/api/src/routes/seal-fulfillment.routes.ts",
+    "sha256": "d0504d25a4ff316bd4d0d444a43b6f158fc37826d61f92a844b0d789921d3ed8"
+  },
+  {
+    "path": "apps/api/src/routes/seal-ledger-anchor.routes.ts",
+    "sha256": "814e55a00779d68f79a4a9578d156980fa740c417d63c3254a97e7c7cfcb60eb"
+  },
+  {
+    "path": "apps/api/src/routes/seal-sensors.routes.ts",
+    "sha256": "a0aaf0e54fc85d359b35c3f2d85ea809984da0070ba489fc8565022ff9e02cac"
+  },
+  {
+    "path": "apps/api/src/routes/seal-stock-account.routes.ts",
+    "sha256": "abb684f4a66d325474c56ed1664bf308740bd69dacd884fff159d6987e66b891"
+  },
+  {
+    "path": "apps/api/src/routes/seal-tasks.routes.ts",
+    "sha256": "f7fdcb2912e727465afd6980fed2cb5828f4f2c370d2f8880f5bd5e5e201d024"
+  },
+  {
+    "path": "apps/api/src/routes/seal-warehouse-ops.routes.ts",
+    "sha256": "ce2b30fcb290bb8945a7b23a417b0e1500d5a5fe1495dea668b1f4aa06f38f4d"
+  },
+  {
+    "path": "apps/api/src/routes/seal.routes.ts",
+    "sha256": "4f5c115de28f9644796e1427fde32a327b1551e83be77451a38deb903f927807"
+  },
+  {
+    "path": "apps/api/src/services/seal-billing.service.ts",
+    "sha256": "fec121a249ead727ad55aa0bd54ddad7bb538ca61e34afd3eed2788d391e5b5f"
+  },
+  {
+    "path": "apps/api/src/services/seal-stock-account.service.ts",
+    "sha256": "9d1ee1a7b8bc3cea692c755de9b390cba830fbda626bbb257a45f37282f5e560"
+  },
+  {
+    "path": "apps/api/src/services/seal.service.ts",
+    "sha256": "286caa9bcda0d81c41dcbd53971ed6516d7f7b791a668ee9ad390e2df6310494"
+  },
+  {
+    "path": "apps/web/src/App.tsx",
+    "sha256": "b569af5aa574b0d0d22d259094b43a31c9dbcf43df06043979530511c25b352e"
+  },
+  {
+    "path": "apps/web/src/components/RaiseSealTicketButton.tsx",
+    "sha256": "9eb1ca3b7bdbb8c1b2a0c6258f6d788e6d426a42bd8e1ae416157312b1de215f"
+  },
+  {
+    "path": "apps/web/src/components/SealCompartmentSwitcher.tsx",
+    "sha256": "4faf28ca7f30852054c6da2353aaa6f2fc724dffd283cdf5424f0c3430831c15"
+  },
+  {
+    "path": "apps/web/src/components/SealDocumentPanel.tsx",
+    "sha256": "0bb611c4317d91fd86a122078a65ff4241c96e01505cada00bdfeb51825411b7"
+  },
+  {
+    "path": "apps/web/src/hooks/useSealCapabilities.ts",
+    "sha256": "5f2e7d61b7b5a4db2acc87017d84da07063fb327c5f183db9aeb28383b206c88"
+  },
+  {
+    "path": "apps/web/src/lib/sealCapabilities.ts",
+    "sha256": "29b5f44b9f34b45a9a314cb15a9354a6dd93b4dd879b4f61038bea509fd894c7"
+  },
+  {
+    "path": "apps/web/src/pages/ComplyOS.css",
+    "sha256": "8da9945e47d552eb05cb2c5804cb01f00ed8a564b6a0291444fd4c0fa60559ed"
+  },
+  {
+    "path": "apps/web/src/pages/ComplyWorkflows.tsx",
+    "sha256": "429d4afe03c27474c78f1a6a5885314a285d5209d73ef723f2d98ea61185df94"
+  },
+  {
+    "path": "apps/web/src/pages/InventoryCountDetail.tsx",
+    "sha256": "9c170287404306ee0e8516eab79fb9a3e4ceb535e7f69b99f54a49f9f56c17cb"
+  },
+  {
+    "path": "apps/web/src/pages/InventoryCounts.tsx",
+    "sha256": "61951ca73de0b75532e6f53e98d23a083e984684f2e252ad545941d717bd84bc"
+  },
+  {
+    "path": "apps/web/src/pages/InventoryItems.tsx",
+    "sha256": "d7ac8a590499f574d54878e1f98577f505f3bdf33fa4a7e306f43a38de21421d"
+  },
+  {
+    "path": "apps/web/src/pages/InventoryStock.tsx",
+    "sha256": "58b892e960fa74b1a9a56027bd02d424cdcaa5c15bc3ab897425e1d621cba7b5"
+  },
+  {
+    "path": "apps/web/src/pages/InventoryWarehouses.tsx",
+    "sha256": "9d3a928ef8a8b552c8896cfdc04ba5ef11b183e20fa01a3cb98a6c0184c97b20"
+  },
+  {
+    "path": "apps/web/src/pages/ProjectsApp.tsx",
+    "sha256": "46950035a25306cfe0f6180f819d1c4e474cd039887ab1b4a910bd45f87a32ad"
+  },
+  {
+    "path": "apps/web/src/pages/Seal.css",
+    "sha256": "57c4abee07144b33153cc579aa21bf220f7257a0e64a608e963d940859ea41b2"
+  },
+  {
+    "path": "apps/web/src/pages/SealAdjustments.tsx",
+    "sha256": "f273580b370697f76c30fde52a468b3c29d53e86ac9a349abe503347962c97d1"
+  },
+  {
+    "path": "apps/web/src/pages/SealAgedStorage.tsx",
+    "sha256": "a5647eb535c8c6b97df1879c149377c642d37a6e9f6e79233db6bddd20c3fe1c"
+  },
+  {
+    "path": "apps/web/src/pages/SealAppointments.tsx",
+    "sha256": "7344207d5a886246c404123b21805831a5acb87d7747161e4de32c2a69a62dba"
+  },
+  {
+    "path": "apps/web/src/pages/SealCompartmentDetail.tsx",
+    "sha256": "11a6b142ccee4c7daea31de966da018162967aac3ca27136e022f0d6efc9b0a7"
+  },
+  {
+    "path": "apps/web/src/pages/SealCompartmentEdit.tsx",
+    "sha256": "3b51d7190ca9551ab4af9f4215099b04df6a84749f3884b1b601f1b3da15ff76"
+  },
+  {
+    "path": "apps/web/src/pages/SealCompartments.tsx",
+    "sha256": "c61849f6c3458b638c4089846c26ca2747e5affc34fa2a32c795ba375798f183"
+  },
+  {
+    "path": "apps/web/src/pages/SealConsignmentDetail.tsx",
+    "sha256": "ee36001eb62d53d7b58bef4cbca908cbec20f056539a6238f4b367728a77b263"
+  },
+  {
+    "path": "apps/web/src/pages/SealConsignments.tsx",
+    "sha256": "911657fae67c676acb3c8234a95972f6d45ee235cd6e955f566083d61bcc5280"
+  },
+  {
+    "path": "apps/web/src/pages/SealDashboard.tsx",
+    "sha256": "032f41a87d7b1e4e1a6d0ed2d2429c28372b845ac3b86ccec3cfc79f8b44e300"
+  },
+  {
+    "path": "apps/web/src/pages/SealFulfillmentDetail.tsx",
+    "sha256": "0ea3047f93850259cc7da84515f308bc0fc56ae35849b59b9a680197bb8985ef"
+  },
+  {
+    "path": "apps/web/src/pages/SealGuarantees.tsx",
+    "sha256": "c022da937610ca7952042122a5ac54cf023fa509d26ba35209237a5f735c4e33"
+  },
+  {
+    "path": "apps/web/src/pages/SealInventoryDashboard.css",
+    "sha256": "631831aba8cc78086e3ef7692c00ff24166882b38f8a76df0ffd55fc9be0bf2c"
+  },
+  {
+    "path": "apps/web/src/pages/SealLotDetail.tsx",
+    "sha256": "ceda41f7db0186c37b375e745c9d6c28080b85838f1af645bfdf77085f960506"
+  },
+  {
+    "path": "apps/web/src/pages/SealLots.tsx",
+    "sha256": "cff4e6eb7c4e94e8d771df03e65e10c63c8effb9dce3b73a699102acc698d2d9"
+  },
+  {
+    "path": "apps/web/src/pages/SealMetrics.tsx",
+    "sha256": "88dd535b3076f159d222a4042f901d78e99698fadb5f81835a1337c05b0b6e60"
+  },
+  {
+    "path": "apps/web/src/pages/SealReceiveLot.tsx",
+    "sha256": "df50672aeee3ae3a943c2c69589fad151bc4ebaffb986e359585298ab2f7304a"
+  },
+  {
+    "path": "apps/web/src/pages/SealStockAccount.tsx",
+    "sha256": "6de65064d610bca620f18e2435c59dd60896b51de40e9c10e054ff195636ba85"
+  },
+  {
+    "path": "apps/web/src/pages/SealStockTransferDetail.tsx",
+    "sha256": "e68aa88895d35e4c11df76eb6a4d94025cea35baaaaace3a2685a33184696b3d"
+  },
+  {
+    "path": "apps/web/src/pages/SealStockTransfers.tsx",
+    "sha256": "ccbe4942b94cfaf2a73e36d959c05fabe487758777b917d6ff2de1aa13fc5195"
+  },
+  {
+    "path": "apps/web/src/pages/SealStorageInvoices.tsx",
+    "sha256": "b5a8d3c97371e6f011d48f7ca5a2feb38b40218e18f43ddd1b67ea9b97b75360"
+  },
+  {
+    "path": "apps/web/src/pages/SealZoneHeatGrid.tsx",
+    "sha256": "16d2dc2724ccf557fb8570c2f57e1021dda10e20f256b56a70f770431ebc46ef"
+  },
+  {
+    "path": "apps/web/src/pages/projects/ProjectCreateModal.tsx",
+    "sha256": "ec4c15828704d56e51a1853162d060982e185e6b6b2c40ccffb9dc1c0acb5b40"
+  },
+  {
+    "path": "apps/web/src/pages/projects/ProjectCreatePage.css",
+    "sha256": "821ac2696b4f937392dddda6a00e559c492a52a4c93c89b1379a99970ff1d48c"
+  },
+  {
+    "path": "apps/web/src/pages/projects/ProjectCreatePage.tsx",
+    "sha256": "ec3ced63424f8652376e4d87fdb83dec5fef8f3c46d936db782155280c287dc0"
+  },
+  {
+    "path": "apps/web/src/pages/projects/ProjectWorkspaceHeader.css",
+    "sha256": "019096a479b30b9327fb8a08d54ac78b19a11bc73460442e2207700a43d9d6be"
+  },
+  {
+    "path": "apps/web/src/pages/seal/SealExWarehouseEntries.tsx",
+    "sha256": "a6fc08836476b5d8c7fc3b3c7f29268fffe151039d895480dc7441087d7b3efb"
+  },
+  {
+    "path": "apps/web/src/pages/seal/SealExWarehouseEntryDetail.tsx",
+    "sha256": "ce35fbfbbe01c459b8e2b7af2a5f63196109085709554f2f8469894a7353b676"
+  },
+  {
+    "path": "apps/web/src/shells/SealShell.tsx",
+    "sha256": "b971dee734add0f67c4f69d20dabc81f2bd4707671950a898f4015a9a0e1efba"
+  },
+  {
+    "path": "packages/types/src/seal.ts",
+    "sha256": "458b4a7566987069538b39418cff54244ff2fca8d64d51472b71d99a7b31ae12"
+  },
+  {
+    "path": "apps/api/src/db/migrations/652_seal_fulfillment_reservations.sql",
+    "sha256": "ea68c3e22f263927c166d65aa94af0513cb527743c689ccd5da7a2ecb4b9ec7d"
+  },
+  {
+    "path": "apps/api/src/db/migrations/653_seal_lot_revisions.sql",
+    "sha256": "8799d55ee61083ce3603e14b38afa68b2799b6d90905bfcf405d7c62acbeb46e"
+  },
+  {
+    "path": "apps/api/src/db/migrations/654_seal_appointment_details.sql",
+    "sha256": "7b9f29dc0c22914a758a546ee8b8c3eafcc72c98400a1e754326f93a84a0082a"
+  },
+  {
+    "path": "apps/api/src/db/migrations/655_seal_container_tally_completion.sql",
+    "sha256": "ed4cb9801897fb00bfdfe3634b0e83288c78e96e00321af3a2bf3070adf8c4c6"
+  },
+  {
+    "path": "apps/api/src/middleware/seal-references.ts",
+    "sha256": "d6aeca39f4549f35a1fb515185884736b2e8b1ee8fdf11ef0e675ec27b60b143"
+  },
+  {
+    "path": "apps/api/src/routes/seal-counts.routes.ts",
+    "sha256": "c857411df7ab4dfae414ba64f222561d9facdb55324c8f93174bfeda0c9d43b8"
+  },
+  {
+    "path": "apps/api/src/routes/seal-lot-edit.routes.ts",
+    "sha256": "b6785d3afed64958ba9072901c438d344f04cfb3b6c6dc91187c22be106dc1aa"
+  },
+  {
+    "path": "apps/api/src/services/seal-stock.service.ts",
+    "sha256": "7bc3f9057a2fe27fd6b384ef927499983fd7bbf06036dec5b336edd13b424f32"
+  },
+  {
+    "path": "apps/api/src/tests/seal-operations-integrity.test.ts",
+    "sha256": "2fa19fe0a37d0fdc0285ebcb5f8d8fbc4b9669776f5b0d76e9394e5f30c51726"
+  },
+  {
+    "path": "apps/web/src/hooks/useSealStock.ts",
+    "sha256": "83ebec51c8e9707ee3c2b33a8e68b09024147369ae7eaad69a6f5f8887d27f71"
+  },
+  {
+    "path": "apps/web/src/pages/SealCountDetailPage.tsx",
+    "sha256": "d0429ebc2a8c527dba68462db1a71898a6adbaf029dde40ff617f1d20ae8d62e"
+  },
+  {
+    "path": "apps/web/src/pages/SealLotEditPage.tsx",
+    "sha256": "03f8332faad6b173617e0240412c61a82da5c5fcfddcfd7a8f2ab0edb053e33d"
+  },
+  {
+    "path": "apps/web/src/pages/SealMovementHistory.tsx",
+    "sha256": "b4d614c5b7694776bd4cf50c84279dc9a30518efe99dfd45063990d86774e027"
+  },
+  {
+    "path": "apps/web/src/pages/SealStockOverview.tsx",
+    "sha256": "3807bd7642d108ddd769547ff4b2dee75befe69e4681e867c86e6a52f8f17fc5"
+  },
+  {
+    "path": "docs/SEAL_ACTION_RECHECK.md",
+    "sha256": "085c2b625693b3ff1fb9b996a2b28842da192ad32337ab757cb1c6756989f6b5"
+  },
+  {
+    "path": "docs/SEAL_OPERATING_FLOW.md",
+    "sha256": "34876613700fb175a99f17ba9420c57c754bd211f0d0a5889f881c379c006dfc"
+  }
+]

@@ -1,0 +1,14 @@
+[
+  {
+    "path": "baseline-hashes.json",
+    "sha256": "1bb7ebf5f3914ecd8f74b374489ffb6e20f492b18997f871eb7cf5c807f50b28"
+  },
+  {
+    "path": "baseline-status.txt",
+    "sha256": "e92aefc22681f4976aa5ed6f85860441240d58b878b59086a9d3b1b08822ac7c"
+  },
+  {
+    "path": "baseline.patch",
+    "sha256": "0538697f6ef27c0ed8b1f8bb7525a7ed97cc2ab9a868d0883425c32f0cb33b9b"
+  }
+]

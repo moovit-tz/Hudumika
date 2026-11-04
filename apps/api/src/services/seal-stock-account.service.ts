@@ -42,6 +42,7 @@ export class SealStockAccountService {
     const periodEndExclusive = new Date(new Date(input.periodEnd).getTime() + 86400000); // end-of-day boundary
 
     const existing = await trx.selectFrom('seal_stock_account_periods').select('id')
+      .where('tenant_id', '=', tenantId)
       .where('compartment_id', '=', input.compartmentId)
       .where('period_start', '=', toDateParam(periodStart))
       .where('period_end', '=', toDateParam(new Date(input.periodEnd)))
@@ -50,6 +51,7 @@ export class SealStockAccountService {
 
     const lots = await trx.selectFrom('seal_lots')
       .select(['id', 'customs_status', 'duty_at_risk', 'tax_at_risk', 'created_at'])
+      .where('tenant_id', '=', tenantId)
       .where('compartment_id', '=', input.compartmentId)
       .where('created_at', '<', periodEndExclusive)
       .execute();
@@ -106,7 +108,7 @@ export class SealStockAccountService {
     return trx.updateTable('seal_stock_account_periods').set({
       opening_lot_count: openingLotCount, closing_lot_count: closingLotCount,
       total_duty_at_risk: String(totalDutyAtRisk), total_tax_at_risk: String(totalTaxAtRisk),
-    }).where('id', '=', period.id).returningAll().executeTakeFirstOrThrow();
+    }).where('tenant_id', '=', tenantId).where('id', '=', period.id).returningAll().executeTakeFirstOrThrow();
   }
 
   static async submit(trx: Transaction<Database>, tenantId: string, periodId: string, submissionReference: string) {

@@ -1,3 +1,4 @@
+import { Banner } from '../components/ui/alert.js';
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { PageHeader } from '../components/PageHeader.js';
@@ -12,26 +13,9 @@ import { apiFetch } from '../lib/api.js';
 import { useSealCompartmentId } from '../hooks/useSealCompartment.js';
 import { useSealCapabilities } from '../hooks/useSealCapabilities.js';
 import { CUSTOMS_STATUS_VARIANT, CUSTOMS_STATUS_COLOR_VAR } from '../lib/sealStatus.js';
-import { CUSTOMS_STATUSES, CUSTOMS_STATUS_LABELS, type CustomsStatus } from '@hudumika/types';
+import { CUSTOMS_STATUSES, CUSTOMS_STATUS_LABELS, type SealLot as Lot } from '@hudumika/types';
 import './Seal.css';
 
-interface Lot {
-  id: string;
-  description: string;
-  lot_ref?: string;
-  hs_code: string | null;
-  owner_id?: string;
-  owner_name?: string;
-  customs_status: CustomsStatus;
-  current_location_code?: string | null;
-  qty_on_hand: number;
-  uom: string;
-  unit: string;
-  days_remaining: number | null;
-  expires_on: string | null;
-  product_id: string | null;
-  sku?: string | null;
-}
 
 const STATUS_ALL = '__all__';
 
@@ -40,6 +24,7 @@ export function SealLots() {
   const caps = useSealCapabilities();
   const [lots, setLots] = useState<Lot[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [statusFilter, setStatusFilter] = useState<string>(STATUS_ALL);
   const [search, setSearch] = useState('');
   const [compartmentId] = useSealCompartmentId();
@@ -51,15 +36,16 @@ export function SealLots() {
     if (search.trim()) params.set('q', search.trim());
     if (compartmentId) params.set('compartment_id', compartmentId);
     apiFetch(`/v1/seal/lots?${params}`)
-      .then((r: any) => setLots(Array.isArray(r) ? r : r.data ?? []))
+      .then((r: Lot[]) => { setLots(r); setError(null); })
+      .catch(e => { setLots([]); setError(e.message); })
       .finally(() => setLoading(false));
   }, [statusFilter, search, compartmentId]);
 
   // KPI
-  const expired    = lots.filter(l => (l.days_remaining ?? 1) < 0).length;
-  const nearExpiry = lots.filter(l => l.days_remaining != null && l.days_remaining >= 0 && l.days_remaining <= 30).length;
-  const held       = caps.customs ? lots.filter(l => ['HELD_BY_CUSTOMS', 'UNDER_EXAMINATION'].includes(l.customs_status)).length : 0;
-  const withSku    = lots.filter(l => l.product_id != null).length;
+  const expired    = lots.filter(l => (l.daysRemaining ?? 1) < 0).length;
+  const nearExpiry = lots.filter(l => l.daysRemaining != null && l.daysRemaining >= 0 && l.daysRemaining <= 30).length;
+  const held       = caps.customs ? lots.filter(l => ['SEIZED', 'ABANDONED'].includes(l.customsStatus)).length : 0;
+  const withSku    = lots.filter(l => l.productId != null).length;
 
   const statusOptions = [
     { value: STATUS_ALL, label: 'All statuses' },
@@ -72,7 +58,7 @@ export function SealLots() {
   return (
     <div className="seal-page">
       <PageHeader
-        crumbs={['SEAL', caps.customs ? 'The Ledger' : 'Inventory', 'Lots']}
+        crumbs={['SEAL', caps.customs ? 'Inventory' : 'Inventory', 'Lots']}
         titlePlain={titlePlain}
         titleEm={titleEm}
         subtitle={caps.customs
@@ -86,6 +72,7 @@ export function SealLots() {
         }
       />
 
+      {error && <Banner variant="error">{error}</Banner>}
       {/* KPI strip */}
       <div className="seal-kpi-strip">
         {[
@@ -93,7 +80,7 @@ export function SealLots() {
           { label: 'Expired',     value: expired,      variant: 'error' as const,   icon: 'alertCircle' },
           { label: 'Near Expiry', value: nearExpiry,   variant: 'warning' as const, icon: 'clock' },
           ...(caps.customs
-            ? [{ label: 'Held / Exam', value: held,   variant: 'error' as const,   icon: 'shield' }]
+            ? [{ label: 'Seized / Abandoned', value: held,   variant: 'error' as const,   icon: 'shield' }]
             : [{ label: 'With SKU',   value: withSku,  variant: 'success' as const, icon: 'tag' }]),
         ].map(k => (
           <div key={k.label} className="seal-kpi-card">
@@ -123,7 +110,7 @@ export function SealLots() {
           <SearchToolbar
             search={search}
             onSearch={setSearch}
-            placeholder="Search description, HS code, SKU…"
+            placeholder="Search lot description…"
             activeFilterCount={statusFilter !== STATUS_ALL ? 1 : 0}
           />
         </div>
@@ -163,41 +150,41 @@ export function SealLots() {
                   <tr key={lot.id} className="seal-table-row-clickable" onClick={() => navigate(`/seal/lots/${lot.id}`)}>
                     <td>
                       {caps.customs && (
-                        <span className="seal-strip" style={{ background: `var(${CUSTOMS_STATUS_COLOR_VAR[lot.customs_status]})` }} />
+                        <span className="seal-strip" style={{ background: `var(${CUSTOMS_STATUS_COLOR_VAR[lot.customsStatus]})` }} />
                       )}
                       <div style={{ display: 'inline-block', verticalAlign: 'middle' }}>
                         <div style={{ fontWeight: 700, color: 'var(--ink)', fontSize: 13 }}>
                           {lot.description}
-                          {lot.lot_ref && <span style={{ fontFamily: 'var(--font-mono, monospace)', fontSize: 10, color: 'var(--teal)', marginLeft: 8 }}>{lot.lot_ref}</span>}
+                          {lot.entryReference && <span style={{ fontFamily: 'var(--font-mono, monospace)', fontSize: 10, color: 'var(--teal)', marginLeft: 8 }}>{lot.entryReference}</span>}
                         </div>
-                        {lot.hs_code && <div style={{ fontFamily: 'var(--font-mono, monospace)', color: 'var(--ink3)', fontSize: 11, marginTop: 1 }}>HS {lot.hs_code}</div>}
-                        {lot.sku    && <div style={{ fontSize: 11, color: 'var(--blue)', marginTop: 1 }}>SKU {lot.sku}</div>}
+                        {lot.hsCode && <div style={{ fontFamily: 'var(--font-mono, monospace)', color: 'var(--ink3)', fontSize: 11, marginTop: 1 }}>HS {lot.hsCode}</div>}
+                        {lot.productId    && <div style={{ fontSize: 11, color: 'var(--blue)', marginTop: 1 }}>Catalogue linked</div>}
                       </div>
                     </td>
                     <td>
-                      {lot.owner_name ? (
+                      {lot.ownerName ? (
                         <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}>
-                          <PersonAvatar userId={lot.owner_id} kind="customers" name={lot.owner_name} size={22} />
-                          <span style={{ fontSize: 13 }}>{lot.owner_name}</span>
+                          <PersonAvatar userId={lot.ownerId} kind="customers" name={lot.ownerName} size={22} />
+                          <span style={{ fontSize: 13 }}>{lot.ownerName}</span>
                         </span>
                       ) : '—'}
                     </td>
-                    <td style={{ fontFamily: 'var(--font-mono, monospace)', fontSize: 12 }}>{lot.current_location_code ?? '—'}</td>
+                    <td style={{ fontFamily: 'var(--font-mono, monospace)', fontSize: 12 }}>{lot.currentLocationCode ?? '—'}</td>
                     <td style={{ fontVariantNumeric: 'tabular-nums', fontSize: 13 }}>
-                      {(lot.qty_on_hand ?? 0).toLocaleString()} <span style={{ color: 'var(--ink3)', fontSize: 11 }}>{lot.uom || lot.unit}</span>
+                      {(lot.qtyOnHand ?? 0).toLocaleString()} <span style={{ color: 'var(--ink3)', fontSize: 11 }}>{lot.uom}</span>
                     </td>
                     {caps.customs && (
-                      <td><Badge variant={CUSTOMS_STATUS_VARIANT[lot.customs_status]}>{CUSTOMS_STATUS_LABELS[lot.customs_status]}</Badge></td>
+                      <td><Badge variant={CUSTOMS_STATUS_VARIANT[lot.customsStatus]}>{CUSTOMS_STATUS_LABELS[lot.customsStatus]}</Badge></td>
                     )}
                     <td>
-                      {lot.days_remaining == null ? (
+                      {lot.daysRemaining == null ? (
                         <span style={{ color: 'var(--ink3)', fontSize: 12 }}>—</span>
-                      ) : lot.days_remaining < 0 ? (
+                      ) : lot.daysRemaining < 0 ? (
                         <Badge variant="error">Expired</Badge>
-                      ) : lot.days_remaining <= 30 ? (
-                        <Badge variant="warning">{lot.days_remaining}d left</Badge>
+                      ) : lot.daysRemaining <= 30 ? (
+                        <Badge variant="warning">{lot.daysRemaining}d left</Badge>
                       ) : (
-                        <span style={{ color: 'var(--ink3)', fontSize: 12 }}>{lot.days_remaining}d left</span>
+                        <span style={{ color: 'var(--ink3)', fontSize: 12 }}>{lot.daysRemaining}d left</span>
                       )}
                     </td>
                   </tr>

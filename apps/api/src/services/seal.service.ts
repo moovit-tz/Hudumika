@@ -60,6 +60,7 @@ interface RecordMovementInput {
   lotId: string;
   fromLocationId?: string | null;
   toLocationId?: string | null;
+  toCompartmentId?: string;
   stackTier?: number;
   qtyDelta?: number;
   toCustomsStatus?: CustomsStatus | null;
@@ -67,6 +68,8 @@ interface RecordMovementInput {
   reasonCode?: string | null;
   reference?: string | null;
 }
+
+export class InvalidSealMovement extends Error {}
 
 export class SealService {
   /**
@@ -82,11 +85,25 @@ export class SealService {
     // body — so the tenant check belongs here, at the single chokepoint,
     // rather than being re-derived by each of its callers.
     const lot = await trx.selectFrom('seal_lots')
-      .select(['id', 'customs_status', 'current_location_id', 'qty_on_hand', 'is_dangerous_goods', 'imdg_class'])
+      .select(['id', 'customs_status', 'current_location_id', 'qty_on_hand', 'compartment_id', 'duty_at_risk', 'tax_at_risk', 'is_dangerous_goods', 'imdg_class'])
       .where('tenant_id', '=', tenantId)
       .where('id', '=', input.lotId)
+      .forUpdate()
       .executeTakeFirst();
     if (!lot) throw new Error(`Lot not found: ${input.lotId}`);
+
+    if (input.toCompartmentId) {
+      const target = await trx.selectFrom('seal_compartments').select('id').where('tenant_id', '=', tenantId).where('id', '=', input.toCompartmentId).executeTakeFirst();
+      if (!target) throw new Error('Destination warehouse not found.');
+      if (input.toCompartmentId !== lot.compartment_id && lot.customs_status === 'FOREIGN_DUTY_SUSPENDED') {
+        await SealService.checkHeadroom(trx, tenantId, input.toCompartmentId, Number(lot.duty_at_risk) + Number(lot.tax_at_risk));
+      }
+    }
+    if (input.toLocationId) {
+      const target = await trx.selectFrom('seal_locations').select('id').where('tenant_id', '=', tenantId)
+        .where('compartment_id', '=', input.toCompartmentId ?? lot.compartment_id).where('id', '=', input.toLocationId).executeTakeFirst();
+      if (!target) throw new Error('Destination location does not belong to this warehouse.');
+    }
 
     const fromStatus = lot.customs_status as CustomsStatus;
     const toStatus = input.toCustomsStatus ?? null;
@@ -114,6 +131,19 @@ export class SealService {
     const occurredAt = new Date();
     const occurredAtIso = occurredAt.toISOString();
     const qtyDelta = input.qtyDelta ?? 0;
+    if (['transfer','putaway','status_change'].includes(input.movementType) && qtyDelta !== 0) throw new InvalidSealMovement('Use a stock adjustment or receipt to change quantity.');
+    if (input.movementType === 'return') {
+      if (qtyDelta <= 0 || !input.reference?.trim()) throw new InvalidSealMovement('A return requires a positive quantity and a return reference.');
+      const outbound = await trx.selectFrom('seal_movements').select(({fn})=>fn.sum<string>('qty_delta').as('delta'))
+        .where('tenant_id','=',tenantId).where('lot_id','=',lot.id).where('movement_type','in',['pick','release','return']).executeTakeFirst();
+      if (qtyDelta > -Number(outbound?.delta ?? 0)) throw new InvalidSealMovement('Return quantity exceeds stock previously issued from this lot.');
+    }
+    if (input.movementType === 'pick' && qtyDelta >= 0) throw new InvalidSealMovement('A pick must reduce stock.');
+    if (toStatus && toStatus !== fromStatus && !input.entryReference?.trim() && !input.reference?.trim()) throw new InvalidSealMovement('Enter a reference for the customs transition.');
+
+    if (!Number.isFinite(qtyDelta) || Number(lot.qty_on_hand) + qtyDelta < 0) {
+      throw new Error('This movement would produce an invalid or negative stock balance.');
+    }
 
     const last = await trx.selectFrom('seal_movements')
       .select('hash')
@@ -128,7 +158,7 @@ export class SealService {
       movement_type: input.movementType,
       lot_id: input.lotId,
       from_location_id: input.fromLocationId ?? lot.current_location_id,
-      to_location_id: input.toLocationId ?? lot.current_location_id,
+      to_location_id: input.toLocationId === undefined ? lot.current_location_id : input.toLocationId,
       qty_delta: qtyDelta,
       from_customs_status: toStatus ? fromStatus : null,
       to_customs_status: toStatus,
@@ -164,6 +194,7 @@ export class SealService {
     await trx.updateTable('seal_lots')
       .set({
         current_location_id: payload.to_location_id,
+        ...(input.toCompartmentId ? { compartment_id: input.toCompartmentId } : {}),
         qty_on_hand: String(Number(lot.qty_on_hand) + qtyDelta),
         ...(toStatus ? { customs_status: toStatus } : {}),
         ...(input.stackTier != null ? { stack_tier: input.stackTier } : {}),
@@ -255,7 +286,7 @@ export class SealService {
   }
 
   static async receiveLot(trx: Transaction<Database>, tenantId: string, actorId: string | null, input: {
-    compartmentId: string; ownerId: string; description: string; hsCode?: string | null;
+    compartmentId: string; ownerId: string; description: string; productId?: string; hsCode?: string | null;
     countryOfOrigin?: string | null; customsStatus: CustomsStatus; entryReference?: string | null;
     locationId?: string | null; qty: number; uom: string; customsValue?: number | null; currency?: string | null;
     warehousedOn?: string | null; expiresOn?: string | null; batch?: string | null;
@@ -273,6 +304,23 @@ export class SealService {
       throw new Error(`A lot cannot be received directly into ${input.customsStatus} — valid entry statuses are ${CUSTOMS_STATUS_ENTRY_POINTS.join(', ')}`);
     }
 
+    if (!Number.isFinite(input.qty) || input.qty <= 0) throw new Error('Receipt quantity must be positive.');
+    const compartment = await trx.selectFrom('seal_compartments').select('id')
+      .where('tenant_id', '=', tenantId).where('id', '=', input.compartmentId).executeTakeFirst();
+    const owner = await trx.selectFrom('customers').select('id')
+      .where('tenant_id', '=', tenantId).where('id', '=', input.ownerId).executeTakeFirst();
+    if (!compartment || !owner) throw new Error('Warehouse or owner not found in this workspace.');
+    if (input.locationId) {
+      const location = await trx.selectFrom('seal_locations').select('id')
+        .where('tenant_id', '=', tenantId).where('compartment_id', '=', input.compartmentId)
+        .where('id', '=', input.locationId).executeTakeFirst();
+      if (!location) throw new Error('Location not found in this warehouse.');
+    }
+
+    if (input.productId && !await trx.selectFrom('products').select('id').where('tenant_id', '=', tenantId).where('id', '=', input.productId).executeTakeFirst()) {
+      throw new Error('Product not found in this workspace.');
+    }
+
     const dutyAtRisk = input.dutyAtRisk ?? 0;
     const taxAtRisk = input.taxAtRisk ?? 0;
     if (input.customsStatus === 'FOREIGN_DUTY_SUSPENDED') {
@@ -284,7 +332,7 @@ export class SealService {
       await SealService.checkDgSegregation(trx, tenantId, input.locationId, {
         isDangerousGoods: !!input.isDangerousGoods, imdgClass: input.imdgClass,
       });
-      const targetLocation = await trx.selectFrom('seal_locations').select('max_stack_tiers').where('id', '=', input.locationId).executeTakeFirst();
+      const targetLocation = await trx.selectFrom('seal_locations').select('max_stack_tiers').where('tenant_id', '=', tenantId).where('id', '=', input.locationId).executeTakeFirst();
       if (targetLocation && stackTier > targetLocation.max_stack_tiers) {
         throw new Error(`Location only supports ${targetLocation.max_stack_tiers} stack tier(s) — tier ${stackTier} is out of range.`);
       }
@@ -296,6 +344,7 @@ export class SealService {
         compartment_id: input.compartmentId,
         owner_id: input.ownerId,
         description: input.description,
+        product_id: input.productId ?? null,
         hs_code: input.hsCode ?? null,
         country_of_origin: input.countryOfOrigin ?? null,
         customs_status: input.customsStatus,
@@ -337,12 +386,12 @@ export class SealService {
 
     // Cargo has physically landed in the warehouse — the point every
     // downstream journey (billing, storage, dispatch) actually starts from.
-    emitDomainEvent(trx, tenantId, {
+    await emitDomainEvent(trx, tenantId, {
       type: 'seal.lot_received', sourceApp: 'seal', entityType: 'seal_lot', entityId: lot.id,
       payload: { description: input.description, customsStatus: input.customsStatus, entryReference: input.entryReference ?? null },
-    }).catch(err => console.error('[SEAL] lot_received emit failed:', err.message));
+    }, { deferDispatch: true });
 
-    return trx.selectFrom('seal_lots').selectAll().where('id', '=', lot.id).executeTakeFirstOrThrow();
+    return trx.selectFrom('seal_lots').selectAll().where('tenant_id', '=', tenantId).where('id', '=', lot.id).executeTakeFirstOrThrow();
   }
 
   /** Recomputes the hash chain for a lot's movement history from scratch and

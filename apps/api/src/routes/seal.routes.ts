@@ -1,9 +1,12 @@
+import { validateSealReferences } from '../middleware/seal-references.js';
+import { registerSealLotEditing } from './seal-lot-edit.routes.js';
+import { registerSealCounts } from './seal-counts.routes.js';
 import { requireEntitlement } from '../middleware/entitlement.js';
 import type { FastifyInstance } from 'fastify';
 import { z } from 'zod';
 import { withTenant } from '../db/client.js';
 import { sql } from 'kysely';
-import { SealService, IllegalCustomsTransition, BondHeadroomExceeded, DgSegregationViolation, LotNotFound } from '../services/seal.service.js';
+import { SealService, InvalidSealMovement, IllegalCustomsTransition, BondHeadroomExceeded, DgSegregationViolation, LotNotFound } from '../services/seal.service.js';
 import { toDateParam } from '../utils/dates.js';
 import {
   CUSTOMS_STATUS_ENTRY_POINTS, CUSTOMS_STATUSES, legalNextCustomsStatuses, validateContainerNumber, type CustomsStatus,
@@ -18,7 +21,7 @@ const WAREHOUSE_TYPES = [
 ] as const;
 const ZONE_TYPES = ['receiving', 'bulk', 'pick', 'vas', 'quarantine', 'outbound', 'yard', 'sort_lane'] as const;
 const LOCATION_TYPES = ['rack', 'floor', 'yard_slot', 'tank', 'dock', 'staging'] as const;
-const MOVEMENT_TYPES = ['receipt', 'putaway', 'pick', 'transfer', 'adjust', 'release', 'destroy', 'status_change'] as const;
+const MOVEMENT_TYPES = ['receipt', 'putaway', 'pick', 'transfer', 'adjust', 'release', 'destroy', 'status_change', 'return'] as const;
 const DISCREPANCY_TYPES = ['shortage', 'overage', 'damage', 'misdescription', 'weight_variance'] as const;
 const DISCREPANCY_SEVERITIES = ['minor', 'fiscal_relevant'] as const;
 const DISCREPANCY_STATUSES = ['raised', 'investigating', 'resolved'] as const;
@@ -87,9 +90,10 @@ const locationPatchSchema = z.object({
 const lotCreateSchema = z.object({
   compartmentId: z.string().min(1),
   ownerId: z.string().min(1),
+  productId: z.string().max(64).optional(),
   description: z.string().trim().min(1).max(2000),
   customsStatus: z.enum(CUSTOMS_STATUSES as unknown as readonly [CustomsStatus, ...CustomsStatus[]]),
-  qty: z.number(),
+  qty: z.number().finite().positive(),
   uom: z.string().min(1).max(20),
   hsCode: z.string().max(20).optional(),
   countryOfOrigin: z.string().max(2).optional(),
@@ -117,57 +121,57 @@ const movementCreateSchema = z.object({
   movementType: z.enum(MOVEMENT_TYPES).optional(),
   toLocationId: z.string().optional(),
   stackTier: z.number().optional(),
-  qtyDelta: z.number().optional(),
+  qtyDelta: z.number().finite().optional(),
   toCustomsStatus: z.enum(CUSTOMS_STATUSES as unknown as readonly [CustomsStatus, ...CustomsStatus[]]).optional(),
-  entryReference: z.string().max(200).optional(),
+  entryReference: z.string().max(200).nullable().optional(),
   reasonCode: z.string().max(100).optional(),
-  reference: z.string().max(200).optional(),
+  reference: z.string().max(200).nullable().optional(),
 });
 const guaranteeCreateSchema = z.object({
   reference: z.string().trim().min(1).max(200),
-  faceValue: z.number(),
+  faceValue: z.number().positive(),
   currency: z.string().min(1).max(10),
   effectiveFrom: z.string().min(1),
   expiresOn: z.string().min(1),
   instrumentType: z.string().max(50).optional(),
-  issuer: z.string().max(200).optional(),
+  issuer: z.string().max(200).nullable().optional(),
 });
 const consignmentCreateSchema = z.object({
   compartmentId: z.string().min(1),
   ownerId: z.string().min(1),
-  transportDocType: z.string().max(20).optional(),
-  transportDocNumber: z.string().max(100).optional(),
-  expectedArrival: z.string().optional(),
-  goodsDescription: z.string().max(2000).optional(),
+  transportDocType: z.string().max(20).nullable().optional(),
+  transportDocNumber: z.string().max(100).nullable().optional(),
+  expectedArrival: z.string().nullable().optional(),
+  goodsDescription: z.string().max(2000).nullable().optional(),
 });
 const containerCreateSchema = z.object({
   containerNumber: z.string().trim().min(1).max(20),
   containerSize: z.string().max(20).optional(),
 });
 const gateInSchema = z.object({
-  grossWeightKg: z.number().nullable().optional(),
-  tareWeightKg: z.number().nullable().optional(),
-  vgmWeightKg: z.number().nullable().optional(),
-  sealNumber: z.string().max(50).optional(),
+  grossWeightKg: z.number().nullable().nullable().optional(),
+  tareWeightKg: z.number().nullable().nullable().optional(),
+  vgmWeightKg: z.number().nullable().nullable().optional(),
+  sealNumber: z.string().max(50).nullable().optional(),
 });
 // Per-line shape only — SealService.receiveLot does the real per-line
 // validation (bond headroom, DG segregation, legal customs-status entry).
 const devanTallyLineSchema = z.object({
-  discrepancy: z.any().optional(),
-  discrepancyType: z.enum(DISCREPANCY_TYPES).optional(),
-  description: z.string().max(2000).optional(),
-  hsCode: z.string().max(20).optional(),
-  countryOfOrigin: z.string().max(2).optional(),
-  customsStatus: z.enum(CUSTOMS_STATUSES as unknown as readonly [CustomsStatus, ...CustomsStatus[]]).optional(),
-  entryReference: z.string().max(200).optional(),
-  locationId: z.string().optional(),
-  qty: z.number().optional(),
-  uom: z.string().max(20).optional(),
-  customsValue: z.number().optional(),
-  currency: z.string().max(10).optional(),
-  dutyAtRisk: z.number().optional(),
-  taxAtRisk: z.number().optional(),
-  bondOverrideReason: z.string().max(1000).optional(),
+  discrepancy: z.any().nullable().optional(),
+  discrepancyType: z.enum(DISCREPANCY_TYPES).nullable().optional(),
+  description: z.string().max(2000).nullable().optional(),
+  hsCode: z.string().max(20).nullable().optional(),
+  countryOfOrigin: z.string().max(2).nullable().optional(),
+  customsStatus: z.enum(CUSTOMS_STATUSES as unknown as readonly [CustomsStatus, ...CustomsStatus[]]).nullable().optional(),
+  entryReference: z.string().max(200).nullable().optional(),
+  locationId: z.string().nullable().optional(),
+  qty: z.number().nullable().optional(),
+  uom: z.string().max(20).nullable().optional(),
+  customsValue: z.number().nullable().optional(),
+  currency: z.string().max(10).nullable().optional(),
+  dutyAtRisk: z.number().nullable().optional(),
+  taxAtRisk: z.number().nullable().optional(),
+  bondOverrideReason: z.string().max(1000).nullable().optional(),
 }).passthrough();
 const devanTallySchema = z.object({ lines: z.array(devanTallyLineSchema).min(1) });
 const discrepancyPatchSchema = z.object({
@@ -175,12 +179,14 @@ const discrepancyPatchSchema = z.object({
   resolutionNote: z.string().max(2000).optional(),
 });
 const appointmentCreateSchema = z.object({
-  compartmentId: z.string().min(1),
-  appointmentType: z.enum(APPOINTMENT_TYPES),
-  scheduledAt: z.string().min(1),
-  consignmentId: z.string().optional(),
-  reference: z.string().max(200).optional(),
-});
+  compartmentId: z.string().uuid(), appointmentType: z.enum(APPOINTMENT_TYPES),
+  scheduledAt: z.string().datetime({offset:true}), consignmentId: z.string().uuid().nullable().optional(),
+  reference: z.string().max(200).nullable().optional(), vehiclePlate: z.string().trim().max(40).nullable().optional(),
+  driverName: z.string().trim().max(200).nullable().optional(), notes: z.string().max(5000).nullable().optional(),
+}).strict();
+const appointmentPatchSchema = appointmentCreateSchema.omit({compartmentId:true}).partial().extend({
+  status: z.enum(['SCHEDULED','CHECKED_IN','AT_DOCK','COMPLETED','CANCELLED','NO_SHOW']).optional(),
+}).strict();
 
 export function bondHeadroomResponse(err: BondHeadroomExceeded) {
   return {
@@ -221,6 +227,8 @@ function mapLot(row: any) {
     ownerId: row.owner_id,
     ownerName: row.owner_name ?? undefined,
     shipmentCaseId: row.shipment_case_id,
+    productId: row.product_id ?? null,
+    updatedAt: row.updated_at,
     description: row.description,
     hsCode: row.hs_code,
     countryOfOrigin: row.country_of_origin,
@@ -278,6 +286,7 @@ function mapMovement(row: any) {
 
 export async function sealRoutes(fastify: FastifyInstance) {
   fastify.addHook('preHandler', fastify.authenticate);
+  fastify.addHook('preHandler', validateSealReferences);
   fastify.addHook('preHandler', requireEntitlement('seal'));
   // Production-readiness audit HUD-0024/0031: bonded-warehouse operations
   // (compartments, lots, consignments, containers) had no role check beyond
@@ -1130,6 +1139,27 @@ export async function sealRoutes(fastify: FastifyInstance) {
   });
 
   // ── Lots ───────────────────────────────────────────────────────────────
+  fastify.get('/catalog-products', async (request: any) => withTenant(request.user.tenant_id, trx =>
+    trx.selectFrom('products').select(['id', 'code', 'name', 'unit']).where('tenant_id', '=', request.user.tenant_id)
+      .where('type', '=', 'product').where('status', '=', 'active').orderBy('name').execute()
+  ));
+
+  fastify.get('/movements', async (request: any, reply) => {
+    try {
+      return await withTenant(request.user.tenant_id, async trx => {
+        const params = z.object({ compartment_id: z.string().uuid().optional(), before: z.string().regex(/^[1-9]\d*$/).optional(), movement_type: z.enum(MOVEMENT_TYPES).optional() }).parse(request.query);
+        let query = trx.selectFrom('seal_movements').innerJoin('seal_lots', 'seal_lots.id', 'seal_movements.lot_id')
+          .select(['seal_movements.id', 'seal_movements.occurred_at', 'seal_movements.movement_type', 'seal_movements.lot_id', 'seal_movements.qty_delta', 'seal_movements.reference', 'seal_movements.reason_code', 'seal_lots.description', 'seal_lots.uom'])
+          .where('seal_movements.tenant_id', '=', request.user.tenant_id).where('seal_lots.tenant_id', '=', request.user.tenant_id);
+        if (params.compartment_id) query = query.where('seal_lots.compartment_id', '=', params.compartment_id);
+        if (params.before) query = query.where('seal_movements.id', '<', String(params.before));
+        if (params.movement_type) query = query.where('seal_movements.movement_type', '=', params.movement_type);
+        const rows = await query.orderBy('seal_movements.id', 'desc').limit(101).execute();
+        return { rows: rows.slice(0, 100), nextCursor: rows.length > 100 ? String(rows[99].id) : null };
+      });
+    } catch (e: any) { return reply.code(400).send({ error: e.message }); }
+  });
+
   fastify.get('/lots', async (request: any, reply) => {
     try {
       const { compartment_id, customs_status, q } = request.query as { compartment_id?: string; customs_status?: string; q?: string };
@@ -1139,14 +1169,14 @@ export async function sealRoutes(fastify: FastifyInstance) {
           .leftJoin('seal_locations', 'seal_locations.id', 'seal_lots.current_location_id')
           .select([
             'seal_lots.id', 'seal_lots.compartment_id', 'seal_lots.owner_id', 'customers.name as owner_name',
-            'seal_lots.shipment_case_id', 'seal_lots.description', 'seal_lots.hs_code', 'seal_lots.country_of_origin',
+            'seal_lots.shipment_case_id', 'seal_lots.product_id', 'seal_lots.description', 'seal_lots.hs_code', 'seal_lots.country_of_origin',
             'seal_lots.marks_and_numbers', 'seal_lots.customs_status', 'seal_lots.entry_reference', 'seal_lots.procedure_code',
             'seal_lots.current_location_id', 'seal_locations.code as current_location_code',
             'seal_lots.qty_on_hand', 'seal_lots.qty_allocated', 'seal_lots.uom', 'seal_lots.customs_value', 'seal_lots.currency',
             'seal_lots.duty_at_risk', 'seal_lots.tax_at_risk', 'seal_lots.batch', 'seal_lots.serial', 'seal_lots.expiry_date',
             'seal_lots.warehoused_on', 'seal_lots.expires_on',
             'seal_lots.is_dangerous_goods', 'seal_lots.un_number', 'seal_lots.imdg_class',
-            'seal_lots.requires_reefer', 'seal_lots.reefer_setpoint_c', 'seal_lots.stack_tier', 'seal_lots.created_at',
+            'seal_lots.requires_reefer', 'seal_lots.reefer_setpoint_c', 'seal_lots.stack_tier', 'seal_lots.created_at', 'seal_lots.updated_at',
             'seal_lots.volume_cbm', 'seal_lots.gross_weight_kg', 'seal_lots.destination_label',
           ])
           .where('seal_lots.tenant_id', '=', request.user.tenant_id)
@@ -1162,7 +1192,10 @@ export async function sealRoutes(fastify: FastifyInstance) {
     }
   });
 
+  await registerSealLotEditing(fastify);
+
   fastify.get('/lots/:id', async (request: any, reply) => {
+    if (!z.string().uuid().safeParse(request.params.id).success) return reply.code(404).send({error:'Lot not found.'});
     try {
       const row = await withTenant(request.user.tenant_id, trx =>
         trx.selectFrom('seal_lots')
@@ -1170,14 +1203,14 @@ export async function sealRoutes(fastify: FastifyInstance) {
           .leftJoin('seal_locations', 'seal_locations.id', 'seal_lots.current_location_id')
           .select([
             'seal_lots.id', 'seal_lots.compartment_id', 'seal_lots.owner_id', 'customers.name as owner_name',
-            'seal_lots.shipment_case_id', 'seal_lots.description', 'seal_lots.hs_code', 'seal_lots.country_of_origin',
+            'seal_lots.shipment_case_id', 'seal_lots.product_id', 'seal_lots.description', 'seal_lots.hs_code', 'seal_lots.country_of_origin',
             'seal_lots.marks_and_numbers', 'seal_lots.customs_status', 'seal_lots.entry_reference', 'seal_lots.procedure_code',
             'seal_lots.current_location_id', 'seal_locations.code as current_location_code',
             'seal_lots.qty_on_hand', 'seal_lots.qty_allocated', 'seal_lots.uom', 'seal_lots.customs_value', 'seal_lots.currency',
             'seal_lots.duty_at_risk', 'seal_lots.tax_at_risk', 'seal_lots.batch', 'seal_lots.serial', 'seal_lots.expiry_date',
             'seal_lots.warehoused_on', 'seal_lots.expires_on',
             'seal_lots.is_dangerous_goods', 'seal_lots.un_number', 'seal_lots.imdg_class',
-            'seal_lots.requires_reefer', 'seal_lots.reefer_setpoint_c', 'seal_lots.stack_tier', 'seal_lots.created_at',
+            'seal_lots.requires_reefer', 'seal_lots.reefer_setpoint_c', 'seal_lots.stack_tier', 'seal_lots.created_at', 'seal_lots.updated_at',
             'seal_lots.volume_cbm', 'seal_lots.gross_weight_kg', 'seal_lots.destination_label',
           ])
           .where('seal_lots.tenant_id', '=', request.user.tenant_id)
@@ -1199,7 +1232,7 @@ export async function sealRoutes(fastify: FastifyInstance) {
       }
       const lot = await withTenant(request.user.tenant_id, trx =>
         SealService.receiveLot(trx, request.user.tenant_id, request.user.sub, {
-          compartmentId: b.compartmentId, ownerId: b.ownerId, description: b.description,
+          compartmentId: b.compartmentId, ownerId: b.ownerId, description: b.description, productId: b.productId,
           hsCode: b.hsCode, countryOfOrigin: b.countryOfOrigin, customsStatus: b.customsStatus,
           entryReference: b.entryReference, locationId: b.locationId, qty: Number(b.qty), uom: b.uom,
           customsValue: b.customsValue, currency: b.currency, warehousedOn: b.warehousedOn,
@@ -1231,6 +1264,7 @@ export async function sealRoutes(fastify: FastifyInstance) {
 
   // ── Movements ──────────────────────────────────────────────────────────
   fastify.get('/lots/:id/movements', async (request: any, reply) => {
+    if (!z.string().uuid().safeParse(request.params.id).success) return reply.code(404).send({error:'Lot not found.'});
     try {
       // Authorised on the lot, then every movement on it — same reasoning as
       // SealService.verifyChain. Filtering the movements by tenant instead
@@ -1256,7 +1290,9 @@ export async function sealRoutes(fastify: FastifyInstance) {
   });
 
   fastify.post('/lots/:id/movements', async (request: any, reply) => {
-    const b = movementCreateSchema.parse(request.body);
+    const parsed = movementCreateSchema.safeParse(request.body);
+    if (!parsed.success) return reply.code(400).send({error:parsed.error.issues.map(i=>i.message).join(' ')});
+    const b = parsed.data;
     try {
       const movement = await withTenant(request.user.tenant_id, trx =>
         SealService.recordMovement(trx, request.user.tenant_id, {
@@ -1274,6 +1310,7 @@ export async function sealRoutes(fastify: FastifyInstance) {
       );
       return mapMovement(movement);
     } catch (err: any) {
+      if (err instanceof InvalidSealMovement) return reply.status(422).send({error:err.message});
       if (err instanceof IllegalCustomsTransition) {
         return reply.status(422).send({
           type: 'https://hudumika.tz/errors/illegal-customs-transition',
@@ -1289,6 +1326,7 @@ export async function sealRoutes(fastify: FastifyInstance) {
   });
 
   fastify.get('/lots/:id/verify-chain', async (request: any, reply) => {
+    if (!z.string().uuid().safeParse(request.params.id).success) return reply.code(404).send({error:'Lot not found.'});
     try {
       return await withTenant(request.user.tenant_id, trx => SealService.verifyChain(trx, request.user.tenant_id, request.params.id));
     } catch (err: any) {
@@ -1347,7 +1385,7 @@ export async function sealRoutes(fastify: FastifyInstance) {
   // ── Consignments (pre-arrival) ──────────────────────────────────────────
   fastify.get('/consignments', async (request: any, reply) => {
     try {
-      const { status } = request.query as { status?: string };
+      const { status, compartment_id } = request.query as { status?: string; compartment_id?: string };
       return await withTenant(request.user.tenant_id, trx => {
         let q = trx.selectFrom('seal_consignments')
           .leftJoin('customers', 'customers.id', 'seal_consignments.owner_id')
@@ -1357,9 +1395,11 @@ export async function sealRoutes(fastify: FastifyInstance) {
             'seal_consignments.status', 'seal_consignments.expected_arrival', 'seal_consignments.goods_description',
             'seal_consignments.created_at',
           ])
+          .select(eb=>eb.selectFrom('seal_containers').select(({fn})=>fn.sum<string>('gross_weight_kg').as('gross')).whereRef('seal_containers.consignment_id','=','seal_consignments.id').where('seal_containers.tenant_id','=',request.user.tenant_id).as('gross_weight_kg'))
           .where('seal_consignments.tenant_id', '=', request.user.tenant_id)
           .orderBy('seal_consignments.created_at', 'desc');
         if (status) q = q.where('seal_consignments.status', '=', status);
+        if (compartment_id) q=q.where('seal_consignments.compartment_id','=',compartment_id);
         return q.execute();
       });
     } catch (err: any) {
@@ -1414,14 +1454,13 @@ export async function sealRoutes(fastify: FastifyInstance) {
       if (!check.valid) {
         return reply.status(422).send({ error: `Invalid container number: ${check.reason}`, expectedCheckDigit: check.expectedCheckDigit });
       }
-      const row = await withTenant(request.user.tenant_id, trx =>
-        trx.insertInto('seal_containers').values({
-          tenant_id: request.user.tenant_id,
-          consignment_id: request.params.id,
-          container_number: check.formatted.replace(/-/g, ''),
-          container_size: b.containerSize ?? '40GP',
-        }).returningAll().executeTakeFirstOrThrow()
-      );
+      const row = await withTenant(request.user.tenant_id, async trx => {
+        const parent=await trx.selectFrom('seal_consignments').select('id').where('tenant_id','=',request.user.tenant_id).where('id','=',request.params.id).executeTakeFirst();
+        if(!parent)return null;
+        return trx.insertInto('seal_containers').values({tenant_id:request.user.tenant_id,consignment_id:parent.id,
+          container_number:check.formatted.replace(/-/g,''),container_size:b.containerSize??'40GP'}).returningAll().executeTakeFirstOrThrow();
+      });
+      if(!row)return reply.code(404).send({error:'Consignment not found.'});
       return { ...row, formatted: check.formatted };
     } catch (err: any) {
       return reply.status(500).send({ error: err.message });
@@ -1433,38 +1472,21 @@ export async function sealRoutes(fastify: FastifyInstance) {
   // sequence (seal, weighbridge, EIR) and advances the consignment's status.
   // Built as a normal online page — see 107_seal_gate_and_bond.sql's header
   // note on why true offline mode (spec M2.9) isn't attempted this pass.
-  fastify.post('/containers/:id/gate-in', async (request: any, reply) => {
-    const b = gateInSchema.parse(request.body);
-    try {
-      const container = await withTenant(request.user.tenant_id, trx =>
-        trx.selectFrom('seal_containers').selectAll().where('tenant_id', '=', request.user.tenant_id).where('id', '=', request.params.id).executeTakeFirst()
-      );
-      if (!container) return reply.status(404).send({ error: 'Container not found' });
-
-      const grossKg = b.grossWeightKg != null ? Number(b.grossWeightKg) : null;
-      const tareKg = b.tareWeightKg != null ? Number(b.tareWeightKg) : null;
-      const netKg = grossKg != null && tareKg != null ? grossKg - tareKg : null;
-      const eirReference = `EIR-${new Date().getFullYear()}-${String(Math.floor(Math.random() * 900000) + 100000)}`;
-
-      const updated = await withTenant(request.user.tenant_id, trx =>
-        trx.updateTable('seal_containers').set({
-          seal_number: b.sealNumber ?? null,
-          gross_weight_kg: grossKg != null ? String(grossKg) : null,
-          tare_weight_kg: tareKg != null ? String(tareKg) : null,
-          net_weight_kg: netKg != null ? String(netKg) : null,
-          vgm_weight_kg: b.vgmWeightKg != null ? String(b.vgmWeightKg) : null,
-          gate_in_at: new Date(),
-          eir_reference: eirReference,
-        }).where('id', '=', request.params.id).returningAll().executeTakeFirstOrThrow()
-      );
-      await withTenant(request.user.tenant_id, trx =>
-        trx.updateTable('seal_consignments').set({ status: 'IN_YARD', updated_at: new Date() })
-          .where('id', '=', container.consignment_id).execute()
-      );
-      return updated;
-    } catch (err: any) {
-      return reply.status(500).send({ error: err.message });
-    }
+  fastify.post('/containers/:id/gate-in',async(request:any,reply)=>{
+    const parsed=gateInSchema.safeParse(request.body);
+    if(!parsed.success)return reply.code(400).send({error:parsed.error.issues.map(i=>i.message).join(' ')});
+    const b=parsed.data;
+    if(b.grossWeightKg!=null&&b.tareWeightKg!=null&&b.tareWeightKg>b.grossWeightKg)return reply.code(400).send({error:'Tare weight cannot exceed gross weight.'});
+    return withTenant(request.user.tenant_id,async trx=>{
+      const container=await trx.selectFrom('seal_containers').selectAll().where('tenant_id','=',request.user.tenant_id).where('id','=',request.params.id).forUpdate().executeTakeFirst();
+      if(!container)return reply.code(404).send({error:'Container not found.'});
+      if(container.gate_in_at)return container;
+      const row=await trx.updateTable('seal_containers').set({gate_in_at:new Date(),seal_number:b.sealNumber??null,gross_weight_kg:b.grossWeightKg==null?null:String(b.grossWeightKg),
+        tare_weight_kg:b.tareWeightKg==null?null:String(b.tareWeightKg),net_weight_kg:b.grossWeightKg!=null&&b.tareWeightKg!=null?String(b.grossWeightKg-b.tareWeightKg):null,
+        vgm_weight_kg:b.vgmWeightKg==null?null:String(b.vgmWeightKg),eir_reference:`EIR-${container.id}`}).where('tenant_id','=',request.user.tenant_id).where('id','=',container.id).returningAll().executeTakeFirstOrThrow();
+      await trx.updateTable('seal_consignments').set({status:'IN_YARD',updated_at:new Date()}).where('tenant_id','=',request.user.tenant_id).where('id','=',container.consignment_id).execute();
+      return row;
+    });
   });
 
   // Devanning + tally (M3): each line either becomes a real lot (via the
@@ -1475,81 +1497,36 @@ export async function sealRoutes(fastify: FastifyInstance) {
   // Registered under both names: /devan-tally is what the current UI calls
   // (post-redesign); /devan is kept as an alias so any other caller of the
   // original contract doesn't silently 404.
-  async function handleDevanTally(request: any, reply: any) {
-    const b = devanTallySchema.parse(request.body);
-    try {
-      const lines = b.lines;
-
-      const container = await withTenant(request.user.tenant_id, trx =>
-        trx.selectFrom('seal_containers').selectAll().where('tenant_id', '=', request.user.tenant_id).where('id', '=', request.params.id).executeTakeFirst()
-      );
-      if (!container) return reply.status(404).send({ error: 'Container not found' });
-      const consignment = await withTenant(request.user.tenant_id, trx =>
-        trx.selectFrom('seal_consignments').selectAll().where('tenant_id', '=', request.user.tenant_id).where('id', '=', container.consignment_id).executeTakeFirst()
-      );
-      if (!consignment) return reply.status(404).send({ error: 'Consignment not found' });
-
-      const results: any[] = [];
-      for (const line of lines) {
-        if (line.discrepancy) {
-          // Accepts both shapes: the original { discrepancy: { type, severity, description } }
-          // and the current UI's { discrepancy: true, discrepancyType: string }.
-          const discrepancyType = line.discrepancyType ?? line.discrepancy?.type ?? 'shortage';
-          const discrepancySeverity = line.discrepancy?.severity ?? 'minor';
-          const discrepancyDescription = line.discrepancy?.description ?? line.description ?? 'Tally discrepancy';
-          const row = await withTenant(request.user.tenant_id, trx =>
-            trx.insertInto('seal_discrepancies').values({
-              tenant_id: request.user.tenant_id,
-              container_id: container.id,
-              discrepancy_type: discrepancyType,
-              severity: discrepancySeverity,
-              description: discrepancyDescription,
-            }).returningAll().executeTakeFirstOrThrow()
-          );
-          results.push({ kind: 'discrepancy', row });
-          continue;
-        }
-        try {
-          const lot = await withTenant(request.user.tenant_id, trx =>
-            SealService.receiveLot(trx, request.user.tenant_id, request.user.sub, {
-              compartmentId: consignment.compartment_id, ownerId: consignment.owner_id,
-              // seal_lots.description is NOT NULL — a tally line with no text
-              // description previously reached the DB as undefined and 500'd.
-              description: line.description || 'Devanned item', hsCode: line.hsCode, countryOfOrigin: line.countryOfOrigin,
-              customsStatus: line.customsStatus ?? 'FOREIGN_DUTY_SUSPENDED',
-              entryReference: line.entryReference, locationId: line.locationId,
-              qty: Number(line.qty), uom: line.uom ?? 'PCS',
-              customsValue: line.customsValue, currency: line.currency,
-              dutyAtRisk: line.dutyAtRisk, taxAtRisk: line.taxAtRisk,
-              bondOverrideReason: line.bondOverrideReason,
-            })
-          );
-          results.push({ kind: 'lot', row: mapLot(lot) });
-        } catch (err: any) {
-          if (err instanceof BondHeadroomExceeded) {
-            results.push({ kind: 'error', line: line.description, error: bondHeadroomResponse(err) });
-          } else {
-            results.push({ kind: 'error', line: line.description, error: { detail: err.message } });
-          }
+  async function handleDevanTally(request:any,reply:any){
+    const parsed=devanTallySchema.safeParse(request.body);
+    if(!parsed.success)return reply.code(400).send({error:parsed.error.issues.map(i=>i.message).join(' ')});
+    try{return await withTenant(request.user.tenant_id,async trx=>{
+      const container=await trx.selectFrom('seal_containers').selectAll().where('tenant_id','=',request.user.tenant_id).where('id','=',request.params.id).forUpdate().executeTakeFirst();
+      if(!container)return reply.code(404).send({error:'Container not found.'});
+      if(!container.gate_in_at)return reply.code(409).send({error:'Gate in the container before recording its tally.'});
+      if(container.devanned_at)return reply.code(409).send({error:'This container has already been tallied.'});
+      const consignment=await trx.selectFrom('seal_consignments').selectAll().where('tenant_id','=',request.user.tenant_id).where('id','=',container.consignment_id).forUpdate().executeTakeFirstOrThrow();
+      const facility=await trx.selectFrom('seal_compartments').select('warehouse_type').where('tenant_id','=',request.user.tenant_id).where('id','=',consignment.compartment_id).executeTakeFirstOrThrow();
+      const domestic=['standard_warehouse','sorting_centre','fulfillment_centre'].includes(facility.warehouse_type);
+      const results=[];
+      for(const line of parsed.data.lines){
+        if(line.discrepancy){
+          const row=await trx.insertInto('seal_discrepancies').values({tenant_id:request.user.tenant_id,container_id:container.id,discrepancy_type:line.discrepancyType??line.discrepancy?.type??'shortage',
+            severity:line.discrepancy?.severity??'minor',description:line.discrepancy?.description??line.description??'Tally discrepancy'}).returningAll().executeTakeFirstOrThrow();
+          results.push({kind:'discrepancy',row});
+        }else{
+          const row=await SealService.receiveLot(trx,request.user.tenant_id,request.user.sub,{compartmentId:consignment.compartment_id,ownerId:consignment.owner_id,
+            description:line.description||'Devanned item',hsCode:line.hsCode,countryOfOrigin:line.countryOfOrigin,customsStatus:line.customsStatus??(domestic?'DOMESTIC':'FOREIGN_DUTY_SUSPENDED'),
+            entryReference:line.entryReference,locationId:line.locationId,qty:Number(line.qty),uom:line.uom??'PCS',customsValue:line.customsValue,currency:line.currency,
+            dutyAtRisk:line.dutyAtRisk,taxAtRisk:line.taxAtRisk,bondOverrideReason:line.bondOverrideReason});
+          results.push({kind:'lot',row});
         }
       }
-
-      const remainingUndevanned = await withTenant(request.user.tenant_id, trx =>
-        trx.selectFrom('seal_containers').select(({ fn }) => fn.count<number>('id').as('n'))
-          .where('tenant_id', '=', request.user.tenant_id)
-          .where('consignment_id', '=', consignment.id).where('gate_in_at', 'is not', null).where('gate_out_at', 'is', null)
-          .executeTakeFirst()
-      );
-      await withTenant(request.user.tenant_id, trx =>
-        trx.updateTable('seal_consignments')
-          .set({ status: results.some(r => r.kind === 'lot') ? 'DEVANNED' : 'DEVANNING', updated_at: new Date() })
-          .where('tenant_id', '=', request.user.tenant_id).where('id', '=', consignment.id).execute()
-      );
-
-      return { results };
-    } catch (err: any) {
-      return reply.status(500).send({ error: err.message });
-    }
+      await trx.updateTable('seal_containers').set({devanned_at:new Date()}).where('tenant_id','=',request.user.tenant_id).where('id','=',container.id).execute();
+      const remaining=await trx.selectFrom('seal_containers').select('id').where('tenant_id','=',request.user.tenant_id).where('consignment_id','=',consignment.id).where('devanned_at','is',null).executeTakeFirst();
+      await trx.updateTable('seal_consignments').set({status:remaining?'DEVANNING':'DEVANNED',updated_at:new Date()}).where('tenant_id','=',request.user.tenant_id).where('id','=',consignment.id).execute();
+      return {results};
+    });}catch(e:any){return reply.code(422).send({error:e.message});}
   }
   fastify.post('/containers/:id/devan-tally', handleDevanTally);
   fastify.post('/containers/:id/devan', handleDevanTally);
@@ -1585,47 +1562,58 @@ export async function sealRoutes(fastify: FastifyInstance) {
   });
 
   // ── Appointments ─────────────────────────────────────────────────────────
-  fastify.get('/appointments', async (request: any, reply) => {
+  fastify.get('/appointments', async (request:any,reply) => {
     try {
-      return await withTenant(request.user.tenant_id, trx =>
-        trx.selectFrom('seal_appointments').selectAll().where('tenant_id', '=', request.user.tenant_id).orderBy('scheduled_at', 'asc').execute()
-      );
-    } catch (err: any) {
-      return reply.status(500).send({ error: err.message });
-    }
+      const params=z.object({compartment_id:z.string().uuid().optional(),from:z.string().datetime({offset:true}).optional(),to:z.string().datetime({offset:true}).optional()}).parse(request.query);
+      return await withTenant(request.user.tenant_id,async trx=>{
+        let q=trx.selectFrom('seal_appointments')
+          .leftJoin('seal_compartments',join=>join.onRef('seal_compartments.id','=','seal_appointments.compartment_id').on('seal_compartments.tenant_id','=',request.user.tenant_id))
+          .leftJoin('seal_consignments',join=>join.onRef('seal_consignments.id','=','seal_appointments.consignment_id').on('seal_consignments.tenant_id','=',request.user.tenant_id))
+          .selectAll('seal_appointments').select(['seal_compartments.name as compartment_name','seal_consignments.transport_doc_number as consignment_ref'])
+          .where('seal_appointments.tenant_id','=',request.user.tenant_id);
+        if(params.compartment_id)q=q.where('seal_appointments.compartment_id','=',params.compartment_id);
+        if(params.from)q=q.where('seal_appointments.scheduled_at','>=',new Date(params.from));
+        if(params.to)q=q.where('seal_appointments.scheduled_at','<',new Date(params.to));
+        return q.orderBy('seal_appointments.scheduled_at','asc').execute();
+      });
+    }catch(e:any){return reply.code(400).send({error:e.message});}
   });
 
-  fastify.post('/appointments', async (request: any, reply) => {
-    const b = appointmentCreateSchema.parse(request.body);
-    try {
-      return await withTenant(request.user.tenant_id, trx =>
-        trx.insertInto('seal_appointments').values({
-          tenant_id: request.user.tenant_id,
-          compartment_id: b.compartmentId, consignment_id: b.consignmentId ?? null,
-          appointment_type: b.appointmentType, scheduled_at: new Date(b.scheduledAt),
-          reference: b.reference ?? null,
-        }).returningAll().executeTakeFirstOrThrow()
-      );
-    } catch (err: any) {
-      return reply.status(500).send({ error: err.message });
-    }
+  fastify.post('/appointments',async(request:any,reply)=>{
+    const parsed=appointmentCreateSchema.safeParse(request.body);
+    if(!parsed.success)return reply.code(400).send({error:parsed.error.issues.map(i=>i.message).join(' ')});
+    const body=parsed.data;
+    return withTenant(request.user.tenant_id,async trx=>{
+      const warehouse=await trx.selectFrom('seal_compartments').select('id').where('tenant_id','=',request.user.tenant_id).where('id','=',body.compartmentId).executeTakeFirst();
+      if(!warehouse)return reply.code(404).send({error:'Warehouse not found.'});
+      if(body.consignmentId&&!await trx.selectFrom('seal_consignments').select('id').where('tenant_id','=',request.user.tenant_id).where('compartment_id','=',body.compartmentId).where('id','=',body.consignmentId).executeTakeFirst())return reply.code(404).send({error:'Consignment not found in this warehouse.'});
+      return trx.insertInto('seal_appointments').values({tenant_id:request.user.tenant_id,compartment_id:body.compartmentId,consignment_id:body.consignmentId??null,appointment_type:body.appointmentType,
+        scheduled_at:new Date(body.scheduledAt),reference:body.reference??null,vehicle_plate:body.vehiclePlate??null,driver_name:body.driverName??null,notes:body.notes??null}).returningAll().executeTakeFirstOrThrow();
+    });
   });
 
-  fastify.patch('/appointments/:id', async (request: any, reply) => {
-    const { id } = request.params as { id: string };
-    const { status, notes } = request.body as { status?: string; notes?: string };
-    try {
-      const updates: Record<string, unknown> = {};
-      if (status) updates.status = status;
-      if (notes !== undefined) updates.notes = notes;
-      return await withTenant(request.user.tenant_id, trx =>
-        trx.updateTable('seal_appointments').set(updates)
-          .where('id', '=', id).where('tenant_id', '=', request.user.tenant_id)
-          .returningAll().executeTakeFirstOrThrow()
-      );
-    } catch (err: any) {
-      return reply.status(500).send({ error: err.message });
-    }
+  fastify.get('/appointments/:id',async(request:any,reply)=>withTenant(request.user.tenant_id,async trx=>{
+    const row=await trx.selectFrom('seal_appointments').selectAll().where('tenant_id','=',request.user.tenant_id).where('id','=',request.params.id).executeTakeFirst();
+    return row??reply.code(404).send({error:'Appointment not found.'});
+  }));
+
+  fastify.patch('/appointments/:id',async(request:any,reply)=>{
+    const parsed=appointmentPatchSchema.safeParse(request.body);
+    if(!parsed.success)return reply.code(400).send({error:parsed.error.issues.map(i=>i.message).join(' ')});
+    const body=parsed.data;
+    return withTenant(request.user.tenant_id,async trx=>{
+      const row=await trx.selectFrom('seal_appointments').selectAll().where('tenant_id','=',request.user.tenant_id).where('id','=',request.params.id).forUpdate().executeTakeFirst();
+      if(!row)return reply.code(404).send({error:'Appointment not found.'});
+      const transitions:Record<string,string[]>={SCHEDULED:['CHECKED_IN','CANCELLED','NO_SHOW'],CHECKED_IN:['AT_DOCK','COMPLETED','CANCELLED'],AT_DOCK:['COMPLETED','CANCELLED']};
+      if(body.status&&body.status!==row.status&&!transitions[row.status]?.includes(body.status))return reply.code(409).send({error:`Cannot change ${row.status} to ${body.status}.`});
+      if(body.scheduledAt&&['COMPLETED','CANCELLED','NO_SHOW'].includes(row.status))return reply.code(409).send({error:'Create a new appointment to reschedule a closed visit.'});
+      if(body.consignmentId&&!await trx.selectFrom('seal_consignments').select('id').where('tenant_id','=',request.user.tenant_id).where('compartment_id','=',row.compartment_id).where('id','=',body.consignmentId).executeTakeFirst())return reply.code(404).send({error:'Consignment not found in this warehouse.'});
+      const patch:Record<string,unknown>={};
+      for(const [field,column]of Object.entries({status:'status',appointmentType:'appointment_type',reference:'reference',consignmentId:'consignment_id',vehiclePlate:'vehicle_plate',driverName:'driver_name',notes:'notes'}))if(body[field as keyof typeof body]!==undefined)patch[column]=body[field as keyof typeof body];
+      if(body.scheduledAt)patch.scheduled_at=new Date(body.scheduledAt);
+      if(!Object.keys(patch).length)return row;
+      return trx.updateTable('seal_appointments').set(patch).where('tenant_id','=',request.user.tenant_id).where('id','=',row.id).returningAll().executeTakeFirstOrThrow();
+    });
   });
 
   // ── Analytics ────────────────────────────────────────────────────────────
@@ -1702,92 +1690,25 @@ export async function sealRoutes(fastify: FastifyInstance) {
   });
 
   // ── Cycle Counts ─────────────────────────────────────────────────────────
-  fastify.get('/cycle-counts', async (request: any, reply) => {
-    const { compartment_id } = request.query as { compartment_id?: string };
-    try {
-      return await withTenant(request.user.tenant_id, async trx => {
-        let q = trx.selectFrom('seal_cycle_counts').selectAll()
-          .where('tenant_id', '=', request.user.tenant_id)
-          .orderBy('initiated_at', 'desc');
-        if (compartment_id) q = q.where('compartment_id', '=', compartment_id);
-        return q.execute();
-      });
-    } catch (err: any) {
-      return reply.status(500).send({ error: err.message });
-    }
-  });
+  await registerSealCounts(fastify);
 
-  fastify.post('/cycle-counts', async (request: any, reply) => {
-    const { compartmentId, notes } = request.body as { compartmentId?: string; notes?: string };
-    try {
-      return await withTenant(request.user.tenant_id, async trx => {
-        const { randomUUID } = await import('crypto');
-        const id = randomUUID() as string;
-        const year = new Date().getFullYear();
-        const seq = Math.floor(Math.random() * 90000) + 10000;
-        return trx.insertInto('seal_cycle_counts').values({
-          id,
-          tenant_id: request.user.tenant_id,
-          count_ref: `CC-${year}-${seq}`,
-          compartment_id: compartmentId ?? null,
-          initiated_by: request.user.sub,
-          notes: notes ?? null,
-        }).returningAll().executeTakeFirstOrThrow();
-      });
-    } catch (err: any) {
-      return reply.status(500).send({ error: err.message });
-    }
-  });
-
-  fastify.get('/cycle-counts/:id', async (request: any, reply) => {
-    const { id } = request.params as { id: string };
-    try {
-      return await withTenant(request.user.tenant_id, async trx => {
-        const count = await trx.selectFrom('seal_cycle_counts').selectAll()
-          .where('id', '=', id).where('tenant_id', '=', request.user.tenant_id)
-          .executeTakeFirstOrThrow();
-        const lines = await trx.selectFrom('seal_count_lines').selectAll()
-          .where('count_id', '=', id).execute();
-        return { ...count, lines };
-      });
-    } catch {
-      return reply.status(404).send({ error: 'Cycle count not found.' });
-    }
-  });
-
-  fastify.patch('/cycle-counts/:id/lines/:lineId', async (request: any, reply) => {
-    const { id, lineId } = request.params as { id: string; lineId: string };
-    const { countedQty, notes } = request.body as { countedQty?: number; notes?: string };
-    try {
-      return await withTenant(request.user.tenant_id, async trx => {
-        await trx.selectFrom('seal_cycle_counts').select('id')
-          .where('id', '=', id).where('tenant_id', '=', request.user.tenant_id)
-          .executeTakeFirstOrThrow();
-        const updates: Record<string, unknown> = {};
-        if (countedQty !== undefined) { updates.counted_qty = String(countedQty); updates.counted_by = request.user.sub; updates.counted_at = new Date(); }
-        if (notes !== undefined) updates.notes = notes;
-        return trx.updateTable('seal_count_lines').set(updates)
-          .where('id', '=', lineId).returningAll().executeTakeFirstOrThrow();
-      });
-    } catch (err: any) {
-      return reply.status(500).send({ error: err.message });
-    }
-  });
-
-  // ── Stock Transfers ───────────────────────────────────────────────────────
   fastify.get('/stock-transfers', async (request: any, reply) => {
     const { status, compartment_id } = request.query as { status?: string; compartment_id?: string };
     try {
       return await withTenant(request.user.tenant_id, async trx => {
         let q = trx.selectFrom('seal_stock_transfers')
-          .selectAll()
-          .where('tenant_id', '=', request.user.tenant_id)
-          .orderBy('created_at', 'desc');
-        if (status) q = q.where('status', '=', status);
+          .leftJoin('users', join => join
+            .onRef('users.id', '=', 'seal_stock_transfers.requested_by')
+            .on('users.tenant_id', '=', request.user.tenant_id))
+          .selectAll('seal_stock_transfers')
+          .select('users.name as requested_by_name')
+          .where('seal_stock_transfers.tenant_id', '=', request.user.tenant_id)
+          .orderBy('seal_stock_transfers.created_at', 'desc');
+        if (status) q = q.where('seal_stock_transfers.status', '=', status);
         if (compartment_id) {
           q = q.where(eb => eb.or([
-            eb('from_compartment_id', '=', compartment_id),
-            eb('to_compartment_id', '=', compartment_id),
+            eb('seal_stock_transfers.from_compartment_id', '=', compartment_id),
+            eb('seal_stock_transfers.to_compartment_id', '=', compartment_id),
           ]));
         }
         return q.execute();
@@ -1812,6 +1733,18 @@ export async function sealRoutes(fastify: FastifyInstance) {
     }
     try {
       return await withTenant(request.user.tenant_id, async trx => {
+        if (!b.fromCompartmentId || !b.toCompartmentId) throw new Error('Choose source and destination warehouses.');
+        const warehouses = await trx.selectFrom('seal_compartments').select('id').where('tenant_id', '=', request.user.tenant_id)
+          .where('id', 'in', [b.fromCompartmentId, b.toCompartmentId]).execute();
+        if (![b.fromCompartmentId, b.toCompartmentId].every(id => warehouses.some(w => w.id === id))) throw new Error('Warehouse not found.');
+        if (new Set(b.lines.map(l => l.lotId)).size !== b.lines.length) throw new Error('Each lot can appear only once.');
+        for (const line of b.lines) {
+          const lot = await trx.selectFrom('seal_lots').select(['id', 'compartment_id', 'qty_on_hand', 'qty_allocated'])
+            .where('tenant_id', '=', request.user.tenant_id).where('id', '=', line.lotId).executeTakeFirst();
+          if (!lot || lot.compartment_id !== b.fromCompartmentId) throw new Error('Lot not found in the source warehouse.');
+          if (!Number.isFinite(line.qtyRequested) || line.qtyRequested <= 0 || line.qtyRequested !== Number(lot.qty_on_hand)) throw new Error('Transfers move whole lots. Requested quantity must equal the current on-hand quantity.');
+          if (Number(lot.qty_allocated) > 0) throw new Error('Allocated lots cannot be transferred.');
+        }
         const { randomUUID } = await import('crypto');
         const id = randomUUID() as string;
         const year = new Date().getFullYear();
@@ -1821,6 +1754,7 @@ export async function sealRoutes(fastify: FastifyInstance) {
           id,
           tenant_id: request.user.tenant_id,
           transfer_ref: ref,
+          status: 'PENDING_APPROVAL',
           from_compartment_id: b.fromCompartmentId ?? null,
           to_compartment_id: b.toCompartmentId ?? null,
           from_zone: b.fromZone ?? null,
@@ -1856,7 +1790,7 @@ export async function sealRoutes(fastify: FastifyInstance) {
           .selectAll().where('transfer_id', '=', id).execute();
         const lotIds = lines.map(l => l.lot_id);
         const lots = lotIds.length > 0
-          ? await trx.selectFrom('seal_lots').selectAll().where('id', 'in', lotIds).execute()
+          ? await trx.selectFrom('seal_lots').selectAll().where('tenant_id', '=', request.user.tenant_id).where('id', 'in', lotIds).execute()
           : [];
         const lotsById = Object.fromEntries(lots.map(l => [l.id, l]));
         return { ...transfer, lines: lines.map(l => ({ ...l, lot: lotsById[l.lot_id] ?? null })) };
@@ -1873,14 +1807,34 @@ export async function sealRoutes(fastify: FastifyInstance) {
       return await withTenant(request.user.tenant_id, async trx => {
         const transfer = await trx.selectFrom('seal_stock_transfers').selectAll()
           .where('id', '=', id).where('tenant_id', '=', request.user.tenant_id)
-          .executeTakeFirstOrThrow();
+          .forUpdate().executeTakeFirstOrThrow();
         let newStatus = transfer.status;
         const updates: Record<string, unknown> = {};
-        if (action === 'approve' && transfer.status === 'PENDING_APPROVAL') {
+        if (action === 'approve' && ['DRAFT', 'PENDING_APPROVAL'].includes(transfer.status)) {
           newStatus = 'APPROVED';
           updates.approved_by = request.user.sub;
           updates.approved_at = new Date();
         } else if (action === 'execute' && ['APPROVED', 'IN_PROGRESS'].includes(transfer.status as string)) {
+          if (!transfer.to_compartment_id) throw new Error('Destination warehouse is required.');
+          let targetLocation: string | null = null;
+          if (transfer.to_zone) {
+            const zone = await trx.selectFrom('seal_zones').select('id').where('tenant_id', '=', request.user.tenant_id)
+              .where('compartment_id', '=', transfer.to_compartment_id).where('code', '=', transfer.to_zone).executeTakeFirst();
+            if (!zone) throw new Error('Destination zone code not found.');
+            const location = await trx.selectFrom('seal_locations').select('id').where('tenant_id', '=', request.user.tenant_id).where('zone_id', '=', zone.id).orderBy('code').executeTakeFirst();
+            if (!location) throw new Error('Destination zone has no locations.');
+            targetLocation = location.id;
+          }
+          const lines = await trx.selectFrom('seal_transfer_lines').innerJoin('seal_lots', 'seal_lots.id', 'seal_transfer_lines.lot_id')
+            .select(['seal_transfer_lines.id', 'seal_transfer_lines.lot_id', 'seal_transfer_lines.qty_requested', 'seal_lots.qty_on_hand', 'seal_lots.qty_allocated', 'seal_lots.compartment_id'])
+            .where('transfer_id', '=', transfer.id).where('seal_lots.tenant_id', '=', request.user.tenant_id).orderBy('seal_lots.id').forUpdate('seal_lots').execute();
+          if (!lines.length) throw new Error('No transfer lines.');
+          for (const line of lines) {
+            if (line.compartment_id !== transfer.from_compartment_id || Number(line.qty_requested) !== Number(line.qty_on_hand) || Number(line.qty_allocated) > 0) throw new Error('Lot stock changed or is allocated. Cancel and create a fresh whole-lot transfer.');
+            await SealService.recordMovement(trx, request.user.tenant_id, { actorId: request.user.sub, lotId: line.lot_id, movementType: 'transfer', qtyDelta: 0,
+              toCompartmentId: transfer.to_compartment_id, toLocationId: targetLocation, reference: transfer.transfer_ref, reasonCode: 'WAREHOUSE_TRANSFER' });
+            await trx.updateTable('seal_transfer_lines').set({ qty_actual: line.qty_requested }).where('id', '=', line.id).where('transfer_id', '=', transfer.id).execute();
+          }
           newStatus = 'COMPLETED';
           updates.executed_by = request.user.sub;
           updates.executed_at = new Date();
@@ -1892,7 +1846,7 @@ export async function sealRoutes(fastify: FastifyInstance) {
         updates.status = newStatus;
         updates.updated_at = new Date();
         return trx.updateTable('seal_stock_transfers').set(updates)
-          .where('id', '=', id).returningAll().executeTakeFirstOrThrow();
+          .where('tenant_id', '=', request.user.tenant_id).where('id', '=', id).returningAll().executeTakeFirstOrThrow();
       });
     } catch (err: any) {
       return reply.status(500).send({ error: err.message });

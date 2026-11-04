@@ -71,10 +71,10 @@ export function InventoryWarehouses() {
       <div className="inv-page-hdr">
         <div>
           <PageHeader
-            crumbs={['Inventory', 'Warehouses']}
-            titlePlain="Storage"
+            crumbs={['SEAL', 'Item Inventory', 'Warehouses']}
+            titlePlain="Item inventory"
             titleEm="warehouses"
-            subtitle="Each warehouse holds its own bins/shelves/staging locations — a simpler two-level hierarchy than SEAL's customs compartments."
+            subtitle="Warehouses and locations for item stock used by FinOps and production."
           />
         </div>
         <Button type="button" onClick={() => setShowNewWarehouse(v => !v)}>

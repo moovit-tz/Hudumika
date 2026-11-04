@@ -70,6 +70,8 @@ const STANDARD_COA: { code: string; name: string; type: 'ASSET' | 'LIABILITY' | 
   { code: '2400', name: 'Income Tax Payable', type: 'LIABILITY', subtype: 'CURRENT_LIABILITY', normalBalance: 'CREDIT' },
   { code: '2450', name: 'Deferred Tax Liability', type: 'LIABILITY', subtype: 'DEFERRED_TAX', normalBalance: 'CREDIT' },
   { code: '2500', name: 'Long-term Loans', type: 'LIABILITY', subtype: 'LONG_TERM_LIABILITY', normalBalance: 'CREDIT' },
+  { code: '2700', name: 'Client Trust Funds Held', type: 'LIABILITY', subtype: 'CURRENT_LIABILITY', normalBalance: 'CREDIT' },
+  { code: '2710', name: 'Agent Float Held', type: 'LIABILITY', subtype: 'CURRENT_LIABILITY', normalBalance: 'CREDIT' },
   // Dividends (M6) — declared/paid as two distinct events. Backfilled to
   // existing tenants by migration 335.
   { code: '2600', name: 'Dividends Payable', type: 'LIABILITY', subtype: 'CURRENT_LIABILITY', normalBalance: 'CREDIT' },

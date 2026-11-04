@@ -12,6 +12,8 @@
     "check:triggers": "tsx src/scripts/check-triggers.ts",
     "db:migrate": "tsx src/db/migrate.ts",
     "db:seed": "tsx src/db/seed.ts",
+    "db:seed:qa-sso": "tsx src/db/seed-qa-sso.ts",
+    "db:seed:qa-sso:clean": "tsx src/db/seed-qa-sso.ts --clean",
     "test": "vitest run",
     "start": "node --conditions=production dist/index.js"
   },

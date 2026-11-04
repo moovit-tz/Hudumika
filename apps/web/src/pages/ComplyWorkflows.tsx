@@ -268,13 +268,13 @@ export function ComplyWorkflows() {
         )}
 
         {loading && (
-          <div className="p-8">
+          <div className="wf-card-padded">
             <SectionLoading label="Loading workflows…" />
           </div>
         )}
 
         {error && (
-          <div className="p-4">
+          <div className="wf-card-pad-sm">
             <Banner variant="error">{error}</Banner>
           </div>
         )}
@@ -425,7 +425,7 @@ export function RenewalWorkflowWizardPage() {
           backTo="/complyos/workflows"
           backLabel="Back to workflows"
         />
-        <Card className="comply-card p-8">
+        <Card className="comply-card wf-card-padded">
           <SectionLoading label="Loading renewal workflow…" />
         </Card>
       </div>
@@ -485,17 +485,17 @@ export function RenewalWorkflowWizardPage() {
     >
       {/* ── STEP 1: Certificate & Agency Overview ── */}
       {step === 0 && renewal && (
-        <div className="flex flex-col gap-6">
-          <div className="flex items-center justify-between flex-wrap gap-3 pb-4 border-b border-border">
-            <div className="flex items-center gap-2.5 flex-wrap">
+        <div className="wf-wizard-step">
+          <div className="wf-wizard-header-strip">
+            <div className="wf-review-badges">
               <Badge variant={complyBadgeVariant('comply-agency comply-agency--gov')}>
                 {renewal.agency_code}
               </Badge>
               <TriggerBadge trigger={renewal.trigger} />
               <StatusBadge status={renewal.status as CompRenewalStatus} />
             </div>
-            <span className="text-xs text-muted-foreground">
-              Workflow ID: <code className="font-mono">{renewal.id.slice(0, 8)}</code>
+            <span className="wf-meta-hint">
+              Workflow ID: <code>{renewal.id.slice(0, 8)}</code>
             </span>
           </div>
 
@@ -513,7 +513,7 @@ export function RenewalWorkflowWizardPage() {
               </div>
               <div>
                 <div className="comply-meta-key">Certificate Number</div>
-                <div className="comply-meta-val font-mono">{linkedCert?.cert_number || '—'}</div>
+                <div className="comply-meta-val wf-mono">{linkedCert?.cert_number || '—'}</div>
               </div>
               <div>
                 <div className="comply-meta-key">Current Expiry Date</div>
@@ -571,10 +571,10 @@ export function RenewalWorkflowWizardPage() {
 
       {/* ── STEP 2: Compliance Verification & Filing Parameters ── */}
       {step === 1 && renewal && (
-        <div className="flex flex-col gap-6">
+        <div className="wf-wizard-step">
           <div>
             <div className="wf-meta-title">Pre-Submission Verification Checklist</div>
-            <div className="rounded-(--r) border border-border bg-(--bg) px-4">
+            <div className="wf-checklist-box">
               <CheckboxRow
                 title="Entity & TIN standing verified"
                 description={`Confirm company registration and tax identification records match ${renewal.agency_code} registry requirements.`}
@@ -595,7 +595,7 @@ export function RenewalWorkflowWizardPage() {
               />
             </div>
             {isPendingReview && !allChecksPassed && (
-              <p className="text-xs text-(--gold) mt-2">
+              <p className="wf-check-warning">
                 Complete all three verification checks above to proceed to approval sign-off.
               </p>
             )}
@@ -642,7 +642,7 @@ export function RenewalWorkflowWizardPage() {
 
       {/* ── STEP 3: Final Review & Approval Sign-off ── */}
       {step === 2 && renewal && (
-        <div className="flex flex-col gap-6">
+        <div className="wf-wizard-step">
           {isPendingReview ? (
             <Banner variant="brand" icon="shield">
               <strong>Ready for Approval:</strong> Approving this workflow authorizes the renewal submission for{' '}
@@ -663,7 +663,7 @@ export function RenewalWorkflowWizardPage() {
               </div>
               <div className="wf-meta-row">
                 <span className="wf-meta-key">Agency & Trigger</span>
-                <span className="wf-meta-val flex items-center gap-2">
+                <span className="wf-meta-val wf-inline-avatar">
                   <Badge variant={complyBadgeVariant('comply-agency comply-agency--gov')}>{renewal.agency_code}</Badge>
                   <TriggerBadge trigger={renewal.trigger} />
                 </span>
@@ -694,7 +694,7 @@ export function RenewalWorkflowWizardPage() {
                 <span className="wf-meta-key">Approved By</span>
                 <span className="wf-meta-val">
                   {renewal.approved_by ? (
-                    <span className="inline-flex items-center gap-2">
+                    <span className="wf-inline-avatar">
                       <PersonAvatar userId={renewal.approved_by} name={renewal.approved_by_name ?? ''} size={20} />
                       {renewal.approved_by_name ?? renewal.approved_by}
                     </span>
@@ -719,7 +719,7 @@ export function RenewalWorkflowWizardPage() {
 
             {reviewNotes.trim() && (
               <div className="wf-notes">
-                <div className="text-xs font-semibold text-muted-foreground mb-1">Reviewer Notes</div>
+                <div className="wf-notes-label">Reviewer Notes</div>
                 {reviewNotes}
               </div>
             )}
@@ -779,7 +779,7 @@ export function NewRenewalWorkflowWizardPage() {
       }}
     >
       {step === 0 && (
-        <div className="flex flex-col gap-5">
+        <div className="wf-wizard-step">
           <WizardField label="Certificate to Renew *">
             <Select value={certId || '__none__'} onValueChange={v => setCertId(v === '__none__' ? '' : v)}>
               <SelectTrigger>
@@ -808,7 +808,7 @@ export function NewRenewalWorkflowWizardPage() {
               </div>
               <div>
                 <div className="comply-meta-key">Certificate Number</div>
-                <div className="comply-meta-val font-mono">{selectedCert.cert_number || '—'}</div>
+                <div className="comply-meta-val wf-mono">{selectedCert.cert_number || '—'}</div>
               </div>
               <div>
                 <div className="comply-meta-key">Expiry Date</div>
@@ -820,8 +820,8 @@ export function NewRenewalWorkflowWizardPage() {
       )}
 
       {step === 1 && (
-        <div className="flex flex-col gap-5">
-          <div className="rounded-(--r) border border-border bg-(--bg) px-4">
+        <div className="wf-wizard-step">
+          <div className="wf-checklist-box">
             <CheckboxRow
               title="Current certificate & supporting schedules verified"
               description="Confirm existing certificate record and required attachments are up to date."
@@ -848,7 +848,7 @@ export function NewRenewalWorkflowWizardPage() {
       )}
 
       {step === 2 && selectedCert && (
-        <div className="flex flex-col gap-5">
+        <div className="wf-wizard-step">
           <Banner variant="brand" icon="zap">
             Confirming below will create a new renewal workflow for <strong>{selectedCert.name}</strong> and place it in the <strong>Pending Review</strong> stage.
           </Banner>

@@ -44,7 +44,7 @@ export function SealGuarantees() {
 
   async function handleCreate(e: React.FormEvent) {
     e.preventDefault();
-    if (!reference.trim() || !faceValue || !expiresOn) return;
+    if (!reference.trim() || !faceValue || !effectiveFrom || !expiresOn) return;
     setSaving(true);
     try {
       await apiFetch('/v1/seal/guarantees', {

@@ -282,7 +282,6 @@ export function SealExWarehouseEntryDetail() {
                     defaultSubject={`Customs examination — ${ex.outcome.replace(/_/g, ' ').toLowerCase()} on ${entry.lotDescription ?? 'declaration'}`}
                     contextNote={`${ex.selectivityChannel} channel examination on declaration ${entry.id} (lot: ${entry.lotDescription ?? entry.lotId}, owner: ${entry.lotOwnerName ?? entry.lotOwnerId}). Outcome: ${ex.outcome}. Findings: ${ex.findings ?? 'none recorded'}.`}
                     defaultPriority={ex.outcome === 'SEIZURE_RECOMMENDED' ? 'URGENT' : 'HIGH'}
-                    buttonClassName="btn btn-secondary"
                   />
                 )}
                 {['REQUESTED', 'SCHEDULED', 'IN_PROGRESS'].includes(ex.status) && (

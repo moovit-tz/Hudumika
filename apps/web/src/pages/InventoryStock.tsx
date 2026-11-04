@@ -1,3 +1,5 @@
+import { Link } from 'react-router-dom';
+import { Banner } from '../components/ui/alert.js';
 import React, { useEffect, useState } from 'react';
 import { Icon } from '../components/Icon.js';
 import { Badge } from '../components/ui/badge.js';
@@ -123,12 +125,13 @@ export function InventoryStock() {
 
   return (
     <div className="inv-page">
+      <Banner variant="info">Item inventory used by FinOps and production has its own warehouses and balances. The SEAL warehouse scope above applies to lot stock. <Link className="underline" to="/seal/stock">View lot stock</Link> · <Link className="underline" to="/seal/counts">Item stock counts</Link> · <Link className="underline" to="/seal/item-warehouses">Item warehouses & locations</Link></Banner>
       <div className="inv-page-hdr">
         <div>
           <PageHeader
             crumbs={['Inventory', 'Stock']}
-            titlePlain="Stock"
-            titleEm="levels"
+            titlePlain="Item stock"
+            titleEm="ledger"
             subtitle="Every quantity here traces to a real ledger movement — receipts, issues, transfers, and adjustments are never a direct edit to the stock level itself."
           />
         </div>

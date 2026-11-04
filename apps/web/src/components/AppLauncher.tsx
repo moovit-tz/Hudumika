@@ -42,6 +42,11 @@ export const LAUNCHER_APP_META: Record<string, { icon: IconName; color: string; 
   ondi:         { icon: 'userCheck',     color: '#4253d1', label: 'Account' },
   workspace:    { icon: 'settings',      color: '#64748b', label: 'Settings' },
   lens:         { icon: 'eye',           color: '#475569', label: 'Lens' },
+  tuma:         { icon: 'truck',         color: '#0891b2', label: 'Tuma' },
+  lexcore:      { icon: 'scale',         color: '#7c3aed', label: 'LexCore' },
+  ngao:         { icon: 'shield',        color: '#059669', label: 'Ngao' },
+  stride:       { icon: 'grid',          color: '#4f46e5', label: 'Stride' },
+  gereji:       { icon: 'tool',          color: '#d97706', label: 'Gereji' },
 };
 
 interface AppLauncherProps {

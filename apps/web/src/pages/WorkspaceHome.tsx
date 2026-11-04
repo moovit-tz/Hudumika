@@ -74,6 +74,11 @@ const APP_META: Record<string, Pick<HudumikaApp, 'desc' | 'category'>> = {
   lens:         { desc: 'Platform observability, runtime introspection & diagnostics', category: 'System' },
   demurrage:    { desc: 'Container demurrage calculation, free-period tracking & port invoices', category: 'Logistics' },
   developer:    { desc: 'API Gateway, developer credentials, metering, telemetry & API marketplace', category: 'Infrastructure' },
+  tuma:         { desc: 'Parcel logistics — booking, dispatch, delivery tracking & agent management', category: 'Logistics' },
+  lexcore:      { desc: 'Legal practice management — matters, time/billing, trust accounts & conflicts', category: 'Legal' },
+  ngao:         { desc: 'Privacy & data protection compliance — assessments, registers & incident response', category: 'Compliance' },
+  stride:       { desc: 'Race operations, live telemetry and ticketing', category: 'Sports' },
+  gereji:       { desc: 'Automotive workshop — vehicle records, job cards, estimates, labour & parts', category: 'Automotive' },
 };
 
 const apps: HudumikaApp[] = [

@@ -1,3 +1,4 @@
+import { validateSealReferences } from '../middleware/seal-references.js';
 import { wouldExceedStorageQuota, quotaBlockedMessage } from '../lib/storage-quota.js';
 import { requireAnyEntitlement } from '../middleware/entitlement.js';
 import type { FastifyInstance } from 'fastify';
@@ -21,6 +22,12 @@ const documentPatchSchema = z.object({
 
 const ENTITY_TYPES = ['lot', 'consignment', 'container', 'customs_entry', 'compartment'] as const;
 type EntityType = typeof ENTITY_TYPES[number];
+const ENTITY_TABLES={lot:'seal_lots',consignment:'seal_consignments',container:'seal_containers',customs_entry:'seal_customs_entries',compartment:'seal_compartments'} as const;
+async function ownsEntity(tenantId:string,type:EntityType,id:string){
+  if(!z.string().uuid().safeParse(id).success)return false;
+  return withTenant(tenantId,async trx=>!!await trx.selectFrom(ENTITY_TABLES[type]).select('id').where('tenant_id','=',tenantId).where('id','=',id).executeTakeFirst());
+}
+
 
 const MIME_TYPES: Record<string, string> = {
   pdf: 'application/pdf', png: 'image/png', jpg: 'image/jpeg', jpeg: 'image/jpeg', gif: 'image/gif',
@@ -30,6 +37,7 @@ const MIME_TYPES: Record<string, string> = {
 
 export async function sealDocumentRoutes(fastify: FastifyInstance) {
   fastify.addHook('preHandler', fastify.authenticate);
+  fastify.addHook('preHandler', validateSealReferences);
   // Documents can attach to a customs_entry (worked from ClearOS's Ops
   // Command) as well as lot/consignment/container/compartment (SEAL-only) —
   // simplest to gate the whole vault on either entitlement rather than
@@ -47,10 +55,11 @@ export async function sealDocumentRoutes(fastify: FastifyInstance) {
   fastify.get('/documents', async (request: any, reply) => {
     try {
       const { entity_type, entity_id } = request.query as { entity_type?: string; entity_id?: string };
-      if (!entity_type || !entity_id) return reply.status(400).send({ error: 'entity_type and entity_id are required' });
+      if (!entity_type || !ENTITY_TYPES.includes(entity_type as EntityType) || !entity_id) return reply.status(400).send({ error: 'A valid entity_type and entity_id are required' });
+      if(!await ownsEntity(request.user.tenant_id,entity_type as EntityType,entity_id))return reply.code(404).send({error:'Record not found.'});
       const rows = await withTenant(request.user.tenant_id, trx =>
         trx.selectFrom('seal_documents').selectAll()
-          .where('entity_type', '=', entity_type).where('entity_id', '=', entity_id)
+          .where('tenant_id','=',request.user.tenant_id).where('entity_type', '=', entity_type).where('entity_id', '=', entity_id)
           .orderBy('created_at', 'desc').execute()
       );
       return rows;
@@ -69,6 +78,7 @@ export async function sealDocumentRoutes(fastify: FastifyInstance) {
       const docType = ((data.fields.docType as any)?.value || 'other') as string;
       if (!entityType || !ENTITY_TYPES.includes(entityType)) return reply.status(400).send({ error: 'A valid entityType field is required' });
       if (!entityId) return reply.status(400).send({ error: 'entityId field is required' });
+      if(!await ownsEntity(request.user.tenant_id,entityType,entityId))return reply.code(404).send({error:'Record not found.'});
 
       const fileBuffer = await data.toBuffer();
       const quota = await wouldExceedStorageQuota(request.user.tenant_id, fileBuffer.length);

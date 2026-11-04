@@ -67,11 +67,15 @@ export async function getUsdToTzs(): Promise<number> {
       req.setTimeout(6000, () => req.destroy(new Error('Timeout')));
     });
 
-    const rate = data?.rates?.TZS ?? 2540;
+    const rate = data?.rates?.TZS;
+    if (typeof rate !== 'number' || !Number.isFinite(rate) || rate <= 0) {
+      throw new Error('Invalid FX provider response');
+    }
     _fxCache = { rate, fetchedAt: Date.now() };
     return rate;
   } catch {
-    return _fxCache?.rate ?? 2540; // fallback
+    // An unverified or expired rate must not silently become a priced estimate.
+    throw new Error('FX exchange rate unavailable. Enter a verified exchange rate override and retry.');
   }
 }
 

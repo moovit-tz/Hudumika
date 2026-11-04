@@ -1,3 +1,9 @@
+import { SealLotEditPage } from '../pages/SealLotEditPage.js';
+import { InventoryWarehouses } from '../pages/InventoryWarehouses.js';
+import { SealCompartmentSwitcher } from '../components/SealCompartmentSwitcher.js';
+import { SealStockOverview } from '../pages/SealStockOverview.js';
+import { SealCountDetailPage } from '../pages/SealCountDetailPage.js';
+import { SealMovementHistory } from '../pages/SealMovementHistory.js';
 import { Routes, Route, Navigate, useParams } from 'react-router-dom';
 import '../pages/Seal.css';
 import { WorkspaceApp } from './WorkspaceApp.js';
@@ -29,7 +35,7 @@ import { SealFulfillment } from '../pages/SealFulfillment.js';
 import { SealFulfillmentDetail } from '../pages/SealFulfillmentDetail.js';
 import { SealDispatchRequests } from '../pages/SealDispatchRequests.js';
 import { SealSortingDashboard } from '../pages/SealSortingDashboard.js';
-import { SealAppointments } from '../pages/SealAppointments.js';
+import { SealAppointments, SealAppointmentPage } from '../pages/SealAppointments.js';
 import { SealStorageInvoices } from '../pages/SealStorageInvoices.js';
 import { SealAgedStorage } from '../pages/SealAgedStorage.js';
 import { SealStockTransfers } from '../pages/SealStockTransfers.js';
@@ -43,7 +49,7 @@ import { SealExWarehouseEntryDetail } from '../pages/seal/SealExWarehouseEntryDe
 // Routes redirect /inventory/* here so existing bookmarks keep working.
 import { InventoryItems } from '../pages/InventoryItems.js';
 import { InventoryStock } from '../pages/InventoryStock.js';
-import { InventoryCounts, } from '../pages/InventoryCounts.js';
+import { InventoryCounts } from '../pages/InventoryCounts.js';
 import { InventoryCountDetail } from '../pages/InventoryCountDetail.js';
 import { useSealCapabilities } from '../hooks/useSealCapabilities.js';
 
@@ -65,110 +71,54 @@ function ExWarehouseDetailRedirect() {
   return <Navigate to={`/seal/ex-warehouse/${id}`} replace />;
 }
 
-function buildNav(caps: ReturnType<typeof useSealCapabilities>): SidebarSection[] {
+export function buildSealNav(caps: ReturnType<typeof useSealCapabilities>): SidebarSection[] {
   const sections: SidebarSection[] = [
-    {
-      items: [
-        { label: 'Dashboard', icon: 'home', path: '/seal', exact: true },
-      ],
-    },
-    {
-      title: 'GATE & RECEIVING',
-      items: [
-        { label: 'Consignments', icon: 'truck', path: '/seal/consignments' },
-        { label: 'Appointments', icon: 'calendar', path: '/seal/appointments' },
-      ],
-    },
-  ];
-
-  if (caps.customs) {
-    // Advanced plan (seal_advanced): bonded warehouse / ICD / CFS surface.
-    // Items and counts are still reachable via routes but the ledger is the
-    // primary view — Lots already track quantity and status per SKU.
-    sections.push({
-      title: 'THE LEDGER',
-      items: [
-        { label: 'Lots', icon: 'package', path: '/seal/lots' },
-        { label: 'Stock Transfers', icon: 'arrowRight' as const, path: '/seal/stock-transfers' },
-        { label: 'Warehouses', icon: 'layers', path: '/seal/compartments' },
-        ...(caps.guarantees
-          ? [{ label: 'Guarantees', icon: 'shield' as const, path: '/seal/guarantees' }]
-          : []),
-      ],
-    });
-    sections.push({
-      title: 'CUSTOMS',
-      items: [
-        { label: 'Ex-warehouse Entries', icon: 'fileText', path: '/seal/ex-warehouse' },
-        ...(caps.examinations
-          ? [{ label: 'Examinations', icon: 'search' as const, path: '/seal/examinations' }]
-          : []),
-        { label: 'Stock Account', icon: 'clipboard', path: '/seal/stock-account' },
-      ],
-    });
-    sections.push({
-      title: 'YARD',
-      items: [
-        { label: 'Yard Slots', icon: 'grid', path: '/seal/yard-slots' },
-      ],
-    });
-  } else {
-    // Base plan (seal): standard inventory surface — no customs overlay.
-    sections.push({
-      title: 'INVENTORY',
-      items: [
-        { label: 'Items', icon: 'tag', path: '/seal/items' },
-        { label: 'Stock Levels', icon: 'layers', path: '/seal/stock' },
-        { label: 'Stock Counts', icon: 'clipboardList', path: '/seal/counts' },
-        { label: 'Lots', icon: 'package', path: '/seal/lots' },
-        { label: 'Stock Transfers', icon: 'arrowRight' as const, path: '/seal/stock-transfers' },
-        { label: 'Warehouses', icon: 'warehouse', path: '/seal/compartments' },
-      ],
-    });
-  }
-
-  sections.push({
-    title: 'OPERATIONS',
-    items: [
-      { label: 'Warehouse Tasks', icon: 'clipboardList', path: '/seal/activities' },
-      { label: 'Equipment', icon: 'tool', path: '/seal/equipment' },
-      { label: 'Automation', icon: 'zap', path: '/seal/automation' },
-      { label: 'Fulfillment', icon: 'truck', path: '/seal/fulfillment' },
+    { items: [{ label: 'Dashboard', icon: 'home', path: '/seal', exact: true }] },
+    { title: 'RECEIVING', items: [
+      { label: 'Appointments', icon: 'calendar', path: '/seal/appointments' },
+      { label: 'Consignments & Receiving', icon: 'truck', path: '/seal/consignments' },
+    ] },
+    { title: 'INVENTORY', items: [
+      { label: 'Stock Overview', icon: 'layers', path: '/seal/stock' },
+      { label: 'Lots & Batches', icon: 'package', path: '/seal/lots' },
+      { label: 'Stock Transfers', icon: 'arrowRight', path: '/seal/stock-transfers' },
+      { label: 'Counts & Adjustments', icon: 'clipboardList', path: '/seal/adjustments' },
+    ] },
+    { title: 'OUTBOUND', items: [
       { label: 'Dispatch Requests', icon: 'link', path: '/seal/dispatch-requests' },
-    ],
-  });
-
-  sections.push({
-    title: 'BILLING',
-    items: [
-      { label: 'Storage Invoices', icon: 'fileText', path: '/seal/billing/invoices' },
-      { label: 'Aged Storage', icon: 'clock', path: '/seal/billing/aged-storage' },
-    ],
-  });
-
-  sections.push({
-    title: 'ANALYTICS',
-    items: [
-      { label: 'Metrics & Reports', icon: 'barChart', path: '/seal/metrics' },
-    ],
-  });
-
-  if (caps.integrations) {
-    sections.push({
-      title: 'INTEGRATIONS',
-      items: [
-        { label: 'POS & Sales', icon: 'shoppingCart', path: '/seal/integrations/pos' },
-        { label: 'Finance', icon: 'dollarSign', path: '/seal/integrations/finance' },
-      ],
-    });
-  }
-
+      { label: 'Fulfillment Orders', icon: 'truck', path: '/seal/fulfillment' },
+    ] },
+    { title: 'WAREHOUSE OPERATIONS', items: [
+      { label: 'Warehouse Tasks', icon: 'clipboardList', path: '/seal/activities' },
+      { label: 'Yard Slots', icon: 'grid', path: '/seal/yard-slots' },
+      { label: 'Equipment', icon: 'tool', path: '/seal/equipment' },
+    ] },
+  ];
+  if (caps.customs) sections.push({ title: 'CUSTOMS', items: [
+    { label: 'Ex-warehouse Entries', icon: 'fileText', path: '/seal/ex-warehouse' },
+    ...(caps.examinations ? [{ label: 'Examinations', icon: 'search' as const, path: '/seal/examinations' }] : []),
+    ...(caps.guarantees ? [{ label: 'Guarantees', icon: 'shield' as const, path: '/seal/guarantees' }] : []),
+    { label: 'Customs Stock Account', icon: 'clipboard', path: '/seal/stock-account' },
+  ] });
+  sections.push(
+    { title: 'BILLING', items: [{ label: 'Storage Charges & Invoices', icon: 'fileText', path: '/seal/billing/invoices' }] },
+    { title: 'REPORTS', items: [
+      { label: 'Stock Aging', icon: 'clock', path: '/seal/billing/aged-storage' },
+      { label: 'Movement History', icon: 'clipboard', path: '/seal/movements' },
+      { label: 'Operational Reports', icon: 'barChart', path: '/seal/metrics' },
+    ] },
+    { title: 'SETUP', items: [
+      { label: 'Warehouses & Locations', icon: 'warehouse', path: '/seal/compartments' },
+      { label: 'Item Catalogue', icon: 'tag', path: '/seal/items' },
+      { label: 'Automation Rules', icon: 'zap', path: '/seal/automation' },
+    ] },
+  );
   return sections;
 }
 
 export function SealShell() {
   const caps = useSealCapabilities();
-  const nav = buildNav(caps);
+  const nav = buildSealNav(caps);
 
   return (
     <WorkspaceApp appId="seal">
@@ -176,6 +126,7 @@ export function SealShell() {
         <AppSidebar
           appId="seal"
           sections={nav}
+          beforeNav={({ collapsed }) => <SealCompartmentSwitcher collapsed={collapsed} />}
         />
         <div className="app-main">
           <AppHeader />
@@ -184,6 +135,8 @@ export function SealShell() {
               <Route element={<PageLayout />}>
                 <Route index                    element={<SealDashboard />}          />
                 <Route path="metrics"           element={<SealMetrics />}            />
+                <Route path="appointments/new" element={<SealAppointmentPage />} />
+                <Route path="appointments/:id/edit" element={<SealAppointmentPage />} />
                 <Route path="appointments"      element={<SealAppointments />}       />
                 <Route path="billing/invoices"  element={<SealStorageInvoices />}    />
                 <Route path="billing/aged-storage" element={<SealAgedStorage />}     />
@@ -193,6 +146,7 @@ export function SealShell() {
                 <Route path="adjustments"             element={<SealAdjustments />}        />
                 <Route path="lots"              element={<SealLots />}               />
                 <Route path="lots/new"          element={<SealReceiveLot />}         />
+                <Route path="lots/:id/edit" element={<SealLotEditPage />} />
                 <Route path="lots/:id"          element={<SealLotDetail />}          />
                 <Route path="compartments"      element={<SealCompartments />}       />
                 <Route path="compartments/:id"  element={<SealCompartmentDetail />}   />
@@ -214,13 +168,17 @@ export function SealShell() {
                 <Route path="yard-slots"        element={<SealYardSlots />}          />
                 <Route path="activities"        element={<SealTasks />}              />
                 <Route path="equipment"         element={<SealEquipment />}          />
-                <Route path="automation"        element={<SealAutomation />}         />
+                <Route path="automation"         element={<SealAutomation />}         />
                 <Route path="fulfillment"       element={<SealFulfillment />}        />
                 <Route path="fulfillment/:id"   element={<SealFulfillmentDetail />}  />
                 <Route path="dispatch-requests" element={<SealDispatchRequests />}   />
                 {/* Inventory routes (formerly /inventory/*) */}
                 <Route path="items"             element={<InventoryItems />}         />
-                <Route path="stock"             element={<InventoryStock />}         />
+                <Route path="stock"             element={<SealStockOverview />}         />
+                <Route path="stock/item-ledger" element={<InventoryStock />} />
+                <Route path="item-warehouses" element={<InventoryWarehouses />} />
+                <Route path="adjustments/:id" element={<SealCountDetailPage />} />
+                <Route path="movements" element={<SealMovementHistory />} />
                 <Route path="counts"            element={<InventoryCounts />}        />
                 <Route path="counts/:id"        element={<InventoryCountDetail />}   />
               </Route>

@@ -1,3 +1,4 @@
+import { validateSealReferences } from '../middleware/seal-references.js';
 import { requireEntitlement } from '../middleware/entitlement.js';
 import { emitDomainEvent } from '../services/domain-events.service.js';
 import type { FastifyInstance } from 'fastify';
@@ -61,6 +62,7 @@ function mapDispatchRequest(row: any) {
 
 export async function sealFulfillmentRoutes(fastify: FastifyInstance) {
   fastify.addHook('preHandler', fastify.authenticate);
+  fastify.addHook('preHandler', validateSealReferences);
   fastify.addHook('preHandler', requireEntitlement('seal'));
   // HUD-0024/0031: same gap as seal.routes.ts — a separate file/plugin
   // registration, not covered by that fix. See seal.routes.ts's comment.
@@ -135,7 +137,7 @@ export async function sealFulfillmentRoutes(fastify: FastifyInstance) {
             'seal_fulfillment_lines.requested_qty', 'seal_fulfillment_lines.picked_qty', 'seal_fulfillment_lines.packed',
             'seal_lots.description as lot_description', 'seal_lots.uom',
           ])
-          .where('order_id', '=', request.params.id).where('tenant_id', '=', request.user.tenant_id)
+          .where('seal_fulfillment_lines.order_id', '=', request.params.id).where('seal_fulfillment_lines.tenant_id', '=', request.user.tenant_id)
           .execute();
         return { order, lines };
       });
@@ -150,15 +152,15 @@ export async function sealFulfillmentRoutes(fastify: FastifyInstance) {
     const b = fulfillmentOrderCreateSchema.parse(request.body);
     try {
       const order = await withTenant(request.user.tenant_id, async trx => {
-        // Every requested qty must be currently available on the named lot —
-        // checked here (not just trusted from the client) since this is the
-        // moment stock gets committed to an outbound promise.
-        for (const line of b.lines) {
-          const lot = await trx.selectFrom('seal_lots').select(['id', 'qty_on_hand']).where('tenant_id', '=', request.user.tenant_id).where('id', '=', line.lotId).executeTakeFirst();
-          if (!lot) throw new Error(`Lot not found: ${line.lotId}`);
-          if (Number(line.qty) > Number(lot.qty_on_hand)) {
-            throw new Error(`Requested qty (${line.qty}) exceeds qty on hand (${lot.qty_on_hand}) for this lot.`);
-          }
+        if (new Set(b.lines.map(l => l.lotId)).size !== b.lines.length) throw new Error('Each lot can appear only once.');
+        const warehouse = await trx.selectFrom('seal_compartments').select('id').where('tenant_id', '=', request.user.tenant_id).where('id', '=', b.compartmentId).executeTakeFirst();
+        const customer = await trx.selectFrom('customers').select('id').where('tenant_id', '=', request.user.tenant_id).where('id', '=', b.customerId).executeTakeFirst();
+        if (!warehouse || !customer) throw new Error('Warehouse or customer not found.');
+        for (const line of [...b.lines].sort((a,b)=>a.lotId.localeCompare(b.lotId))) {
+          const lot = await trx.selectFrom('seal_lots').select(['id', 'qty_on_hand', 'qty_allocated', 'compartment_id', 'owner_id']).where('tenant_id', '=', request.user.tenant_id).where('id', '=', line.lotId).forUpdate().executeTakeFirst();
+          if (!lot || lot.compartment_id !== b.compartmentId || lot.owner_id !== b.customerId) throw new Error('Lot does not belong to this warehouse and customer.');
+          if (line.qty > Number(lot.qty_on_hand) - Number(lot.qty_allocated)) throw new Error('Requested quantity exceeds available stock.');
+          await trx.updateTable('seal_lots').set({qty_allocated:String(Number(lot.qty_allocated)+line.qty)}).where('tenant_id','=',request.user.tenant_id).where('id','=',lot.id).execute();
         }
         const row = await trx.insertInto('seal_fulfillment_orders').values({
           tenant_id: request.user.tenant_id,
@@ -171,7 +173,7 @@ export async function sealFulfillmentRoutes(fastify: FastifyInstance) {
 
         await trx.insertInto('seal_fulfillment_lines').values(
           b.lines.map((l: any) => ({
-            tenant_id: request.user.tenant_id, order_id: row.id, lot_id: l.lotId, requested_qty: String(l.qty),
+            tenant_id: request.user.tenant_id, order_id: row.id, lot_id: l.lotId, requested_qty: String(l.qty), reserved_qty: String(l.qty),
           }))
         ).execute();
 
@@ -199,7 +201,7 @@ export async function sealFulfillmentRoutes(fastify: FastifyInstance) {
     try {
       const result = await withTenant(request.user.tenant_id, async trx => {
         const order = await trx.selectFrom('seal_fulfillment_orders').selectAll().where('id', '=', request.params.id)
-          .where('tenant_id', '=', request.user.tenant_id).executeTakeFirst();
+          .where('tenant_id', '=', request.user.tenant_id).forUpdate().executeTakeFirst();
         if (!order) return { notFound: 'order' as const };
         if (order.status === 'dispatched' || order.status === 'cancelled') {
           throw new Error(`Cannot pick against a ${order.status} order.`);
@@ -211,16 +213,18 @@ export async function sealFulfillmentRoutes(fastify: FastifyInstance) {
         const remaining = Number(line.requested_qty) - Number(line.picked_qty);
         if (b.qty > remaining) throw new Error(`Cannot pick ${b.qty} — only ${remaining} remains requested on this line.`);
 
-        const lot = await trx.selectFrom('seal_lots').select(['id', 'qty_on_hand']).where('id', '=', line.lot_id).executeTakeFirstOrThrow();
-        if (b.qty > Number(lot.qty_on_hand)) throw new Error(`Cannot pick ${b.qty} — only ${lot.qty_on_hand} on hand for this lot.`);
+        const lot = await trx.selectFrom('seal_lots').select(['id', 'qty_on_hand', 'qty_allocated']).where('tenant_id', '=', request.user.tenant_id).where('id', '=', line.lot_id).forUpdate().executeTakeFirstOrThrow();
+        if (b.qty > Number(lot.qty_on_hand) - Number(lot.qty_allocated) + Number(line.reserved_qty)) throw new Error(`Cannot pick ${b.qty} — only ${lot.qty_on_hand} on hand for this lot.`);
 
         await SealService.recordMovement(trx, request.user.tenant_id, {
           actorId: request.user.sub, movementType: 'pick', lotId: line.lot_id,
           qtyDelta: -b.qty, reference: order.reference, reasonCode: 'fulfillment_pick',
         });
 
+        const releasedReservation = Math.min(b.qty, Number(line.reserved_qty));
+        await trx.updateTable('seal_lots').set({qty_allocated:String(Number(lot.qty_allocated)-releasedReservation)}).where('tenant_id','=',request.user.tenant_id).where('id','=',lot.id).execute();
         const updatedLine = await trx.updateTable('seal_fulfillment_lines')
-          .set({ picked_qty: String(Number(line.picked_qty) + b.qty) })
+          .set({ picked_qty: String(Number(line.picked_qty) + b.qty), reserved_qty: String(Number(line.reserved_qty)-releasedReservation) })
           .where('id', '=', line.id).returningAll().executeTakeFirstOrThrow();
 
         const allLines = await trx.selectFrom('seal_fulfillment_lines').selectAll().where('order_id', '=', order.id).execute();
@@ -247,7 +251,7 @@ export async function sealFulfillmentRoutes(fastify: FastifyInstance) {
     try {
       const order = await withTenant(request.user.tenant_id, async trx => {
         const o = await trx.selectFrom('seal_fulfillment_orders').selectAll().where('id', '=', request.params.id)
-          .where('tenant_id', '=', request.user.tenant_id).executeTakeFirst();
+          .where('tenant_id', '=', request.user.tenant_id).forUpdate().executeTakeFirst();
         if (!o) return null;
         if (o.status !== 'picked') throw new Error(`Cannot confirm packing — order is ${o.status}, not fully picked yet.`);
         await trx.updateTable('seal_fulfillment_lines').set({ packed: true }).where('order_id', '=', o.id).execute();
@@ -270,7 +274,7 @@ export async function sealFulfillmentRoutes(fastify: FastifyInstance) {
     try {
       const order = await withTenant(request.user.tenant_id, async trx => {
         const o = await trx.selectFrom('seal_fulfillment_orders').selectAll().where('id', '=', request.params.id)
-          .where('tenant_id', '=', request.user.tenant_id).executeTakeFirst();
+          .where('tenant_id', '=', request.user.tenant_id).forUpdate().executeTakeFirst();
         if (!o) return null;
         if (o.status !== 'packed') throw new Error(`Cannot dispatch — order is ${o.status}, not packed yet.`);
         const lines = await trx.selectFrom('seal_fulfillment_lines').selectAll().where('order_id', '=', o.id).execute();
@@ -286,10 +290,10 @@ export async function sealFulfillmentRoutes(fastify: FastifyInstance) {
         }).where('id', '=', o.id).returningAll().executeTakeFirstOrThrow();
 
         // Gate-out: goods have physically left the warehouse.
-        emitDomainEvent(trx, request.user.tenant_id, {
+        await emitDomainEvent(trx, request.user.tenant_id, {
           type: 'seal.order_dispatched', sourceApp: 'seal', entityType: 'seal_fulfillment_order', entityId: dispatched.id,
           payload: { reference: o.reference ?? null, vehicleId: b.vehicleId ?? null, carrierNote: b.carrierNote ?? null },
-        }).catch(err => console.error('[SEAL] order_dispatched emit failed:', err.message));
+        }, { deferDispatch: true });
 
         return dispatched;
       });
@@ -308,9 +312,15 @@ export async function sealFulfillmentRoutes(fastify: FastifyInstance) {
     try {
       const order = await withTenant(request.user.tenant_id, async trx => {
         const o = await trx.selectFrom('seal_fulfillment_orders').selectAll().where('id', '=', request.params.id)
-          .where('tenant_id', '=', request.user.tenant_id).executeTakeFirst();
+          .where('tenant_id', '=', request.user.tenant_id).forUpdate().executeTakeFirst();
         if (!o) return null;
         if (o.status !== 'draft') throw new Error(`Cannot cancel — order is ${o.status}; stock has already been picked against it.`);
+        const lines = await trx.selectFrom('seal_fulfillment_lines').selectAll().where('tenant_id','=',request.user.tenant_id).where('order_id','=',o.id).orderBy('lot_id').execute();
+        for (const line of lines) {
+          const lot = await trx.selectFrom('seal_lots').select(['id','qty_allocated']).where('tenant_id','=',request.user.tenant_id).where('id','=',line.lot_id).forUpdate().executeTakeFirstOrThrow();
+          await trx.updateTable('seal_lots').set({qty_allocated:String(Math.max(0,Number(lot.qty_allocated)-Number(line.reserved_qty)))}).where('tenant_id','=',request.user.tenant_id).where('id','=',lot.id).execute();
+          await trx.updateTable('seal_fulfillment_lines').set({reserved_qty:'0'}).where('tenant_id','=',request.user.tenant_id).where('id','=',line.id).execute();
+        }
         return trx.updateTable('seal_fulfillment_orders').set({ status: 'cancelled' })
           .where('id', '=', o.id).returningAll().executeTakeFirstOrThrow();
       });
@@ -360,7 +370,7 @@ export async function sealFulfillmentRoutes(fastify: FastifyInstance) {
     try {
       const result = await withTenant(request.user.tenant_id, async trx => {
         const reqRow = await trx.selectFrom('seal_dispatch_requests').selectAll()
-          .where('id', '=', request.params.id).where('tenant_id', '=', request.user.tenant_id).executeTakeFirst();
+          .where('id', '=', request.params.id).where('tenant_id', '=', request.user.tenant_id).forUpdate().executeTakeFirst();
         if (!reqRow) return null;
         if (reqRow.status !== 'PENDING') throw new Error(`This request is already ${reqRow.status.toLowerCase()}.`);
 
@@ -370,9 +380,9 @@ export async function sealFulfillmentRoutes(fastify: FastifyInstance) {
             .where('id', '=', reqRow.id).returningAll().executeTakeFirstOrThrow();
         }
 
-        const lot = await trx.selectFrom('seal_lots').select(['id', 'compartment_id', 'owner_id', 'qty_on_hand'])
-          .where('id', '=', reqRow.lot_id).where('tenant_id', '=', request.user.tenant_id).executeTakeFirstOrThrow();
-        if (Number(reqRow.qty_requested) > Number(lot.qty_on_hand)) {
+        const lot = await trx.selectFrom('seal_lots').select(['id', 'compartment_id', 'owner_id', 'qty_on_hand', 'qty_allocated'])
+          .where('id', '=', reqRow.lot_id).where('tenant_id', '=', request.user.tenant_id).forUpdate().executeTakeFirstOrThrow();
+        if (Number(reqRow.qty_requested) > Number(lot.qty_on_hand) - Number(lot.qty_allocated)) {
           throw new Error(`Requested qty (${reqRow.qty_requested}) exceeds qty on hand (${lot.qty_on_hand}) for this lot.`);
         }
 
@@ -386,8 +396,10 @@ export async function sealFulfillmentRoutes(fastify: FastifyInstance) {
         }).returningAll().executeTakeFirstOrThrow();
 
         await trx.insertInto('seal_fulfillment_lines').values({
-          tenant_id: request.user.tenant_id, order_id: order.id, lot_id: lot.id, requested_qty: reqRow.qty_requested,
+          tenant_id: request.user.tenant_id, order_id: order.id, lot_id: lot.id, requested_qty: reqRow.qty_requested, reserved_qty: reqRow.qty_requested,
         }).execute();
+
+        await trx.updateTable('seal_lots').set({qty_allocated:String(Number(lot.qty_allocated)+Number(reqRow.qty_requested))}).where('tenant_id','=',request.user.tenant_id).where('id','=',lot.id).execute();
 
         return trx.updateTable('seal_dispatch_requests')
           .set({ status: 'APPROVED', decided_by: request.user.sub, decided_at: new Date(), fulfillment_order_id: order.id })

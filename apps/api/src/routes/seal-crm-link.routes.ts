@@ -1,3 +1,4 @@
+import { validateSealReferences } from '../middleware/seal-references.js';
 import { requireAnyEntitlement } from '../middleware/entitlement.js';
 import type { FastifyInstance } from 'fastify';
 import { withTenant } from '../db/client.js';
@@ -9,6 +10,7 @@ import { withTenant } from '../db/client.js';
 // vehicles-for-assignment.
 export async function sealCrmLinkRoutes(fastify: FastifyInstance) {
   fastify.addHook('preHandler', fastify.authenticate);
+  fastify.addHook('preHandler', validateSealReferences);
   fastify.addHook('preHandler', requireAnyEntitlement(['seal', 'crm']));
   // HUD-0024 continuation: sibling of seal.routes.ts and its 8 already-fixed
   // siblings (HUD-0031) — this file was missed by that sweep. Bonded-

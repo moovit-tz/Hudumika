@@ -53,7 +53,7 @@ export function InventoryItems() {
   }
   useEffect(() => { reload(); }, [q]); // eslint-disable-line react-hooks/exhaustive-deps
   useEffect(() => {
-    apiFetch('/v1/products').then(res => setProducts(Array.isArray(res) ? res : res.data || res.products || []));
+    apiFetch('/v1/seal/catalog-products').then(setProducts).catch(e => showAlert(e.message));
   }, []);
 
   async function handleCreate(e: React.FormEvent) {
@@ -110,9 +110,9 @@ export function InventoryItems() {
       <div className="inv-page-hdr">
         <div>
           <PageHeader
-            crumbs={['Inventory', 'Items']}
-            titlePlain="Inventory"
-            titleEm="items"
+            crumbs={['SEAL', 'Setup', 'Item Catalogue']}
+            titlePlain="Item"
+            titleEm="catalogue"
             subtitle="Every SKU stock is tracked against — optionally linked to a billing catalog entry, never duplicating its name or price."
           />
         </div>

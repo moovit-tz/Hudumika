@@ -70,11 +70,20 @@ export const ActivationService = {
   async listJourneys(): Promise<Array<{
     industry_key: string; label: string; description: string | null;
     featured_apps: string[]; checkpoint_keys: string[];
+    recommended_package_code: string | null;
   }>> {
     const rows = await dbPlatform.selectFrom('onboarding_journeys')
-      .select(['industry_key', 'label', 'description', 'featured_apps', 'checkpoint_keys'])
-      .where('is_active', '=', true)
-      .orderBy('sort_order', 'asc')
+      .leftJoin('industry_registry', 'industry_registry.key', 'onboarding_journeys.industry_key')
+      .select([
+        'onboarding_journeys.industry_key',
+        'onboarding_journeys.label',
+        'onboarding_journeys.description',
+        'onboarding_journeys.featured_apps',
+        'onboarding_journeys.checkpoint_keys',
+        'industry_registry.default_package_code',
+      ])
+      .where('onboarding_journeys.is_active', '=', true)
+      .orderBy('onboarding_journeys.sort_order', 'asc')
       .execute();
     return rows.map(r => ({
       industry_key: r.industry_key,
@@ -82,6 +91,7 @@ export const ActivationService = {
       description: r.description,
       featured_apps: Array.isArray(r.featured_apps) ? r.featured_apps as string[] : [],
       checkpoint_keys: Array.isArray(r.checkpoint_keys) ? r.checkpoint_keys as string[] : [],
+      recommended_package_code: r.default_package_code ?? null,
     }));
   },
 };

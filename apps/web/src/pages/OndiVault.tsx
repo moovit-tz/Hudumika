@@ -12,6 +12,7 @@ import { Button } from '../components/ui/button.js';
 import { FeaturedIcon } from '../components/ui/featured-icon.js';
 import { showAlert } from '../lib/alert.js';
 import { showConfirm } from '../lib/confirm.js';
+import { PaginationBar } from '../components/PaginationBar.js';
 import './OndiVault.css';
 
 interface VaultFile {
@@ -41,7 +42,13 @@ export const OndiVault: React.FC = () => {
   const [uploadPct, setUploadPct] = useState(0);
   const [search, setSearch] = useState('');
   const [typeFilter, setTypeFilter] = useState<'all' | 'pdf' | 'img'>('all');
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(10);
   const inputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    setPage(1);
+  }, [search, typeFilter]);
 
   const reload = useCallback(async (folderId: string) => {
     try {
@@ -110,6 +117,10 @@ export const OndiVault: React.FC = () => {
         return true;
       })
     : [];
+
+  const totalPages = Math.max(1, Math.ceil(filteredFiles.length / pageSize));
+  const safePage = Math.min(Math.max(1, page), totalPages);
+  const pagedFiles = filteredFiles.slice((safePage - 1) * pageSize, safePage * pageSize);
 
   return (
     <div className="ov-page">
@@ -271,7 +282,7 @@ export const OndiVault: React.FC = () => {
 
               {filteredFiles.length > 0 && (
                 <div className="ov-doc-list">
-                  {filteredFiles.map((f) => (
+                  {pagedFiles.map((f) => (
                     <div key={f.id} className="ov-doc-item">
                       <div className="ov-doc-left">
                         <div className="ov-doc-icon">
@@ -314,6 +325,21 @@ export const OndiVault: React.FC = () => {
                 </div>
               )}
             </div>
+
+            {filteredFiles.length > 0 && (
+              <PaginationBar
+                page={safePage}
+                pageSize={pageSize}
+                total={filteredFiles.length}
+                onPageChange={setPage}
+                onPageSizeChange={(size) => {
+                  setPageSize(size);
+                  setPage(1);
+                }}
+                pageSizeOptions={[5, 10, 20, 50]}
+                itemLabel="document"
+              />
+            )}
           </div>
         </div>
 

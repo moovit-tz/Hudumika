@@ -138,7 +138,7 @@ export function ProjectDocumentReview({
                 ) : (
                   <ul className="pcp-review-list">
                     {brief[key].map((item, index) => (
-                      <li key={index} className="break-words">
+                      <li key={index}>
                         {item}
                       </li>
                     ))}
@@ -159,7 +159,7 @@ export function ProjectDocumentReview({
                 </span>
               </AccordionTrigger>
               <AccordionContent>
-                <div className="space-y-3 pt-2">
+                <div className="pcp-evidence-items">
                   {brief.evidence.map((item, index) => (
                     <blockquote key={index} className="pcp-evidence-quote">
                       <p className="pcp-evidence-text">
@@ -490,7 +490,7 @@ export function ProjectCreatePage() {
                           <FeaturedIcon variant="brand" size="sm">
                             <Icon name="fileText" size={14} />
                           </FeaturedIcon>
-                          <div style={{ minWidth: 0 }}>
+                          <div className="pcp-file-chip-body">
                             <div className="pcp-file-chip-name">{file.name}</div>
                             <div className="pcp-file-chip-meta">{formatFileSize(file.size)}</div>
                           </div>

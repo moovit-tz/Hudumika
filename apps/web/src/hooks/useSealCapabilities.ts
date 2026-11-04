@@ -3,11 +3,11 @@ import { apiFetch } from '../lib/api.js';
 import { getTenantSealCapabilities, type SealCapabilities } from '../lib/sealCapabilities.js';
 
 const DEFAULT: SealCapabilities = {
-  customs: true,
-  guarantees: true,
-  examinations: true,
+  customs: false,
+  guarantees: false,
+  examinations: false,
   dangerousGoods: true,
-  productLink: false,
+  productLink: true,
   integrations: false,
 };
 
@@ -21,11 +21,16 @@ const DEFAULT: SealCapabilities = {
  * - `seal_advanced`: adds bonded warehouse, ICD, CFS, ex-warehouse entries,
  *   guarantees, examinations, and the full customs-status progression.
  *
- * Defaults to all-customs-on while loading so the nav doesn't flicker
- * items away on mount.
+ * Starts with standard warehouse navigation; customs is added after capabilities load.
  */
 export function useSealCapabilities(): SealCapabilities {
   const [caps, setCaps] = useState<SealCapabilities>(DEFAULT);
+  const [version, setVersion] = useState(0);
+  useEffect(() => {
+    const refresh = () => setVersion(v => v + 1);
+    window.addEventListener('seal-warehouses-updated', refresh);
+    return () => window.removeEventListener('seal-warehouses-updated', refresh);
+  }, []);
 
   useEffect(() => {
     Promise.all([
@@ -37,9 +42,7 @@ export function useSealCapabilities(): SealCapabilities {
         : [];
       const base = types.length > 0 ? getTenantSealCapabilities(types) : DEFAULT;
 
-      // `seal_advanced` absent from features → treat as enabled (legacy tenants,
-      // dev environments); explicitly false → strip customs overlay.
-      const sealAdvanced = (ent as { features: Record<string, boolean> })?.features?.['seal_advanced'] !== false;
+      const sealAdvanced = (ent as { features: Record<string, boolean> })?.features?.['seal_advanced'] === true;
 
       setCaps({
         ...base,
@@ -48,7 +51,7 @@ export function useSealCapabilities(): SealCapabilities {
         examinations: base.examinations && sealAdvanced,
       });
     });
-  }, []);
+  }, [version]);
 
   return caps;
 }

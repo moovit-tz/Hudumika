@@ -13,6 +13,8 @@ export default defineConfig({
     port: 5180,
     host: true,
     proxy: {
+      '/.well-known/openid-configuration': { target: 'http://localhost:3001', changeOrigin: true },
+      '/jwks.json': { target: 'http://localhost:3001', changeOrigin: true },
       '/v1': { target: 'http://localhost:3001', changeOrigin: true },
       '/auth': { target: 'http://localhost:3001', changeOrigin: true },
       '/ws': { target: 'ws://localhost:3001', ws: true, changeOrigin: true },

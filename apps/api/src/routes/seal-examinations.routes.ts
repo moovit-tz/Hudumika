@@ -1,3 +1,4 @@
+import { validateSealReferences } from '../middleware/seal-references.js';
 import { requireAnyEntitlement } from '../middleware/entitlement.js';
 import type { FastifyInstance } from 'fastify';
 import { z } from 'zod';
@@ -48,6 +49,7 @@ function mapExamination(row: any) {
 
 export async function sealExaminationRoutes(fastify: FastifyInstance) {
   fastify.addHook('preHandler', fastify.authenticate);
+  fastify.addHook('preHandler', validateSealReferences);
   // Tied to the declaration lifecycle, now worked from ClearOS's Ops
   // Command — same reasoning as seal-declarations.routes.ts.
   fastify.addHook('preHandler', requireAnyEntitlement(['seal', 'clearos']));

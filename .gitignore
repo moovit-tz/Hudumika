@@ -54,6 +54,9 @@ coverage/
 **/types.json
 *-ts-trace/
 
+# Source staging (upstream repos for integration inspection, never committed)
+.source-staging/
+
 # Misc
 *.bak
 *.tmp

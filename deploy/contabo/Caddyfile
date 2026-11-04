@@ -6,7 +6,7 @@
   encode zstd gzip
   header X-Content-Type-Options nosniff
   header Referrer-Policy strict-origin-when-cross-origin
-  @api path /v1/* /auth/* /iclock /iclock/* /ws /ws/* /health
+  @api path /v1/* /auth/* /iclock /iclock/* /ws /ws/* /health /.well-known/openid-configuration /jwks.json
   handle @api {
     reverse_proxy api:3001
   }

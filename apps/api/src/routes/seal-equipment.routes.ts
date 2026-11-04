@@ -1,3 +1,4 @@
+import { validateSealReferences } from '../middleware/seal-references.js';
 import { requireEntitlement } from '../middleware/entitlement.js';
 import type { FastifyInstance } from 'fastify';
 import { z } from 'zod';
@@ -81,6 +82,7 @@ function mapMaintenanceRecord(row: any) {
 
 export async function sealEquipmentRoutes(fastify: FastifyInstance) {
   fastify.addHook('preHandler', fastify.authenticate);
+  fastify.addHook('preHandler', validateSealReferences);
   fastify.addHook('preHandler', requireEntitlement('seal'));
   // HUD-0024/0031: same gap as seal.routes.ts — a separate file/plugin
   // registration, not covered by that fix. See seal.routes.ts's comment.

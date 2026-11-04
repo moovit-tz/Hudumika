@@ -1,4 +1,4 @@
-import { requireEntitlement } from '../middleware/entitlement.js';
+import { requireAnyEntitlement } from '../middleware/entitlement.js';
 import type { FastifyInstance } from 'fastify';
 import { z } from 'zod';
 import { withTenant } from '../db/client.js';
@@ -85,7 +85,7 @@ function mapUom(row: any) {
 
 export async function inventoryCatalogRoutes(fastify: FastifyInstance) {
   fastify.addHook('preHandler', fastify.authenticate);
-  fastify.addHook('preHandler', requireEntitlement('inventory'));
+  fastify.addHook('preHandler', requireAnyEntitlement(['inventory', 'seal']));
   // HUD-0024/0031: warehouse/item catalog had no role check beyond
   // entitlement — reachable by a CUSTOMER-role portal account.
   fastify.addHook('preHandler', async (request: any, reply) => {

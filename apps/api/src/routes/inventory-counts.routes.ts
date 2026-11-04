@@ -1,4 +1,4 @@
-import { requireEntitlement } from '../middleware/entitlement.js';
+import { requireAnyEntitlement } from '../middleware/entitlement.js';
 import type { FastifyInstance } from 'fastify';
 import { z } from 'zod';
 import { withTenant } from '../db/client.js';
@@ -36,7 +36,7 @@ function mapLine(row: any) {
 
 export async function inventoryCountsRoutes(fastify: FastifyInstance) {
   fastify.addHook('preHandler', fastify.authenticate);
-  fastify.addHook('preHandler', requireEntitlement('inventory'));
+  fastify.addHook('preHandler', requireAnyEntitlement(['inventory', 'seal']));
   // HUD-0024/0031: same gap as inventory-catalog.routes.ts — a separate
   // file/plugin registration sharing the /v1/inventory prefix.
   fastify.addHook('preHandler', async (request: any, reply) => {

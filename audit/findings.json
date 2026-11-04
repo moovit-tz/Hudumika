@@ -1,0 +1,211 @@
+{
+  "scope": "ClearOS + shared dependencies",
+  "date": "2026-11-02",
+  "verdict": "NO-GO",
+  "findings": [
+    {
+      "id": "CLR-001",
+      "severity": "P1",
+      "component": "Declaration parent ownership",
+      "affected_file": "apps/api/src/services/declaration.service.ts",
+      "affected_line": 70,
+      "technical_description": "Foreign and nonexistent shipment ids accepted by declaration creation",
+      "business_consequence": "Cross-tenant references and orphan customs records; tested reads did not expose foreign shipment contents.",
+      "reproduction_procedure": "POST /v1/declarations using synthetic tenant B shipment id or random UUID from tenant A.",
+      "expected_behavior": "Reject before inserting or linking.",
+      "observed_behavior": "Before201 for both; after400, foreign-id query empty.",
+      "evidence_references": [
+        "audit/evidence/declaration-tests-before.log",
+        "audit/evidence/declaration-probes-before.json",
+        "audit/evidence/regressions-final.log"
+      ],
+      "root_cause": "Missing parent ownership check before insert.",
+      "recommended_fix": "Scoped parent lookup/lock and explicit tenant update predicate.",
+      "fix_status": "FIXED",
+      "verification_status": "PASS",
+      "residual_risk": "Historical mismatched rows and composite foreign keys remain unverified."
+    },
+    {
+      "id": "CLR-002",
+      "severity": "P1",
+      "component": "Declaration lifecycle",
+      "affected_file": "apps/api/src/services/declaration.service.ts",
+      "affected_line": 144,
+      "technical_description": "Enum-only lifecycle permits unjustified state jumps",
+      "business_consequence": "Customs/payment state can be marked without complete preceding workflow or external evidence.",
+      "reproduction_procedure": "Draft→PAID API call; inspect remaining branches for draft→ASSESSED and backwards transitions.",
+      "expected_behavior": "Only authorized valid transitions with required evidence.",
+      "observed_behavior": "Before draft→paid200; after400. Paid/released prerequisites implemented; complete graph/evidence still absent.",
+      "evidence_references": [
+        "audit/evidence/declaration-tests-before.log",
+        "audit/evidence/regressions-final.log"
+      ],
+      "root_cause": "No complete explicit transition graph or domain-evidence model.",
+      "recommended_fix": "Define full matrix with product/domain owner; enforce locked transitions, proof and immutable final-state edit policy.",
+      "fix_status": "PARTIAL",
+      "verification_status": "PASS for corrected guards; NOT VERIFIED for complete graph",
+      "residual_risk": "Manual assessment/payment trust remains a release blocker."
+    },
+    {
+      "id": "CLR-003",
+      "severity": "P1",
+      "component": "Financial FX provenance",
+      "affected_file": "apps/api/src/services/customs.service.ts",
+      "affected_line": 51,
+      "technical_description": "FX outage silently returned invented rate2540",
+      "business_consequence": "Incorrect landed-cost/tax estimates with apparent provider provenance.",
+      "reproduction_procedure": "Simulate https.get transport error in isolated FX test.",
+      "expected_behavior": "Fail explicitly or require a verified manual override.",
+      "observed_behavior": "Before resolved2540; after rejects with actionable FX error.",
+      "evidence_references": [
+        "audit/evidence/fx-test-before.log",
+        "audit/evidence/regressions-final.log"
+      ],
+      "root_cause": "Hardcoded/stale success fallback hid provider failure.",
+      "recommended_fix": "Remove invented fallback; validate finite positive response.",
+      "fix_status": "FIXED",
+      "verification_status": "PASS",
+      "residual_risk": "Live FX authority, malformed upstream variants and non-USD stale cache remain unverified."
+    },
+    {
+      "id": "CLR-004",
+      "severity": "P2",
+      "component": "Declaration concurrency and event commit",
+      "affected_file": "apps/api/src/services/declaration.service.ts",
+      "affected_line": 150,
+      "technical_description": "Unawaited release-event insertion and unlocked status/chain writes",
+      "business_consequence": "Lost/duplicate or prematurely dispatched audit/downstream processing.",
+      "reproduction_procedure": "Three concurrent PAID calls; release subscriber queries independently committed declaration state.",
+      "expected_behavior": "Single transition event; valid hash chain; consumers observe committed release.",
+      "observed_behavior": "One PAID event and valid chain; release subscriber sees RELEASED and persisted domain event.",
+      "evidence_references": [
+        "audit/evidence/regressions-final.log"
+      ],
+      "root_cause": "Unawaited transaction promise and missing row serialization.",
+      "recommended_fix": "Lock status/chain parent, deduplicate status, await event insertion and defer dispatch until commit.",
+      "fix_status": "FIXED for tested paths",
+      "verification_status": "PASS",
+      "residual_risk": "Crash recovery/outbox delivery and transfer notification timing not verified."
+    },
+    {
+      "id": "CLR-005",
+      "severity": "P1",
+      "component": "Shared release build",
+      "affected_file": "apps/api/src/index.ts",
+      "affected_line": 65,
+      "technical_description": "Repository typecheck fails on shared API defects",
+      "business_consequence": "Clean supported release/build cannot be established for ClearOS dependency graph.",
+      "reproduction_procedure": "Run npm run typecheck.",
+      "expected_behavior": "Zero compile errors and all downstream checks run.",
+      "observed_behavior": "Nonzero exit; duplicate quotationRoutes plus consultant/marketplace/metrics/launch/test diagnostics.",
+      "evidence_references": [
+        "audit/evidence/typecheck.log",
+        "audit/evidence/api-typecheck-after.log"
+      ],
+      "root_cause": "Conflicting imports and shared type/API drift.",
+      "recommended_fix": "Resolve each module against its actual types; rerun root gates and full build.",
+      "fix_status": "OPEN",
+      "verification_status": "FAIL",
+      "residual_risk": "Runtime transpilation passing targeted tests does not prove a production build."
+    },
+    {
+      "id": "CLR-006",
+      "severity": "P2",
+      "component": "Supply chain / CI",
+      "affected_file": ".github/workflows/dependency-audit.yml",
+      "affected_line": 44,
+      "technical_description": "Advisory scan reports vulnerabilities but cannot block CI",
+      "business_consequence": "Known affected dependencies can reach release without risk triage.",
+      "reproduction_procedure": "npm audit --json --ignore-scripts; inspect advisory CI step.",
+      "expected_behavior": "Reachability triaged and mandatory security gate enforced.",
+      "observed_behavior": "27 affected package entries:4critical/6high/14moderate/3low; CI step explicitly nonblocking.",
+      "evidence_references": [
+        "audit/evidence/dependency-audit.json"
+      ],
+      "root_cause": "Debt-aware reporting gate never enforced.",
+      "recommended_fix": "Triage deployed/build/test paths, update with compatibility tests and require accepted gate.",
+      "fix_status": "OPEN",
+      "verification_status": "FAIL configuration; exploitability NOT VERIFIED",
+      "residual_risk": "Registry severity is not a reproduced app exploit; no force upgrades applied."
+    },
+    {
+      "id": "CLR-007",
+      "severity": "P1",
+      "component": "Sanctions assurance",
+      "affected_file": "apps/api/src/services/sanctions.service.ts",
+      "affected_line": 298,
+      "technical_description": "No-match result becomes clear without source completeness/freshness prerequisite",
+      "business_consequence": "Unavailable/empty/stale corpus can imply misleading compliance clearance.",
+      "reproduction_procedure": "Inspect screenSubject→screenName and separate getLastSyncStatus; reproduce on a separate empty-reference test DB before release.",
+      "expected_behavior": "Unavailable coverage yields blocked/unknown, with source freshness and completeness recorded.",
+      "observed_behavior": "Source sets clear when matches array is empty; sync health is not consulted on decision path.",
+      "evidence_references": [
+        "audit/evidence/pattern-scan.txt"
+      ],
+      "root_cause": "Matching absence treated as clearance; source availability is separate metadata.",
+      "recommended_fix": "Require domain-approved source freshness/completeness, bounded atomic sync, reconcile removals and distinguish unavailable from clear.",
+      "fix_status": "OPEN",
+      "verification_status": "CONFIRMED STATIC LOGIC GAP; live failure NOT VERIFIED",
+      "residual_risk": "No shared reference data was deleted or source sync invoked."
+    },
+    {
+      "id": "CLR-008",
+      "severity": "P2",
+      "component": "Audit test strength",
+      "affected_file": "apps/api/src/tests/clearos-recheck.test.ts",
+      "affected_line": 21,
+      "technical_description": "Historical audit probes can pass while recording unsafe responses",
+      "business_consequence": "Green audit test count can be misread as behavior assurance.",
+      "reproduction_procedure": "Inspect cases with requests and evidence assignments but no safe-response assertion.",
+      "expected_behavior": "Probes labeled observations; release regressions assert invariants.",
+      "observed_behavior": "Existing probes have no status assertion for some inputs.",
+      "evidence_references": [
+        "audit/evidence/clearos-regressions.log",
+        "audit/evidence/regressions-final.log"
+      ],
+      "root_cause": "Evidence collection and pass/fail acceptance mixed in same suite.",
+      "recommended_fix": "Keep probes separate and add assertion-based cases for each critical invariant.",
+      "fix_status": "PARTIAL",
+      "verification_status": "CONFIRMED STATIC; new26 regressions PASS",
+      "residual_risk": "All feature/role branches not covered."
+    },
+    {
+      "id": "CLR-009",
+      "severity": "P2",
+      "component": "Dependency inventory",
+      "affected_file": "package.json",
+      "affected_line": 35,
+      "technical_description": "SBOM generation fails dependency consistency validation",
+      "business_consequence": "Artifact dependency inventory/provenance not established by native SBOM command.",
+      "reproduction_procedure": "npm sbom --sbom-format cyclonedx.",
+      "expected_behavior": "Valid machine-readable SBOM from actual dependency tree.",
+      "observed_behavior": "ESBOMPROBLEMS: request alias and bn.js overrides conflict with dependents required ranges.",
+      "evidence_references": [
+        "audit/evidence/sbom-error.log"
+      ],
+      "root_cause": "Security overrides do not satisfy original transitive dependency metadata.",
+      "recommended_fix": "Reconcile upstream dependencies/overrides and generate/validate artifact SBOM.",
+      "fix_status": "OPEN",
+      "verification_status": "FAIL",
+      "residual_risk": "Not proof overrides are exploitable; generated error file is not an SBOM."
+    },
+    {
+      "id": "CLR-010",
+      "severity": "P1",
+      "component": "Recovery release evidence",
+      "affected_file": "deploy/contabo/restore-check.sh",
+      "affected_line": 10,
+      "technical_description": "Production restore/rollback safety not demonstrated",
+      "business_consequence": "Recovery of customs/financial/document operations after loss is unproven.",
+      "reproduction_procedure": "Provide isolated production-equivalent encrypted backup restore and application/reconciliation exercise.",
+      "expected_behavior": "Measured RTO/RPO and restored workflows, objects/config/secrets/roles.",
+      "observed_behavior": "Restore script inspected; no authorized isolated production backup exercise available.",
+      "evidence_references": [],
+      "root_cause": "Missing operational evidence, not a reproduced restore defect.",
+      "recommended_fix": "Run controlled restore/rollback exercise with SRE and business-invariant reconciliation.",
+      "fix_status": "OPEN EVIDENCE GAP",
+      "verification_status": "BLOCKED",
+      "residual_risk": "No production access or destructive restore attempted."
+    }
+  ]
+}

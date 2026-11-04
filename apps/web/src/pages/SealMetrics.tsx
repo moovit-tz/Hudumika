@@ -1,3 +1,4 @@
+import { Banner } from '../components/ui/alert.js';
 import { useEffect, useState } from 'react';
 import { PageHeader } from '../components/PageHeader.js';
 import { SectionLoading } from '../components/ui/spinner.js';
@@ -42,11 +43,12 @@ function SparkBar({ data, color }: { data: Array<{ date: string; count: string }
 export function SealMetrics() {
   const [metrics, setMetrics] = useState<Metrics | null>(null);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string|null>(null);
 
   useEffect(() => {
     apiFetch('/v1/seal/analytics')
       .then((r: any) => setMetrics(r))
-      .catch(() => {})
+      .catch(e => setError(e.message))
       .finally(() => setLoading(false));
   }, []);
 
@@ -60,9 +62,10 @@ export function SealMetrics() {
         crumbs={['SEAL', 'Analytics', 'Metrics']}
         titlePlain="Metrics &"
         titleEm="reports"
-        subtitle="Review stock levels, warehouse movements, and customs status."
+        subtitle="All warehouses: stock levels, warehouse movements and customs status."
       />
 
+      {error && <Banner variant="error">{error}</Banner>}
       {/* Top KPI tiles */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(155px, 1fr))', gap: 12, marginBottom: 24 }}>
         {[

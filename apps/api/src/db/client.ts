@@ -943,6 +943,16 @@ export interface SealLocationsTable {
   created_at: Generated<Date>;
 }
 
+export interface SealLotRevisionsTable {
+  id: Generated<string>;
+  tenant_id: string;
+  lot_id: string;
+  actor_id: string | null;
+  reason: string;
+  changes: string;
+  created_at: Generated<Date>;
+}
+
 export interface SealLotsTable {
   id: Generated<string>;
   tenant_id: string;
@@ -1048,6 +1058,7 @@ export interface SealConsignmentsTable {
 }
 
 export interface SealContainersTable {
+  devanned_at: Date | null;
   id: Generated<string>;
   tenant_id: string;
   consignment_id: string;
@@ -1067,6 +1078,9 @@ export interface SealContainersTable {
 }
 
 export interface SealAppointmentsTable {
+  vehicle_plate: string | null;
+  driver_name: string | null;
+  notes: string | null;
   id: Generated<string>;
   tenant_id: string;
   compartment_id: string;
@@ -1222,7 +1236,7 @@ export interface SealCountLinesTable {
   lot_id: string;
   system_qty: string;
   counted_qty: string | null;
-  variance_qty: string | null;
+  variance_qty: Generated<string | null>;
   counted_by: string | null;
   counted_at: Date | null;
   notes: string | null;
@@ -1482,6 +1496,7 @@ export interface SealFulfillmentOrdersTable {
 }
 
 export interface SealFulfillmentLinesTable {
+  reserved_qty: Generated<string>;
   id: Generated<string>;
   tenant_id: string;
   order_id: string;
@@ -6064,6 +6079,7 @@ export interface Database {
   seal_zones: SealZonesTable;
   seal_locations: SealLocationsTable;
   seal_lots: SealLotsTable;
+  seal_lot_revisions: SealLotRevisionsTable;
   seal_movements: SealMovementsTable;
   seal_guarantees: SealGuaranteesTable;
   seal_bond_overrides: SealBondOverridesTable;
@@ -6804,6 +6820,364 @@ export interface Database {
   comply_renewal_allocations: ComplyRenewalAllocationsTable;
   comply_renewal_forecasts: ComplyRenewalForecastsTable;
   comply_renewal_audit: ComplyRenewalAuditTable;
+  // ─── Tuma — Parcel Logistics (Migration 656) ──────────────────
+  tuma_parcel_types: {
+    id: Generated<string>; tenant_id: string; name: string; description: string | null;
+    min_weight: number | null; max_weight: number | null;
+    created_at: Generated<Date>; updated_at: Generated<Date>;
+  };
+  tuma_booking_offices: {
+    id: Generated<string>; tenant_id: string; name: string; code: string | null;
+    address: string | null; phone: string | null; district_id: string | null;
+    is_active: Generated<boolean>; lat: number | null; lng: number | null;
+    created_at: Generated<Date>; updated_at: Generated<Date>;
+  };
+  tuma_vehicle_brands: {
+    id: Generated<string>; tenant_id: string; name: string; created_at: Generated<Date>;
+  };
+  tuma_vehicle_models: {
+    id: Generated<string>; tenant_id: string; brand_id: string; name: string; created_at: Generated<Date>;
+  };
+  tuma_fleet_types: {
+    id: Generated<string>; tenant_id: string; name: string; description: string | null; created_at: Generated<Date>;
+  };
+  tuma_vehicles: {
+    id: Generated<string>; tenant_id: string; registration_number: string;
+    seats: number | null; year: number | null; color: string | null;
+    status: Generated<'active' | 'maintenance' | 'retired'>;
+    fleet_type_id: string | null; brand_id: string | null; model_id: string | null;
+    created_at: Generated<Date>; updated_at: Generated<Date>;
+  };
+  tuma_agents: {
+    id: Generated<string>; tenant_id: string; user_id: string;
+    agent_role: Generated<'super_agent' | 'agent' | 'trip_agent'>;
+    is_active: Generated<boolean>; max_devices: Generated<number>; device_id: string | null;
+    office_id: string | null; created_at: Generated<Date>; updated_at: Generated<Date>;
+  };
+  tuma_parcels: {
+    id: Generated<string>; tenant_id: string; parcel_number: string;
+    name: string | null; description: string | null;
+    weight: number | null; value: number | null; price: number | null; units: Generated<number>;
+    sender_name: string | null; sender_phone: string | null;
+    recipient_name: string | null; recipient_phone: string | null;
+    status: Generated<'RECEIVED' | 'DISPATCHED' | 'OFFLOADED' | 'DELIVERED' | 'PICKED_UP' | 'CANCELED'>;
+    origin_office_id: string | null; dest_office_id: string | null;
+    vehicle_id: string | null; parcel_type_id: string | null;
+    dispatcher_id: string | null; offloader_id: string | null;
+    deliverer_id: string | null; canceler_id: string | null;
+    travel_date: Date | null; delivered_date: Date | null;
+    picked_up_date: Date | null; canceled_at: Date | null;
+    cancellation_reason: string | null; created_by: string | null;
+    created_at: Generated<Date>; updated_at: Generated<Date>;
+  };
+  tuma_parcel_tracking: {
+    id: Generated<string>; tenant_id: string; parcel_id: string;
+    status: string; location: string | null; description: string | null;
+    actor_id: string | null; tracked_at: Generated<Date>;
+  };
+  tuma_parcel_counters: {
+    id: Generated<string>; tenant_id: string; counter_date: string; count: Generated<number>;
+  };
+  tuma_parcel_handovers: {
+    id: Generated<string>; tenant_id: string; parcel_id: string;
+    from_user_id: string; to_user_id: string;
+    status: Generated<'PENDING' | 'ACCEPTED' | 'REJECTED'>;
+    note: string | null; created_at: Generated<Date>; resolved_at: Date | null;
+  };
+  tuma_float_accounts: {
+    id: Generated<string>; tenant_id: string; user_id: string;
+    total_float: Generated<number>; used_float: Generated<number>; available_float: Generated<number>;
+    is_pool: Generated<boolean>; pool_id: string | null;
+    last_replenished: Date | null; created_at: Generated<Date>; updated_at: Generated<Date>;
+  };
+  tuma_float_settings: {
+    id: Generated<string>; tenant_id: string;
+    min_float: Generated<number>; max_float: Generated<number>;
+    auto_replenish: Generated<boolean>;
+    replenish_threshold: number | null; replenish_amount: number | null;
+    created_at: Generated<Date>; updated_at: Generated<Date>;
+  };
+  tuma_float_transactions: {
+    id: Generated<string>; tenant_id: string; float_account_id: string;
+    amount: number; type: 'REPLENISHMENT' | 'DEDUCTION' | 'COMMISSION' | 'ADJUSTMENT' | 'POOL_ASSIGNMENT';
+    description: string | null; balance_after: number | null;
+    payment_provider: string | null; payment_reference: string | null;
+    payment_status: ('PAID' | 'PENDING' | 'FAILED') | null;
+    performed_by: string | null; created_at: Generated<Date>;
+  };
+  tuma_beneficiaries: {
+    id: Generated<string>; tenant_id: string; name: string;
+    account_type: string | null; account_number: string | null; bank_name: string | null;
+    rate: number | null; frequency: Generated<'DAILY' | 'WEEKLY' | 'MONTHLY'>;
+    total_collected: Generated<number>; total_deducted: Generated<number>; total_remaining: Generated<number>;
+    missed_deductions: Generated<number>;
+    status: Generated<'ACTIVE' | 'COMPLETED' | 'OVERDUE' | 'PAUSED' | 'CANCELLED'>;
+    created_at: Generated<Date>; updated_at: Generated<Date>;
+  };
+  tuma_user_beneficiaries: {
+    user_id: string; beneficiary_id: string; tenant_id: string;
+  };
+  tuma_beneficiary_transactions: {
+    id: Generated<string>; tenant_id: string; beneficiary_id: string;
+    amount: number; type: 'CREDIT' | 'DEBIT';
+    status: Generated<'PENDING' | 'COMPLETED' | 'FAILED'>;
+    reference: string | null; created_at: Generated<Date>;
+  };
+  tuma_shifts: {
+    id: Generated<string>; tenant_id: string; name: string;
+    start_time: string; end_time: string; is_active: Generated<boolean>;
+    created_at: Generated<Date>;
+  };
+  tuma_user_shifts: {
+    id: Generated<string>; tenant_id: string; user_id: string; shift_id: string;
+    assigned_by: string | null; assigned_at: Generated<Date>;
+  };
+  // ─── LexCore — Legal Practice Management (Migration 657) ──────
+  legal_clients: {
+    id: Generated<string>; tenant_id: string; name: string; client_number: string | null;
+    client_type: Generated<'individual' | 'company' | 'government' | 'ngo'>;
+    email: string | null; phone: string | null; address: string | null;
+    tax_id: string | null; notes: string | null; is_active: Generated<boolean>;
+    created_at: Generated<Date>; updated_at: Generated<Date>;
+  };
+  legal_matters: {
+    id: Generated<string>; tenant_id: string; matter_number: string; title: string;
+    description: string | null; client_id: string | null;
+    matter_type: Generated<'litigation' | 'corporate' | 'real_estate' | 'employment' | 'ip' | 'tax' | 'criminal' | 'family' | 'immigration' | 'general'>;
+    status: Generated<'open' | 'active' | 'on_hold' | 'closed' | 'archived'>;
+    practice_area: string | null;
+    responsible_attorney_id: string | null; originating_attorney_id: string | null;
+    court_name: string | null; court_case_number: string | null;
+    opposing_party: string | null; opposing_counsel: string | null;
+    date_opened: Generated<string>; date_closed: string | null;
+    statute_of_limitations: string | null;
+    billing_method: Generated<'hourly' | 'fixed' | 'contingency' | 'pro_bono' | 'retainer'>;
+    billing_rate: number | null; estimated_value: number | null;
+    notes: string | null; created_at: Generated<Date>; updated_at: Generated<Date>;
+  };
+  legal_time_entries: {
+    id: Generated<string>; tenant_id: string; matter_id: string; user_id: string;
+    entry_date: string; hours: number; rate: number | null; amount: number | null;
+    description: string; is_billable: Generated<boolean>; is_billed: Generated<boolean>;
+    invoice_id: string | null; activity_code: string | null;
+    created_at: Generated<Date>; updated_at: Generated<Date>;
+  };
+  legal_trust_accounts: {
+    id: Generated<string>; tenant_id: string; account_name: string;
+    account_number: string | null; bank_name: string | null;
+    client_id: string | null; matter_id: string | null;
+    balance: Generated<number>; currency: Generated<string>;
+    status: Generated<'active' | 'frozen' | 'closed'>;
+    created_at: Generated<Date>; updated_at: Generated<Date>;
+  };
+  legal_trust_transactions: {
+    id: Generated<string>; tenant_id: string; trust_account_id: string;
+    type: 'deposit' | 'disbursement' | 'transfer' | 'interest' | 'fee';
+    amount: number; balance_after: number; description: string;
+    reference: string | null; payee: string | null; check_number: string | null;
+    performed_by: string; created_at: Generated<Date>;
+  };
+  legal_conflict_checks: {
+    id: Generated<string>; tenant_id: string; matter_id: string | null;
+    party_name: string; party_role: 'client' | 'opposing' | 'related' | 'witness';
+    checked_by: string; checked_at: Generated<Date>;
+    result: Generated<'clear' | 'potential' | 'conflict' | 'waived'>;
+    conflicting_matter_id: string | null; notes: string | null;
+    waiver_reason: string | null; waived_by: string | null; waived_at: Date | null;
+  };
+  // ─── Ngao — Privacy & Data Protection (Migration 657) ─────────
+  privacy_assessments: {
+    id: Generated<string>; tenant_id: string; title: string;
+    activity_id: string | null;
+    assessment_type: Generated<'dpia' | 'pia' | 'tia' | 'lia'>;
+    status: Generated<'draft' | 'in_progress' | 'review' | 'approved' | 'rejected'>;
+    risk_level: ('low' | 'medium' | 'high' | 'critical') | null;
+    risk_score: number | null; description: string | null; scope: string | null;
+    necessity_assessment: string | null; proportionality_assessment: string | null;
+    risks: Generated<unknown>; mitigations: Generated<unknown>;
+    assessor_id: string | null; reviewer_id: string | null;
+    approved_by: string | null; approved_at: Date | null;
+    next_review_date: string | null;
+    created_at: Generated<Date>; updated_at: Generated<Date>;
+  };
+  privacy_incidents: {
+    id: Generated<string>; tenant_id: string; title: string;
+    incident_number: string | null;
+    severity: Generated<'low' | 'medium' | 'high' | 'critical'>;
+    status: Generated<'detected' | 'investigating' | 'contained' | 'notified' | 'remediated' | 'closed'>;
+    category: ('unauthorized_access' | 'data_loss' | 'data_breach' | 'system_compromise' | 'human_error' | 'third_party' | 'other') | null;
+    description: string | null; data_subjects_affected: number | null;
+    data_categories_affected: string[] | null;
+    detected_at: Generated<Date>; contained_at: Date | null;
+    authority_notified_at: Date | null; subjects_notified_at: Date | null;
+    root_cause: string | null; remediation_actions: string | null;
+    reported_by: string | null; lead_investigator_id: string | null;
+    created_at: Generated<Date>; updated_at: Generated<Date>;
+  };
+  // ─── LexCore Extended (Migration 660) ───────────────────────────
+  legal_fee_earner_profiles: {
+    id: Generated<string>; tenant_id: string; user_id: string;
+    grade: 'PARTNER' | 'SENIOR_ASSOCIATE' | 'ASSOCIATE' | 'PARALEGAL' | 'SUPPORT';
+    charge_rate: Generated<number>; cost_rate: Generated<number>;
+    currency: Generated<string>; pc_number: string | null; pc_expires_at: string | null;
+    tls_number: string | null; is_active: Generated<boolean>;
+    created_at: Generated<Date>; updated_at: Generated<Date>;
+  };
+  legal_court_cases: {
+    id: Generated<string>; tenant_id: string; matter_id: string;
+    case_number: string | null; court_name: string;
+    court_hierarchy: 'COURT_OF_APPEAL' | 'HIGH_COURT' | 'RESIDENT_MAGISTRATE' | 'DISTRICT' | 'PRIMARY' | 'TRIBUNAL';
+    division_type: ('COMMERCIAL' | 'LAND' | 'LABOUR' | 'CORRUPTION' | 'FAMILY') | null;
+    filed_at: string | null;
+    status: Generated<'ACTIVE' | 'JUDGMENT' | 'CONCLUDED' | 'STRUCK_OUT' | 'WITHDRAWN'>;
+    created_at: Generated<Date>; updated_at: Generated<Date>;
+  };
+  legal_court_events: {
+    id: Generated<string>; tenant_id: string; court_case_id: string; matter_id: string;
+    event_type: 'MENTION' | 'HEARING' | 'PTC' | 'JUDGMENT' | 'RULING' | 'EXECUTION' | 'FILING';
+    scheduled_at: Date; outcome: string | null; notes: string | null;
+    next_event_type: string | null; next_event_date: Date | null;
+    recorded_by: string | null; reminders_sent: Generated<number>;
+    created_at: Generated<Date>; updated_at: Generated<Date>;
+  };
+  legal_deadlines: {
+    id: Generated<string>; tenant_id: string; matter_id: string;
+    court_case_id: string | null;
+    deadline_type: 'LIMITATION' | 'APPEAL_WINDOW' | 'STATUTORY' | 'COURT_ORDER' | 'REMINDER' | 'CUSTOM';
+    description: string; due_date: string; raw_due_date: string;
+    completed_at: Date | null; is_automatic: Generated<boolean>;
+    computed_from: string | null; is_critical: Generated<boolean>;
+    created_at: Generated<Date>; updated_at: Generated<Date>;
+  };
+  legal_disbursements: {
+    id: Generated<string>; tenant_id: string; matter_id: string; user_id: string;
+    entry_date: string;
+    category: 'COURT_FEE' | 'STAMP_DUTY' | 'BRELA' | 'TRAVEL' | 'EXPERT' | 'COUNSEL_FEE' | 'OTHER';
+    description: string; amount: number; currency: Generated<string>;
+    vat_treatment: Generated<'STANDARD' | 'EXEMPT' | 'ZERO_RATED'>;
+    is_recoverable: Generated<boolean>; receipt_key: string | null;
+    status: Generated<'PENDING' | 'APPROVED' | 'INVOICED' | 'WRITTEN_OFF'>;
+    invoice_id: string | null;
+    created_at: Generated<Date>; updated_at: Generated<Date>;
+  };
+  legal_invoices: {
+    id: Generated<string>; tenant_id: string; matter_id: string; client_id: string;
+    invoice_number: string; invoice_date: string; due_date: string;
+    subtotal: Generated<number>; vat_amount: Generated<number>;
+    wht_amount: Generated<number>; total: Generated<number>;
+    currency: Generated<string>;
+    status: Generated<'DRAFT' | 'ISSUED' | 'SENT' | 'PARTIALLY_PAID' | 'PAID' | 'WRITTEN_OFF'>;
+    pdf_key: string | null; issued_at: Date | null; paid_at: Date | null;
+    notes: string | null;
+    created_at: Generated<Date>; updated_at: Generated<Date>;
+  };
+  legal_invoice_lines: {
+    id: Generated<string>; tenant_id: string; invoice_id: string;
+    description: string; amount: number;
+    vat_rate: Generated<number>; wht_rate: Generated<number>;
+    line_type: 'TIME' | 'DISBURSEMENT' | 'FIXED_FEE';
+    reference_id: string | null;
+  };
+  legal_matter_documents: {
+    id: Generated<string>; tenant_id: string; matter_id: string;
+    title: string; file_key: string; mime_type: string; size_bytes: Generated<number>;
+    doc_type: 'PLEADING' | 'AFFIDAVIT' | 'JUDGMENT' | 'CORRESPONDENCE' | 'CONTRACT' | 'PRECEDENT' | 'OTHER';
+    version: Generated<number>; ocr_text: string | null;
+    language: Generated<string>; is_privileged: Generated<boolean>;
+    wall_id: string | null; uploaded_by: string;
+    created_at: Generated<Date>; updated_at: Generated<Date>;
+  };
+  legal_kyc_records: {
+    id: Generated<string>; tenant_id: string; client_id: string;
+    matter_id: string | null; nida: string | null; passport: string | null;
+    brela: string | null; tin: string | null; ubos_json: unknown | null;
+    source_of_funds: string | null;
+    pep_flag: Generated<boolean>; sanctions_flag: Generated<boolean>;
+    adverse_media: Generated<boolean>;
+    risk_score: Generated<'LOW' | 'MEDIUM' | 'HIGH' | 'VERY_HIGH'>;
+    status: Generated<'PENDING' | 'COMPLETE' | 'EDD_REQUIRED' | 'APPROVED' | 'REJECTED'>;
+    reviewed_by: string | null; reviewed_at: Date | null;
+    created_at: Generated<Date>; updated_at: Generated<Date>;
+  };
+  legal_practise_certificates: {
+    id: Generated<string>; tenant_id: string; user_id: string;
+    cert_number: string; tls_number: string | null;
+    issued_at: string; expires_at: string;
+    status: Generated<'ACTIVE' | 'EXPIRED' | 'SUSPENDED' | 'REVOKED'>;
+    document_key: string | null;
+    created_at: Generated<Date>; updated_at: Generated<Date>;
+  };
+  legal_partner_capitals: {
+    id: Generated<string>; tenant_id: string; user_id: string; tax_year: number;
+    opening: Generated<number>; capital_introduced: Generated<number>;
+    profit_share: Generated<number>; drawings: Generated<number>;
+    tax_reserve: Generated<number>; closing: Generated<number>;
+    currency: Generated<string>;
+    created_at: Generated<Date>; updated_at: Generated<Date>;
+  };
+  // ─── Ngao Extended (Migration 660) ────────────────────────────
+  privacy_compliance_alerts: {
+    id: Generated<string>; tenant_id: string;
+    alert_type: 'PDPC_RENEWAL' | 'DPO_REVIEW' | 'CONSENT_EXPIRY' | 'DPIA_REVIEW' | 'BREACH_DEADLINE' | 'CUSTOM';
+    title: string; due_date: string;
+    status: Generated<'PENDING' | 'COMPLETED' | 'SNOOZED'>;
+    linked_document_id: string | null; notes: string | null;
+    created_at: Generated<Date>; updated_at: Generated<Date>;
+  };
+  privacy_vendors: {
+    id: Generated<string>; tenant_id: string; name: string;
+    contact_name: string | null; contact_email: string | null; website: string | null;
+    services: Generated<unknown>; data_shared: Generated<unknown>;
+    has_dpa: Generated<boolean>;
+    risk_level: Generated<'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL'>;
+    status: Generated<'ACTIVE' | 'UNDER_REVIEW' | 'TERMINATED'>;
+    reviewed_at: Date | null; notes: string | null;
+    created_at: Generated<Date>; updated_at: Generated<Date>;
+  };
+  privacy_rights_requests: {
+    id: Generated<string>; tenant_id: string;
+    request_type: 'ACCESS' | 'CORRECTION' | 'ERASURE' | 'OBJECTION' | 'PORTABILITY';
+    subject_name: string; subject_email: string; subject_phone: string | null;
+    description: string;
+    status: Generated<'PENDING' | 'IN_PROGRESS' | 'COMPLETED' | 'REJECTED' | 'EXPIRED'>;
+    deadline_at: Date; responded_at: Date | null; response_notes: string | null;
+    audit_log: Generated<unknown>;
+    created_at: Generated<Date>; updated_at: Generated<Date>;
+  };
+  tanzania_holidays: {
+    id: Generated<string>; date: string; name: string;
+  };
+  // ─── Gereji — Automotive Workshop (Migration 658) ─────────────
+  gereji_estimates: {
+    id: Generated<string>; tenant_id: string; estimate_number: string;
+    vehicle_id: string; customer_id: string | null;
+    status: Generated<'draft' | 'sent' | 'approved' | 'rejected' | 'expired' | 'converted'>;
+    labour_total: Generated<number>; parts_total: Generated<number>;
+    tax_total: Generated<number>; grand_total: Generated<number>;
+    currency: Generated<string>; valid_until: string | null;
+    notes: string | null; job_card_id: string | null;
+    created_by: string | null; approved_by: string | null; approved_at: Date | null;
+    created_at: Generated<Date>; updated_at: Generated<Date>;
+  };
+  gereji_estimate_lines: {
+    id: Generated<string>; tenant_id: string; estimate_id: string;
+    line_type: 'labour' | 'part' | 'sublet' | 'misc';
+    description: string; quantity: Generated<number>;
+    unit_price: Generated<number>; total: Generated<number>;
+    part_number: string | null; sort_order: Generated<number>;
+  };
+  gereji_warranty_claims: {
+    id: Generated<string>; tenant_id: string; claim_number: string;
+    vehicle_id: string; job_card_id: string | null;
+    claim_type: Generated<'parts' | 'labour' | 'both'>;
+    status: Generated<'submitted' | 'under_review' | 'approved' | 'partially_approved' | 'rejected' | 'settled'>;
+    description: string; claimed_amount: number; approved_amount: number | null;
+    currency: Generated<string>; supplier_name: string | null; supplier_ref: string | null;
+    warranty_start: string | null; warranty_end: string | null;
+    submitted_by: string | null; reviewed_by: string | null; reviewed_at: Date | null;
+    settled_at: Date | null; notes: string | null;
+    created_at: Generated<Date>; updated_at: Generated<Date>;
+  };
 }
 
 // ─── Shared Org Model Tables (Migration 641) ─────────────────────────────────
@@ -6858,6 +7232,7 @@ export interface IndustryRegistryTable {
   app_capabilities: Generated<Record<string, unknown>>;
   recommended_finance_caps: Generated<string[]>; jurisdiction_coverage: Generated<string[]>;
   config_version: Generated<number>; sort_order: Generated<number>;
+  default_package_code: string | null;
   created_at: Generated<Date>; updated_at: Generated<Date>;
 }
 

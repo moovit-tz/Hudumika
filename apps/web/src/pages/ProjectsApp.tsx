@@ -25,6 +25,8 @@ import { FileUploader } from '../components/ui/file-uploader.js';
 import { MentionInput, type MentionUser } from '../components/MentionInput.js';
 import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuSub, DropdownMenuSubTrigger, DropdownMenuSubContent, DropdownMenuCheckboxItem } from '../components/ui/dropdown-menu.js';
 import { SectionCard } from '../components/SectionCard.js';
+import { FeaturedIcon } from '../components/ui/featured-icon.js';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogBody, DialogFooter } from '../components/ui/dialog.js';
 import { Sheet, SheetContent, SheetTitle } from '../components/ui/sheet.js';
 import { KanbanBoard, type KanbanCardData } from '../components/ui/kanban-board.js';
 import { ListPagination, paginate } from '../components/ui/list-pagination.js';
@@ -1107,6 +1109,37 @@ export const ProjectsApp: React.FC<ProjectsAppProps> = ({ initialMode = 'command
   // ═════════════════════════════════════════════════════════════════════
   const statusMeta = PROJECT_STATUS_META[selected.status] || PROJECT_STATUS_META.not_started;
   const healthMeta = HEALTH_STATUS_META[selected.health_status || 'on_track'] || HEALTH_STATUS_META.on_track;
+  const healthBadgeVariant =
+    selected.health_status === 'critical' ? 'error'
+    : selected.health_status === 'at_risk' ? 'warning'
+    : selected.health_status === 'completed' ? 'brand'
+    : 'success';
+
+  const completedTasksCount = projectTasks.filter(task => task.completed || task.status === 'completed').length;
+  const completionPct =
+    selected.progress_pct ??
+    (projectTasks.length > 0 ? Math.round((completedTasksCount / projectTasks.length) * 100) : 0);
+
+  const contractVal = Number(detail?.contract_value ?? selected.contract_value ?? 0);
+  const baselineBudgetVal = Number(detail?.baseline_budget ?? detail?.current_budget ?? selected.baseline_budget ?? 0);
+  const elapsedDays = Math.max(0, (detail?.days_total ?? 0) - (detail?.days_left ?? 0));
+
+  const MORE_TAB_LABELS: Record<string, string> = {
+    kanban: 'Swimlanes',
+    wbs_schedule: 'WBS & Gates',
+    financials_evm: 'Financials & EVM',
+    risks: 'Risks',
+    governance: 'Governance',
+    procurement: 'Procurement',
+    resources: 'Resources',
+    industry_pack: 'Industry Pack',
+    timesheets: 'Timesheets',
+    discussions: 'Discussions',
+    tickets: 'Tickets',
+    sales: 'Billing & Contracts',
+    activity: 'Audit Activity',
+  };
+  const activeMoreLabel = MORE_TAB_LABELS[tab];
 
   function patchProject(patch: Record<string, unknown>) {
     apiFetch(`/v1/tasks/projects/${selected!.id}`, { method: 'PATCH', body: JSON.stringify(patch) })
@@ -1114,309 +1147,665 @@ export const ProjectsApp: React.FC<ProjectsAppProps> = ({ initialMode = 'command
   }
 
   return (
-    <div ref={setWorkspaceBoundary} style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden', background: 'transparent', fontFamily: 'var(--font)' }}>
-      {/* Project Workspace Top Bar */}
-      <div style={{ padding: '0 0 16px', background: 'var(--white)', borderBottom: '1px solid var(--border)' }}>
-        <PageHeader crumbs={[{ label: 'Projects', to: '/projects/directory' }, selected.ref || 'Workspace']} titlePlain={selected.name.split(' ').slice(0, -1).join(' ')} titleEm={selected.name.split(' ').at(-1) || 'Project'} />
-
-        <div className="project-workspace-toolbar">
-          <div className="project-workspace-toolbar-main">
-            <div className="project-workspace-status-row">
-            <span className="project-workspace-color" style={{ width: 14, height: 14, borderRadius: '50%', background: selected.color, flexShrink: 0 }} />
-            {selected.ref && <Badge variant="gray">{selected.ref}</Badge>}
-            <Badge variant={
-              selected.health_status === 'critical' ? 'error'
-              : selected.health_status === 'at_risk' ? 'warning'
-              : selected.health_status === 'completed' ? 'brand'
-              : 'success'
-            }>{healthMeta.label}</Badge>
-            <Select value={selected.status} onValueChange={(v) => patchProject({ status: v })}>
-              <SelectTrigger className="project-workspace-status text-xs" aria-label="Project status"><SelectValue /></SelectTrigger>
-              <SelectContent>
-                {Object.entries(PROJECT_STATUS_META).map(([k, m]) => <SelectItem key={k} value={k}>{m.label}</SelectItem>)}
-              </SelectContent>
-            </Select>
-            </div>
-
-            {projects && projects.length > 1 && (
-              <Select value={selected.id} onValueChange={(id) => { if (autoSelectProjectId) navigate(`/projects/${id}/${tab}`); else { setSelectedId(id); loadDetail(id); } }}>
-                <SelectTrigger className="project-workspace-switch min-w-0 text-xs" aria-label="Switch project">
-                  <span style={{ display: 'flex', alignItems: 'center', gap: 6, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                    <Icon name="briefcase" size={12} />
-                    <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{selected.name}</span>
+    <div ref={setWorkspaceBoundary} className="pw-shell">
+      {/* Streamlined Top Workspace Header & Single-Row Navigation */}
+      <div className="pw-header-card">
+        <PageHeader
+          crumbs={[
+            { label: 'Projects', to: '/projects' },
+            { label: 'All Projects', to: '/projects/directory' },
+            selected.ref || 'Workspace',
+          ]}
+          titlePlain={selected.name.split(' ').slice(0, -1).join(' ')}
+          titleEm={selected.name.split(' ').at(-1) || 'Project'}
+          subtitle={
+            <span style={{ display: 'inline-flex', alignItems: 'center', flexWrap: 'wrap', gap: 8 }}>
+              <Badge variant={healthBadgeVariant}>{healthMeta.label}</Badge>
+              <span>
+                {(detail?.industry || selected.industry || 'general').replaceAll('_', ' ').replace(/\b\w/g, l => l.toUpperCase())}
+              </span>
+              {selected.customer_name && (
+                <>
+                  <span>·</span>
+                  <span>Client: <strong style={{ color: 'var(--ink)' }}>{selected.customer_name}</strong></span>
+                </>
+              )}
+              {(detail?.location_address || selected.location_address) && (
+                <>
+                  <span>·</span>
+                  <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+                    <Icon name="mapPin" size={12} color="var(--teal)" />
+                    {detail?.location_address || selected.location_address}
                   </span>
+                </>
+              )}
+            </span>
+          }
+          actions={
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+              <Select value={selected.status} onValueChange={(v) => patchProject({ status: v })}>
+                <SelectTrigger className="project-workspace-status text-xs" aria-label="Project status">
+                  <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  {projects.map(p => (
-                    <SelectItem key={p.id} value={p.id}>
-                      <span style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                        <span style={{ width: 8, height: 8, borderRadius: '50%', background: p.color, flexShrink: 0 }} />
-                        <span style={{ fontWeight: 600, whiteSpace: 'normal', overflowWrap: 'anywhere' }}>{p.name}</span>
-                        {p.ref && <span style={{ fontSize: 11, color: 'var(--ink3)' }}>({p.ref})</span>}
-                      </span>
-                    </SelectItem>
+                  {Object.entries(PROJECT_STATUS_META).map(([k, m]) => (
+                    <SelectItem key={k} value={k}>{m.label}</SelectItem>
                   ))}
                 </SelectContent>
               </Select>
-            )}
-          </div>
 
-          <div className="project-workspace-options">
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button variant="outline" style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
-                  <Icon name="moreHorizontal" size={14} /> Options
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end">
-                <DropdownMenuItem onClick={() => navigate(`/projects/${selected.id}/edit`)}>
-                  <Icon name="edit" size={13} /> Edit project details
-                </DropdownMenuItem>
-                <DropdownMenuItem onClick={(e) => togglePin(selected, e as unknown as React.MouseEvent)}>
-                  <Icon name="bookmark" size={13} /> {selected.is_pinned ? 'Unpin project' : 'Pin project'}
-                </DropdownMenuItem>
-                <DropdownMenuItem onClick={copyProject}>
-                  <Icon name="copy" size={13} /> Duplicate project
-                </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => { setTemplateName(selected.name); setSavingTemplate(true); }}>
-                  <Icon name="save" size={13} /> Save as template
-                </DropdownMenuItem>
-                <DropdownMenuItem onClick={exportProjectData}>
-                  <Icon name="download" size={13} /> Export project data
-                </DropdownMenuItem>
-                <DropdownMenuCheckboxItem checked={viewAsCustomer} onCheckedChange={setViewAsCustomer}>
-                  View as Client Portal
-                </DropdownMenuCheckboxItem>
-                <DropdownMenuSeparator />
-                <DropdownMenuItem onClick={deleteProjectAction} style={{ color: 'var(--red)' }}>
-                  <Icon name="trash" size={13} /> Delete project
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
-          </div>
-        </div>
+              <Button size="sm" onClick={() => { setTab('board'); if (autoSelectProjectId) navigate(`/projects/${selected.id}/board`); }}>
+                <Icon name="plus" size={14} /> New Task
+              </Button>
+
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="outline" size="sm" aria-label="Project actions">
+                    <Icon name="moreHorizontal" size={15} />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                  <DropdownMenuItem onClick={() => navigate(`/projects/${selected.id}/edit`)}>
+                    <Icon name="edit" size={13} /> Edit project charter
+                  </DropdownMenuItem>
+                  {projects && projects.length > 1 && (
+                    <DropdownMenuSub>
+                      <DropdownMenuSubTrigger>
+                        <Icon name="briefcase" size={13} /> Switch project
+                      </DropdownMenuSubTrigger>
+                      <DropdownMenuSubContent>
+                        {projects.slice(0, 12).map(p => (
+                          <DropdownMenuItem
+                            key={p.id}
+                            onClick={() => {
+                              if (autoSelectProjectId) navigate(`/projects/${p.id}/${tab}`);
+                              else { setSelectedId(p.id); loadDetail(p.id); }
+                            }}
+                          >
+                            <span style={{ width: 8, height: 8, borderRadius: '50%', background: p.color, flexShrink: 0 }} />
+                            <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: 200 }}>{p.name}</span>
+                          </DropdownMenuItem>
+                        ))}
+                      </DropdownMenuSubContent>
+                    </DropdownMenuSub>
+                  )}
+                  <DropdownMenuItem onClick={(e) => togglePin(selected, e as unknown as React.MouseEvent)}>
+                    <Icon name="bookmark" size={13} /> {selected.is_pinned ? 'Unpin project' : 'Pin project'}
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={copyProject}>
+                    <Icon name="copy" size={13} /> Duplicate project
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => { setTemplateName(selected.name); setSavingTemplate(true); }}>
+                    <Icon name="save" size={13} /> Save as template
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={exportProjectData}>
+                    <Icon name="download" size={13} /> Export tasks CSV
+                  </DropdownMenuItem>
+                  <DropdownMenuCheckboxItem checked={viewAsCustomer} onCheckedChange={setViewAsCustomer}>
+                    View as Client Portal
+                  </DropdownMenuCheckboxItem>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem onClick={deleteProjectAction} style={{ color: 'var(--red)' }}>
+                    <Icon name="trash" size={13} /> Delete project
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            </div>
+          }
+        />
 
         {viewAsCustomer && (
-          <div style={{ marginTop: 10, maxWidth: 640 }}>
-            <Banner variant="warning">
-              Previewing as Client / Donor view — Internal EVM formulas, contractor cost margins, and personnel workload logs are hidden.
-            </Banner>
-          </div>
+          <Banner variant="warning">
+            Previewing as Client / Donor view — Internal EVM formulas, contractor cost margins, and personnel workload logs are hidden.
+          </Banner>
         )}
 
-        {/* Enterprise Navigation Tabs */}
-        <div style={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: 4, marginTop: 16 }}>
-          <Tabs className="min-w-0 max-w-full" value={tab} onValueChange={(v) => { setTab(v as typeof tab); if (autoSelectProjectId) navigate(`/projects/${selected.id}/${v}`); }}>
-            <TabsList wrap style={{ maxWidth: '100%', height: 'auto', justifyContent: 'flex-start' }}>
+        {/* Concise Single-Row Navigation Tabs (6 Primary Views + More Menu) */}
+        <div className="pw-nav-bar">
+          <Tabs
+            className="min-w-0 max-w-full flex-1"
+            value={tab}
+            onValueChange={(v) => {
+              setTab(v as typeof tab);
+              if (autoSelectProjectId) navigate(`/projects/${selected.id}/${v}`);
+            }}
+          >
+            <TabsList style={{ maxWidth: '100%', overflowX: 'auto', justifyContent: 'flex-start' }}>
               <TabsTrigger value="overview">Overview</TabsTrigger>
-              <TabsTrigger value="schedule">
-                <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
-                  <Icon name="star" size={13} color="#F59E0B" /> Schedule
-                </span>
-              </TabsTrigger>
-              <TabsTrigger value="kanban">
-                <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
-                  <Icon name="star" size={13} color="#F59E0B" /> Kanban
-                </span>
-              </TabsTrigger>
-              <TabsTrigger value="risks">
-                <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
-                  <Icon name="shield" size={13} /> Risks
-                </span>
-              </TabsTrigger>
-              <TabsTrigger value="budget_tracking">
-                <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
-                  <Icon name="dollarSign" size={13} /> Budget
-                </span>
-              </TabsTrigger>
               <TabsTrigger value="board">Tasks ({projectTasks.length})</TabsTrigger>
-              <TabsTrigger value="financials_evm">Financials</TabsTrigger>
-              <TabsTrigger value="governance">Governance</TabsTrigger>
-              <TabsTrigger value="procurement">Procurement</TabsTrigger>
-              <TabsTrigger value="resources">Resources</TabsTrigger>
+              <TabsTrigger value="schedule">Schedule</TabsTrigger>
+              <TabsTrigger value="budget_tracking">Budget</TabsTrigger>
               <TabsTrigger value="files">Files ({projectFiles ? projectFiles.length : '0'})</TabsTrigger>
-              <TabsTrigger value="members">Team ({members ? members.length : '0'})</TabsTrigger>
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <button
-                type="button"
-                style={{
-                  display: 'inline-flex', alignItems: 'center', gap: 4,
-                  fontSize: 'var(--tab-size, 13px)', fontWeight: 600,
-                  color: ['wbs_schedule', 'industry_pack', 'timesheets', 'discussions', 'tickets', 'sales', 'activity'].includes(tab) ? 'var(--teal)' : 'var(--ink3)',
-                  background: 'none', border: 'none', cursor: 'pointer',
-                  padding: '0 10px', height: 'var(--tab-hit-height)',
-                  whiteSpace: 'nowrap',
-                }}
-              >
-                More <Icon name="chevronDown" size={13} />
-              </button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align={isMobile ? 'start' : 'end'} collisionPadding={{
-              left: (workspaceBoundary?.getBoundingClientRect().left ?? 0) + 8,
-              right: workspaceBoundary ? Math.max(8, window.innerWidth - workspaceBoundary.getBoundingClientRect().right + 8) : 8,
-              top: 8, bottom: 8,
-            }} className="project-workspace-more-menu">
-              <DropdownMenuItem onClick={() => { setTab('wbs_schedule'); if (autoSelectProjectId) navigate(`/projects/${selected.id}/wbs_schedule`); }}>
-                <Icon name="gitBranch" size={14} /> WBS & Gates
-              </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => { setTab('industry_pack'); if (autoSelectProjectId) navigate(`/projects/${selected.id}/industry_pack`); }}>
-                <Icon name="package" size={14} /> Industry Pack
-              </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => { setTab('timesheets'); if (autoSelectProjectId) navigate(`/projects/${selected.id}/timesheets`); }}>
-                <Icon name="clock" size={14} /> Timesheets
-              </DropdownMenuItem>
-              <DropdownMenuSeparator />
-              <DropdownMenuItem onClick={() => { setTab('discussions'); if (autoSelectProjectId) navigate(`/projects/${selected.id}/discussions`); }}>
-                <Icon name="messageSquare" size={14} /> Discussions ({discussions ? discussions.length : '0'})
-              </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => { setTab('tickets'); if (autoSelectProjectId) navigate(`/projects/${selected.id}/tickets`); }}>
-                <Icon name="ticket" size={14} /> Tickets ({projectTickets ? projectTickets.length : '0'})
-              </DropdownMenuItem>
-              <DropdownMenuSeparator />
-              <DropdownMenuItem onClick={() => { setTab('sales'); if (autoSelectProjectId) navigate(`/projects/${selected.id}/sales`); }}>
-                <Icon name="receipt" size={14} /> Billing & Contracts
-              </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => { setTab('activity'); if (autoSelectProjectId) navigate(`/projects/${selected.id}/activity`); }}>
-                <Icon name="fileText" size={14} /> Audit Activity
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
+              <TabsTrigger value="members">Team ({members ? members.length : selected.member_count || '0'})</TabsTrigger>
+
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <button
+                    type="button"
+                    style={{
+                      display: 'inline-flex', alignItems: 'center', gap: 5,
+                      fontSize: 'var(--tab-size, 13px)', fontWeight: 600,
+                      color: activeMoreLabel ? 'var(--teal)' : 'var(--ink2)',
+                      background: activeMoreLabel ? 'var(--teal-l)' : 'transparent',
+                      border: 'none', borderRadius: 'var(--r-sm)', cursor: 'pointer',
+                      padding: '0 10px', height: 'var(--tab-hit-height)',
+                      whiteSpace: 'nowrap',
+                    }}
+                  >
+                    {activeMoreLabel ? `More: ${activeMoreLabel}` : 'More'} <Icon name="chevronDown" size={13} />
+                  </button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent
+                  align={isMobile ? 'start' : 'end'}
+                  collisionPadding={{
+                    left: (workspaceBoundary?.getBoundingClientRect().left ?? 0) + 8,
+                    right: workspaceBoundary ? Math.max(8, window.innerWidth - workspaceBoundary.getBoundingClientRect().right + 8) : 8,
+                    top: 8, bottom: 8,
+                  }}
+                  className="project-workspace-more-menu"
+                >
+                  <DropdownMenuItem onClick={() => { setTab('kanban'); if (autoSelectProjectId) navigate(`/projects/${selected.id}/kanban`); }}>
+                    <Icon name="columns" size={14} /> Kanban Swimlanes
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => { setTab('wbs_schedule'); if (autoSelectProjectId) navigate(`/projects/${selected.id}/wbs_schedule`); }}>
+                    <Icon name="gitBranch" size={14} /> WBS & Gates
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => { setTab('resources'); if (autoSelectProjectId) navigate(`/projects/${selected.id}/resources`); }}>
+                    <Icon name="tool" size={14} /> Fleet & Resources
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => { setTab('industry_pack'); if (autoSelectProjectId) navigate(`/projects/${selected.id}/industry_pack`); }}>
+                    <Icon name="package" size={14} /> Industry Pack
+                  </DropdownMenuItem>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem onClick={() => { setTab('financials_evm'); if (autoSelectProjectId) navigate(`/projects/${selected.id}/financials_evm`); }}>
+                    <Icon name="barChart2" size={14} /> Financials & EVM
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => { setTab('risks'); if (autoSelectProjectId) navigate(`/projects/${selected.id}/risks`); }}>
+                    <Icon name="shield" size={14} /> Risk Register
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => { setTab('governance'); if (autoSelectProjectId) navigate(`/projects/${selected.id}/governance`); }}>
+                    <Icon name="clipboardList" size={14} /> Governance
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => { setTab('procurement'); if (autoSelectProjectId) navigate(`/projects/${selected.id}/procurement`); }}>
+                    <Icon name="shoppingCart" size={14} /> Procurement
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => { setTab('sales'); if (autoSelectProjectId) navigate(`/projects/${selected.id}/sales`); }}>
+                    <Icon name="receipt" size={14} /> Billing & Contracts
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => { setTab('timesheets'); if (autoSelectProjectId) navigate(`/projects/${selected.id}/timesheets`); }}>
+                    <Icon name="clock" size={14} /> Timesheets
+                  </DropdownMenuItem>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem onClick={() => { setTab('discussions'); if (autoSelectProjectId) navigate(`/projects/${selected.id}/discussions`); }}>
+                    <Icon name="messageSquare" size={14} /> Discussions ({discussions ? discussions.length : '0'})
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => { setTab('tickets'); if (autoSelectProjectId) navigate(`/projects/${selected.id}/tickets`); }}>
+                    <Icon name="ticket" size={14} /> Tickets ({projectTickets ? projectTickets.length : '0'})
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => { setTab('activity'); if (autoSelectProjectId) navigate(`/projects/${selected.id}/activity`); }}>
+                    <Icon name="fileText" size={14} /> Audit Activity
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
             </TabsList>
           </Tabs>
         </div>
       </div>
 
+      {/* 4 Vital Horizon KPI Cards */}
+      <div className="pw-kpi-grid">
+        <div className="pw-kpi-card">
+          <div className="pw-kpi-top">
+            <div>
+              <div className="pw-kpi-label">Work Package Progress</div>
+              <div className="pw-kpi-val">{completionPct}%</div>
+            </div>
+            <FeaturedIcon variant="brand" size="md">
+              <Icon name="tasks" size={18} />
+            </FeaturedIcon>
+          </div>
+          <ProgressBar done={completedTasksCount} total={projectTasks.length} color="var(--teal)" />
+          <div className="pw-kpi-foot">
+            <span>{completedTasksCount} of {projectTasks.length} tasks done</span>
+            <Badge variant="brand">{milestones?.length ?? 0} Milestones</Badge>
+          </div>
+        </div>
+
+        <div className="pw-kpi-card">
+          <div className="pw-kpi-top">
+            <div>
+              <div className="pw-kpi-label">Contract & Budget Baseline</div>
+              <div className="pw-kpi-val">
+                {selected.currency} {contractVal > 0 ? contractVal.toLocaleString() : baselineBudgetVal.toLocaleString()}
+              </div>
+            </div>
+            <FeaturedIcon variant="success" size="md">
+              <Icon name="dollarSign" size={18} />
+            </FeaturedIcon>
+          </div>
+          <div className="pw-kpi-foot">
+            <span>BAC: {selected.currency} {baselineBudgetVal.toLocaleString()}</span>
+            <Badge variant={contractVal >= baselineBudgetVal ? 'success' : 'warning'}>
+              {contractVal > 0 ? 'Contracted' : 'Internal Budget'}
+            </Badge>
+          </div>
+        </div>
+
+        <div className="pw-kpi-card">
+          <div className="pw-kpi-top">
+            <div>
+              <div className="pw-kpi-label">Schedule Horizon</div>
+              <div className="pw-kpi-val">
+                {detail?.days_left != null ? `${detail.days_left}d left` : (selected.target_date || 'Flexible')}
+              </div>
+            </div>
+            <FeaturedIcon variant="info" size="md">
+              <Icon name="calendar" size={18} />
+            </FeaturedIcon>
+          </div>
+          {detail?.days_total ? (
+            <ProgressBar done={elapsedDays} total={detail.days_total} color="var(--blue)" />
+          ) : null}
+          <div className="pw-kpi-foot">
+            <span>{selected.start_date || 'Start TBD'} → {selected.target_date || 'Target TBD'}</span>
+            {detail?.days_total != null && <Badge variant="info">{detail.days_total}d total</Badge>}
+          </div>
+        </div>
+
+        <div className="pw-kpi-card">
+          <div className="pw-kpi-top">
+            <div>
+              <div className="pw-kpi-label">Team & Logged Velocity</div>
+              <div className="pw-kpi-val">
+                {detail ? `${formatHM(detail.total_logged_minutes)} hrs` : `${selected.member_count || 0} Members`}
+              </div>
+            </div>
+            <FeaturedIcon variant="warning" size="md">
+              <Icon name="users" size={18} />
+            </FeaturedIcon>
+          </div>
+          <div className="pw-kpi-foot">
+            <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+              {(members || []).slice(0, 4).map((m) => (
+                <PersonAvatar key={m.id} userId={m.user_id} name={m.name} size={22} />
+              ))}
+              {(!members || members.length === 0) && (
+                <PersonAvatar userId={selected.owner_id} name={selected.owner_name || 'Project Owner'} size={22} />
+              )}
+              <span>{members ? members.length : (selected.member_count || 1)} assigned</span>
+            </div>
+            <Badge variant={healthBadgeVariant}>{healthMeta.label}</Badge>
+          </div>
+        </div>
+      </div>
+
       {/* Main Workspace Content Area */}
-      <div style={{ flex: 1, minWidth: 0, padding: '20px 0 0' }}>
-        {detailError && <Banner variant="warning" title="Project details could not load" action={<Button variant="outline" onClick={() => loadDetail(selected.id)}>Retry</Button>}>{detailError}</Banner>}
+      <div style={{ flex: 1, minWidth: 0 }}>
+        {detailError && (
+          <div style={{ marginBottom: 16 }}>
+            <Banner variant="warning" title="Project details could not load" action={<Button variant="outline" size="sm" onClick={() => loadDetail(selected.id)}>Retry</Button>}>
+              {detailError}
+            </Banner>
+          </div>
+        )}
+
         {/* TAB 1: OVERVIEW */}
         {tab === 'overview' && (
           detail === null ? (
             <SectionLoading />
           ) : (
-            <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1.2fr 1fr', gap: 20, alignItems: 'start' }}>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
-                <SectionCard title="Project Charter & Metadata">
-                  <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: '14px 16px', fontSize: 13 }}>
-                    <OverviewField label="Project Code / Ref" value={detail.ref || '—'} />
-                    <OverviewField label="Client / Stakeholder" value={detail.customer_name || '—'} />
-                    <OverviewField label="Industry Pack" value={(detail.industry || 'general').toUpperCase().replace('_', ' ')} />
-                    <OverviewField label="Classification" value={(detail.project_type || 'capital_expenditure').toUpperCase().replace('_', ' ')} />
-                    <OverviewField label="Contract Value" value={`${detail.currency} ${Number(detail.contract_value || 0).toLocaleString()}`} />
-                    <OverviewField label="Baseline Budget (BAC)" value={`${detail.currency} ${Number(detail.baseline_budget ?? detail.current_budget ?? 0).toLocaleString()}`} />
-                    <OverviewField label="Start Date" value={detail.start_date || '—'} />
-                    <OverviewField label="Target Delivery Date" value={detail.target_date || '—'} />
-                    <OverviewField label="Site Location" value={detail.location_address || '—'} />
-                    <OverviewField label="Total Logged Hours" value={formatHM(detail.total_logged_minutes)} />
-                  </div>
-                  {!!selected.project_tags?.length && <div className="mt-4 flex flex-wrap gap-2" aria-label="Project tags">{selected.project_tags.map(tag => <Badge key={tag} variant="gray">{tag}</Badge>)}</div>}
-                  {detail.description && (
-                    <>
-                      <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--ink3)', textTransform: 'uppercase', letterSpacing: '0.05em', marginTop: 18, marginBottom: 6 }}>
-                        Charter Scope & Objectives
+            <div className="pw-overview-grid">
+              {/* Left Column */}
+              <div className="pw-col">
+                <section className="pw-panel">
+                  <div className="pw-panel-header">
+                    <div className="pw-panel-header-left">
+                      <FeaturedIcon variant="brand" size="md">
+                        <Icon name="briefcase" size={18} />
+                      </FeaturedIcon>
+                      <div>
+                        <h2 className="pw-panel-title">Project Charter & Strategic Metadata</h2>
+                        <p className="pw-panel-sub">Governance parameters, key stakeholders, and baseline scope definition.</p>
                       </div>
-                      <p style={{ fontSize: 13, color: 'var(--ink2)', margin: 0, lineHeight: 1.6 }}>{detail.description}</p>
-                    </>
-                  )}
-                </SectionCard>
+                    </div>
+                    {detail.ref && <Badge variant="gray">{detail.ref}</Badge>}
+                  </div>
 
-                {detail.custom_fields?.document_brief && <ProjectDocumentReview brief={detail.custom_fields.document_brief} />}
+                  <div className="pw-panel-body">
+                    {/* Stakeholder Cards with Real Avatars */}
+                    <div className="pw-stakeholder-grid">
+                      <div className="pw-stakeholder-card">
+                        <PersonAvatar
+                          userId={detail.owner_id}
+                          name={detail.owner_name || 'Project Owner'}
+                          size={36}
+                        />
+                        <div className="pw-stakeholder-info">
+                          <div className="pw-stakeholder-role">Project Lead / Owner</div>
+                          <div className="pw-stakeholder-name">{detail.owner_name || 'Assigned Owner'}</div>
+                        </div>
+                        <Badge variant="brand">Owner</Badge>
+                      </div>
+
+                      <div className="pw-stakeholder-card">
+                        <PersonAvatar
+                          kind="customers"
+                          userId={detail.customer_id}
+                          name={detail.customer_name || 'Internal Account'}
+                          size={36}
+                          hideStatus
+                        />
+                        <div className="pw-stakeholder-info">
+                          <div className="pw-stakeholder-role">Client / Stakeholder</div>
+                          <div className="pw-stakeholder-name">{detail.customer_name || 'Internal Operations'}</div>
+                        </div>
+                        <Badge variant={detail.customer_id ? 'info' : 'gray'}>
+                          {detail.customer_id ? 'Client' : 'Internal'}
+                        </Badge>
+                      </div>
+                    </div>
+
+                    {/* Metadata Grid */}
+                    <div className="pw-meta-grid">
+                      <div className="pw-meta-cell">
+                        <span className="pw-meta-label">Project Code / Ref</span>
+                        <span className="pw-meta-value">{detail.ref || '—'}</span>
+                      </div>
+                      <div className="pw-meta-cell">
+                        <span className="pw-meta-label">Industry Vertical</span>
+                        <span className="pw-meta-value">
+                          {(detail.industry || 'general').replaceAll('_', ' ').replace(/\b\w/g, l => l.toUpperCase())}
+                        </span>
+                      </div>
+                      <div className="pw-meta-cell">
+                        <span className="pw-meta-label">Delivery Classification</span>
+                        <span className="pw-meta-value">
+                          {(detail.project_type || 'capital_expenditure').replaceAll('_', ' ').replace(/\b\w/g, l => l.toUpperCase())}
+                        </span>
+                      </div>
+                      <div className="pw-meta-cell">
+                        <span className="pw-meta-label">Contract Value</span>
+                        <span className="pw-meta-value" style={{ color: 'var(--teal)' }}>
+                          {detail.currency} {Number(detail.contract_value || 0).toLocaleString()}
+                        </span>
+                      </div>
+                      <div className="pw-meta-cell">
+                        <span className="pw-meta-label">Baseline Budget (BAC)</span>
+                        <span className="pw-meta-value">
+                          {detail.currency} {Number(detail.baseline_budget ?? detail.current_budget ?? 0).toLocaleString()}
+                        </span>
+                      </div>
+                      <div className="pw-meta-cell">
+                        <span className="pw-meta-label">Start Date</span>
+                        <span className="pw-meta-value">{detail.start_date || '—'}</span>
+                      </div>
+                      <div className="pw-meta-cell">
+                        <span className="pw-meta-label">Target Delivery Date</span>
+                        <span className="pw-meta-value">{detail.target_date || '—'}</span>
+                      </div>
+                      <div className="pw-meta-cell">
+                        <span className="pw-meta-label">Site Location</span>
+                        <span className="pw-meta-value">{detail.location_address || '—'}</span>
+                      </div>
+                      <div className="pw-meta-cell">
+                        <span className="pw-meta-label">Total Logged Hours</span>
+                        <span className="pw-meta-value">{formatHM(detail.total_logged_minutes)} hrs</span>
+                      </div>
+                    </div>
+
+                    {!!selected.project_tags?.length && (
+                      <div className="flex flex-wrap gap-2" aria-label="Project tags">
+                        {selected.project_tags.map(tag => (
+                          <Badge key={tag} variant="brand">{tag}</Badge>
+                        ))}
+                      </div>
+                    )}
+
+                    {detail.description && (
+                      <div className="pw-scope-box">
+                        <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--teal)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                          Charter Scope & Objectives
+                        </div>
+                        <p style={{ fontSize: 13, color: 'var(--ink)', margin: 0, lineHeight: 1.6, whiteSpace: 'pre-wrap' }}>
+                          {detail.description}
+                        </p>
+                      </div>
+                    )}
+                  </div>
+                </section>
+
+                {detail.custom_fields?.document_brief && (
+                  <ProjectDocumentReview brief={detail.custom_fields.document_brief} />
+                )}
 
                 {/* Logged Hours Chart */}
-                <SectionCard title="Man-Hours Logged This Week">
-                  <div style={{ height: 180 }}>
-                    <ResponsiveContainer width="100%" height="100%">
-                      <BarChart data={detail.logged_hours_by_day.map(r => ({ day: r.day.slice(5, 10), hours: +(r.minutes / 60).toFixed(2) }))}>
-                        <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" />
-                        <XAxis dataKey="day" tick={{ fontSize: 11 }} />
-                        <YAxis tick={{ fontSize: 11 }} allowDecimals={false} />
-                        <RechartsTooltip />
-                        <Bar dataKey="hours" fill="var(--teal)" radius={[4, 4, 0, 0]} />
-                      </BarChart>
-                    </ResponsiveContainer>
+                <section className="pw-panel">
+                  <div className="pw-panel-header">
+                    <div className="pw-panel-header-left">
+                      <FeaturedIcon variant="info" size="md">
+                        <Icon name="clock" size={18} />
+                      </FeaturedIcon>
+                      <div>
+                        <h2 className="pw-panel-title">Man-Hours Logged This Week</h2>
+                        <p className="pw-panel-sub">Daily engineering and delivery time logged across work packages.</p>
+                      </div>
+                    </div>
+                    <Badge variant="info">{formatHM(detail.total_logged_minutes)} hrs</Badge>
                   </div>
-                </SectionCard>
+                  <div className="pw-panel-body">
+                    <div style={{ height: 190, background: 'var(--surface, var(--white))', borderRadius: 'var(--r-sm)', border: '1px solid var(--border)', padding: '12px 12px 4px 0' }}>
+                      <ResponsiveContainer width="100%" height="100%">
+                        <BarChart data={detail.logged_hours_by_day.map(r => ({ day: r.day.slice(5, 10), hours: +(r.minutes / 60).toFixed(2) }))}>
+                          <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" />
+                          <XAxis dataKey="day" tick={{ fontSize: 11 }} />
+                          <YAxis tick={{ fontSize: 11 }} allowDecimals={false} />
+                          <RechartsTooltip />
+                          <Bar dataKey="hours" fill="var(--teal)" radius={[4, 4, 0, 0]} />
+                        </BarChart>
+                      </ResponsiveContainer>
+                    </div>
+                  </div>
+                </section>
               </div>
 
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
-                <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: 12 }}>
-                  <SectionCard title="Work Package Completion">
-                    <div style={{ fontSize: 11.5, color: 'var(--ink3)', marginBottom: 8 }}>
-                      {projectTasks.filter(task => task.completed).length} / {projectTasks.length} Tasks
-                    </div>
-                    <ProgressBar done={projectTasks.filter(task => task.completed).length} total={projectTasks.length} color="var(--green)" />
-                  </SectionCard>
-                  <SectionCard title="Schedule Elapsed">
-                    <div style={{ fontSize: 11.5, color: 'var(--ink3)', marginBottom: 8 }}>
-                      {detail.days_left ?? '—'} Days Left / {detail.days_total ?? '—'} Total
-                    </div>
-                    <ProgressBar done={Math.max(0, (detail.days_total ?? 0) - (detail.days_left ?? 0))} total={detail.days_total ?? 0} color="var(--teal)" />
-                  </SectionCard>
-                </div>
-
-                {/* Expenses & Retainers */}
+              {/* Right Column */}
+              <div className="pw-col">
+                {/* Expenses & Invoicing */}
                 {!viewAsCustomer && (
-                  <SectionCard
-                    title="Financial Exposure & Invoicing"
-                    action={detail.expenses.unbilled ? (
-                      <Button size="sm" onClick={invoiceProject} disabled={invoicing} style={{ height: 26, fontSize: 11.5 }}>
-                        {invoicing ? 'Invoicing…' : 'Invoice Project'}
-                      </Button>
-                    ) : undefined}
-                  >
-                    <div style={{ display: 'grid', gridTemplateColumns: isMobile ? 'repeat(2, 1fr)' : 'repeat(4, 1fr)', gap: 10 }}>
-                      <ExpenseStat label="Total" value={detail.expenses.total} color="var(--ink)" currency={detail.currency} />
-                      <ExpenseStat label="Billable" value={detail.expenses.billable} color="var(--blue)" currency={detail.currency} />
-                      <ExpenseStat label="Billed" value={detail.expenses.billed} color="var(--green)" currency={detail.currency} />
-                      <ExpenseStat label="Unbilled" value={detail.expenses.unbilled} color="var(--red)" currency={detail.currency} />
+                  <section className="pw-panel">
+                    <div className="pw-panel-header">
+                      <div className="pw-panel-header-left">
+                        <FeaturedIcon variant="success" size="md">
+                          <Icon name="dollarSign" size={18} />
+                        </FeaturedIcon>
+                        <div>
+                          <h2 className="pw-panel-title">Financial Exposure & Invoicing</h2>
+                          <p className="pw-panel-sub">Tracked expenses, billable work items, and invoicing status.</p>
+                        </div>
+                      </div>
+                      {detail.expenses.unbilled > 0 && (
+                        <Button size="sm" onClick={invoiceProject} disabled={invoicing}>
+                          {invoicing ? 'Invoicing…' : 'Invoice Project'}
+                        </Button>
+                      )}
                     </div>
-                  </SectionCard>
+                    <div className="pw-panel-body">
+                      <div className="pw-expense-grid">
+                        <div className="pw-expense-tile">
+                          <ExpenseStat label="Total Tracked" value={detail.expenses.total} color="var(--ink)" currency={detail.currency} />
+                        </div>
+                        <div className="pw-expense-tile">
+                          <ExpenseStat label="Billable" value={detail.expenses.billable} color="var(--blue)" currency={detail.currency} />
+                        </div>
+                        <div className="pw-expense-tile">
+                          <ExpenseStat label="Billed" value={detail.expenses.billed} color="var(--green)" currency={detail.currency} />
+                        </div>
+                        <div className="pw-expense-tile">
+                          <ExpenseStat label="Unbilled" value={detail.expenses.unbilled} color="var(--red)" currency={detail.currency} />
+                        </div>
+                      </div>
+                    </div>
+                  </section>
                 )}
 
+                {/* Client Retainer Agreement */}
                 {!viewAsCustomer && selected.customer_id && retainer !== undefined && (
-                  <SectionCard title="Client Retainer Agreement">
-                    {retainer ? (
-                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                  <section className="pw-panel">
+                    <div className="pw-panel-header">
+                      <div className="pw-panel-header-left">
+                        <FeaturedIcon variant="brand" size="md">
+                          <Icon name="receipt" size={18} />
+                        </FeaturedIcon>
                         <div>
-                          <div style={{ fontSize: 15, fontWeight: 700, color: 'var(--ink)' }}>
-                            {retainer.currency} {Number(retainer.amount).toLocaleString()}
-                          </div>
-                          <div style={{ fontSize: 11.5, color: 'var(--ink3)', marginTop: 2, textTransform: 'capitalize' }}>
-                            {retainer.frequency.toLowerCase()} · {retainer.state.toLowerCase()}{retainer.next_due ? ` · next ${retainer.next_due}` : ''}
-                          </div>
+                          <h2 className="pw-panel-title">Client Retainer Agreement</h2>
+                          <p className="pw-panel-sub">Recurring billing schedule linked to this client project.</p>
                         </div>
-                        <Badge variant={retainer.state === 'ACTIVE' ? 'success' : 'gray'}>{retainer.state}</Badge>
                       </div>
-                    ) : settingUpRetainer ? (
-                      <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
-                        <Input
-                          autoFocus type="number" min={0} step={1} value={retainerAmount} onChange={e => setRetainerAmount(e.target.value)}
-                          placeholder="Amount…" style={{ width: 110 }}
-                        />
-                        <Select value={retainerFrequency} onValueChange={setRetainerFrequency}>
-                          <SelectTrigger className="h-8 text-xs" style={{ width: 110 }}><SelectValue /></SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="WEEKLY">Weekly</SelectItem>
-                            <SelectItem value="MONTHLY">Monthly</SelectItem>
-                            <SelectItem value="QUARTERLY">Quarterly</SelectItem>
-                            <SelectItem value="ANNUAL">Annual</SelectItem>
-                          </SelectContent>
-                        </Select>
-                        <Button size="sm" onClick={setUpRetainer} disabled={!retainerAmount.trim()}>Save</Button>
-                        <Button size="sm" variant="outline" onClick={() => setSettingUpRetainer(false)}>Cancel</Button>
+                      {retainer && (
+                        <Badge variant={retainer.state === 'ACTIVE' ? 'success' : 'gray'}>
+                          {retainer.state}
+                        </Badge>
+                      )}
+                    </div>
+                    <div className="pw-panel-body">
+                      {retainer ? (
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 14px', background: 'var(--surface, var(--white))', borderRadius: 'var(--r-sm)', border: '1px solid var(--border)' }}>
+                          <div>
+                            <div style={{ fontSize: 16, fontWeight: 800, color: 'var(--ink)' }}>
+                              {retainer.currency} {Number(retainer.amount).toLocaleString()}
+                            </div>
+                            <div style={{ fontSize: 12, color: 'var(--ink3)', marginTop: 2, textTransform: 'capitalize' }}>
+                              {retainer.frequency.toLowerCase()} · {retainer.state.toLowerCase()}{retainer.next_due ? ` · next ${retainer.next_due}` : ''}
+                            </div>
+                          </div>
+                          <Badge variant="brand">{retainer.frequency}</Badge>
+                        </div>
+                      ) : settingUpRetainer ? (
+                        <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
+                          <Input
+                            autoFocus
+                            type="number"
+                            min={0}
+                            step={1}
+                            value={retainerAmount}
+                            onChange={e => setRetainerAmount(e.target.value)}
+                            placeholder="Amount…"
+                            style={{ width: 130 }}
+                          />
+                          <Select value={retainerFrequency} onValueChange={setRetainerFrequency}>
+                            <SelectTrigger style={{ width: 130 }}><SelectValue /></SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="WEEKLY">Weekly</SelectItem>
+                              <SelectItem value="MONTHLY">Monthly</SelectItem>
+                              <SelectItem value="QUARTERLY">Quarterly</SelectItem>
+                              <SelectItem value="ANNUAL">Annual</SelectItem>
+                            </SelectContent>
+                          </Select>
+                          <Button size="sm" onClick={setUpRetainer} disabled={!retainerAmount.trim()}>Save</Button>
+                          <Button size="sm" variant="outline" onClick={() => setSettingUpRetainer(false)}>Cancel</Button>
+                        </div>
+                      ) : (
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap' }}>
+                          <span style={{ fontSize: 12.5, color: 'var(--ink2)' }}>No recurring retainer configured for this client project.</span>
+                          <Button size="sm" variant="outline" onClick={() => setSettingUpRetainer(true)}>
+                            <Icon name="plus" size={13} /> Set up retainer
+                          </Button>
+                        </div>
+                      )}
+                    </div>
+                  </section>
+                )}
+
+                {/* Milestones & Phase Gates Summary */}
+                <section className="pw-panel">
+                  <div className="pw-panel-header">
+                    <div className="pw-panel-header-left">
+                      <FeaturedIcon variant="warning" size="md">
+                        <Icon name="flag" size={18} />
+                      </FeaturedIcon>
+                      <div>
+                        <h2 className="pw-panel-title">Milestones & Delivery Gates</h2>
+                        <p className="pw-panel-sub">Key contractual and schedule checkpoints for this project.</p>
+                      </div>
+                    </div>
+                    <Badge variant="gray">{milestones?.length ?? 0}</Badge>
+                  </div>
+                  <div className="pw-panel-body">
+                    {milestones && milestones.length > 0 ? (
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                        {milestones.slice(0, 5).map(ms => {
+                          const msMeta = MILESTONE_STATUS_META[ms.status] || MILESTONE_STATUS_META.upcoming;
+                          return (
+                            <div key={ms.id} className="pw-milestone-item">
+                              <div style={{ minWidth: 0, flex: 1 }}>
+                                <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--ink)' }}>{ms.name}</div>
+                                <div style={{ fontSize: 11.5, color: 'var(--ink3)', marginTop: 2 }}>
+                                  {ms.due_date ? `Due ${ms.due_date}` : 'No due date'} · {ms.task_done_count}/{ms.task_count} tasks
+                                </div>
+                              </div>
+                              <Badge variant={msMeta.variant}>{msMeta.label}</Badge>
+                            </div>
+                          );
+                        })}
                       </div>
                     ) : (
-                      <Button size="sm" variant="outline" onClick={() => setSettingUpRetainer(true)}>Set up retainer</Button>
+                      <div style={{ fontSize: 12.5, color: 'var(--ink3)', textAlign: 'center', padding: '12px 0' }}>
+                        No milestones defined yet. Open Tasks → Milestones to add phase checkpoints.
+                      </div>
                     )}
-                  </SectionCard>
-                )}
+                  </div>
+                </section>
+
+                {/* Project Team Roster Preview */}
+                <section className="pw-panel">
+                  <div className="pw-panel-header">
+                    <div className="pw-panel-header-left">
+                      <FeaturedIcon variant="brand" size="md">
+                        <Icon name="users" size={18} />
+                      </FeaturedIcon>
+                      <div>
+                        <h2 className="pw-panel-title">Assigned Project Team</h2>
+                        <p className="pw-panel-sub">Active workspace members allocated to this project.</p>
+                      </div>
+                    </div>
+                    <Badge variant="brand">{members ? members.length : 1}</Badge>
+                  </div>
+                  <div className="pw-panel-body">
+                    {members && members.length > 0 ? (
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                        {members.slice(0, 5).map(m => (
+                          <div key={m.id} className="pw-milestone-item">
+                            <div style={{ display: 'flex', alignItems: 'center', gap: 10, minWidth: 0 }}>
+                              <PersonAvatar userId={m.user_id} name={m.name} size={30} />
+                              <div style={{ minWidth: 0 }}>
+                                <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--ink)' }}>{m.name}</div>
+                                <div style={{ fontSize: 11.5, color: 'var(--ink3)' }}>{m.email}</div>
+                              </div>
+                            </div>
+                            <Badge variant="gray">{m.role || 'Member'}</Badge>
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10 }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                          <PersonAvatar userId={detail.owner_id} name={detail.owner_name || 'Project Owner'} size={30} />
+                          <div>
+                            <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--ink)' }}>{detail.owner_name || 'Project Owner'}</div>
+                            <div style={{ fontSize: 11.5, color: 'var(--ink3)' }}>Project Owner</div>
+                          </div>
+                        </div>
+                        <Badge variant="brand">Owner</Badge>
+                      </div>
+                    )}
+                  </div>
+                </section>
               </div>
             </div>
           )
         )}
 
-        {/* ENTERPRISE VIEW 1: SCHEDULE / GANTT (Screenshot 2) */}
+        {/* ENTERPRISE VIEW 1: SCHEDULE / GANTT */}
         {(tab === 'schedule' || tab === 'gantt') && (
           <ProjectScheduleGantt
             projectName={selected.name}
@@ -1426,7 +1815,7 @@ export const ProjectsApp: React.FC<ProjectsAppProps> = ({ initialMode = 'command
           />
         )}
 
-        {/* ENTERPRISE VIEW 2: KANBAN WITH SWIMLANES (Screenshot 4) */}
+        {/* ENTERPRISE VIEW 2: KANBAN WITH SWIMLANES */}
         {tab === 'kanban' && (
           <ProjectKanbanSwimlanes
             projectName={selected.name}
@@ -1436,7 +1825,7 @@ export const ProjectsApp: React.FC<ProjectsAppProps> = ({ initialMode = 'command
           />
         )}
 
-        {/* ENTERPRISE VIEW 3: RISKS DASHBOARD (Screenshot 1 & 3) */}
+        {/* ENTERPRISE VIEW 3: RISKS DASHBOARD */}
         {tab === 'risks' && (
           <ProjectRisksDashboard
             projectName={selected.name}
@@ -1444,7 +1833,7 @@ export const ProjectsApp: React.FC<ProjectsAppProps> = ({ initialMode = 'command
           />
         )}
 
-        {/* ENTERPRISE VIEW 4: BUDGET TRACKING (Screenshot 5) */}
+        {/* ENTERPRISE VIEW 4: BUDGET TRACKING */}
         {tab === 'budget_tracking' && (
           <ProjectBudgetTracking
             projectId={selected.id}
@@ -1492,296 +1881,605 @@ export const ProjectsApp: React.FC<ProjectsAppProps> = ({ initialMode = 'command
 
         {/* TAB 8: TASKS & KANBAN BOARD */}
         {tab === 'board' && (
-          <>
-            <div style={{ display: 'flex', gap: 8, marginBottom: 16, maxWidth: 480 }}>
-              <Input
-                value={quickAddTitle} onChange={e => setQuickAddTitle(e.target.value)}
-                onKeyDown={e => { if (e.key === 'Enter') quickAddTask(); }}
-                placeholder="Quick-add a task or work package…"
-                className="flex-1"
-              />
-              <Button size="sm" onClick={quickAddTask} disabled={!quickAddTitle.trim()}>Add</Button>
-            </div>
-
-            <div style={{ display: 'grid', gridTemplateColumns: isMobile ? 'repeat(2, 1fr)' : 'repeat(5, 1fr)', gap: 10, marginBottom: 16 }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+            <div style={{ display: 'grid', gridTemplateColumns: isMobile ? 'repeat(2, 1fr)' : 'repeat(5, 1fr)', gap: 12 }}>
               {KANBAN_COLUMNS.map(col => {
                 const c = taskStatusCounts[col.status] || { total: 0, mine: 0 };
                 return (
-                  <div key={col.status} style={{ background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 'var(--r)', padding: '10px 12px' }}>
-                    <div style={{ fontSize: 10.5, fontWeight: 700, color: 'var(--ink3)', textTransform: 'uppercase', letterSpacing: '0.03em' }}>{col.title}</div>
-                    <div style={{ fontSize: 20, fontWeight: 800, color: 'var(--ink)', marginTop: 4 }}>{c.total}</div>
-                    <div style={{ fontSize: 11, color: 'var(--ink3)', marginTop: 2 }}>My Tasks: {c.mine}</div>
+                  <div key={col.status} className="pw-kpi-card" style={{ padding: '12px 14px', gap: 6 }}>
+                    <div className="pw-kpi-label">{col.title}</div>
+                    <div style={{ fontSize: 20, fontWeight: 800, color: 'var(--ink)' }}>{c.total}</div>
+                    <div style={{ fontSize: 11.5, color: 'var(--ink3)' }}>Assigned to me: {c.mine}</div>
                   </div>
                 );
               })}
             </div>
 
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10, flexWrap: 'wrap', marginBottom: 14 }}>
-              <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
-                <Tabs value={boardView} onValueChange={v => setBoardView(v as typeof boardView)}>
-                  <TabsList>
-                    <TabsTrigger value="kanban"><Icon name="columns" size={13} /> Board</TabsTrigger>
-                    <TabsTrigger value="table"><Icon name="list" size={13} /> Table</TabsTrigger>
-                    <TabsTrigger value="milestone"><Icon name="flag" size={13} /> Milestones</TabsTrigger>
-                  </TabsList>
-                </Tabs>
-                <Select value={taskPriorityFilter} onValueChange={setTaskPriorityFilter}>
-                  <SelectTrigger className="h-8 text-xs" style={{ width: 130 }}><SelectValue placeholder="Priority" /></SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">All priorities</SelectItem>
-                    {(Object.keys(TASK_PRIORITY_META) as TaskPriority[]).map(p => <SelectItem key={p} value={p}>{TASK_PRIORITY_META[p].label}</SelectItem>)}
-                  </SelectContent>
-                </Select>
-                <Input
-                  value={taskSearch} onChange={e => setTaskSearch(e.target.value)} placeholder="Filter tasks…"
-                  style={{ width: 160 }}
-                />
-              </div>
-              <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-                {selectedTaskIds.size > 0 && (
-                  <Button size="sm" variant="outline" onClick={bulkMarkComplete} style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
-                    <Icon name="check" size={13} /> Mark Complete ({selectedTaskIds.size})
-                  </Button>
-                )}
-                <Button size="sm" variant="outline" onClick={exportTasksCSV} style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
-                  <Icon name="download" size={13} /> Export
-                </Button>
-              </div>
-            </div>
+            <div className="pw-panel">
+              <div className="pw-panel-header">
+                <div style={{ display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap' }}>
+                  <Tabs value={boardView} onValueChange={v => setBoardView(v as typeof boardView)}>
+                    <TabsList>
+                      <TabsTrigger value="kanban"><Icon name="columns" size={13} /> Board</TabsTrigger>
+                      <TabsTrigger value="table"><Icon name="list" size={13} /> Table</TabsTrigger>
+                      <TabsTrigger value="milestone"><Icon name="flag" size={13} /> Milestones</TabsTrigger>
+                    </TabsList>
+                  </Tabs>
+                  <Select value={taskPriorityFilter} onValueChange={setTaskPriorityFilter}>
+                    <SelectTrigger className="h-8 text-xs" style={{ width: 140 }}><SelectValue placeholder="Priority" /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">All priorities</SelectItem>
+                      {(Object.keys(TASK_PRIORITY_META) as TaskPriority[]).map(p => (
+                        <SelectItem key={p} value={p}>{TASK_PRIORITY_META[p].label}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <Input
+                    value={taskSearch}
+                    onChange={e => setTaskSearch(e.target.value)}
+                    placeholder="Filter tasks…"
+                    style={{ width: 180 }}
+                  />
+                </div>
 
-            {/* Kanban Columns */}
-            {boardView === 'kanban' && (
-              <KanbanBoard
-                columns={KANBAN_COLUMNS.map(c => ({ id: c.status, label: c.title, color: STATUS_BAR_COLOR[c.status] }))}
-                items={sortedTasks.map(t => ({ ...t, columnId: t.completed || t.status === 'completed' ? 'completed' : t.status } as Todo & KanbanCardData))}
-                onDrop={(itemId, _from, to) => moveTask(itemId, to as TaskStatus)}
-                defaultPageSize={5}
-                pageSizeOptions={[5, 10, 15, 25]}
-                boardStyle={isMobile ? { gridTemplateColumns: '1fr' } : undefined}
-                renderCard={t => (
-                  <div onClick={() => setDetailTaskId(t.id)} style={{ cursor: 'pointer' }}>
-                    <div className="kb-card-title">{t.title}</div>
-                    {t.due && <div className="kb-card-subtitle">Due: {t.due}</div>}
-                    <div className="kb-card-meta">
-                      <Badge variant={TASK_PRIORITY_META[(t.priority || 'medium') as TaskPriority]?.color === 'var(--red)' ? 'error' : (t.priority || 'medium') === 'high' ? 'warning' : 'gray'}>
-                        {TASK_PRIORITY_META[(t.priority || 'medium') as TaskPriority]?.label || 'Medium'}
-                      </Badge>
-                      {t.assigneeName && (
-                        <span className="kb-meta-item" style={{ marginLeft: 'auto' }}>
-                          <PersonAvatar userId={t.assigneeId} name={t.assigneeName} size={18} />
-                          {t.assigneeName}
-                        </span>
-                      )}
-                    </div>
+                <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
+                  <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
+                    <Input
+                      value={quickAddTitle}
+                      onChange={e => setQuickAddTitle(e.target.value)}
+                      onKeyDown={e => { if (e.key === 'Enter') quickAddTask(); }}
+                      placeholder="Quick-add a task…"
+                      style={{ width: isMobile ? 160 : 220 }}
+                    />
+                    <Button size="sm" onClick={quickAddTask} disabled={!quickAddTitle.trim()}>
+                      <Icon name="plus" size={13} /> Add
+                    </Button>
+                  </div>
+                  {selectedTaskIds.size > 0 && (
+                    <Button size="sm" variant="outline" onClick={bulkMarkComplete}>
+                      <Icon name="check" size={13} /> Complete ({selectedTaskIds.size})
+                    </Button>
+                  )}
+                </div>
+              </div>
+
+              <div className="pw-panel-body">
+                {boardView === 'kanban' && (
+                  <KanbanBoard
+                    columns={KANBAN_COLUMNS.map(c => ({ id: c.status, label: c.title, color: STATUS_BAR_COLOR[c.status] }))}
+                    items={sortedTasks.map(t => ({ ...t, columnId: t.completed || t.status === 'completed' ? 'completed' : t.status } as Todo & KanbanCardData))}
+                    onDrop={(itemId, _from, to) => moveTask(itemId, to as TaskStatus)}
+                    defaultPageSize={5}
+                    pageSizeOptions={[5, 10, 15, 25]}
+                    boardStyle={isMobile ? { gridTemplateColumns: '1fr' } : undefined}
+                    renderCard={t => (
+                      <div onClick={() => setDetailTaskId(t.id)} style={{ cursor: 'pointer' }}>
+                        <div className="kb-card-title">{t.title}</div>
+                        {t.due && <div className="kb-card-subtitle">Due: {t.due}</div>}
+                        <div className="kb-card-meta">
+                          <Badge variant={TASK_PRIORITY_META[(t.priority || 'medium') as TaskPriority]?.color === 'var(--red)' ? 'error' : (t.priority || 'medium') === 'high' ? 'warning' : 'gray'}>
+                            {TASK_PRIORITY_META[(t.priority || 'medium') as TaskPriority]?.label || 'Medium'}
+                          </Badge>
+                          {t.assigneeName && (
+                            <span className="kb-meta-item" style={{ marginLeft: 'auto' }}>
+                              <PersonAvatar userId={t.assigneeId} name={t.assigneeName} size={18} />
+                              {t.assigneeName}
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                    )}
+                  />
+                )}
+
+                {boardView === 'table' && (
+                  <div style={{ background: 'var(--surface, var(--white))', border: '1px solid var(--border)', borderRadius: 'var(--r)', overflowX: 'auto' }}>
+                    <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
+                      <thead>
+                        <tr style={{ borderBottom: '1px solid var(--border)', background: 'var(--bg-subtle)' }}>
+                          <th style={{ width: 38, padding: '10px 12px', textAlign: 'center' }}>
+                            <Checkbox
+                              checked={sortedTasks.length > 0 && selectedTaskIds.size === sortedTasks.length}
+                              onCheckedChange={(checked) => {
+                                if (checked) setSelectedTaskIds(new Set(sortedTasks.map(t => t.id)));
+                                else setSelectedTaskIds(new Set());
+                              }}
+                            />
+                          </th>
+                          <th style={{ textAlign: 'left', padding: '10px 14px', fontSize: 11, fontWeight: 700, color: 'var(--ink3)', textTransform: 'uppercase' }}>Task</th>
+                          <th style={{ textAlign: 'left', padding: '10px 14px', fontSize: 11, fontWeight: 700, color: 'var(--ink3)', textTransform: 'uppercase' }}>Status</th>
+                          <th style={{ textAlign: 'left', padding: '10px 14px', fontSize: 11, fontWeight: 700, color: 'var(--ink3)', textTransform: 'uppercase' }}>Priority</th>
+                          <th style={{ textAlign: 'left', padding: '10px 14px', fontSize: 11, fontWeight: 700, color: 'var(--ink3)', textTransform: 'uppercase' }}>Assignee</th>
+                          <th style={{ textAlign: 'left', padding: '10px 14px', fontSize: 11, fontWeight: 700, color: 'var(--ink3)', textTransform: 'uppercase' }}>Due Date</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {sortedTasks.map(t => {
+                          const st = (t.completed ? 'completed' : t.status) as TaskStatus;
+                          const pr = (t.priority || 'medium') as TaskPriority;
+                          return (
+                            <tr
+                              key={t.id}
+                              style={{ borderBottom: '1px solid var(--border)', cursor: 'pointer' }}
+                              onClick={() => setDetailTaskId(t.id)}
+                            >
+                              <td style={{ padding: '10px 12px', textAlign: 'center' }} onClick={e => e.stopPropagation()}>
+                                <Checkbox
+                                  checked={selectedTaskIds.has(t.id)}
+                                  onCheckedChange={(checked) => {
+                                    setSelectedTaskIds(prev => {
+                                      const next = new Set(prev);
+                                      if (checked) next.add(t.id);
+                                      else next.delete(t.id);
+                                      return next;
+                                    });
+                                  }}
+                                />
+                              </td>
+                              <td style={{ padding: '10px 14px', fontWeight: 600, color: 'var(--ink)' }}>{t.title}</td>
+                              <td style={{ padding: '10px 14px' }}>
+                                <Badge variant={TASK_STATUS_META[st]?.variant || 'gray'}>
+                                  {TASK_STATUS_META[st]?.label || st}
+                                </Badge>
+                              </td>
+                              <td style={{ padding: '10px 14px' }}>
+                                <Badge variant={pr === 'urgent' ? 'error' : pr === 'high' ? 'warning' : 'gray'}>
+                                  {TASK_PRIORITY_META[pr]?.label || pr}
+                                </Badge>
+                              </td>
+                              <td style={{ padding: '10px 14px' }}>
+                                {t.assigneeName ? (
+                                  <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+                                    <PersonAvatar userId={t.assigneeId} name={t.assigneeName} size={20} />
+                                    <span>{t.assigneeName}</span>
+                                  </span>
+                                ) : (
+                                  <span style={{ color: 'var(--ink3)' }}>Unassigned</span>
+                                )}
+                              </td>
+                              <td style={{ padding: '10px 14px', color: 'var(--ink2)' }}>{t.due || '—'}</td>
+                            </tr>
+                          );
+                        })}
+                        {sortedTasks.length === 0 && (
+                          <tr>
+                            <td colSpan={6} style={{ padding: 28, textAlign: 'center', color: 'var(--ink3)' }}>
+                              No tasks match the current filters.
+                            </td>
+                          </tr>
+                        )}
+                      </tbody>
+                    </table>
                   </div>
                 )}
-              />
-            )}
-          </>
+
+                {boardView === 'milestone' && (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+                    {(milestones || []).map(ms => {
+                      const msMeta = MILESTONE_STATUS_META[ms.status] || MILESTONE_STATUS_META.upcoming;
+                      return (
+                        <div key={ms.id} className="pw-milestone-item">
+                          <div style={{ minWidth: 0, flex: 1 }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                              <span style={{ fontWeight: 700, fontSize: 13.5, color: 'var(--ink)' }}>{ms.name}</span>
+                              <Badge variant={msMeta.variant}>{msMeta.label}</Badge>
+                            </div>
+                            <div style={{ fontSize: 12, color: 'var(--ink3)', marginTop: 4 }}>
+                              {ms.due_date ? `Due ${ms.due_date}` : 'No due date'} · {ms.task_done_count}/{ms.task_count} tasks complete
+                            </div>
+                          </div>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                            <Select value={ms.status} onValueChange={v => updateMilestone(ms.id, { status: v })}>
+                              <SelectTrigger className="h-8 text-xs" style={{ width: 130 }}><SelectValue /></SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="upcoming">Upcoming</SelectItem>
+                                <SelectItem value="in_progress">In progress</SelectItem>
+                                <SelectItem value="completed">Completed</SelectItem>
+                              </SelectContent>
+                            </Select>
+                            <Button variant="ghost" size="xs" onClick={() => deleteMilestone(ms.id)} style={{ color: 'var(--red)' }}>
+                              <Icon name="trash" size={13} />
+                            </Button>
+                          </div>
+                        </div>
+                      );
+                    })}
+                    {(!milestones || milestones.length === 0) && (
+                      <div style={{ padding: 24, textAlign: 'center', color: 'var(--ink3)', fontSize: 13 }}>
+                        No milestones created for this project yet.
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
         )}
 
         {/* TAB 10: TIMESHEETS */}
         {tab === 'timesheets' && (
-          <SectionCard title="Billable & Non-Billable Man-Hours Log" collapsible={false}>
-            <div style={{ overflowX: 'auto' }}>
-              <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
-                <thead>
-                  <tr style={{ borderBottom: '2px solid var(--border)', background: 'var(--bg-subtle)' }}>
-                    <th style={{ textAlign: 'left', padding: '10px 14px' }}>Date</th>
-                    <th style={{ textAlign: 'left', padding: '10px 14px' }}>Team Member</th>
-                    <th style={{ textAlign: 'left', padding: '10px 14px' }}>Task / Work Item</th>
-                    <th style={{ textAlign: 'right', padding: '10px 14px' }}>Duration (Hrs)</th>
-                    <th style={{ textAlign: 'right', padding: '10px 14px' }}>Billable Rate</th>
-                    <th style={{ textAlign: 'right', padding: '10px 14px' }}>Total Amount</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {paginate(timesheets || [], tsPage, tsSize).visible.map((t) => (
-                    <tr key={t.id} style={{ borderBottom: '1px solid var(--border)' }}>
-                      <td style={{ padding: '10px 14px' }}>{t.started_at.slice(0, 10)}</td>
-                      <td style={{ padding: '10px 14px' }}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                          <PersonAvatar userId={t.user_id} name={t.user_name} size={20} />
-                          <span style={{ fontWeight: 600 }}>{t.user_name}</span>
-                        </div>
-                      </td>
-                      <td style={{ padding: '10px 14px' }}>{t.task_title}</td>
-                      <td style={{ textAlign: 'right', padding: '10px 14px' }}>{((t.duration_minutes || 0) / 60).toFixed(2)}</td>
-                      <td style={{ textAlign: 'right', padding: '10px 14px' }}>{t.hourly_rate ? `${selected?.currency || 'TZS'} ${t.hourly_rate}` : '—'}</td>
-                      <td style={{ textAlign: 'right', padding: '10px 14px', fontWeight: 700 }}>{selected?.currency || 'TZS'} {Number(t.amount || 0).toLocaleString()}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+          <section className="pw-panel">
+            <div className="pw-panel-header">
+              <div className="pw-panel-header-left">
+                <FeaturedIcon variant="info" size="md">
+                  <Icon name="clock" size={18} />
+                </FeaturedIcon>
+                <div>
+                  <h2 className="pw-panel-title">Billable & Non-Billable Man-Hours Log</h2>
+                  <p className="pw-panel-sub">Tracked time entries across tasks and team members.</p>
+                </div>
+              </div>
+              {timesheetTotals && (
+                <Badge variant="brand">
+                  {formatHM(timesheetTotals.totalMinutes)} hrs · {selected.currency} {Number(timesheetTotals.billableAmount || 0).toLocaleString()}
+                </Badge>
+              )}
             </div>
-            <ListPagination total={(timesheets || []).length} page={tsPage} pageSize={tsSize} onPageChange={setTsPage} onPageSizeChange={setTsSize} noun="entries" />
-          </SectionCard>
+            <div className="pw-panel-body">
+              <div style={{ background: 'var(--surface, var(--white))', border: '1px solid var(--border)', borderRadius: 'var(--r)', overflowX: 'auto' }}>
+                <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
+                  <thead>
+                    <tr style={{ borderBottom: '1px solid var(--border)', background: 'var(--bg-subtle)' }}>
+                      <th style={{ textAlign: 'left', padding: '10px 14px', fontSize: 11, fontWeight: 700, color: 'var(--ink3)', textTransform: 'uppercase' }}>Date</th>
+                      <th style={{ textAlign: 'left', padding: '10px 14px', fontSize: 11, fontWeight: 700, color: 'var(--ink3)', textTransform: 'uppercase' }}>Team Member</th>
+                      <th style={{ textAlign: 'left', padding: '10px 14px', fontSize: 11, fontWeight: 700, color: 'var(--ink3)', textTransform: 'uppercase' }}>Task / Work Item</th>
+                      <th style={{ textAlign: 'right', padding: '10px 14px', fontSize: 11, fontWeight: 700, color: 'var(--ink3)', textTransform: 'uppercase' }}>Duration (Hrs)</th>
+                      <th style={{ textAlign: 'right', padding: '10px 14px', fontSize: 11, fontWeight: 700, color: 'var(--ink3)', textTransform: 'uppercase' }}>Billable Rate</th>
+                      <th style={{ textAlign: 'right', padding: '10px 14px', fontSize: 11, fontWeight: 700, color: 'var(--ink3)', textTransform: 'uppercase' }}>Total Amount</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {paginate(timesheets || [], tsPage, tsSize).visible.map((t) => (
+                      <tr key={t.id} style={{ borderBottom: '1px solid var(--border)' }}>
+                        <td style={{ padding: '10px 14px' }}>{t.started_at.slice(0, 10)}</td>
+                        <td style={{ padding: '10px 14px' }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                            <PersonAvatar userId={t.user_id} name={t.user_name} size={22} />
+                            <span style={{ fontWeight: 600 }}>{t.user_name}</span>
+                          </div>
+                        </td>
+                        <td style={{ padding: '10px 14px' }}>{t.task_title}</td>
+                        <td style={{ textAlign: 'right', padding: '10px 14px' }}>{((t.duration_minutes || 0) / 60).toFixed(2)}</td>
+                        <td style={{ textAlign: 'right', padding: '10px 14px' }}>{t.hourly_rate ? `${selected?.currency || 'TZS'} ${t.hourly_rate}` : '—'}</td>
+                        <td style={{ textAlign: 'right', padding: '10px 14px', fontWeight: 700 }}>{selected?.currency || 'TZS'} {Number(t.amount || 0).toLocaleString()}</td>
+                      </tr>
+                    ))}
+                    {(timesheets || []).length === 0 && (
+                      <tr>
+                        <td colSpan={6} style={{ padding: 28, textAlign: 'center', color: 'var(--ink3)' }}>
+                          No timesheet entries logged for this project yet.
+                        </td>
+                      </tr>
+                    )}
+                  </tbody>
+                </table>
+              </div>
+              <ListPagination total={(timesheets || []).length} page={tsPage} pageSize={tsSize} onPageChange={setTsPage} onPageSizeChange={setTsSize} noun="entries" />
+            </div>
+          </section>
         )}
 
         {/* TAB 11: FILES */}
         {tab === 'files' && (
-          <SectionCard title="Project Documents & Engineering Files" collapsible={false}>
-            <div style={{ marginBottom: 16 }}>
-              <FileUploader onUpload={uploadProjectFiles} uploadingFiles={uploadingFiles ? [{ id: '1', name: 'Uploading files...', size: 0, progress: 50, status: 'uploading' }] : []} />
-            </div>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(240px, 1fr))', gap: 14 }}>
-              {(projectFiles || []).map((f) => (
-                <div key={f.id} style={{ background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 'var(--r)', padding: 14 }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                    <Icon name="fileText" size={20} style={{ color: 'var(--teal)' }} />
-                    <span style={{ fontSize: 13, fontWeight: 700, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                      {f.name}
-                    </span>
-                  </div>
-                  <div style={{ fontSize: 11, color: 'var(--ink3)', marginTop: 4 }}>
-                    Uploaded: {new Date(f.created_at).toLocaleDateString()}
-                  </div>
-                  <Button size="sm" variant="outline" onClick={() => void apiDownload(`/v1/files/${f.id}/download`, f.name).catch(err => showAlert(err.message || 'Unable to download file', { variant: 'error' }))}><Icon name="download" size={14} /> Download</Button>
+          <section className="pw-panel">
+            <div className="pw-panel-header">
+              <div className="pw-panel-header-left">
+                <FeaturedIcon variant="brand" size="md">
+                  <Icon name="folderOpen" size={18} />
+                </FeaturedIcon>
+                <div>
+                  <h2 className="pw-panel-title">Project Documents & Engineering Files</h2>
+                  <p className="pw-panel-sub">Drawings, contracts, tender annexes, and technical deliverables stored in Cloud.</p>
                 </div>
-              ))}
-              {projectFiles && !projectFiles.length && <p className="text-sm text-muted-foreground">No project files yet. Upload a document to attach it to this workspace.</p>}
+              </div>
+              <Badge variant="brand">{(projectFiles || []).length} Files</Badge>
             </div>
-          </SectionCard>
+            <div className="pw-panel-body">
+              <FileUploader
+                onUpload={uploadProjectFiles}
+                uploadingFiles={uploadingFiles ? [{ id: '1', name: 'Uploading files...', size: 0, progress: 50, status: 'uploading' }] : []}
+              />
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(250px, 1fr))', gap: 14 }}>
+                {(projectFiles || []).map((f) => (
+                  <div key={f.id} className="pw-member-card" style={{ flexDirection: 'column', alignItems: 'stretch', gap: 10 }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 10, minWidth: 0 }}>
+                      <FeaturedIcon variant="brand" size="sm">
+                        <Icon name="fileText" size={15} />
+                      </FeaturedIcon>
+                      <div style={{ minWidth: 0, flex: 1 }}>
+                        <div style={{ fontSize: 13, fontWeight: 700, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', color: 'var(--ink)' }}>
+                          {f.name}
+                        </div>
+                        <div style={{ fontSize: 11, color: 'var(--ink3)', marginTop: 2 }}>
+                          Uploaded {new Date(f.created_at).toLocaleDateString()}
+                        </div>
+                      </div>
+                    </div>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => void apiDownload(`/v1/files/${f.id}/download`, f.name).catch(err => showAlert(err.message || 'Unable to download file', { variant: 'error' }))}
+                    >
+                      <Icon name="download" size={14} /> Download
+                    </Button>
+                  </div>
+                ))}
+                {projectFiles && !projectFiles.length && (
+                  <p className="text-sm text-muted-foreground" style={{ margin: 0 }}>
+                    No project files yet. Upload a document above to attach it to this workspace.
+                  </p>
+                )}
+              </div>
+            </div>
+          </section>
         )}
 
         {/* TAB 12: DISCUSSIONS */}
         {tab === 'discussions' && (
-          <SectionCard title="Collaborative Team & Stakeholder Stream" collapsible={false}>
-            <div style={{ display: 'flex', gap: 10, marginBottom: 20 }}>
-              <Input
-                placeholder="Post an update or mention @colleague..."
-                value={discussionDraft}
-                onChange={(e) => setDiscussionDraft(e.target.value)}
-                onKeyDown={(e) => { if (e.key === 'Enter') postDiscussion(); }}
-                className="flex-1"
-              />
-              <Button onClick={postDiscussion} disabled={postingDiscussion || !discussionDraft.trim()}>Post</Button>
-            </div>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-              {paginate(discussions || [], discPage, discSize).visible.map((d) => (
-                <div key={d.id} style={{ background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 'var(--r)', padding: 14 }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                      <PersonAvatar userId={d.author_id} name={d.author_name} size={24} />
-                      <strong style={{ fontSize: 13 }}>{d.author_name}</strong>
-                    </div>
-                    <span style={{ fontSize: 11, color: 'var(--ink3)' }}>{new Date(d.created_at).toLocaleString()}</span>
-                  </div>
-                  <p style={{ fontSize: 13.5, color: 'var(--ink)', margin: 0 }}>{d.content}</p>
+          <section className="pw-panel">
+            <div className="pw-panel-header">
+              <div className="pw-panel-header-left">
+                <FeaturedIcon variant="brand" size="md">
+                  <Icon name="messageSquare" size={18} />
+                </FeaturedIcon>
+                <div>
+                  <h2 className="pw-panel-title">Collaborative Team & Stakeholder Stream</h2>
+                  <p className="pw-panel-sub">Post project updates, decisions, and @mention teammates.</p>
                 </div>
-              ))}
+              </div>
+              <Badge variant="gray">{(discussions || []).length} Posts</Badge>
             </div>
-            <ListPagination total={(discussions || []).length} page={discPage} pageSize={discSize} onPageChange={setDiscPage} onPageSizeChange={setDiscSize} noun="posts" />
-          </SectionCard>
+            <div className="pw-panel-body">
+              <div style={{ display: 'flex', gap: 10 }}>
+                <Input
+                  placeholder="Post an update or mention @colleague..."
+                  value={discussionDraft}
+                  onChange={(e) => setDiscussionDraft(e.target.value)}
+                  onKeyDown={(e) => { if (e.key === 'Enter') postDiscussion(); }}
+                  className="flex-1"
+                />
+                <Button onClick={postDiscussion} disabled={postingDiscussion || !discussionDraft.trim()}>
+                  <Icon name="send" size={14} /> Post
+                </Button>
+              </div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                {paginate(discussions || [], discPage, discSize).visible.map((d) => (
+                  <div key={d.id} className="pw-member-card" style={{ flexDirection: 'column', alignItems: 'stretch', gap: 8 }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                        <PersonAvatar userId={d.author_id} name={d.author_name} size={26} />
+                        <strong style={{ fontSize: 13, color: 'var(--ink)' }}>{d.author_name}</strong>
+                      </div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                        <span style={{ fontSize: 11, color: 'var(--ink3)' }}>{new Date(d.created_at).toLocaleString()}</span>
+                        {user?.id === d.author_id && (
+                          <Button variant="ghost" size="xs" onClick={() => removeDiscussion(d.id)} style={{ color: 'var(--red)' }}>
+                            <Icon name="trash" size={12} />
+                          </Button>
+                        )}
+                      </div>
+                    </div>
+                    <p style={{ fontSize: 13.5, color: 'var(--ink)', margin: 0, lineHeight: 1.5 }}>{d.content}</p>
+                  </div>
+                ))}
+                {(discussions || []).length === 0 && (
+                  <div style={{ padding: 24, textAlign: 'center', color: 'var(--ink3)', fontSize: 13 }}>
+                    No discussion updates posted yet.
+                  </div>
+                )}
+              </div>
+              <ListPagination total={(discussions || []).length} page={discPage} pageSize={discSize} onPageChange={setDiscPage} onPageSizeChange={setDiscSize} noun="posts" />
+            </div>
+          </section>
         )}
 
         {/* TAB 13: TICKETS */}
         {tab === 'tickets' && (
-          <SectionCard title="Linked Support & Field Tickets" collapsible={false}>
-            <div style={{ display: 'flex', gap: 10, marginBottom: 16 }}>
-              <Input
-                placeholder="Create new field support ticket..."
-                value={ticketSubject}
-                onChange={(e) => setTicketSubject(e.target.value)}
-                className="flex-1"
-              />
-              <Button onClick={createProjectTicket} disabled={!ticketSubject.trim()}>Create Ticket</Button>
-            </div>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-              {(projectTickets || []).map((t) => (
-                <div key={t.id} style={{ background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 'var(--r)', padding: 12, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <div>
-                    <span style={{ fontWeight: 700, fontSize: 12, color: 'var(--teal)', marginRight: 8 }}>{t.ref_number}</span>
-                    <span style={{ fontWeight: 600, fontSize: 13.5 }}>{t.subject}</span>
-                  </div>
-                  <Badge variant={TICKET_STATUS_META[t.status]?.variant || 'gray'}>{t.status}</Badge>
+          <section className="pw-panel">
+            <div className="pw-panel-header">
+              <div className="pw-panel-header-left">
+                <FeaturedIcon variant="warning" size="md">
+                  <Icon name="ticket" size={18} />
+                </FeaturedIcon>
+                <div>
+                  <h2 className="pw-panel-title">Linked Support & Field Tickets</h2>
+                  <p className="pw-panel-sub">Track field escalations, customer issues, and site support requests.</p>
                 </div>
-              ))}
+              </div>
+              <Badge variant="brand">{(projectTickets || []).length} Tickets</Badge>
             </div>
-          </SectionCard>
+            <div className="pw-panel-body">
+              <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
+                <Input
+                  placeholder="Create new field support ticket..."
+                  value={ticketSubject}
+                  onChange={(e) => setTicketSubject(e.target.value)}
+                  className="flex-1"
+                />
+                <Button onClick={createProjectTicket} disabled={!ticketSubject.trim()}>
+                  <Icon name="plus" size={14} /> Create Ticket
+                </Button>
+              </div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                {(projectTickets || []).map((t) => (
+                  <div key={t.id} className="pw-milestone-item">
+                    <div>
+                      <span style={{ fontWeight: 700, fontSize: 12, color: 'var(--teal)', marginRight: 8 }}>{t.ref_number}</span>
+                      <span style={{ fontWeight: 600, fontSize: 13.5, color: 'var(--ink)' }}>{t.subject}</span>
+                    </div>
+                    <Badge variant={TICKET_STATUS_META[t.status]?.variant || 'gray'}>
+                      {TICKET_STATUS_META[t.status]?.label || t.status}
+                    </Badge>
+                  </div>
+                ))}
+                {(projectTickets || []).length === 0 && (
+                  <div style={{ padding: 24, textAlign: 'center', color: 'var(--ink3)', fontSize: 13 }}>
+                    No support tickets linked to this project.
+                  </div>
+                )}
+              </div>
+            </div>
+          </section>
         )}
 
         {/* TAB 14: SALES & INVOICES */}
         {tab === 'sales' && (
-          <SectionCard title="Customer Invoices & Billing Milestones" collapsible={false}
-            action={<div style={{ display: 'flex', gap: 8 }}>
-              <Button variant="outline" size="sm" onClick={() => navigate('/finance/invoices')}><Icon name="dollarSign" size={13} /> Finance App</Button>
-            </div>}>
-            <div style={{ overflowX: 'auto' }}>
-              <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
-                <thead>
-                  <tr style={{ borderBottom: '2px solid var(--border)', background: 'var(--bg-subtle)' }}>
-                    <th style={{ textAlign: 'left', padding: '10px 14px' }}>Invoice #</th>
-                    <th style={{ textAlign: 'left', padding: '10px 14px' }}>Status</th>
-                    <th style={{ textAlign: 'left', padding: '10px 14px' }}>Due Date</th>
-                    <th style={{ textAlign: 'right', padding: '10px 14px' }}>Total Amount</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {(projectInvoices || []).map((inv) => (
-                    <tr key={inv.id} style={{ borderBottom: '1px solid var(--border)', cursor: 'pointer' }}
-                      onClick={() => navigate(`/finance/invoices/${inv.id}`)}
-                      onMouseEnter={e => (e.currentTarget.style.background = 'var(--hover-bg)')} onMouseLeave={e => (e.currentTarget.style.background = '')}>
-                      <td style={{ padding: '10px 14px', fontWeight: 700, color: 'var(--teal)' }}>{inv.invoice_number}</td>
-                      <td style={{ padding: '10px 14px' }}>
-                        <Badge variant={INVOICE_STATUS_META[inv.status]?.variant || 'gray'}>{inv.status}</Badge>
-                      </td>
-                      <td style={{ padding: '10px 14px' }}>{inv.due_date || '—'}</td>
-                      <td style={{ textAlign: 'right', padding: '10px 14px', fontWeight: 700 }}>
-                        {inv.currency} {Number(inv.total || 0).toLocaleString()}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-              {(projectInvoices || []).length === 0 && (
-                <div style={{ padding: 32, textAlign: 'center', color: 'var(--ink3)', fontSize: 13 }}>No invoices linked to this project. Create one in the Finance app.</div>
-              )}
+          <section className="pw-panel">
+            <div className="pw-panel-header">
+              <div className="pw-panel-header-left">
+                <FeaturedIcon variant="success" size="md">
+                  <Icon name="receipt" size={18} />
+                </FeaturedIcon>
+                <div>
+                  <h2 className="pw-panel-title">Customer Invoices & Billing Milestones</h2>
+                  <p className="pw-panel-sub">Invoices issued against this project in FinOps.</p>
+                </div>
+              </div>
+              <Button variant="outline" size="sm" onClick={() => navigate('/finance/invoices')}>
+                <Icon name="dollarSign" size={13} /> Open Finance App
+              </Button>
             </div>
-          </SectionCard>
+            <div className="pw-panel-body">
+              <div style={{ background: 'var(--surface, var(--white))', border: '1px solid var(--border)', borderRadius: 'var(--r)', overflowX: 'auto' }}>
+                <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
+                  <thead>
+                    <tr style={{ borderBottom: '1px solid var(--border)', background: 'var(--bg-subtle)' }}>
+                      <th style={{ textAlign: 'left', padding: '10px 14px', fontSize: 11, fontWeight: 700, color: 'var(--ink3)', textTransform: 'uppercase' }}>Invoice #</th>
+                      <th style={{ textAlign: 'left', padding: '10px 14px', fontSize: 11, fontWeight: 700, color: 'var(--ink3)', textTransform: 'uppercase' }}>Status</th>
+                      <th style={{ textAlign: 'left', padding: '10px 14px', fontSize: 11, fontWeight: 700, color: 'var(--ink3)', textTransform: 'uppercase' }}>Due Date</th>
+                      <th style={{ textAlign: 'right', padding: '10px 14px', fontSize: 11, fontWeight: 700, color: 'var(--ink3)', textTransform: 'uppercase' }}>Total Amount</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {(projectInvoices || []).map((inv) => (
+                      <tr
+                        key={inv.id}
+                        style={{ borderBottom: '1px solid var(--border)', cursor: 'pointer' }}
+                        onClick={() => navigate(`/finance/invoices/${inv.id}`)}
+                      >
+                        <td style={{ padding: '10px 14px', fontWeight: 700, color: 'var(--teal)' }}>{inv.invoice_number}</td>
+                        <td style={{ padding: '10px 14px' }}>
+                          <Badge variant={INVOICE_STATUS_META[inv.status]?.variant || 'gray'}>{inv.status}</Badge>
+                        </td>
+                        <td style={{ padding: '10px 14px' }}>{inv.due_date || '—'}</td>
+                        <td style={{ textAlign: 'right', padding: '10px 14px', fontWeight: 700 }}>
+                          {inv.currency} {Number(inv.total || 0).toLocaleString()}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+                {(projectInvoices || []).length === 0 && (
+                  <div style={{ padding: 28, textAlign: 'center', color: 'var(--ink3)', fontSize: 13 }}>
+                    No invoices linked to this project yet. Create one in the Finance app.
+                  </div>
+                )}
+              </div>
+            </div>
+          </section>
         )}
 
         {/* TAB 15: AUDIT ACTIVITY */}
         {tab === 'activity' && (
-          <SectionCard title="Project Audit Trail & State Transitions" collapsible={false}>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-              {paginate(projectActivity || [], actPage, actSize).visible.map((a) => (
-                <div key={a.id} style={{ fontSize: 13, color: 'var(--ink2)', borderBottom: '1px solid var(--border)', paddingBottom: 8, display: 'flex', alignItems: 'flex-start', gap: 8 }}>
-                  <PersonAvatar userId={a.actor_id} name={a.actor_name} size={22} />
-                  <div><strong style={{ color: 'var(--ink)' }}>{a.actor_name}</strong> {describeProjectActivity(a)}
-                  <span style={{ fontSize: 11, color: 'var(--ink3)', marginLeft: 8 }}>{new Date(a.created_at).toLocaleString()}</span></div>
+          <section className="pw-panel">
+            <div className="pw-panel-header">
+              <div className="pw-panel-header-left">
+                <FeaturedIcon variant="gray" size="md">
+                  <Icon name="fileText" size={18} />
+                </FeaturedIcon>
+                <div>
+                  <h2 className="pw-panel-title">Project Audit Trail & State Transitions</h2>
+                  <p className="pw-panel-sub">Chronological log of status changes, task updates, and member assignments.</p>
                 </div>
-              ))}
+              </div>
+              <Badge variant="gray">{(projectActivity || []).length} Events</Badge>
             </div>
-            <ListPagination total={(projectActivity || []).length} page={actPage} pageSize={actSize} onPageChange={setActPage} onPageSizeChange={setActSize} noun="events" />
-          </SectionCard>
+            <div className="pw-panel-body">
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                {paginate(projectActivity || [], actPage, actSize).visible.map((a) => (
+                  <div key={a.id} className="pw-milestone-item">
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 10, minWidth: 0 }}>
+                      <PersonAvatar userId={a.actor_id} name={a.actor_name} size={26} />
+                      <div style={{ fontSize: 13, color: 'var(--ink2)' }}>
+                        <strong style={{ color: 'var(--ink)' }}>{a.actor_name}</strong> {describeProjectActivity(a)}
+                      </div>
+                    </div>
+                    <span style={{ fontSize: 11.5, color: 'var(--ink3)' }}>{new Date(a.created_at).toLocaleString()}</span>
+                  </div>
+                ))}
+                {(projectActivity || []).length === 0 && (
+                  <div style={{ padding: 24, textAlign: 'center', color: 'var(--ink3)', fontSize: 13 }}>
+                    No activity recorded yet.
+                  </div>
+                )}
+              </div>
+              <ListPagination total={(projectActivity || []).length} page={actPage} pageSize={actSize} onPageChange={setActPage} onPageSizeChange={setActSize} noun="events" />
+            </div>
+          </section>
         )}
 
         {/* TAB 16: TEAM MEMBERS */}
         {tab === 'members' && (
-          <SectionCard title="Project Team & Resource Allocation" collapsible={false}>
-            <div style={{ display: 'flex', gap: 10, marginBottom: 16, maxWidth: 360 }}>
-              <EntityPicker value={null} onChange={v => v && addMember(v)} search={searchColleagues} placeholder="+ Add team member..." />
-            </div>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))', gap: 14 }}>
-              {(members || []).map((m) => (
-                <div key={m.id} style={{ background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 'var(--r)', padding: 14, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                    <PersonAvatar userId={m.user_id} name={m.name} size={36} />
-                    <div>
-                      <div style={{ fontWeight: 700, fontSize: 13.5 }}>{m.name}</div>
-                      <div style={{ fontSize: 11.5, color: 'var(--ink3)' }}>{m.email}</div>
-                    </div>
-                  </div>
-                  <Button variant="ghost" size="sm" onClick={() => removeMember(m.user_id)} style={{ color: 'var(--red)', padding: 4 }}>
-                    <Icon name="x" size={15} />
-                  </Button>
+          <section className="pw-panel">
+            <div className="pw-panel-header">
+              <div className="pw-panel-header-left">
+                <FeaturedIcon variant="brand" size="md">
+                  <Icon name="users" size={18} />
+                </FeaturedIcon>
+                <div>
+                  <h2 className="pw-panel-title">Project Team & Resource Allocation</h2>
+                  <p className="pw-panel-sub">Add or manage workspace colleagues assigned to this project.</p>
                 </div>
-              ))}
+              </div>
+              <Badge variant="brand">{(members || []).length} Members</Badge>
             </div>
-          </SectionCard>
+            <div className="pw-panel-body">
+              <div style={{ maxWidth: 380 }}>
+                <EntityPicker value={null} onChange={v => v && addMember(v)} search={searchColleagues} placeholder="+ Add team member..." />
+              </div>
+              <div className="pw-member-grid">
+                {(members || []).map((m) => (
+                  <div key={m.id} className="pw-member-card">
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 10, minWidth: 0 }}>
+                      <PersonAvatar userId={m.user_id} name={m.name} size={36} />
+                      <div style={{ minWidth: 0 }}>
+                        <div style={{ fontWeight: 700, fontSize: 13.5, color: 'var(--ink)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{m.name}</div>
+                        <div style={{ fontSize: 11.5, color: 'var(--ink3)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{m.email}</div>
+                      </div>
+                    </div>
+                    <Button variant="ghost" size="xs" onClick={() => removeMember(m.user_id)} style={{ color: 'var(--red)' }} aria-label={`Remove ${m.name}`}>
+                      <Icon name="close" size={14} />
+                    </Button>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </section>
         )}
       </div>
+
+      {/* Save as Template Dialog */}
+      <Dialog open={savingTemplate} onOpenChange={setSavingTemplate}>
+        <DialogContent size="sm">
+          <DialogHeader>
+            <DialogTitle>Save Project as Template</DialogTitle>
+          </DialogHeader>
+          <DialogBody className="space-y-3">
+            <label className="text-xs font-semibold" style={{ color: 'var(--ink)' }}>
+              Template Name
+            </label>
+            <Input
+              value={templateName}
+              onChange={e => setTemplateName(e.target.value)}
+              placeholder="e.g. Standard EPC Delivery Template"
+            />
+          </DialogBody>
+          <DialogFooter>
+            <Button variant="outline" size="sm" onClick={() => setSavingTemplate(false)}>Cancel</Button>
+            <Button size="sm" onClick={saveAsTemplate} disabled={!templateName.trim()}>Save Template</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {/* Task Drawer */}
       {detailTask && (
@@ -1845,12 +2543,12 @@ function TaskDetailDrawer({
     <Sheet open onOpenChange={o => { if (!o) onClose(); }}>
       <SheetContent className="w-95 sm:max-w-95 flex flex-col p-0 gap-0">
         <div style={{ display: 'flex', flexDirection: 'column', padding: 20, gap: 14, overflowY: 'auto', height: '100%' }}>
-          <SheetTitle style={{ fontSize: 11, fontWeight: 700, color: 'var(--ink3)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Work Package / Task</SheetTitle>
-          <textarea
+          <SheetTitle style={{ fontSize: 11, fontWeight: 700, color: 'var(--teal)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+            Work Package / Task
+          </SheetTitle>
+          <Input
             defaultValue={task.title}
             onBlur={e => { if (e.target.value.trim() && e.target.value !== task.title) updateTodo(task.id, { title: e.target.value.trim() }); }}
-            rows={2}
-            style={{ fontSize: 16, fontWeight: 700, color: 'var(--ink)', border: 'none', resize: 'none', outline: 'none', fontFamily: 'var(--font)', padding: 0 }}
           />
           <div>
             <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--ink3)', marginBottom: 4 }}>Status</div>
@@ -1917,6 +2615,71 @@ function TaskDetailDrawer({
               style={{ resize: 'vertical' }}
             />
           </div>
+
+          {/* Collaborators */}
+          <div>
+            <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--ink3)', marginBottom: 6 }}>Collaborators</div>
+            <EntityPicker value={null} onChange={v => v && addCollaborator(v, 'assignee')} search={searchColleagues} placeholder="+ Add assignee..." />
+            {collaborators && collaborators.length > 0 && (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginTop: 8 }}>
+                {collaborators.map(c => (
+                  <div key={c.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: 12.5 }}>
+                    <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+                      <PersonAvatar userId={c.user_id} name={c.name} size={20} />
+                      <span>{c.name}</span>
+                    </span>
+                    <Button variant="ghost" size="xs" onClick={() => removeCollaborator(c.id)}>
+                      <Icon name="close" size={12} />
+                    </Button>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
+          {/* Dependencies */}
+          {otherTasks.length > 0 && (
+            <div>
+              <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--ink3)', marginBottom: 6 }}>Dependencies (Blocked By)</div>
+              <div style={{ display: 'flex', gap: 6 }}>
+                <Select value={addingDepId} onValueChange={setAddingDepId}>
+                  <SelectTrigger className="h-8 text-xs flex-1"><SelectValue placeholder="Select task..." /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="__none__">Select task…</SelectItem>
+                    {otherTasks.map(ot => <SelectItem key={ot.id} value={ot.id}>{ot.title}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+                <Button size="xs" variant="outline" onClick={addDependency} disabled={addingDepId === '__none__'}>Link</Button>
+              </div>
+              {deps && deps.blockedBy.length > 0 && (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginTop: 8 }}>
+                  {deps.blockedBy.map(d => (
+                    <div key={d.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: 12 }}>
+                      <span>{d.title}</span>
+                      <Button variant="ghost" size="xs" onClick={() => removeDependency(d.id)}>
+                        <Icon name="close" size={12} />
+                      </Button>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Task Activity */}
+          {activity && activity.length > 0 && (
+            <div>
+              <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--ink3)', marginBottom: 6 }}>Recent Activity</div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 4, fontSize: 11.5, color: 'var(--ink3)' }}>
+                {activity.slice(0, 5).map(a => (
+                  <div key={a.id}>
+                    <strong style={{ color: 'var(--ink2)' }}>{a.actor_name}</strong> · {a.action}
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
           <Button variant="outline" size="sm" onClick={onDelete} style={{ marginTop: 'auto', color: 'var(--red)', borderColor: 'var(--red)' }}>
             <Icon name="trash" size={13} /> Delete task
           </Button>

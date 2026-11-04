@@ -28,7 +28,7 @@ function CompartmentAvatar({ compartment, size = 26 }: { compartment: Compartmen
       <div style={{
         width: size, height: size, borderRadius: '50%', flexShrink: 0,
         display: 'flex', alignItems: 'center', justifyContent: 'center',
-        background: 'var(--seal)', color: '#fff', fontSize: 10, fontWeight: 800,
+        background: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))', fontSize: 10, fontWeight: 800,
       }}>
         <Icon name="grid" size={size * 0.5} />
       </div>
@@ -48,8 +48,28 @@ export function SealCompartmentSwitcher({ collapsed }: Props) {
   const [isOpen, setIsOpen] = useState(false);
 
   useEffect(() => {
-    apiFetch('/v1/seal/compartments').then(setCompartments).catch(() => setCompartments([]));
-  }, []);
+    let active = true;
+    const load = () => {
+      apiFetch('/v1/seal/compartments')
+        .then(data => {
+          if (!active) return;
+          const list = Array.isArray(data) ? data : [];
+          setCompartments(list);
+          if (compartmentId && !list.some((r: Compartment) => r.id === compartmentId)) {
+            setCompartmentId(null);
+          }
+        })
+        .catch(() => {
+          if (active) setCompartments([]);
+        });
+    };
+    load();
+    window.addEventListener('seal-warehouses-updated', load);
+    return () => {
+      active = false;
+      window.removeEventListener('seal-warehouses-updated', load);
+    };
+  }, [compartmentId, setCompartmentId]);
 
   if (compartments.length === 0) return null;
 

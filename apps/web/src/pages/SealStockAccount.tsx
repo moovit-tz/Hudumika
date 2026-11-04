@@ -1,3 +1,4 @@
+import { Banner } from '../components/ui/alert.js';
 import React, { useEffect, useState } from 'react';
 import { Icon } from '../components/Icon.js';
 import { useIsMobile } from '../hooks/useIsMobile.js';
@@ -116,6 +117,7 @@ export function SealStockAccount() {
         }
       />
 
+      <Banner variant="info">Quantity balances reflect the selected period. Duty and tax exposure reflect current lot values.</Banner>
       {showNew && (
         <form onSubmit={handleGenerate} className="seal-card" style={{ marginBottom: 20 }}>
           <div style={{ padding: 20, display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(3, 1fr)', gap: 14, alignItems: 'flex-end' }}>

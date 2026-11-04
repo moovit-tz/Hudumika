@@ -59,6 +59,10 @@ function claimsForUser(user: any, scopes: string[]) {
 }
 
 export async function ondiOauthRoutes(fastify: FastifyInstance) {
+  fastify.addContentTypeParser('application/x-www-form-urlencoded', { parseAs: 'string' }, (_request, body, done) => {
+    done(null, Object.fromEntries(new URLSearchParams(String(body))));
+  });
+
   /**
    * GET /v1/ondi/oauth/authorize/info
    * Authenticated (existing Hudumika session) — what the consent screen

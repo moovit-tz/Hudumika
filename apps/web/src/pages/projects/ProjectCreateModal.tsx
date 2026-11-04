@@ -404,7 +404,7 @@ export const ProjectCreateModal: React.FC<Props> = ({
 
           <div className="pcp-section-body">
             <div className="pcp-field-grid">
-              <div className="pcp-field" style={{ gridColumn: '1 / -1' }}>
+              <div className="pcp-field pcp-field--full">
                 <div className="pcp-label-row">
                   <label htmlFor="project-name" className="pcp-label">
                     Project Name <span className="pcp-label-req">*</span>
@@ -488,7 +488,7 @@ export const ProjectCreateModal: React.FC<Props> = ({
             </div>
 
             {stepFilter === 1 && (
-              <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
+              <div className="pcp-step-nav">
                 <Button type="button" size="sm" onClick={() => setStepFilter(2)}>
                   Next: Strategic Alignment <Icon name="chevronRight" size={14} />
                 </Button>
@@ -554,7 +554,7 @@ export const ProjectCreateModal: React.FC<Props> = ({
 
             {selectedCustomer && (
               <div className="pcp-context-strip">
-                <div style={{ display: 'flex', alignItems: 'center', gap: 10, minWidth: 0 }}>
+                <div className="pcp-context-strip-info">
                   <PersonAvatar
                     kind="customers"
                     userId={selectedCustomer.id}
@@ -562,11 +562,11 @@ export const ProjectCreateModal: React.FC<Props> = ({
                     size={30}
                     hideStatus
                   />
-                  <div style={{ minWidth: 0 }}>
-                    <div style={{ fontSize: 12.5, fontWeight: 700, color: 'var(--ink)' }}>
+                  <div className="pcp-context-strip-info-body">
+                    <div className="pcp-context-strip-name">
                       {selectedCustomer.name}
                     </div>
-                    <div style={{ fontSize: 11.5, color: 'var(--ink2)' }}>
+                    <div className="pcp-context-strip-sub">
                       Linked Customer Account {selectedCustomer.email ? `· ${selectedCustomer.email}` : ''}
                     </div>
                   </div>
@@ -576,7 +576,7 @@ export const ProjectCreateModal: React.FC<Props> = ({
             )}
 
             {stepFilter === 2 && (
-              <div style={{ display: 'flex', justifyContent: 'space-between', gap: 8 }}>
+              <div className="pcp-step-nav--between">
                 <Button type="button" variant="outline" size="sm" onClick={() => setStepFilter(1)}>
                   <Icon name="chevronLeft" size={14} /> Previous
                 </Button>
@@ -747,7 +747,7 @@ export const ProjectCreateModal: React.FC<Props> = ({
             )}
 
             {stepFilter === 3 && (
-              <div style={{ display: 'flex', justifyContent: 'space-between', gap: 8 }}>
+              <div className="pcp-step-nav--between">
                 <Button type="button" variant="outline" size="sm" onClick={() => setStepFilter(2)}>
                   <Icon name="chevronLeft" size={14} /> Previous
                 </Button>
@@ -853,7 +853,7 @@ export const ProjectCreateModal: React.FC<Props> = ({
                 </div>
 
                 {parsedTags.length > 0 && (
-                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: 5, paddingTop: 4 }}>
+                  <div className="pcp-charter-tags">
                     {parsedTags.map(tag => (
                       <Badge key={tag} variant="brand">{tag}</Badge>
                     ))}
@@ -862,11 +862,11 @@ export const ProjectCreateModal: React.FC<Props> = ({
               </div>
 
               <div className="pcp-charter-footer">
-                <Button type="submit" disabled={saving || !name.trim()} className="w-full">
+                <Button type="submit" disabled={saving || !name.trim()} className="pcp-btn-full">
                   {saving && <ButtonSpinner />}
                   {saving ? 'Saving…' : initialProject ? 'Save changes' : 'Create project'}
                 </Button>
-                <Button type="button" variant="outline" onClick={onClose} disabled={saving} className="w-full">
+                <Button type="button" variant="outline" onClick={onClose} disabled={saving} className="pcp-btn-full">
                   Cancel
                 </Button>
               </div>
@@ -880,13 +880,13 @@ export const ProjectCreateModal: React.FC<Props> = ({
   return (
     <Dialog open={isOpen} onOpenChange={open => { if (!open) onClose(); }}>
       <DialogContent size="xl">
-        <form onSubmit={create} style={{ display: 'flex', flexDirection: 'column', height: '100%', minHeight: 0 }}>
+        <form onSubmit={create} className="pcp-dialog-form">
           <DialogHeader>
             <DialogTitle>
               {initialProject ? 'Edit Project Details' : 'New Project Setup'}
             </DialogTitle>
           </DialogHeader>
-          <DialogBody className="space-y-4">
+          <DialogBody className="pcp-dialog-body">
             {formSections}
           </DialogBody>
           <DialogFooter>

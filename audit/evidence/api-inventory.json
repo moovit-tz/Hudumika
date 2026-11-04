@@ -1,0 +1,650 @@
+[
+  {
+    "file": "apps/api/src/routes/customs.routes.ts",
+    "line": 164,
+    "method": "GET",
+    "path": "/hs-search"
+  },
+  {
+    "file": "apps/api/src/routes/customs.routes.ts",
+    "line": 172,
+    "method": "GET",
+    "path": "/hs/:code"
+  },
+  {
+    "file": "apps/api/src/routes/customs.routes.ts",
+    "line": 186,
+    "method": "GET",
+    "path": "/valuation-reference"
+  },
+  {
+    "file": "apps/api/src/routes/customs.routes.ts",
+    "line": 203,
+    "method": "GET",
+    "path": "/origin-eligibility"
+  },
+  {
+    "file": "apps/api/src/routes/customs.routes.ts",
+    "line": 216,
+    "method": "GET",
+    "path": "/certificates-of-origin"
+  },
+  {
+    "file": "apps/api/src/routes/customs.routes.ts",
+    "line": 225,
+    "method": "GET",
+    "path": "/certificates-of-origin/:id"
+  },
+  {
+    "file": "apps/api/src/routes/customs.routes.ts",
+    "line": 232,
+    "method": "POST",
+    "path": "/certificates-of-origin"
+  },
+  {
+    "file": "apps/api/src/routes/customs.routes.ts",
+    "line": 242,
+    "method": "PATCH",
+    "path": "/certificates-of-origin/:id/issue"
+  },
+  {
+    "file": "apps/api/src/routes/customs.routes.ts",
+    "line": 283,
+    "method": "GET",
+    "path": "/certificates-of-origin/:id/pdf"
+  },
+  {
+    "file": "apps/api/src/routes/customs.routes.ts",
+    "line": 313,
+    "method": "GET",
+    "path": "/duty-check/:code"
+  },
+  {
+    "file": "apps/api/src/routes/customs.routes.ts",
+    "line": 336,
+    "method": "GET",
+    "path": "/countries"
+  },
+  {
+    "file": "apps/api/src/routes/customs.routes.ts",
+    "line": 355,
+    "method": "POST",
+    "path": "/hs-suggest"
+  },
+  {
+    "file": "apps/api/src/routes/customs.routes.ts",
+    "line": 399,
+    "method": "POST",
+    "path": "/hs-suggest/ai-pick"
+  },
+  {
+    "file": "apps/api/src/routes/customs.routes.ts",
+    "line": 502,
+    "method": "GET",
+    "path": "/fx-rates"
+  },
+  {
+    "file": "apps/api/src/routes/customs.routes.ts",
+    "line": 514,
+    "method": "GET",
+    "path": "/fx-rate"
+  },
+  {
+    "file": "apps/api/src/routes/customs.routes.ts",
+    "line": 565,
+    "method": "POST",
+    "path": "/landed-cost"
+  },
+  {
+    "file": "apps/api/src/routes/customs.routes.ts",
+    "line": 638,
+    "method": "GET",
+    "path": "/landed-cost/history"
+  },
+  {
+    "file": "apps/api/src/routes/customs.routes.ts",
+    "line": 753,
+    "method": "POST",
+    "path": "/landed-cost/multi-item"
+  },
+  {
+    "file": "apps/api/src/routes/customs.routes.ts",
+    "line": 819,
+    "method": "POST",
+    "path": "/compliance-check"
+  },
+  {
+    "file": "apps/api/src/routes/customs.routes.ts",
+    "line": 863,
+    "method": "GET",
+    "path": "/compliance-check/history"
+  },
+  {
+    "file": "apps/api/src/routes/customs.routes.ts",
+    "line": 875,
+    "method": "POST",
+    "path": "/penalty-calc"
+  },
+  {
+    "file": "apps/api/src/routes/customs.routes.ts",
+    "line": 916,
+    "method": "GET",
+    "path": "/penalties"
+  },
+  {
+    "file": "apps/api/src/routes/customs.routes.ts",
+    "line": 927,
+    "method": "PATCH",
+    "path": "/penalties/:id"
+  },
+  {
+    "file": "apps/api/src/routes/customs.routes.ts",
+    "line": 942,
+    "method": "GET",
+    "path": "/vessel/:identifier"
+  },
+  {
+    "file": "apps/api/src/routes/customs.routes.ts",
+    "line": 957,
+    "method": "GET",
+    "path": "/vessels"
+  },
+  {
+    "file": "apps/api/src/routes/customs.routes.ts",
+    "line": 968,
+    "method": "GET",
+    "path": "/tariff-summary"
+  },
+  {
+    "file": "apps/api/src/routes/declarations.routes.ts",
+    "line": 230,
+    "method": "GET",
+    "path": "/"
+  },
+  {
+    "file": "apps/api/src/routes/declarations.routes.ts",
+    "line": 249,
+    "method": "GET",
+    "path": "/:id"
+  },
+  {
+    "file": "apps/api/src/routes/declarations.routes.ts",
+    "line": 265,
+    "method": "POST",
+    "path": "/"
+  },
+  {
+    "file": "apps/api/src/routes/declarations.routes.ts",
+    "line": 307,
+    "method": "GET",
+    "path": "/prefill/:shipmentId"
+  },
+  {
+    "file": "apps/api/src/routes/declarations.routes.ts",
+    "line": 399,
+    "method": "GET",
+    "path": "/by-shipment/:shipmentId"
+  },
+  {
+    "file": "apps/api/src/routes/declarations.routes.ts",
+    "line": 411,
+    "method": "PUT",
+    "path": "/by-shipment/:shipmentId"
+  },
+  {
+    "file": "apps/api/src/routes/declarations.routes.ts",
+    "line": 435,
+    "method": "GET",
+    "path": "/:id/verify-chain"
+  },
+  {
+    "file": "apps/api/src/routes/declarations.routes.ts",
+    "line": 445,
+    "method": "PATCH",
+    "path": "/:id/status"
+  },
+  {
+    "file": "apps/api/src/routes/declarations.routes.ts",
+    "line": 481,
+    "method": "POST",
+    "path": "/:id/items"
+  },
+  {
+    "file": "apps/api/src/routes/declarations.routes.ts",
+    "line": 507,
+    "method": "GET",
+    "path": "/notices/list"
+  },
+  {
+    "file": "apps/api/src/routes/declarations.routes.ts",
+    "line": 525,
+    "method": "POST",
+    "path": "/:id/notices"
+  },
+  {
+    "file": "apps/api/src/routes/declarations.routes.ts",
+    "line": 566,
+    "method": "PATCH",
+    "path": "/notices/:noticeId/acknowledge"
+  },
+  {
+    "file": "apps/api/src/routes/declarations.routes.ts",
+    "line": 593,
+    "method": "GET",
+    "path": "/:id/attachments"
+  },
+  {
+    "file": "apps/api/src/routes/declarations.routes.ts",
+    "line": 610,
+    "method": "POST",
+    "path": "/:id/attachments/upload"
+  },
+  {
+    "file": "apps/api/src/routes/declarations.routes.ts",
+    "line": 674,
+    "method": "GET",
+    "path": "/:id/attachments/:attId/download"
+  },
+  {
+    "file": "apps/api/src/routes/declarations.routes.ts",
+    "line": 702,
+    "method": "DELETE",
+    "path": "/:id/attachments/:attId"
+  },
+  {
+    "file": "apps/api/src/routes/shipments.routes.ts",
+    "line": 282,
+    "method": "GET",
+    "path": "/"
+  },
+  {
+    "file": "apps/api/src/routes/shipments.routes.ts",
+    "line": 376,
+    "method": "GET",
+    "path": "/grouped"
+  },
+  {
+    "file": "apps/api/src/routes/shipments.routes.ts",
+    "line": 421,
+    "method": "GET",
+    "path": "/:id"
+  },
+  {
+    "file": "apps/api/src/routes/shipments.routes.ts",
+    "line": 478,
+    "method": "DELETE",
+    "path": "/:id"
+  },
+  {
+    "file": "apps/api/src/routes/shipments.routes.ts",
+    "line": 507,
+    "method": "GET",
+    "path": "/:id/report.pdf"
+  },
+  {
+    "file": "apps/api/src/routes/shipments.routes.ts",
+    "line": 526,
+    "method": "POST",
+    "path": "/:id/report-share"
+  },
+  {
+    "file": "apps/api/src/routes/shipments.routes.ts",
+    "line": 541,
+    "method": "POST",
+    "path": "/bulk-import"
+  },
+  {
+    "file": "apps/api/src/routes/shipments.routes.ts",
+    "line": 690,
+    "method": "POST",
+    "path": "/"
+  },
+  {
+    "file": "apps/api/src/routes/shipments.routes.ts",
+    "line": 738,
+    "method": "GET",
+    "path": "/:id/workflow-runs"
+  },
+  {
+    "file": "apps/api/src/routes/shipments.routes.ts",
+    "line": 794,
+    "method": "PATCH",
+    "path": "/:id/stage"
+  },
+  {
+    "file": "apps/api/src/routes/shipments.routes.ts",
+    "line": 835,
+    "method": "POST",
+    "path": "/:id/workflow"
+  },
+  {
+    "file": "apps/api/src/routes/shipments.routes.ts",
+    "line": 914,
+    "method": "PATCH",
+    "path": "/:id"
+  },
+  {
+    "file": "apps/api/src/routes/shipments.routes.ts",
+    "line": 995,
+    "method": "GET",
+    "path": "/:id/flags"
+  },
+  {
+    "file": "apps/api/src/routes/shipments.routes.ts",
+    "line": 1008,
+    "method": "POST",
+    "path": "/:id/flags"
+  },
+  {
+    "file": "apps/api/src/routes/shipments.routes.ts",
+    "line": 1033,
+    "method": "DELETE",
+    "path": "/:id/flags/:flagType"
+  },
+  {
+    "file": "apps/api/src/routes/shipments.routes.ts",
+    "line": 1050,
+    "method": "POST",
+    "path": "/:id/sync-tracking"
+  },
+  {
+    "file": "apps/api/src/routes/shipments.routes.ts",
+    "line": 1148,
+    "method": "GET",
+    "path": "/:id/tasks"
+  },
+  {
+    "file": "apps/api/src/routes/shipments.routes.ts",
+    "line": 1160,
+    "method": "POST",
+    "path": "/:id/tasks"
+  },
+  {
+    "file": "apps/api/src/routes/shipments.routes.ts",
+    "line": 1227,
+    "method": "GET",
+    "path": "/:id/listeners"
+  },
+  {
+    "file": "apps/api/src/routes/shipments.routes.ts",
+    "line": 1244,
+    "method": "POST",
+    "path": "/:id/listeners"
+  },
+  {
+    "file": "apps/api/src/routes/shipments.routes.ts",
+    "line": 1265,
+    "method": "PATCH",
+    "path": "/:id/listeners/:listenerId"
+  },
+  {
+    "file": "apps/api/src/routes/shipments.routes.ts",
+    "line": 1282,
+    "method": "PATCH",
+    "path": "/:id/tasks/:taskId"
+  },
+  {
+    "file": "apps/api/src/routes/shipments.routes.ts",
+    "line": 1312,
+    "method": "POST",
+    "path": "/:id/tasks/:taskId/close"
+  },
+  {
+    "file": "apps/api/src/routes/shipments.routes.ts",
+    "line": 1336,
+    "method": "POST",
+    "path": "/:id/tasks/:taskId/reopen"
+  },
+  {
+    "file": "apps/api/src/routes/shipments.routes.ts",
+    "line": 1359,
+    "method": "DELETE",
+    "path": "/:id/tasks/:taskId"
+  },
+  {
+    "file": "apps/api/src/routes/shipments.routes.ts",
+    "line": 1372,
+    "method": "GET",
+    "path": "/:id/team"
+  },
+  {
+    "file": "apps/api/src/routes/shipments.routes.ts",
+    "line": 1389,
+    "method": "GET",
+    "path": "/:id/tasks/:taskId/comments"
+  },
+  {
+    "file": "apps/api/src/routes/shipments.routes.ts",
+    "line": 1408,
+    "method": "POST",
+    "path": "/:id/tasks/:taskId/comments"
+  },
+  {
+    "file": "apps/api/src/routes/shipments.routes.ts",
+    "line": 1461,
+    "method": "DELETE",
+    "path": "/:id/tasks/:taskId/comments/:commentId"
+  },
+  {
+    "file": "apps/api/src/routes/shipments.routes.ts",
+    "line": 1483,
+    "method": "GET",
+    "path": "/:id/tasks/:taskId"
+  },
+  {
+    "file": "apps/api/src/routes/shipments.routes.ts",
+    "line": 1517,
+    "method": "POST",
+    "path": "/:id/tasks/:taskId/checklists"
+  },
+  {
+    "file": "apps/api/src/routes/shipments.routes.ts",
+    "line": 1534,
+    "method": "DELETE",
+    "path": "/:id/tasks/:taskId/checklists/:checklistId"
+  },
+  {
+    "file": "apps/api/src/routes/shipments.routes.ts",
+    "line": 1546,
+    "method": "POST",
+    "path": "/:id/tasks/:taskId/checklists/:checklistId/items"
+  },
+  {
+    "file": "apps/api/src/routes/shipments.routes.ts",
+    "line": 1571,
+    "method": "PATCH",
+    "path": "/:id/tasks/:taskId/checklists/:checklistId/items/:itemId"
+  },
+  {
+    "file": "apps/api/src/routes/shipments.routes.ts",
+    "line": 1598,
+    "method": "DELETE",
+    "path": "/:id/tasks/:taskId/checklists/:checklistId/items/:itemId"
+  },
+  {
+    "file": "apps/api/src/routes/shipments.routes.ts",
+    "line": 1613,
+    "method": "GET",
+    "path": "/:id/time-entries"
+  },
+  {
+    "file": "apps/api/src/routes/shipments.routes.ts",
+    "line": 1625,
+    "method": "POST",
+    "path": "/:id/time-entries"
+  },
+  {
+    "file": "apps/api/src/routes/shipments.routes.ts",
+    "line": 1654,
+    "method": "GET",
+    "path": "/:id/ledger"
+  },
+  {
+    "file": "apps/api/src/routes/shipments.routes.ts",
+    "line": 1666,
+    "method": "POST",
+    "path": "/:id/ledger"
+  },
+  {
+    "file": "apps/api/src/routes/shipments.routes.ts",
+    "line": 1730,
+    "method": "GET",
+    "path": "/:id/job-charges"
+  },
+  {
+    "file": "apps/api/src/routes/shipments.routes.ts",
+    "line": 1747,
+    "method": "POST",
+    "path": "/:id/job-charges"
+  },
+  {
+    "file": "apps/api/src/routes/shipments.routes.ts",
+    "line": 1799,
+    "method": "PATCH",
+    "path": "/:id/job-charges/:cid"
+  },
+  {
+    "file": "apps/api/src/routes/shipments.routes.ts",
+    "line": 1820,
+    "method": "DELETE",
+    "path": "/:id/job-charges/:cid"
+  },
+  {
+    "file": "apps/api/src/routes/shipments.routes.ts",
+    "line": 1842,
+    "method": "GET",
+    "path": "/:id/timeline"
+  },
+  {
+    "file": "apps/api/src/routes/shipments.routes.ts",
+    "line": 1872,
+    "method": "POST",
+    "path": "/:id/messages"
+  },
+  {
+    "file": "apps/api/src/routes/shipments.routes.ts",
+    "line": 1973,
+    "method": "GET",
+    "path": "/:id/notes"
+  },
+  {
+    "file": "apps/api/src/routes/shipments.routes.ts",
+    "line": 1983,
+    "method": "POST",
+    "path": "/:id/notes"
+  },
+  {
+    "file": "apps/api/src/routes/shipments.routes.ts",
+    "line": 2001,
+    "method": "PATCH",
+    "path": "/:id/notes/:noteId"
+  },
+  {
+    "file": "apps/api/src/routes/shipments.routes.ts",
+    "line": 2020,
+    "method": "DELETE",
+    "path": "/:id/notes/:noteId"
+  },
+  {
+    "file": "apps/api/src/routes/shipments.routes.ts",
+    "line": 2039,
+    "method": "GET",
+    "path": "/:id/tags"
+  },
+  {
+    "file": "apps/api/src/routes/shipments.routes.ts",
+    "line": 2051,
+    "method": "POST",
+    "path": "/:id/tags"
+  },
+  {
+    "file": "apps/api/src/routes/shipments.routes.ts",
+    "line": 2068,
+    "method": "DELETE",
+    "path": "/:id/tags/:tag"
+  },
+  {
+    "file": "apps/api/src/routes/shipments.routes.ts",
+    "line": 2086,
+    "method": "GET",
+    "path": "/:id/participant-customers"
+  },
+  {
+    "file": "apps/api/src/routes/shipments.routes.ts",
+    "line": 2105,
+    "method": "POST",
+    "path": "/:id/participant-customers"
+  },
+  {
+    "file": "apps/api/src/routes/shipments.routes.ts",
+    "line": 2136,
+    "method": "PATCH",
+    "path": "/:id/participant-customers/:customerId/wa"
+  },
+  {
+    "file": "apps/api/src/routes/shipments.routes.ts",
+    "line": 2150,
+    "method": "DELETE",
+    "path": "/:id/participant-customers/:customerId"
+  },
+  {
+    "file": "apps/api/src/routes/shipments.routes.ts",
+    "line": 2166,
+    "method": "GET",
+    "path": "/metrics"
+  },
+  {
+    "file": "apps/api/src/routes/shipments.routes.ts",
+    "line": 2290,
+    "method": "PATCH",
+    "path": "/:id/feedback"
+  },
+  {
+    "file": "apps/api/src/routes/shipments.routes.ts",
+    "line": 2325,
+    "method": "POST",
+    "path": "/:id/co2"
+  },
+  {
+    "file": "apps/api/src/routes/landed-cost-share.routes.ts",
+    "line": 73,
+    "method": "POST",
+    "path": "/"
+  },
+  {
+    "file": "apps/api/src/routes/landed-cost-share.routes.ts",
+    "line": 128,
+    "method": "GET",
+    "path": "/:token"
+  },
+  {
+    "file": "apps/api/src/routes/landed-cost-share.routes.ts",
+    "line": 165,
+    "method": "POST",
+    "path": "/:token/unlock"
+  },
+  {
+    "file": "apps/api/src/routes/declaration-ledger-anchor.routes.ts",
+    "line": 34,
+    "method": "GET",
+    "path": "/anchors"
+  },
+  {
+    "file": "apps/api/src/routes/declaration-ledger-anchor.routes.ts",
+    "line": 52,
+    "method": "POST",
+    "path": "/anchors"
+  },
+  {
+    "file": "apps/api/src/routes/declaration-ledger-anchor.routes.ts",
+    "line": 66,
+    "method": "POST",
+    "path": "/anchors/:id/check"
+  },
+  {
+    "file": "apps/api/src/routes/declaration-ledger-anchor.routes.ts",
+    "line": 82,
+    "method": "GET",
+    "path": "/anchors/:id/proof"
+  }
+]

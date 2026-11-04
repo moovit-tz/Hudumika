@@ -3,7 +3,7 @@ import { withTenant } from '../db/client.js';
 import type { Transaction } from 'kysely';
 import type { Database } from '../db/client.js';
 import { NotificationService } from './notification.service.js';
-import { emitDomainEvent } from './domain-events.service.js';
+import { emitDomainEvent, dispatchDomainEvent, type DomainEvent } from './domain-events.service.js';
 import type {
   DeclarationStatus,
   SelectivityChannel,
@@ -24,8 +24,12 @@ async function recordDeclarationEvent(
   trx: Transaction<Database>, tenantId: string, declarationId: string,
   actorId: string | null, eventType: string, payload: Record<string, unknown>,
 ): Promise<void> {
+  await trx.selectFrom('declarations').select('id')
+    .where('id', '=', declarationId).where('tenant_id', '=', tenantId)
+    .forUpdate().executeTakeFirstOrThrow();
   const last = await trx.selectFrom('declaration_events').select('hash')
-    .where('declaration_id', '=', declarationId).orderBy('id', 'desc').executeTakeFirst();
+    .where('declaration_id', '=', declarationId).where('tenant_id', '=', tenantId)
+    .orderBy('id', 'desc').executeTakeFirst();
   const prevHash = last?.hash ?? null;
   const occurredAt = new Date();
   const hash = computeDeclarationEventHash(prevHash, payload, occurredAt.toISOString(), actorId);
@@ -45,9 +49,8 @@ async function recordDeclarationEvent(
  * goes through here first: a declaration id from another workspace stops at
  * this check instead of reaching its children.
  *
- * RLS is not the guard. This deployment connects as `postgres`, which has
- * rolbypassrls, so the policies on these tables never even evaluate — the
- * explicit tenant predicate is the only thing separating two tenants.
+ * Child rows have no tenant predicate of their own, so they require an
+ * explicit ownership check even when the connection also enforces RLS.
  */
 async function assertOwned(trx: Transaction<Database>, tenantId: string, declarationId: string) {
   const row = await trx
@@ -66,6 +69,10 @@ export class DeclarationService {
    */
   static async createDeclaration(tenantId: string, input: CreateDeclarationInput) {
     return withTenant(tenantId, async (trx) => {
+      const shipment = await trx.selectFrom('shipment_cases').select('id')
+        .where('id', '=', input.shipment_id).where('tenant_id', '=', tenantId)
+        .forUpdate().executeTakeFirst();
+      if (!shipment) throw new Error('Shipment not found');
       const now = new Date();
 
       const declaration = await trx
@@ -119,6 +126,7 @@ export class DeclarationService {
           updated_at: now,
         })
         .where('id', '=', input.shipment_id)
+        .where('tenant_id', '=', tenantId)
         .execute();
 
       await recordDeclarationEvent(trx, tenantId, declaration.id, null, 'CREATED', {
@@ -139,7 +147,8 @@ export class DeclarationService {
     newStatus: DeclarationStatus,
     actorId: string | null = null
   ) {
-    return withTenant(tenantId, async (trx) => {
+    let releaseEvent: DomainEvent | undefined;
+    const result = await withTenant(tenantId, async (trx) => {
       const now = new Date();
       const updates: Record<string, any> = {
         status: newStatus,
@@ -162,7 +171,17 @@ export class DeclarationService {
           break;
       }
 
-      await assertOwned(trx, tenantId, declarationId);
+      const current = await trx.selectFrom('declarations').selectAll()
+        .where('id', '=', declarationId).where('tenant_id', '=', tenantId)
+        .forUpdate().executeTakeFirst();
+      if (!current) throw new Error('Declaration not found');
+      if (current.status === newStatus) return current;
+      if (newStatus === 'PAID' && current.status !== 'ASSESSED') {
+        throw new Error('Only an assessed declaration can be marked paid');
+      }
+      if (newStatus === 'RELEASED' && current.status !== 'PAID') {
+        throw new Error('Only a paid declaration can be released');
+      }
 
       const updated = await trx
         .updateTable('declarations')
@@ -195,14 +214,16 @@ export class DeclarationService {
       }
 
       if (newStatus === 'RELEASED') {
-        emitDomainEvent(trx, tenantId, {
+        releaseEvent = await emitDomainEvent(trx, tenantId, {
           type: 'declaration.released', sourceApp: 'clearos', entityType: 'declaration', entityId: declarationId,
           payload: { shipmentId: updated.shipment_id, tancisRef: updated.tancis_ref, tansadNumber: updated.tansad_number },
-        }).catch(console.error);
+        }, { deferDispatch: true });
       }
 
       return updated;
     });
+    if (releaseEvent) dispatchDomainEvent(tenantId, releaseEvent);
+    return result;
   }
 
   /**

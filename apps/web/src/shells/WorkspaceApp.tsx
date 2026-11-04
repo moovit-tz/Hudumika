@@ -57,6 +57,10 @@ export const APP_LABELS: Record<AppId, string> = {
   projects:      'Projects',
   developer:     'Developer',
   travel:        'Travel',
+  tuma:          'Tuma',
+  lexcore:       'LexCore',
+  ngao:          'Ngao',
+  gereji:        'Gereji',
 };
 
 // Every app defaults to the single brand accent (matches --teal in index.css)
@@ -93,6 +97,10 @@ export const APP_COLORS: Record<AppId, string> = {
   hudubi: DEFAULT_APP_COLOR, petti: DEFAULT_APP_COLOR,
   sms: DEFAULT_APP_COLOR, projects: DEFAULT_APP_COLOR, developer: '#0f766e',
   travel: '#7c3aed',
+  tuma: '#0891b2',
+  lexcore: '#7c3aed',
+  ngao: '#059669',
+  gereji: '#d97706',
 };
 
 /**
@@ -133,6 +141,10 @@ export const APP_PALETTE_SLOT: Record<AppId, number> = {
   studio: 7, ai: 7, calendar: 7, tasks: 7, cloud: 7, hudubi: 7, projects: 7, developer: 7,
   sign: 2,  // compliance & legal slot — signatures belong here
   travel: 4,  // people slot — personal travel workspace
+  tuma: 5,    // fleet & freight — parcel delivery logistics
+  lexcore: 2, // compliance & legal — law firm ERP
+  ngao: 2,    // compliance & legal — privacy/data protection
+  gereji: 3,  // warehouse & stock — automotive workshop uses shared inventory
 };
 
 export const ActiveAppContext = React.createContext<AppId | null>(null);

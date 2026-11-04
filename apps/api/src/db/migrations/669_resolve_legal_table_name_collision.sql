@@ -1,0 +1,23 @@
+-- Resolves a real migration-numbering collision between two independent
+-- sessions' work, both building a native Hudumika /lexcore module: migration
+-- 656_legal_domain_core.sql (applied) ported a richer schema directly from
+-- the standalone LexCore source (BRELA/TIN/NIDA, AML status, risk score) and
+-- 658_legal_domain_compliance.sql (applied) ported a PDPC-shaped
+-- privacy_incidents; the other session's own 670_legal_privacy_domain_tables
+-- (ex-657) defines legal_clients and privacy_incidents independently, under
+-- the same names but a different, incompatible column shape.
+--
+-- apps/api/src/routes/legal.routes.ts and ngao-crud.routes.ts — the actual
+-- running route files — query legal_clients.client_type/tax_id and
+-- privacy_incidents.severity/status in lowercase ('draft', 'low'/'medium'/…),
+-- which is the ex-657 shape, not this one's UPPERCASE enums. The ported
+-- schema was never wired to any route file (grepped: zero call sites), so
+-- nothing live depends on its table being named exactly `legal_clients` —
+-- only on it continuing to exist with its data intact. Renaming it (not
+-- dropping it) preserves it for whenever that LexCore-port work picks back
+-- up, while freeing the name the live code actually needs. Both tables were
+-- empty at rename time (verified: 0 rows each) — this is a rename, not a
+-- migration of real data, but written as one regardless so the statement
+-- stays correct if that ever changes before this runs in another environment.
+ALTER TABLE IF EXISTS legal_clients RENAME TO lexcore_port_legal_clients;
+ALTER TABLE IF EXISTS privacy_incidents RENAME TO lexcore_port_privacy_incidents;

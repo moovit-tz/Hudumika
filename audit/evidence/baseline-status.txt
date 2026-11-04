@@ -1,0 +1,81 @@
+ M apps/api/src/db/client.ts
+ M apps/api/src/routes/inventory-catalog.routes.ts
+ M apps/api/src/routes/inventory-counts.routes.ts
+ M apps/api/src/routes/inventory-stock.routes.ts
+ M apps/api/src/routes/seal-automation.routes.ts
+ M apps/api/src/routes/seal-billing.routes.ts
+ M apps/api/src/routes/seal-crm-link.routes.ts
+ M apps/api/src/routes/seal-declarations.routes.ts
+ M apps/api/src/routes/seal-documents.routes.ts
+ M apps/api/src/routes/seal-equipment.routes.ts
+ M apps/api/src/routes/seal-examinations.routes.ts
+ M apps/api/src/routes/seal-fulfillment.routes.ts
+ M apps/api/src/routes/seal-ledger-anchor.routes.ts
+ M apps/api/src/routes/seal-sensors.routes.ts
+ M apps/api/src/routes/seal-stock-account.routes.ts
+ M apps/api/src/routes/seal-tasks.routes.ts
+ M apps/api/src/routes/seal-warehouse-ops.routes.ts
+ M apps/api/src/routes/seal.routes.ts
+ M apps/api/src/services/seal-billing.service.ts
+ M apps/api/src/services/seal-stock-account.service.ts
+ M apps/api/src/services/seal.service.ts
+ M apps/web/src/App.tsx
+ M apps/web/src/components/RaiseSealTicketButton.tsx
+ M apps/web/src/components/SealCompartmentSwitcher.tsx
+ M apps/web/src/components/SealDocumentPanel.tsx
+ M apps/web/src/hooks/useSealCapabilities.ts
+ M apps/web/src/lib/sealCapabilities.ts
+ M apps/web/src/pages/ComplyOS.css
+ M apps/web/src/pages/ComplyWorkflows.tsx
+ M apps/web/src/pages/InventoryCountDetail.tsx
+ M apps/web/src/pages/InventoryCounts.tsx
+ M apps/web/src/pages/InventoryItems.tsx
+ M apps/web/src/pages/InventoryStock.tsx
+ M apps/web/src/pages/InventoryWarehouses.tsx
+ M apps/web/src/pages/ProjectsApp.tsx
+ M apps/web/src/pages/Seal.css
+ M apps/web/src/pages/SealAdjustments.tsx
+ M apps/web/src/pages/SealAgedStorage.tsx
+ M apps/web/src/pages/SealAppointments.tsx
+ M apps/web/src/pages/SealCompartmentDetail.tsx
+ M apps/web/src/pages/SealCompartmentEdit.tsx
+ M apps/web/src/pages/SealCompartments.tsx
+ M apps/web/src/pages/SealConsignmentDetail.tsx
+ M apps/web/src/pages/SealConsignments.tsx
+ M apps/web/src/pages/SealDashboard.tsx
+ M apps/web/src/pages/SealFulfillmentDetail.tsx
+ M apps/web/src/pages/SealGuarantees.tsx
+ M apps/web/src/pages/SealInventoryDashboard.css
+ M apps/web/src/pages/SealLotDetail.tsx
+ M apps/web/src/pages/SealLots.tsx
+ M apps/web/src/pages/SealMetrics.tsx
+ M apps/web/src/pages/SealReceiveLot.tsx
+ M apps/web/src/pages/SealStockAccount.tsx
+ M apps/web/src/pages/SealStockTransferDetail.tsx
+ M apps/web/src/pages/SealStockTransfers.tsx
+ M apps/web/src/pages/SealStorageInvoices.tsx
+ M apps/web/src/pages/SealZoneHeatGrid.tsx
+ M apps/web/src/pages/projects/ProjectCreateModal.tsx
+ M apps/web/src/pages/projects/ProjectCreatePage.css
+ M apps/web/src/pages/projects/ProjectCreatePage.tsx
+ M apps/web/src/pages/projects/ProjectWorkspaceHeader.css
+ M apps/web/src/pages/seal/SealExWarehouseEntries.tsx
+ M apps/web/src/pages/seal/SealExWarehouseEntryDetail.tsx
+ M apps/web/src/shells/SealShell.tsx
+ M packages/types/src/seal.ts
+?? apps/api/src/db/migrations/652_seal_fulfillment_reservations.sql
+?? apps/api/src/db/migrations/653_seal_lot_revisions.sql
+?? apps/api/src/db/migrations/654_seal_appointment_details.sql
+?? apps/api/src/db/migrations/655_seal_container_tally_completion.sql
+?? apps/api/src/middleware/seal-references.ts
+?? apps/api/src/routes/seal-counts.routes.ts
+?? apps/api/src/routes/seal-lot-edit.routes.ts
+?? apps/api/src/services/seal-stock.service.ts
+?? apps/api/src/tests/seal-operations-integrity.test.ts
+?? apps/web/src/hooks/useSealStock.ts
+?? apps/web/src/pages/SealCountDetailPage.tsx
+?? apps/web/src/pages/SealLotEditPage.tsx
+?? apps/web/src/pages/SealMovementHistory.tsx
+?? apps/web/src/pages/SealStockOverview.tsx
+?? docs/SEAL_ACTION_RECHECK.md
+?? docs/SEAL_OPERATING_FLOW.md

@@ -1,3 +1,5 @@
+import { validateSealReferences } from '../middleware/seal-references.js';
+import { getSealStock } from '../services/seal-stock.service.js';
 import { requireAnyEntitlement } from '../middleware/entitlement.js';
 import type { FastifyInstance } from 'fastify';
 import { withTenant } from '../db/client.js';
@@ -13,6 +15,7 @@ import { SealBillingService, NothingToBill, LotHasNoVolume, LotNotFound } from '
 // MANAGER/ADMIN+) still gates who can actually send/finalize it there.
 export async function sealBillingRoutes(fastify: FastifyInstance) {
   fastify.addHook('preHandler', fastify.authenticate);
+  fastify.addHook('preHandler', validateSealReferences);
   fastify.addHook('preHandler', requireAnyEntitlement(['seal', 'finops']));
   // HUD-0101: this file postdates the original HUD-0024/0031 sweep that put
   // this same block on every other SEAL route file (seal.routes.ts,
@@ -33,6 +36,36 @@ export async function sealBillingRoutes(fastify: FastifyInstance) {
   // 500 instead of a clean 404 — the underlying service used
   // executeTakeFirstOrThrow() with no prior check. Fixed at the service
   // layer (LotNotFound); mapped to 404 here.
+  fastify.get('/stock-overview', async (request: any, reply) => {
+    try {
+      return await withTenant(request.user.tenant_id, trx => getSealStock(trx, request.user.tenant_id, request.query.compartment_id));
+    } catch (e: any) { return reply.code(500).send({ error: e.message }); }
+  });
+
+  fastify.get('/storage-invoices', async (request: any, reply) => {
+    try {
+      return await withTenant(request.user.tenant_id, async trx => {
+        const invoices = await trx.selectFrom('sales_invoices').leftJoin('customers', join => join.onRef('customers.id', '=', 'sales_invoices.customer_id').on('customers.tenant_id', '=', request.user.tenant_id))
+          .select(['sales_invoices.id', 'sales_invoices.invoice_number', 'sales_invoices.status', 'sales_invoices.bill_date', 'sales_invoices.notes', 'customers.name as customer_name'])
+          .where('sales_invoices.tenant_id', '=', request.user.tenant_id).where('sales_invoices.invoice_number', 'like', 'SEAL-STG-%')
+          .orderBy('sales_invoices.bill_date', 'desc').execute();
+        const lines = invoices.length ? await trx.selectFrom('sales_invoice_lines')
+          .innerJoin('sales_invoices', 'sales_invoices.id', 'sales_invoice_lines.invoice_id')
+          .select(['sales_invoice_lines.invoice_id', 'sales_invoice_lines.currency', 'sales_invoice_lines.rate', 'sales_invoice_lines.qty'])
+          .where('sales_invoices.tenant_id', '=', request.user.tenant_id).where('sales_invoices.id', 'in', invoices.map(i => i.id)).execute() : [];
+        return invoices.map(i => {
+          const totals = new Map<string, number>();
+          for (const line of lines.filter(l => l.invoice_id === i.id)) {
+            const currency = line.currency ?? 'TZS';
+            totals.set(currency, (totals.get(currency) ?? 0) + Number(line.rate) * Number(line.qty));
+          }
+          return { id: i.id, invoiceNumber: i.invoice_number, customerName: i.customer_name, status: i.status,
+            billDate: i.bill_date, notes: i.notes, totals: [...totals].map(([currency, amount]) => ({ currency, amount })) };
+        });
+      });
+    } catch (e: any) { return reply.code(500).send({ error: e.message }); }
+  });
+
   fastify.get('/lots/:id/storage-accrual', async (request: any, reply) => {
     try {
       const accrual = await withTenant(request.user.tenant_id, trx => SealBillingService.previewAccrual(trx, request.user.tenant_id, request.params.id));

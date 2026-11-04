@@ -101,6 +101,18 @@ export const ALL_FEATURE_KEYS = [
   'finance.professional_services',
   'finance.project_accounting',
   'finance.consolidation',
+  // Industry-specific app keys (migration 656+)
+  'tuma',
+  'tuma.dispatch',
+  'tuma.settlement',
+  'lexcore',
+  'lexcore.trust',
+  'lexcore.conflicts',
+  'ngao',
+  'ngao.dpia',
+  'ngao.incidents',
+  'gereji',
+  'gereji.warranty',
 ] as const;
 
 /** Feature keys correspond 1:1 with the appId strings the API gates on. */

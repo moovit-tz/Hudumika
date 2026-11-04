@@ -44,6 +44,10 @@ const SLOGANS: Partial<Record<AppId, string>> = {
   hudubi:       'Data layer & executive AI analytics engine',
   petti:        'Tenant petty-cash wallet, deposits & withdrawal approvals',
   sms:          'Bulk & transactional SMS — quick send, groups, templates & campaigns',
+  tuma:         'Parcel logistics — booking, dispatch, delivery tracking & agent management',
+  lexcore:      'Legal practice management — matters, time/billing, trust accounts & conflicts',
+  ngao:         'Privacy & data protection compliance — assessments, registers & incident response',
+  gereji:       'Automotive workshop — vehicle records, job cards, estimates, labour & parts',
 };
 
 /** Last-resort name for an app id added to ALL_APP_IDS but not yet to

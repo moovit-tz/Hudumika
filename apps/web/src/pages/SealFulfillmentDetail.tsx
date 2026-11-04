@@ -1,3 +1,4 @@
+import { Banner } from '../components/ui/alert.js';
 import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Icon } from '../components/Icon.js';
@@ -29,6 +30,7 @@ export function SealFulfillmentDetail() {
   const navigate = useNavigate();
   const [order, setOrder] = useState<Order | null>(null);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState<string|null>(null);
   const [vehicles, setVehicles] = useState<Vehicle[]>([]);
   const [pickQty, setPickQty] = useState<Record<string, string>>({});
   const [acting, setActing] = useState(false);
@@ -39,7 +41,7 @@ export function SealFulfillmentDetail() {
   function load() {
     if (!id) return;
     setLoading(true);
-    apiFetch(`/v1/seal/fulfillment-orders/${id}`).then(setOrder).finally(() => setLoading(false));
+    apiFetch(`/v1/seal/fulfillment-orders/${id}`).then(row=>{setOrder(row);setLoadError(null);}).catch(e=>{setOrder(null);setLoadError(e.message);}).finally(() => setLoading(false));
   }
   useEffect(() => { load(); }, [id]); // eslint-disable-line react-hooks/exhaustive-deps
   useEffect(() => { apiFetch('/v1/seal/vehicles').then(setVehicles).catch(() => setVehicles([])); }, []);
@@ -110,7 +112,8 @@ export function SealFulfillmentDetail() {
     }
   }
 
-  if (loading || !order) return <div className="seal-page"><PageLoading /></div>;
+  if (loading) return <div className="seal-page"><PageLoading /></div>;
+  if (!order) return <div className="seal-page"><PageHeader crumbs={['SEAL','Fulfillment']} titlePlain="Fulfillment" titleEm="order" backTo="/seal/fulfillment"/><Banner variant="error">{loadError??'Order not found.'}</Banner><Button onClick={load}>Try again</Button></div>;
 
   const vehicle = vehicles.find(v => v.id === order.vehicleId);
 

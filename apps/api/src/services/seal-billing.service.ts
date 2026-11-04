@@ -1,3 +1,4 @@
+import { randomUUID } from 'node:crypto';
 import type { Transaction } from 'kysely';
 import type { Database } from '../db/client.js';
 
@@ -139,14 +140,14 @@ export class SealBillingService {
    *  entirely inside FinOps's own POST /v1/invoices flow, not duplicated
    *  here, so there's exactly one place that logic lives. */
   static async generateStorageInvoice(trx: Transaction<Database>, tenantId: string, actorId: string | null, lotId: string) {
-    const lot = await trx.selectFrom('seal_lots').selectAll().where('tenant_id', '=', tenantId).where('id', '=', lotId).executeTakeFirst();
+    const lot = await trx.selectFrom('seal_lots').selectAll().where('tenant_id', '=', tenantId).where('id', '=', lotId).forUpdate().executeTakeFirst();
     if (!lot) throw new LotNotFound();
     const accrual = await SealBillingService.previewAccrual(trx, tenantId, lotId);
     if (accrual.days <= 0 || accrual.totalAmount <= 0) throw new NothingToBill();
 
     const invoice = await trx.insertInto('sales_invoices').values({
       tenant_id: tenantId,
-      invoice_number: `SEAL-STG-${Date.now()}`,
+      invoice_number: `SEAL-STG-${Date.now()}-${randomUUID().slice(0, 8)}`,
       shipment_ref: lot.entry_reference ?? lot.id,
       customer_id: lot.owner_id,
       client_name: null,

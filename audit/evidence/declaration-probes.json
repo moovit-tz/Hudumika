@@ -1,0 +1,23 @@
+{
+  "databaseRole": {
+    "rows": [
+      {
+        "current_user": "hudumika_app",
+        "rolsuper": false,
+        "rolbypassrls": false
+      }
+    ]
+  },
+  "foreignShipment": {
+    "status": 400,
+    "body": {
+      "error": "Shipment not found"
+    }
+  },
+  "missingShipment": {
+    "status": 400
+  },
+  "draftToPaid": {
+    "status": 400
+  }
+}

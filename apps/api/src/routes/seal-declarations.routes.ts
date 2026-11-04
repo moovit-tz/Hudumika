@@ -1,3 +1,4 @@
+import { validateSealReferences } from '../middleware/seal-references.js';
 import { requireAnyEntitlement } from '../middleware/entitlement.js';
 import type { FastifyInstance } from 'fastify';
 import { z } from 'zod';
@@ -11,9 +12,9 @@ import { legalNextSealDeclarationStatuses, type SealDeclarationStatus } from '@h
 const SEAL_DECLARATION_STATUSES = ['DRAFT', 'SUBMITTED', 'QUERIED', 'ASSESSED', 'PAID', 'RELEASED', 'CANCELLED'] as const;
 const dutyQuoteSchema = z.object({
   hsCode: z.string().trim().min(1),
-  invoiceValue: z.number(),
+  invoiceValue: z.number().nonnegative(),
   currency: z.string().trim().min(1).max(10),
-  fxRate: z.number(),
+  fxRate: z.number().positive(),
   freight: z.number().optional(),
   insurance: z.number().optional(),
 });
@@ -21,11 +22,11 @@ const declarationCreateSchema = z.object({
   lotId: z.string().min(1),
   hsCode: z.string().trim().min(1),
   declarationDate: z.string().min(1),
-  invoiceValue: z.number(),
+  invoiceValue: z.number().nonnegative(),
   currency: z.string().trim().min(1).max(10),
-  fxRate: z.number(),
+  fxRate: z.number().positive(),
   procedureCode: z.string().max(50).optional(),
-  countryOfOrigin: z.string().max(2).optional(),
+  countryOfOrigin: z.string().max(2).nullable().optional(),
   freight: z.number().optional(),
   insurance: z.number().optional(),
 });
@@ -38,7 +39,7 @@ const declarationSubmitSchema = z.object({
 });
 const declarationAdvanceSchema = z.object({
   to: z.enum(SEAL_DECLARATION_STATUSES),
-  reference: z.string().max(200).optional(),
+  reference: z.string().max(200).nullable().optional(),
 });
 
 // Ex-warehouse customs declarations against a bonded SEAL lot — the duty
@@ -83,6 +84,7 @@ function mapDeclaration(row: any) {
 
 export async function sealDeclarationRoutes(fastify: FastifyInstance) {
   fastify.addHook('preHandler', fastify.authenticate);
+  fastify.addHook('preHandler', validateSealReferences);
   fastify.addHook('preHandler', requireAnyEntitlement(['seal', 'clearos']));
   // HUD-0024 continuation: sibling of seal.routes.ts and its 8 already-fixed
   // siblings (HUD-0031) — this file was missed by that sweep. Customs

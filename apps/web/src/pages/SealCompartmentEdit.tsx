@@ -1,7 +1,9 @@
 import React, { useEffect, useState } from 'react';
-import { useParams, useNavigate, Link } from 'react-router-dom';
+import { useParams, useNavigate } from 'react-router-dom';
 import { Icon } from '../components/Icon.js';
-import { FeaturedIcon } from '../components/ui/featured-icon.js';
+import { Button } from '../components/ui/button.js';
+import { Input } from '../components/ui/input.js';
+import { SectionLoading } from '../components/ui/spinner.js';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '../components/ui/select.js';
 import { DatePicker, parseDateOnly, toDateOnlyString } from '../components/ui/date-picker.js';
 import { apiFetch } from '../lib/api.js';
@@ -31,8 +33,17 @@ interface Compartment {
 }
 
 const WAREHOUSE_TYPES = [
-  'public_bonded', 'private_bonded', 'cfs', 'icd', 'virtual_icd',
-  'free_zone', 'duty_free_retail', 'excise', 'sorting_centre', 'fulfillment_centre'
+  'public_bonded',
+  'private_bonded',
+  'cfs',
+  'icd',
+  'virtual_icd',
+  'free_zone',
+  'duty_free_retail',
+  'excise',
+  'sorting_centre',
+  'fulfillment_centre',
+  'standard_warehouse',
 ];
 
 export function SealCompartmentEdit() {
@@ -52,14 +63,6 @@ export function SealCompartmentEdit() {
   const [jurisdiction, setJurisdiction] = useState('TZ');
   const [defaultStorageDays, setDefaultStorageDays] = useState(180);
   const [logoUrl, setLogoUrl] = useState('');
-  // Compartment logos aren't in the identity system's SUBJECTS registry
-  // (only people/customers/leads/contacts/drivers/suppliers/carriers/
-  // candidates are), so this stays its own self-contained upload-or-paste-
-  // a-URL flow rather than AvatarPicker — there's no second read path for
-  // it to drift from (the read-only displays elsewhere all take this same
-  // logo_url as a CompanyAvatar prop, not a separate fetch). The one real
-  // gap was the live preview having no fallback for a broken/unreachable
-  // pasted URL.
   const [logoPreviewFailed, setLogoPreviewFailed] = useState(false);
 
   // Billing Fields
@@ -138,6 +141,7 @@ export function SealCompartmentEdit() {
           storageFeePerCbmPerDay: Number(storageFeePerCbmPerDay) || 0,
         }),
       });
+      window.dispatchEvent(new Event('seal-warehouses-updated'));
       showAlert('Compartment updated successfully!', { variant: 'success' });
       navigate(`/seal/compartments/${id}`);
     } catch (err: any) {
@@ -150,7 +154,7 @@ export function SealCompartmentEdit() {
   if (loading) {
     return (
       <div className="seal-page">
-        <div className="seal-card" style={{ padding: 30 }}><div className="seal-empty">Loading edit form…</div></div>
+        <SectionLoading label="Loading compartment configuration…" />
       </div>
     );
   }
@@ -158,40 +162,71 @@ export function SealCompartmentEdit() {
   return (
     <div className="seal-page">
       <PageHeader
-        crumbs={['SEAL', 'Edit Compartment']}
+        crumbs={[
+          { label: 'SEAL', to: '/seal' },
+          { label: 'Compartments', to: '/seal/compartments' },
+          { label: code || 'Detail', to: `/seal/compartments/${id}` },
+          'Edit',
+        ]}
         titlePlain="Edit this"
         titleEm="compartment"
         subtitle="Licence, fees and billing method for this perimeter."
+        actions={
+          <Button variant="outline" size="sm" onClick={() => navigate(`/seal/compartments/${id}`)}>
+            <Icon name="arrowLeft" size={14} />
+            <span>Back to Compartment</span>
+          </Button>
+        }
       />
-      {/* Back Link */}
-      <div style={{ marginBottom: 16 }}>
-        <Link to={`/seal/compartments/${id}`} style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 13, fontWeight: 600, color: 'var(--seal)', textDecoration: 'none' }}>
-          <Icon name="arrowLeft" size={14} /> Back to Compartment Detail
-        </Link>
-      </div>
 
       {/* Main Form */}
       <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
         {/* Section 1: Facility Branding & Logo */}
         <div className="seal-card" style={{ padding: 24 }}>
-          <h2 style={{ fontSize: 16, fontWeight: 800, color: 'var(--ink)', margin: '0 0 16px 0', display: 'flex', alignItems: 'center', gap: 8 }}>
+          <h2
+            style={{
+              fontSize: 16,
+              fontWeight: 800,
+              color: 'var(--ink)',
+              margin: '0 0 16px 0',
+              display: 'flex',
+              alignItems: 'center',
+              gap: 8,
+            }}
+          >
             <Icon name="image" size={18} style={{ color: 'var(--seal)' }} />
             Facility Branding & Logo
           </h2>
 
           <div style={{ display: 'flex', gap: 20, alignItems: 'flex-start', flexWrap: 'wrap' }}>
             {/* Logo Preview Container */}
-            <div style={{
-              width: 110, height: 110, borderRadius: 14, border: '2px dashed var(--border)',
-              display: 'flex', alignItems: 'center', justifyContent: 'center',
-              overflow: 'hidden', background: 'var(--bg)', position: 'relative'
-            }}>
+            <div
+              style={{
+                width: 110,
+                height: 110,
+                borderRadius: 'var(--r)',
+                border: '2px dashed var(--border)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                overflow: 'hidden',
+                background: 'var(--bg)',
+                position: 'relative',
+              }}
+            >
               {logoUrl && !logoPreviewFailed ? (
-                <img src={logoUrl} alt="Facility Logo" onError={() => setLogoPreviewFailed(true)} style={{ width: '100%', height: '100%', objectFit: 'contain', padding: 8 }} />
+                <img
+                  src={logoUrl}
+                  alt="Facility Logo"
+                  onError={() => setLogoPreviewFailed(true)}
+                  style={{ width: '100%', height: '100%', objectFit: 'contain', padding: 8 }}
+                />
               ) : (
                 <div style={{ textAlign: 'center', color: logoUrl ? 'var(--red)' : 'var(--ink3)', padding: 10 }}>
                   <Icon name={logoUrl ? 'alertCircle' : 'warehouse'} size={28} />
-                  <div style={{ fontSize: 10, marginTop: 4, fontWeight: 600 }}>{logoUrl ? "Couldn't load image" : 'No Logo'}</div>
+                  <div style={{ fontSize: 10, marginTop: 4, fontWeight: 600 }}>
+                    {logoUrl ? "Couldn't load image" : 'No Logo'}
+                  </div>
                 </div>
               )}
             </div>
@@ -199,7 +234,9 @@ export function SealCompartmentEdit() {
             {/* Logo Controls */}
             <div style={{ flex: 1, minWidth: 240, display: 'flex', flexDirection: 'column', gap: 10 }}>
               <div>
-                <label className="seal-field-label" style={{ fontWeight: 700 }}>Upload Logo Image</label>
+                <label className="seal-field-label" style={{ display: 'block', marginBottom: 4 }}>
+                  Upload Logo Image
+                </label>
                 <input
                   type="file"
                   accept="image/png, image/jpeg, image/svg+xml, image/webp"
@@ -212,25 +249,26 @@ export function SealCompartmentEdit() {
               </div>
 
               <div>
-                <label className="seal-field-label" style={{ fontWeight: 700 }}>Or Image URL</label>
-                <input
+                <label className="seal-field-label" style={{ display: 'block', marginBottom: 6 }}>
+                  Or Image URL
+                </label>
+                <Input
                   type="url"
-                  className="input-field"
                   value={logoUrl}
-                  onChange={e => { setLogoUrl(e.target.value); setLogoPreviewFailed(false); }}
+                  onChange={e => {
+                    setLogoUrl(e.target.value);
+                    setLogoPreviewFailed(false);
+                  }}
                   placeholder="https://example.com/logo.png"
-                  style={{ width: '100%' }}
                 />
               </div>
 
               {logoUrl && (
-                <button
-                  type="button"
-                  style={{ alignSelf: 'flex-start', background: 'none', border: 'none', color: 'var(--red)', fontSize: 12, fontWeight: 700, cursor: 'pointer', padding: 0 }}
-                  onClick={() => setLogoUrl('')}
-                 data-ui-native-button="">
-                  Remove Logo
-                </button>
+                <div>
+                  <Button type="button" variant="outline" size="xs" onClick={() => setLogoUrl('')}>
+                    Remove Logo
+                  </Button>
+                </div>
               )}
             </div>
           </div>
@@ -238,59 +276,113 @@ export function SealCompartmentEdit() {
 
         {/* Section 2: Perimeter Core Details */}
         <div className="seal-card" style={{ padding: 24 }}>
-          <h2 style={{ fontSize: 16, fontWeight: 800, color: 'var(--ink)', margin: '0 0 16px 0', display: 'flex', alignItems: 'center', gap: 8 }}>
+          <h2
+            style={{
+              fontSize: 16,
+              fontWeight: 800,
+              color: 'var(--ink)',
+              margin: '0 0 16px 0',
+              display: 'flex',
+              alignItems: 'center',
+              gap: 8,
+            }}
+          >
             <Icon name="layers" size={18} style={{ color: 'var(--seal)' }} />
             Perimeter Specifications
           </h2>
 
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 16 }}>
             <div>
-              <label className="seal-field-label">Compartment Code</label>
-              <input type="text" className="input-field" value={code} onChange={e => setCode(e.target.value)} required />
+              <label className="seal-field-label" style={{ display: 'block', marginBottom: 6 }}>
+                Compartment Code
+              </label>
+              <Input value={code} onChange={e => setCode(e.target.value)} required />
             </div>
 
             <div>
-              <label className="seal-field-label">Compartment / Warehouse Name</label>
-              <input type="text" className="input-field" value={name} onChange={e => setName(e.target.value)} required />
+              <label className="seal-field-label" style={{ display: 'block', marginBottom: 6 }}>
+                Compartment / Warehouse Name
+              </label>
+              <Input value={name} onChange={e => setName(e.target.value)} required />
             </div>
 
             <div>
-              <label className="seal-field-label">Warehouse Type</label>
+              <label className="seal-field-label" style={{ display: 'block', marginBottom: 6 }}>
+                Warehouse Type
+              </label>
               <Select value={warehouseType} onValueChange={setWarehouseType}>
-                <SelectTrigger className="input-field"><SelectValue /></SelectTrigger>
+                <SelectTrigger className="w-full">
+                  <SelectValue />
+                </SelectTrigger>
                 <SelectContent>
-                  {WAREHOUSE_TYPES.map(t => <SelectItem key={t} value={t}>{t.replace(/_/g, ' ').toUpperCase()}</SelectItem>)}
+                  {WAREHOUSE_TYPES.map(t => (
+                    <SelectItem key={t} value={t}>
+                      {t.replace(/_/g, ' ').toUpperCase()}
+                    </SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
             </div>
 
             <div>
-              <label className="seal-field-label">Jurisdiction</label>
-              <input type="text" className="input-field" value={jurisdiction} onChange={e => setJurisdiction(e.target.value.toUpperCase())} maxLength={3} required />
+              <label className="seal-field-label" style={{ display: 'block', marginBottom: 6 }}>
+                Jurisdiction
+              </label>
+              <Input
+                value={jurisdiction}
+                onChange={e => setJurisdiction(e.target.value.toUpperCase())}
+                maxLength={3}
+                required
+              />
             </div>
 
             <div>
-              <label className="seal-field-label">Default Storage Limit (Days)</label>
-              <input type="number" className="input-field" value={defaultStorageDays} onChange={e => setDefaultStorageDays(Number(e.target.value))} required />
+              <label className="seal-field-label" style={{ display: 'block', marginBottom: 6 }}>
+                Default Storage Limit (Days)
+              </label>
+              <Input
+                type="number"
+                value={defaultStorageDays}
+                onChange={e => setDefaultStorageDays(Number(e.target.value))}
+                required
+              />
             </div>
           </div>
         </div>
 
         {/* Section 3: Customs Licensing */}
         <div className="seal-card" style={{ padding: 24 }}>
-          <h2 style={{ fontSize: 16, fontWeight: 800, color: 'var(--ink)', margin: '0 0 16px 0', display: 'flex', alignItems: 'center', gap: 8 }}>
+          <h2
+            style={{
+              fontSize: 16,
+              fontWeight: 800,
+              color: 'var(--ink)',
+              margin: '0 0 16px 0',
+              display: 'flex',
+              alignItems: 'center',
+              gap: 8,
+            }}
+          >
             <Icon name="shield" size={18} style={{ color: 'var(--seal)' }} />
             Customs Licensing & Compliance
           </h2>
 
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 16 }}>
             <div>
-              <label className="seal-field-label">License Number</label>
-              <input type="text" className="input-field" value={licenceNumber} onChange={e => setLicenceNumber(e.target.value)} placeholder="BW-TZ-9821" />
+              <label className="seal-field-label" style={{ display: 'block', marginBottom: 6 }}>
+                License Number
+              </label>
+              <Input
+                value={licenceNumber}
+                onChange={e => setLicenceNumber(e.target.value)}
+                placeholder="BW-TZ-9821"
+              />
             </div>
 
             <div>
-              <label className="seal-field-label">License Expiry Date</label>
+              <label className="seal-field-label" style={{ display: 'block', marginBottom: 6 }}>
+                License Expiry Date
+              </label>
               <DatePicker
                 date={parseDateOnly(licenceExpiry)}
                 onChange={d => setLicenceExpiry(toDateOnlyString(d))}
@@ -300,24 +392,44 @@ export function SealCompartmentEdit() {
             </div>
 
             <div>
-              <label className="seal-field-label">Customs Office Code</label>
-              <input type="text" className="input-field" value={customsOfficeCode} onChange={e => setCustomsOfficeCode(e.target.value)} placeholder="TZDAR01" />
+              <label className="seal-field-label" style={{ display: 'block', marginBottom: 6 }}>
+                Customs Office Code
+              </label>
+              <Input
+                value={customsOfficeCode}
+                onChange={e => setCustomsOfficeCode(e.target.value)}
+                placeholder="TZDAR01"
+              />
             </div>
           </div>
         </div>
 
         {/* Section 4: FinOps Billing Rates */}
         <div className="seal-card" style={{ padding: 24 }}>
-          <h2 style={{ fontSize: 16, fontWeight: 800, color: 'var(--ink)', margin: '0 0 16px 0', display: 'flex', alignItems: 'center', gap: 8 }}>
+          <h2
+            style={{
+              fontSize: 16,
+              fontWeight: 800,
+              color: 'var(--ink)',
+              margin: '0 0 16px 0',
+              display: 'flex',
+              alignItems: 'center',
+              gap: 8,
+            }}
+          >
             <Icon name="dollarSign" size={18} style={{ color: 'var(--seal)' }} />
             FinOps Billing & Storage Fees
           </h2>
 
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 16 }}>
             <div>
-              <label className="seal-field-label">Billing Method</label>
+              <label className="seal-field-label" style={{ display: 'block', marginBottom: 6 }}>
+                Billing Method
+              </label>
               <Select value={billingMethod} onValueChange={v => setBillingMethod(v as 'flat_per_lot' | 'per_cbm')}>
-                <SelectTrigger className="input-field"><SelectValue /></SelectTrigger>
+                <SelectTrigger className="w-full">
+                  <SelectValue />
+                </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="flat_per_lot">Flat Rate per Lot / Day</SelectItem>
                   <SelectItem value="per_cbm">Volume Rate (per CBM m³ / Day)</SelectItem>
@@ -327,36 +439,66 @@ export function SealCompartmentEdit() {
 
             {billingMethod === 'flat_per_lot' ? (
               <div>
-                <label className="seal-field-label">Storage Fee / Day</label>
-                <input type="number" min="0" step="any" className="input-field" value={storageFeePerDay} onChange={e => setStorageFeePerDay(e.target.value)} />
+                <label className="seal-field-label" style={{ display: 'block', marginBottom: 6 }}>
+                  Storage Fee / Day
+                </label>
+                <Input
+                  type="number"
+                  min="0"
+                  step="any"
+                  value={storageFeePerDay}
+                  onChange={e => setStorageFeePerDay(e.target.value)}
+                />
               </div>
             ) : (
               <div>
-                <label className="seal-field-label">Storage Fee / CBM / Day</label>
-                <input type="number" min="0" step="any" className="input-field" value={storageFeePerCbmPerDay} onChange={e => setStorageFeePerCbmPerDay(e.target.value)} />
+                <label className="seal-field-label" style={{ display: 'block', marginBottom: 6 }}>
+                  Storage Fee / CBM / Day
+                </label>
+                <Input
+                  type="number"
+                  min="0"
+                  step="any"
+                  value={storageFeePerCbmPerDay}
+                  onChange={e => setStorageFeePerCbmPerDay(e.target.value)}
+                />
               </div>
             )}
 
             <div>
-              <label className="seal-field-label">Currency</label>
-              <input type="text" className="input-field" value={storageFeeCurrency} onChange={e => setStorageFeeCurrency(e.target.value.toUpperCase())} maxLength={3} />
+              <label className="seal-field-label" style={{ display: 'block', marginBottom: 6 }}>
+                Currency
+              </label>
+              <Input
+                value={storageFeeCurrency}
+                onChange={e => setStorageFeeCurrency(e.target.value.toUpperCase())}
+                maxLength={3}
+              />
             </div>
 
             <div>
-              <label className="seal-field-label">One-Time Handling Fee</label>
-              <input type="number" min="0" step="any" className="input-field" value={handlingFeeFlat} onChange={e => setHandlingFeeFlat(e.target.value)} />
+              <label className="seal-field-label" style={{ display: 'block', marginBottom: 6 }}>
+                One-Time Handling Fee
+              </label>
+              <Input
+                type="number"
+                min="0"
+                step="any"
+                value={handlingFeeFlat}
+                onChange={e => setHandlingFeeFlat(e.target.value)}
+              />
             </div>
           </div>
         </div>
 
         {/* Action Buttons */}
-        <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 12, marginTop: 10 }}>
-          <button type="button" className="btn btn-secondary" style={{ padding: 'var(--ds-btn-py-lg) 24px', fontSize: 14, minHeight: 'var(--ctl-h-lg)', boxSizing: 'border-box', lineHeight: 1.25}} onClick={() => navigate(`/seal/compartments/${id}`)} data-ui-native-button="">
+        <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 12, marginTop: 4 }}>
+          <Button type="button" variant="outline" onClick={() => navigate(`/seal/compartments/${id}`)}>
             Cancel
-          </button>
-          <button type="submit" className="btn btn-primary" style={{ padding: 'var(--ds-btn-py-lg) 28px', fontSize: 14, fontWeight: 700, minHeight: 'var(--ctl-h-lg)', boxSizing: 'border-box', lineHeight: 1.25}} disabled={saving} data-ui-native-button="">
+          </Button>
+          <Button type="submit" disabled={saving}>
             {saving ? 'Saving Changes…' : 'Save Changes'}
-          </button>
+          </Button>
         </div>
       </form>
     </div>

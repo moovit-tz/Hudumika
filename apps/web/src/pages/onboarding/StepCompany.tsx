@@ -20,10 +20,14 @@ export const StepCompany: React.FC<StepProps> = ({ draft, update, onNext, onBack
   };
 
   const selectJourney = (j: OnboardingJourney) => {
-    update({
+    const patch: Partial<import('./types.js').OnboardingDraft> = {
       onboarding_journey: j.industry_key,
       industry: j.label,
-    });
+    };
+    if (j.recommended_package_code) {
+      patch.package_code = j.recommended_package_code;
+    }
+    update(patch);
   };
 
   return (

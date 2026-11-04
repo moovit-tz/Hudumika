@@ -1,0 +1,182 @@
+[
+  {
+    "path": "/",
+    "index": true
+  },
+  {
+    "path": "ops",
+    "index": false
+  },
+  {
+    "path": "ops/new",
+    "index": false
+  },
+  {
+    "path": "duty-check",
+    "index": false
+  },
+  {
+    "path": "clearance/:id",
+    "index": false
+  },
+  {
+    "path": "clearance/:id/edit",
+    "index": false
+  },
+  {
+    "path": "tracker",
+    "index": false
+  },
+  {
+    "path": "demurrage",
+    "index": false
+  },
+  {
+    "path": "declarations",
+    "index": false
+  },
+  {
+    "path": "declarations/new",
+    "index": false
+  },
+  {
+    "path": "declarations/:id",
+    "index": false
+  },
+  {
+    "path": "consignments",
+    "index": false
+  },
+  {
+    "path": "customs-tools",
+    "index": false
+  },
+  {
+    "path": "customs-tools/lcl",
+    "index": false
+  },
+  {
+    "path": "customs-tools/air",
+    "index": false
+  },
+  {
+    "path": "customs-tools/transit",
+    "index": false
+  },
+  {
+    "path": "customs-tools/history",
+    "index": false
+  },
+  {
+    "path": "dangerous-goods",
+    "index": false
+  },
+  {
+    "path": "compliance/dangerous-goods",
+    "index": false
+  },
+  {
+    "path": "report-issue",
+    "index": false
+  },
+  {
+    "path": "quick-compliance",
+    "index": false
+  },
+  {
+    "path": "compliance",
+    "index": false
+  },
+  {
+    "path": "/",
+    "index": true
+  },
+  {
+    "path": "quick",
+    "index": false
+  },
+  {
+    "path": "advanced",
+    "index": false
+  },
+  {
+    "path": "screening",
+    "index": false
+  },
+  {
+    "path": "origin",
+    "index": false
+  },
+  {
+    "path": "penalty",
+    "index": false
+  },
+  {
+    "path": "carbon",
+    "index": false
+  },
+  {
+    "path": "contracts",
+    "index": false
+  },
+  {
+    "path": "chat",
+    "index": false
+  },
+  {
+    "path": "reference",
+    "index": false
+  },
+  {
+    "path": "rate-card",
+    "index": false
+  },
+  {
+    "path": "freight-booking/bookings",
+    "index": false
+  },
+  {
+    "path": "freight-booking/new",
+    "index": false
+  },
+  {
+    "path": "freight-booking/rate-cards",
+    "index": false
+  },
+  {
+    "path": "freight-booking/carriers",
+    "index": false
+  },
+  {
+    "path": "freight-booking/contracts",
+    "index": false
+  },
+  {
+    "path": "release-orders",
+    "index": false
+  },
+  {
+    "path": "depot",
+    "index": false
+  },
+  {
+    "path": "workflows",
+    "index": false
+  },
+  {
+    "path": "workflows/new",
+    "index": false
+  },
+  {
+    "path": "workflows/:id/edit",
+    "index": false
+  },
+  {
+    "path": "products",
+    "index": false
+  },
+  {
+    "path": "*",
+    "index": false
+  }
+]

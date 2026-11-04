@@ -1,3 +1,4 @@
+import { Banner } from './ui/alert.js';
 import React, { useCallback, useEffect, useState } from 'react';
 import { Icon } from './Icon.js';
 import { SectionLoading } from './ui/spinner.js';
@@ -35,6 +36,7 @@ const DOC_TYPE_LABELS: Record<string, string> = {
 export function SealDocumentPanel({ entityType, entityId }: { entityType: 'lot' | 'consignment' | 'container' | 'customs_entry' | 'compartment'; entityId: string }) {
   const [docs, setDocs] = useState<SealDoc[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadError,setLoadError]=useState<string|null>(null);
   const [docType, setDocType] = useState('other');
   const [uploading, setUploading] = useState(false);
   const [resolvingFolder, setResolvingFolder] = useState(false);
@@ -42,7 +44,7 @@ export function SealDocumentPanel({ entityType, entityId }: { entityType: 'lot' 
 
   const load = useCallback(() => {
     setLoading(true);
-    apiFetch(`/v1/seal/documents?entity_type=${entityType}&entity_id=${entityId}`).then(setDocs).finally(() => setLoading(false));
+    apiFetch(`/v1/seal/documents?entity_type=${entityType}&entity_id=${entityId}`).then(rows=>{setDocs(rows);setLoadError(null);}).catch(e=>{setDocs([]);setLoadError(e.message);}).finally(() => setLoading(false));
   }, [entityType, entityId]);
   useEffect(() => { load(); }, [load]);
 
@@ -100,6 +102,7 @@ export function SealDocumentPanel({ entityType, entityId }: { entityType: 'lot' 
 
   return (
     <div className="seal-card">
+      {loadError&&<Banner variant="error">{loadError}</Banner>}
       <div className="seal-card-hdr">
         <h2 className="seal-card-title">Documents</h2>
         {cloudLinked && (

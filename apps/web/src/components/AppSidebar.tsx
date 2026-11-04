@@ -75,6 +75,10 @@ const APP_ICONS: Record<AppId, IconName> = {
   projects:  'briefcase',
   developer: 'terminal',
   travel:    'plane',
+  tuma:      'truck',
+  lexcore:   'scale',
+  ngao:      'shield',
+  gereji:    'tool',
 };
 
 const APP_SUBTITLES: Partial<Record<AppId, string>> = {

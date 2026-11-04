@@ -1,3 +1,5 @@
+import { Banner } from '../components/ui/alert.js';
+import { PageLoading } from '../components/ui/spinner.js';
 import React, { useEffect, useState, useCallback } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { Icon } from '../components/Icon.js';
@@ -23,7 +25,7 @@ import { PageHeader } from '../components/PageHeader.js';
 interface Container {
   id: string; container_number: string; container_size: string; seal_number: string | null;
   gross_weight_kg: string | null; tare_weight_kg: string | null; net_weight_kg: string | null;
-  gate_in_at: string | null; gate_out_at: string | null; eir_reference: string | null;
+  devanned_at: string | null; gate_in_at: string | null; gate_out_at: string | null; eir_reference: string | null;
   yard_slot_id: string | null; vehicle_id: string | null;
 }
 interface YardSlot { id: string; code: string; capacityTeu: number; occupiedCount: number; }
@@ -49,6 +51,7 @@ export function SealConsignmentDetail() {
   const navigate = useNavigate();
   const [consignment, setConsignment] = useState<Consignment | null>(null);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState<string|null>(null);
   const [yardSlots, setYardSlots] = useState<YardSlot[]>([]);
   const [assigningSlot, setAssigningSlot] = useState<string | null>(null);
   const [vehicles, setVehicles] = useState<Vehicle[]>([]);
@@ -76,9 +79,9 @@ export function SealConsignmentDetail() {
     if (!id) return;
     setLoading(true);
     apiFetch(`/v1/seal/consignments/${id}`).then(c => {
-      setConsignment(c);
-      apiFetch(`/v1/seal/yard-slots?compartment_id=${c.compartment_id}`).then(setYardSlots);
-    }).finally(() => setLoading(false));
+      setConsignment(c); setLoadError(null);
+      apiFetch(`/v1/seal/yard-slots?compartment_id=${c.compartment_id}`).then(setYardSlots).catch(e=>showAlert(e.message));
+    }).catch(e=>{setConsignment(null);setLoadError(e.message);}).finally(() => setLoading(false));
     apiFetch('/v1/seal/vehicles-for-assignment').then(setVehicles).catch(() => setVehicles([]));
   }, [id]);
   useEffect(() => { load(); }, [load]);
@@ -209,7 +212,8 @@ export function SealConsignmentDetail() {
     if (w) { w.document.write(html); w.document.close(); w.focus(); setTimeout(() => w.print(), 400); }
   }
 
-  if (loading || !consignment) return <div className="seal-page"><div className="seal-empty">Loading consignment data…</div></div>;
+  if (loading) return <div className="seal-page"><PageLoading /></div>;
+  if (!consignment) return <div className="seal-page"><PageHeader crumbs={['SEAL','Consignments']} titlePlain="Consignment" titleEm="details" backTo="/seal/consignments"/><Banner variant="error">{loadError??'Consignment not found.'}</Banner><Button onClick={load}>Try again</Button></div>;
 
   return (
     <div className="seal-page">
@@ -316,8 +320,8 @@ export function SealConsignmentDetail() {
                 <Icon name="container" size={13} color="var(--teal)" />
                 <span>3D Specs &amp; Survey</span>
               </Button>
-              <Badge variant={c.gate_in_at ? 'success' : 'gray'}>
-                {c.gate_in_at ? 'Gated In' : 'Awaiting Gate-In'}
+              <Badge variant={c.devanned_at || c.gate_in_at ? 'success' : 'gray'}>
+                {c.devanned_at ? 'Tallied' : c.gate_in_at ? 'Gated In' : 'Awaiting Gate-In'}
               </Badge>
             </div>
           </div>
@@ -391,7 +395,7 @@ export function SealConsignmentDetail() {
                         <Icon name="printer" size={13} /><span>Print EIR ({c.eir_reference})</span>
                       </Button>
                     )}
-                    {devanActionId !== c.id && (
+                    {!c.devanned_at && devanActionId !== c.id && (
                       <Button size="sm" onClick={() => setDevanActionId(c.id)}>
                         <Icon name="package" size={14} /><span>Devan / Tally</span>
                       </Button>
@@ -400,7 +404,7 @@ export function SealConsignmentDetail() {
                 </div>
 
                 {/* Devan Tally Form */}
-                {devanActionId === c.id && (
+                {!c.devanned_at && devanActionId === c.id && (
                   <div style={{ display: 'flex', flexDirection: 'column', gap: 12, borderTop: '1px solid var(--border)', paddingTop: 16 }}>
                     <div style={{ fontSize: 12, fontWeight: 700, textTransform: 'uppercase', color: 'var(--ink3)', letterSpacing: '0.04em' }}>
                       Tally Lines

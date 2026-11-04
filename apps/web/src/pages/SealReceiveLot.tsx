@@ -1,3 +1,6 @@
+import { getSealCapabilities } from '../lib/sealCapabilities.js';
+import { useSealCompartmentId } from '../hooks/useSealCompartment.js';
+import { Banner } from '../components/ui/alert.js';
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Icon } from '../components/Icon.js';
@@ -8,7 +11,7 @@ import { DatePicker, toDateOnlyString, parseDateOnly } from '../components/ui/da
 import { apiFetch } from '../lib/api.js';
 import { showAlert } from '../lib/alert.js';
 import { useIsMobile } from '../hooks/useIsMobile.js';
-import { CUSTOMS_STATUS_ENTRY_POINTS, CUSTOMS_STATUS_LABELS, type CustomsStatus } from '@hudumika/types';
+import { CUSTOMS_STATUS_ENTRY_POINTS, CUSTOMS_STATUS_LABELS, type CustomsStatus, type SealCatalogProduct } from '@hudumika/types';
 import './Seal.css';
 import { PageHeader } from '../components/PageHeader.js';
 
@@ -24,9 +27,14 @@ export function SealReceiveLot() {
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [saving, setSaving] = useState(false);
 
-  const [compartmentId, setCompartmentId] = useState('');
+  const [scope] = useSealCompartmentId();
+  const [compartmentId, setCompartmentId] = useState(scope ?? '');
+  const [loadError, setLoadError] = useState<string | null>(null);
   const [ownerId, setOwnerId] = useState('');
   const [description, setDescription] = useState('');
+  const [products, setProducts] = useState<SealCatalogProduct[]>([]);
+  const [productId, setProductId] = useState('');
+  const [batch, setBatch] = useState('');
   const [hsCode, setHsCode] = useState('');
   const [countryOfOrigin, setCountryOfOrigin] = useState('');
   const [customsStatus, setCustomsStatus] = useState<CustomsStatus>('FOREIGN_DUTY_SUSPENDED');
@@ -51,17 +59,20 @@ export function SealReceiveLot() {
   const [destinationLabel, setDestinationLabel] = useState('');
 
   useEffect(() => {
+    apiFetch('/v1/seal/catalog-products').then(setProducts).catch(e => setLoadError(e.message));
     apiFetch('/v1/seal/compartments').then(rows => {
       setCompartments(rows);
       if (rows.length === 1) setCompartmentId(rows[0].id);
-    });
-    apiFetch('/v1/customers').then(res => setCustomers(Array.isArray(res) ? res : res.data || res.customers || []));
+    }).catch(e => setLoadError(e.message));
+    apiFetch('/v1/customers').then(res => setCustomers(Array.isArray(res) ? res : res.data || res.customers || [])).catch(e => setLoadError(e.message));
   }, []);
 
   useEffect(() => {
     if (!compartmentId) { setLocations([]); return; }
-    apiFetch(`/v1/seal/locations?compartment_id=${compartmentId}`).then(setLocations);
-  }, [compartmentId]);
+    apiFetch(`/v1/seal/locations?compartment_id=${compartmentId}`).then(setLocations).catch(e => setLoadError(e.message));
+    const facility = compartments.find(c => c.id === compartmentId);
+    if (facility) setCustomsStatus(getSealCapabilities(facility.warehouse_type).customs ? 'FOREIGN_DUTY_SUSPENDED' : 'DOMESTIC');
+  }, [compartmentId, compartments]);
 
   const isReady = compartmentId && ownerId && description.trim() && qty && Number(qty) > 0 && uom.trim();
   const isSortingCentre = compartments.find(c => c.id === compartmentId)?.warehouse_type === 'sorting_centre';
@@ -74,7 +85,7 @@ export function SealReceiveLot() {
       const lot = await apiFetch('/v1/seal/lots', {
         method: 'POST',
         body: JSON.stringify({
-          compartmentId, ownerId, description: description.trim(),
+          compartmentId, ownerId, description: description.trim(), productId: productId || undefined, batch: batch || undefined,
           hsCode: hsCode.trim() || null, countryOfOrigin: countryOfOrigin.trim().toUpperCase() || null,
           customsStatus, entryReference: entryReference.trim() || null,
           locationId: locationId || null, qty: Number(qty), uom: uom.trim(),
@@ -87,7 +98,7 @@ export function SealReceiveLot() {
           requiresReefer, reeferSetpointC: reeferSetpointC ? Number(reeferSetpointC) : null,
           volumeCbm: volumeCbm ? Number(volumeCbm) : null, grossWeightKg: grossWeightKg ? Number(grossWeightKg) : null,
           destinationLabel: destinationLabel.trim() || null,
-        }),
+        }, (_key, value) => value === null ? undefined : value),
       });
       navigate(`/seal/lots/${lot.id}`);
     } catch (err: any) {
@@ -103,19 +114,9 @@ export function SealReceiveLot() {
         crumbs={['SEAL', 'Receive Lot']}
         titlePlain="Receive"
         titleEm="lot"
-        subtitle="Book stock into bond against a compartment."
+        subtitle="Receive stock into a warehouse and record its initial location."
       />
-      <div className="seal-page-hdr">
-        <div>
-          <button type="button" className="btn btn-secondary" onClick={() => navigate('/seal/lots')} style={{ marginBottom: 12 }} data-ui-native-button="">
-            <Icon name="arrowLeft" size={13} />
-            <span>Back to Lots</span>
-          </button>
-          <h1 className="seal-page-title">Receive a Lot</h1>
-          <p className="seal-page-sub">Creates the lot and its founding receipt movement — the only way a lot may come into existence, so it always has a clock and a chain to start from.</p>
-        </div>
-      </div>
-
+      {loadError && <Banner variant="error">{loadError}</Banner>}
       <form onSubmit={handleSubmit} className="seal-card">
         <div style={{ padding: 24, display: 'flex', flexDirection: 'column', gap: 18 }}>
           <div className="seal-field-row">
@@ -140,6 +141,14 @@ export function SealReceiveLot() {
             />
           </div>
 
+          <div className="seal-field-row">
+            <label className="seal-field-label">Catalogue product (optional)</label>
+            <Combobox value={productId} options={products.map(p=>({value:p.id,label:p.name,sublabel:p.code}))} onChange={value=>{setProductId(value);const product=products.find(p=>p.id===value);if(product){setDescription(product.name);if(product.unit)setUom(product.unit);}}} placeholder="Link a product from the catalogue" />
+          </div>
+          <div className="seal-field-row">
+            <label className="seal-field-label">Batch / lot reference (optional)</label>
+            <input className="input-field" value={batch} onChange={e=>setBatch(e.target.value)} />
+          </div>
           <div className="seal-field-row">
             <label className="seal-field-label">Description</label>
             <input type="text" className="input-field" value={description} onChange={e => setDescription(e.target.value)} placeholder="e.g. Steel Reinforcement Bars (Rebar), 12mm" />

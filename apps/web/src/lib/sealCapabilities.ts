@@ -1,15 +1,16 @@
 /**
  * Capability flags for SEAL compartment types.
  *
- * SEAL's dual ledger (seal_lots + seal_movements) is the platform's universal
- * inventory system.  The customs overlay — bond headroom, CustomsStatus
- * progression beyond DOMESTIC_FREE_CIRCULATION, guarantees, examinations,
+ * SEAL lot balances use seal_lots + seal_movements. Accounting and production
+ * item balances remain in inventory_stock_levels + inventory_movements; the
+ * stock overview links to that separate workflow without adding the balances together.  The customs overlay — bond headroom, CustomsStatus
+ * progression beyond DOMESTIC, guarantees, examinations,
  * DG segregation — only applies to facilities that hold goods under customs
  * control.
  *
  * A `standard_warehouse` compartment uses the same backend but exposes only
  * the standard WMS surface: receive → putaway → pick → transfer → adjust →
- * release, with product-catalog SKU linking and POS/FinOps/BOM integration.
+ * release, with optional product-catalog linkage.
  *
  * These flags drive what the UI shows — never fork the service layer or
  * add IF statements in routes for warehouse type.  The DB enforces what it
@@ -94,7 +95,7 @@ export function getSealCapabilities(warehouseType: string): SealCapabilities {
  * Given a list of all compartments a tenant has, returns the union of
  * capabilities — used by the shell to decide which nav sections to show.
  *
- * A tenant with one bonded + one standard compartment gets both nav sections.
+ * A mixed tenant retains inventory navigation and receives the additional customs section.
  */
 export function getTenantSealCapabilities(
   compartmentTypes: string[],

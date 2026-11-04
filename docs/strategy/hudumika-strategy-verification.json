@@ -1,0 +1,11 @@
+{
+  "responsiveWidths": [
+    1440,
+    768,
+    390,
+    320
+  ],
+  "pageErrors": [],
+  "interactions": "PASS",
+  "notes": "Standalone HTML only; prices hypothetical. Not an application integration test."
+}
