@@ -4,8 +4,6 @@ import { Icon } from '../../components/Icon.js';
 import type { IconName } from '../../components/Icon.js';
 import { Tip } from '../../components/ui/tooltip.js';
 import { TwotoneIcon, TWOTONE_ICONS } from '../../components/ui/twotone-icon.js';
-import { HugeiconsIcon } from '@hugeicons/react';
-import type { IconSvgElement } from '@hugeicons/react';
 import {
   useDesignSystem, ICON_LIBRARY_IDS, ICON_LIBRARY_DESCRIPTIONS, type IconLibraryId,
 } from '../../hooks/useDesignSystem.js';
@@ -243,18 +241,18 @@ function TwotoneIconGrid() {
   );
 }
 
-// Real, officially licensed Hugeicons free-tier artwork loaded via dynamic
-// import() — its ~130 SVG modules only ever download for someone who opens
-// this tab, not for every SuperAdmin page load.
+// Real, owned Hugeicons Pro artwork loaded via dynamic import() — its SVG
+// markup only ever downloads for someone who opens this tab, not for every
+// SuperAdmin page load.
 function HugeiconsIconGrid() {
   const [selectedColor, setSelectedColor] = useState<'teal' | 'green' | 'gold' | 'purple' | 'red' | 'ink'>('teal');
   const [iconSize, setIconSize] = useState(24);
   const [copiedName, setCopiedName] = useState<string | null>(null);
-  const [map, setMap] = useState<Record<string, IconSvgElement> | null>(null);
+  const [map, setMap] = useState<Record<string, string> | null>(null);
 
   useEffect(() => {
     let alive = true;
-    import('../../components/hugeicons-map.js').then((m) => { if (alive) setMap(m.HUGEICONS_MAP as Record<string, IconSvgElement>); });
+    import('../../components/hugeicons-pro-map.js').then((m) => { if (alive) setMap(m.HUGEICONS_PRO_MAP as Record<string, string>); });
     return () => { alive = false; };
   }, []);
 
@@ -323,7 +321,11 @@ function HugeiconsIconGrid() {
             className="group relative flex flex-col items-center justify-center gap-1.5 p-2.5 rounded-xl border border-border bg-card hover:border-primary/50 hover:bg-muted/30 transition-all cursor-pointer shadow-xs hover:shadow-sm"
           >
             <div className="h-8 flex items-center justify-center">
-              <HugeiconsIcon icon={map[name]} size={iconSize} color={colorMap[selectedColor]} />
+              <svg
+                width={iconSize} height={iconSize} viewBox="0 0 24 24" fill="none"
+                style={{ color: colorMap[selectedColor] }}
+                dangerouslySetInnerHTML={{ __html: map[name]! }}
+              />
             </div>
             <span className="text-[10px] font-medium text-muted-foreground group-hover:text-foreground truncate max-w-full leading-tight text-center">
               {copiedName === name ? (

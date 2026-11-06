@@ -1,13 +1,15 @@
 // ─── IconAlt.tsx — non-default icon-library rendering, loaded on demand ───
 // Split out of Icon.tsx and pulled in via React.lazy() there so its imports
-// (the Hugeicons React runtime + every mapped icon's SVG data) only enter a
-// tenant's bundle the moment they actually pick 'twotone' or 'hugeicons' in
-// the design system — everyone on the 'stroke' default (the vast majority)
-// pays nothing for this file existing.
+// (every mapped icon's SVG data) only enter a tenant's bundle the moment
+// they actually pick 'twotone' or 'hugeicons' in the design system —
+// everyone on the 'stroke' default pays nothing for this file existing.
+// 'hugeicons' used to render via the free @hugeicons/react npm package
+// (partial coverage); it now renders real owned Hugeicons Pro artwork
+// (raw SVG markup, see hugeicons-pro-map.ts's own header) inline, the same
+// way the hand-drawn stroke set and 'twotone' already render.
 import React from 'react';
-import { HugeiconsIcon } from '@hugeicons/react';
 import { TwotoneIcon, TWOTONE_ICONS, type TwotoneIconName } from './ui/twotone-icon.js';
-import { HUGEICONS_MAP } from './hugeicons-map.js';
+import { HUGEICONS_PRO_MAP } from './hugeicons-pro-map.js';
 import type { IconName } from './Icon.js';
 import type { IconLibraryId } from '../hooks/useDesignSystem.js';
 
@@ -47,18 +49,23 @@ export default function IconAlt({ name, library, size, strokeWidth, color, class
     );
   }
 
-  if (library === 'hugeicons' && HUGEICONS_MAP[name]) {
+  if (library === 'hugeicons' && HUGEICONS_PRO_MAP[name]) {
+    // Raw markup, not individual <path> props — Pro's own paths mix fill-
+    // only and stroke-only elements per icon (see hugeicons-pro-map.ts's
+    // header), so each icon's authored attributes are preserved verbatim
+    // rather than forced through one uniform stroke-only render path.
     return (
-      <HugeiconsIcon
-        icon={HUGEICONS_MAP[name]!}
-        size={size}
-        strokeWidth={strokeWidth}
-        color={color ?? 'currentColor'}
+      <svg
+        width={size}
+        height={size}
+        viewBox="0 0 24 24"
+        fill="none"
         className={className}
-        style={style}
+        style={{ color: color ?? 'currentColor', ...style }}
         onClick={onClick}
         role={role}
         {...rest}
+        dangerouslySetInnerHTML={{ __html: HUGEICONS_PRO_MAP[name]! }}
       />
     );
   }

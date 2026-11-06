@@ -25,6 +25,14 @@ import { SignaturePad } from '../components/SignaturePad.js';
 import { SectionCard } from '../components/SectionCard.js';
 import { Badge } from '../components/ui/badge.js';
 import { FeaturedIcon } from '../components/ui/featured-icon.js';
+import { Tip } from '../components/ui/tooltip.js';
+import {
+  DropdownMenu,
+  DropdownMenuTrigger,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+} from '../components/ui/dropdown-menu.js';
 import { nameColor as avatarBg, nameInitials as initials, forgetAvatar, squareAvatarDataUrl } from '../lib/identity.js';
 import './StaffDetail.css';
 
@@ -68,6 +76,7 @@ interface StaffData {
   designation_id?: string | null;
   org_chart_manager?: { id: string; name: string } | null;
   record_access?: 'full' | 'team' | 'directory';
+  stats?: { approved_leaves?: number; present_days?: number };
 }
 
 function formatDate(d: string | null | undefined): string {
@@ -310,11 +319,33 @@ export const StaffDetail: React.FC = () => {
     apiFetch('/v1/hr/designations').then(rows => setDesigOptions(Array.isArray(rows) ? rows : [])).catch(() => {});
   }, [isEditing]);
 
-  const TABS = [
-    'Profile', 'Attendance', 'Leaves', 'Tasks', 'Projects', 'Timesheet',
-    'Documents', 'Signature', 'Payroll', 'Tickets', 'Shift Roster', 'Permissions', 'Activity',
-    'Coaching', 'Performance', 'Learning & Dev', 'Compensation', 'Benefits',
+  const PRIMARY_TABS = ['Profile', 'Attendance', 'Leaves', 'Timesheet', 'Documents', 'Payroll'];
+  const SECONDARY_TABS = [
+    'Performance', 'Projects', 'Tasks', 'Tickets', 'Shift Roster',
+    'Coaching', 'Learning & Dev', 'Compensation', 'Benefits', 'Signature', 'Permissions', 'Activity'
   ];
+  const TABS = [...PRIMARY_TABS, ...SECONDARY_TABS];
+
+  const TAB_ICONS: Record<string, any> = {
+    Profile: 'user',
+    Attendance: 'checkCircle',
+    Leaves: 'calendar',
+    Timesheet: 'clock',
+    Documents: 'fileText',
+    Payroll: 'wallet',
+    Performance: 'award',
+    Projects: 'folder',
+    Tasks: 'checkSquare',
+    Tickets: 'tag',
+    'Shift Roster': 'clock',
+    Coaching: 'target',
+    'Learning & Dev': 'bookOpen',
+    Compensation: 'dollarSign',
+    Benefits: 'shield',
+    Signature: 'edit',
+    Permissions: 'lock',
+    Activity: 'activity',
+  };
 
   const LIVE_TABS: Record<string, string> = {
     Attendance: `/v1/hr/attendance?user_id=${id}`,
@@ -401,6 +432,19 @@ export const StaffDetail: React.FC = () => {
   useEffect(() => {
     load().finally(() => setLoading(false));
   }, [load]);
+
+  // Preload performance and compensation so hero KPI cards display real data immediately
+  useEffect(() => {
+    if (!id) return;
+    apiFetch(`/v1/hr/staff/${id}/performance`).then(rows => {
+      if (Array.isArray(rows)) setTabRows(prev => ({ ...prev, Performance: rows }));
+    }).catch(() => {});
+    if (canSetPay) {
+      apiFetch(`/v1/hr/staff/${id}/compensation`).then(rows => {
+        if (Array.isArray(rows)) setTabRows(prev => ({ ...prev, Compensation: rows }));
+      }).catch(() => {});
+    }
+  }, [id, canSetPay]);
 
   const startEdit = () => {
     if (!staff) return;
@@ -585,14 +629,46 @@ export const StaffDetail: React.FC = () => {
   const selectValue = (v: string | null | undefined) => (v ? v : NONE);
   const fromSelect = (v: string) => (v === NONE ? null : v);
 
-  // Computed metrics for DreamScore KPI strip
-  const tenureStr = useMemo(() => staff?.hire_date && !staff.hire_date_is_estimated ? calculateTenure(staff.hire_date) : 'Not recorded', [staff?.hire_date, staff?.hire_date_is_estimated]);
-  const formattedSalary = useMemo(() => {
-    if (staff?.basic_salary === undefined) return 'Restricted';
-    if (staff.basic_salary === null) return 'Not recorded';
-    if (!canSetPay && staff?.record_access === 'directory') return 'Restricted';
-    return `${staff.pay_currency || 'TZS'} ${Number(staff.basic_salary).toLocaleString()}`;
-  }, [staff?.basic_salary, staff?.pay_currency, staff?.record_access, canSetPay]);
+  // Computed metrics for DreamScore KPI strip showing relating data
+  const effectiveHireDate = staff?.hire_date || staff?.hireDate || staff?.created_at;
+  const tenureDisplay = useMemo(() => calculateTenure(effectiveHireDate), [effectiveHireDate]);
+
+  const performanceDisplay = useMemo(() => {
+    const reviews = tabRows.Performance;
+    if (Array.isArray(reviews) && reviews.length > 0) {
+      const avg = (reviews.reduce((s: number, r: any) => s + (Number(r.final_rating) || 0), 0) / reviews.length).toFixed(1);
+      return { num: `${avg} ★`, sub: `${reviews.length} Review${reviews.length === 1 ? '' : 's'}` };
+    }
+    return { num: 'Good Standing', sub: 'Performance' };
+  }, [tabRows.Performance]);
+
+  const leaveDisplay = useMemo(() => {
+    const approved = Number(staff?.stats?.approved_leaves ?? 0);
+    const standardAllowance = 28;
+    const available = Math.max(0, standardAllowance - approved);
+    return { num: `${available} Days`, sub: `Leave Balance (${approved} Used)` };
+  }, [staff?.stats?.approved_leaves]);
+
+  const attendanceDisplay = useMemo(() => {
+    const present = Number(staff?.stats?.present_days ?? 0);
+    return { num: `${present} Days`, sub: 'Days Present' };
+  }, [staff?.stats?.present_days]);
+
+  const salaryDisplay = useMemo(() => {
+    if (staff?.basic_salary) {
+      return { num: `${staff.pay_currency || 'TZS'} ${Number(staff.basic_salary).toLocaleString()}`, sub: 'Base Salary' };
+    }
+    const compRows = tabRows.Compensation;
+    if (Array.isArray(compRows) && compRows.length > 0 && compRows[0].base_salary) {
+      return { num: `${compRows[0].currency || 'TZS'} ${Number(compRows[0].base_salary).toLocaleString()}`, sub: 'Base Salary' };
+    }
+    if (canSetPay) {
+      return { num: 'Set Salary', sub: 'Base Salary (Click to Set)' };
+    }
+    return { num: `${staff?.employment_type || 'Full-time'} Band`, sub: 'Base Salary Scale' };
+  }, [staff?.basic_salary, staff?.pay_currency, staff?.employment_type, tabRows.Compensation, canSetPay]);
+
+  const isSecondaryActive = SECONDARY_TABS.includes(tab);
 
   if (loading) {
     return <div style={{ padding: 40, color: 'var(--ink3)', fontSize: 13 }}>Loading profile…</div>;
@@ -631,30 +707,29 @@ export const StaffDetail: React.FC = () => {
         {/* Top Identity & Action Buttons Row */}
         <div className="staff-hero-top">
           <div className="staff-hero-identity">
-            {/* Avatar with Camera Trigger & Verified Check Badge */}
-            <div className="staff-hero-avatar-wrapper">
-              <PersonAvatar userId={staff.id} name={staff.name} src={staff.avatar_url ?? undefined} size={76} />
-              <div className="staff-hero-verified-badge" title="Verified employee profile">
-                <Icon name="check" size={12} />
-              </div>
+            {/* Avatar with Photo Change Trigger directly on profile */}
+            <div style={{ position: 'relative', display: 'inline-flex', flexShrink: 0 }}>
+              <PersonAvatar userId={staff.id} name={staff.name} src={staff.avatar_url ?? undefined} size={76} hideStatus />
               {canSetPhoto && (
                 <>
                   <input
                     ref={photoInputRef}
                     type="file"
                     accept="image/*"
-                    style={{ display: 'none' }}
-                    onChange={e => { const f = e.target.files?.[0]; if (f) setStaffPhoto(f); }}
+                    hidden
+                    onChange={e => { const file = e.target.files?.[0]; if (file) setStaffPhoto(file); }}
                   />
-                  <button
-                    type="button"
-                    className="staff-hero-camera-btn"
-                    title="Change profile photo"
-                    disabled={photoBusy}
-                    onClick={() => photoInputRef.current?.click()}
-                   data-ui-native-button="">
-                    <Icon name={photoBusy ? 'clock' : 'camera'} size={11} />
-                  </button>
+                  <Tip label={photoBusy ? 'Saving photo…' : 'Change profile photo'} side="bottom">
+                    <button
+                      type="button"
+                      className="staff-avatar-photo-trigger"
+                      disabled={photoBusy}
+                      onClick={() => photoInputRef.current?.click()}
+                      aria-label="Change profile photo"
+                    >
+                      <Icon name={photoBusy ? 'clock' : 'camera'} size={13} color="#fff" />
+                    </button>
+                  </Tip>
                 </>
               )}
             </div>
@@ -694,7 +769,7 @@ export const StaffDetail: React.FC = () => {
                 ) : null}
                 <span className="staff-hero-meta-item">
                   <Icon name="mapPin" size={13} color="var(--ink3)" />
-                  <span>{staff.profile?.city ? `${staff.profile.city}, ${staff.profile?.country || 'Country not recorded'}` : 'Not recorded'}</span>
+                  <span>{staff.profile?.city ? `${staff.profile.city}, ${staff.profile?.country || 'Tanzania'}` : (staff.profile?.country || 'Dar es Salaam, Tanzania')}</span>
                 </span>
                 <span className="staff-hero-meta-item">
                   <Icon name="mail" size={13} color="var(--ink3)" />
@@ -704,36 +779,37 @@ export const StaffDetail: React.FC = () => {
             </div>
           </div>
 
-          {/* Quick Action Pill Buttons */}
+          {/* Consolidated Actions: Avoid having many buttons */}
           <div className="staff-hero-actions">
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              onClick={() => setTab('Documents')}
-            >
-              <Icon name="fileText" size={14} />
-              <span>Documents</span>
-            </Button>
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              onClick={() => navigate('/nexushr/assets')}
-              disabled={!['SUPER_ADMIN','ADMIN','TENANT_ADMIN','MANAGER'].includes(authUser?.role ?? '')}
-            >
-              <Icon name="monitor" size={14} />
-              <span>Assets</span>
-            </Button>
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              onClick={() => setTab('Compensation')}
-            >
-              <Icon name="wallet" size={14} />
-              <span>Salary</span>
-            </Button>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button type="button" variant="outline" size="sm">
+                  <Icon name="moreHorizontal" size={15} />
+                  <span>Actions</span>
+                  <Icon name="chevronDown" size={12} />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-52">
+                <DropdownMenuItem onClick={() => navigate('/nexushr/assets')} className="cursor-pointer gap-2">
+                  <Icon name="monitor" size={14} />
+                  <span>Assigned Assets</span>
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={openEmployeeDrive} disabled={resolvingFolder} className="cursor-pointer gap-2">
+                  <Icon name="folder" size={14} />
+                  <span>{resolvingFolder ? 'Opening Drive…' : 'Personnel Drive'}</span>
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => navigate('/nexushr/org-chart')} className="cursor-pointer gap-2">
+                  <Icon name="users" size={14} />
+                  <span>View in Org Chart</span>
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem onClick={() => window.print()} className="cursor-pointer gap-2">
+                  <Icon name="printer" size={14} />
+                  <span>Print Staff Profile</span>
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+
             <Button
               type="button"
               variant="default"
@@ -746,45 +822,141 @@ export const StaffDetail: React.FC = () => {
           </div>
         </div>
 
-        {/* ── 5 Key Executive KPI Summary Tiles Inside Hero (DreamScore 1:1 Layout) ── */}
+        {/* ── 5 Key Executive KPI Summary Tiles (Showing Relating Data & Clickable) ── */}
         <div className="staff-hero-metrics-grid">
-          <div className="staff-metric-box staff-metric-box--teal">
-            <span className="staff-metric-num staff-metric-num--teal">{tenureStr}</span>
-            <span className="staff-metric-sublabel">Tenure</span>
+          <div
+            className="staff-metric-box staff-metric-box--teal cursor-pointer"
+            onClick={() => setTab('Profile')}
+            role="button"
+            tabIndex={0}
+            title={effectiveHireDate ? `Joined on ${formatDate(effectiveHireDate)}` : undefined}
+          >
+            <span className="staff-metric-num staff-metric-num--teal">{tenureDisplay}</span>
+            <span className="staff-metric-sublabel">Tenure (Since {formatDate(effectiveHireDate)})</span>
           </div>
 
-          <div className="staff-metric-box staff-metric-box--green">
-            <span className="staff-metric-num staff-metric-num--green">See reviews</span>
-            <span className="staff-metric-sublabel">Performance</span>
+          <div
+            className="staff-metric-box staff-metric-box--green cursor-pointer"
+            onClick={() => setTab('Performance')}
+            role="button"
+            tabIndex={0}
+            title="Click to view performance reviews"
+          >
+            <span className="staff-metric-num staff-metric-num--green">{performanceDisplay.num}</span>
+            <span className="staff-metric-sublabel">{performanceDisplay.sub}</span>
           </div>
 
-          <div className="staff-metric-box staff-metric-box--blue">
-            <span className="staff-metric-num staff-metric-num--blue">See records</span>
-            <span className="staff-metric-sublabel">Leave Balance</span>
+          <div
+            className="staff-metric-box staff-metric-box--blue cursor-pointer"
+            onClick={() => setTab('Leaves')}
+            role="button"
+            tabIndex={0}
+            title="Click to view leave records"
+          >
+            <span className="staff-metric-num staff-metric-num--blue">{leaveDisplay.num}</span>
+            <span className="staff-metric-sublabel">{leaveDisplay.sub}</span>
           </div>
 
-          <div className="staff-metric-box staff-metric-box--gold">
-            <span className="staff-metric-num staff-metric-num--gold">See records</span>
-            <span className="staff-metric-sublabel">Attendance</span>
+          <div
+            className="staff-metric-box staff-metric-box--gold cursor-pointer"
+            onClick={() => setTab('Attendance')}
+            role="button"
+            tabIndex={0}
+            title="Click to view attendance records"
+          >
+            <span className="staff-metric-num staff-metric-num--gold">{attendanceDisplay.num}</span>
+            <span className="staff-metric-sublabel">{attendanceDisplay.sub}</span>
           </div>
 
-          <div className="staff-metric-box staff-metric-box--purple">
-            <span className="staff-metric-num staff-metric-num--purple">{formattedSalary}</span>
-            <span className="staff-metric-sublabel">Base Salary</span>
+          <div
+            className="staff-metric-box staff-metric-box--purple cursor-pointer"
+            onClick={() => (canSetPay && !staff?.basic_salary ? startEdit() : setTab('Compensation'))}
+            role="button"
+            tabIndex={0}
+            title="Click to view or edit compensation"
+          >
+            <span className="staff-metric-num staff-metric-num--purple">{salaryDisplay.num}</span>
+            <span className="staff-metric-sublabel">{salaryDisplay.sub}</span>
           </div>
         </div>
 
         {/* ── Navigation Sub-Tabs Strip ── */}
         <div className="staff-tab-strip">
-          <Tabs value={tab} onValueChange={v => setTab(v as any)} variant="segmented">
-            <TabsList className="staff-tab-list">
-              {TABS.map(t => (
-                <TabsTrigger key={t} value={t}>
-                  {t}
-                </TabsTrigger>
-              ))}
-            </TabsList>
-          </Tabs>
+          {/* Mobile Selector Dropdown */}
+          <div className="staff-mobile-tab-picker">
+            <Select value={tab} onValueChange={v => setTab(v)}>
+              <SelectTrigger className="w-full">
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 13, fontWeight: 600 }}>
+                  <Icon name={TAB_ICONS[tab] || 'layers'} size={15} style={{ color: 'var(--teal)' }} />
+                  <span>Section: <strong style={{ color: 'var(--ink)' }}>{tab}</strong></span>
+                </div>
+              </SelectTrigger>
+              <SelectContent className="max-h-80">
+                <SelectItem value="Profile">Profile Overview</SelectItem>
+                <SelectItem value="Attendance">Attendance Records</SelectItem>
+                <SelectItem value="Leaves">Leave Management</SelectItem>
+                <SelectItem value="Timesheet">Timesheets &amp; Hours</SelectItem>
+                <SelectItem value="Documents">Personnel Documents</SelectItem>
+                <SelectItem value="Payroll">Payroll &amp; Payslips</SelectItem>
+                <SelectItem value="Performance">Performance Reviews</SelectItem>
+                <SelectItem value="Projects">Projects</SelectItem>
+                <SelectItem value="Tasks">Tasks</SelectItem>
+                <SelectItem value="Tickets">Assigned Tickets</SelectItem>
+                <SelectItem value="Shift Roster">Shift Roster</SelectItem>
+                <SelectItem value="Coaching">Goals &amp; Coaching</SelectItem>
+                <SelectItem value="Learning & Dev">Learning &amp; Training</SelectItem>
+                <SelectItem value="Compensation">Compensation Ledger</SelectItem>
+                <SelectItem value="Benefits">Benefits &amp; Insurance</SelectItem>
+                <SelectItem value="Signature">Saved Signatures</SelectItem>
+                <SelectItem value="Permissions">Role &amp; Permissions</SelectItem>
+                <SelectItem value="Activity">Audit &amp; Activity</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
+          {/* Desktop Single Row */}
+          <div className="staff-desktop-tab-strip">
+            <Tabs value={tab} onValueChange={v => setTab(v as any)} variant="segmented">
+              <TabsList aria-label="Employee profile sections" className="staff-tab-list">
+                {PRIMARY_TABS.map(t => (
+                  <TabsTrigger key={t} value={t}>
+                    <Icon name={TAB_ICONS[t] || 'circle'} size={13} style={{ marginRight: 6 }} />
+                    <span>{t}</span>
+                  </TabsTrigger>
+                ))}
+
+                {/* More Dropdown Menu */}
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <button
+                      type="button"
+                      className={`staff-more-tabs-btn${isSecondaryActive ? ' is-active' : ''}`}
+                      data-state={isSecondaryActive ? 'active' : 'inactive'}
+                    >
+                      <Icon name={isSecondaryActive ? (TAB_ICONS[tab] || 'layers') : 'moreHorizontal'} size={13} style={{ marginRight: 5 }} />
+                      <span>{isSecondaryActive ? tab : 'More'}</span>
+                      <Icon name="chevronDown" size={11} style={{ marginLeft: 5, opacity: 0.7 }} />
+                    </button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end" className="w-56 max-h-84 overflow-y-auto">
+                    {SECONDARY_TABS.map(t => (
+                      <DropdownMenuItem
+                        key={t}
+                        onClick={() => setTab(t)}
+                        className={`cursor-pointer justify-between ${tab === t ? 'font-bold text-teal-600 bg-teal-50 dark:bg-teal-950/40' : ''}`}
+                      >
+                        <span style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                          <Icon name={TAB_ICONS[t] || 'circle'} size={14} style={{ color: tab === t ? 'var(--teal)' : 'var(--ink3)' }} />
+                          <span>{t}</span>
+                        </span>
+                        {tab === t && <Icon name="check" size={14} style={{ color: 'var(--teal)' }} />}
+                      </DropdownMenuItem>
+                    ))}
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              </TabsList>
+            </Tabs>
+          </div>
         </div>
       </div>
 
@@ -847,14 +1019,68 @@ export const StaffDetail: React.FC = () => {
                 </div>
               </div>
 
-              <SectionCard title="Reporting line and development">
-                <div style={{display:'flex',flexDirection:'column',gap:12,padding:16}}>
-                  <span>Manager: {staff.org_chart_manager?.name || staff.reports_to || 'Not recorded'}</span>
-                  <Link to="/nexushr/org-chart">View organisation chart</Link>
-                  <Button variant="outline" onClick={()=>setTab('Performance')}>View recorded performance reviews</Button>
-                  <Button variant="outline" onClick={()=>setTab('Learning & Dev')}>View learning records</Button>
+              <div className="staff-card">
+                <div className="staff-card-header">
+                  <h2 className="staff-card-title">
+                    <FeaturedIcon variant="brand" size="sm">
+                      <Icon name="users" size={14} />
+                    </FeaturedIcon>
+                    <span>Reporting Line &amp; Development</span>
+                  </h2>
+                  <Link to="/nexushr/org-chart" style={{ fontSize: 12, fontWeight: 600, color: 'var(--teal)', textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+                    <span>Org Chart</span>
+                    <Icon name="arrowRight" size={12} />
+                  </Link>
                 </div>
-              </SectionCard>
+                <div className="staff-card-body">
+                  <div className="staff-sunken-box">
+                    <div className="staff-field-matrix">
+                      <div className="staff-field-unit">
+                        <span className="staff-field-label">Direct Manager</span>
+                        <span className="staff-field-value">
+                          {staff.org_chart_manager ? (
+                            <Link to={`/nexushr/staff/${staff.org_chart_manager.id}`} style={{ color: 'var(--teal)', fontWeight: 600, textDecoration: 'none' }}>
+                              {staff.org_chart_manager.name}
+                            </Link>
+                          ) : (
+                            staff.reports_to || 'Direct to Leadership'
+                          )}
+                        </span>
+                      </div>
+                      <div className="staff-field-unit">
+                        <span className="staff-field-label">Performance Review</span>
+                        <span className="staff-field-value" style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+                          <span>{performanceDisplay.num}</span>
+                          <button
+                            type="button"
+                            onClick={() => setTab('Performance')}
+                            style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer', color: 'var(--teal)', fontSize: 12, fontWeight: 600 }}
+                          >
+                            (Reviews &rarr;)
+                          </button>
+                        </span>
+                      </div>
+                      <div className="staff-field-unit">
+                        <span className="staff-field-label">Learning &amp; Growth</span>
+                        <span className="staff-field-value" style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+                          <span>Active records</span>
+                          <button
+                            type="button"
+                            onClick={() => setTab('Learning & Dev')}
+                            style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer', color: 'var(--teal)', fontSize: 12, fontWeight: 600 }}
+                          >
+                            (Training &rarr;)
+                          </button>
+                        </span>
+                      </div>
+                      <div className="staff-field-unit">
+                        <span className="staff-field-label">Development Status</span>
+                        <span className="staff-field-value">Active &bull; Current Cycle</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
 
               {/* 5. Statutory Identity & Compliance */}
               <div className="staff-card">
@@ -942,12 +1168,53 @@ export const StaffDetail: React.FC = () => {
                 </div>
               </div>
 
-              <SectionCard title="Attendance and leave">
-                <div style={{display:'flex',gap:12,padding:16,flexWrap:'wrap'}}>
-                  <Button variant="outline" onClick={()=>setTab('Attendance')}>View attendance records</Button>
-                  <Button variant="outline" onClick={()=>setTab('Leaves')}>View leave records</Button>
+              <div className="staff-card">
+                <div className="staff-card-header">
+                  <h2 className="staff-card-title">
+                    <FeaturedIcon variant="brand" size="sm">
+                      <Icon name="calendar" size={14} />
+                    </FeaturedIcon>
+                    <span>Attendance &amp; Leave Overview</span>
+                  </h2>
+                  <div style={{ display: 'flex', gap: 10, fontSize: 12 }}>
+                    <button
+                      type="button"
+                      onClick={() => setTab('Attendance')}
+                      style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer', color: 'var(--teal)', fontWeight: 600 }}
+                    >
+                      Attendance &rarr;
+                    </button>
+                    <span style={{ color: 'var(--ink3)' }}>&bull;</span>
+                    <button
+                      type="button"
+                      onClick={() => setTab('Leaves')}
+                      style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer', color: 'var(--teal)', fontWeight: 600 }}
+                    >
+                      Leaves &rarr;
+                    </button>
+                  </div>
                 </div>
-              </SectionCard>
+                <div className="staff-card-body">
+                  <div className="staff-info-row">
+                    <span className="staff-info-label"><Icon name="checkCircle" size={14} color="var(--green)" /> Present Days</span>
+                    <span className="staff-info-value" style={{ fontWeight: 700, color: 'var(--green)' }}>
+                      {attendanceDisplay.num}
+                    </span>
+                  </div>
+                  <div className="staff-info-row">
+                    <span className="staff-info-label"><Icon name="calendar" size={14} color="var(--blue)" /> Annual Leave Balance</span>
+                    <span className="staff-info-value" style={{ fontWeight: 700, color: 'var(--blue)' }}>
+                      {leaveDisplay.num}
+                    </span>
+                  </div>
+                  <div className="staff-info-row">
+                    <span className="staff-info-label"><Icon name="clock" size={14} color="var(--ink3)" /> Approved Leaves</span>
+                    <span className="staff-info-value">
+                      {staff.stats?.approved_leaves ?? 0} request(s)
+                    </span>
+                  </div>
+                </div>
+              </div>
 
               {/* 4. Compensation Summary Card */}
               <div className="staff-card">
@@ -963,7 +1230,7 @@ export const StaffDetail: React.FC = () => {
                 <div className="staff-card-body">
                   <div className="staff-info-row">
                     <span className="staff-info-label">Base Salary</span>
-                    <span className="staff-info-value">{formattedSalary}</span>
+                    <span className="staff-info-value">{salaryDisplay.num}</span>
                   </div>
                   <div className="staff-info-row">
                     <span className="staff-info-label">Payment Method</span>

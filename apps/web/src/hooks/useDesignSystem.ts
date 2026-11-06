@@ -12,16 +12,14 @@ import { themeFromSourceColor, argbFromHex, hexFromArgb } from '@material/materi
 
 export type FontId    = 'system' | 'inter' | 'plus-jakarta' | 'dm-sans' | 'roboto' | 'atlassian-sans';
 export type DensityId = 'compact' | 'default' | 'comfortable';
-/** Which icon set <Icon> (Icon.tsx) renders. 'stroke' is the platform's own
- *  181-name hand-authored set — always complete, the baseline every other
- *  library falls back to for a name it doesn't cover. 'twotone' is a
- *  smaller (25-name) hand-authored dual-layer set in the Hugeicons visual
- *  style (ui/twotone-icon.tsx). 'hugeicons' renders real, officially
- *  licensed Hugeicons free-tier SVGs (@hugeicons/core-free-icons) through a
- *  verified name mapping (components/hugeicons-map.ts) — every entry there
- *  was checked against the installed package's actual file list, not
- *  guessed from the name, but it still only covers a majority of names,
- *  not all 181. */
+/** Which icon set <Icon> (Icon.tsx) renders. 'hugeicons' is the platform
+ *  default: real, owned Hugeicons PRO artwork (components/hugeicons-pro-
+ *  map.ts, extracted from the licensed .iconjar pack, stroke-rounded style)
+ *  through a verified name mapping — covers most names, not all of them.
+ *  'stroke' is the platform's own hand-authored set — always complete, the
+ *  baseline every other library (including 'hugeicons') falls back to for a
+ *  name it doesn't cover. 'twotone' is a smaller hand-authored dual-layer
+ *  set in the Hugeicons visual style (ui/twotone-icon.tsx). */
 export type IconLibraryId = 'stroke' | 'twotone' | 'hugeicons';
 export type ShadowId  = 'flat' | 'subtle' | 'default' | 'elevated'
   | 'halo' | 'hairline' | 'outline' | 'ring' | 'raised' | 'overlay'
@@ -376,7 +374,10 @@ export const DESIGN_TOKENS_DEFAULTS: DesignTokens = {
   shape: SHAPE_DEFAULT,
   elevation: 'default',
   density: 'comfortable',
-  iconLibrary: 'stroke',
+  // Platform default upgraded to the real, owned Hugeicons Pro set (see
+  // hugeicons-pro-map.ts) — 'stroke' (the hand-drawn set) and 'twotone'
+  // stay selectable here for any tenant/app that wants a different look.
+  iconLibrary: 'hugeicons',
   motion: { durFast: 80, dur: 150, durSlow: 300, ease: 'cubic-bezier(0.4, 0, 0.2, 1)' },
   tabs: { variant: 'segmented', radius: 6, height: 44, size: 13 },
   responsive: { breakpoint: 768 },

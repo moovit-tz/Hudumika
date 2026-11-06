@@ -57,6 +57,11 @@ coverage/
 # Source staging (upstream repos for integration inspection, never committed)
 .source-staging/
 
+# Local design-asset source packs (tens of thousands of files, never meant
+# to be committed) — the real deliverable extracted from these lives in
+# apps/web/src/components/hugeicons-pro-map.ts.
+/Hugeicons Pro.iconjar/
+
 # Misc
 *.bak
 *.tmp

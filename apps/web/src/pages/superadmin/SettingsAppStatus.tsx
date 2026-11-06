@@ -1624,6 +1624,50 @@ const APP_LABELS: Record<string, string> = {
   tasks: 'Tasks', projects: 'Projects', store: 'Store', hudubi: 'HuduBI',
 };
 
+const APP_CATEGORIES: Record<string, string> = {
+  clearos: 'Logistics', cargotracker: 'Logistics', tracking: 'Logistics', demurrage: 'Logistics', seal: 'Logistics',
+  finops: 'Finance', petti: 'Finance',
+  nexushr: 'HR & People',
+  crm: 'Sales & CRM',
+  bliss: 'Support',
+  complyos: 'Compliance',
+  cloud: 'Storage',
+  email: 'Communication', sms: 'Communication',
+  contacts: 'Productivity', notes: 'Productivity', tasks: 'Productivity', calendar: 'Productivity', sign: 'Productivity', projects: 'Productivity',
+  studio: 'Workflow',
+  onesite: 'Content',
+  onsite: 'Infrastructure',
+  hudubi: 'Analytics',
+  store: 'Commerce',
+  ondi: 'Identity & Auth',
+  ai: 'AI & Automation',
+  lens: 'System & Debug',
+  developer: 'Developer',
+  inventory: 'Operations',
+};
+
+const APP_BRAND_COLORS: Record<string, string> = {
+  clearos: '#ea580c', cargotracker: '#4f46e5', tracking: '#0891b2', demurrage: '#d97706', seal: '#0f766e',
+  finops: '#0284c7', petti: '#16a34a',
+  nexushr: '#0d9488',
+  crm: '#059669',
+  bliss: '#7c3aed',
+  complyos: '#059669',
+  cloud: '#0369a1',
+  email: '#0078d4', sms: '#1257c6',
+  contacts: '#1a73e8', notes: '#fbbc04', tasks: '#0f766e', calendar: '#db2777', sign: '#2563eb', projects: '#f59e0b',
+  studio: '#4361ee',
+  onesite: '#06b6d4',
+  onsite: '#0f172a',
+  hudubi: '#18181b',
+  store: '#8b5cf6',
+  ondi: '#4253d1',
+  ai: '#8b5cf6',
+  lens: '#475569',
+  developer: '#0f766e',
+  inventory: '#64748b',
+};
+
 const APP_ICONS: Record<string, IconName> = {
   ai: 'sparkle', clearos: 'ship', cloud: 'folder', complyos: 'shield',
   contacts: 'contact', email: 'mail', finops: 'dollarSign', ondi: 'key',
@@ -1649,6 +1693,22 @@ const READINESS_OPTIONS: { value: ReadinessState; label: string }[] = [
 ];
 
 type AppStatusSort = 'name' | 'status' | 'updated';
+
+function timeAgo(dateStr: string): string {
+  try {
+    const diffMs = Date.now() - new Date(dateStr).getTime();
+    const mins = Math.floor(diffMs / 60000);
+    if (mins < 1) return 'Just now';
+    if (mins < 60) return `${mins}m ago`;
+    const hrs = Math.floor(mins / 60);
+    if (hrs < 24) return `${hrs}h ago`;
+    const days = Math.floor(hrs / 24);
+    if (days < 30) return `${days}d ago`;
+    return new Date(dateStr).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
+  } catch {
+    return 'Recently';
+  }
+}
 
 const FREIGHT_PREVIEW_PRODUCTS = [
   { key: 'clearos', label: 'ClearOS', unit: 'Clearance cases' },
@@ -1998,20 +2058,43 @@ function FreightPricingPreview() {
 export function AppStatusView() {
   const [rows, setRows] = useState<AppStatusRow[]>([]);
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
   const [savingId, setSavingId] = useState<string | null>(null);
+  const [savingMessageId, setSavingMessageId] = useState<string | null>(null);
+  const [savedMessageId, setSavedMessageId] = useState<string | null>(null);
   const [drafts, setDrafts] = useState<Record<string, string>>({});
   const [search, setSearch] = useState('');
-  const [statusFilter, setStatusFilter] = useState<string | null>(null);
+  const [statusFilter, setStatusFilter] = useState<'all' | 'active' | 'maintenance'>('all');
+  const [categoryFilter, setCategoryFilter] = useState<string>('all');
   const [betaOnly, setBetaOnly] = useState(false);
   const [betaSavingId, setBetaSavingId] = useState<string | null>(null);
   const [sortBy, setSortBy] = useState<AppStatusSort>('name');
   const [viewMode, setViewMode] = useState<'list' | 'grid'>(() =>
-    (localStorage.getItem('hudumika_appstatus_view_mode') as 'list' | 'grid') || 'list');
+    (localStorage.getItem('hudumika_appstatus_view_mode') as 'list' | 'grid') || 'grid');
   const [products, setProducts] = useState<CommercialProductRow[]>([]);
   const [productSavingKey, setProductSavingKey] = useState<string | null>(null);
+  const [activeTab, setActiveTab] = useState<'apps' | 'commercial' | 'pricing'>('apps');
+
+  const loadData = async (isSilent = false) => {
+    if (!isSilent) setLoading(true);
+    else setRefreshing(true);
+    try {
+      const [statusRes, prodRes] = await Promise.all([
+        apiFetch('/v1/superadmin/app-status'),
+        apiFetch('/v1/superadmin/commercial-products').catch(() => ({ commercialProducts: [] })),
+      ]);
+      setRows(statusRes.appStatus || []);
+      setProducts(prodRes.commercialProducts || []);
+    } catch (err: any) {
+      showAlert(`Failed to load app status: ${err?.message ?? 'Unknown error'}`);
+    } finally {
+      setLoading(false);
+      setRefreshing(false);
+    }
+  };
 
   useEffect(() => {
-    apiFetch('/v1/superadmin/commercial-products').then(res => setProducts(res.commercialProducts || [])).catch(() => {});
+    void loadData();
   }, []);
 
   async function updateReadiness(productKey: string, readiness_state: ReadinessState) {
@@ -2022,6 +2105,7 @@ export function AppStatusView() {
         body: JSON.stringify({ readiness_state }),
       });
       setProducts(prev => prev.map(p => p.product_key === productKey ? res.commercialProduct : p));
+      showAlert(`Updated ${productKey} readiness to ${readiness_state.replace('_', ' ')}.`, { variant: 'success' });
     } catch (err: any) {
       showAlert(`Failed to update ${productKey}: ${err?.message ?? 'Unknown error'}`);
     } finally {
@@ -2034,38 +2118,6 @@ export function AppStatusView() {
     localStorage.setItem('hudumika_appstatus_view_mode', mode);
   };
 
-  useEffect(() => {
-    apiFetch('/v1/superadmin/app-status')
-      .then(res => setRows(res.appStatus || []))
-      .finally(() => setLoading(false));
-  }, []);
-
-  const visibleRows = useMemo(() => {
-    let list = rows;
-    if (search.trim()) {
-      const q = search.trim().toLowerCase();
-      list = list.filter(r => (APP_LABELS[r.app_id] ?? r.app_id).toLowerCase().includes(q) || r.app_id.toLowerCase().includes(q));
-    }
-    if (statusFilter) list = list.filter(r => r.status === statusFilter);
-    if (betaOnly) list = list.filter(r => r.is_beta);
-    const sorted = [...list];
-    if (sortBy === 'name') {
-      sorted.sort((a, b) => (APP_LABELS[a.app_id] ?? a.app_id).localeCompare(APP_LABELS[b.app_id] ?? b.app_id));
-    } else if (sortBy === 'status') {
-      sorted.sort((a, b) => (a.status === b.status ? 0 : a.status === 'maintenance' ? -1 : 1));
-    } else {
-      sorted.sort((a, b) => new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime());
-    }
-    return sorted;
-  }, [rows, search, statusFilter, betaOnly, sortBy]);
-
-  /**
-   * Platform-wide "Beta" label (migration 395) — independent of the
-   * maintenance status toggle() below. Every tenant's GET /v1/entitlements
-   * reports the same betaApps list, which is what Settings.tsx's Modules &
-   * Extensions grid renders the pill from, so this is the one place that
-   * decides it for the whole platform.
-   */
   async function toggleBeta(row: AppStatusRow) {
     const nextBeta = !row.is_beta;
     setBetaSavingId(row.app_id);
@@ -2098,222 +2150,698 @@ export function AppStatusView() {
     }
   }
 
-  if (loading) return <div style={{ textAlign:'center', padding:'48px 0', color:'var(--ink3)' }}>Loading app status…</div>;
+  async function saveMaintenanceMessage(appId: string) {
+    const current = rows.find(r => r.app_id === appId);
+    if (!current) return;
+    setSavingMessageId(appId);
+    try {
+      const res = await apiFetch(`/v1/superadmin/app-status/${appId}`, {
+        method: 'PATCH',
+        body: JSON.stringify({ status: current.status, message: drafts[appId] ?? current.message ?? null }),
+      });
+      setRows(prev => prev.map(r => r.app_id === appId ? res.appStatus : r));
+      setSavedMessageId(appId);
+      setTimeout(() => setSavedMessageId(id => id === appId ? null : id), 2000);
+    } catch (err: any) {
+      showAlert(`Failed to save notice for ${APP_LABELS[appId] ?? appId}: ${err?.message ?? 'Unknown error'}`);
+    } finally {
+      setSavingMessageId(null);
+    }
+  }
 
   const liveCount = rows.filter(r => r.status === 'active').length;
+  const maintenanceCount = rows.filter(r => r.status === 'maintenance').length;
   const betaCount = rows.filter(r => r.is_beta).length;
-  const SORT_OPTIONS: { value: string; label: string }[] = [
+
+  const categories = useMemo(() => {
+    const set = new Set<string>();
+    rows.forEach(r => {
+      const cat = APP_CATEGORIES[r.app_id] || 'Operations';
+      set.add(cat);
+    });
+    return Array.from(set).sort();
+  }, [rows]);
+
+  const visibleRows = useMemo(() => {
+    let list = rows;
+    if (search.trim()) {
+      const q = search.trim().toLowerCase();
+      list = list.filter(r =>
+        (APP_LABELS[r.app_id] ?? r.app_id).toLowerCase().includes(q) ||
+        r.app_id.toLowerCase().includes(q) ||
+        (APP_CATEGORIES[r.app_id] ?? '').toLowerCase().includes(q)
+      );
+    }
+    if (statusFilter !== 'all') {
+      list = list.filter(r => r.status === statusFilter);
+    }
+    if (betaOnly) {
+      list = list.filter(r => r.is_beta);
+    }
+    if (categoryFilter !== 'all') {
+      list = list.filter(r => (APP_CATEGORIES[r.app_id] || 'Operations') === categoryFilter);
+    }
+    const sorted = [...list];
+    if (sortBy === 'name') {
+      sorted.sort((a, b) => (APP_LABELS[a.app_id] ?? a.app_id).localeCompare(APP_LABELS[b.app_id] ?? b.app_id));
+    } else if (sortBy === 'status') {
+      sorted.sort((a, b) => (a.status === b.status ? 0 : a.status === 'maintenance' ? -1 : 1));
+    } else {
+      sorted.sort((a, b) => new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime());
+    }
+    return sorted;
+  }, [rows, search, statusFilter, betaOnly, categoryFilter, sortBy]);
+
+  const SORT_OPTIONS: { value: AppStatusSort; label: string }[] = [
     { value: 'name',    label: 'Name A—Z' },
-    { value: 'status',  label: 'Maintenance first' },
-    { value: 'updated', label: 'Recently updated' },
+    { value: 'status',  label: 'Maintenance First' },
+    { value: 'updated', label: 'Recently Updated' },
   ];
 
+  const PRESET_MESSAGES = [
+    'Routine maintenance in progress. Access will resume shortly.',
+    'Deploying new performance updates and features.',
+    'Scheduled database optimization in progress.',
+  ];
+
+  if (loading) {
+    return (
+      <div style={{ textAlign: 'center', padding: '64px 0', color: 'var(--ink3)' }}>
+        <SectionLoading />
+        <p style={{ marginTop: 12, fontSize: 13, fontWeight: 500 }}>Loading platform runtime status…</p>
+      </div>
+    );
+  }
+
   return (
-    <div>
+    <div className="as-container">
+      {/* ── Executive Page Header ── */}
       <PageHdr
-        title="App Status"
-        sub="Per-app maintenance switch and Beta label — take a single app down for a deploy, or flag it Beta, without affecting the rest of the platform. Both are seen identically by every tenant."
+        title="App Status & Availability"
+        sub="Runtime kill-switches, tenant announcement banners, global beta badges, and commercial product release readiness across the platform."
         action={
-          <div style={{ display:'flex', alignItems:'center', gap:8 }}>
-            <Badge cfg={{ label: `${betaCount} Beta`, color:'var(--gold)', bg:'var(--gold-l)' }} />
-            <Badge cfg={liveCount === rows.length
-              ? { label: `${liveCount} of ${rows.length} apps live`, color:'var(--green)', bg:'var(--green-l)' }
-              : { label: `${liveCount} of ${rows.length} apps live`, color:'var(--gold)', bg:'var(--gold-l)' }} />
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+            {maintenanceCount === 0 ? (
+              <div style={{ display: 'inline-flex', alignItems: 'center', gap: 7, padding: '5px 12px', borderRadius: 'var(--r-sm)', background: 'var(--green-l)', border: '1px solid rgba(26, 127, 55, 0.25)', fontSize: 12.5, fontWeight: 700, color: 'var(--green)' }}>
+                <span className="as-live-pulse-dot" />
+                <span>All Systems Operational</span>
+              </div>
+            ) : (
+              <div style={{ display: 'inline-flex', alignItems: 'center', gap: 7, padding: '5px 12px', borderRadius: 'var(--r-sm)', background: '#fee2e2', border: '1px solid rgba(220, 38, 38, 0.3)', fontSize: 12.5, fontWeight: 700, color: '#dc2626' }}>
+                <span className="as-maint-pulse-dot" />
+                <span>{maintenanceCount} App(s) In Maintenance</span>
+              </div>
+            )}
+
+            <Tip label="Refresh runtime data" side="bottom">
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                disabled={refreshing}
+                onClick={() => void loadData(true)}
+              >
+                <Icon name="refresh" size={13} className={refreshing ? 'animate-spin' : ''} />
+                <span>{refreshing ? 'Refreshing…' : 'Refresh'}</span>
+              </Button>
+            </Tip>
           </div>
         }
       />
 
-      {/* Toolbar: single-row search + status filter + beta filter + sort + view toggle */}
-      <div className="sa-app-status-toolbar">
-        <div className="sa-app-status-search">
-          <Icon name="search" size={14} color="var(--ink3)" style={{ position:'absolute', left:12, top:'50%', transform:'translateY(-50%)' }} />
-          <input
-            className="input-field"
-            value={search}
-            onChange={e => setSearch(e.target.value)}
-            placeholder="Search apps…"
-            style={{ width:'100%', boxSizing:'border-box', paddingLeft:34, height:36 }}
-          />
+      {/* ── 5 Key Executive KPI Summary Tiles ── */}
+      <div className="as-kpi-grid">
+        <div className="as-kpi-card as-kpi-card--blue">
+          <div className="as-kpi-icon-wrap"><Icon name="layers" size={18} /></div>
+          <div className="as-kpi-info">
+            <span className="as-kpi-num">{rows.length}</span>
+            <span className="as-kpi-label">Platform Apps</span>
+            <span className="as-kpi-sub">Total Registered Modules</span>
+          </div>
         </div>
-        <SingleSelectFilter
-          label="Status"
-          icon={<Icon name="filter" size={13} />}
-          options={[{ value:'active', label:'Live' }, { value:'maintenance', label:'Maintenance' }]}
-          value={statusFilter}
-          onChange={setStatusFilter}
-          allLabel="All statuses"
-        />
-        <button
-          type="button"
-          onClick={() => setBetaOnly(v => !v)}
-          title="Show only apps flagged Beta"
-          style={{
-            display:'flex', alignItems:'center', gap:6, height:36, padding:'0 12px', borderRadius:'var(--r)',
-            border: `1px solid ${betaOnly ? 'var(--gold)' : 'var(--border)'}`,
-            background: betaOnly ? 'var(--gold-l)' : 'var(--white)',
-            color: betaOnly ? 'var(--gold)' : 'var(--ink2)',
-            fontSize:13, fontWeight:600, fontFamily:'var(--font)', cursor:'pointer', flexShrink:0,
-          }}
-         data-ui-native-button="">
-          <Icon name="sparkle" size={13} />
-          Beta only
-        </button>
-        <Select value={sortBy} onValueChange={v => setSortBy(v as AppStatusSort)}>
-          <SelectTrigger className="w-auto shrink-0" style={{ width:'auto', minWidth:140, height:36, flexShrink:0 }}>
-            <Icon name="sliders" size={13} color="var(--ink3)" />
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            {SORT_OPTIONS.map(o => <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>)}
-          </SelectContent>
-        </Select>
-        <div className="sa-app-status-view-toggle">
-          <button
-            type="button"
-            title="List view"
-            onClick={() => handleViewChange('list')}
-            className={`sa-view-btn ${viewMode === 'list' ? 'active' : ''}`}
-           data-ui-native-button="">
-            <Icon name="list" size={14} />
-          </button>
-          <button
-            type="button"
-            title="Grid view"
-            onClick={() => handleViewChange('grid')}
-            className={`sa-view-btn ${viewMode === 'grid' ? 'active' : ''}`}
-           data-ui-native-button="">
-            <Icon name="grid" size={14} />
-          </button>
+
+        <div className="as-kpi-card as-kpi-card--green">
+          <div className="as-kpi-icon-wrap"><Icon name="checkCircle" size={18} /></div>
+          <div className="as-kpi-info">
+            <div className="as-kpi-val-row">
+              <span className="as-kpi-num text-emerald-600">{liveCount}</span>
+              <span className="as-live-pulse-dot" />
+            </div>
+            <span className="as-kpi-label">Active &amp; Live</span>
+            <span className="as-kpi-sub">Tenant Accessible</span>
+          </div>
+        </div>
+
+        <div className={`as-kpi-card ${maintenanceCount > 0 ? 'as-kpi-card--amber' : 'as-kpi-card--gray'}`}>
+          <div className="as-kpi-icon-wrap"><Icon name="alertTriangle" size={18} /></div>
+          <div className="as-kpi-info">
+            <span className={`as-kpi-num ${maintenanceCount > 0 ? 'text-amber-600' : 'text-slate-600'}`}>{maintenanceCount}</span>
+            <span className="as-kpi-label">In Maintenance</span>
+            <span className="as-kpi-sub">{maintenanceCount > 0 ? 'All Tenants Blocked' : 'Zero Active Outages'}</span>
+          </div>
+        </div>
+
+        <div className="as-kpi-card as-kpi-card--gold">
+          <div className="as-kpi-icon-wrap"><Icon name="sparkle" size={18} /></div>
+          <div className="as-kpi-info">
+            <span className="as-kpi-num text-amber-500">{betaCount}</span>
+            <span className="as-kpi-label">Beta Programs</span>
+            <span className="as-kpi-sub">Global Pill Enabled</span>
+          </div>
+        </div>
+
+        <div className="as-kpi-card as-kpi-card--teal">
+          <div className="as-kpi-icon-wrap"><Icon name="package" size={18} /></div>
+          <div className="as-kpi-info">
+            <span className="as-kpi-num text-teal-600">{products.length}</span>
+            <span className="as-kpi-label">Commercial SKUs</span>
+            <span className="as-kpi-sub">GTM Lifecycle Tracked</span>
+          </div>
         </div>
       </div>
 
-      {products.length > 0 && (
-        <SectionCard title="Commercial Product Readiness">
-          <p style={{ margin: '10px 18px 0', fontSize: 12, color: 'var(--ink3)' }}>
-            Where each independently-subscribable product sits in internal → pilot → sellable → general availability. Separate from the maintenance switch below — this never changes entitlements or billing by itself.
-          </p>
-          {products.map(p => (
-            <div key={p.product_key} style={{ display:'flex', alignItems:'center', justifyContent:'space-between', padding:'10px 18px', borderBottom:'1px solid var(--border)', opacity: productSavingKey === p.product_key ? 0.6 : 1 }}>
-              <div style={{ display:'flex', flexDirection:'column' }}>
-                <span style={{ fontSize:13.5, fontWeight:600 }}>{p.name}</span>
-                <span style={{ fontSize:12, color:'var(--ink3)' }}>{p.product_key}{p.standalone_purchasable ? ' · standalone purchasable' : ''}</span>
-              </div>
-              <Select value={p.readiness_state} onValueChange={v => updateReadiness(p.product_key, v as ReadinessState)}>
-                <SelectTrigger className="w-auto shrink-0" style={{ width:'auto', minWidth:180, height:34 }}>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {READINESS_OPTIONS.map(o => <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>)}
-                </SelectContent>
-              </Select>
+      {/* ── Section Navigation Tabs ── */}
+      <Tabs value={activeTab} onValueChange={v => setActiveTab(v as any)} variant="segmented" className="as-section-tabs">
+        <TabsList aria-label="App Status Sections">
+          <TabsTrigger value="apps" className="gap-2">
+            <Icon name="grid" size={14} />
+            <span>Platform Apps</span>
+            <span style={{ fontSize: 11, padding: '1px 6px', borderRadius: 10, background: 'var(--bg)', color: 'var(--ink2)', fontWeight: 700 }}>
+              {rows.length}
+            </span>
+          </TabsTrigger>
+          <TabsTrigger value="commercial" className="gap-2">
+            <Icon name="package" size={14} />
+            <span>Commercial Readiness</span>
+            <span style={{ fontSize: 11, padding: '1px 6px', borderRadius: 10, background: 'var(--bg)', color: 'var(--ink2)', fontWeight: 700 }}>
+              {products.length}
+            </span>
+          </TabsTrigger>
+          <TabsTrigger value="pricing" className="gap-2">
+            <Icon name="dollarSign" size={14} />
+            <span>Freight Pricing Simulator</span>
+          </TabsTrigger>
+        </TabsList>
+
+        {/* ── TAB 1: PLATFORM APPS ── */}
+        <TabsContent value="apps" style={{ marginTop: 16 }}>
+          {/* Controls & Filter Toolbar */}
+          <div className="sa-app-status-toolbar">
+            {/* Search Box */}
+            <div className="sa-app-status-search">
+              <Icon name="search" size={14} color="var(--ink3)" style={{ position:'absolute', left:12, top:'50%', transform:'translateY(-50%)' }} />
+              <input
+                className="input-field"
+                value={search}
+                onChange={e => setSearch(e.target.value)}
+                placeholder="Search by app name, key, or category…"
+                style={{ width:'100%', boxSizing:'border-box', paddingLeft:34, paddingRight: search ? 30 : 12, height:36 }}
+              />
+              {search && (
+                <button
+                  type="button"
+                  onClick={() => setSearch('')}
+                  style={{ position: 'absolute', right: 8, top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink3)', padding: 4 }}
+                  aria-label="Clear search"
+                >
+                  ✕
+                </button>
+              )}
             </div>
-          ))}
-        </SectionCard>
-      )}
 
-      <FreightPricingPreview />
-
-      {visibleRows.length === 0 ? (
-        <div style={{ textAlign:'center', padding:'48px 0', color:'var(--ink3)' }}>No apps match your search.</div>
-      ) : viewMode === 'list' ? (
-        <SectionCard padded={false}>
-          {visibleRows.map(row => {
-            const inMaintenance = row.status === 'maintenance';
-            const label = APP_LABELS[row.app_id] ?? row.app_id;
-            const busy = savingId === row.app_id;
-            const betaBusy = betaSavingId === row.app_id;
-            return (
-              <div key={row.app_id} style={{ padding: '0 18px', opacity: busy ? 0.6 : 1 }}>
-                <FeatureToggleRow
-                  icon={<Icon name={APP_ICONS[row.app_id] ?? 'layers'} size={18} />}
-                  title={label}
-                  description={inMaintenance ? 'All tenants are blocked from this app.' : "Accessible per each tenant's plan."}
-                  checked={!inMaintenance}
-                  onCheckedChange={() => toggle(row)}
-                  disabled={busy}
-                  trailingExtra={
-                    <label
-                      title="Show this app's Beta pill to every tenant"
-                      style={{ display:'flex', alignItems:'center', gap:6, cursor: betaBusy ? 'default' : 'pointer', opacity: betaBusy ? 0.6 : 1, paddingRight:10, borderRight:'1px solid var(--border)' }}
-                    >
-                      <span style={{ fontSize:11, fontWeight:700, color: row.is_beta ? 'var(--gold)' : 'var(--ink3)', textTransform:'uppercase', letterSpacing:'0.04em' }}>Beta</span>
-                      <Switch checked={row.is_beta} disabled={betaBusy} onCheckedChange={() => toggleBeta(row)} />
-                    </label>
-                  }
-                  action={inMaintenance && (
-                    <input
-                      title="Maintenance message shown to tenants"
-                      placeholder="Optional message shown to tenants while in maintenance…"
-                      value={drafts[row.app_id] ?? row.message ?? ''}
-                      onChange={e => setDrafts(prev => ({ ...prev, [row.app_id]: e.target.value }))}
-                      className="input-field"
-                      style={{ width:'100%', maxWidth: 420, boxSizing:'border-box', fontSize:12 }}
-                    />
-                  )}
-                />
-              </div>
-            );
-          })}
-        </SectionCard>
-      ) : (
-        <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fill, minmax(260px, 1fr))', gap:14 }}>
-          {visibleRows.map(row => {
-            const inMaintenance = row.status === 'maintenance';
-            const label = APP_LABELS[row.app_id] ?? row.app_id;
-            const busy = savingId === row.app_id;
-            const betaBusy = betaSavingId === row.app_id;
-            const muted = busy || inMaintenance;
-            return (
-              <div
-                key={row.app_id}
-                style={{ background:'var(--white)', border:'1px solid var(--border)', borderRadius:'var(--r)', padding:16, display:'flex', flexDirection:'column', gap:10, opacity: busy ? 0.6 : 1 }}
+            {/* Quick Status Filter Pills */}
+            <div style={{ display: 'flex', gap: 6 }}>
+              <Button
+                type="button"
+                variant={statusFilter === 'all' && !betaOnly ? 'default' : 'outline'}
+                size="sm"
+                onClick={() => { setStatusFilter('all'); setBetaOnly(false); }}
+                style={{ height: 36 }}
               >
-                <div style={{ display:'flex', alignItems:'flex-start', justifyContent:'space-between', gap:10 }}>
-                  <div style={{ display:'flex', alignItems:'center', gap:10, minWidth:0 }}>
-                    <FeaturedIcon variant={muted ? 'gray' : 'brand'} shape="circle" size="md">
-                      <Icon name={APP_ICONS[row.app_id] ?? 'layers'} size={18} />
-                    </FeaturedIcon>
-                    <div style={{ minWidth:0 }}>
-                      <div style={{ display:'flex', alignItems:'center', gap:6 }}>
-                        <span style={{ fontSize:14, fontWeight:700, color: muted ? 'var(--ink3)' : 'var(--ink)', overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>{label}</span>
-                        {row.is_beta && (
-                          <span style={{ fontSize:9.5, fontWeight:700, padding:'1px 6px', borderRadius: 'var(--r-sm)', background:'var(--gold-l)', color:'var(--gold)', border:'1px solid var(--gold)', textTransform:'uppercase', letterSpacing:'0.4px', flexShrink:0 }}>
-                            Beta
-                          </span>
-                        )}
+                All ({rows.length})
+              </Button>
+              <Button
+                type="button"
+                variant={statusFilter === 'active' ? 'default' : 'outline'}
+                size="sm"
+                onClick={() => { setStatusFilter('active'); setBetaOnly(false); }}
+                style={{ height: 36, color: statusFilter === 'active' ? '#fff' : 'var(--green)' }}
+              >
+                <span className="as-live-pulse-dot" style={{ marginRight: 6 }} />
+                Live ({liveCount})
+              </Button>
+              <Button
+                type="button"
+                variant={statusFilter === 'maintenance' ? 'default' : 'outline'}
+                size="sm"
+                onClick={() => { setStatusFilter('maintenance'); setBetaOnly(false); }}
+                style={{ height: 36, color: statusFilter === 'maintenance' ? '#fff' : '#dc2626' }}
+              >
+                <Icon name="alertTriangle" size={13} style={{ marginRight: 6 }} />
+                Maintenance ({maintenanceCount})
+              </Button>
+              <Button
+                type="button"
+                variant={betaOnly ? 'default' : 'outline'}
+                size="sm"
+                onClick={() => setBetaOnly(v => !v)}
+                style={{ height: 36, color: betaOnly ? '#fff' : 'var(--gold)' }}
+              >
+                <Icon name="sparkle" size={13} style={{ marginRight: 6 }} />
+                Beta Only ({betaCount})
+              </Button>
+            </div>
+
+            {/* Category Filter */}
+            <Select value={categoryFilter} onValueChange={setCategoryFilter}>
+              <SelectTrigger className="w-auto shrink-0" style={{ width: 'auto', minWidth: 145, height: 36 }}>
+                <Icon name="folder" size={13} color="var(--ink3)" />
+                <SelectValue placeholder="Category" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Categories</SelectItem>
+                {categories.map(c => (
+                  <SelectItem key={c} value={c}>{c}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+
+            {/* Sort Select */}
+            <Select value={sortBy} onValueChange={v => setSortBy(v as AppStatusSort)}>
+              <SelectTrigger className="w-auto shrink-0" style={{ width:'auto', minWidth:140, height:36, flexShrink:0 }}>
+                <Icon name="sliders" size={13} color="var(--ink3)" />
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {SORT_OPTIONS.map(o => <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>)}
+              </SelectContent>
+            </Select>
+
+            {/* List vs Grid Switcher */}
+            <div className="sa-app-status-view-toggle">
+              <Tip label="Grid Card View" side="bottom">
+                <button
+                  type="button"
+                  onClick={() => handleViewChange('grid')}
+                  className={`sa-view-btn ${viewMode === 'grid' ? 'active' : ''}`}
+                  aria-label="Grid view"
+                >
+                  <Icon name="grid" size={14} />
+                </button>
+              </Tip>
+              <Tip label="Compact List View" side="bottom">
+                <button
+                  type="button"
+                  onClick={() => handleViewChange('list')}
+                  className={`sa-view-btn ${viewMode === 'list' ? 'active' : ''}`}
+                  aria-label="List view"
+                >
+                  <Icon name="list" size={14} />
+                </button>
+              </Tip>
+            </div>
+          </div>
+
+          {/* Active Filter Indicators */}
+          {(search || statusFilter !== 'all' || betaOnly || categoryFilter !== 'all') && (
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 14, fontSize: 12, color: 'var(--ink3)' }}>
+              <span>Filtering {visibleRows.length} of {rows.length} apps</span>
+              <button
+                type="button"
+                onClick={() => { setSearch(''); setStatusFilter('all'); setBetaOnly(false); setCategoryFilter('all'); }}
+                style={{ background: 'none', border: 'none', color: 'var(--teal)', fontWeight: 600, cursor: 'pointer', padding: 0 }}
+              >
+                Reset filters
+              </button>
+            </div>
+          )}
+
+          {/* Apps Body: Empty State / Grid / List */}
+          {visibleRows.length === 0 ? (
+            <div style={{ textAlign: 'center', padding: '54px 0', background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 'var(--r)', color: 'var(--ink3)' }}>
+              <Icon name="search" size={28} style={{ margin: '0 auto 10px', opacity: 0.5 }} />
+              <div style={{ fontSize: 15, fontWeight: 700, color: 'var(--ink)' }}>No applications match your filter</div>
+              <p style={{ fontSize: 13, marginTop: 4 }}>Try clearing the search query or adjusting your category/status filters.</p>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => { setSearch(''); setStatusFilter('all'); setBetaOnly(false); setCategoryFilter('all'); }}
+                style={{ marginTop: 14 }}
+              >
+                Clear all filters
+              </Button>
+            </div>
+          ) : viewMode === 'grid' ? (
+            <div className="as-app-grid">
+              {visibleRows.map(row => {
+                const inMaintenance = row.status === 'maintenance';
+                const label = APP_LABELS[row.app_id] ?? row.app_id;
+                const brandColor = APP_BRAND_COLORS[row.app_id] || '#0d9488';
+                const category = APP_CATEGORIES[row.app_id] || 'Operations';
+                const busy = savingId === row.app_id;
+                const betaBusy = betaSavingId === row.app_id;
+                const msgBusy = savingMessageId === row.app_id;
+                const msgSaved = savedMessageId === row.app_id;
+                const currentDraft = drafts[row.app_id] ?? row.message ?? '';
+
+                return (
+                  <div
+                    key={row.app_id}
+                    className={`as-app-card${inMaintenance ? ' as-app-card--maintenance' : ''}`}
+                    style={{ opacity: busy ? 0.7 : 1 }}
+                  >
+                    {/* Header: App Identity & Category */}
+                    <div className="as-app-card-hdr">
+                      <div className="as-app-identity">
+                        <div className="as-app-icon-squircle" style={{ background: brandColor }}>
+                          <Icon name={APP_ICONS[row.app_id] ?? 'layers'} size={20} color="#fff" />
+                        </div>
+                        <div className="as-app-titles">
+                          <div className="as-app-name-row">
+                            <span className="as-app-name">{label}</span>
+                            <span className="as-app-key-badge">{row.app_id}</span>
+                          </div>
+                          <span className="as-app-cat-badge">{category}</span>
+                        </div>
                       </div>
+
+                      {/* Operational Status Dot */}
+                      <Tip label={inMaintenance ? 'Application is in maintenance (Blocked)' : 'Application is live and operational'} side="bottom">
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                          <span className={inMaintenance ? 'as-maint-pulse-dot' : 'as-live-pulse-dot'} />
+                          <span style={{ fontSize: 11.5, fontWeight: 700, color: inMaintenance ? '#dc2626' : 'var(--green)' }}>
+                            {inMaintenance ? 'Offline' : 'Online'}
+                          </span>
+                        </div>
+                      </Tip>
+                    </div>
+
+                    {/* Controls Row: Live Switch & Beta Toggle */}
+                    <div className="as-app-controls-row">
+                      {/* Operational Switch */}
+                      <div className="as-switch-unit">
+                        <Switch
+                          size="lg"
+                          showCheckIcon
+                          checked={!inMaintenance}
+                          disabled={busy}
+                          onCheckedChange={() => toggle(row)}
+                          title={`Toggle ${label} operational status`}
+                        />
+                        <span className="as-switch-label" style={{ color: inMaintenance ? 'var(--ink3)' : 'var(--ink)' }}>
+                          {inMaintenance ? 'Maintenance' : 'Live'}
+                        </span>
+                      </div>
+
+                      {/* Beta Program Toggle */}
+                      <Tip label="Show this app's Beta pill to every tenant across the platform" side="bottom">
+                        <label
+                          style={{
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: 6,
+                            cursor: betaBusy ? 'default' : 'pointer',
+                            opacity: betaBusy ? 0.6 : 1,
+                            padding: '3px 8px',
+                            borderRadius: 'var(--r-sm)',
+                            background: row.is_beta ? 'var(--gold-l)' : 'transparent',
+                            border: `1px solid ${row.is_beta ? 'var(--gold)' : 'var(--border)'}`,
+                          }}
+                        >
+                          <span style={{ fontSize: 11, fontWeight: 700, color: row.is_beta ? 'var(--gold)' : 'var(--ink3)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+                            ★ Beta
+                          </span>
+                          <Switch checked={row.is_beta} disabled={betaBusy} onCheckedChange={() => toggleBeta(row)} />
+                        </label>
+                      </Tip>
+                    </div>
+
+                    {/* Tenant Status Notification Box */}
+                    {inMaintenance ? (
+                      <div className="as-status-box as-status-box--maint">
+                        <div className="as-maint-banner-hdr">
+                          <Icon name="alertTriangle" size={14} color="#dc2626" />
+                          <span>Tenant Access Blocked</span>
+                        </div>
+                        <p style={{ fontSize: 11.5, color: 'var(--ink2)', margin: 0 }}>
+                          Tenants attempting to launch or visit this app will see the maintenance announcement below:
+                        </p>
+                        <div className="as-maint-input-wrap">
+                          <Input
+                            placeholder="Reason shown to tenants (e.g. Upgrading database…)"
+                            value={currentDraft}
+                            onChange={e => setDrafts(prev => ({ ...prev, [row.app_id]: e.target.value }))}
+                            style={{ height: 32, fontSize: 12 }}
+                          />
+                          <Button
+                            type="button"
+                            variant="default"
+                            size="sm"
+                            disabled={msgBusy || (currentDraft === (row.message ?? ''))}
+                            onClick={() => saveMaintenanceMessage(row.app_id)}
+                            style={{ height: 32, flexShrink: 0 }}
+                          >
+                            <Icon name={msgSaved ? 'check' : 'save'} size={12} />
+                            <span>{msgSaved ? 'Saved' : msgBusy ? 'Saving…' : 'Save'}</span>
+                          </Button>
+                        </div>
+                        {/* Quick Presets */}
+                        <div className="as-preset-chips">
+                          <span style={{ fontSize: 10, color: 'var(--ink3)' }}>Quick presets:</span>
+                          {PRESET_MESSAGES.map((msg, idx) => (
+                            <button
+                              key={idx}
+                              type="button"
+                              className="as-preset-btn"
+                              onClick={() => {
+                                setDrafts(prev => ({ ...prev, [row.app_id]: msg }));
+                              }}
+                            >
+                              Preset {idx + 1}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="as-status-box as-status-box--live">
+                        <Icon name="checkCircle" size={14} color="var(--green)" />
+                        <span>Accessible to tenants according to active subscription plan.</span>
+                      </div>
+                    )}
+
+                    {/* Card Footer: Metadata & Last Updated */}
+                    <div className="as-app-card-footer">
+                      <span>Updated {timeAgo(row.updated_at)}</span>
+                      {row.is_beta && <span style={{ color: 'var(--gold)', fontWeight: 600 }}>Beta Flagged</span>}
                     </div>
                   </div>
-                  <div style={{ display:'flex', alignItems:'center', gap:6, flexShrink:0 }}>
-                    <span style={{ fontSize:11, fontWeight:600, color: inMaintenance ? 'var(--ink3)' : 'var(--teal)' }}>{inMaintenance ? 'Off' : 'On'}</span>
-                    <Switch size="lg" showCheckIcon checked={!inMaintenance} disabled={busy} title={`Toggle ${label}`} onCheckedChange={() => toggle(row)} />
-                  </div>
-                </div>
-                <div style={{ fontSize:12, color:'var(--ink3)', opacity: muted ? 0.7 : 1 }}>
-                  {inMaintenance ? 'All tenants are blocked from this app.' : "Accessible per each tenant's plan."}
-                </div>
-                <label
-                  title="Show this app's Beta pill to every tenant"
-                  style={{ display:'flex', alignItems:'center', justifyContent:'space-between', gap:10, paddingTop:10, borderTop:'1px solid var(--border)', cursor: betaBusy ? 'default' : 'pointer', opacity: betaBusy ? 0.6 : 1 }}
-                >
-                  <span style={{ fontSize:12, fontWeight:600, color: 'var(--ink2)' }}>Beta label</span>
-                  <Switch checked={row.is_beta} disabled={betaBusy} onCheckedChange={() => toggleBeta(row)} />
-                </label>
-                {inMaintenance && (
-                  <input
-                    title="Maintenance message shown to tenants"
-                    placeholder="Optional message shown to tenants while in maintenance…"
-                    value={drafts[row.app_id] ?? row.message ?? ''}
-                    onChange={e => setDrafts(prev => ({ ...prev, [row.app_id]: e.target.value }))}
-                    className="input-field"
-                    style={{ width:'100%', boxSizing:'border-box', fontSize:12 }}
-                  />
-                )}
+                );
+              })}
+            </div>
+          ) : (
+            /* List View */
+            <SectionCard padded={false}>
+              <div style={{ overflowX: 'auto' }}>
+                <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
+                  <thead>
+                    <tr style={{ background: 'var(--bg)', borderBottom: '1px solid var(--border)' }}>
+                      <th style={{ padding: '10px 16px', textAlign: 'left', fontSize: 11, fontWeight: 700, color: 'var(--ink3)', textTransform: 'uppercase' }}>Application</th>
+                      <th style={{ padding: '10px 16px', textAlign: 'left', fontSize: 11, fontWeight: 700, color: 'var(--ink3)', textTransform: 'uppercase' }}>Operational Status</th>
+                      <th style={{ padding: '10px 16px', textAlign: 'left', fontSize: 11, fontWeight: 700, color: 'var(--ink3)', textTransform: 'uppercase' }}>Beta Program</th>
+                      <th style={{ padding: '10px 16px', textAlign: 'left', fontSize: 11, fontWeight: 700, color: 'var(--ink3)', textTransform: 'uppercase' }}>Tenant Notice / Access</th>
+                      <th style={{ padding: '10px 16px', textAlign: 'right', fontSize: 11, fontWeight: 700, color: 'var(--ink3)', textTransform: 'uppercase' }}>Last Updated</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {visibleRows.map(row => {
+                      const inMaintenance = row.status === 'maintenance';
+                      const label = APP_LABELS[row.app_id] ?? row.app_id;
+                      const brandColor = APP_BRAND_COLORS[row.app_id] || '#0d9488';
+                      const category = APP_CATEGORIES[row.app_id] || 'Operations';
+                      const busy = savingId === row.app_id;
+                      const betaBusy = betaSavingId === row.app_id;
+
+                      return (
+                        <tr key={row.app_id} style={{ borderBottom: '1px solid var(--border)', background: inMaintenance ? 'rgba(254, 243, 199, 0.08)' : undefined }}>
+                          {/* App Identity */}
+                          <td style={{ padding: '12px 16px' }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                              <div style={{ width: 32, height: 32, borderRadius: 8, background: brandColor, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', flexShrink: 0 }}>
+                                <Icon name={APP_ICONS[row.app_id] ?? 'layers'} size={16} color="#fff" />
+                              </div>
+                              <div style={{ display: 'flex', flexDirection: 'column' }}>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                                  <strong style={{ color: 'var(--ink)' }}>{label}</strong>
+                                  <span className="as-app-key-badge">{row.app_id}</span>
+                                </div>
+                                <span style={{ fontSize: 11, color: 'var(--ink3)' }}>{category}</span>
+                              </div>
+                            </div>
+                          </td>
+
+                          {/* Operational Status */}
+                          <td style={{ padding: '12px 16px' }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                              <Switch
+                                checked={!inMaintenance}
+                                disabled={busy}
+                                onCheckedChange={() => toggle(row)}
+                              />
+                              <span style={{ fontSize: 12, fontWeight: 700, color: inMaintenance ? '#dc2626' : 'var(--green)' }}>
+                                {inMaintenance ? 'Maintenance' : 'Live'}
+                              </span>
+                            </div>
+                          </td>
+
+                          {/* Beta Status */}
+                          <td style={{ padding: '12px 16px' }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                              <Switch
+                                size="sm"
+                                checked={row.is_beta}
+                                disabled={betaBusy}
+                                onCheckedChange={() => toggleBeta(row)}
+                              />
+                              <span style={{ fontSize: 11.5, fontWeight: 600, color: row.is_beta ? 'var(--gold)' : 'var(--ink3)' }}>
+                                {row.is_beta ? '★ Beta' : 'Standard'}
+                              </span>
+                            </div>
+                          </td>
+
+                          {/* Tenant Notice / Access */}
+                          <td style={{ padding: '12px 16px', maxWidth: 380 }}>
+                            {inMaintenance ? (
+                              <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                                <span style={{ fontSize: 12, color: 'var(--gold)', fontWeight: 600 }}>Notice:</span>
+                                <span style={{ fontSize: 12, color: 'var(--ink)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                                  {row.message || 'Standard maintenance notice'}
+                                </span>
+                              </div>
+                            ) : (
+                              <span style={{ fontSize: 12, color: 'var(--green)' }}>✓ Accessible to subscribed tenants</span>
+                            )}
+                          </td>
+
+                          {/* Last Updated */}
+                          <td style={{ padding: '12px 16px', textAlign: 'right', fontSize: 11.5, color: 'var(--ink3)' }}>
+                            {timeAgo(row.updated_at)}
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
               </div>
-            );
-          })}
-        </div>
-      )}
+            </SectionCard>
+          )}
+        </TabsContent>
+
+        {/* ── TAB 2: COMMERCIAL PRODUCT READINESS ── */}
+        <TabsContent value="commercial" style={{ marginTop: 16 }}>
+          <SectionCard title="Commercial Product Lifecycle &amp; GTM Readiness">
+            <div style={{ padding: '12px 18px', background: 'var(--bg)', borderBottom: '1px solid var(--border)', fontSize: 12.5, color: 'var(--ink2)', lineHeight: 1.5 }}>
+              Defines where each independently-subscribable commercial product sits in the lifecycle:
+              <strong> Internal &rarr; Pilot &rarr; Sellable &rarr; Limited GA &rarr; General Availability</strong>.
+              This governs packaging recommendations and storefront visibility without modifying tenant database entitlements directly.
+            </div>
+
+            <div style={{ display: 'flex', flexDirection: 'column' }}>
+              {products.map(p => {
+                const readinessOpt = READINESS_OPTIONS.find(o => o.value === p.readiness_state) || READINESS_OPTIONS[0];
+                const isSaving = productSavingKey === p.product_key;
+
+                return (
+                  <div
+                    key={p.product_key}
+                    style={{
+                      display: 'flex',
+                      flexDirection: 'column',
+                      gap: 10,
+                      padding: '16px 20px',
+                      borderBottom: '1px solid var(--border)',
+                      opacity: isSaving ? 0.6 : 1,
+                      background: 'var(--white)',
+                    }}
+                  >
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 14, flexWrap: 'wrap' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                        <div style={{ width: 36, height: 36, borderRadius: 8, background: APP_BRAND_COLORS[p.product_key] || 'var(--teal)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff' }}>
+                          <Icon name="package" size={18} />
+                        </div>
+                        <div style={{ display: 'flex', flexDirection: 'column' }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                            <span style={{ fontSize: 15, fontWeight: 700, color: 'var(--ink)' }}>{p.name}</span>
+                            <span className="as-app-key-badge">{p.product_key}</span>
+                            {p.standalone_purchasable && (
+                              <UiBadge variant="brand">Standalone Purchasable</UiBadge>
+                            )}
+                          </div>
+                          <span style={{ fontSize: 12, color: 'var(--ink3)', marginTop: 2 }}>
+                            Commercial SKU &bull; Platform Subscribable
+                          </span>
+                        </div>
+                      </div>
+
+                      {/* State Dropdown Selector */}
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                        <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--ink3)' }}>Readiness Status:</span>
+                        <Select
+                          value={p.readiness_state}
+                          onValueChange={v => updateReadiness(p.product_key, v as ReadinessState)}
+                        >
+                          <SelectTrigger className="w-auto shrink-0" style={{ width: 'auto', minWidth: 190, height: 36 }}>
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {READINESS_OPTIONS.map(o => (
+                              <SelectItem key={o.value} value={o.value}>
+                                {o.label}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    </div>
+
+                    {/* Visual 5-Stage Stepper Breadcrumb */}
+                    <div className="as-readiness-pipeline">
+                      {[
+                        { key: 'internal', label: '1. Internal' },
+                        { key: 'pilot', label: '2. Pilot' },
+                        { key: 'sellable', label: '3. Sellable' },
+                        { key: 'limited_availability', label: '4. Limited GA' },
+                        { key: 'general_availability', label: '5. General Availability' },
+                      ].map((step, idx) => {
+                        const stageOrder = ['internal', 'pilot', 'sellable', 'limited_availability', 'general_availability'];
+                        const currentIdx = stageOrder.indexOf(p.readiness_state);
+                        const stepIdx = stageOrder.indexOf(step.key);
+                        const isCurrent = p.readiness_state === step.key;
+                        const isPast = currentIdx > stepIdx;
+
+                        return (
+                          <div
+                            key={step.key}
+                            className={`as-pipeline-step${isCurrent ? ' active' : isPast ? ' completed' : ''}`}
+                          >
+                            {isPast && <Icon name="check" size={10} />}
+                            {isCurrent && <span className="as-live-pulse-dot" style={{ width: 6, height: 6 }} />}
+                            <span>{step.label}</span>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </SectionCard>
+        </TabsContent>
+
+        {/* ── TAB 3: FREIGHT PRICING SIMULATOR ── */}
+        <TabsContent value="pricing" style={{ marginTop: 16 }}>
+          <FreightPricingPreview />
+        </TabsContent>
+      </Tabs>
     </div>
   );
 }
