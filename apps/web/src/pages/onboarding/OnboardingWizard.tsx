@@ -19,6 +19,7 @@ import { StepConfiguration } from './StepConfiguration.js';
 import { StepSuccess } from './StepSuccess.js';
 import { StepJoinRequestSent } from './StepJoinRequestSent.js';
 import type { OnboardingCompleteInput, OnboardingCompleteResponse, JoinRequestSubmitResponse, Package } from '@hudumika/types';
+import { signupPackageAmount } from '@hudumika/types';
 import '../Login.css';
 import './Onboarding.css';
 
@@ -150,7 +151,7 @@ export const OnboardingWizard: React.FC = () => {
     // standalone-product signup has a valid package_code, not a plan a
     // customer picks alongside Starter/Business/Scale. StepPackage's new
     // "single product" tab sets it directly instead.
-    apiFetch('/v1/packages').then(res => setPackages((res.data as Package[]).filter(p => p.code !== 'workspace-free'))).catch(() => {});
+    apiFetch('/v1/packages/signup').then(res => setPackages(res.data as Package[])).catch(() => {});
     apiFetch('/v1/onboarding/journeys').then(res => setJourneys(Array.isArray(res) ? res : [])).catch(() => {});
     apiFetch('/v1/onboarding/payment-status').then(res => setGatewayConfigured(!!res.gateway_configured)).catch(() => {});
     apiFetch('/v1/privacy-policy/current')
@@ -188,7 +189,7 @@ export const OnboardingWizard: React.FC = () => {
       const input = toCompleteInput(draft, referralCodeRef.current, language);
       const pkg = packages.find(p => p.code === draft.package_code);
       const amount = draft.package_code === 'workspace-free' ? 0
-        : pkg ? (draft.billing_cycle === 'annual' ? pkg.annual_price : pkg.monthly_price) : 0;
+        : pkg ? signupPackageAmount(pkg, draft.billing_cycle) : 0;
 
       if (amount > 0 && gatewayConfigured) {
         // Hosted checkout: nothing is created yet. Navigate away to

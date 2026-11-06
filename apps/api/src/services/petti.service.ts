@@ -638,8 +638,19 @@ export class PettiService {
     return row;
   }
 
-  /** Records a deposit: Dr the wallet's own GL account, Cr Bank Account (1010).
-   *  method:'manual' is the only path that works today — see getPaymentGatewayAdapter. */
+  /** Records a deposit. method:'manual' means a human is recording money
+   *  that has already arrived (bank statement, mobile money SMS, cash
+   *  drop) — genuinely confirmed, so it posts to the GL immediately: Dr the
+   *  wallet's own GL account, Cr Bank Account (1010).
+   *
+   *  method:'gateway' is different, and this is the fix for LENS-44: both
+   *  mobile-money adapters' confirmDeposit() only proves the provider
+   *  *accepted the push request* — the customer still has to approve a
+   *  USSD/PIN prompt afterward, which can be declined or time out. Posting
+   *  to the GL on "accepted" would put money on the books that never
+   *  actually arrived. A gateway deposit is therefore created as
+   *  status:'pending', with no journal entry at all, and only reaches the
+   *  GL once something calls confirmReconciledDeposit() below. */
   static async recordDeposit(tenantId: string, userId: string, data: {
     walletId: string; amount: number; method?: 'manual' | 'gateway';
     gatewayProvider?: string; gatewayTxRef?: string; reference?: string; note?: string; payerMsisdn?: string;
@@ -656,6 +667,27 @@ export class PettiService {
 
     const adapter = await getPaymentGatewayAdapter(tenantId, method);
     const confirmation = await adapter.confirmDeposit({ amount: data.amount, reference: data.reference, gatewayTxRef: data.gatewayTxRef, payerMsisdn: data.payerMsisdn });
+
+    if (method === 'gateway') {
+      // "Accepted," not settled — see the method doc comment. No GL entry.
+      return withTenant(tenantId, async (trx) => {
+        const ref = await nextPettiRef(trx, tenantId, 'deposit');
+        return trx.insertInto('petti_deposits').values({
+          tenant_id: tenantId,
+          wallet_id: wallet.id,
+          amount: data.amount,
+          method,
+          gateway_provider: data.gatewayProvider || null,
+          gateway_tx_ref: data.gatewayTxRef || confirmation.providerRef || null,
+          reference: data.reference || null,
+          ref,
+          note: data.note || null,
+          journal_entry_id: null,
+          recorded_by: userId,
+          status: 'pending',
+        }).returningAll().executeTakeFirstOrThrow();
+      });
+    }
 
     const walletAccount = await withTenant(tenantId, (trx) =>
       trx.selectFrom('chart_of_accounts').select('code').where('id', '=', wallet.gl_account_id).executeTakeFirstOrThrow()
@@ -688,8 +720,69 @@ export class PettiService {
         note: data.note || null,
         journal_entry_id: journalEntryId,
         recorded_by: userId,
+        status: 'confirmed',
       }).returningAll().executeTakeFirstOrThrow();
     });
+  }
+
+  /** Resolves a 'pending' gateway deposit once a human has actually checked
+   *  with the provider (their merchant portal, the SMS confirmation, a
+   *  support call) — no automated webhook receiver exists yet for either
+   *  provider (that needs each provider's real callback spec verified
+   *  against a live sandbox, not guessed at; see LENS-44's remaining note).
+   *  Until that exists, this manual reconciliation step is what actually
+   *  closes a pending deposit instead of leaving it stuck forever: on
+   *  'confirmed' it posts the GL entry now (same shape as a manual
+   *  deposit); on 'failed' it just marks the row, no GL impact. */
+  static async confirmReconciledDeposit(tenantId: string, userId: string, depositId: string, outcome: 'confirmed' | 'failed', note?: string) {
+    const deposit = await withTenant(tenantId, (trx) =>
+      trx.selectFrom('petti_deposits').selectAll()
+        .where('id', '=', depositId).where('tenant_id', '=', tenantId).executeTakeFirst()
+    );
+    if (!deposit) throw new Error('Deposit not found.');
+    if (deposit.status !== 'pending') throw new Error(`This deposit is already ${deposit.status} — nothing to reconcile.`);
+
+    if (outcome === 'failed') {
+      return withTenant(tenantId, (trx) =>
+        trx.updateTable('petti_deposits').set({
+          status: 'failed',
+          reconciled_by: userId,
+          reconciled_at: new Date(),
+          note: note ? `${deposit.note ? deposit.note + ' — ' : ''}${note}` : deposit.note,
+        }).where('id', '=', depositId).where('tenant_id', '=', tenantId)
+          .returningAll().executeTakeFirstOrThrow()
+      );
+    }
+
+    const wallet = await withTenant(tenantId, (trx) =>
+      trx.selectFrom('petti_wallets').selectAll().where('id', '=', deposit.wallet_id).executeTakeFirstOrThrow()
+    );
+    const walletAccount = await withTenant(tenantId, (trx) =>
+      trx.selectFrom('chart_of_accounts').select('code').where('id', '=', wallet.gl_account_id).executeTakeFirstOrThrow()
+    );
+    const journalEntryId = await GLService.post(tenantId, {
+      entryDate: new Date().toISOString(),
+      description: `Petti deposit (reconciled): ${wallet.name}${deposit.reference ? ` (${deposit.reference})` : ''}`,
+      reference: deposit.reference ?? undefined,
+      sourceModule: 'MANUAL',
+      sourceId: wallet.id,
+      createdBy: userId,
+      lines: [
+        { accountCode: walletAccount.code, debit: Number(deposit.amount), credit: 0, description: `Deposit to ${wallet.name}`, currency: wallet.currency },
+        { accountCode: BANK_ACCOUNT, debit: 0, credit: Number(deposit.amount), description: `To ${wallet.name}`, currency: wallet.currency },
+      ],
+    });
+
+    return withTenant(tenantId, (trx) =>
+      trx.updateTable('petti_deposits').set({
+        status: 'confirmed',
+        journal_entry_id: journalEntryId,
+        reconciled_by: userId,
+        reconciled_at: new Date(),
+        note: note ? `${deposit.note ? deposit.note + ' — ' : ''}${note}` : deposit.note,
+      }).where('id', '=', depositId).where('tenant_id', '=', tenantId)
+        .returningAll().executeTakeFirstOrThrow()
+    );
   }
 
   /** Moves funds between two of a tenant's own wallets — one balanced
@@ -1291,13 +1384,16 @@ export class PettiService {
    * disbursement — not a parallel, invisible money movement.
    */
   static async payFromWalletDirect(tenantId: string, actor: PettiActor, input: {
-    walletId: string; amount: number; category: PettiCategory; purpose: string;
+    walletId: string; amount: number; currency?: string; category: PettiCategory; purpose: string;
   }) {
     const { walletId, amount, category, purpose } = input;
     const wallet = await withTenant(tenantId, (trx) =>
       trx.selectFrom('petti_wallets').selectAll().where('id', '=', walletId).where('tenant_id', '=', tenantId).executeTakeFirst()
     );
     if (!wallet) throw new Error('Wallet not found.');
+    if (input.currency && wallet.currency !== input.currency) {
+      throw new Error(`This invoice requires a ${input.currency} wallet. The selected wallet uses ${wallet.currency}.`);
+    }
     if (wallet.status !== 'active') throw new Error(`"${wallet.name}" is closed and cannot be drawn from.`);
 
     const balance = await PettiService.getWalletBalance(tenantId, wallet.gl_account_id);

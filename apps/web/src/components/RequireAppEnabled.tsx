@@ -11,6 +11,7 @@ interface RequireAppEnabledProps {
    *  otherwise show (e.g. Onsite's /onsite/activate for a tenant that just
    *  lost its plan). Exact match, not a prefix. */
   bypassPaths?: string[];
+  freeAccessPaths?: string[];
 }
 
 function FullScreenNotice({ icon, title, message }: { icon: IconName; title: string; message: string }) {
@@ -33,7 +34,7 @@ function FullScreenNotice({ icon, title, message }: { icon: IconName; title: str
 }
 
 /** Blocks an app's shell when it's under maintenance or not included in the tenant's plan. */
-export function RequireAppEnabled({ children, appId, bypassPaths }: RequireAppEnabledProps) {
+export function RequireAppEnabled({ children, appId, bypassPaths, freeAccessPaths }: RequireAppEnabledProps) {
   const entitlements = useEntitlements();
   const location = useLocation();
 
@@ -51,7 +52,7 @@ export function RequireAppEnabled({ children, appId, bypassPaths }: RequireAppEn
     );
   }
 
-  if (entitlements.features[appId] === false) {
+  if (entitlements.features[appId] === false && !freeAccessPaths?.includes(location.pathname.replace(/\/+$/, ''))) {
     return (
       <FullScreenNotice
         icon="lock"

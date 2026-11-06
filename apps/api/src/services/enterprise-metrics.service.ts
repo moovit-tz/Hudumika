@@ -44,8 +44,8 @@ export class EnterpriseMetricsService {
     const totalSubscriptions = Number(subs.total);
     const paidSubscriptions = Number((subs as any).paid);
 
-    const mrr = await dbPlatform.selectFrom('tenants' as any)
-      .innerJoin('packages' as any, 'packages.code', 'tenants.plan')
+    const mrr = await (dbPlatform.selectFrom('tenants' as any)
+      .innerJoin('packages' as any, 'packages.code', 'tenants.plan') as any)
       .select(sql<number>`coalesce(sum(packages.monthly_price), 0)`.as('mrr'))
       .where('tenants.active', '=', true)
       .where('tenants.plan', '<>', 'starter')
@@ -109,8 +109,8 @@ export class EnterpriseMetricsService {
       .executeTakeFirstOrThrow();
 
     return {
-      ...row,
-      mrr_amount: Number(row.mrr_amount),
+      ...(row as any),
+      mrr_amount: Number((row as any).mrr_amount),
     };
   }
 
@@ -195,7 +195,7 @@ export class EnterpriseMetricsService {
           blockers: blockerCount,
           app_usage: JSON.stringify({}),
         } as any)
-        .onConflict((oc) => oc.columns(['tenant_id', 'snapshot_date', 'metric_type'] as any).doUpdateSet({
+        .onConflict((oc: any) => oc.columns(['tenant_id', 'snapshot_date', 'metric_type'] as any).doUpdateSet({
           user_count: userCount,
           entity_count: entityCount,
           site_count: siteCount,
@@ -230,7 +230,7 @@ export class EnterpriseMetricsService {
       const rows = await q.orderBy('snapshot_date', 'desc')
         .limit(filters?.limit ?? 30)
         .execute();
-      return rows.map(r => ({
+      return rows.map((r: any) => ({
         ...r,
         compliance_score: r.compliance_score != null ? Number(r.compliance_score) : null,
         total_cost_ytd: Number(r.total_cost_ytd),
@@ -258,7 +258,7 @@ export class EnterpriseMetricsService {
           enforcement: input.enforcement ?? 'soft',
           overage_action: input.overage_action ?? 'warn',
         } as any)
-        .onConflict((oc) => oc.columns(['tenant_id', 'resource_type'] as any).doUpdateSet({
+        .onConflict((oc: any) => oc.columns(['tenant_id', 'resource_type'] as any).doUpdateSet({
           max_allowed: input.max_allowed,
           enforcement: input.enforcement ?? 'soft',
           overage_action: input.overage_action ?? 'warn',
@@ -353,7 +353,7 @@ export class EnterpriseMetricsService {
             expires_at: input.expires_at ? new Date(input.expires_at) : null,
             created_by: userId,
           } as any)
-          .onConflict((oc) => oc.columns(['tenant_id', 'job_type', 'job_key'] as any).doNothing())
+          .onConflict((oc: any) => oc.columns(['tenant_id', 'job_type', 'job_key'] as any).doNothing())
           .returningAll()
           .executeTakeFirst();
       });

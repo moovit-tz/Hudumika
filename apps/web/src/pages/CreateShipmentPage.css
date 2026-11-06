@@ -1,4 +1,14 @@
+/* ══════════════════════════════════════════════════════════════════════════════
+   CreateShipmentPage.css — Modern Freight Case Wizard Layout
+   ══════════════════════════════════════════════════════════════════════════════ */
+
 .create-shipment-page {
+  --shipment-accent: var(--app-color, var(--teal));
+  --shipment-accent-l: color-mix(in srgb, var(--shipment-accent) 12%, transparent);
+  --shipment-accent-m: color-mix(in srgb, var(--shipment-accent) 22%, transparent);
+  --shipment-accent-subtle: color-mix(in srgb, var(--shipment-accent) 6%, transparent);
+  --shipment-accent-glow: color-mix(in srgb, var(--shipment-accent) 15%, transparent);
+  --shipment-accent-ring: color-mix(in srgb, var(--shipment-accent) 25%, transparent);
   display: flex;
   min-height: calc(100vh - 100px);
   background: var(--bg);
@@ -9,6 +19,7 @@
   box-shadow: var(--elev);
 }
 
+/* ── Sidebar Wizard Navigation ────────────────────────────────────────────── */
 .create-shipment-sidebar {
   width: 280px;
   background: var(--bg);
@@ -16,23 +27,28 @@
   padding: 32px 24px;
   display: flex;
   flex-direction: column;
+  flex-shrink: 0;
 }
 
 .create-shipment-brand {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 10px;
   font-size: 18px;
   font-weight: 800;
   color: var(--ink);
-  margin-bottom: 40px;
+  margin-bottom: 36px;
   text-decoration: none;
+}
+
+.create-shipment-mobile-header {
+  display: none;
 }
 
 .create-shipment-steps {
   display: flex;
   flex-direction: column;
-  gap: 20px;
+  gap: 22px;
   position: relative;
 }
 
@@ -40,9 +56,9 @@
 .create-shipment-steps::before {
   content: '';
   position: absolute;
-  top: 12px;
-  bottom: 12px;
-  left: 11px;
+  top: 14px;
+  bottom: 14px;
+  left: 13px;
   width: 2px;
   background: var(--border);
   z-index: 1;
@@ -50,37 +66,49 @@
 
 .create-shipment-step {
   display: flex;
-  gap: 16px;
+  gap: 14px;
   position: relative;
   z-index: 2;
+  cursor: pointer;
+  background: none;
+  border: none;
+  padding: 0;
+  text-align: left;
+  user-select: none;
+}
+
+.create-shipment-step.pending {
+  cursor: default;
 }
 
 .create-shipment-step-indicator {
-  width: 24px;
-  height: 24px;
+  width: 28px;
+  height: 28px;
   border-radius: 50%;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 11px;
+  font-size: 12px;
   font-weight: 700;
   flex-shrink: 0;
-  transition: all 0.2s;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
   background: var(--white);
-  border: 1px solid var(--border);
+  border: 2px solid var(--border);
   color: var(--ink3);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
 }
 
 .create-shipment-step.active .create-shipment-step-indicator {
-  background: hsl(var(--primary));
-  border-color: hsl(var(--primary));
-  color: hsl(var(--primary-foreground));
+  background: var(--shipment-accent);
+  border-color: var(--shipment-accent);
+  color: #ffffff;
+  box-shadow: 0 0 0 4px var(--shipment-accent-l);
 }
 
 .create-shipment-step.completed .create-shipment-step-indicator {
   background: var(--white);
-  border-color: var(--ink);
-  color: var(--ink);
+  border-color: var(--shipment-accent);
+  color: var(--shipment-accent);
 }
 
 .create-shipment-step-content {
@@ -89,27 +117,43 @@
 }
 
 .create-shipment-step-title {
-  font-size: 14px;
+  font-size: 13.5px;
   font-weight: 700;
   color: var(--ink);
-  margin-top: 2px;
+  margin-top: 3px;
+  line-height: 1.25;
 }
+
+.create-shipment-step-title-full {
+  display: inline;
+}
+
+.create-shipment-step-title-short {
+  display: none;
+}
+
+.create-shipment-step.active .create-shipment-step-title {
+  color: var(--shipment-accent);
+}
+
 .create-shipment-step.pending .create-shipment-step-title {
   color: var(--ink3);
 }
 
 .create-shipment-step-desc {
-  font-size: 12px;
+  font-size: 11.5px;
   color: var(--ink3);
-  margin-top: 4px;
+  margin-top: 3px;
   line-height: 1.4;
 }
 
+/* ── Main Content Area ───────────────────────────────────────────────────── */
 .create-shipment-main {
   flex: 1;
   display: flex;
   flex-direction: column;
   overflow-y: auto;
+  min-width: 0;
 }
 
 .create-shipment-header {
@@ -121,62 +165,814 @@
 .create-shipment-content {
   flex: 1;
   padding: 24px 40px 40px;
-  max-width: 1200px;
+  max-width: 1100px;
   width: 100%;
-}
-
-.create-shipment-title {
-  font-size: 24px;
-  font-weight: 800;
-  color: var(--ink);
-  margin-bottom: 8px;
-}
-
-.create-shipment-subtitle {
-  font-size: 14px;
-  color: var(--ink3);
-  margin-bottom: 32px;
 }
 
 .create-shipment-card {
   background: var(--white);
   border: 1px solid var(--border);
-  border-radius: 12px;
-  padding: 32px;
+  border-radius: 14px;
+  padding: 28px 32px;
   box-shadow: var(--elev);
 }
 
+/* ── Step 1 & 2: Dropzones with Centered Featured Icons ───────────────────── */
+.shipment-upload-zone {
+  border: 2px dashed var(--border);
+  border-radius: 14px;
+  padding: 48px 24px;
+  text-align: center;
+  background: var(--bg);
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+
+.shipment-upload-zone:hover,
+.shipment-upload-zone.dragover {
+  border-color: var(--shipment-accent);
+  background: var(--shipment-accent-subtle);
+  box-shadow: 0 4px 16px var(--shipment-accent-glow);
+}
+
+.shipment-upload-icon-circle {
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  background: var(--shipment-accent-l);
+  color: var(--shipment-accent);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 16px;
+  box-shadow: 0 0 0 8px var(--shipment-accent-glow);
+  transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.shipment-upload-zone:hover .shipment-upload-icon-circle {
+  transform: scale(1.08);
+}
+
+.shipment-upload-title {
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--ink);
+  margin-bottom: 6px;
+}
+
+.shipment-upload-subtitle {
+  font-size: 13px;
+  color: var(--ink3);
+  margin-bottom: 12px;
+}
+
+.shipment-upload-badges {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+  justify-content: center;
+  margin-top: 6px;
+}
+
+.shipment-format-pill {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--ink2);
+  background: var(--white);
+  border: 1px solid var(--border);
+  padding: 3px 9px;
+  border-radius: 999px;
+}
+
+/* ── Section Cards inside Step 3 ─────────────────────────────────────────── */
+.shipment-section-card {
+  background: var(--white);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 20px 22px;
+  margin-bottom: 20px;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.02);
+}
+
+.shipment-section-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 16px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid var(--border);
+}
+
+.shipment-section-icon-wrap {
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  background: var(--shipment-accent-l);
+  color: var(--shipment-accent);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.shipment-section-title {
+  font-size: 14.5px;
+  font-weight: 700;
+  color: var(--ink);
+  line-height: 1.2;
+}
+
+.shipment-section-desc {
+  font-size: 12px;
+  color: var(--ink3);
+  margin-top: 2px;
+}
+
+/* ── Transport Mode Visual Tiles Grid ────────────────────────────────────── */
+.shipment-transport-grid {
+  display: grid;
+  grid-template-columns: repeat(6, 1fr);
+  gap: 10px;
+  margin-bottom: 18px;
+}
+
+@media (max-width: 900px) {
+  .shipment-transport-grid {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
+@media (max-width: 540px) {
+  .shipment-transport-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+.shipment-transport-tile {
+  background: var(--white);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 12px 8px;
+  text-align: center;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  user-select: none;
+}
+
+.shipment-transport-tile:hover {
+  border-color: var(--border2, #cbd5e1);
+  transform: translateY(-1px);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.04);
+}
+
+.shipment-transport-tile.active {
+  border-color: var(--shipment-accent) !important;
+  background: var(--shipment-accent-subtle) !important;
+  box-shadow: 0 0 0 2px var(--shipment-accent) !important;
+}
+
+.shipment-transport-tile-icon {
+  width: 34px;
+  height: 34px;
+  border-radius: 8px;
+  background: var(--bg);
+  color: var(--ink2);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 8px;
+  transition: all 0.15s;
+}
+
+.shipment-transport-tile.active .shipment-transport-tile-icon {
+  background: var(--shipment-accent);
+  color: #ffffff;
+}
+
+.shipment-transport-tile-label {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--ink);
+  line-height: 1.2;
+}
+
+.shipment-transport-tile-sub {
+  font-size: 10px;
+  color: var(--ink3);
+  margin-top: 2px;
+}
+
+/* ── Origin / Destination Route Connector with Middle Icon ───────────────── */
+.shipment-route-row {
+  display: flex;
+  align-items: flex-end;
+  gap: 16px;
+  position: relative;
+  margin-bottom: 16px;
+}
+
+.shipment-route-col {
+  flex: 1;
+  min-width: 0;
+}
+
+.shipment-route-middle {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  width: 56px;
+  margin-bottom: 6px;
+  flex-shrink: 0;
+}
+
+@media (max-width: 680px) {
+  .shipment-route-row {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 8px;
+  }
+  .shipment-route-middle {
+    width: 100%;
+    margin: 4px 0;
+  }
+  .shipment-route-line {
+    left: 15%;
+    right: 15%;
+  }
+}
+
+.shipment-route-line {
+  position: absolute;
+  top: 50%;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: var(--border);
+  z-index: 1;
+}
+
+.shipment-route-icon-badge {
+  position: relative;
+  z-index: 2;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: var(--white);
+  border: 2px solid var(--shipment-accent);
+  color: var(--shipment-accent);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 2px 8px var(--shipment-accent-glow);
+  transition: transform 0.2s;
+}
+
+.shipment-route-middle:hover .shipment-route-icon-badge {
+  transform: scale(1.1);
+}
+
+/* ── Form Row Grids ──────────────────────────────────────────────────────── */
+.shipment-form-row {
+  display: flex;
+  gap: 16px;
+  margin-bottom: 16px;
+}
+
+@media (max-width: 640px) {
+  .shipment-form-row {
+    flex-direction: column;
+    gap: 12px;
+  }
+}
+
+.shipment-form-label {
+  display: block;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--ink2);
+  margin-bottom: 6px;
+}
+
+.shipment-form-input {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 8px 12px;
+  border: 1px solid var(--border);
+  border-radius: var(--r, 8px);
+  background: var(--white);
+  color: var(--ink);
+  font-size: 13.5px;
+  font-family: inherit;
+  outline: none;
+  transition: border-color 0.15s, box-shadow 0.15s;
+  min-height: 40px;
+}
+
+.shipment-form-input:focus {
+  border-color: var(--shipment-accent);
+  box-shadow: 0 0 0 2px var(--shipment-accent-ring);
+}
+
+/* ── Step 4: Summary Card ────────────────────────────────────────────────── */
+.shipment-confirm-hero {
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 24px;
+  margin-bottom: 20px;
+}
+
+.shipment-confirm-route-banner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 16px 20px;
+  background: var(--white);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  margin-top: 14px;
+}
+
+.shipment-confirm-route-point {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  flex: 1;
+}
+
+.shipment-confirm-route-point--right {
+  text-align: right;
+  align-items: flex-end;
+}
+
+.shipment-confirm-route-tag {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--ink3);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.shipment-confirm-route-val {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--ink);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 100%;
+}
+
+.shipment-confirm-route-connector {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--shipment-accent);
+  flex-shrink: 0;
+}
+
+.shipment-confirm-route-line {
+  height: 1px;
+  width: 32px;
+  background: var(--border);
+}
+
+.shipment-confirm-route-icon {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: var(--shipment-accent-l);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.shipment-confirm-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px 24px;
+  margin-top: 20px;
+}
+
+.shipment-excel-btn-group {
+  display: flex;
+  justify-content: center;
+  gap: 14px;
+  margin-bottom: 36px;
+  flex-wrap: wrap;
+}
+
+/* ── Button & Accent Elements ────────────────────────────────────────────── */
+.create-shipment-page .btn-primary {
+  background: var(--shipment-accent) !important;
+  border-color: var(--shipment-accent) !important;
+  color: #ffffff !important;
+}
+
+.create-shipment-page .btn-primary:hover:not(:disabled) {
+  filter: brightness(0.92);
+}
+
+.create-shipment-page [data-variant="brand"] {
+  background: var(--shipment-accent-l);
+  color: var(--shipment-accent);
+}
+
+/* ── Footer ──────────────────────────────────────────────────────────────── */
 .create-shipment-footer {
   display: flex;
   justify-content: space-between;
   align-items: center;
+  gap: 16px;
   margin-top: 32px;
   padding-top: 24px;
   border-top: 1px solid var(--border);
 }
 
-@media (max-width: 768px) {
+.create-shipment-footer-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.create-shipment-footer-actions--end {
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
+.create-shipment-missing-msg {
+  font-size: 12px;
+  color: var(--ink3);
+}
+
+/* ── Responsive rules ────────────────────────────────────────────────────── */
+@media (max-width: 860px) {
   .create-shipment-page {
     flex-direction: column;
+    min-height: auto;
+    border-radius: 0;
+    border-left: none;
+    border-right: none;
+    box-shadow: none;
   }
+
   .create-shipment-sidebar {
     width: 100%;
-    padding: 20px;
+    padding: 10px 14px;
     border-right: none;
     border-bottom: 1px solid var(--border);
+    position: sticky;
+    top: 0;
+    z-index: 20;
+    background: var(--bg);
+    backdrop-filter: blur(12px);
   }
+
+  .create-shipment-brand {
+    display: none;
+  }
+
+  .create-shipment-mobile-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 8px;
+    padding: 0 2px;
+  }
+
+  .create-shipment-mobile-step-badge {
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: var(--shipment-accent);
+    background: var(--shipment-accent-subtle);
+    border: 1px solid var(--shipment-accent-ring);
+    padding: 2px 8px;
+    border-radius: 999px;
+  }
+
+  .create-shipment-mobile-step-name {
+    font-size: 12.5px;
+    font-weight: 600;
+    color: var(--ink);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
   .create-shipment-steps {
-    flex-direction: row;
-    overflow-x: auto;
-    padding-bottom: 10px;
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 6px;
+    width: 100%;
+    padding: 0;
+    margin: 0;
   }
+
   .create-shipment-steps::before {
     display: none;
   }
+
+  .create-shipment-step {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    padding: 8px 4px;
+    border-radius: 8px;
+    background: var(--white);
+    border: 1px solid var(--border);
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.02);
+    transition: all 0.15s ease;
+    min-width: 0;
+    width: 100%;
+    box-sizing: border-box;
+  }
+
+  .create-shipment-step.active {
+    border: 1.5px solid var(--shipment-accent) !important;
+    background: var(--shipment-accent-subtle) !important;
+    box-shadow: none !important;
+  }
+
+  .create-shipment-step.completed {
+    border-color: var(--border);
+    background: var(--white);
+    cursor: pointer;
+  }
+
+  .create-shipment-step.pending {
+    opacity: 0.85;
+  }
+
+  .create-shipment-step-indicator {
+    width: 20px;
+    height: 20px;
+    font-size: 11px;
+    font-weight: 700;
+    border-width: 1.5px;
+    box-shadow: none !important;
+    flex-shrink: 0;
+  }
+
+  .create-shipment-step.active .create-shipment-step-indicator {
+    background: var(--shipment-accent) !important;
+    border-color: var(--shipment-accent) !important;
+    color: #ffffff !important;
+    box-shadow: none !important;
+  }
+
+  .create-shipment-step.completed .create-shipment-step-indicator {
+    background: var(--white) !important;
+    border-color: var(--shipment-accent) !important;
+    color: var(--shipment-accent) !important;
+    box-shadow: none !important;
+  }
+
+  .create-shipment-step-content {
+    display: flex;
+    align-items: center;
+    min-width: 0;
+    overflow: hidden;
+  }
+
+  .create-shipment-step-title {
+    font-size: 11.5px;
+    font-weight: 700;
+    margin: 0;
+    line-height: 1;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .create-shipment-step-title-full {
+    display: none !important;
+  }
+
+  .create-shipment-step-title-short {
+    display: inline !important;
+  }
+
+  .create-shipment-step.active .create-shipment-step-title {
+    color: var(--shipment-accent);
+  }
+
+  .create-shipment-step.completed .create-shipment-step-title {
+    color: var(--ink);
+  }
+
+  .create-shipment-step.pending .create-shipment-step-title {
+    color: var(--ink3);
+  }
+
   .create-shipment-step-desc {
     display: none;
   }
-  .create-shipment-header, .create-shipment-content {
-    padding: 20px;
+
+  .create-shipment-header {
+    padding: 14px 16px 0;
+  }
+
+  .create-shipment-content {
+    padding: 14px 16px 32px;
+  }
+
+  .create-shipment-card {
+    padding: 20px 16px;
+    border-radius: 12px;
+  }
+}
+
+@media (max-width: 380px) {
+  .create-shipment-sidebar {
+    padding: 8px 10px;
+  }
+
+  .create-shipment-steps {
+    gap: 4px;
+  }
+
+  .create-shipment-step {
+    padding: 6px 2px;
+    gap: 3px;
+    border-radius: 6px;
+  }
+
+  .create-shipment-step-indicator {
+    width: 17px;
+    height: 17px;
+    font-size: 9.5px;
+  }
+
+  .create-shipment-step-title {
+    font-size: 10px;
+    letter-spacing: -0.01em;
+  }
+}
+
+@media (max-width: 640px) {
+  .shipment-upload-zone {
+    padding: 32px 16px;
+    border-radius: 12px;
+  }
+
+  .shipment-upload-icon-circle {
+    width: 52px;
+    height: 52px;
+    margin-bottom: 12px;
+  }
+
+  .shipment-upload-title {
+    font-size: 14.5px;
+  }
+
+  .shipment-upload-subtitle {
+    font-size: 12px;
+  }
+
+  .shipment-excel-btn-group {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 10px;
+    margin-bottom: 24px;
+  }
+
+  .shipment-excel-btn-group .btn {
+    width: 100%;
+    min-height: 44px;
+    justify-content: center;
+  }
+
+  .shipment-section-card {
+    padding: 14px 12px;
+    border-radius: 10px;
+    margin-bottom: 14px;
+  }
+
+  .shipment-section-header {
+    gap: 8px;
+    margin-bottom: 12px;
+    padding-bottom: 10px;
+  }
+
+  .shipment-section-icon-wrap {
+    width: 28px;
+    height: 28px;
+    border-radius: 6px;
+  }
+
+  .shipment-section-title {
+    font-size: 13.5px;
+  }
+
+  .shipment-section-desc {
+    font-size: 11px;
+  }
+
+  .shipment-form-row {
+    flex-direction: column;
+    gap: 12px;
+    margin-bottom: 12px;
+  }
+
+  .shipment-form-label {
+    font-size: 11.5px;
+    margin-bottom: 4px;
+  }
+
+  .shipment-form-input {
+    min-height: 42px;
+    font-size: 14px;
+    padding: 9px 12px;
+  }
+
+  .shipment-confirm-hero {
+    padding: 16px 14px;
+    border-radius: 10px;
+  }
+
+  .shipment-confirm-grid {
+    grid-template-columns: 1fr;
+    gap: 12px;
+    margin-top: 14px;
+  }
+
+  .create-shipment-footer {
+    flex-direction: column-reverse;
+    align-items: stretch;
+    gap: 10px;
+    margin-top: 24px;
+    padding-top: 16px;
+  }
+
+  .create-shipment-footer-actions {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 8px;
+    width: 100%;
+  }
+
+  .create-shipment-footer .btn {
+    width: 100%;
+    min-height: 44px;
+    justify-content: center;
+    font-size: 13.5px;
+  }
+
+  .create-shipment-missing-msg {
+    text-align: center;
+    margin-bottom: 6px;
+    width: 100%;
+    line-height: 1.5;
+  }
+}
+
+@media (max-width: 480px) {
+  .create-shipment-header {
+    padding: 10px 12px 0;
+  }
+
+  .create-shipment-content {
+    padding: 10px 12px 24px;
+  }
+
+  .create-shipment-card {
+    padding: 14px 12px;
+    border-radius: 10px;
+  }
+
+  .shipment-confirm-route-banner {
+    padding: 10px 12px;
+    gap: 6px;
+  }
+
+  .shipment-confirm-route-tag {
+    font-size: 10px;
+  }
+
+  .shipment-confirm-route-val {
+    font-size: 12.5px;
+  }
+
+  .shipment-confirm-route-line {
+    width: 14px;
+  }
+
+  .shipment-confirm-route-icon {
+    width: 28px;
+    height: 28px;
   }
 }

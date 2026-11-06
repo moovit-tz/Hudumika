@@ -397,6 +397,32 @@ export function OverviewTab({ job, isMobile, isLive, onRefresh }: { job: Clearan
               (ListenersSidebar, below) — same avatar and name, minus the
               Change/+Assign action that card already has. One is enough. */}
 
+          {/* Re-added per LENS-33 — was pulled during the Hostinger-style
+              neutral pass because FlagChip's loud tinted-border look (raw
+              hex background/border) was the last holdout on this page.
+              Rebuilt on Badge's soft-tint variants instead: SLA_BREACH/
+              DEMURRAGE/PENALTY/OVERSPEND are real failures or cost risk
+              (error), MISSING_DOC is an outstanding to-do, not yet a
+              failure (warning). job.flags is real, server-derived data
+              (risk_flags where resolved = false) — not a placeholder. */}
+          {job.flags.length > 0 && (
+            <Card title="Flags">
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+                {job.flags.map(flag => {
+                  const cfg = FLAG_CFG[flag];
+                  if (!cfg) return null;
+                  const variant = flag === 'missing_doc' ? 'warning' : 'error';
+                  return (
+                    <Badge key={flag} variant={variant}>
+                      <Icon name={cfg.icon as IconName} size={11} />
+                      {cfg.label}
+                    </Badge>
+                  );
+                })}
+              </div>
+            </Card>
+          )}
+
           {/* What the workflow did, next to what people did. */}
           <AutomationHistoryCard shipmentId={job.id} />
 

@@ -11,6 +11,8 @@ import { PageLayout } from '../components/PageLayout.js';
 import { OPS_ROLES, MGMT_ROLES } from '../lib/permissions.js';
 import { FeaturedIcon } from '../components/ui/featured-icon.js';
 import { Button } from '../components/ui/button.js';
+import { useEntitlements } from '../hooks/useEntitlements.js';
+import { Banner } from '../components/ui/alert.js';
 
 import { CommandCenter }    from '../pages/CommandCenter.js';
 import { ClearOSLanding }   from '../pages/ClearOSLanding.js';
@@ -151,17 +153,24 @@ const NAV: SidebarSection[] = [
   },
 ];
 
+const FREE_CALCULATOR_PATHS = [
+  '/clearos', '/clearos/duty-check', '/clearos/customs-tools',
+  '/clearos/customs-tools/lcl', '/clearos/customs-tools/air', '/clearos/customs-tools/transit',
+];
+
 export function ClearOSShell() {
+  const calculatorsOnly = useEntitlements()?.features.clearos === false;
   return (
-    <WorkspaceApp appId="clearos">
+    <WorkspaceApp appId="clearos" freeAccessPaths={FREE_CALCULATOR_PATHS}>
       <div className="app-shell" data-clearos="true">
         <AppSidebar appId="clearos" sections={NAV} />
         <div className="app-main">
           <AppHeader />
           <div className="app-shell-content">
+            {calculatorsOnly && <Banner variant="brand">Basic estimates are free. A ClearOS entitlement is required for saved history and clearance operations.</Banner>}
             <Routes>
               <Route element={<PageLayout />}>
-                <Route index element={<ClearOSLanding />} />
+                <Route index element={calculatorsOnly ? <Navigate to="/clearos/customs-tools" replace /> : <ClearOSLanding />} />
                 <Route path="ops" element={<RequireRoles roles={OPS_ROLES}><CommandCenter /></RequireRoles>} />
                 <Route path="ops/new" element={<RequireRoles roles={OPS_ROLES}><CreateShipmentPage /></RequireRoles>} />
                 <Route path="duty-check" element={<RequireRoles roles={OPS_ROLES}><DutyCheckPage /></RequireRoles>} />

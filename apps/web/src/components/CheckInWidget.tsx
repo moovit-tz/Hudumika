@@ -5,6 +5,7 @@ import { showAlert } from '../lib/alert.js';
 import { useAuth } from '../hooks/useAuth.js';
 import { useIsMobile } from '../hooks/useIsMobile.js';
 import { useClockIn } from '../contexts/ClockInContext.js';
+import { useEnabledApps, isAppEnabled } from '../hooks/useEnabledApps.js';
 import { Switch } from './ui/switch.js';
 import { Tabs, TabsList, TabsTrigger } from './ui/tabs.js';
 import { Dialog, DialogContent } from './ui/dialog.js';
@@ -59,7 +60,14 @@ export const CheckInWidget: React.FC = () => {
   // own "Exempt from timesheets" toggle, profile.timesheet_exempt). Showing
   // the check-in prompt to someone who was never meant to use it isn't a
   // safe default to fall back on — it's a real nag with no correct action.
-  const isStaff = user && user.role !== 'CUSTOMER' && !user.profile?.timesheet_exempt;
+  // Mounted once, globally, at the App.tsx root — fires on every page
+  // regardless of which app is actually entitled. hr.routes.ts requires
+  // 'nexushr' for every /v1/hr/* route it gates, so a Petti/ComplyOS/
+  // Onsite-only tenant got a silent 403 on every page load. See the
+  // standalone-apps audit, 5 Nov 2026.
+  const enabledApps = useEnabledApps();
+  const nexushrEnabled = isAppEnabled('nexushr', enabledApps);
+  const isStaff = nexushrEnabled && user && user.role !== 'CUSTOMER' && !user.profile?.timesheet_exempt;
 
   // ── Load tasks and shipments ──
   useEffect(() => {

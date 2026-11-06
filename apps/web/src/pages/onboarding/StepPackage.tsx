@@ -69,7 +69,7 @@ export const StepPackage: React.FC<StepProps> = ({ draft, update, onNext, onBack
   }, []);
 
   useEffect(() => {
-    if (mode === 'plan' && !draft.package_code && packages.length) {
+    if (mode === 'plan' && packages.length && !packages.some(pkg => pkg.code === draft.package_code)) {
       const popular = packages.find((p: Package) => p.popular) ?? packages[0];
       update({ package_code: popular.code });
     }
@@ -100,7 +100,7 @@ export const StepPackage: React.FC<StepProps> = ({ draft, update, onNext, onBack
       onNext();
       return;
     }
-    if (!draft.package_code) { setErr('Please select a plan'); return; }
+    if (!packages.some(pkg => pkg.code === draft.package_code)) { setErr('Please select an available plan'); return; }
     onNext();
   };
 
@@ -125,7 +125,7 @@ export const StepPackage: React.FC<StepProps> = ({ draft, update, onNext, onBack
             className={`ob-billing-opt${draft.billing_cycle === 'annual' ? ' ob-billing-opt--active' : ''}`}
             onClick={() => update({ billing_cycle: 'annual' })}
            data-ui-native-button="">
-            Annually <span className="ob-billing-save">Save 30%</span>
+            Annually
           </button>
         </div>
 
@@ -185,7 +185,7 @@ export const StepPackage: React.FC<StepProps> = ({ draft, update, onNext, onBack
       <div className="ob-pkg-grid">
         {packages.map((pkg, idx) => {
           const isCustom = pkg.code === 'enterprise';
-          const isFlat = pkg.price_flat_monthly != null;
+          const isFlat = pkg.price_flat_monthly != null || pkg.price_flat_annual != null;
           const curr = pkg.currency === 'TZS' ? 'TZS' : '$';
           const sep = pkg.currency === 'TZS' ? ' ' : '';
 
@@ -198,15 +198,15 @@ export const StepPackage: React.FC<StepProps> = ({ draft, update, onNext, onBack
             priceUnit = '';
           } else if (isFlat) {
             const monthly = draft.billing_cycle === 'annual'
-              ? Math.round((pkg.price_flat_annual ?? pkg.price_flat_monthly! * 10) / 12)
-              : pkg.price_flat_monthly!;
+              ? Math.round((pkg.price_flat_annual ?? (pkg.price_flat_monthly ?? 0) * 12) / 12)
+              : pkg.price_flat_monthly ?? 0;
             displayPrice = `${curr}${sep}${monthly.toLocaleString()}`;
             priceUnit = '/mo';
             if (pkg.included_seats) {
               annualNote = `${pkg.included_seats} user${pkg.included_seats > 1 ? 's' : ''} included`;
             }
             if (draft.billing_cycle === 'annual') {
-              const annual = pkg.price_flat_annual ?? pkg.price_flat_monthly! * 10;
+              const annual = pkg.price_flat_annual ?? (pkg.price_flat_monthly ?? 0) * 12;
               annualNote = `Billed ${curr}${sep}${annual.toLocaleString()}/yr` + (pkg.included_seats ? ` · ${pkg.included_seats} users included` : '');
             }
           } else {

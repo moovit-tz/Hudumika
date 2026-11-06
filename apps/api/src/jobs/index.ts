@@ -17,6 +17,7 @@ import { runOnsiteDeploymentSyncJob } from './onsite-deployment-sync.job.js';
 import { runOnsiteUptimeJob, runOnsiteSslSweepJob, runOnsiteServerReachabilityJob } from './onsite-uptime.job.js';
 import { runWorkflowLearningJob } from './workflow-learning.job.js';
 import { runCloudTrashExpiryJob } from './cloud-trash-expiry.job.js';
+import { runPendingSignupsExpiryJob } from './pending-signups-expiry.job.js';
 import { runCloudStorageMaintenanceJob } from './cloud-storage-maintenance.job.js';
 import { runSubscriptionBillingJob } from './subscription-billing.job.js';
 import { runOnsiteBackupJob } from './onsite-backup.job.js';
@@ -76,6 +77,7 @@ export const JOB_REGISTRY: { name: string; schedule: string; fallbackOnly?: bool
   { name: 'Workflow Learning', schedule: 'Daily at 04:00' },
   { name: 'Compliance Expiry Reminders', schedule: 'Daily at 08:00' },
   { name: 'Cloud Trash Expiry', schedule: 'Daily at 02:00' },
+  { name: 'Pending Signups Expiry', schedule: 'Daily at 02:15' },
   { name: 'Onsite Config Backup', schedule: 'Daily at 03:00' },
   { name: 'TRA Z-Report Submission', schedule: 'Daily at 00:05' },
   { name: 'Sanctions List Sync (OFAC/UN)', schedule: 'Daily at 05:00' },
@@ -291,6 +293,8 @@ function startBullMQ(): void {
           await runWorkflowLearningJob();
         } else if (job.name === 'cloud-trash-expiry') {
           await runCloudTrashExpiryJob();
+        } else if (job.name === 'pending-signups-expiry') {
+          await runPendingSignupsExpiryJob();
         } else if (job.name === 'cloud-storage-maintenance') {
           await runCloudStorageMaintenanceJob();
         } else if (job.name === 'subscription-billing') {
@@ -558,6 +562,10 @@ function startBullMQ(): void {
 
     reminderQueue.add('cloud-trash-expiry', {}, {
       repeat: { pattern: '0 2 * * *' } // Daily at 2:00 AM — permanently delete Cloud Trash items past 30 days
+    }).catch(console.error);
+
+    reminderQueue.add('pending-signups-expiry', {}, {
+      repeat: { pattern: '15 2 * * *' } // Daily at 2:15 AM — expire abandoned hosted-checkout signups past 24h
     }).catch(console.error);
 
     reminderQueue.add('cloud-storage-maintenance', {}, {
@@ -838,6 +846,7 @@ function startIntervalFallback(): void {
     runComplyExpiryReminderJob().catch(console.error);
     runTRAZReportJob().catch(console.error);
     runCloudTrashExpiryJob().catch(console.error);
+    runPendingSignupsExpiryJob().catch(console.error);
     runCloudStorageMaintenanceJob().catch(console.error);
     runSubscriptionBillingJob().catch(console.error);
     runOnsiteBackupJob().catch(console.error);

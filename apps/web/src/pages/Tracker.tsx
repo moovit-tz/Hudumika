@@ -2,8 +2,8 @@ import { escapePrintData, safePrintImage } from '../lib/print-data.js';
 import { CarrierLogo } from '../components/container/CarrierLogo.js';
 import { detectShippingLine } from '../components/container/shippingLines.js';
 import { ContainerIdentity } from '../components/container/ContainerIdentity.js';
-import React, { useState, useEffect, useCallback, useRef } from 'react';
-import { useNavigate } from 'react-router-dom';
+import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
 import { apiFetch } from '../lib/api.js';
 import { Icon } from '../components/Icon.js';
 import { Tabs, TabsList, TabsTrigger } from '../components/ui/tabs.js';
@@ -19,6 +19,7 @@ import { Combobox } from '../components/ui/combobox.js';
 import { showAlert } from '../lib/alert.js';
 import { showConfirm } from '../lib/confirm.js';
 import { SectionCard } from '../components/SectionCard.js';
+import { Input } from '../components/ui/input.js';
 import { Tip } from '../components/ui/tooltip.js';
 import './Tracker.css';
 
@@ -446,6 +447,61 @@ function containerTimeline(result: TrackingResult): ContainerDetails['timeline']
   }));
 }
 
+const TRACKER_PAGE_SIZE = 10;
+
+function TrackerIconAction({ label, icon, onClick, disabled, size = 'default', className }: {
+  label: string; icon: IconName; onClick: () => void; disabled?: boolean; size?: 'default' | 'sm'; className?: string;
+}) {
+  const isSm = size === 'sm';
+  return (
+    <Tip label={label}>
+      <Button
+        type="button"
+        size="icon"
+        variant="ghost"
+        className={className ?? (isSm ? 'size-6.5 rounded-none p-0 text-(--ink2) hover:text-(--ink) hover:bg-(--hover-bg)' : '')}
+        aria-label={label}
+        onClick={onClick}
+        disabled={disabled}
+      >
+        <Icon name={icon} size={isSm ? 12 : 16} />
+      </Button>
+    </Tip>
+  );
+}
+
+interface TrackedEntry {
+  id: string;
+  container: {
+    container_number: string;
+    iso_code: string | null;
+    size_type: string | null;
+    carrier_name: string | null;
+    carrier_code: string | null;
+    customer_name: string | null;
+    color_hex: string | null;
+    lifecycle_stage: string | null;
+  } | null;
+  snapshots: TrackingSnapshot[];
+}
+
+function TrackerPagination({ label, page, count, loading, hasNext, onPrevious, onNext }: {
+  label: string; page: number; count: number; loading: boolean; hasNext: boolean;
+  onPrevious: () => void; onNext: () => void;
+}) {
+  if (!count && page === 1) return null;
+  const start = (page - 1) * TRACKER_PAGE_SIZE + 1;
+  return (
+    <nav aria-label={label} className="mt-3 flex flex-wrap items-center justify-between gap-2 text-sm">
+      <span aria-live="polite">{count ? `Showing ${start}–${start + count - 1} · ` : ''}Page {page}</span>
+      <div className="flex gap-2">
+        <Button variant="outline" size="sm" disabled={loading || page === 1} onClick={onPrevious}>Previous</Button>
+        <Button variant="outline" size="sm" disabled={loading || !hasNext} onClick={onNext}>Next</Button>
+      </div>
+    </nav>
+  );
+}
+
 export const Tracker: React.FC = () => {
   const isMobile = useIsMobile();
   const navigate = useNavigate();
@@ -459,41 +515,44 @@ export const Tracker: React.FC = () => {
   const [containerModel, setContainerModel] = useState<ContainerDetails | null>(null);
   const containerRequest = useRef(0);
 
-  const [snapshots, setSnapshots] = useState<TrackingSnapshot[]>([]);
   const [savingSnap, setSavingSnap] = useState(false);
   const [savedId, setSavedId] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
   const [linkingId, setLinkingId] = useState<string | null>(null);
   const [shipments, setShipments] = useState<any[]>([]);
-  const [loadingSnaps, setLoadingSnaps] = useState(true);
   const [demurrageContainers, setDemurrageContainers] = useState<any[]>([]);
   const [carrierReliability, setCarrierReliability] = useState<any | null>(null);
-  const [fleetContainers, setFleetContainers] = useState<any[]>([]);
-  const [fleetCursor,setFleetCursor] = useState<string>();
-  const [snapshotCursor,setSnapshotCursor] = useState<string>();
-  const [hasMoreFleet,setHasMoreFleet] = useState(false);
-  const [hasMoreSnapshots,setHasMoreSnapshots] = useState(false);
-  const [loadingFleet, setLoadingFleet] = useState(true);
+  const [tracked, setTracked] = useState<TrackedEntry[]>([]);
+  const [trackedPage, setTrackedPage] = useState(1);
+  const [hasMoreTracked, setHasMoreTracked] = useState(false);
+  const [loadingTracked, setLoadingTracked] = useState(true);
+  const [trackedError, setTrackedError] = useState('');
+  const trackedRequest = useRef(0);
 
-  const loadFleet = useCallback(async (cursor?: string) => {
-    setLoadingFleet(true);
-    try { const rows = await apiFetch(`/v1/tracker/containers?paged=true&limit=100${cursor?'&cursor='+encodeURIComponent(cursor):''}`) ?? []; setFleetContainers(prev=>cursor?[...prev,...rows.data]:rows.data); setHasMoreFleet(rows.has_more); setFleetCursor(rows.cursor); }
-    catch (error: any) { showAlert(error.message || 'Could not load containers'); }
-    finally { setLoadingFleet(false); }
+  const loadTracked = useCallback(async (page = 1) => {
+    const request = ++trackedRequest.current;
+    setLoadingTracked(true);
+    setTrackedError('');
+    try {
+      const rows = await apiFetch<{ data: TrackedEntry[]; has_more: boolean }>('/v1/tracker/tracked?page=' + page + '&limit=' + TRACKER_PAGE_SIZE);
+      if (request !== trackedRequest.current) return;
+      setTracked(rows.data);
+      setHasMoreTracked(rows.has_more);
+      setTrackedPage(page);
+    } catch (error) {
+      if (request === trackedRequest.current) setTrackedError(error instanceof Error ? error.message : 'Could not load tracked shipments.');
+    } finally {
+      if (request === trackedRequest.current) setLoadingTracked(false);
+    }
   }, []);
 
   useEffect(() => {
-    loadSnapshots();
-    loadFleet();
+    void loadTracked();
     apiFetch('/v1/shipments').then((d: any) => setShipments(d?.data ?? d ?? [])).catch(() => {});
-  }, []);
+  }, [loadTracked]);
 
-  const loadSnapshots = useCallback(async (cursor?: string) => {
-    setLoadingSnaps(true);
-    try { const rows = await apiFetch(`/v1/tracker/snapshots?paged=true&limit=100${cursor?'&cursor='+encodeURIComponent(cursor):''}`) ?? []; setSnapshots(prev=>cursor?[...prev,...rows.data]:rows.data); setHasMoreSnapshots(rows.has_more); setSnapshotCursor(rows.cursor); }
-    catch (error: any) { showAlert(error.message || 'Could not load saved tracking'); }
-    finally { setLoadingSnaps(false); }
-  }, []);
+  const fleetContainers = useMemo(() => tracked.flatMap(entry => entry.container ? [entry.container] : []), [tracked]);
+  const snapshots = useMemo(() => tracked.flatMap(entry => entry.snapshots), [tracked]);
 
   const handleInput = (v: string) => {
     setInputNumber(v);
@@ -501,7 +560,7 @@ export const Tracker: React.FC = () => {
     if (!n) return;
     if (/^\d{3}-?\d/.test(n)) setTrackType('AWB');
     else if (/^[A-Z]{4}\d{6,7}$/.test(n)) setTrackType('CONTAINER');
-    else if (/^[A-Z]{2,4}\d{6,}/.test(n)) setTrackType('BL');
+    else if (/^[A-Z0-9./-]*[A-Z][A-Z0-9./-]*\d[A-Z0-9./-]*$/.test(n)) setTrackType('BL');
   };
 
   const executeTrack = async (targetNum: string, targetType: 'AWB' | 'BL' | 'CONTAINER') => {
@@ -588,22 +647,20 @@ export const Tracker: React.FC = () => {
     try {
       const s = await apiFetch('/v1/tracker/snapshots', { method: 'POST', body: JSON.stringify({ ...result }) });
       setSavedId(s.id);
-      await loadSnapshots();
+      await loadTracked();
     } catch (e: any) { showAlert(e.message ?? 'Save failed'); }
     finally { setSavingSnap(false); }
   };
 
-  const copyLink = async (token: string) => {
-    const snap = snapshots.find(s => s.share_token === token);
-    if (!snap) return;
+  const copyLink = async (id: string) => {
     try {
-      const share = await apiFetch(`/v1/tracker/snapshots/${snap.id}/share`, { method: 'POST', body: JSON.stringify({ revoke: false }) });
+      const share = await apiFetch(`/v1/tracker/snapshots/${id}/share`, { method: 'POST', body: JSON.stringify({ revoke: false }) });
       await navigator.clipboard.writeText(`${window.location.origin}/track/shared/${share.share_token}`);
-      setCopied(true); setTimeout(() => setCopied(false), 2000); await loadSnapshots();
+      setCopied(true); setTimeout(() => setCopied(false), 2000); await loadTracked();
     } catch (error: any) { showAlert(error.message || 'Could not create share'); }
   };
   const revokeShare = async (id: string) => {
-    try { await apiFetch(`/v1/tracker/snapshots/${id}/share`, { method: 'POST', body: JSON.stringify({ revoke: true }) }); await loadSnapshots(); showAlert('Share revoked'); }
+    try { await apiFetch(`/v1/tracker/snapshots/${id}/share`, { method: 'POST', body: JSON.stringify({ revoke: true }) }); await loadTracked(); showAlert('Share revoked'); }
     catch (error: any) { showAlert(error.message || 'Could not revoke share'); }
   };
 
@@ -611,16 +668,16 @@ export const Tracker: React.FC = () => {
     setLinkingId(snapId);
     try {
       await apiFetch(`/v1/tracker/snapshots/${snapId}/link`, { method: 'PATCH', body: JSON.stringify({ shipment_id: shipId }) });
-      await loadSnapshots();
+      await loadTracked();
     } catch (e: any) { showAlert(e.message ?? 'Link failed'); }
     finally { setLinkingId(null); }
   };
 
   const deleteSnap = async (id: string) => {
-    if (!(await showConfirm('Delete this snapshot?', { confirmLabel: 'Delete' }))) return;
+    if (!(await showConfirm('Remove this tracking record?', { confirmLabel: 'Delete' }))) return;
     try {
       await apiFetch(`/v1/tracker/snapshots/${id}`, { method: 'DELETE' });
-      setSnapshots(p => p.filter(s => s.id !== id));
+      await loadTracked();
     } catch (e: any) { showAlert(e.message ?? 'Delete failed'); }
   };
 
@@ -643,7 +700,7 @@ export const Tracker: React.FC = () => {
         body: JSON.stringify({ tracking_number: editNumber.trim(), carrier: editCarrier.trim() || null }),
       });
       setEditingId(null);
-      await loadSnapshots();
+      await loadTracked();
     } catch (e: any) { showAlert(e.message ?? 'Update failed'); }
   };
 
@@ -698,7 +755,7 @@ export const Tracker: React.FC = () => {
       setSuggLoading(false);
     }, 300);
     return () => { if (suggTimer.current) clearTimeout(suggTimer.current); };
-  }, [inputNumber, snapshots]);
+  }, [inputNumber, snapshots, fleetContainers]);
 
   const pickSuggestion = (s: Suggestion) => {
     setInputNumber(s.number);
@@ -715,7 +772,7 @@ export const Tracker: React.FC = () => {
         method: 'PATCH',
         body: JSON.stringify(r),
       });
-      await loadSnapshots();
+      await loadTracked();
     } catch (e: any) { showAlert(e.message ?? 'Refresh failed'); }
     finally { setRetrackingId(null); }
   };
@@ -772,8 +829,8 @@ export const Tracker: React.FC = () => {
 
       {/* ── Header ── */}
       <PageHeader
-        crumbs={['Cargo Tracker', 'Container details']}
-        titlePlain="Cargo & Container"
+        crumbs={['Cargo Tracker', 'Shipment Tracker']}
+        titlePlain="Shipment"
         titleEm="Tracker"
         subtitle="Track containers, ocean bills of lading & air waybills · inspect 3D specifications, survey records, CSC certifications and milestone timelines."
         actions={
@@ -942,93 +999,6 @@ export const Tracker: React.FC = () => {
           </aside>
         )}
       </div>
-
-      {/* ── Tracked Fleet (real DB containers) ── */}
-      {!result && !loading && (
-        <SectionCard
-            title="Tracked Fleet"
-            action={
-              <div className="flex items-center gap-2">
-                <Button variant="outline" size="sm" onClick={()=>loadFleet()} disabled={loadingFleet}>
-                  <Icon name="refresh" size={13} color="var(--ink3)" />Refresh
-                </Button>
-                <Button size="sm" onClick={() => navigate('/cargotracker/containers/new')}>
-                  <Icon name="plus" size={13} color="hsl(var(--primary-foreground))" />Add
-                </Button>
-              </div>
-            }
-          >
-            {loadingFleet ? (
-              <SectionLoading label="Loading your fleet…" />
-            ) : fleetContainers.length === 0 ? (
-              <div className="py-10 flex flex-col items-center gap-3">
-                <FeaturedIcon variant="gray" size="lg">
-                  <Icon name="container" size={22} color="var(--ink3)" />
-                </FeaturedIcon>
-                <div className="text-center">
-                  <div className="text-sm font-bold text-(--ink)">No containers recorded yet</div>
-                  <div className="text-xs text-(--ink3) mt-1">Track a container above, or add one to your fleet.</div>
-                </div>
-              </div>
-            ) : (
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-                {fleetContainers.map((c: any) => {
-                  const stage = c.lifecycle_stage?.replace(/_/g, ' ') || 'Unknown';
-                  const stageVariant = c.lifecycle_stage === 'IN_TRANSIT' ? 'info'
-                    : c.lifecycle_stage === 'EMPTY_RETURNED' || c.lifecycle_stage === 'AVAILABLE_AT_DEPOT' ? 'success'
-                    : c.lifecycle_stage === 'CUSTOMS_CLEARED' || c.lifecycle_stage === 'DEVANNED' ? 'success'
-                    : c.lifecycle_stage === 'GATE_IN' || c.lifecycle_stage === 'LOADED_ON_VESSEL' ? 'brand'
-                    : 'gray';
-                  return (
-                    <div
-                      key={c.id}
-                      className="tracker-fleet-card"
-                      onClick={() => navigate(`/cargotracker/containers/${c.container_number}`)}
-                      role="button"
-                      tabIndex={0}
-                      onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') navigate(`/cargotracker/containers/${c.container_number}`); }}
-                    >
-                      <div className="flex items-start justify-between gap-2 mb-2">
-                        <div className="flex items-center gap-2 min-w-0">
-                          <div className="w-2 h-2 rounded-full shrink-0" style={{ background: c.color_hex || 'var(--teal)' }} />
-                          <span className="text-xs font-mono font-black text-(--ink) truncate">{c.container_number}</span>
-                        </div>
-                        <Badge variant={stageVariant as any} className="shrink-0 text-[10px]">
-                          {stage}
-                        </Badge>
-                      </div>
-                      <div className="text-[11px] text-(--ink3)">{c.size_type || c.iso_code}</div>
-                      {c.carrier_name && (
-                        <div className="text-[11px] text-(--ink3) mt-0.5">{c.carrier_name.split(' ')[0]} · {c.carrier_code}</div>
-                      )}
-                      {c.customer_name && (
-                        <div className="text-[11px] text-(--ink2) mt-1 font-semibold">{c.customer_name}</div>
-                      )}
-                      <div className="mt-2 flex items-center gap-1">
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          className="h-6 text-[10px] px-2"
-                          onClick={e => { e.stopPropagation(); selectPreset(c.container_number, 'CONTAINER'); }}
-                        >
-                          <Icon name="search" size={10} color="var(--teal)" />Track
-                        </Button>
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          className="h-6 text-[10px] px-2"
-                          onClick={e => { e.stopPropagation(); navigate(`/cargotracker/containers/${c.container_number}`); }}
-                        >
-                          <Icon name="externalLink" size={10} color="var(--ink3)" />Intel
-                        </Button>
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            )}
-          </SectionCard>
-      )}
 
       {/* ── HIGH FIDELITY CONTAINER DETAILS & TRACKING CARD (Image 1 & 2) ── */}
       {activeContainerNum && result && result.tracking_type !== 'AWB' && (
@@ -1329,19 +1299,19 @@ export const Tracker: React.FC = () => {
                   <Button className="w-full" onClick={handleSave} disabled={savingSnap}>
                     {savingSnap
                       ? <><ButtonSpinner />Saving…</>
-                      : <><Icon name="save" size={14} color="hsl(var(--primary-foreground))" />Save Snapshot</>
+                      : <><Icon name="save" size={14} color="hsl(var(--primary-foreground))" />Add to tracked</>
                     }
                   </Button>
                 ) : (
                   <Badge variant="success" className="justify-center py-3 text-[13px]">
                     <Icon name="checkCircle" size={15} color="var(--green)" />
-                    Snapshot saved
+                    Added to tracked
                   </Badge>
                 )}
 
                 {savedId && (
                   <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
-                    <Button variant="outline" size="sm" onClick={() => copyLink(snapshots.find(s => s.id === savedId)?.share_token ?? '')}>
+                    <Button variant="outline" size="sm" onClick={() => copyLink(savedId)}>
                       <Icon name="link" size={13} color="var(--teal)" />
                       {copied ? 'Copied!' : 'Share Link'}
                     </Button>
@@ -1424,138 +1394,275 @@ export const Tracker: React.FC = () => {
         </div>
       )}
 
-      {/* ── Saved Snapshots ── */}
       <SectionCard
-        title="Saved Snapshots"
+        title="Tracked"
         action={
-          <Button variant="outline" size="sm" onClick={()=>loadSnapshots()}>
-            <Icon name="refresh" size={13} />Refresh
-          </Button>
+          <div className="flex flex-wrap items-center justify-end gap-2">
+            <Tip label="Open Customs Tracker">
+              <Button variant="outline" size="sm" asChild>
+                <Link to="/cargotracker/customs" aria-label="Open Customs Tracker">
+                  <Icon name="shield" size={16} /><span className="hidden sm:inline">Customs Tracker</span>
+                </Link>
+              </Button>
+            </Tip>
+            <TrackerIconAction label="Refresh tracked list" icon="refresh" onClick={() => loadTracked(trackedPage)} disabled={loadingTracked} />
+            <TrackerIconAction label="Add container" icon="plus" onClick={() => navigate('/cargotracker/containers/new')} />
+          </div>
         }
       >
-        <div style={{ fontSize: 11, color: 'var(--ink3)', marginBottom: 16 }}>{snapshots.length} snapshot{snapshots.length !== 1 ? 's' : ''}</div>
-
-        {loadingSnaps ? (
-          <SectionLoading label="Loading snapshots…" />
-        ) : snapshots.length === 0 ? (
-          <div style={{ padding: '48px 0', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 14 }}>
-            <FeaturedIcon variant="gray" size="xl">
-              <Icon name="map" size={28} color="var(--ink3)" />
-            </FeaturedIcon>
-            <div style={{ textAlign: 'center' }}>
-              <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--ink)', marginBottom: 4 }}>No snapshots yet</div>
-              <div style={{ fontSize: 13, color: 'var(--ink3)' }}>Track a shipment above and save it to see it here</div>
-            </div>
-          </div>
+        {trackedError && <p role="alert" className="mb-3 text-sm text-destructive">{trackedError}</p>}
+        {loadingTracked && !tracked.length ? (
+          <SectionLoading label="Loading tracked shipments and containers…" />
+        ) : !tracked.length && trackedPage === 1 ? (
+          !trackedError && <p className="py-6 text-center text-sm text-(--ink2)">Track a shipment above and add it to this list, or add a container to your fleet.</p>
         ) : (
-          <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(auto-fill,minmax(280px,1fr))', gap: 14 }}>
-            {snapshots.map(snap => {
-              const days = daysUntil(snap.eta ?? null);
-              const st = getStatus(snap.status_code);
-              const evts = parseEvents(snap.events);
-              return (
-                <div key={snap.id} style={{ background: 'linear-gradient(150deg, hsl(220 65% 7%), hsl(220 58% 13%))', borderRadius: 'var(--r-lg)', border: '1px solid rgba(255,255,255,.07)', padding: '16px 18px', color: 'rgba(255,255,255,.92)', position: 'relative' }}>
-                  <button onClick={() => deleteSnap(snap.id)} style={{ position: 'absolute', top: 10, right: 10, width: 26, height: 26, borderRadius: '50%', border: 'none', background: 'rgba(255,255,255,.07)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }} data-ui-native-button="">
-                    <Icon name="x" size={12} color="rgba(255,255,255,.55)" />
-                  </button>
+          <>
+            <ul className="divide-y divide-(--border) overflow-hidden rounded-lg border border-(--border) bg-(--white)">
+              {tracked.map(({ id, container, snapshots: records }) => {
+                const primarySnap = records[0] ?? null;
+                const extraSnaps = records.slice(1);
 
-                  <div style={{fontSize:11,color:'rgba(255,255,255,.75)',marginBottom:10,paddingRight:24}}>
-                    {snap.source === 'live' ? `Provider: ${snap.provider || 'tracking provider'}` : snap.source === 'manual' ? 'Manually entered — not provider verified' : 'Unverified legacy snapshot — refresh from provider before relying on it'}
-                    {snap.fetched_at && ` · Fetched ${fmtDate(snap.fetched_at)}`}
-                  </div>
-                  {editingId === snap.id ? (
-                    <div style={{ marginBottom: 10, display: 'flex', flexDirection: 'column', gap: 6 }}>
-                      <input value={editNumber} onChange={e => setEditNumber(e.target.value)} placeholder="Tracking number"
-                        style={{ height: 30, borderRadius: 'var(--r)', border: '1px solid rgba(255,255,255,.15)', background: 'rgba(255,255,255,.07)', color: 'rgba(255,255,255,.92)', padding: '0 10px', fontSize: 12, fontFamily: 'var(--font)' }} />
-                      <input value={editCarrier} onChange={e => setEditCarrier(e.target.value)} placeholder="Carrier"
-                        style={{ height: 30, borderRadius: 'var(--r)', border: '1px solid rgba(255,255,255,.15)', background: 'rgba(255,255,255,.07)', color: 'rgba(255,255,255,.92)', padding: '0 10px', fontSize: 12 }} />
-                      <div style={{ display: 'flex', gap: 6 }}>
-                        <Button size="sm" onClick={saveEdit} style={{ flex: 1 }}>Save</Button>
-                        <Button size="sm" variant="outline" onClick={() => setEditingId(null)} style={{ flex: 1, borderColor: 'rgba(255,255,255,.15)', color: 'rgba(255,255,255,.55)', background: 'transparent' }}>Cancel</Button>
-                      </div>
-                    </div>
-                  ) : (
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 9, marginBottom: 10 }}>
-                      <div style={{ width: 32, height: 32, borderRadius: 'var(--r)', background: 'rgba(255,255,255,.1)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                        {detectShippingLine(snap.carrier ?? undefined) ? <CarrierLogo carrier={snap.carrier} size={28} /> : <Icon name={snap.tracking_type === 'AWB' ? 'compass' : 'anchor'} size={15} color="var(--teal)" />}
-                      </div>
-                      <div style={{ flex: 1, minWidth: 0 }}>
-                        <div style={{ fontSize: 9, color: 'rgba(255,255,255,.65)', textTransform: 'uppercase', letterSpacing: '.09em' }}>{snap.tracking_type} · {snap.carrier}</div>
-                        <div style={{ fontSize: 13, fontWeight: 800, fontFamily: 'var(--font)' }}>{snap.tracking_number}</div>
-                      </div>
-                      <Tip label="Edit entry"><button className="tr-btn" aria-label="Edit entry" onClick={() => startEdit(snap)} style={{ width: 26, height: 26, borderRadius: 'var(--r)', border: '1px solid rgba(255,255,255,.09)', background: 'rgba(255,255,255,.04)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }} data-ui-native-button="">
-                        <Icon name="edit" size={11} color="rgba(255,255,255,.55)" />
-                      </button></Tip>
-                      <Tip label="Refresh tracking status"><button className="tr-btn" aria-label="Refresh tracking status" onClick={() => retrack(snap)} disabled={retrackingId === snap.id} style={{ width: 26, height: 26, borderRadius: 'var(--r)', border: '1px solid rgba(255,255,255,.09)', background: 'rgba(255,255,255,.04)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, marginRight: 20, opacity: retrackingId === snap.id ? 0.5 : 1 }} data-ui-native-button="">
-                        <Icon name="refresh" size={11} color="rgba(255,255,255,.55)" />
-                      </button></Tip>
-                    </div>
-                  )}
+                return (
+                  <li key={id} className="min-w-0 [overflow-wrap:anywhere] transition-colors hover:bg-(--hover-bg)/30">
+                    {primarySnap ? (
+                      (() => {
+                        const snap = primarySnap;
+                        const days = daysUntil(snap.eta ?? null);
+                        const status = getStatus(snap.status_code);
+                        const events = parseEvents(snap.events);
+                        const badgeVariant = status.fg === 'var(--green)' ? 'success' : status.fg === 'var(--red)' ? 'error' : status.fg === 'var(--gold)' ? 'warning' : status.fg === 'var(--blue)' ? 'info' : 'gray';
 
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 5, marginBottom: 10 }}>
-                    <Icon name="mapPin" size={10} color="rgba(255,255,255,.65)" />
-                    <span style={{ fontSize: 11, color: 'rgba(255,255,255,.55)' }}>{snap.origin_name} → {snap.dest_name}</span>
-                  </div>
+                        return (
+                          <div className="min-w-0 px-3.5 py-2.5 sm:px-4 sm:py-2">
+                            {/* Row 1: Identity, Carrier, Route & Status/ETA */}
+                            <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1">
+                              {/* Left: Carrier Icon + Main ID + Badges + Type/Carrier */}
+                              <div className="flex items-center gap-2 min-w-0 flex-wrap">
+                                {detectShippingLine(snap.carrier ?? undefined) ? (
+                                  <CarrierLogo carrier={snap.carrier} size={22} />
+                                ) : (
+                                  <div className="size-5.5 rounded bg-muted/60 flex items-center justify-center shrink-0 text-(--ink2)">
+                                    <Icon name={snap.tracking_type === 'AWB' ? 'compass' : 'anchor'} size={12} />
+                                  </div>
+                                )}
+                                {container ? (
+                                  <div className="flex items-center gap-1.5 flex-wrap">
+                                    <span className="font-mono text-[13px] font-bold text-(--ink)">{container.container_number}</span>
+                                    <Badge
+                                      variant={['EMPTY_RETURNED', 'AVAILABLE_AT_DEPOT'].includes(container.lifecycle_stage ?? '') ? 'success' : 'gray'}
+                                      className="text-[10px] px-1.5 py-0 h-4 capitalize font-semibold"
+                                    >
+                                      {container.lifecycle_stage?.replace(/_/g, ' ').toLowerCase() || 'Status unknown'}
+                                    </Badge>
+                                    <span className="text-[11px] text-(--ink3)">
+                                      {[container.size_type || container.iso_code, snap.tracking_number ? `BL: ${snap.tracking_number}` : null, container.carrier_name || snap.carrier].filter(Boolean).join(' · ')}
+                                    </span>
+                                  </div>
+                                ) : (
+                                  <div className="flex items-center gap-1.5 flex-wrap">
+                                    <span className="font-mono text-[13px] font-bold text-(--ink)">{snap.tracking_number}</span>
+                                    <span className="text-[11px] text-(--ink3)">
+                                      {[snap.tracking_type, snap.carrier].filter(Boolean).join(' · ')}
+                                    </span>
+                                  </div>
+                                )}
+                                <Badge variant={badgeVariant} className="text-[10px] h-4.5 px-1.5 font-semibold shrink-0">{status.label}</Badge>
+                              </div>
 
-                  <div style={{ height: 3, background: 'rgba(255,255,255,.07)', borderRadius: 'var(--r-sm)', marginBottom: 10, overflow: 'hidden' }}>
-                    <div style={{ height: '100%', width: `${snap.progress_pct}%`, background: 'var(--teal)', borderRadius: 'var(--r-sm)'}} />
-                  </div>
+                              {/* Right: Route & ETA / Progress */}
+                              <div className="flex items-center gap-3 shrink-0 text-xs">
+                                {(snap.origin_name || snap.dest_name) && (
+                                  <span className="font-semibold text-xs text-(--ink) flex items-center gap-1">
+                                    {snap.origin_name || '—'}
+                                    <Icon name="arrowRight" size={10} className="text-(--ink3)" />
+                                    {snap.dest_name || '—'}
+                                  </span>
+                                )}
+                                <div className="flex items-center gap-1 text-[11px]">
+                                  <span className="font-medium text-(--ink)">ETA {fmtDate(snap.eta)}</span>
+                                  {days != null ? (
+                                    days < 0 ? (
+                                      <span className="font-semibold text-destructive">· Overdue</span>
+                                    ) : days === 0 ? (
+                                      <span className="font-semibold text-amber-600">· Today</span>
+                                    ) : null
+                                  ) : null}
+                                  <span className="font-bold text-(--teal)">· {snap.progress_pct}%</span>
+                                </div>
+                              </div>
+                            </div>
 
-                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
-                    {(() => {
-                      const bv = st.fg === 'var(--green)' ? 'success' : st.fg === 'var(--red)' ? 'error' : st.fg === 'var(--gold)' ? 'warning' : st.fg === 'var(--blue)' ? 'info' : 'gray';
-                      return (
-                        <Badge variant={bv as any}>
-                          <Icon name={st.icon} size={11} color={st.fg} />{st.label}
-                        </Badge>
-                      );
-                    })()}
-                    <span style={{ fontSize: 10, color: 'rgba(255,255,255,.65)', fontFamily: 'var(--font)' }}>
-                      {fmtDate(snap.eta)}{days != null ? ` · ${days > 0 ? `${days}d` : days === 0 ? 'today' : 'OVD'}` : ''}
-                    </span>
-                  </div>
+                            {/* Inline Edit Form if Editing */}
+                            {editingId === snap.id && (
+                              <div className="flex flex-wrap items-center gap-2 py-1.5 my-1 border-y border-(--border)/50">
+                                <Input aria-label="Tracking number" value={editNumber} onChange={e => setEditNumber(e.target.value)} className="h-7 text-xs sm:max-w-44" />
+                                <Input aria-label="Carrier" value={editCarrier} onChange={e => setEditCarrier(e.target.value)} className="h-7 text-xs sm:max-w-44" />
+                                <Button size="sm" className="h-7 text-xs px-2.5" onClick={saveEdit}>Save</Button>
+                                <Button size="sm" variant="outline" className="h-7 text-xs px-2.5" onClick={() => setEditingId(null)}>Cancel</Button>
+                              </div>
+                            )}
 
-                  {/* Snap actions */}
-                  <div style={{ display: 'flex', gap: 6 }}>
-                    <Button variant="outline" size="sm" onClick={() => revokeShare(snap.id)}>Revoke share</Button>
-                    <button className="tr-btn" onClick={() => copyLink(snap.share_token)} style={{ flex: 1, height: 30, borderRadius: 'var(--r)', border: '1px solid rgba(255,255,255,.09)', background: 'rgba(255,255,255,.04)', cursor: 'pointer', fontSize: 10, fontWeight: 700, color: 'rgba(255,255,255,.55)', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 5 }} data-ui-native-button="">
-                      <Icon name="link" size={10} color="rgba(255,255,255,.55)" />Share
-                    </button>
-                    <button className="tr-btn" onClick={() => { const base = { tracking_number: snap.tracking_number, tracking_type: snap.tracking_type, carrier: snap.carrier ?? '', origin_name: snap.origin_name ?? '', origin_code: '', dest_name: snap.dest_name ?? '', dest_code: '', current_location: snap.current_location ?? '', status: snap.status ?? '', status_code: snap.status_code ?? '', eta: snap.eta, progress_pct: snap.progress_pct, events: parseEvents(snap.events), source: snap.source ?? 'unknown' as const }; generatePDF(base); }} style={{ flex: 1, height: 30, borderRadius: 'var(--r)', border: '1px solid rgba(255,255,255,.09)', background: 'rgba(255,255,255,.04)', cursor: 'pointer', fontSize: 10, fontWeight: 700, color: 'rgba(255,255,255,.55)', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 5 }} data-ui-native-button="">
-                      <Icon name="fileText" size={10} color="rgba(255,255,255,.55)" />PDF
-                    </button>
-                    {!snap.shipment_id
-                      ? <div style={{ flex: 2 }}>
-                          <Combobox
-                            options={shipments.slice(0, 30).map((s: any) => ({ value: s.id, label: s.ref_number }))}
-                            value="" onChange={v => v && linkSnap(snap.id, v)}
-                            disabled={linkingId === snap.id}
-                            placeholder="Link to shipment…"
-                            triggerClassName="h-[30px] rounded-[7px] border-[rgba(255,255,255,.09)] bg-[rgba(255,255,255,.04)] text-[10px] font-bold text-[rgba(255,255,255,.55)] px-1.5 shadow-none"
-                          />
+                            {/* Row 2: Milestone, Source & Action Toolbar */}
+                            <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1 pt-1.5 mt-1 border-t border-(--border)/40 text-xs">
+                              {/* Left: Latest Event & Source Pill */}
+                              <div className="flex items-center gap-2 min-w-0 flex-wrap">
+                                {events[0] && (
+                                  <span className="text-[11px] text-(--ink2) flex items-center gap-1 truncate max-w-md">
+                                    <Icon name="activity" size={10} className="text-(--ink3) shrink-0" />
+                                    <span className="truncate">{events[0].description}</span>
+                                    <span className="text-(--ink3)">({fmtDate(events[0].timestamp)})</span>
+                                  </span>
+                                )}
+                                {snap.source === 'live' ? (
+                                  <span className="inline-flex items-center gap-0.5 text-[10px] font-medium text-emerald-600 dark:text-emerald-400">
+                                    <Icon name="checkCircle" size={10} />
+                                    Live ({snap.provider || 'provider'})
+                                  </span>
+                                ) : snap.source === 'manual' ? (
+                                  <span className="inline-flex items-center gap-0.5 text-[10px] text-(--ink3)">
+                                    <Icon name="edit" size={10} />
+                                    Manual
+                                  </span>
+                                ) : (
+                                  <Tip label="Unverified legacy snapshot. Refresh from provider before relying on it.">
+                                    <span className="inline-flex items-center gap-0.5 rounded bg-amber-500/10 px-1 py-0.5 text-[10px] font-medium text-amber-700 dark:text-amber-400 cursor-help">
+                                      <Icon name="alertTriangle" size={10} />
+                                      Legacy snapshot
+                                    </span>
+                                  </Tip>
+                                )}
+                                {container?.customer_name && (
+                                  <span className="text-[11px] text-(--ink3) hidden md:inline">
+                                    · Customer: {container.customer_name}
+                                  </span>
+                                )}
+                              </div>
+
+                              {/* Right: Actions & Shipment Link */}
+                              <div className="flex items-center gap-1.5 shrink-0 ml-auto">
+                                {snap.shipment_id ? (
+                                  <Tip label={shipments.find(s => s.id === snap.shipment_id)?.ref_number ? `Shipment: ${shipments.find(s => s.id === snap.shipment_id)?.ref_number}` : 'Linked to shipment'}>
+                                    <Badge variant="success" className="h-6 text-[10px] px-1.5 font-medium shrink-0">
+                                      Linked
+                                    </Badge>
+                                  </Tip>
+                                ) : (
+                                  <div className="w-28 sm:w-32">
+                                    <Combobox
+                                      options={shipments.slice(0, 30).map(s => ({ value: s.id, label: s.ref_number }))}
+                                      value=""
+                                      onChange={v => v && linkSnap(snap.id, v)}
+                                      disabled={linkingId === snap.id}
+                                      placeholder="Link shipment…"
+                                      className="h-6 text-[11px]"
+                                    />
+                                  </div>
+                                )}
+
+                                <div className="inline-flex items-center rounded border border-(--border) divide-x divide-(--border) bg-(--bg)/40 overflow-hidden">
+                                  {container ? (
+                                    <>
+                                      <TrackerIconAction size="sm" label="Track container" icon="search" onClick={() => selectPreset(container.container_number, 'CONTAINER')} />
+                                      <TrackerIconAction size="sm" label="Container details" icon="externalLink" onClick={() => navigate('/cargotracker/containers/' + encodeURIComponent(container.container_number))} />
+                                    </>
+                                  ) : (
+                                    <TrackerIconAction size="sm" label="Track shipment" icon="search" onClick={() => selectPreset(snap.tracking_number, snap.tracking_type === 'AWB' ? 'AWB' : 'BL')} />
+                                  )}
+                                  <TrackerIconAction size="sm" label="Refresh tracking status" icon="refresh" onClick={() => retrack(snap)} disabled={retrackingId === snap.id} />
+                                  <TrackerIconAction size="sm" label="Copy sharing link" icon="link" onClick={() => copyLink(snap.id)} />
+                                  {snap.share_expires_at && !snap.share_revoked && (
+                                    <TrackerIconAction size="sm" label="Revoke sharing link" icon="shieldOff" onClick={() => revokeShare(snap.id)} />
+                                  )}
+                                  <TrackerIconAction size="sm" label="Export tracking PDF" icon="fileText" onClick={() => generatePDF({
+                                    tracking_number: snap.tracking_number, tracking_type: snap.tracking_type, carrier: snap.carrier ?? '',
+                                    origin_name: snap.origin_name ?? '', origin_code: '', dest_name: snap.dest_name ?? '', dest_code: '',
+                                    current_location: snap.current_location ?? '', status: snap.status ?? '', status_code: snap.status_code ?? '',
+                                    eta: snap.eta, progress_pct: snap.progress_pct, events, source: snap.source ?? 'unknown',
+                                  })} />
+                                  {snap.tracking_type === 'BL' && !container && !/^[A-Z]{4}\d{7}$/i.test(snap.tracking_number) && (
+                                    <Tip label="Look up in Customs Tracker">
+                                      <Button variant="ghost" size="icon" className="size-6.5 rounded-none p-0 text-(--ink2) hover:text-(--ink) hover:bg-(--hover-bg)" asChild>
+                                        <Link aria-label="Look up in Customs Tracker" to={'/cargotracker/customs?' + new URLSearchParams({ bl: snap.tracking_number })}>
+                                          <Icon name="shield" size={12} />
+                                        </Link>
+                                      </Button>
+                                    </Tip>
+                                  )}
+                                  <TrackerIconAction size="sm" label="Edit tracking record" icon="edit" onClick={() => startEdit(snap)} />
+                                  <TrackerIconAction size="sm" label="Remove tracking record" icon="trash2" onClick={() => deleteSnap(snap.id)} />
+                                </div>
+                              </div>
+                            </div>
+
+                            {/* Any additional snapshot records on the same container */}
+                            {extraSnaps.length > 0 && (
+                              <div className="pt-1.5 mt-1 border-t border-(--border)/40 space-y-1">
+                                {extraSnaps.map(extra => {
+                                  const extraStatus = getStatus(extra.status_code);
+                                  const extraBadgeVariant = extraStatus.fg === 'var(--green)' ? 'success' : extraStatus.fg === 'var(--red)' ? 'error' : extraStatus.fg === 'var(--gold)' ? 'warning' : extraStatus.fg === 'var(--blue)' ? 'info' : 'gray';
+                                  const extraEvents = parseEvents(extra.events);
+                                  return (
+                                    <div key={extra.id} className="flex flex-wrap items-center justify-between gap-2 text-xs py-1 bg-(--bg)/40 px-2 rounded">
+                                      <div className="flex items-center gap-2 min-w-0">
+                                        <span className="font-mono text-xs font-semibold">{extra.tracking_number}</span>
+                                        <span className="text-[11px] text-(--ink3)">{[extra.tracking_type, extra.carrier].filter(Boolean).join(' · ')}</span>
+                                        <Badge variant={extraBadgeVariant} className="text-[10px] h-4">{extraStatus.label}</Badge>
+                                      </div>
+                                      <div className="inline-flex items-center rounded border border-(--border) divide-x divide-(--border) bg-(--bg)/40 overflow-hidden">
+                                        <TrackerIconAction size="sm" label="Retrack" icon="refresh" onClick={() => retrack(extra)} disabled={retrackingId === extra.id} />
+                                        <TrackerIconAction size="sm" label="PDF" icon="fileText" onClick={() => generatePDF({
+                                          tracking_number: extra.tracking_number, tracking_type: extra.tracking_type, carrier: extra.carrier ?? '',
+                                          origin_name: extra.origin_name ?? '', origin_code: '', dest_name: extra.dest_name ?? '', dest_code: '',
+                                          current_location: extra.current_location ?? '', status: extra.status ?? '', status_code: extra.status_code ?? '',
+                                          eta: extra.eta, progress_pct: extra.progress_pct, events: extraEvents, source: extra.source ?? 'unknown',
+                                        })} />
+                                        <TrackerIconAction size="sm" label="Delete" icon="trash2" onClick={() => deleteSnap(extra.id)} />
+                                      </div>
+                                    </div>
+                                  );
+                                })}
+                              </div>
+                            )}
+                          </div>
+                        );
+                      })()
+                    ) : (
+                      container && (
+                        <div className="min-w-0 px-3.5 py-2.5 sm:px-4 sm:py-2">
+                          <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1">
+                            <div className="flex items-center gap-2 min-w-0 flex-wrap">
+                              <span aria-hidden="true" className="size-2.5 shrink-0 rounded-full" style={{ background: container.color_hex || 'var(--teal)' }} />
+                              <span className="font-mono text-[13px] font-bold text-(--ink)">{container.container_number}</span>
+                              <Badge variant={['EMPTY_RETURNED', 'AVAILABLE_AT_DEPOT'].includes(container.lifecycle_stage ?? '') ? 'success' : 'gray'} className="text-[10px] px-1.5 py-0 h-4 capitalize font-semibold">
+                                {container.lifecycle_stage?.replace(/_/g, ' ').toLowerCase() || 'Status unknown'}
+                              </Badge>
+                              <span className="text-[11px] text-(--ink3)">
+                                {[container.size_type || container.iso_code, container.carrier_name || container.carrier_code].filter(Boolean).join(' · ')}
+                              </span>
+                            </div>
+                            {container.customer_name && (
+                              <span className="text-xs text-(--ink3)">Customer: {container.customer_name}</span>
+                            )}
+                          </div>
+                          <div className="flex flex-wrap items-center justify-between gap-2 pt-1.5 mt-1 border-t border-(--border)/40 text-xs">
+                            <span className="text-[11px] text-(--ink3)">No carrier tracking linked yet</span>
+                            <div className="inline-flex items-center rounded border border-(--border) divide-x divide-(--border) bg-(--bg)/40 overflow-hidden">
+                              <TrackerIconAction size="sm" label="Track container" icon="search" onClick={() => selectPreset(container.container_number, 'CONTAINER')} />
+                              <TrackerIconAction size="sm" label="Container details" icon="externalLink" onClick={() => navigate('/cargotracker/containers/' + encodeURIComponent(container.container_number))} />
+                            </div>
+                          </div>
                         </div>
-                      : <div style={{ flex: 2, height: 30, borderRadius: 'var(--r)', border: '1px solid var(--green)', background: 'var(--green-l)', fontSize: 10, fontWeight: 700, color: 'var(--green)', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 4 }}>
-                          <Icon name="checkCircle" size={11} color="var(--green)" />Linked
-                        </div>
-                    }
-                  </div>
-
-                  {evts[0] && (
-                    <div style={{ marginTop: 10, paddingTop: 10, borderTop: '1px solid rgba(255,255,255,.05)', fontSize: 10, color: 'rgba(255,255,255,.65)', display: 'flex', alignItems: 'center', gap: 5 }}>
-                      <Icon name="activity" size={10} color="rgba(255,255,255,.65)" />
-                      {evts[0].description} · {fmtDate(evts[0].timestamp)}
-                    </div>
-                  )}
-                </div>
-              );
-            })}
-          </div>
+                      )
+                    )}
+                  </li>
+                );
+              })}</ul>
+            <TrackerPagination label="Tracked pages" page={trackedPage} count={tracked.length} loading={loadingTracked}
+              hasNext={hasMoreTracked} onPrevious={() => loadTracked(trackedPage - 1)} onNext={() => loadTracked(trackedPage + 1)}
+            />
+          </>
         )}
       </SectionCard>
-      <div className="flex gap-2">
-        {hasMoreSnapshots&&<Button variant="outline" onClick={()=>loadSnapshots(snapshotCursor)} disabled={loadingSnaps}>Load more saved tracking</Button>}
-        {hasMoreFleet&&<Button variant="outline" onClick={()=>loadFleet(fleetCursor)} disabled={loadingFleet}>Load more containers</Button>}
-      </div>
     </div>
   );
 };

@@ -30,10 +30,10 @@ export async function portfolioRoutes(fastify: FastifyInstance) {
     );
   });
 
-  fastify.get('/:id', async (request) => {
+  fastify.get('/:id', async (request, reply) => {
     const { id } = request.params as { id: string };
     const p = await ConsultantDelegationService.getPortfolio(request.user!.tenant_id, id);
-    if (!p) return request.server.httpErrors.notFound('Portfolio not found');
+    if (!p) return reply.status(404).send({ error: 'Portfolio not found' });
     return p;
   });
 
@@ -67,10 +67,10 @@ export async function mandateRoutes(fastify: FastifyInstance) {
     );
   });
 
-  fastify.get('/:id', async (request) => {
+  fastify.get('/:id', async (request, reply) => {
     const { id } = request.params as { id: string };
     const m = await ConsultantDelegationService.getMandate(request.user!.tenant_id, id);
-    if (!m) return request.server.httpErrors.notFound('Mandate not found');
+    if (!m) return reply.status(404).send({ error: 'Mandate not found' });
     return m;
   });
 

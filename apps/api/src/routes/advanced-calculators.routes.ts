@@ -116,7 +116,7 @@ const routeSchema = z.object({
 
 export async function advancedCalculatorRoutes(fastify: FastifyInstance) {
   fastify.addHook('preHandler', fastify.authenticate);
-  fastify.addHook('preHandler', requireEntitlement('clearos'));
+  fastify.addHook('preHandler', requireEntitlement('clearos', { freeCalculatorRoutes: true }));
   // HUD-0024 continuation: matches customs.routes.ts's own CUSTOMER
   // exclusion (HUD-0033) on the sibling sea_fcl/sea_lcl/air calculators —
   // this file's /transit-routes is a tenant-wide, freely mutable reference
@@ -179,7 +179,7 @@ export async function advancedCalculatorRoutes(fastify: FastifyInstance) {
     const user = request.user as any;
     const body = lclSchema.parse(request.body);
     const result = await calculateLclAdvanced(body);
-    const history_saved = body.save_to_history !== false ? await saveToHistory(user.tenant_id, user.sub, body, result) : null;
+    const history_saved = !request.freeCalculatorAccess && body.save_to_history !== false ? await saveToHistory(user.tenant_id, user.sub, body, result) : null;
     return { ...result, history_saved };
   });
 
@@ -188,7 +188,7 @@ export async function advancedCalculatorRoutes(fastify: FastifyInstance) {
     const user = request.user as any;
     const body = airSchema.parse(request.body);
     const result = await calculateAirAdvanced(body);
-    const history_saved = body.save_to_history !== false ? await saveToHistory(user.tenant_id, user.sub, body, result) : null;
+    const history_saved = !request.freeCalculatorAccess && body.save_to_history !== false ? await saveToHistory(user.tenant_id, user.sub, body, result) : null;
     return { ...result, history_saved };
   });
 
@@ -197,7 +197,7 @@ export async function advancedCalculatorRoutes(fastify: FastifyInstance) {
     const user = request.user as any;
     const body = transitSchema.parse(request.body);
     const result = await calculateTransit(user.tenant_id, body);
-    const history_saved = body.save_to_history !== false ? await saveToHistory(user.tenant_id, user.sub, body, result) : null;
+    const history_saved = !request.freeCalculatorAccess && body.save_to_history !== false ? await saveToHistory(user.tenant_id, user.sub, body, result) : null;
     return { ...result, history_saved };
   });
 

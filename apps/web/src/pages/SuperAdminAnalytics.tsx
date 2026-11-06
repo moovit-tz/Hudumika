@@ -11,11 +11,14 @@ interface Overview {
   mrr: { mrr_tzs: number; mrr_usd: number; arr_tzs: number; arr_usd: number; by_plan: Array<{ plan: string; count: number; mrr: number; currency: string }> };
   esb: { total_earned: number; total_supplier_cost: number; margin: number; currency: string; by_service: Array<{ service_kind: string; earned: number; supplier_cost: number; operations: number }> };
   support: { total_hours: number; total_cost: number; currency: string; by_category: Array<{ category: string; hours: number; cost: number }> };
+  subscriptionMargin: { revenue_tzs: number; included_support_cost_tzs: number; margin_tzs: number; allocation_note: string };
 }
 
 interface RetentionCohort { cohort_month: string; signed_up: number; still_active: number; retention_pct: number; immature: boolean }
 interface RevenueMonth { month: string; subscription_revenue: number; esb_revenue: number; currency: string }
 interface ProviderRow { service_kind: string; total: number; captured: number; failed: number; success_rate: number }
+interface ChurnMonth { month: string; new_paid: number; churned: number; upgrades: number; downgrades: number }
+interface ActiveAppRow { app_id: string; active_workspaces: number }
 
 function fmt(n: number, currency = 'TZS'): string {
   if (currency === 'USD') return `$${n.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`;
@@ -37,6 +40,8 @@ export function SuperAdminAnalytics() {
   const [retention, setRetention] = useState<RetentionCohort[] | null>(null);
   const [revenue, setRevenue] = useState<RevenueMonth[] | null>(null);
   const [providers, setProviders] = useState<ProviderRow[] | null>(null);
+  const [churn, setChurn] = useState<ChurnMonth[] | null>(null);
+  const [activeApps, setActiveApps] = useState<ActiveAppRow[] | null>(null);
   const [error, setError] = useState('');
 
   useEffect(() => {
@@ -46,12 +51,16 @@ export function SuperAdminAnalytics() {
       apiFetch('/v1/superadmin/analytics/retention'),
       apiFetch('/v1/superadmin/analytics/revenue-timeline'),
       apiFetch('/v1/superadmin/analytics/provider-reliability'),
-    ]).then(([ov, ret, rev, prov]) => {
+      apiFetch('/v1/superadmin/analytics/churn'),
+      apiFetch('/v1/superadmin/analytics/active-checkpoints'),
+    ]).then(([ov, ret, rev, prov, chu, apps]) => {
       if (!live) return;
       setOverview(ov);
       setRetention(Array.isArray(ret) ? ret : []);
       setRevenue(Array.isArray(rev) ? rev : []);
       setProviders(Array.isArray(prov) ? prov : []);
+      setChurn(Array.isArray(chu) ? chu : []);
+      setActiveApps(Array.isArray(apps) ? apps : []);
     }).catch(e => { if (live) setError(e.message || 'Failed to load analytics'); });
     return () => { live = false; };
   }, []);
@@ -59,7 +68,7 @@ export function SuperAdminAnalytics() {
   if (error) return <div style={{ padding: 32 }}><p style={{ color: 'var(--red)' }}>{error}</p></div>;
   if (!overview) return <SectionLoading label="Loading commercial analytics…" />;
 
-  const { workspaces, mrr, esb, support } = overview;
+  const { workspaces, mrr, esb, support, subscriptionMargin } = overview;
 
   return (
     <div className="sa-analytics">
@@ -78,7 +87,9 @@ export function SuperAdminAnalytics() {
         <StatCard label="ARR (TZS)" value={fmt(mrr.arr_tzs)} />
         <StatCard label="ESB margin" value={fmt(esb.margin)} badge={{ text: `${esb.by_service.length} services`, variant: esb.margin > 0 ? 'success' : 'warning' }} />
         <StatCard label="Support cost" value={fmt(support.total_cost)} badge={{ text: `${support.total_hours}h logged`, variant: 'gray' as any }} />
+        <StatCard label="Subscription margin (partial)" value={fmt(subscriptionMargin.margin_tzs)} badge={{ text: 'excl. infra cost', variant: 'warning' }} />
       </div>
+      <p className="s-fld-hint" style={{ margin: '-8px 2px 16px' }}>{subscriptionMargin.allocation_note}</p>
 
       {/* MRR by plan */}
       <Card className="sa-analytics-section">
@@ -164,6 +175,45 @@ export function SuperAdminAnalytics() {
                   <td>{r.retention_pct}%</td>
                   <td>{r.immature && <Badge variant="warning">Immature</Badge>}</td>
                 </tr>
+              ))}
+            </tbody>
+          </table>
+        </Card>
+      )}
+
+      {/* Churn / upgrades */}
+      {churn && churn.length > 0 && (
+        <Card className="sa-analytics-section">
+          <h3>New, churned &amp; plan changes</h3>
+          <table className="sa-analytics-table">
+            <thead><tr><th>Month</th><th>New paid</th><th>Churned</th><th>Upgrades</th><th>Downgrades</th></tr></thead>
+            <tbody>
+              {churn.map(r => (
+                <tr key={r.month}>
+                  <td>{r.month}</td>
+                  <td>{r.new_paid}</td>
+                  <td>{r.churned}</td>
+                  <td>{r.upgrades}</td>
+                  <td>{r.downgrades}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+          <p className="s-fld-hint" style={{ margin: '8px 2px 0' }}>
+            New-paid/churned come from subscription_invoices status counts; upgrades/downgrades come from tenant_plan_changes, classified by comparing each change's PLAN_LEVELS.
+          </p>
+        </Card>
+      )}
+
+      {/* Active apps */}
+      {activeApps && activeApps.length > 0 && (
+        <Card className="sa-analytics-section">
+          <h3>Active apps</h3>
+          <table className="sa-analytics-table">
+            <thead><tr><th>App</th><th>Workspaces with a real activation checkpoint</th></tr></thead>
+            <tbody>
+              {activeApps.map(r => (
+                <tr key={r.app_id}><td>{r.app_id}</td><td>{r.active_workspaces}</td></tr>
               ))}
             </tbody>
           </table>

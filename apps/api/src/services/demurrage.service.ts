@@ -26,7 +26,7 @@ interface RateTier {
 /**
  * Calculate demurrage cost using progressive rate tiers.
  */
-function calculateDemurrageCost(demurrageDays: number, rateTiers: RateTier[]): number {
+export function calculateDemurrageCost(demurrageDays: number, rateTiers: RateTier[]): number {
   const validated = tiersSchema.parse(rateTiers);
   if (demurrageDays <= 0) return 0;
   
@@ -55,7 +55,7 @@ function calculateDemurrageCost(demurrageDays: number, rateTiers: RateTier[]): n
 /**
  * Calculate the number of days between two dates.
  */
-function daysBetween(start: Date, end: Date): number {
+export function daysBetween(start: Date, end: Date): number {
   if (!Number.isFinite(start.getTime()) || !Number.isFinite(end.getTime()) || end < start) throw Object.assign(new Error('End date must be on or after discharge date'), { statusCode: 400 });
   // Tariffs use UTC calendar dates; partial elapsed days are not extra chargeable days.
   return Math.floor((Date.UTC(end.getUTCFullYear(),end.getUTCMonth(),end.getUTCDate()) - Date.UTC(start.getUTCFullYear(),start.getUTCMonth(),start.getUTCDate())) / 86400000);

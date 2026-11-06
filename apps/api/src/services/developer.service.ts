@@ -5,7 +5,9 @@
 // Architecture Decision 3: Sole Pricing Authority & Marketplace Metering
 
 import crypto from 'crypto';
+import { sql } from 'kysely';
 import { db, dbPlatform } from '../db/client.js';
+import { PaymentGateway } from '../integrations/payment-gateway.js';
 import type {
   DeveloperAccount,
   DeveloperOrganization,
@@ -105,7 +107,11 @@ export class DeveloperService {
         name: 'Personal Prepaid Account',
         billing_type: 'PREPAID',
         currency: 'TZS',
-        balance_credits: 50000.0, // Seed test balance
+        // Was 50000.0 — a brand-new account got real-looking spendable
+        // balance with no payment of any kind. Real money only ever
+        // enters through topUpCheckout/verifyTopUp below, which actually
+        // checks with the payment gateway first. See LENS audit.
+        balance_credits: 0.0,
       })
       .execute();
 
@@ -974,11 +980,14 @@ export class DeveloperService {
       }
     }
 
+    // No real latency measurement exists anywhere in this pipeline
+    // (dev_usage_events carries no duration column) — null, not a
+    // randomized or hardcoded number dressed up as telemetry.
     const dailySeries = Array.from(dailyMap.entries()).map(([date, data]) => ({
       date,
       requests: data.requests,
       errors: data.errors,
-      latency_ms: 45 + Math.floor(Math.random() * 25), // Normalized latency sample
+      latency_ms: null,
       units: data.units,
     }));
 
@@ -986,7 +995,7 @@ export class DeveloperService {
       total_requests: totalRequests,
       successful_requests: successfulRequests,
       error_requests: errorRequests,
-      avg_latency_ms: 54,
+      avg_latency_ms: null,
       billable_units: billableUnits,
       total_cost: totalCost,
       currency: 'TZS',
@@ -1062,37 +1071,110 @@ export class DeveloperService {
     };
   }
 
-  static async topUpCredits(accountId: string, amount: number, currency = 'TZS') {
-    const billingAccount = await db
-      .selectFrom('developer_billing_accounts')
-      .selectAll()
-      .where('developer_account_id', '=', accountId)
-      .where('is_active', '=', true)
-      .executeTakeFirst();
+  /**
+   * Stage a real top-up — creates a Flutterwave hosted-checkout link and
+   * records which account it belongs to (dev_billing_checkout_requests),
+   * same shape as EsbService.createTopUpCheckout. No balance changes here;
+   * verifyTopUp() below is the only thing that ever credits an account,
+   * and only after asking the gateway directly. Replaces the old
+   * topUpCredits(), which added a client-supplied amount with zero
+   * payment check at all — see LENS audit, 5 Nov 2026.
+   */
+  static async createTopUpCheckout(accountId: string, amount: number, email: string, name: string, redirectUrl: string, initiatedBy: string) {
+    if (amount < 1000) throw new Error('Minimum top-up is TZS 1,000');
+    if (amount > 10_000_000) throw new Error('Maximum single top-up is TZS 10,000,000');
 
+    const billingAccount = await db.selectFrom('developer_billing_accounts').select(['id'])
+      .where('developer_account_id', '=', accountId).where('is_active', '=', true).executeTakeFirst();
     if (!billingAccount) throw new Error('Billing account not found');
 
-    const newBalance = Number(billingAccount.balance_credits) + amount;
+    const txRef = `dev-${accountId.slice(0, 8)}-${Date.now()}`;
+    await db.insertInto('dev_billing_checkout_requests').values({
+      developer_account_id: accountId, billing_account_id: billingAccount.id,
+      tx_ref: txRef, amount, currency: 'TZS', initiated_by: initiatedBy,
+    }).execute();
 
-    await db
-      .updateTable('developer_billing_accounts')
-      .set({ balance_credits: newBalance })
-      .where('id', '=', billingAccount.id)
-      .execute();
+    const { url } = await PaymentGateway.createCheckout({
+      txRef, amount, currency: 'TZS', email, name, redirectUrl,
+      title: 'Hudumika Developer Platform — prepaid top-up',
+      meta: { developer_account_id: accountId, purpose: 'dev_credits_topup' },
+    });
+    return { url, txRef };
+  }
 
-    await db
-      .insertInto('dev_billing_events')
-      .values({
+  /** Verifies a top-up directly with the gateway and only then credits the
+   *  account — never trusts the client-supplied amount, and a tx_ref that
+   *  was never staged by createTopUpCheckout (for this account) credits
+   *  nothing. Idempotent: a tx_ref already marked completed returns the
+   *  existing event instead of double-crediting on a retried verify call.
+   *
+   *  The actual credit is claimed with one conditional UPDATE
+   *  (`status='pending' -> 'completed'`, inside a transaction) before any
+   *  balance change — only the caller whose UPDATE actually matched a row
+   *  proceeds to credit the account and insert the ledger event; a second,
+   *  concurrent call for the exact same tx_ref matches zero rows and falls
+   *  into the idempotent "already processed" path instead of racing a
+   *  second credit in. The balance itself is incremented in SQL
+   *  (`balance_credits + amount`), not read-then-written in JS, so two
+   *  distinct top-ups for the same account settling at the same instant
+   *  can't lose one. Gateway verification happens before the claim (a pure
+   *  read, safe to run concurrently) so the transaction holding the row
+   *  lock stays short and never waits on a network call. See the
+   *  standalone-apps plan's "Developer settlement first" blocker. */
+  static async verifyTopUp(accountId: string, txRef: string) {
+    const checkout = await db.selectFrom('dev_billing_checkout_requests').selectAll()
+      .where('tx_ref', '=', txRef).where('developer_account_id', '=', accountId).executeTakeFirst();
+    if (!checkout) throw new Error('No checkout request found for this payment reference.');
+
+    if (checkout.status === 'completed') {
+      const existing = await db.selectFrom('dev_billing_events').selectAll()
+        .where('developer_account_id', '=', accountId).where('event_type', '=', 'TOP_UP')
+        .where('description', 'like', `%${txRef}%`).executeTakeFirst();
+      if (existing) return { success: true, already_processed: true, new_balance: undefined, currency: checkout.currency };
+    }
+
+    const verification = await PaymentGateway.verifyByReference(txRef);
+    if (!verification.ok) throw Object.assign(new Error(`Payment not confirmed: ${verification.status}`), { statusCode: 402 });
+    if (Number(verification.amount) !== Number(checkout.amount) || verification.currency !== checkout.currency) {
+      throw Object.assign(new Error('Amount/currency mismatch between the gateway and the staged top-up.'), { statusCode: 402 });
+    }
+
+    const amount = Number(checkout.amount);
+
+    const result = await db.transaction().execute(async (trx) => {
+      const claimed = await trx.updateTable('dev_billing_checkout_requests')
+        .set({ status: 'completed', completed_at: new Date() })
+        .where('id', '=', checkout.id)
+        .where('status', '=', 'pending')
+        .returningAll()
+        .executeTakeFirst();
+
+      if (!claimed) {
+        // Lost the race to a concurrent verify call for the same tx_ref (or
+        // it completed between our read above and now) — the winner already
+        // did the crediting, so this call is done, not failed.
+        return { success: true, already_processed: true, new_balance: undefined, currency: checkout.currency };
+      }
+
+      const billingAccount = await trx.updateTable('developer_billing_accounts')
+        .set({ balance_credits: sql`balance_credits + ${amount}`, updated_at: new Date() })
+        .where('id', '=', claimed.billing_account_id)
+        .returningAll()
+        .executeTakeFirstOrThrow();
+
+      await trx.insertInto('dev_billing_events').values({
         developer_account_id: accountId,
-        billing_account_id: billingAccount.id,
-        event_type: 'CREDIT_DEDUCTION',
+        billing_account_id: claimed.billing_account_id,
+        event_type: 'TOP_UP',
         units_billed: 1,
-        amount: -amount,
-        currency,
-        description: `Prepaid wallet top-up: +${amount.toLocaleString()} ${currency}`,
-      })
-      .execute();
+        amount,
+        currency: claimed.currency,
+        description: `Verified prepaid top-up (${txRef}): +${amount.toLocaleString()} ${claimed.currency}`,
+      }).execute();
 
-    return { new_balance: newBalance, currency };
+      return { success: true, already_processed: false, new_balance: Number(billingAccount.balance_credits), currency: claimed.currency };
+    });
+
+    return result;
   }
 }

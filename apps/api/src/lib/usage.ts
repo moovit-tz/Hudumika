@@ -14,8 +14,28 @@ const UNMETERED_PREFIXES = [
   '/v1/search',
 ];
 
+const FREE_CUSTOMS_CALCULATIONS = new Set([
+  '/v1/customs/landed-cost',
+  '/v1/customs/landed-cost/multi-item',
+  '/v1/customs/lcl-advanced',
+  '/v1/customs/air-advanced',
+  '/v1/customs/transit',
+  '/v1/customs/hs-suggest',
+]);
+const FREE_CUSTOMS_LOOKUPS = new Set([
+  '/v1/customs/hs-search', '/v1/customs/hs/:code', '/v1/customs/duty-check/:code',
+  '/v1/customs/countries', '/v1/customs/fx-rate', '/v1/customs/fx-rates', '/v1/customs/transit-routes',
+]);
+
+export function isFreeCustomsCalculatorRoute(method: string, route: string): boolean {
+  return method === 'POST' ? FREE_CUSTOMS_CALCULATIONS.has(route) : method === 'GET' && FREE_CUSTOMS_LOOKUPS.has(route);
+}
+
 export function isMeteredPath(path: string | undefined | null): boolean {
   if (!path) return false;
+  const route = path.split('?')[0]!;
+  if (FREE_CUSTOMS_CALCULATIONS.has(route) || route === '/v1/billing/usage-invoice-drafts/freight-forwarder'
+      || route === '/v1/billing/freight-usage-pilot/accept') return false;
   return !UNMETERED_PREFIXES.some(p => path.startsWith(p));
 }
 

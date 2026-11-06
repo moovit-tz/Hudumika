@@ -438,7 +438,7 @@ export class ConsultantDelegationService {
         .where('provider_tenant_id', '=', providerTenantId);
       if (filters?.portfolio_id) q = q.where('portfolio_id', '=', filters.portfolio_id);
       if (filters?.status) q = q.where('status', '=', filters.status);
-      return (await q.orderBy('created_at', 'desc').execute()).map(r => ({
+      return (await q.orderBy('created_at', 'desc').execute()).map((r: any) => ({
         ...r,
         fee_amount: r.fee_amount != null ? Number(r.fee_amount) : null,
       }));

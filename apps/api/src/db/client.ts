@@ -6134,6 +6134,13 @@ export interface Database {
   notifications: NotificationsTable;
   // Declaration tables (TANESW)
   declarations: DeclarationsTable;
+  clearos_case_declarations: {
+    tenant_id: string;
+    shipment_id: string;
+    declaration_id: string;
+    declared_at: Date;
+    recorded_at: Generated<Date | null>;
+  };
   declaration_items: DeclarationItemsTable;
   declaration_item_models: DeclarationItemModelsTable;
   declaration_notices: DeclarationNoticesTable;
@@ -6302,6 +6309,17 @@ export interface Database {
   package_addons: PackageAddonsTable;
   tenant_addons: TenantAddonsTable;
   tenant_plan_changes: TenantPlanChangesTable;
+  subscription_currency_changes: {
+    tenant_id: string;
+    from_plan: string;
+    to_plan: string;
+    billing_cycle: 'monthly' | 'annual';
+    currency: string;
+    effective_at: Date;
+    requested_by: string | null;
+    status: 'scheduled' | 'applied' | 'blocked';
+    blocked_reason: string | null;
+  };
   esb_wallets: EsbWalletsTable;
   esb_checkout_requests: EsbCheckoutRequestsTable;
   esb_postings: EsbPostingsTable;
@@ -6359,6 +6377,13 @@ export interface Database {
   // AWB / BL Tracking
   freight_booking_sequences: { tenant_id: string; year: number; last_number: number };
   tracking_snapshots: TrackingSnapshotsTable;
+  cargotracker_activations: {
+    tenant_id: string;
+    tracking_type: string;
+    tracking_number: string;
+    snapshot_id: string;
+    activated_at: Generated<Date | null>;
+  };
   // General Ledger
   chart_of_accounts: ChartOfAccountsTable;
   journal_entries: JournalEntriesTable;
@@ -6660,6 +6685,12 @@ export interface Database {
   drivers: DriversTable;
   vehicle_vendors: VehicleVendorsTable;
   trips: TripsTable;
+  hudufreight_departures: {
+    tenant_id: string;
+    trip_id: string;
+    departed_at: Date;
+    recorded_at: Generated<Date | null>;
+  };
   maintenance_records: MaintenanceRecordsTable;
   parts_stock: PartsStockTable;
   parts_stock_movements: PartsStockMovementsTable;
@@ -6705,6 +6736,55 @@ export interface Database {
   package_features: PackageFeaturesTable;
   app_status: AppStatusTable;
   commercial_products: CommercialProductsTable;
+  commercial_pricing_drafts: {
+    bundle_key: string;
+    revision: number;
+    configuration: string;
+    updated_by: string;
+    updated_at: Generated<Date>;
+    tested_revision: Generated<number | null>;
+  };
+  freight_usage_invoice_drafts: {
+    id: Generated<string>;
+    tenant_id: string;
+    period_start: ColumnType<string | Date, string, never>;
+    period_end: ColumnType<string | Date, string, never>;
+    snapshot: ColumnType<unknown, string, never>;
+    created_by: string;
+    created_at: Generated<Date>;
+  };
+  freight_usage_pilot: {
+    tenant_id: string;
+    invited_by: string;
+    invited_at: Generated<Date>;
+    accepted_by: Generated<string | null>;
+    accepted_at: Generated<Date | null>;
+    starts_at: Generated<Date | null>;
+    bundle_key: Generated<string>;
+    rate_revision: Generated<number | null>;
+  };
+  freight_pilot_invoice_drafts: {
+    id: Generated<string>;
+    tenant_id: string;
+    period_start: ColumnType<string | Date, string, never>;
+    period_end: ColumnType<string | Date, string, never>;
+    snapshot: ColumnType<unknown, string, never>;
+    created_by: string;
+    created_at: Generated<Date>;
+    status: Generated<'draft' | 'invoiced' | 'paid'>;
+    gateway_tx_ref: string | null;
+    gateway_tx_id: string | null;
+    invoiced_at: Date | null;
+    paid_at: Date | null;
+  };
+  commercial_pricing_versions: {
+    bundle_key: string;
+    revision: number;
+    effective_on: string;
+    configuration: string;
+    published_by: string;
+    published_at: Generated<Date>;
+  };
   tenant_product_subscriptions: TenantProductSubscriptionsTable;
   // Public/partner API layer
   api_keys: ApiKeysTable;
@@ -6758,6 +6838,7 @@ export interface Database {
   dev_usage_events: DevUsageEventsTable;
   dev_issued_seals: DevIssuedSealsTable;
   dev_billing_events: DevBillingEventsTable;
+  dev_billing_checkout_requests: DevBillingCheckoutRequestsTable;
   dev_provider_settlements: DevProviderSettlementsTable;
   // ─── Hudumika Project OS Core & Governance (Migration 448) ────
   project_portfolios: ProjectPortfoliosTable;
@@ -7555,13 +7636,26 @@ export interface DevBillingEventsTable {
   usage_event_id: string | null;
   developer_account_id: string;
   billing_account_id: string;
-  event_type: 'CHARGE' | 'INCLUDED_ALLOWANCE' | 'CREDIT_DEDUCTION' | 'OVERAGE' | 'REFUND' | 'ADJUSTMENT';
+  event_type: 'CHARGE' | 'INCLUDED_ALLOWANCE' | 'CREDIT_DEDUCTION' | 'OVERAGE' | 'REFUND' | 'ADJUSTMENT' | 'TOP_UP';
   units_billed: Generated<number>;
   amount: Generated<number>;
   currency: Generated<string>;
   description: string;
   invoice_id: string | null;
   created_at: Generated<Date>;
+}
+
+export interface DevBillingCheckoutRequestsTable {
+  id: Generated<string>;
+  developer_account_id: string;
+  billing_account_id: string;
+  tx_ref: string;
+  amount: number;
+  currency: Generated<string>;
+  status: Generated<string>;
+  initiated_by: string | null;
+  created_at: Generated<Date>;
+  completed_at: Date | null;
 }
 
 export interface DevProviderSettlementsTable {
@@ -8687,6 +8781,9 @@ export interface PettiDepositsTable {
   journal_entry_id: string | null;
   recorded_by: string | null;
   created_at: Generated<Date>;
+  status: Generated<string>;
+  reconciled_by: string | null;
+  reconciled_at: Date | null;
 }
 
 export interface PettiWithdrawalRequestsTable {
@@ -8998,6 +9095,7 @@ export interface TripsTable {
   created_by: string | null;
   created_at: Generated<Date>;
   updated_at: Generated<Date>;
+  idempotency_key: string | null;
 }
 
 export interface MaintenanceRecordsTable {
@@ -13498,6 +13596,11 @@ export const dbPlatform = new Kysely<Database>({
  * Execute a db transaction with tenant isolation RLS parameter set.
  * Row-level security relies on the current_setting('app.tenant_id') matching tenant_id.
  */
+/** The transaction handle withTenant() hands its callback — several services
+ *  (consultant-delegation, marketplace, enterprise-metrics) annotate that
+ *  parameter with this name but it was never actually exported. */
+export type TenantDb = Transaction<Database>;
+
 export async function withTenant<T>(
   tenantId: string | null,
   callback: (trx: Transaction<Database>) => Promise<T>

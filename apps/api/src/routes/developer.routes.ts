@@ -6,6 +6,8 @@ import type { FastifyPluginAsync, FastifyRequest, FastifyReply } from 'fastify';
 import crypto from 'crypto';
 import { DeveloperService } from '../services/developer.service.js';
 import { DeveloperGatewayService } from '../services/developer-gateway.service.js';
+import { db } from '../db/client.js';
+import { trustedRedirectOrigin } from '../lib/webauthn-config.js';
 import type { EnvironmentType, OrgMemberRole } from '@hudumika/types';
 
 const ORG_MEMBER_ROLES: OrgMemberRole[] = ['OWNER', 'ADMIN', 'DEVELOPER', 'BILLING_ADMIN', 'SECURITY_ADMIN', 'VIEWER'];
@@ -287,14 +289,43 @@ export const developerRoutes: FastifyPluginAsync = async fastify => {
       return DeveloperService.getBillingOverview(id);
     });
 
-    authScoped.post('/accounts/:id/billing/topup', async (request: FastifyRequest, reply: FastifyReply) => {
+    // Real payment required — see DeveloperService.createTopUpCheckout's
+    // doc comment. The old single-step topup took a client-supplied amount
+    // with no gateway charge at all; this is checkout (stage + redirect)
+    // then verify (confirm with the gateway before crediting anything).
+    authScoped.post('/accounts/:id/billing/topup/checkout', async (request: FastifyRequest, reply: FastifyReply) => {
       const { id } = request.params as { id: string };
       await DeveloperService.assertAccountAccess(id, request.user.sub);
-      const body = request.body as { amount: number; currency?: string };
+      const body = request.body as { amount: number };
       if (!body.amount || body.amount <= 0) {
         return reply.status(400).send({ error: 'A positive top-up amount is required.' });
       }
-      return DeveloperService.topUpCredits(id, body.amount, body.currency || 'TZS');
+      const user = await db.selectFrom('users').select(['email', 'name']).where('id', '=', request.user.sub).executeTakeFirst();
+      // trustedRedirectOrigin: never build a payment gateway's post-checkout
+      // redirect straight from a client-supplied header — see its own doc
+      // comment (lib/webauthn-config.ts) for the open-redirect this closes.
+      const origin = trustedRedirectOrigin(request.headers.origin || request.headers.referer);
+      try {
+        const checkout = await DeveloperService.createTopUpCheckout(
+          id, body.amount, user?.email ?? request.user.email ?? 'billing@hudumika.com',
+          user?.name ?? 'Developer', `${origin}/developer?topup=1`, request.user.sub,
+        );
+        return checkout;
+      } catch (e: any) {
+        return reply.status(400).send({ error: e.message });
+      }
+    });
+
+    authScoped.post('/accounts/:id/billing/topup/verify', async (request: FastifyRequest, reply: FastifyReply) => {
+      const { id } = request.params as { id: string };
+      await DeveloperService.assertAccountAccess(id, request.user.sub);
+      const body = request.body as { tx_ref: string };
+      if (!body.tx_ref) return reply.status(400).send({ error: 'tx_ref is required.' });
+      try {
+        return await DeveloperService.verifyTopUp(id, body.tx_ref);
+      } catch (e: any) {
+        return reply.status(e.statusCode || 400).send({ error: e.message });
+      }
     });
   });
 };

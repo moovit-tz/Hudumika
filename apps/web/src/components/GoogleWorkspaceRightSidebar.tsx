@@ -38,11 +38,16 @@ interface RailApp {
 }
 
 const RAIL_APPS: RailApp[] = [
-  { id: 'notes', label: 'Notes', icon: 'fileText', color: '#16a34a' },
+  // notes/chat used to have no entitlementKey here, on the theory they were
+  // universal core features — the backend actually gates both (notes.
+  // routes.ts requires 'notes', chat.routes.ts requires 'bliss'), so a
+  // workspace-free/standalone-only tenant could pin them and get a silent
+  // 403 on every load. See the standalone-apps audit, 5 Nov 2026.
+  { id: 'notes', label: 'Notes', icon: 'fileText', color: '#16a34a', entitlementKey: 'notes' },
   { id: 'tasks', label: 'Tasks', icon: 'tasks', color: '#0d9488' },
   { id: 'sms', label: 'SMS', icon: 'smartphone', color: '#1257c6', entitlementKey: 'sms' },
   { id: 'email', label: 'Email', icon: 'mail', color: '#ea4335', entitlementKey: 'email' },
-  { id: 'chat', label: 'Teams & Discussions', icon: 'messageSquare', color: '#7c3aed' },
+  { id: 'chat', label: 'Teams & Discussions', icon: 'messageSquare', color: '#7c3aed', entitlementKey: 'bliss' },
   { id: 'notifications', label: 'Notifications', icon: 'bell', color: '#ef4444' },
   // 'stamp' matches AppSidebar's own nav icon for this app (not 'mail' —
   // that glyph is now Email's, above).
@@ -140,12 +145,18 @@ export const GoogleWorkspaceRightSidebar: React.FC = () => {
   const [notesList, setNotesList] = useState<{ id: string; title: string; content: string; updatedAt: string; isTrashed: boolean; isArchived: boolean }[]>([]);
   const [noteComposerText, setNoteComposerText] = useState('');
   const [noteSaving, setNoteSaving] = useState(false);
+  // Backend actually requires 'notes' entitlement (notes.routes.ts) even
+  // though this panel used to assume Notes was a universal core feature —
+  // every workspace-free/standalone-only tenant got a 403 on load. Gate it
+  // like every sibling panel instead of the one unchecked exception.
+  const notesEnabled = isAppEnabled('notes', enabledApps);
   function loadNotes() {
+    if (!notesEnabled) return;
     apiFetch('/v1/notes?limit=8')
       .then(res => setNotesList(Array.isArray(res?.notes) ? res.notes : []))
       .catch(() => {});
   }
-  useEffect(() => { loadNotes(); }, []);
+  useEffect(() => { loadNotes(); }, [notesEnabled]);
   async function handleCreateNote(e: React.FormEvent) {
     e.preventDefault();
     const text = noteComposerText.trim();
@@ -188,13 +199,18 @@ export const GoogleWorkspaceRightSidebar: React.FC = () => {
     setNewEventTitle(''); setNewEventDate(''); setNewEventTime(''); setEventComposerOpen(false);
   }
 
-  // ── eSign envelopes awaiting my signature — real, /v1/sign/envelopes ──
+  // ── eSign envelopes awaiting my signature — real, /v1/sign/envelopes
+  //    (only fetched if the app is entitled — this one didn't check at
+  //    all, unlike every sibling panel below it; see the standalone-apps
+  //    audit, 5 Nov 2026) ──
+  const signEnabled = isAppEnabled('sign', enabledApps);
   const [envelopes, setEnvelopes] = useState<{ id: string; title: string; status: string }[]>([]);
   useEffect(() => {
+    if (!signEnabled) return;
     apiFetch('/v1/sign/envelopes?view=inbox')
       .then(rows => setEnvelopes(Array.isArray(rows) ? rows : []))
       .catch(() => {});
-  }, []);
+  }, [signEnabled]);
 
   // ── Notifications — real, /v1/notifications ──
   const [notifs, setNotifs] = useState<any[]>([]);
@@ -229,13 +245,17 @@ export const GoogleWorkspaceRightSidebar: React.FC = () => {
   // panel doesn't fabricate those actions either. Leaving/deleting the
   // conversation itself is real (DELETE /v1/chat/channels/:id), same as the
   // full Chat page's own kebab menu. ──
+  // Backend requires 'bliss' entitlement (chat.routes.ts) — same unchecked
+  // gap as Notes/eSign above.
+  const chatEnabled = isAppEnabled('bliss', enabledApps);
   const [channels, setChannels] = useState<{ id: string; type: 'channel' | 'dm' | 'group'; name: string; created_by: string; unread: number; last_message: string | null; last_message_at: string | null }[]>([]);
   function loadChannels() {
+    if (!chatEnabled) return;
     apiFetch('/v1/chat/channels')
       .then(res => setChannels(Array.isArray(res?.data) ? res.data : []))
       .catch(() => {});
   }
-  useEffect(() => { loadChannels(); }, []);
+  useEffect(() => { loadChannels(); }, [chatEnabled]);
   const totalUnreadChats = channels.reduce((sum, c) => sum + (c.unread || 0), 0);
 
   const [newChannelOpen, setNewChannelOpen] = useState(false);

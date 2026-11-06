@@ -7,9 +7,15 @@ import { PettiService } from '../services/petti.service.js';
 import { generatePeriodInvoice, settleInvoiceFromGateway, addProductSubscription, cancelProductSubscription } from '../services/subscription-billing.service.js';
 import { PaymentGateway } from '../integrations/payment-gateway.js';
 import { env } from '../config/env.js';
+import { trustedRedirectOrigin } from '../lib/webauthn-config.js';
 import { changePlan, getPlanChangeHistory } from '../services/plan-change.service.js';
 import * as EsbService from '../services/esb.service.js';
 import { z } from 'zod';
+import {
+  createFreightPilotCheckout, freightPreviewPeriod, freightStatementPeriod, generateFreightInvoiceDraft, getFreightPilotRate,
+  getFreightPilotDraft, getFreightPricingVersions, getFreightStatement, getFreightUsagePreview, listFreightPilotDrafts,
+  verifyFreightPilotPayment,
+} from '../services/freight-usage-preview.service.js';
 
 const MGMT = ['SUPER_ADMIN', 'ADMIN', 'TENANT_ADMIN', 'MANAGER'] as const;
 
@@ -236,6 +242,7 @@ export default async function billingRoutes(fastify: FastifyInstance) {
             const result = await PettiService.payFromWalletDirect(user.tenant_id, { id: user.sub, role: user.role }, {
               walletId: method.petti_wallet_id,
               amount: invoice.amount,
+              currency: invoice.currency,
               category: 'SUBSCRIPTION',
               purpose: `Hudumika subscription ${invoice.invoice_number} — ${invoice.plan_code} plan, ${invoice.seats} seat${invoice.seats === 1 ? '' : 's'}`,
             });
@@ -400,7 +407,7 @@ export default async function billingRoutes(fastify: FastifyInstance) {
     });
 
     if (!result.success) {
-      const status = result.code === 'SEAT_LIMIT_EXCEEDED' ? 422 : 400;
+      const status = result.code === 'CURRENCY_CHANGE_REQUIRES_REVIEW' ? 409 : result.code === 'SEAT_LIMIT_EXCEEDED' ? 422 : 400;
       return reply.status(status).send({ error: result.error, code: result.code });
     }
     return result;
@@ -420,6 +427,28 @@ export default async function billingRoutes(fastify: FastifyInstance) {
   // CargoTracker once each has its own readiness work done). A tenant can
   // hold any number of these at once, each separately priced, billed on the
   // tenant's existing billing_anniversary_day, and independently cancellable.
+
+  fastify.get('/currency-change', {
+    preHandler: [requireRoleOrOrgPermission(ORG_PERMISSIONS.BILLING_MANAGE, ...MGMT)],
+  }, async request => {
+    const tenantId = request.user.tenant_id;
+    const data = await withTenant(tenantId, trx => trx.selectFrom('subscription_currency_changes')
+      .select(['to_plan', 'currency', 'effective_at', 'status', 'blocked_reason'])
+      .where('tenant_id', '=', tenantId).where('status', 'in', ['scheduled', 'blocked']).executeTakeFirst());
+    return { data: data ?? null };
+  });
+
+  fastify.delete('/currency-change', {
+    preHandler: [requireRoleOrOrgPermission(ORG_PERMISSIONS.BILLING_MANAGE, ...MGMT)],
+  }, async (request, reply) => {
+    const tenantId = request.user.tenant_id;
+    await withTenant(tenantId, async trx => {
+      await trx.selectFrom('tenants').select('id').where('id', '=', tenantId).forUpdate().executeTakeFirstOrThrow();
+      await trx.deleteFrom('subscription_currency_changes')
+        .where('tenant_id', '=', tenantId).where('status', 'in', ['scheduled', 'blocked']).execute();
+    });
+    return reply.status(204).send();
+  });
 
   fastify.get('/products', {
     preHandler: [requireRoleOrOrgPermission(ORG_PERMISSIONS.BILLING_MANAGE, ...MGMT)],
@@ -444,6 +473,156 @@ export default async function billingRoutes(fastify: FastifyInstance) {
         })),
       };
     });
+  });
+
+  fastify.get('/rate-cards/freight-forwarder', {
+    preHandler: [requireRoleOrOrgPermission(ORG_PERMISSIONS.BILLING_MANAGE, ...MGMT)],
+  }, async () => {
+    const [current] = await getFreightPricingVersions(false);
+    return { data: current ?? null };
+  });
+
+  fastify.get('/freight-usage-pilot', {
+    preHandler: [requireRoleOrOrgPermission(ORG_PERMISSIONS.BILLING_MANAGE, ...MGMT)],
+  }, async request => {
+    const tenantId = request.user.tenant_id;
+    const data = await withTenant(tenantId, trx => trx.selectFrom('freight_usage_pilot')
+      .select(['invited_at', 'accepted_at', 'starts_at', 'rate_revision'])
+      .where('tenant_id', '=', tenantId).executeTakeFirst());
+    return { data: data ?? null };
+  });
+
+  fastify.post('/freight-usage-pilot/accept', {
+    preHandler: [requireRoleOrOrgPermission(ORG_PERMISSIONS.BILLING_MANAGE, ...MGMT)],
+  }, async (request, reply) => {
+    const parsed = z.object({ revision: z.number().int().positive() }).safeParse(request.body);
+    if (!parsed.success) return reply.status(400).send({ error: 'Review the current rate card before accepting.' });
+    const { tenant_id: tenantId, sub } = request.user;
+    if (!z.string().uuid().safeParse(sub).success) return reply.status(403).send({ error: 'Sign in to accept the pilot invitation.' });
+
+    const invitation = await withTenant(tenantId, trx => trx.selectFrom('freight_usage_pilot')
+      .select(['invited_at', 'accepted_at', 'starts_at', 'rate_revision'])
+      .where('tenant_id', '=', tenantId).executeTakeFirst());
+    if (!invitation) return reply.status(404).send({ error: 'This workspace has no pilot invitation.' });
+    if (invitation.accepted_at) return { data: invitation };
+
+    const [rateCard] = await getFreightPricingVersions(false);
+    if (!rateCard || rateCard.revision !== parsed.data.revision) {
+      return reply.status(409).send({ error: 'The rate card changed. Reload Billing and review the current rates.' });
+    }
+    const now = new Date();
+    const startsAt = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() + 1, 1));
+    const data = await withTenant(tenantId, async trx => {
+      const saved = await trx.updateTable('freight_usage_pilot')
+        .set({ accepted_by: sub, accepted_at: now, starts_at: startsAt, rate_revision: rateCard.revision })
+        .where('tenant_id', '=', tenantId).where('accepted_at', 'is', null)
+        .returning(['invited_at', 'accepted_at', 'starts_at', 'rate_revision']).executeTakeFirst();
+      return saved ?? trx.selectFrom('freight_usage_pilot').select(['invited_at', 'accepted_at', 'starts_at', 'rate_revision'])
+        .where('tenant_id', '=', tenantId).executeTakeFirstOrThrow();
+    });
+    return { data };
+  });
+
+  fastify.get('/usage-statement/freight-forwarder', {
+    preHandler: [requireRoleOrOrgPermission(ORG_PERMISSIONS.BILLING_MANAGE, ...MGMT)],
+  }, async (request, reply) => {
+    const period = freightStatementPeriod.safeParse(request.query);
+    const tomorrow = new Date(Date.now() + 86_400_000).toISOString().slice(0, 10);
+    if (!period.success || period.data.to > tomorrow) {
+      return reply.status(400).send({ error: 'Enter a UTC period of 1 to 366 days ending no later than tomorrow, exclusive.' });
+    }
+    const tenantId = request.user.tenant_id;
+    const pilot = period.data.mode === 'pilot' ? await getFreightPilotRate(tenantId, period.data.from) : null;
+    if (period.data.mode === 'pilot' && !pilot) {
+      return reply.status(409).send({ error: 'Choose a period starting on or after your accepted pilot start date.' });
+    }
+    const statement = await getFreightStatement(tenantId, period.data, pilot ?? undefined);
+    if (!statement) return reply.status(422).send({ error: 'Select a shorter period to estimate this volume.' });
+    return statement;
+  });
+
+  fastify.get('/usage-invoice-drafts/freight-forwarder/pilot', {
+    preHandler: [requireRoleOrOrgPermission(ORG_PERMISSIONS.BILLING_MANAGE, ...MGMT)],
+  }, async request => {
+    return { data: await listFreightPilotDrafts(request.user.tenant_id) };
+  });
+
+  fastify.get('/usage-invoice-drafts/freight-forwarder/pilot/:id', {
+    preHandler: [requireRoleOrOrgPermission(ORG_PERMISSIONS.BILLING_MANAGE, ...MGMT)],
+  }, async (request, reply) => {
+    const params = z.object({ id: z.string().uuid() }).safeParse(request.params);
+    if (!params.success) return reply.status(400).send({ error: 'Invalid invoice draft ID.' });
+    const draft = await getFreightPilotDraft(request.user.tenant_id, params.data.id);
+    if (!draft) return reply.status(404).send({ error: 'Pilot invoice draft not found.' });
+    return draft;
+  });
+
+  fastify.post('/usage-invoice-drafts/freight-forwarder/pilot/:id/checkout', {
+    preHandler: [requireRoleOrOrgPermission(ORG_PERMISSIONS.BILLING_MANAGE, ...MGMT)],
+  }, async (request, reply) => {
+    const params = z.object({ id: z.string().uuid() }).safeParse(request.params);
+    if (!params.success) return reply.status(400).send({ error: 'Invalid invoice draft ID.' });
+    const user = request.user;
+
+    const profile = await withTenant(user.tenant_id, trx =>
+      trx.selectFrom('users').select(['email', 'name']).where('id', '=', user.sub).executeTakeFirst()
+    );
+    const email = profile?.email ?? user.email ?? 'billing@hudumika.com';
+    const name = profile?.name ?? 'Workspace Admin';
+    const origin = trustedRedirectOrigin(request.headers.origin || request.headers.referer);
+    const redirectUrl = `${origin}/subscription?freight_pilot_invoice=${params.data.id}`;
+
+    const result = await createFreightPilotCheckout(user.tenant_id, params.data.id, email, name, redirectUrl);
+    if (result.outcome === 'not_found') return reply.status(404).send({ error: 'Pilot invoice draft not found.' });
+    if (result.outcome === 'already_paid') return reply.status(409).send({ error: 'This invoice is already paid.' });
+    if (result.outcome === 'nothing_to_charge') return reply.status(422).send({ error: 'This invoice has nothing to charge.' });
+    return { url: result.url };
+  });
+
+  fastify.post('/usage-invoice-drafts/freight-forwarder/pilot/:id/verify', {
+    preHandler: [requireRoleOrOrgPermission(ORG_PERMISSIONS.BILLING_MANAGE, ...MGMT)],
+  }, async (request, reply) => {
+    const params = z.object({ id: z.string().uuid() }).safeParse(request.params);
+    if (!params.success) return reply.status(400).send({ error: 'Invalid invoice draft ID.' });
+
+    const result = await verifyFreightPilotPayment(request.user.tenant_id, params.data.id);
+    if (result.outcome === 'not_found') return reply.status(404).send({ error: 'Pilot invoice draft not found.' });
+    if (result.outcome === 'not_invoiced') return reply.status(409).send({ error: 'Start checkout before verifying payment.' });
+    if (result.outcome === 'not_successful') return reply.status(402).send({ error: 'Payment not confirmed.' });
+    if (result.outcome === 'amount_mismatch') return reply.status(409).send({ error: 'The confirmed payment does not match this invoice.' });
+    return { status: result.outcome === 'paid' || result.outcome === 'already_paid' ? 'paid' : result.outcome };
+  });
+
+  fastify.post('/usage-invoice-drafts/freight-forwarder', {
+    preHandler: [requireRoleOrOrgPermission(ORG_PERMISSIONS.BILLING_MANAGE, ...MGMT)],
+  }, async (request, reply) => {
+    const period = freightStatementPeriod.safeParse(request.body);
+    const today = new Date().toISOString().slice(0, 10);
+    if (!period.success || period.data.to > today) {
+      return reply.status(400).send({ error: 'Choose a completed UTC period of 1 to 366 days.' });
+    }
+    if (!z.string().uuid().safeParse(request.user.sub).success) {
+      return reply.status(403).send({ error: 'Sign in as a billing manager to save an invoice draft.' });
+    }
+    const tenantId = request.user.tenant_id;
+    const pilot = period.data.mode === 'pilot' ? await getFreightPilotRate(tenantId, period.data.from) : null;
+    if (period.data.mode === 'pilot' && !pilot) {
+      return reply.status(409).send({ error: 'Choose a period starting on or after your accepted pilot start date.' });
+    }
+    const result = await generateFreightInvoiceDraft(tenantId, request.user.sub, period.data, pilot ?? undefined);
+    if (result.outcome === 'volume_limit') return reply.status(422).send({ error: 'Select a shorter period to draft this volume.' });
+    if (result.outcome === 'no_priced_usage') return reply.status(422).send({ error: 'This period has no recorded usage with an effective rate.' });
+    return reply.status(result.created ? 201 : 200).send(result.draft);
+  });
+
+  fastify.get('/usage-preview/freight-forwarder', {
+    preHandler: [requireRoleOrOrgPermission(ORG_PERMISSIONS.BILLING_MANAGE, ...MGMT)],
+  }, async (request, reply) => {
+    const period = freightPreviewPeriod.safeParse(request.query);
+    if (!period.success) {
+      return reply.status(400).send({ error: 'Provide from and to as YYYY-MM-DD dates, 1 to 366 days apart.' });
+    }
+    return getFreightUsagePreview(request.user.tenant_id, period.data);
   });
 
   fastify.post('/products/:productKey/subscribe', {
@@ -522,7 +701,10 @@ export default async function billingRoutes(fastify: FastifyInstance) {
     );
     const email = profile?.email ?? user.email ?? 'billing@hudumika.com';
     const name = profile?.name ?? 'Workspace Admin';
-    const origin = (request.headers.origin || request.headers.referer || '').replace(/\/$/, '');
+    // trustedRedirectOrigin: never build a payment gateway's post-checkout
+    // redirect straight from a client-supplied header — see its own doc
+    // comment (lib/webauthn-config.ts) for the open-redirect this closes.
+    const origin = trustedRedirectOrigin(request.headers.origin || request.headers.referer);
     const redirectUrl = `${origin}/subscription?esb_topup=1`;
 
     const checkout = await EsbService.createTopUpCheckout({

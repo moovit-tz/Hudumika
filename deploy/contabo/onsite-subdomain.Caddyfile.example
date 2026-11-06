@@ -1,0 +1,41 @@
+# Optional: Onsite's own subdomain, M1 of the standalone-apps plan
+# (docs/audits/STANDALONE_VERIFICATION_AND_PLAN_2026-11-05.md).
+#
+# This is NOT wired into deploy.sh or Caddyfile automatically — appending
+# it is a deliberate operator action, not a side effect of a normal
+# redeploy, the same posture this directory already takes toward new DNS
+# names (see the main README's "point the domain's A record" step).
+#
+# Why this can be one extra Caddy block instead of a second web/API
+# deployment: apps/web is still one SPA build serving every product, and
+# apps/web/src/lib/appEntry.ts resolves "single-app entry mode" purely
+# from the browser's own hostname at runtime — onsite.{$APP_DOMAIN}
+# needs no separate build artifact, upstream, or TLS handling beyond
+# Caddy's normal per-hostname certificate issuance. Delete this block (or
+# never add it) to fold Onsite back into the shared launcher; nothing
+# else changes.
+#
+# To use: set ONSITE_DOMAIN in .env.production (point its own A/AAAA
+# record at this VPS first), append this block's content into
+# deploy/contabo/Caddyfile, and redeploy.
+
+{$ONSITE_DOMAIN} {
+  encode zstd gzip
+  header X-Content-Type-Options nosniff
+  header Referrer-Policy strict-origin-when-cross-origin
+  @api path /v1/* /auth/* /iclock /iclock/* /ws /ws/* /health /.well-known/openid-configuration /jwks.json
+  handle @api {
+    reverse_proxy api:3001
+  }
+  handle /assets/* {
+    root * /srv/web
+    header Cache-Control "public, max-age=31536000, immutable"
+    file_server
+  }
+  handle {
+    root * /srv/web
+    try_files {path} /index.html
+    header Cache-Control "no-cache"
+    file_server
+  }
+}

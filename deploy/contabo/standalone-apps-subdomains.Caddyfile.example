@@ -1,0 +1,574 @@
+# Optional: dedicated subdomains for every internal Hudumika app, extending
+# the exact pattern onsite-subdomain.Caddyfile.example already established
+# for Onsite (M3 of the standalone-apps plan,
+# docs/audits/STANDALONE_VERIFICATION_AND_PLAN_2026-11-05.md).
+#
+# Same posture as that file: NOT wired into deploy.sh or Caddyfile
+# automatically — appending any of these blocks is a deliberate operator
+# action. Same reason it needs no second build or deployment: apps/web is
+# one SPA build serving every product, and apps/web/src/lib/appEntry.ts's
+# SINGLE_APP_HOSTS resolves single-app entry mode purely from the
+# browser's own hostname at runtime. Add or delete any one block
+# independently of the others — each app's entry is reversible on its own.
+#
+# To use: point each subdomain's own A/AAAA record at this VPS first, then
+# append whichever block(s) you need into deploy/contabo/Caddyfile and
+# redeploy. The literal hostname below must match the corresponding entry
+# in SINGLE_APP_HOSTS exactly — these are not parameterized by an env var
+# the way ONSITE_DOMAIN is, so a differently-named subdomain needs a
+# matching edit in appEntry.ts too.
+
+lens.hudumika.tz {
+  encode zstd gzip
+  header X-Content-Type-Options nosniff
+  header Referrer-Policy strict-origin-when-cross-origin
+  @api path /v1/* /auth/* /ws /ws/* /health /.well-known/openid-configuration /jwks.json
+  handle @api {
+    reverse_proxy api:3001
+  }
+  handle /assets/* {
+    root * /srv/web
+    header Cache-Control "public, max-age=31536000, immutable"
+    file_server
+  }
+  handle {
+    root * /srv/web
+    try_files {path} /index.html
+    header Cache-Control "no-cache"
+    file_server
+  }
+}
+
+complyos.hudumika.tz {
+  encode zstd gzip
+  header X-Content-Type-Options nosniff
+  header Referrer-Policy strict-origin-when-cross-origin
+  @api path /v1/* /auth/* /ws /ws/* /health /.well-known/openid-configuration /jwks.json
+  handle @api {
+    reverse_proxy api:3001
+  }
+  handle /assets/* {
+    root * /srv/web
+    header Cache-Control "public, max-age=31536000, immutable"
+    file_server
+  }
+  handle {
+    root * /srv/web
+    try_files {path} /index.html
+    header Cache-Control "no-cache"
+    file_server
+  }
+}
+
+nexushr.hudumika.tz {
+  encode zstd gzip
+  header X-Content-Type-Options nosniff
+  header Referrer-Policy strict-origin-when-cross-origin
+  @api path /v1/* /auth/* /iclock /iclock/* /ws /ws/* /health /.well-known/openid-configuration /jwks.json
+  handle @api {
+    reverse_proxy api:3001
+  }
+  handle /assets/* {
+    root * /srv/web
+    header Cache-Control "public, max-age=31536000, immutable"
+    file_server
+  }
+  handle {
+    root * /srv/web
+    try_files {path} /index.html
+    header Cache-Control "no-cache"
+    file_server
+  }
+}
+
+developer.hudumika.tz {
+  encode zstd gzip
+  header X-Content-Type-Options nosniff
+  header Referrer-Policy strict-origin-when-cross-origin
+  @api path /v1/* /auth/* /ws /ws/* /health /.well-known/openid-configuration /jwks.json
+  handle @api {
+    reverse_proxy api:3001
+  }
+  handle /assets/* {
+    root * /srv/web
+    header Cache-Control "public, max-age=31536000, immutable"
+    file_server
+  }
+  handle {
+    root * /srv/web
+    try_files {path} /index.html
+    header Cache-Control "no-cache"
+    file_server
+  }
+}
+
+petti.hudumika.tz {
+  encode zstd gzip
+  header X-Content-Type-Options nosniff
+  header Referrer-Policy strict-origin-when-cross-origin
+  @api path /v1/* /auth/* /ws /ws/* /health /.well-known/openid-configuration /jwks.json
+  handle @api {
+    reverse_proxy api:3001
+  }
+  handle /assets/* {
+    root * /srv/web
+    header Cache-Control "public, max-age=31536000, immutable"
+    file_server
+  }
+  handle {
+    root * /srv/web
+    try_files {path} /index.html
+    header Cache-Control "no-cache"
+    file_server
+  }
+}
+
+# ── The rest of the internal app list, same shape, added on request
+# (2026-11-06) so every app in the product list has a subdomain ready to
+# switch on, even for ones with no near-term launch plan — appEntry.ts's
+# SINGLE_APP_HOSTS already maps all of these. HuduFreight and SafeTracker
+# are the same app (route /tracking) under two names, so they share one
+# block each pointed at the same origin. Workspace (tenant Admin console)
+# and SuperAdmin (platform console) are kept on deliberately distinct
+# hostnames — see appEntry.ts's comment on why.
+
+clearos.hudumika.tz {
+  encode zstd gzip
+  header X-Content-Type-Options nosniff
+  header Referrer-Policy strict-origin-when-cross-origin
+  @api path /v1/* /auth/* /ws /ws/* /health /.well-known/openid-configuration /jwks.json
+  handle @api {
+    reverse_proxy api:3001
+  }
+  handle /assets/* {
+    root * /srv/web
+    header Cache-Control "public, max-age=31536000, immutable"
+    file_server
+  }
+  handle {
+    root * /srv/web
+    try_files {path} /index.html
+    header Cache-Control "no-cache"
+    file_server
+  }
+}
+
+finops.hudumika.tz {
+  encode zstd gzip
+  header X-Content-Type-Options nosniff
+  header Referrer-Policy strict-origin-when-cross-origin
+  @api path /v1/* /auth/* /ws /ws/* /health /.well-known/openid-configuration /jwks.json
+  handle @api {
+    reverse_proxy api:3001
+  }
+  handle /assets/* {
+    root * /srv/web
+    header Cache-Control "public, max-age=31536000, immutable"
+    file_server
+  }
+  handle {
+    root * /srv/web
+    try_files {path} /index.html
+    header Cache-Control "no-cache"
+    file_server
+  }
+}
+
+bliss.hudumika.tz {
+  encode zstd gzip
+  header X-Content-Type-Options nosniff
+  header Referrer-Policy strict-origin-when-cross-origin
+  @api path /v1/* /auth/* /ws /ws/* /health /.well-known/openid-configuration /jwks.json
+  handle @api {
+    reverse_proxy api:3001
+  }
+  handle /assets/* {
+    root * /srv/web
+    header Cache-Control "public, max-age=31536000, immutable"
+    file_server
+  }
+  handle {
+    root * /srv/web
+    try_files {path} /index.html
+    header Cache-Control "no-cache"
+    file_server
+  }
+}
+
+crm.hudumika.tz {
+  encode zstd gzip
+  header X-Content-Type-Options nosniff
+  header Referrer-Policy strict-origin-when-cross-origin
+  @api path /v1/* /auth/* /ws /ws/* /health /.well-known/openid-configuration /jwks.json
+  handle @api {
+    reverse_proxy api:3001
+  }
+  handle /assets/* {
+    root * /srv/web
+    header Cache-Control "public, max-age=31536000, immutable"
+    file_server
+  }
+  handle {
+    root * /srv/web
+    try_files {path} /index.html
+    header Cache-Control "no-cache"
+    file_server
+  }
+}
+
+cloud.hudumika.tz {
+  encode zstd gzip
+  header X-Content-Type-Options nosniff
+  header Referrer-Policy strict-origin-when-cross-origin
+  @api path /v1/* /auth/* /ws /ws/* /health /.well-known/openid-configuration /jwks.json
+  handle @api {
+    reverse_proxy api:3001
+  }
+  handle /assets/* {
+    root * /srv/web
+    header Cache-Control "public, max-age=31536000, immutable"
+    file_server
+  }
+  handle {
+    root * /srv/web
+    try_files {path} /index.html
+    header Cache-Control "no-cache"
+    file_server
+  }
+}
+
+email.hudumika.tz {
+  encode zstd gzip
+  header X-Content-Type-Options nosniff
+  header Referrer-Policy strict-origin-when-cross-origin
+  @api path /v1/* /auth/* /ws /ws/* /health /.well-known/openid-configuration /jwks.json
+  handle @api {
+    reverse_proxy api:3001
+  }
+  handle /assets/* {
+    root * /srv/web
+    header Cache-Control "public, max-age=31536000, immutable"
+    file_server
+  }
+  handle {
+    root * /srv/web
+    try_files {path} /index.html
+    header Cache-Control "no-cache"
+    file_server
+  }
+}
+
+contacts.hudumika.tz {
+  encode zstd gzip
+  header X-Content-Type-Options nosniff
+  header Referrer-Policy strict-origin-when-cross-origin
+  @api path /v1/* /auth/* /ws /ws/* /health /.well-known/openid-configuration /jwks.json
+  handle @api {
+    reverse_proxy api:3001
+  }
+  handle /assets/* {
+    root * /srv/web
+    header Cache-Control "public, max-age=31536000, immutable"
+    file_server
+  }
+  handle {
+    root * /srv/web
+    try_files {path} /index.html
+    header Cache-Control "no-cache"
+    file_server
+  }
+}
+
+ondi.hudumika.tz {
+  encode zstd gzip
+  header X-Content-Type-Options nosniff
+  header Referrer-Policy strict-origin-when-cross-origin
+  @api path /v1/* /auth/* /ws /ws/* /health /.well-known/openid-configuration /jwks.json
+  handle @api {
+    reverse_proxy api:3001
+  }
+  handle /assets/* {
+    root * /srv/web
+    header Cache-Control "public, max-age=31536000, immutable"
+    file_server
+  }
+  handle {
+    root * /srv/web
+    try_files {path} /index.html
+    header Cache-Control "no-cache"
+    file_server
+  }
+}
+
+hudufreight.hudumika.tz {
+  encode zstd gzip
+  header X-Content-Type-Options nosniff
+  header Referrer-Policy strict-origin-when-cross-origin
+  @api path /v1/* /auth/* /ws /ws/* /health /.well-known/openid-configuration /jwks.json
+  handle @api {
+    reverse_proxy api:3001
+  }
+  handle /assets/* {
+    root * /srv/web
+    header Cache-Control "public, max-age=31536000, immutable"
+    file_server
+  }
+  handle {
+    root * /srv/web
+    try_files {path} /index.html
+    header Cache-Control "no-cache"
+    file_server
+  }
+}
+
+safetracker.hudumika.tz {
+  encode zstd gzip
+  header X-Content-Type-Options nosniff
+  header Referrer-Policy strict-origin-when-cross-origin
+  @api path /v1/* /auth/* /ws /ws/* /health /.well-known/openid-configuration /jwks.json
+  handle @api {
+    reverse_proxy api:3001
+  }
+  handle /assets/* {
+    root * /srv/web
+    header Cache-Control "public, max-age=31536000, immutable"
+    file_server
+  }
+  handle {
+    root * /srv/web
+    try_files {path} /index.html
+    header Cache-Control "no-cache"
+    file_server
+  }
+}
+
+calendar.hudumika.tz {
+  encode zstd gzip
+  header X-Content-Type-Options nosniff
+  header Referrer-Policy strict-origin-when-cross-origin
+  @api path /v1/* /auth/* /ws /ws/* /health /.well-known/openid-configuration /jwks.json
+  handle @api {
+    reverse_proxy api:3001
+  }
+  handle /assets/* {
+    root * /srv/web
+    header Cache-Control "public, max-age=31536000, immutable"
+    file_server
+  }
+  handle {
+    root * /srv/web
+    try_files {path} /index.html
+    header Cache-Control "no-cache"
+    file_server
+  }
+}
+
+tasks.hudumika.tz {
+  encode zstd gzip
+  header X-Content-Type-Options nosniff
+  header Referrer-Policy strict-origin-when-cross-origin
+  @api path /v1/* /auth/* /ws /ws/* /health /.well-known/openid-configuration /jwks.json
+  handle @api {
+    reverse_proxy api:3001
+  }
+  handle /assets/* {
+    root * /srv/web
+    header Cache-Control "public, max-age=31536000, immutable"
+    file_server
+  }
+  handle {
+    root * /srv/web
+    try_files {path} /index.html
+    header Cache-Control "no-cache"
+    file_server
+  }
+}
+
+seal.hudumika.tz {
+  encode zstd gzip
+  header X-Content-Type-Options nosniff
+  header Referrer-Policy strict-origin-when-cross-origin
+  @api path /v1/* /auth/* /ws /ws/* /health /.well-known/openid-configuration /jwks.json
+  handle @api {
+    reverse_proxy api:3001
+  }
+  handle /assets/* {
+    root * /srv/web
+    header Cache-Control "public, max-age=31536000, immutable"
+    file_server
+  }
+  handle {
+    root * /srv/web
+    try_files {path} /index.html
+    header Cache-Control "no-cache"
+    file_server
+  }
+}
+
+studio.hudumika.tz {
+  encode zstd gzip
+  header X-Content-Type-Options nosniff
+  header Referrer-Policy strict-origin-when-cross-origin
+  @api path /v1/* /auth/* /ws /ws/* /health /.well-known/openid-configuration /jwks.json
+  handle @api {
+    reverse_proxy api:3001
+  }
+  handle /assets/* {
+    root * /srv/web
+    header Cache-Control "public, max-age=31536000, immutable"
+    file_server
+  }
+  handle {
+    root * /srv/web
+    try_files {path} /index.html
+    header Cache-Control "no-cache"
+    file_server
+  }
+}
+
+cms.hudumika.tz {
+  encode zstd gzip
+  header X-Content-Type-Options nosniff
+  header Referrer-Policy strict-origin-when-cross-origin
+  @api path /v1/* /auth/* /ws /ws/* /health /.well-known/openid-configuration /jwks.json
+  handle @api {
+    reverse_proxy api:3001
+  }
+  handle /assets/* {
+    root * /srv/web
+    header Cache-Control "public, max-age=31536000, immutable"
+    file_server
+  }
+  handle {
+    root * /srv/web
+    try_files {path} /index.html
+    header Cache-Control "no-cache"
+    file_server
+  }
+}
+
+hudubi.hudumika.tz {
+  encode zstd gzip
+  header X-Content-Type-Options nosniff
+  header Referrer-Policy strict-origin-when-cross-origin
+  @api path /v1/* /auth/* /ws /ws/* /health /.well-known/openid-configuration /jwks.json
+  handle @api {
+    reverse_proxy api:3001
+  }
+  handle /assets/* {
+    root * /srv/web
+    header Cache-Control "public, max-age=31536000, immutable"
+    file_server
+  }
+  handle {
+    root * /srv/web
+    try_files {path} /index.html
+    header Cache-Control "no-cache"
+    file_server
+  }
+}
+
+esign.hudumika.tz {
+  encode zstd gzip
+  header X-Content-Type-Options nosniff
+  header Referrer-Policy strict-origin-when-cross-origin
+  @api path /v1/* /auth/* /ws /ws/* /health /.well-known/openid-configuration /jwks.json
+  handle @api {
+    reverse_proxy api:3001
+  }
+  handle /assets/* {
+    root * /srv/web
+    header Cache-Control "public, max-age=31536000, immutable"
+    file_server
+  }
+  handle {
+    root * /srv/web
+    try_files {path} /index.html
+    header Cache-Control "no-cache"
+    file_server
+  }
+}
+
+sms.hudumika.tz {
+  encode zstd gzip
+  header X-Content-Type-Options nosniff
+  header Referrer-Policy strict-origin-when-cross-origin
+  @api path /v1/* /auth/* /ws /ws/* /health /.well-known/openid-configuration /jwks.json
+  handle @api {
+    reverse_proxy api:3001
+  }
+  handle /assets/* {
+    root * /srv/web
+    header Cache-Control "public, max-age=31536000, immutable"
+    file_server
+  }
+  handle {
+    root * /srv/web
+    try_files {path} /index.html
+    header Cache-Control "no-cache"
+    file_server
+  }
+}
+
+projects.hudumika.tz {
+  encode zstd gzip
+  header X-Content-Type-Options nosniff
+  header Referrer-Policy strict-origin-when-cross-origin
+  @api path /v1/* /auth/* /ws /ws/* /health /.well-known/openid-configuration /jwks.json
+  handle @api {
+    reverse_proxy api:3001
+  }
+  handle /assets/* {
+    root * /srv/web
+    header Cache-Control "public, max-age=31536000, immutable"
+    file_server
+  }
+  handle {
+    root * /srv/web
+    try_files {path} /index.html
+    header Cache-Control "no-cache"
+    file_server
+  }
+}
+
+workspace.hudumika.tz {
+  encode zstd gzip
+  header X-Content-Type-Options nosniff
+  header Referrer-Policy strict-origin-when-cross-origin
+  @api path /v1/* /auth/* /ws /ws/* /health /.well-known/openid-configuration /jwks.json
+  handle @api {
+    reverse_proxy api:3001
+  }
+  handle /assets/* {
+    root * /srv/web
+    header Cache-Control "public, max-age=31536000, immutable"
+    file_server
+  }
+  handle {
+    root * /srv/web
+    try_files {path} /index.html
+    header Cache-Control "no-cache"
+    file_server
+  }
+}
+
+superadmin.hudumika.tz {
+  encode zstd gzip
+  header X-Content-Type-Options nosniff
+  header Referrer-Policy strict-origin-when-cross-origin
+  @api path /v1/* /auth/* /ws /ws/* /health /.well-known/openid-configuration /jwks.json
+  handle @api {
+    reverse_proxy api:3001
+  }
+  handle /assets/* {
+    root * /srv/web
+    header Cache-Control "public, max-age=31536000, immutable"
+    file_server
+  }
+  handle {
+    root * /srv/web
+    try_files {path} /index.html
+    header Cache-Control "no-cache"
+    file_server
+  }
+}

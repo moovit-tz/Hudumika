@@ -2,6 +2,24 @@
 
 import type { TenantPlan, SafeUser } from './user.js';
 
+export const SIGNUP_BASE_PLAN_CODES: readonly string[] = ['starter-tzs', 'business-tzs', 'scale-tzs'];
+
+export function signupPackageAmount(
+  pkg: {
+    monthly_price: number | string;
+    annual_price: number | string;
+    price_flat_monthly: number | string | null;
+    price_flat_annual: number | string | null;
+  },
+  cycle: 'monthly' | 'annual',
+): number {
+  if (pkg.price_flat_monthly != null || pkg.price_flat_annual != null) {
+    const monthly = Number(pkg.price_flat_monthly ?? 0);
+    return cycle === 'monthly' ? monthly : Number(pkg.price_flat_annual ?? monthly * 12);
+  }
+  return Number(cycle === 'monthly' ? pkg.monthly_price : pkg.annual_price);
+}
+
 export interface Package {
   id: string;
   code: TenantPlan;

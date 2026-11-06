@@ -8,9 +8,10 @@ import type { SidebarSection } from '../components/AppSidebar.js';
 import { AppHeader } from '../components/AppHeader.js';
 import { PageLayout } from '../components/PageLayout.js';
 import { RequireRoles } from '../components/RequireRoles.js';
-import { OPS_ROLES } from '../lib/permissions.js';
+import { MGMT_ROLES, OPS_ROLES } from '../lib/permissions.js';
 import { CargoDashboard } from '../pages/CargoDashboard.js';
 import { Tracker } from '../pages/Tracker.js';
+import { CustomsTracker } from '../pages/CustomsTracker.js';
 import { Demurrage } from '../pages/Demurrage.js';
 import { CarriersPage } from '../pages/CarriersPage.js';
 import { FreightBookingsPage } from '../pages/FreightBookingsPage.js';
@@ -25,7 +26,8 @@ const NAV: SidebarSection[] = [
   {
     items: [
       { label: 'Dashboard',            icon: 'activity',      path: '/cargotracker',            exact: true },
-      { label: 'Track',                icon: 'map',           path: '/cargotracker/track' },
+      { label: 'Shipment Tracker',    icon: 'map',           path: '/cargotracker/track' },
+      { label: 'Customs Tracker',     icon: 'fileText',      path: '/cargotracker/customs' },
       { label: 'Containers & Fleet',   icon: 'container',     path: '/cargotracker/containers' },
       { label: 'Demurrage & Detention', icon: 'alertTriangle', path: '/cargotracker/demurrage' },
     ],
@@ -58,12 +60,13 @@ export function CargoTrackerShell() {
               <Route element={<PageLayout />}>
                 <Route index element={<CargoDashboard />} />
                 <Route path="track" element={<Tracker />} />
+                <Route path="customs" element={<RequireRoles roles={OPS_ROLES}><CustomsTracker /></RequireRoles>} />
                 <Route path="containers" element={<ContainerListPage />} />
                 <Route path="containers/new" element={<RecordContainerPage />} />
                 <Route path="containers/:number" element={<ContainerDetailPage />} />
                 <Route path="containers/:number/evidence/:kind" element={<RequireRoles roles={OPS_ROLES}><ContainerEvidencePage /></RequireRoles>} />
-                <Route path="demurrage/tariffs/new" element={<RequireRoles roles={OPS_ROLES}><DemurrageTariffPage /></RequireRoles>} />
-                <Route path="demurrage/tariffs/:id/edit" element={<RequireRoles roles={OPS_ROLES}><DemurrageTariffPage /></RequireRoles>} />
+                <Route path="demurrage/tariffs/new" element={<RequireRoles roles={MGMT_ROLES}><DemurrageTariffPage /></RequireRoles>} />
+                <Route path="demurrage/tariffs/:id/edit" element={<RequireRoles roles={MGMT_ROLES}><DemurrageTariffPage /></RequireRoles>} />
                 <Route path="containers/:number/edit" element={<RecordContainerPage />} />
                 <Route path="demurrage" element={<Demurrage />} />
                 <Route path="carriers" element={<CarriersPage />} />

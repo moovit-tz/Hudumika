@@ -46,8 +46,16 @@ export const LAUNCHER_APPS: Array<{ id: string; name: string; color: string; pat
   { id: 'projects',  name: 'Projects', color: '#f59e0b', path: '/projects'  },
   { id: 'developer', name: 'Developer', color: '#0f766e', path: '/developer' },
   { id: 'tuma',      name: 'Tuma',      color: '#0891b2', path: import.meta.env.VITE_TUMA_PORTAL_URL?.trim() || (import.meta.env.DEV ? 'http://localhost:3100/en/portal' : '/tuma') },
-  { id: 'lexcore',   name: 'LexCore',   color: '#7c3aed', path: import.meta.env.VITE_LEXCORE_URL?.trim() || (import.meta.env.DEV ? 'http://localhost:5175/' : '/lexcore') },
-  { id: 'ngao',      name: 'Ngao',      color: '#059669', path: '/ngao'      },
+  // /sso, not root — LexCore's root ('/') is its public marketing Landing
+  // page with no auth check at all; /sso is the auto-start-Ondi entry point
+  // (SsoStart.tsx) that actually lands a Hudumika-signed-in user straight
+  // into the dashboard, matching Tuma's launcher entry behavior.
+  { id: 'lexcore',   name: 'LexCore',   color: '#7c3aed', path: import.meta.env.VITE_LEXCORE_URL?.trim() || (import.meta.env.DEV ? 'http://localhost:5175/sso' : '/lexcore/sso') },
+  // /sso (not the bare origin) — same reasoning as LexCore above: this is
+  // the auto-start-Ondi entry point, not a page with its own sign-in click.
+  // Ngao is Hudumika's PDPC/GDPR compliance product, a separate codebase
+  // (D:\Apps\Ngao) forked from LexCore's scaffold — not an internal route.
+  { id: 'ngao',      name: 'Ngao',      color: '#059669', path: import.meta.env.VITE_NGAO_URL?.trim() || (import.meta.env.DEV ? 'http://localhost:5176/sso' : '/ngao/sso') },
   ...(import.meta.env.DEV || import.meta.env.VITE_STRIDE_URL?.trim() ? [{ id: 'stride', name: 'Stride', color: '#4f46e5', path: import.meta.env.VITE_STRIDE_URL?.trim() || 'http://localhost:3101/' }] : []),
   { id: 'gereji',    name: 'Gereji',    color: '#d97706', path: import.meta.env.VITE_GEREJI_URL?.trim() || (import.meta.env.DEV ? 'http://localhost:3000/' : '/gereji') },
 ];
@@ -111,21 +119,41 @@ export const LAUNCHER_SVG_ICONS: Record<string, React.ReactElement> = {
   superadmin: (<g stroke="white" strokeWidth="2.2" fill="none" strokeLinecap="round" strokeLinejoin="round"><path d="M20 6L31 11V20C31 27 26.5 31.5 20 34C13.5 31.5 9 27 9 20V11L20 6Z"/><path d="M15.5 19.5L18.5 22.5L25 15.5" strokeWidth="2.5"/></g>),
 };
 
-export function LauncherAppSvg({ id, color, logoUrl, size = 52 }: { id: string; color: string; logoUrl?: string; size?: number }) {
+export function LauncherAppSvg({
+  id,
+  color,
+  logoUrl,
+  size = 52,
+  sharp = false,
+}: {
+  id: string;
+  color: string;
+  logoUrl?: string;
+  size?: number;
+  sharp?: boolean;
+}) {
   const [broken, setBroken] = React.useState(false);
   React.useEffect(() => setBroken(false), [logoUrl]);
   // Every app icon platform-wide — vector brand icon or a custom uploaded
-  // logo — is clipped to the same squircle, not a fixed-pixel border-radius.
+  // logo — is clipped to the same squircle, not a fixed-pixel border-radius,
+  // unless sharp is explicitly requested (e.g. sharp matrix grid view).
   // The vector path (SQUIRCLE_PATH_40) is precomputed once for the shared
   // 40×40 viewBox; the custom-logo div clips to its own rendered `size`
   // since it isn't drawn in viewBox units.
-  const customClip = React.useMemo(() => `path('${squirclePath(size)}')`, [size]);
+  const customClip = React.useMemo(() => (sharp ? undefined : `path('${squirclePath(size)}')`), [sharp, size]);
   // A stale/invalid saved logo URL (deleted upload, bad path) must never show
   // the browser's broken-image glyph — fall back to the vector brand icon.
   if (logoUrl && !broken) {
     return (
-      <div className="app-lnch-custom-icon"
-        style={{ '--lnch-bg': color, '--lnch-sz': `${size}px`, clipPath: customClip } as React.CSSProperties}>
+      <div
+        className="app-lnch-custom-icon"
+        style={{
+          '--lnch-bg': color,
+          '--lnch-sz': `${size}px`,
+          clipPath: customClip,
+          borderRadius: sharp ? 0 : undefined,
+        } as React.CSSProperties}
+      >
         <img src={logoUrl} alt={id} className="app-lnch-custom-icon-img" onError={() => setBroken(true)} />
       </div>
     );
@@ -135,8 +163,12 @@ export function LauncherAppSvg({ id, color, logoUrl, size = 52 }: { id: string; 
     // transparent. A redundant clip-path at the same boundary doubles the AA edge
     // and produces a visible fringe at the corners.
     <svg viewBox="0 0 40 40" width={size} height={size} className="app-lnch-svg-icon">
-      <path d={SQUIRCLE_PATH_40} fill={color} />
-      {LAUNCHER_SVG_ICONS[id] ?? <rect x="10" y="10" width="20" height="20" rx="4" fill="white" opacity="0.7"/>}
+      {sharp ? (
+        <rect width="40" height="40" fill={color} />
+      ) : (
+        <path d={SQUIRCLE_PATH_40} fill={color} />
+      )}
+      {LAUNCHER_SVG_ICONS[id] ?? <rect x="10" y="10" width="20" height="20" rx={sharp ? 0 : 4} fill="white" opacity="0.7"/>}
     </svg>
   );
 }

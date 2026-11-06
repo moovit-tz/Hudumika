@@ -17,6 +17,7 @@ import { PaymentGateway } from '../integrations/payment-gateway.js';
 import { hashPassword } from '../lib/password.js';
 import { env } from '../config/env.js';
 import type { JWTPayload, TenantPlan } from '@hudumika/types';
+import { SIGNUP_BASE_PLAN_CODES, signupPackageAmount } from '@hudumika/types';
 
 const joinRequestSchema = z.object({
   name: z.string().trim().min(1).max(200),
@@ -87,8 +88,9 @@ export async function onboardingRoutes(fastify: FastifyInstance) {
       const caps = await IndustryRegistryService.listAppCapabilities(ind.key);
       const coreApps = caps.filter(c => c.capability_key === 'core').map(c => c.app_id);
       let recommendedPackageCode: string | null = null;
-      if ((ind as any).default_package_code) {
-        recommendedPackageCode = (ind as any).default_package_code;
+      const configuredCode = (ind as typeof ind & { default_package_code?: string | null }).default_package_code;
+      if (configuredCode && SIGNUP_BASE_PLAN_CODES.includes(configuredCode)) {
+        recommendedPackageCode = configuredCode;
       }
       return {
         key: ind.key,
@@ -188,6 +190,9 @@ export async function onboardingRoutes(fastify: FastifyInstance) {
    */
   fastify.post('/complete', async (request, reply) => {
     const input = onboardingCompleteSchema.parse(request.body);
+    if (input.package_code !== 'workspace-free' && !SIGNUP_BASE_PLAN_CODES.includes(input.package_code)) {
+      return reply.status(400).send({ error: 'Select an available base plan or standalone product.' });
+    }
 
     try {
       const result = await OnboardingService.completeOnboarding(fastify, input);
@@ -224,11 +229,15 @@ export async function onboardingRoutes(fastify: FastifyInstance) {
    */
   fastify.post('/checkout', async (request, reply) => {
     const input = onboardingCompleteSchema.parse(request.body);
+    if (input.package_code !== 'workspace-free' && !SIGNUP_BASE_PLAN_CODES.includes(input.package_code)) {
+      return reply.status(400).send({ error: 'Select an available base plan or standalone product.' });
+    }
     try {
-      const pkg = await dbPlatform.selectFrom('packages').select(['annual_price', 'monthly_price', 'currency'])
+      const pkg = await dbPlatform.selectFrom('packages')
+        .select(['annual_price', 'monthly_price', 'price_flat_monthly', 'price_flat_annual', 'currency'])
         .where('code', '=', input.package_code).where('is_active', '=', true).executeTakeFirst();
       if (!pkg) throw new OnboardingError(400, 'Selected package is not available');
-      const amount = input.billing_cycle === 'annual' ? Number(pkg.annual_price) : Number(pkg.monthly_price);
+      const amount = signupPackageAmount(pkg, input.billing_cycle);
 
       if (amount === 0 || !PaymentGateway.isConfigured()) {
         const result = await OnboardingService.completeOnboarding(fastify, input);

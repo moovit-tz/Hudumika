@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { signupPackageAmount } from '@hudumika/types';
 import type { StepProps } from './types.js';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '../../components/ui/select.js';
 import { Icon } from '../../components/Icon.js';
@@ -39,7 +40,7 @@ export const StepPayment: React.FC<StepProps> = ({ draft, update, onNext, onBack
   // navigates away instead of /complete.
   const pkg = packages.find(pk => pk.code === draft.package_code);
   const amount = draft.package_code === 'workspace-free' ? 0
-    : pkg ? (draft.billing_cycle === 'annual' ? pkg.annual_price : pkg.monthly_price) : 0;
+    : pkg ? signupPackageAmount(pkg, draft.billing_cycle) : 0;
   const isHostedCheckout = !!gatewayConfigured && amount > 0;
 
   const validate = () => {

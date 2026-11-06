@@ -17,6 +17,7 @@ import { Button } from '../../components/ui/button.js';
 import { Tip } from '../../components/ui/tooltip.js';
 import { Badge as UiBadge } from '../../components/ui/badge.js';
 import { showAlert } from '../../lib/alert.js';
+import { showConfirm } from '../../lib/confirm.js';
 import { PaginationBar } from '../../components/PaginationBar.js';
 import { AI_PROVIDERS } from '../../lib/aiProviders.js';
 import { ALL_FEATURE_KEYS } from '@hudumika/types';
@@ -1649,6 +1650,351 @@ const READINESS_OPTIONS: { value: ReadinessState; label: string }[] = [
 
 type AppStatusSort = 'name' | 'status' | 'updated';
 
+const FREIGHT_PREVIEW_PRODUCTS = [
+  { key: 'clearos', label: 'ClearOS', unit: 'Clearance cases' },
+  { key: 'hudufreight', label: 'HuduFreight', unit: 'Departed trips' },
+  { key: 'cargotracker', label: 'CargoTracker', unit: 'Tracking activations' },
+] as const;
+
+interface FreightPricingDraft {
+  revision: number;
+  tested: boolean;
+  configuration: {
+    discount_percent: number;
+    rates: Record<(typeof FREIGHT_PREVIEW_PRODUCTS)[number]['key'], number>;
+  } | null;
+  updated_at: string | null;
+}
+
+function FreightTenantPreview({ revision, onTested }: { revision: number; onTested: () => void }) {
+  const [tenantId, setTenantId] = useState('');
+  const [tenants, setTenants] = useState<{ id: string; name: string; slug: string }[]>([]);
+  const [pending, setPending] = useState(false);
+  const [error, setError] = useState('');
+  const [invitationNotice, setInvitationNotice] = useState('');
+  const [quote, setQuote] = useState<{
+    lines: { product_key: string; quantity: number; total_tzs: number }[];
+    total_tzs: number;
+  } | null>(null);
+  const format = new Intl.NumberFormat('en-TZ', { style: 'currency', currency: 'TZS', maximumFractionDigits: 0 });
+
+  useEffect(() => {
+    apiFetch<typeof tenants>('/v1/superadmin/tenants')
+      .then(rows => setTenants(rows.sort((a, b) => a.name.localeCompare(b.name))))
+      .catch(err => setError(err instanceof Error ? err.message : 'Could not load tenants.'));
+  }, []);
+
+  async function inviteTenant() {
+    const tenant = tenants.find(item => item.id === tenantId);
+    if (!tenant || !await showConfirm(`Invite ${tenant.name} to the freight usage pilot? Their billing manager can accept from Workspace Billing.`, {
+      title: 'Invite workspace to freight usage pilot',
+      confirmLabel: 'Invite workspace',
+    })) return;
+    setPending(true);
+    setError('');
+    setInvitationNotice('');
+    try {
+      const { data } = await apiFetch<{ data: { accepted_at: string | null } }>('/v1/superadmin/commercial-products/freight-forwarder/pilot-invitations', {
+        method: 'POST', body: JSON.stringify({ tenant_id: tenant.id }),
+      });
+      setInvitationNotice(data.accepted_at ? `${tenant.name} has already enrolled.` : `${tenant.name} can now accept the invitation from Workspace Billing.`);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Could not invite this workspace.');
+    } finally {
+      setPending(false);
+    }
+  }
+
+  return (
+    <form className="space-y-3 border-t p-4" onChange={() => setQuote(null)} onSubmit={async event => {
+      event.preventDefault();
+      const fields = new FormData(event.currentTarget);
+      setPending(true);
+      setError('');
+      setQuote(null);
+      try {
+        setQuote(await apiFetch('/v1/superadmin/commercial-products/freight-forwarder/tenant-preview', {
+          method: 'POST',
+          body: JSON.stringify({ tenant_id: tenantId, revision, period: { from: fields.get('from'), to: fields.get('to') } }),
+        }));
+        onTested();
+      } catch (err) {
+        setError(err instanceof Error ? err.message : 'Could not preview tenant usage.');
+      } finally {
+        setPending(false);
+      }
+    }}>
+      <h3 className="font-medium">Test saved draft against tenant usage</h3>
+      <p className="text-sm">Uses saved revision {revision}. Dates are UTC. CargoTracker counts new verified tracking activations after metering began.</p>
+      <fieldset disabled={pending} className="space-y-3">
+        <Select value={tenantId} disabled={pending} onValueChange={value => { setTenantId(value); setQuote(null); setInvitationNotice(''); }}>
+          <SelectTrigger aria-label="Tenant"><SelectValue placeholder="Select a tenant" /></SelectTrigger>
+          <SelectContent>
+            {tenants.map(tenant => <SelectItem key={tenant.id} value={tenant.id}>{tenant.name} ({tenant.slug})</SelectItem>)}
+          </SelectContent>
+        </Select>
+        <div className="grid gap-2 sm:grid-cols-2">
+          <label className="text-sm">From, inclusive<Input type="date" name="from" required /></label>
+          <label className="text-sm">To, exclusive<Input type="date" name="to" required /></label>
+        </div>
+        <div className="flex flex-wrap gap-2">
+          <Button type="submit" disabled={!tenantId || pending}>Test tenant usage</Button>
+          <Button type="button" variant="outline" disabled={!tenantId || pending} onClick={inviteTenant}>Invite to usage pilot</Button>
+        </div>
+      </fieldset>
+      {error && <p role="alert">{error}</p>}
+      {invitationNotice && <p role="status">{invitationNotice}</p>}
+      {quote && <div aria-live="polite" className="space-y-1 text-sm">
+        {quote.lines.map(line => {
+          const product = FREIGHT_PREVIEW_PRODUCTS.find(item => item.key === line.product_key);
+          return <p key={line.product_key}>
+            {product?.label}{' · '}{line.quantity.toLocaleString('en-TZ')}{' '}{product?.unit.toLowerCase()}
+            {' · '}{format.format(line.total_tzs)}
+          </p>;
+        })}
+        <p className="font-semibold">Estimated total before tax {format.format(quote.total_tzs)}</p>
+      </div>}
+      {tenantId && <FreightPilotDraftReview key={tenantId} tenantId={tenantId} />}
+    </form>
+  );
+}
+
+function FreightPilotDraftReview({ tenantId }: { tenantId: string }) {
+  const [drafts, setDrafts] = useState<{ id: string; period_start: string; period_end: string }[] | null>(null);
+  const [selected, setSelected] = useState<{
+    id: string;
+    snapshot: {
+      total_tzs: number;
+      segments: {
+        from_inclusive: string; to_exclusive: string; revision: number | null;
+        lines: {
+          product_key: string; quantity: number;
+          quote: { unit_price_tzs: number; discount_tzs: number; total_tzs: number } | null;
+        }[];
+      }[];
+    };
+  } | null>(null);
+  const [pending, setPending] = useState(false);
+  const [error, setError] = useState('');
+  const path = `/v1/superadmin/commercial-products/freight-forwarder/pilot-drafts/${encodeURIComponent(tenantId)}`;
+  const format = new Intl.NumberFormat('en-TZ', { style: 'currency', currency: 'TZS', maximumFractionDigits: 0 });
+
+  async function load(id?: string) {
+    setPending(true);
+    setError('');
+    setSelected(null);
+    try {
+      if (id) {
+        setSelected(await apiFetch(`${path}/${encodeURIComponent(id)}`));
+      } else {
+        const { data } = await apiFetch<{ data: NonNullable<typeof drafts> }>(path);
+        setDrafts(data);
+      }
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Could not load pilot drafts.');
+    } finally {
+      setPending(false);
+    }
+  }
+
+  return <div className="space-y-3 border-t pt-3 text-sm">
+    <h4 className="font-semibold">Saved pilot drafts</h4>
+    <Button type="button" variant="outline" size="sm" disabled={pending} onClick={() => load()}>
+      {drafts ? 'Refresh draft list' : 'Review pilot drafts'}
+    </Button>
+    {pending && <p role="status">Loading pilot drafts…</p>}
+    {error && <p role="alert">{error}</p>}
+    {drafts?.length === 0 && <p>No pilot drafts saved for this workspace.</p>}
+    {drafts && drafts.length > 0 && <ul className="space-y-2">
+      {drafts.map(draft => <li key={draft.id} className="flex flex-wrap items-center gap-2">
+        <span>{draft.period_start} to {draft.period_end} (exclusive, UTC)</span>
+        <Button type="button" variant="outline" size="sm" disabled={pending || selected?.id === draft.id} onClick={() => load(draft.id)}>
+          {selected?.id === draft.id ? 'Open' : 'Open saved draft'}
+        </Button>
+      </li>)}
+    </ul>}
+    {selected && <div className="space-y-3 rounded-md border p-3" aria-live="polite">
+      <p className="font-semibold">Saved snapshot · For review only</p>
+      {selected.snapshot.segments.map(segment => <div key={segment.from_inclusive}>
+        <p className="font-medium">{segment.from_inclusive} to {segment.to_exclusive} (exclusive) · Revision {segment.revision}</p>
+        <ul className="space-y-1">
+          {segment.lines.map(line => <li key={line.product_key}>
+            {FREIGHT_PREVIEW_PRODUCTS.find(product => product.key === line.product_key)?.label ?? line.product_key}
+            {' · '}{line.quantity.toLocaleString('en-TZ')}
+            {line.quote && <> × {format.format(line.quote.unit_price_tzs)} · Savings {format.format(line.quote.discount_tzs)} · {format.format(line.quote.total_tzs)}</>}
+          </li>)}
+        </ul>
+      </div>)}
+      <p className="font-semibold">Saved total before tax {format.format(selected.snapshot.total_tzs)}</p>
+    </div>}
+  </div>;
+}
+
+function FreightPublish({ draft }: { draft: FreightPricingDraft }) {
+  const [versions, setVersions] = useState<{ revision: number; effective_on: string; status: string }[]>([]);
+  const [pending, setPending] = useState(false);
+  const [error, setError] = useState('');
+  const path = '/v1/superadmin/commercial-products/freight-forwarder';
+  const scheduled = versions.some(version => version.status === 'scheduled');
+  const published = versions.some(version => version.revision === draft.revision);
+
+  async function loadVersions() {
+    try {
+      setVersions((await apiFetch(`${path}/versions`)).data);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Could not load published versions.');
+    }
+  }
+
+  useEffect(() => { void loadVersions(); }, []);
+
+  return <form className="space-y-3 border-t p-4" onSubmit={async event => {
+    event.preventDefault();
+    const effective_on = new FormData(event.currentTarget).get('effective_on');
+    setPending(true);
+    setError('');
+    try {
+      if (!await showConfirm(`Show revision ${draft.revision} to all tenant billing managers from ${effective_on} UTC? This publishes a rate card for reference.`, {
+        title: 'Schedule platform-wide rate card',
+        confirmLabel: 'Schedule publication',
+      })) return;
+      await apiFetch(`${path}/publish`, { method: 'POST', body: JSON.stringify({ revision: draft.revision, effective_on }) });
+      await loadVersions();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Could not schedule publication.');
+    } finally {
+      setPending(false);
+    }
+  }}>
+    <h3 className="font-medium">Publish rate card</h3>
+    <p className="text-sm">The rate card is for reference. Tenant subscriptions and invoices continue using their existing rates.</p>
+    {!draft.tested && <p className="text-sm">Test this saved revision against a tenant before publishing.</p>}
+    {scheduled && <p className="text-sm">One rate card is already scheduled.</p>}
+    <fieldset disabled={!draft.tested || scheduled || published || pending} className="flex flex-wrap items-end gap-3">
+      <label className="text-sm">Effective date (UTC)<Input type="date" name="effective_on" required /></label>
+      <Button type="submit">{pending ? 'Scheduling…' : 'Schedule publication'}</Button>
+    </fieldset>
+    {error && <p role="alert">{error}</p>}
+    {versions.length > 0 && <ul aria-label="Published rate card versions" className="space-y-1 text-sm">
+      {versions.map(version => <li key={version.revision}>
+        Revision {version.revision} · {version.effective_on} UTC · {version.status}
+      </li>)}
+    </ul>}
+  </form>;
+}
+
+function FreightPricingPreview() {
+  const [draft, setDraft] = useState<FreightPricingDraft | null>(null);
+  const [loadingDraft, setLoadingDraft] = useState(true);
+  const [pending, setPending] = useState(false);
+  const [error, setError] = useState('');
+  const [notice, setNotice] = useState('');
+  const [quote, setQuote] = useState<{
+    lines: { product_key: string; subtotal_tzs: number; discount_tzs: number; total_tzs: number }[];
+    total_tzs: number;
+  } | null>(null);
+  const format = new Intl.NumberFormat('en-TZ', { style: 'currency', currency: 'TZS', maximumFractionDigits: 0 });
+  const draftPath = '/v1/superadmin/commercial-products/freight-forwarder/draft';
+
+  async function loadDraft() {
+    setLoadingDraft(true);
+    setDraft(null);
+    setError('');
+    setNotice('');
+    setQuote(null);
+    try {
+      setDraft(await apiFetch<FreightPricingDraft>(draftPath));
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Could not load the saved draft.');
+    } finally {
+      setLoadingDraft(false);
+    }
+  }
+
+  useEffect(() => { void loadDraft(); }, []);
+
+  return (
+    <SectionCard title="Freight Forwarder Pricing Preview">
+      {loadingDraft && <p className="p-4 text-sm">Loading pricing draft…</p>}
+      {!loadingDraft && !draft && <div className="space-y-2 p-4">
+        <p role="alert">{error}</p>
+        <Button type="button" variant="outline" onClick={loadDraft}>Retry loading draft</Button>
+      </div>}
+      {draft && <form className="space-y-4 p-4" onChange={() => { setQuote(null); setError(''); setNotice(''); }} onSubmit={async event => {
+        event.preventDefault();
+        const fields = new FormData(event.currentTarget);
+        const save = ((event.nativeEvent as SubmitEvent).submitter as HTMLButtonElement | null)?.value === 'save';
+        const discount_percent = Number(fields.get('discount'));
+        const products = Object.fromEntries(FREIGHT_PREVIEW_PRODUCTS.map(({ key }) => [key, {
+          quantity: Number(fields.get(`${key}-quantity`)),
+          unit_price_tzs: Number(fields.get(`${key}-rate`)),
+        }]));
+        setPending(true);
+        setError('');
+        setQuote(null);
+        setNotice('');
+        try {
+          if (save) {
+            const rates = Object.fromEntries(Object.entries(products).map(([key, line]) => [key, line.unit_price_tzs]));
+            setDraft(await apiFetch<FreightPricingDraft>(draftPath, {
+              method: 'PUT',
+              body: JSON.stringify({ revision: draft.revision, configuration: { discount_percent, rates } }),
+            }));
+            setNotice('Pricing draft saved.');
+          } else {
+            setQuote(await apiFetch('/v1/superadmin/commercial-products/freight-forwarder/preview', {
+              method: 'POST',
+              body: JSON.stringify({ discount_percent, products }),
+            }));
+          }
+        } catch (err) {
+          setError(err instanceof Error ? err.message : 'Could not calculate the preview.');
+        } finally {
+          setPending(false);
+        }
+      }}>
+        <p className="text-sm">Test sample quantities and rates before proposing a bundle. Preview calculations have no billing effect.</p>
+        <fieldset disabled={pending} className="space-y-3">
+          {FREIGHT_PREVIEW_PRODUCTS.map(({ key, label, unit }) => (
+            <fieldset key={key} className="grid gap-2 sm:grid-cols-2">
+              <legend className="font-medium">{label}</legend>
+              <label className="text-sm">{unit}
+                <Input name={`${key}-quantity`} type="number" required min={0} max={1000000} defaultValue={0} />
+              </label>
+              <label className="text-sm">Unit rate (TZS)
+                <Input name={`${key}-rate`} type="number" required min={0} max={1000000000} defaultValue={draft.configuration?.rates[key] ?? 0} />
+              </label>
+            </fieldset>
+          ))}
+          <label className="block max-w-48 text-sm">Bundle discount (%)
+            <Input name="discount" type="number" required min={0} max={100} defaultValue={draft.configuration?.discount_percent ?? 0} />
+          </label>
+          <div className="flex flex-wrap gap-2">
+            <Button type="submit">Preview quote</Button>
+            <Button type="submit" value="save" variant="outline">Save draft</Button>
+            <Button type="button" variant="ghost" onClick={loadDraft}>Reload saved draft</Button>
+          </div>
+        </fieldset>
+        {notice && <p role="status">{notice}</p>}
+        {error && <p role="alert">{error}</p>}
+        {quote && <div aria-live="polite" className="space-y-1 text-sm">
+          {quote.lines.map(line => <p key={line.product_key}>
+            {FREIGHT_PREVIEW_PRODUCTS.find(product => product.key === line.product_key)?.label}
+            {' · '}{format.format(line.total_tzs)}{' · Savings '}{format.format(line.discount_tzs)}
+          </p>)}
+          <p className="font-semibold">Estimated total before tax {format.format(quote.total_tzs)}</p>
+        </div>}
+      </form>}
+      {draft && draft.revision > 0 && <>
+        <FreightTenantPreview key={draft.revision} revision={draft.revision} onTested={() => {
+          setDraft(current => current?.revision === draft.revision ? { ...current, tested: true } : current);
+        }} />
+        <FreightPublish draft={draft} />
+      </>}
+    </SectionCard>
+  );
+}
+
 export function AppStatusView() {
   const [rows, setRows] = useState<AppStatusRow[]>([]);
   const [loading, setLoading] = useState(true);
@@ -1864,6 +2210,8 @@ export function AppStatusView() {
           ))}
         </SectionCard>
       )}
+
+      <FreightPricingPreview />
 
       {visibleRows.length === 0 ? (
         <div style={{ textAlign:'center', padding:'48px 0', color:'var(--ink3)' }}>No apps match your search.</div>

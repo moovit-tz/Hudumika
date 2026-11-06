@@ -4,6 +4,7 @@ import { Icon } from './Icon.js';
 import { useLocale } from '../hooks/useLocale.js';
 import { NotificationListItem } from './NotificationListItem.js';
 import { Tabs, TabsList, TabsTrigger } from './ui/tabs.js';
+import { Tip } from './ui/tooltip.js';
 import './NotificationCentre.css';
 
 // ── Props ─────────────────────────────────────────────────────
@@ -60,14 +61,17 @@ export const NotificationCentre: React.FC<NotificationCentreProps> = ({
                 {t('notif.markAllRead')}
               </button>
             )}
-            <button
-              type="button"
-              className="notif-panel-close"
-              onClick={onClose}
-              title={t('notif.title')}
-             data-ui-native-button="">
-              <Icon name="x" size={14} />
-            </button>
+            <Tip label="Close notifications" side="bottom">
+              <button
+                type="button"
+                className="notif-panel-close"
+                onClick={onClose}
+                aria-label="Close notifications"
+                data-ui-native-button=""
+              >
+                <Icon name="x" size={14} />
+              </button>
+            </Tip>
           </div>
         </div>
 

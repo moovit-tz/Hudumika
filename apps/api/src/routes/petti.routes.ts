@@ -319,6 +319,23 @@ export async function pettiRoutes(fastify: FastifyInstance) {
     }
   });
 
+  // A pending gateway deposit (mobile-money "accepted" but not yet actually
+  // settled — see petti.service.ts recordDeposit's doc comment / LENS-44)
+  // only clears once a human has actually checked with the provider. No
+  // automated webhook exists yet, so this manual action is what moves it
+  // out of limbo instead of leaving it stuck pending forever.
+  fastify.patch('/deposits/:id/reconcile', { preHandler: requireRole(...PETTI_FINANCE_ROLES) }, async (request, reply) => {
+    const user = request.user;
+    const { id } = request.params as { id: string };
+    const body = z.object({ outcome: z.enum(['confirmed', 'failed']), note: z.string().max(500).optional() }).parse(request.body);
+    try {
+      const deposit = await PettiService.confirmReconciledDeposit(user.tenant_id, user.sub, id, body.outcome, body.note);
+      return deposit;
+    } catch (e: any) {
+      return sendServiceError(reply, e);
+    }
+  });
+
   // ── Activity / audit log ─────────────────────────────────────────────────
   fastify.get('/activity', async (request) => {
     const user = request.user;

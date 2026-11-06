@@ -63,7 +63,7 @@ describe('K01: provider listings', () => {
       clientTenant.tenantId, { status: 'published' },
     );
     expect(all.length).toBeGreaterThanOrEqual(1);
-    const found = all.find(l => l.display_name === 'TZ Compliance Experts');
+    const found = all.find((l: any) => l.display_name === 'TZ Compliance Experts');
     expect(found).toBeTruthy();
   });
 
@@ -74,7 +74,7 @@ describe('K01: provider listings', () => {
       },
     );
     const all = await MarketplaceService.listListings(clientTenant.tenantId);
-    const found = all.find(l => l.display_name === 'Secret Draft Firm');
+    const found = all.find((l: any) => l.display_name === 'Secret Draft Firm');
     expect(found).toBeUndefined();
   });
 });
@@ -107,7 +107,7 @@ describe('K02: enquiry flow', () => {
       providerTenant.tenantId, 'provider',
     );
     expect(es.length).toBeGreaterThanOrEqual(1);
-    const found = es.find(e => e.id === enquiryId);
+    const found = es.find((e: any) => e.id === enquiryId);
     expect(found).toBeTruthy();
   });
 
@@ -164,7 +164,7 @@ describe('K03: quotation lifecycle', () => {
   it('client can see the sent quotation', async () => {
     const qs = await MarketplaceService.listQuotations(clientTenant.tenantId, 'client');
     expect(qs.length).toBeGreaterThanOrEqual(1);
-    const found = qs.find(q => q.id === quotationId);
+    const found = qs.find((q: any) => q.id === quotationId);
     expect(found).toBeTruthy();
     expect(found!.status).toBe('sent');
   });
@@ -290,7 +290,7 @@ describe('K05: disputes', () => {
   it('provider can see the dispute', async () => {
     const ds = await MarketplaceService.listDisputes(providerTenant.tenantId);
     expect(ds.length).toBeGreaterThanOrEqual(1);
-    const found = ds.find(d => d.id === disputeId);
+    const found = ds.find((d: any) => d.id === disputeId);
     expect(found).toBeTruthy();
   });
 

@@ -1,4 +1,6 @@
 import React from 'react';
+import { signupPackageAmount } from '@hudumika/types';
+import { formatAmount } from '../../lib/currency.js';
 import type { StepProps } from './types.js';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '../../components/ui/select.js';
 import { Link } from 'react-router-dom';
@@ -14,7 +16,9 @@ const CURRENCIES = ['TZS', 'KES', 'UGX', 'RWF', 'ZMW', 'USD'];
 // Headquarters-city field as if it were that field's own validation error.
 export const StepConfiguration: React.FC<StepProps> = ({ draft, update, onNext, onBack, packages, submitting }) => {
   const pkg = packages.find(p => p.code === draft.package_code);
-  const price = pkg ? (draft.billing_cycle === 'annual' ? pkg.annual_price : pkg.monthly_price) : null;
+  const planPrice = pkg
+    ? `${pkg.name} · ${formatAmount(signupPackageAmount(pkg, draft.billing_cycle), pkg.currency)}/${draft.billing_cycle === 'annual' ? 'yr' : 'mo'}`
+    : draft.package_code === 'workspace-free' ? 'Hudumika Workspace · Included' : 'Select a plan';
   const maskedCard = draft.payment.method === 'card' && draft.payment.card_number
     ? `•••• ${draft.payment.card_number.replace(/\s/g, '').slice(-4)}`
     : draft.payment.method === 'mpesa' ? draft.payment.mobile_provider : '';
@@ -47,9 +51,9 @@ export const StepConfiguration: React.FC<StepProps> = ({ draft, update, onNext, 
           </Select>
         </div>
         <div className="login-field">
-          <label className="reg-label">Currency</label>
+          <label className="reg-label">Workspace currency</label>
           <Select value={draft.currency} onValueChange={v => update({ currency: v })}>
-            <SelectTrigger aria-label="Currency" className="login-input"><SelectValue /></SelectTrigger>
+            <SelectTrigger aria-label="Workspace currency" className="login-input"><SelectValue /></SelectTrigger>
             <SelectContent>
               {CURRENCIES.map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}
             </SelectContent>
@@ -72,7 +76,7 @@ export const StepConfiguration: React.FC<StepProps> = ({ draft, update, onNext, 
         <div className="ob-review-title">Review</div>
         <div className="ob-review-row"><span>Account</span><span>{draft.name} · {draft.email}</span></div>
         <div className="ob-review-row"><span>Company</span><span>{draft.companyName}{draft.industry ? ` · ${draft.industry}` : ''}</span></div>
-        <div className="ob-review-row"><span>Plan</span><span>{pkg?.name || draft.package_code} — ${price}/{draft.billing_cycle === 'annual' ? 'yr' : 'mo'}</span></div>
+        <div className="ob-review-row"><span>Plan</span><span>{planPrice}</span></div>
         <div className="ob-review-row"><span>Workspace</span><span>{draft.subdomain}.hudumika.tz</span></div>
         <div className="ob-review-row"><span>Payment</span><span>{maskedCard}</span></div>
       </div>

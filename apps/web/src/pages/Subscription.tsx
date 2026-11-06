@@ -9,6 +9,8 @@ import { PageHeader } from '../components/PageHeader.js';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '../components/ui/select.js';
 import { Switch } from '../components/ui/switch.js';
 import { Badge } from '../components/ui/badge.js';
+import { Button } from '../components/ui/button.js';
+import { Input } from '../components/ui/input.js';
 import { Banner } from '../components/ui/alert.js';
 import { Tabs, TabsList, TabsTrigger } from '../components/ui/tabs.js';
 import { useCompany, setCompany } from '../data/companyStore.js';
@@ -17,7 +19,7 @@ import { APP_META } from './Utilities.js';
 import { showAlert } from '../lib/alert.js';
 import { showConfirm } from '../lib/confirm.js';
 import type { Addon } from '@hudumika/types';
-import { FINANCE_CAPABILITIES } from '@hudumika/types';
+import { FINANCE_CAPABILITIES, SIGNUP_BASE_PLAN_CODES } from '@hudumika/types';
 import { AreaSparkline } from '../components/MetricCard.js';
 import { refreshFxRates, convertAmount, formatAmount } from '../lib/currency.js';
 
@@ -1165,16 +1167,14 @@ function PaymentsTab({ onNavigateTab }: { tenant?: any; onNavigateTab: (t: SubTa
 // legacy codes, not a gate). The list below and the compare table are both
 // derived from whatever `plans` the live catalog actually contains.
 
-/** Real packages only — cheapest first, custom-priced (pricePerSeat: null)
- *  last regardless of price so "Talk to Sales" tiers don't interleave with
- *  numeric ones. */
+/** Current commercial base plans in catalogue order. */
 function orderedPlanCodes(plans: Record<string, PlanDisplay>): string[] {
   // /v1/packages already returns rows ordered by the admin's own sort_order
   // (packages.routes.ts) and usePlans() fills `plans` by iterating that same
   // response in order — plain string keys preserve insertion order in JS, so
   // this is that same admin-configured order, not a second opinion re-derived
   // from price.
-  return Object.keys(plans);
+  return Object.keys(plans).filter(code => SIGNUP_BASE_PLAN_CODES.includes(code));
 }
 
 /** Real add-ons catalog (376_package_addons.sql) — "Get more with add-ons",
@@ -1216,6 +1216,244 @@ function useCommercialProducts() {
 // cancellable products that still join the same one consolidated invoice
 // (migration 683's tenant_product_subscriptions). Cancelling keeps access
 // through the current period end, same wording as the confirm below.
+function FreightRateCard() {
+  const [pilotStart, setPilotStart] = useState<string | null>(null);
+  const [rateCard, setRateCard] = useState<{
+    revision: number;
+    effective_on: string;
+    configuration: { discount_percent: number; rates: { clearos: number; hudufreight: number; cargotracker: number } };
+  } | null>(null);
+
+  useEffect(() => {
+    apiFetch<{ data: typeof rateCard }>('/v1/billing/rate-cards/freight-forwarder')
+      .then(({ data }) => setRateCard(data))
+      .catch(() => setRateCard(null));
+  }, []);
+
+  if (!rateCard) return null;
+
+  const { rates, discount_percent } = rateCard.configuration;
+  const money = new Intl.NumberFormat('en-TZ', { style: 'currency', currency: 'TZS', maximumFractionDigits: 0 });
+  return <Card style={{ marginTop: 20 }}>
+    <CardHead title="Freight Forwarder rate card" sub={`Reference pricing from ${rateCard.effective_on} UTC. Your current subscription and invoice rates are shown separately.`} />
+    <dl className="grid gap-3 p-5 sm:grid-cols-2">
+      <div><dt>ClearOS per clearance case</dt><dd>{money.format(rates.clearos)}</dd></div>
+      <div><dt>HuduFreight per departed trip</dt><dd>{money.format(rates.hudufreight)}</dd></div>
+      <div><dt>CargoTracker per tracking activation</dt><dd>{money.format(rates.cargotracker)}</dd></div>
+      <div><dt>Bundle discount on listed rates</dt><dd>{discount_percent}%</dd></div>
+    </dl>
+    <FreightPilotInvitation revision={rateCard.revision} onPilotStart={setPilotStart} />
+    <FreightUsageStatement pilotStart={pilotStart} />
+  </Card>;
+}
+
+interface FreightPilotEnrollment {
+  accepted_at: string | null;
+  starts_at: string | null;
+  rate_revision: number | null;
+}
+
+function FreightPilotInvitation({ revision, onPilotStart }: { revision: number; onPilotStart: (start: string | null) => void }) {
+  const [invitation, setInvitation] = useState<FreightPilotEnrollment | null>(null);
+  const [pending, setPending] = useState(false);
+  const [error, setError] = useState('');
+  useEffect(() => {
+    apiFetch<{ data: FreightPilotEnrollment | null }>('/v1/billing/freight-usage-pilot')
+      .then(({ data }) => {
+        setInvitation(data);
+        onPilotStart(data?.starts_at?.slice(0, 10) ?? null);
+      }).catch(() => {});
+  }, [onPilotStart]);
+  if (!invitation) return null;
+  return <div className="space-y-2 border-t p-5 text-sm">
+    <h3 className="font-semibold">Freight usage pilot</h3>
+    {invitation.accepted_at
+      ? <p role="status">Enrolled from {invitation.starts_at?.slice(0, 10)} UTC. Accepted rate revision {invitation.rate_revision}. Pilot statements are for review.</p>
+      : <>
+        <p>Your workspace has been invited. Accept to review usage from next month using rate revision {revision}. The pilot creates estimates and drafts only.</p>
+        <Button type="button" disabled={pending} onClick={async () => {
+          setPending(true);
+          setError('');
+          try {
+            if (!await showConfirm(`Join the freight usage pilot using the rates shown above (revision ${revision})?`, {
+              title: 'Join freight usage pilot', confirmLabel: 'Join pilot',
+            })) return;
+            const { data } = await apiFetch<{ data: FreightPilotEnrollment }>('/v1/billing/freight-usage-pilot/accept', {
+              method: 'POST', body: JSON.stringify({ revision }),
+            });
+            setInvitation(data);
+            onPilotStart(data.starts_at?.slice(0, 10) ?? null);
+          } catch (err) {
+            setError(err instanceof Error ? err.message : 'Could not join the pilot.');
+          } finally {
+            setPending(false);
+          }
+        }}>{pending ? 'Working…' : 'Accept invitation'}</Button>
+      </>}
+    {error && <p role="alert">{error}</p>}
+  </div>;
+}
+
+interface FreightStatementEstimate {
+  mode: 'estimate' | 'pilot';
+  total_tzs: number;
+  segments: {
+    from_inclusive: string;
+    to_exclusive: string;
+    revision: number | null;
+    total_tzs: number | null;
+    lines: {
+      product_key: 'clearos' | 'hudufreight' | 'cargotracker';
+      quantity: number;
+      quote: { unit_price_tzs: number; discount_tzs: number; total_tzs: number } | null;
+    }[];
+  }[];
+}
+
+interface FreightPilotDraftSummary {
+  id: string;
+  period_start: string;
+  period_end: string;
+}
+
+function FreightUsageStatement({ pilotStart }: { pilotStart: string | null }) {
+  const [statement, setStatement] = useState<FreightStatementEstimate | null>(null);
+  const [mode, setMode] = useState<'estimate' | 'pilot'>('estimate');
+  const [draftId, setDraftId] = useState<string | null>(null);
+  const [error, setError] = useState('');
+  const [pending, setPending] = useState(false);
+  const [savingDraft, setSavingDraft] = useState(false);
+  const [history, setHistory] = useState<FreightPilotDraftSummary[] | null>(null);
+  const [historyError, setHistoryError] = useState('');
+  const [openingDraft, setOpeningDraft] = useState(false);
+  const pilotDraftPath = '/v1/billing/usage-invoice-drafts/freight-forwarder/pilot';
+  const money = new Intl.NumberFormat('en-TZ', { style: 'currency', currency: 'TZS', maximumFractionDigits: 0 });
+  const products = { clearos: 'Clearance cases', hudufreight: 'Departed trips', cargotracker: 'Tracking activations' };
+  const firstSegment = statement?.segments[0];
+  const lastSegment = statement?.segments.at(-1);
+  const canSave = !!lastSegment && lastSegment.to_exclusive <= new Date().toISOString().slice(0, 10)
+    && statement?.segments.some(segment => segment.lines.some(line => line.quote && line.quantity > 0));
+
+  const loadHistory = useCallback(async () => {
+    if (!pilotStart) return;
+    setHistoryError('');
+    try {
+      const { data } = await apiFetch<{ data: FreightPilotDraftSummary[] }>(pilotDraftPath);
+      setHistory(data);
+    } catch (err) {
+      setHistoryError(err instanceof Error ? err.message : 'Could not load saved pilot drafts.');
+    }
+  }, [pilotStart]);
+
+  useEffect(() => { void loadHistory(); }, [loadHistory]);
+
+  async function openPilotDraft(id: string) {
+    setOpeningDraft(true);
+    setError('');
+    try {
+      const draft = await apiFetch<{ id: string; snapshot: FreightStatementEstimate }>(`${pilotDraftPath}/${encodeURIComponent(id)}`);
+      setStatement(draft.snapshot);
+      setDraftId(draft.id);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Could not open the pilot draft.');
+    } finally {
+      setOpeningDraft(false);
+    }
+  }
+
+  async function saveDraft() {
+    if (!firstSegment || !lastSegment) return;
+    setSavingDraft(true);
+    setError('');
+    try {
+      const draft = await apiFetch<{ id: string; snapshot: FreightStatementEstimate }>('/v1/billing/usage-invoice-drafts/freight-forwarder', {
+        method: 'POST',
+        body: JSON.stringify({ from: firstSegment.from_inclusive, to: lastSegment.to_exclusive, mode: statement?.mode }),
+      });
+      setStatement(draft.snapshot);
+      setDraftId(draft.id);
+      if (draft.snapshot.mode === 'pilot') void loadHistory();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Could not save the invoice draft.');
+    } finally {
+      setSavingDraft(false);
+    }
+  }
+
+  return <form className="space-y-4 border-t p-5" onChange={() => { setStatement(null); setDraftId(null); setError(''); }} onSubmit={async event => {
+    event.preventDefault();
+    const fields = new FormData(event.currentTarget);
+    const query = new URLSearchParams({ from: String(fields.get('from')), to: String(fields.get('to')), mode });
+    setPending(true);
+    setStatement(null);
+    setDraftId(null);
+    setError('');
+    try {
+      setStatement(await apiFetch<FreightStatementEstimate>(`/v1/billing/usage-statement/freight-forwarder?${query}`));
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Could not load the usage estimate.');
+    } finally {
+      setPending(false);
+    }
+  }}>
+    <h3 className="font-semibold">Estimate from recorded usage</h3>
+    <p className="text-sm">Compare published rates or use the accepted pilot rates from your pilot start date. These estimates are for review.</p>
+    <fieldset disabled={pending || savingDraft || openingDraft} className="flex flex-wrap items-end gap-3">
+      {pilotStart && <Select value={mode} disabled={pending || savingDraft || openingDraft} onValueChange={value => {
+        setMode(value === 'pilot' ? 'pilot' : 'estimate');
+        setStatement(null);
+        setDraftId(null);
+        setError('');
+      }}>
+        <SelectTrigger aria-label="Rates to use"><SelectValue /></SelectTrigger>
+        <SelectContent>
+          <SelectItem value="estimate">Published rates</SelectItem>
+          <SelectItem value="pilot">Accepted pilot rates</SelectItem>
+        </SelectContent>
+      </Select>}
+      <label className="text-sm">From (inclusive, UTC)<Input name="from" type="date" min={mode === 'pilot' ? pilotStart ?? undefined : undefined} required /></label>
+      <label className="text-sm">To (exclusive, UTC)<Input name="to" type="date" required /></label>
+      <Button type="submit">{pending ? 'Calculating…' : 'Estimate usage'}</Button>
+    </fieldset>
+    {pilotStart && <div className="space-y-2 text-sm">
+      <h4 className="font-semibold">Recent pilot drafts</h4>
+      {historyError
+        ? <p role="alert">{historyError} <Button type="button" variant="outline" size="sm" onClick={loadHistory}>Retry</Button></p>
+        : !history ? <p>Loading saved drafts…</p>
+          : history.length === 0 ? <p>No pilot drafts saved yet.</p>
+            : <ul className="space-y-2">
+              {history.map(draft => <li key={draft.id} className="flex flex-wrap items-center gap-2">
+                <span>{draft.period_start} to {draft.period_end} (exclusive, UTC)</span>
+                <Button type="button" variant="outline" size="sm"
+                  disabled={pending || savingDraft || openingDraft || draftId === draft.id}
+                  onClick={() => openPilotDraft(draft.id)}>
+                  {draftId === draft.id ? 'Open' : 'Open draft'}
+                </Button>
+              </li>)}
+            </ul>}
+    </div>}
+    {error && <p role="alert">{error}</p>}
+    {statement && <div aria-live="polite" className="space-y-4 text-sm">
+      {statement.mode === 'pilot' && <p className="font-semibold">Pilot estimate at accepted rates</p>}
+      {statement.segments.map(segment => <div key={segment.from_inclusive} className="space-y-1">
+        <p className="font-medium">{segment.from_inclusive} to {segment.to_exclusive} (exclusive) · {segment.revision === null ? 'No published rate' : `Revision ${segment.revision}`}</p>
+        <ul className="space-y-1">
+          {segment.lines.map(line => <li key={line.product_key}>
+            {products[line.product_key]} · {line.quantity.toLocaleString('en-TZ')}
+            {line.quote && <> × {money.format(line.quote.unit_price_tzs)} · Savings {money.format(line.quote.discount_tzs)} · {money.format(line.quote.total_tzs)}</>}
+          </li>)}
+        </ul>
+      </div>)}
+      <p className="font-semibold">Priced usage before tax {money.format(statement.total_tzs)}</p>
+      {draftId
+        ? <p role="status">Invoice draft {draftId} · For review only</p>
+        : canSave && <Button type="button" variant="outline" onClick={saveDraft} disabled={savingDraft}>
+          {savingDraft ? 'Saving draft…' : 'Save invoice draft'}
+        </Button>}
+    </div>}
+  </form>;
+}
+
 function ProductsSection() {
   const { products, reload } = useCommercialProducts();
   const [busyKey, setBusyKey] = useState<string | null>(null);
@@ -1449,24 +1687,58 @@ function PlansTab({ tenant, onReload }: { tenant: any; onReload: () => Promise<v
   // tight and unpredictable-spend is the real objection favors the lower
   // up-front commitment by default; yearly is still one tap away for anyone
   // who wants the discount.
-  const [billing, setBilling] = useState<'monthly' | 'yearly'>('monthly');
+  const currentCycle = tenant?.billing_cycle === 'annual' ? 'annual' : 'monthly';
+  const [billing, setBilling] = useState<'monthly' | 'yearly'>(currentCycle === 'annual' ? 'yearly' : 'monthly');
+  const [currencyChange, setCurrencyChange] = useState<{
+    to_plan: string; currency: string; effective_at: string; status: 'scheduled' | 'blocked'; blocked_reason: string | null;
+  } | null>(null);
+  const [changingPlan, setChangingPlan] = useState(false);
   const currentPlan: PlanKey = tenant?.plan || 'starter';
+  const currentPlanDetails = plans[currentPlan] ?? PLAN_DEFAULTS[currentPlan];
+  const currentCurrency = currentPlanDetails?.currency;
   const order = orderedPlanCodes(plans);
-  useFxReady();
+
+  async function loadCurrencyChange() {
+    const { data } = await apiFetch<{ data: typeof currencyChange }>('/v1/billing/currency-change');
+    setCurrencyChange(data);
+  }
+
+  useEffect(() => { void loadCurrencyChange().catch(() => {}); }, [tenant?.id]);
 
   async function handleSelectPlan(k: PlanKey) {
     const name = plans[k]?.name ?? k;
     const cycle = billing === 'yearly' ? 'annual' : 'monthly';
-    if (!(await showConfirm(`Change your plan to ${name} (${cycle})? This takes effect immediately — there's no separate checkout, the new price is simply what's billed on your next Billing invoice.`, { variant: 'warning', confirmLabel: 'Change Plan' }))) return;
+    const switchesCurrency = !!currentCurrency && plans[k]?.currency !== currentCurrency;
+    const message = switchesCurrency
+      ? `Schedule ${name} in ${plans[k]?.currency} for your next renewal? Existing invoices stay payable in their original currency. No mid-period charge or credit applies.`
+      : `Change your plan to ${name} (${cycle})? The plan changes immediately and the new rate applies on your next renewal invoice.`;
+    if (!(await showConfirm(message, { variant: 'warning', confirmLabel: switchesCurrency ? 'Schedule change' : 'Change Plan' }))) return;
+    setChangingPlan(true);
     try {
-      await apiFetch('/v1/billing/plan-change', {
+      const result = await apiFetch<{ scheduledFor?: string }>('/v1/billing/plan-change', {
         method: 'POST',
         body: JSON.stringify({ plan: k, billing_cycle: cycle })
       });
       await onReload();
-      showAlert(`You're now on ${name}.`, { variant: 'success', title: 'Plan changed' });
+      await loadCurrencyChange().catch(() => {});
+      showAlert(result.scheduledFor ? `${name} is scheduled for ${result.scheduledFor.slice(0, 10)} UTC.` : `You're now on ${name}.`,
+        { variant: 'success', title: result.scheduledFor ? 'Change scheduled' : 'Plan changed' });
     } catch (err: any) {
       showAlert(`Failed to update plan: ${err.message}`);
+    } finally {
+      setChangingPlan(false);
+    }
+  }
+
+  async function cancelCurrencyChange() {
+    setChangingPlan(true);
+    try {
+      await apiFetch('/v1/billing/currency-change', { method: 'DELETE' });
+      await loadCurrencyChange();
+    } catch (err) {
+      showAlert(err instanceof Error ? err.message : 'Could not cancel the currency change.');
+    } finally {
+      setChangingPlan(false);
     }
   }
 
@@ -1475,31 +1747,46 @@ function PlansTab({ tenant, onReload }: { tenant: any; onReload: () => Promise<v
       <div className="sub-plans-head">
         <div>
           <div style={{ fontSize: 18, fontWeight: 800, color: 'var(--ink)' }}>Choose Your Plan</div>
-          <div style={{ fontSize: 13, color: 'var(--ink3)', marginTop: 3 }}>All plans include a 14-day free trial. Cancel anytime.</div>
+          <div style={{ fontSize: 13, color: 'var(--ink3)', marginTop: 3 }}>Choose a base plan for this workspace. Add-ons are listed separately below.</div>
         </div>
         <div className="sub-billing-toggle">
           {(['monthly', 'yearly'] as const).map(b => (
             <button key={b} className={`sub-toggle-btn${billing === b ? ' active' : ''}`}
                onClick={() => setBilling(b)} data-ui-native-button="">
               {b.charAt(0).toUpperCase() + b.slice(1)}
-              {b === 'yearly' && <span className="sub-toggle-badge">2 months free</span>}
             </button>
           ))}
         </div>
       </div>
+      {!SIGNUP_BASE_PLAN_CODES.includes(currentPlan) && (
+        <Banner variant="info">Current plan {currentPlanDetails?.name ?? currentPlan}{currentCurrency ? ` · ${currentCurrency}` : ''}</Banner>
+      )}
+      {currentCurrency && order.some(code => plans[code].currency !== currentCurrency) && (
+        <Banner variant="info">Currency changes take effect at your next renewal. Keep your current {currentCycle} cycle when scheduling.</Banner>
+      )}
+      {currencyChange && <Banner variant={currencyChange.status === 'blocked' ? 'warning' : 'info'} action={
+        <Button type="button" variant="outline" size="sm" disabled={changingPlan} onClick={cancelCurrencyChange}>
+          {currencyChange.status === 'blocked' ? 'Dismiss' : 'Cancel scheduled change'}
+        </Button>
+      }>
+        {currencyChange.status === 'blocked'
+          ? currencyChange.blocked_reason
+          : `${plans[currencyChange.to_plan]?.name ?? currencyChange.to_plan} in ${currencyChange.currency} is scheduled for ${currencyChange.effective_at.slice(0, 10)} UTC.`}
+      </Banner>}
 
       {/* Plan cards */}
       <div className="sub-cards" style={{ marginBottom: 16 }}>
         {order.map(k => {
           const p = plans[k];
           const isCurrent = k === currentPlan;
-          const isFlat = p.priceFlatMonthly != null;
+          const isFlat = p.priceFlatMonthly != null || p.priceFlatAnnual != null;
           const isCustom = !isFlat && p.pricePerSeat === null;
+          const switchesCurrency = !!currentCurrency && p.currency !== currentCurrency;
+          const wrongCycle = switchesCurrency && (billing === 'yearly' ? 'annual' : 'monthly') !== currentCycle;
           const curr = p.currency === 'TZS' ? 'TZS ' : '$';
 
           let priceDisplay: string;
           let priceUnit: string;
-          let fxLine: string | null = null;
           let annualNote: string;
 
           if (isCustom) {
@@ -1507,27 +1794,23 @@ function PlansTab({ tenant, onReload }: { tenant: any; onReload: () => Promise<v
             priceUnit = '';
             annualNote = 'Tailored pricing for your organization';
           } else if (isFlat) {
-            const monthly = billing === 'yearly'
-              ? Math.round((p.priceFlatAnnual ?? p.priceFlatMonthly! * 10) / 12)
-              : p.priceFlatMonthly!;
+            const annual = p.priceFlatAnnual ?? (p.priceFlatMonthly ?? 0) * 12;
+            const monthly = billing === 'yearly' ? Math.round(annual / 12) : p.priceFlatMonthly ?? 0;
             priceDisplay = monthly.toLocaleString();
             priceUnit = '/mo';
             if (billing === 'yearly') {
-              const annual = p.priceFlatAnnual ?? p.priceFlatMonthly! * 10;
               annualNote = `Billed annually · ${curr}${annual.toLocaleString()}/yr`;
             } else {
-              annualNote = 'Billed monthly · switch to yearly to save';
+              annualNote = 'Billed monthly';
             }
-            if (p.currency === 'USD') fxLine = `≈ ${tzsEquivalent(monthly)}/mo`;
           } else {
             const perSeat = billing === 'yearly' ? Math.round((p.pricePerSeat as number) * 0.83) : (p.pricePerSeat as number);
             priceDisplay = perSeat.toLocaleString();
             priceUnit = '/user/mo';
-            if (p.currency === 'USD') fxLine = `≈ ${tzsEquivalent(perSeat)}/user/mo`;
             if (billing === 'yearly') {
               annualNote = `Billed annually · ${curr}${(perSeat * 12).toLocaleString()} /seat/yr`;
             } else {
-              annualNote = 'Billed monthly · switch to yearly for 2 months free';
+              annualNote = 'Billed monthly';
             }
           }
 
@@ -1557,7 +1840,6 @@ function PlansTab({ tenant, onReload }: { tenant: any; onReload: () => Promise<v
                     <span className="sub-card-price">{priceDisplay}</span>
                     <span className="sub-card-per">{priceUnit}</span>
                   </div>
-                  {fxLine && <div className="sub-card-fx">{fxLine}</div>}
                   <div className="sub-card-annual-note">{annualNote}</div>
                   {p.includedSeats != null && (
                     <div className="sub-card-annual-note" style={{ marginTop: 2 }}>
@@ -1587,10 +1869,10 @@ function PlansTab({ tenant, onReload }: { tenant: any; onReload: () => Promise<v
                 <button
                   className={`sub-card-cta${isCurrent ? ' sub-card-cta--current' : ''}`}
                   style={isCurrent ? undefined : { background: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))' }}
-                  disabled={isCurrent}
+                  disabled={isCurrent || wrongCycle || changingPlan || currencyChange?.status === 'scheduled'}
                   onClick={() => handleSelectPlan(k)}
                  data-ui-native-button="">
-                  {isCurrent ? 'Current Plan' : <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>Get Started <Icon name="arrowRight" size={13} strokeWidth={2.5} /></span>}
+                  {isCurrent ? 'Current Plan' : wrongCycle ? `Select ${currentCycle} billing` : switchesCurrency ? 'Schedule at renewal' : <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>Get Started <Icon name="arrowRight" size={13} strokeWidth={2.5} /></span>}
                 </button>
               )}
 
@@ -1617,6 +1899,7 @@ function PlansTab({ tenant, onReload }: { tenant: any; onReload: () => Promise<v
       <AddonsSection />
 
       <ProductsSection />
+      <FreightRateCard />
 
       {/* Feature comparison table — 3 rows only, each backed by a real
           per-package column (packages.routes.ts), not the fixed 3-plan,

@@ -1,8 +1,10 @@
 import { Button } from '../components/ui/button.js';
 import React, { useState, useEffect } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
-import { MetricsRow } from '../components/MetricCard.js';
+import { useNavigate, Link, useSearchParams } from 'react-router-dom';
+import { ConsignmentDemurrage } from '../components/ConsignmentDemurrage.js';
 import { apiFetch } from '../lib/api.js';
+import { useAuth } from '../hooks/useAuth.js';
+import { MGMT_ROLES } from '../lib/permissions.js';
 import { useIsMobile } from '../hooks/useIsMobile.js';
 import { PageHeader } from '../components/PageHeader.js';
 import { Icon } from '../components/Icon.js';
@@ -30,6 +32,7 @@ interface Tariff {
   rate_tiers: string;
   currency: string;
   active: boolean;
+  effective_from: string;
 }
 
 interface ContainerTrack {
@@ -51,21 +54,8 @@ interface ContainerTrack {
   recharged_invoice_id: string | null;
 }
 
-interface Summary {
-  unpriced_containers?: number;
-  total_containers: number;
-  active_containers: number;
-  completed_containers: number;
-  total_demurrage_cost: number | null;
-  currency?: string;
-  by_currency?: Record<string, number>;
-  active_demurrage_cost: number;
-  by_carrier: Record<string, { count: number; cost: number }>;
-}
+type ViewMode = 'consignment' | 'containers' | 'tariffs';
 
-type ViewMode = 'dashboard' | 'containers' | 'tariffs' | 'calculator';
-
-const cardPad: React.CSSProperties = { background: 'var(--white)', borderRadius: 'var(--r)', border: '1px solid var(--border)', padding: 24 };
 const label: React.CSSProperties = { fontSize: 12, fontWeight: 600, color: 'var(--ink2)' };
 const fieldInput: React.CSSProperties = { width: '100%', boxSizing: 'border-box', marginTop: 4, padding: '8px 10px', borderRadius: 'var(--r)', border: '1px solid var(--border)', background: 'var(--white)', color: 'var(--ink)', fontSize: 13, fontFamily: 'var(--font)' };
 
@@ -88,20 +78,18 @@ function StatusBadge({ status }: { status: string }) {
 
 export const Demurrage: React.FC = () => {
   const navigate = useNavigate();
-  const [view, setView] = useState<ViewMode>('dashboard');
+  const [searchParams, setSearchParams] = useSearchParams();
+  const bill = searchParams.get('bl') || '';
+  const requestedView = searchParams.get('view');
+  const view: ViewMode = requestedView === 'containers' || requestedView === 'tariffs' ? requestedView : 'consignment';
+  const { user } = useAuth();
+  const canManageTariffs = user != null && MGMT_ROLES.includes(user.role);
   const isMobile = useIsMobile();
   const [tariffs, setTariffs] = useState<Tariff[]>([]);
   const [containers, setContainers] = useState<ContainerTrack[]>([]);
-  const [summary, setSummary] = useState<Summary | null>(null);
   const [loading, setLoading] = useState(true);
-
-  // Quick calculator state
-  const [calcCarrier, setCalcCarrier] = useState('');
-  const [calcSize, setCalcSize] = useState('40HC');
-  const [calcDischargeDate, setCalcDischargeDate] = useState('');
-  const [calcReturnDate, setCalcReturnDate] = useState('');
-  const [calcFreeDays, setCalcFreeDays] = useState(7);
-  const [calcResult, setCalcResult] = useState<any>(null);
+  const [tariffError, setTariffError] = useState('');
+  const [containerError, setContainerError] = useState('');
 
   // Rich container 3D inspection modal
   const [inspectingContainer, setInspectingContainer] = useState<ContainerDetails | null>(null);
@@ -149,43 +137,18 @@ export const Demurrage: React.FC = () => {
 
   const fetchData = async () => {
     setLoading(true);
-    try {
-      const [t, c, s] = await Promise.all([
-        apiFetch('/v1/demurrage/tariffs').catch(() => []),
-        apiFetch('/v1/demurrage/containers').catch(() => []),
-        apiFetch('/v1/demurrage/summary').catch(() => null),
-      ]);
-      // Tariffs endpoint returns the list from the base route
-      const tariffData = await apiFetch('/v1/demurrage').catch(() => []);
-      setTariffs(Array.isArray(tariffData) ? tariffData : []);
-      setContainers(Array.isArray(c) ? c : []);
-      setSummary(s);
-    } catch (err) {
-      console.error('Failed to fetch demurrage data:', err);
-    } finally {
-      setLoading(false);
-    }
+    const [tariffResult, containerResult] = await Promise.allSettled([
+      apiFetch<Tariff[]>('/v1/demurrage'),
+      apiFetch<ContainerTrack[]>('/v1/demurrage/containers'),
+    ]);
+    if (tariffResult.status === 'fulfilled') setTariffs(tariffResult.value);
+    if (containerResult.status === 'fulfilled') setContainers(containerResult.value);
+    setTariffError(tariffResult.status === 'rejected' ? 'Could not load tariffs. Refresh to try again.' : '');
+    setContainerError(containerResult.status === 'rejected' ? 'Could not load tracked containers. Refresh to try again.' : '');
+    setLoading(false);
   };
 
   useEffect(() => { fetchData(); }, []);
-
-  const handleQuickCalc = async () => {
-    try {
-      const result = await apiFetch('/v1/demurrage/calculate', {
-        method: 'POST',
-        body: JSON.stringify({
-          carrier_name: calcCarrier,
-          container_size: calcSize,
-          discharge_date: calcDischargeDate,
-          return_date: calcReturnDate || undefined,
-          free_days: calcFreeDays,
-        }),
-      });
-      setCalcResult(result);
-    } catch (err: any) {
-      showAlert(err.message);
-    }
-  };
 
   const handleMarkReturned = async () => {
     if (!returnModal || !returnDate) return;
@@ -284,66 +247,31 @@ export const Demurrage: React.FC = () => {
     <div style={{ padding: '0 0 24px', flex: 1, overflowY: 'auto' }}>
       <PageHeader
         crumbs={['CargoTracker', 'Demurrage & Detention']}
-        titlePlain="Demurrage"
-        titleEm="engine"
-        subtitle="Track container demurrage, manage tariffs, and calculate costs in real time."
+        titlePlain="Demurrage &"
+        titleEm="detention"
+        subtitle="Estimate storage and carrier charges by bill of lading, track container returns, and review the rates used."
       />
 
-      <Tabs value={view} onValueChange={v => setView(v as ViewMode)}>
-        <TabsList style={{ marginBottom: 24, maxWidth: '100%', overflowX: 'auto', justifyContent: isMobile ? 'flex-start' : undefined }}>
-          <TabsTrigger value="dashboard" className="flex items-center gap-1.5 shrink-0"><Icon name="grid" size={14} /> Overview</TabsTrigger>
-          <TabsTrigger value="containers" className="flex items-center gap-1.5 shrink-0"><Icon name="container" size={14} /> Containers</TabsTrigger>
-          <TabsTrigger value="tariffs" className="flex items-center gap-1.5 shrink-0"><Icon name="sliders" size={14} /> Tariff Config</TabsTrigger>
-          <TabsTrigger value="calculator" className="flex items-center gap-1.5 shrink-0"><Icon name="calculator" size={14} /> Quick Calc</TabsTrigger>
-        </TabsList>
-
-        {/* ── Dashboard Overview ── */}
-        <TabsContent value="dashboard">
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
-            <MetricsRow cards={[
-              {
-                title: 'Total Containers',
-                value: String(summary?.total_containers || 0),
-                sub1Label: 'ACTIVE', sub1Value: String(summary?.active_containers || 0),
-                sub2Label: 'COMPLETED', sub2Value: String(summary?.completed_containers || 0), barHighlight: 'var(--blue)',
-              },
-              {
-                title: 'Accruing Demurrage',
-                value: String(summary?.active_containers || 0),
-                invertTrend: true,
-                sub1Label: 'AT RISK', sub1Value: '—',
-                sub2Label: 'FREE DAYS LEFT', sub2Value: '—', barHighlight: 'var(--red)',
-              },
-              {
-                title: 'Total Cost',
-                value: summary?.unpriced_containers ? 'Tariff required' : summary?.total_demurrage_cost === null ? 'Multiple currencies' : formatCurrency(summary?.total_demurrage_cost || 0, summary?.currency),
-                invertTrend: true,
-                sub1Label: 'CURRENCIES', sub1Value: Object.keys(summary?.by_currency || {}).join(', ') || '—',
-                sub2Label: 'AVG PER BOX', sub2Value: summary?.unpriced_containers ? 'Tariff required' : summary?.total_demurrage_cost === null ? 'Per currency' : formatCurrency(summary?.total_containers ? (summary.total_demurrage_cost || 0) / summary.total_containers : 0, summary?.currency), barHighlight: 'var(--gold)',
-              },
-            ]} />
-
-            {/* Carrier Breakdown */}
-            {summary?.by_carrier && Object.keys(summary.by_carrier).length > 0 && (
-              <SectionCard title="Carrier Breakdown">
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: 12 }}>
-                  {Object.entries(summary.by_carrier).map(([carrier, data]) => (
-                    <div key={carrier} style={{ padding: 14, background: 'var(--white)', borderRadius: 'var(--r)', border: '1px solid var(--border)' }}>
-                      <div style={{ fontWeight: 700, fontSize: 13, color: 'var(--ink)', marginBottom: 4 }}>{carrier}</div>
-                      <div style={{ fontSize: 12, color: 'var(--ink2)' }}>
-                        {data.count} containers · {data.cost.toLocaleString(undefined, {minimumFractionDigits:2,maximumFractionDigits:2})} recorded{summary.unpriced_containers ? ' · Incomplete: missing tariffs' : ''}
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </SectionCard>
-            )}
-
-            {!summary && !loading && (
-              <EmptyState icon="container" title="No demurrage data yet" sub="Add containers to start tracking demurrage costs." size="lg" />
-            )}
-          </div>
-        </TabsContent>
+      <Tabs value={view} onValueChange={value => setSearchParams(previous => {
+        const next = new URLSearchParams(previous);
+        if (value === 'consignment') next.delete('view');
+        else next.set('view', value);
+        return next;
+      })}>
+        <div className="mb-4 flex flex-wrap items-center justify-between gap-2">
+          <TabsList wrap aria-label="Demurrage sections">
+            <TabsTrigger value="consignment"><Icon name="fileText" size={14} /><span className="ds-tabs-trigger-label">B/L estimate</span></TabsTrigger>
+            <TabsTrigger value="containers"><Icon name="container" size={14} /><span className="ds-tabs-trigger-label">Tracked containers</span></TabsTrigger>
+            <TabsTrigger value="tariffs"><Icon name="sliders" size={14} /><span className="ds-tabs-trigger-label">Tariffs</span></TabsTrigger>
+          </TabsList>
+          <Button type="button" size="sm" variant="outline" disabled={loading} onClick={() => void fetchData()}>
+            <Icon name="refresh" size={14} />
+            {loading ? 'Refreshing records…' : 'Refresh records'}
+          </Button>
+        </div>
+        {(view === 'containers' ? containerError : tariffError) && (
+          <p role="alert" className="mb-3 text-sm text-destructive">{view === 'containers' ? containerError : tariffError}</p>
+        )}
 
         {/* ── Container Tracking ── */}
         <TabsContent value="containers">
@@ -356,7 +284,12 @@ export const Demurrage: React.FC = () => {
               </button>
             }
           >
-            <div style={{ padding: '8px 18px', fontSize: 11.5, color: 'var(--ink3)' }}>{containers.length} container{containers.length === 1 ? '' : 's'}</div>
+            <div className="flex flex-wrap gap-x-4 gap-y-1 px-4 py-3 text-sm text-(--ink2)">
+              <span>{containers.length} tracked</span>
+              <span>{containers.filter(container => container.status === 'ACTIVE').length} active</span>
+              <span>{containers.filter(container => container.status === 'COMPLETED').length} returned</span>
+              <span>{containers.filter(container => container.status === 'ACTIVE' && container.demurrage_days > 0 && !container.tariff_snapshot).length} awaiting a tariff</span>
+            </div>
 
             {/* Inline add/edit form — full-width section, not a popup */}
             {showCForm && (
@@ -422,7 +355,7 @@ export const Demurrage: React.FC = () => {
               </div>
             )}
             {containers.length === 0 ? (
-              <EmptyState icon="container" title="No containers being tracked" />
+              !loading && !containerError && <EmptyState icon="container" title="No containers being tracked" sub="Add a container to record its charges and empty return." />
             ) : (
               <div className="rtbl-wrap" style={{ overflowX: 'auto' }}>
                 <table className="rtbl" style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
@@ -528,17 +461,18 @@ export const Demurrage: React.FC = () => {
 
         {/* ── Tariff Configuration ── */}
         <TabsContent value="tariffs">
-          <SectionCard title="Demurrage Tariff Configuration" padded={false}>
-            <div style={{ padding: '8px 18px', fontSize: 11.5, color: 'var(--ink3)' }}>Configure daily rates per shipping line and container size. Rates use progressive step-up tiers.</div>
-            <Button variant="outline" size="sm" onClick={()=>navigate('/cargotracker/demurrage/tariffs/new')}>Add tariff</Button>
+          <SectionCard title="Rate schedules" padded={false} action={canManageTariffs &&
+            <Button variant="outline" size="sm" onClick={() => navigate('/cargotracker/demurrage/tariffs/new')}>Add tariff</Button>
+          }>
+            <p className="px-4 py-3 text-sm text-(--ink2)">Review dated free days and daily rates by facility or carrier and container size.</p>
             {tariffs.length === 0 ? (
-              <EmptyState icon="sliders" title="No tariffs configured" sub="Add a dated tariff to calculate charges." />
+              !loading && !tariffError && <EmptyState icon="sliders" title="No tariffs configured" sub={canManageTariffs ? 'Add a dated tariff to calculate charges.' : 'A manager can add a dated tariff for this workspace.'} />
             ) : (
               <div className="rtbl-wrap" style={{ overflowX: 'auto' }}>
                 <table className="rtbl" style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
                   <thead>
                     <tr style={{ background: 'var(--bg)' }}>
-                      {['Carrier', 'Container Size', 'Free Days', 'Rate Tiers', 'Currency', 'Status', 'Actions'].map(h => (
+                      {['Schedule', 'Container size', 'Free days', 'Daily rates', 'Currency', 'Effective from', 'Status', ...(canManageTariffs ? ['Actions'] : [])].map(h => (
                         <th key={h} style={{ padding: '10px 14px', textAlign: 'left', fontWeight: 700, color: 'var(--ink3)', fontSize: 10.5, textTransform: 'uppercase', letterSpacing: '.05em', borderBottom: '1px solid var(--border)' }}>
                           {h}
                         </th>
@@ -564,10 +498,11 @@ export const Demurrage: React.FC = () => {
                             ))}
                           </td>
                           <td style={{ padding: '10px 14px', color: 'var(--ink2)' }}>{t.currency}</td>
+                          <td style={{ padding: '10px 14px', color: 'var(--ink2)' }}>{t.effective_from?.slice(0, 10) || '—'}</td>
                           <td style={{ padding: '10px 14px' }}>
                             <Badge variant={t.active ? 'success' : 'gray'}>{t.active ? 'Active' : 'Inactive'}</Badge>
                           </td>
-                          <td><Button variant="outline" size="sm" onClick={()=>navigate(`/cargotracker/demurrage/tariffs/${t.id}/edit`)}>Edit</Button></td>
+                          {canManageTariffs && <td><Button variant="outline" size="sm" onClick={() => navigate(`/cargotracker/demurrage/tariffs/${t.id}/edit`)}>Edit</Button></td>}
                         </tr>
                       );
                     })}
@@ -578,96 +513,11 @@ export const Demurrage: React.FC = () => {
           </SectionCard>
         </TabsContent>
 
-        {/* ── Quick Calculator ── */}
-        <TabsContent value="calculator">
-          <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: 20 }}>
-            <SectionCard title="Demurrage Calculator">
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-                <div>
-                  <CarrierSelect
-                    label="Carrier / Shipping Line"
-                    value={calcCarrier}
-                    onChange={(name) => setCalcCarrier(name)}
-                    placeholder="e.g. MSC, Maersk..."
-                    size="sm"
-                  />
-                </div>
-                <div>
-                  <label style={{ display: 'block', ...label, marginBottom: 4 }}>Container Size</label>
-                  <Select value={calcSize} onValueChange={setCalcSize}>
-                    <SelectTrigger style={{ width: '100%' }}><SelectValue /></SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="20FT">20FT</SelectItem>
-                      <SelectItem value="40FT">40FT</SelectItem>
-                      <SelectItem value="40HC">40HC</SelectItem>
-                      <SelectItem value="45HC">45HC</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div>
-                  <label style={{ display: 'block', ...label, marginBottom: 4 }}>Discharge Date</label>
-                  <DatePicker date={parseDateOnly(calcDischargeDate)} onChange={d => setCalcDischargeDate(toDateOnlyString(d))} />
-                </div>
-                <div>
-                  <label style={{ display: 'block', ...label, marginBottom: 4 }}>Return Date (leave blank for today)</label>
-                  <DatePicker date={parseDateOnly(calcReturnDate)} onChange={d => setCalcReturnDate(toDateOnlyString(d))} />
-                </div>
-                <div>
-                  <label style={{ display: 'block', ...label, marginBottom: 4 }}>Free Days</label>
-                  <input type="number" value={calcFreeDays} onChange={e => setCalcFreeDays(Number(e.target.value))} style={{ ...fieldInput, marginTop: 0 }} />
-                </div>
-                <button type="button" className="btn btn-primary" onClick={handleQuickCalc} style={{ justifyContent: 'center' }} data-ui-native-button="">
-                  Calculate Demurrage
-                </button>
-              </div>
-            </SectionCard>
-
-            {/* Result Panel */}
-            <div style={{ ...cardPad, display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center', background: calcResult ? 'var(--white)' : 'var(--bg)' }}>
-              {calcResult ? (
-                <div style={{ width: '100%' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, marginBottom: 20 }}>
-                    <Icon name="clipboardList" size={15} color="var(--ink2)" />
-                    <div style={{ fontSize: 14.5, fontWeight: 700, color: 'var(--ink)' }}>Calculation Result</div>
-                  </div>
-                  <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: 14 }}>
-                    {[
-                      { label: 'Total Days', value: calcResult.total_days, color: 'var(--blue)' },
-                      { label: 'Free Days', value: calcResult.free_days, color: 'var(--green)' },
-                      { label: 'Demurrage Days', value: calcResult.demurrage_days, color: calcResult.demurrage_days > 0 ? 'var(--red)' : 'var(--green)' },
-                    ].map((item, i) => (
-                      <div key={i} style={{ padding: 14, background: 'var(--bg)', borderRadius: 'var(--r)', textAlign: 'center' }}>
-                        <div style={{ fontSize: 11, color: 'var(--ink3)', fontWeight: 600, marginBottom: 4 }}>{item.label}</div>
-                        <div style={{ fontSize: 22, fontWeight: 800, color: item.color, fontVariantNumeric: 'tabular-nums' }}>{item.value}</div>
-                      </div>
-                    ))}
-                    <div style={{ padding: 14, background: 'var(--bg)', borderRadius: 'var(--r)', textAlign: 'center' }}>
-                      <div style={{ fontSize: 11, color: 'var(--ink3)', fontWeight: 600, marginBottom: 6 }}>Tariff Found</div>
-                      <div style={{ display: 'flex', justifyContent: 'center' }}>
-                        <Badge variant={calcResult.tariff_found ? 'success' : 'gray'}>
-                          <Icon name={calcResult.tariff_found ? 'checkCircle' : 'xCircle'} size={11} />
-                          {calcResult.tariff_found ? 'Yes' : 'No'}
-                        </Badge>
-                      </div>
-                    </div>
-                  </div>
-                  <div style={{
-                    marginTop: 20, padding: 20, borderRadius: 'var(--r)', textAlign: 'center',
-                    background: calcResult.demurrage_cost > 0 ? 'var(--red-l)' : 'var(--green-l)',
-                    border: `1px solid ${calcResult.demurrage_cost > 0 ? 'var(--red-l)' : 'var(--green-l)'}`,
-                  }}>
-                    <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--ink2)', marginBottom: 6 }}>Estimated Demurrage Cost</div>
-                    <div style={{ fontSize: 36, fontWeight: 800, color: calcResult.demurrage_cost > 0 ? 'var(--red)' : 'var(--green)', fontVariantNumeric: 'tabular-nums' }}>
-                      {calcResult.tariff_found ? formatCurrency(calcResult.demurrage_cost, calcResult.currency) : 'Tariff required'}
-                    </div>
-                  </div>
-                </div>
-              ) : (
-                <EmptyState icon="calculator" title="Enter details and calculate" sub="Results will appear here" />
-              )}
-            </div>
-          </div>
+        {/* ── Consignment Estimate ── */}
+        <TabsContent value="consignment" forceMount className="data-[state=inactive]:hidden">
+          <ConsignmentDemurrage initialBill={bill} schedules={[...new Set(tariffs.filter(tariff => tariff.active).map(tariff => tariff.carrier_name))]} />
         </TabsContent>
+
       </Tabs>
 
       {/* Mark Returned Modal */}

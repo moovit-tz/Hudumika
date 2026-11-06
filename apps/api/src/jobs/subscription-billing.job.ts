@@ -44,7 +44,7 @@ async function admins(tenantId: string) {
     .where('tenant_id', '=', tenantId).where('active', '=', true).where('role', 'in', ['TENANT_ADMIN', 'ADMIN']).execute());
 }
 
-async function tryAutoCharge(inv: { id: string; tenant_id: string; invoice_number: string; amount: number; plan_code: string; seats: number; attempt_count: number }): Promise<boolean> {
+async function tryAutoCharge(inv: { id: string; tenant_id: string; invoice_number: string; amount: number; currency: string; plan_code: string; seats: number; attempt_count: number }): Promise<boolean> {
   if (inv.attempt_count >= MAX_AUTO_ATTEMPTS) return false;
   const method = await withTenant(inv.tenant_id, (trx) => trx.selectFrom('payment_methods').selectAll()
     .where('tenant_id', '=', inv.tenant_id).where('type', '=', 'petti_wallet').where('petti_wallet_id', 'is not', null)
@@ -54,7 +54,7 @@ async function tryAutoCharge(inv: { id: string; tenant_id: string; invoice_numbe
   if (!actor) return false;
   try {
     const result = await PettiService.payFromWalletDirect(inv.tenant_id, { id: actor.id, role: actor.role as any }, {
-      walletId: method.petti_wallet_id, amount: inv.amount, category: 'SUBSCRIPTION',
+      walletId: method.petti_wallet_id, amount: inv.amount, currency: inv.currency, category: 'SUBSCRIPTION',
       purpose: `Hudumika subscription ${inv.invoice_number} — ${inv.plan_code} plan, ${inv.seats} seat${inv.seats === 1 ? '' : 's'} (automatic retry)`,
     });
     await withTenant(inv.tenant_id, (trx) => trx.updateTable('subscription_invoices')
@@ -96,7 +96,7 @@ export async function runSubscriptionBillingJob(now = new Date(), onlyTenantId?:
 
   // 3. Dunning.
   let overdueQuery = dbPlatform.selectFrom('subscription_invoices')
-    .select(['id', 'tenant_id', 'invoice_number', 'amount', 'plan_code', 'seats', 'due_date', 'dunning_stage', 'attempt_count'])
+    .select(['id', 'tenant_id', 'invoice_number', 'amount', 'currency', 'plan_code', 'seats', 'due_date', 'dunning_stage', 'attempt_count'])
     .where('status', '=', 'overdue').where('amount', '>', 0);
   if (onlyTenantId) overdueQuery = overdueQuery.where('tenant_id', '=', onlyTenantId);
   const overdue = await overdueQuery.execute();

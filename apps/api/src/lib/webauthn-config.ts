@@ -25,3 +25,30 @@ export function webauthnRpID(): string {
 }
 
 export const WEBAUTHN_RP_NAME = 'Hudumika';
+
+/**
+ * Validates a request's `Origin`/`Referer`-derived value against
+ * env.CORS_ORIGINS (the same static allowlist index.ts's own CORS plugin
+ * checks first, before the SuperAdmin-configurable DB-backed list layered
+ * on top of it) before using it to build a payment gateway's post-checkout
+ * redirect URL. Several routes (developer.routes.ts's prepaid top-up,
+ * billing.routes.ts's ESB top-up) built that URL straight from
+ * `request.headers.origin || request.headers.referer` with no validation
+ * at all — a header any non-browser caller sets freely — so a crafted
+ * request could make the gateway send a real paying user back to an
+ * attacker's domain after a genuine transaction. Returns the request's own
+ * origin only when it's an origin this deployment actually trusts;
+ * otherwise falls back to webauthnOrigin() (PUBLIC_APP_URL, or the first
+ * configured CORS origin), the same safe default every other "build a
+ * link back to our own app" call site in this codebase already uses.
+ */
+export function trustedRedirectOrigin(requestOrigin: string | string[] | undefined): string {
+  const raw = (Array.isArray(requestOrigin) ? requestOrigin[0] : requestOrigin ?? '').trim();
+  if (!raw) return webauthnOrigin();
+  // A Referer header carries a full URL with a path (unlike Origin, which
+  // is already bare) — normalize both to just the origin before checking.
+  let candidate: string;
+  try { candidate = new URL(raw).origin; } catch { return webauthnOrigin(); }
+  const allowed = env.CORS_ORIGINS.split(',').map(o => o.trim());
+  return allowed.includes(candidate) ? candidate : webauthnOrigin();
+}

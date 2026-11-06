@@ -1,5 +1,9 @@
 import type { FastifyInstance } from 'fastify';
 import { z } from 'zod';
+import {
+  freightBundleKey, freightDiscount, freightDraft, freightPreviewPeriod, freightUnitRate,
+  getFreightPilotDraft, getFreightPricingVersions, getFreightUsagePreview, listFreightPilotDrafts, quoteFreightLine,
+} from '../services/freight-usage-preview.service.js';
 import { requireRole } from '../middleware/rbac.js';
 import { dbPlatform, withTenant } from '../db/client.js';
 import { sql } from 'kysely';
@@ -1117,6 +1121,180 @@ export async function superAdminRoutes(fastify: FastifyInstance) {
     return { commercialProducts: rows };
   });
 
+  fastify.get('/commercial-products/freight-forwarder/draft', async () => {
+    const draft = await dbPlatform.selectFrom('commercial_pricing_drafts')
+      .select(['revision', 'configuration', 'updated_at', 'tested_revision'])
+      .where('bundle_key', '=', freightBundleKey)
+      .executeTakeFirst();
+    return {
+      revision: draft?.revision ?? 0,
+      configuration: draft ? freightDraft.parse(JSON.parse(draft.configuration)) : null,
+      updated_at: draft?.updated_at ?? null,
+      tested: !!draft && draft.tested_revision === draft.revision,
+    };
+  });
+
+  fastify.put('/commercial-products/freight-forwarder/draft', async (request, reply) => {
+    const parsed = z.object({
+      revision: z.number().int().min(0).max(2_147_483_646),
+      configuration: freightDraft,
+    }).safeParse(request.body);
+    if (!parsed.success) {
+      return reply.status(400).send({ error: 'Enter valid whole-number TZS rates and a discount from 0 to 100.' });
+    }
+    const { revision, configuration } = parsed.data;
+    const values = {
+      revision: revision + 1,
+      configuration: JSON.stringify(configuration),
+      updated_by: request.user.sub,
+      updated_at: new Date(),
+    };
+    const updated = revision === 0
+      ? await dbPlatform.insertInto('commercial_pricing_drafts')
+        .values({ bundle_key: freightBundleKey, ...values })
+        .onConflict(conflict => conflict.column('bundle_key').doNothing())
+        .returning('revision')
+        .executeTakeFirst()
+      : await dbPlatform.updateTable('commercial_pricing_drafts')
+        .set(values)
+        .where('bundle_key', '=', freightBundleKey)
+        .where('revision', '=', revision)
+        .returning('revision')
+        .executeTakeFirst();
+    if (!updated) {
+      return reply.status(409).send({ error: 'Another administrator saved this draft. Reload the saved draft before retrying.' });
+    }
+    return { revision: updated.revision, configuration, updated_at: values.updated_at, tested: false };
+  });
+
+  fastify.post('/commercial-products/freight-forwarder/preview', async (request, reply) => {
+    const line = z.object({
+      quantity: z.number().int().min(0).max(1_000_000),
+      unit_price_tzs: freightUnitRate,
+    });
+    const parsed = z.object({
+      discount_percent: freightDiscount,
+      products: z.object({ clearos: line, hudufreight: line, cargotracker: line }),
+    }).safeParse(request.body);
+    if (!parsed.success) {
+      return reply.status(400).send({ error: 'Enter whole-number quantities and TZS rates, and a discount from 0 to 100.' });
+    }
+
+    const lines = Object.entries(parsed.data.products).map(([key, line]) =>
+      quoteFreightLine(key, line.quantity, line.unit_price_tzs, parsed.data.discount_percent));
+    return { lines, total_tzs: lines.reduce((total, item) => total + item.total_tzs, 0) };
+  });
+
+  fastify.post('/commercial-products/freight-forwarder/tenant-preview', async (request, reply) => {
+    const parsed = z.object({
+      tenant_id: z.string().uuid(),
+      revision: z.number().int().positive(),
+      period: freightPreviewPeriod,
+    }).safeParse(request.body);
+    if (!parsed.success) {
+      return reply.status(400).send({ error: 'Select a tenant, save the draft, and enter a UTC period of 1 to 366 days.' });
+    }
+    const { tenant_id, period, revision } = parsed.data;
+    const tenant = await dbPlatform.selectFrom('tenants').select('id').where('id', '=', tenant_id).executeTakeFirst();
+    if (!tenant) return reply.status(404).send({ error: 'Tenant not found.' });
+
+    const draft = await dbPlatform.selectFrom('commercial_pricing_drafts').select('configuration')
+      .where('bundle_key', '=', freightBundleKey).where('revision', '=', revision).executeTakeFirst();
+    if (!draft) return reply.status(409).send({ error: 'Reload the current saved pricing draft before testing.' });
+
+    const configuration = freightDraft.parse(JSON.parse(draft.configuration));
+    const usage = await getFreightUsagePreview(tenant_id, period);
+    if (usage.data.some(line => line.quantity > 1_000_000)) {
+      return reply.status(422).send({ error: 'Select a shorter period to preview this volume.' });
+    }
+    const lines = usage.data.map(({ product_key, quantity, unit }) => ({
+      ...quoteFreightLine(product_key, quantity, configuration.rates[product_key], configuration.discount_percent),
+      unit,
+    }));
+    await PlatformAdminService.recordActivity({
+      ...actor(request), category: 'system', action: 'Previewed freight pricing for tenant',
+      targetType: 'tenant', targetId: tenant_id, targetName: null, tenantId: tenant_id,
+      metadata: { revision, ...period },
+    });
+    const marked = await dbPlatform.updateTable('commercial_pricing_drafts')
+      .set({ tested_revision: revision })
+      .where('bundle_key', '=', freightBundleKey).where('revision', '=', revision)
+      .returning('revision').executeTakeFirst();
+    if (!marked) return reply.status(409).send({ error: 'The draft changed during the test. Reload it and test again.' });
+    return { tenant_id, revision, period, lines, total_tzs: lines.reduce((total, line) => total + line.total_tzs, 0) };
+  });
+
+  fastify.get('/commercial-products/freight-forwarder/versions', async () => ({
+    data: await getFreightPricingVersions(true),
+  }));
+
+  fastify.post('/commercial-products/freight-forwarder/pilot-invitations', async (request, reply) => {
+    const input = z.object({ tenant_id: z.string().uuid() }).safeParse(request.body);
+    if (!input.success) return reply.status(400).send({ error: 'Select a workspace to invite.' });
+    const { tenant_id } = input.data;
+    const [rateCard] = await getFreightPricingVersions(false);
+    if (!rateCard) return reply.status(409).send({ error: 'An effective rate card is required before inviting a workspace.' });
+    const tenant = await dbPlatform.selectFrom('tenants').select('id')
+      .where('id', '=', tenant_id).where('active', '=', true).executeTakeFirst();
+    if (!tenant) return reply.status(404).send({ error: 'Active workspace not found.' });
+
+    const invitation = await dbPlatform.insertInto('freight_usage_pilot')
+      .values({ tenant_id, invited_by: request.user.sub })
+      .onConflict(conflict => conflict.column('tenant_id').doNothing())
+      .returning(['invited_at', 'accepted_at', 'starts_at'])
+      .executeTakeFirst();
+    const data = invitation ?? await dbPlatform.selectFrom('freight_usage_pilot')
+      .select(['invited_at', 'accepted_at', 'starts_at']).where('tenant_id', '=', tenant_id).executeTakeFirstOrThrow();
+    return reply.status(invitation ? 201 : 200).send({ data });
+  });
+
+  fastify.get('/commercial-products/freight-forwarder/pilot-drafts/:tenantId', async (request, reply) => {
+    const params = z.object({ tenantId: z.string().uuid() }).safeParse(request.params);
+    if (!params.success) return reply.status(400).send({ error: 'Select a valid workspace.' });
+    return { data: await listFreightPilotDrafts(params.data.tenantId) };
+  });
+
+  fastify.get('/commercial-products/freight-forwarder/pilot-drafts/:tenantId/:id', async (request, reply) => {
+    const params = z.object({ tenantId: z.string().uuid(), id: z.string().uuid() }).safeParse(request.params);
+    if (!params.success) return reply.status(400).send({ error: 'Select a valid workspace and draft.' });
+    const { tenantId, id } = params.data;
+    const draft = await getFreightPilotDraft(tenantId, id);
+    if (!draft) return reply.status(404).send({ error: 'Pilot invoice draft not found.' });
+    await PlatformAdminService.recordActivity({
+      ...actor(request), category: 'billing', action: 'Opened freight pilot invoice draft',
+      targetType: 'freight_pilot_invoice_draft', targetId: id, tenantId,
+    });
+    return draft;
+  });
+
+  fastify.post('/commercial-products/freight-forwarder/publish', async (request, reply) => {
+    const parsed = z.object({ revision: z.number().int().positive(), effective_on: z.string().date() })
+      .safeParse(request.body);
+    if (!parsed.success) return reply.status(400).send({ error: 'Enter a valid draft revision and effective date.' });
+    const { revision, effective_on } = parsed.data;
+    const today = new Date().toISOString().slice(0, 10);
+    if (effective_on <= today) return reply.status(400).send({ error: 'Choose a future effective date in UTC.' });
+
+    const result = await dbPlatform.transaction().execute(async trx => {
+      const draft = await trx.selectFrom('commercial_pricing_drafts')
+        .select(['revision', 'tested_revision', 'configuration'])
+        .where('bundle_key', '=', freightBundleKey).forUpdate().executeTakeFirst();
+      if (!draft || draft.revision !== revision || draft.tested_revision !== revision) {
+        return { error: 'Reload and test the current saved draft before publishing.' };
+      }
+      const scheduled = await trx.selectFrom('commercial_pricing_versions').select('effective_on')
+        .where('bundle_key', '=', freightBundleKey).where('effective_on', '>', today).executeTakeFirst();
+      if (scheduled) return { error: 'A rate card is already scheduled. Wait until it takes effect before publishing another.' };
+      const published = await trx.insertInto('commercial_pricing_versions')
+        .values({ bundle_key: freightBundleKey, revision, effective_on, configuration: draft.configuration, published_by: request.user.sub })
+        .onConflict(conflict => conflict.doNothing())
+        .returning(['revision', 'effective_on']).executeTakeFirst();
+      return published ? { published } : { error: 'This revision or effective date has already been published.' };
+    });
+    if (!result.published) return reply.status(409).send({ error: result.error });
+    return reply.status(201).send(result.published);
+  });
+
   fastify.patch<{ Params: { productKey: string }; Body: { readiness_state: string } }>(
     '/commercial-products/:productKey',
     async (request, reply) => {
@@ -1553,13 +1731,14 @@ export async function superAdminRoutes(fastify: FastifyInstance) {
 
   // ── Commercial Analytics (Phase 5) ──────────────────────────────
   fastify.get('/analytics/overview', async () => {
-    const [workspaces, mrr, esb, support] = await Promise.all([
+    const [workspaces, mrr, esb, support, subscriptionMargin] = await Promise.all([
       CommercialAnalyticsService.getPayingWorkspaces(),
       CommercialAnalyticsService.getMrr(),
       CommercialAnalyticsService.getEsbMargin(),
       CommercialAnalyticsService.getSupportCostSummary(),
+      CommercialAnalyticsService.getSubscriptionMargin(),
     ]);
-    return { workspaces, mrr, esb, support };
+    return { workspaces, mrr, esb, support, subscriptionMargin };
   });
 
   fastify.get('/analytics/retention', async (request: any) => {

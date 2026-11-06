@@ -66,7 +66,12 @@ export async function billingWebhookRoutes(fastify: FastifyInstance) {
               outcome = 'signup_verification_failed';
             } else {
               const input = (typeof pending.payload === 'string' ? JSON.parse(pending.payload) : pending.payload) as OnboardingCompleteInput;
-              const result = await OnboardingService.completeOnboarding(fastify, input, { skipPaymentGate: true, passwordAlreadyHashed: true, realTxRef: String(data.tx_ref) });
+              const result = await OnboardingService.completeOnboarding(fastify, input, {
+                skipPaymentGate: true,
+                passwordAlreadyHashed: true,
+                realTxRef: String(data.tx_ref),
+                verifiedPayment: { amount: Number(pending.amount), currency: pending.currency },
+              });
               await dbPlatform.updateTable('pending_signups')
                 .set({ status: 'completed', completed_tenant_id: result.tenant.id, updated_at: new Date() })
                 .where('id', '=', pending.id).execute();

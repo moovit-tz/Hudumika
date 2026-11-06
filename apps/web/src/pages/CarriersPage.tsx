@@ -1,7 +1,7 @@
 import { CarrierLogo } from '../components/container/CarrierLogo.js';
 import { SHIPPING_LINES } from '../components/container/shippingLines.js';
 import { CARRIER_ASSETS } from '../components/container/carrierAssets.js';
-﻿import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { PageHeader } from '../components/PageHeader.js';
 import { Icon } from '../components/Icon.js';
 import { apiFetch } from '../lib/api.js';

@@ -31,7 +31,7 @@ export const LaunchPlannerService = {
         description: input.description ?? null,
         industries: input.industries ?? [],
         jurisdictions: input.jurisdictions ?? ['TZ'],
-        target_date: input.target_date ?? null,
+        target_date: input.target_date ? new Date(input.target_date) : null,
         created_by: userId,
       }).returningAll().executeTakeFirstOrThrow();
       return this._mapCase(r);
@@ -164,7 +164,7 @@ export const LaunchPlannerService = {
         estimated_cost: input.estimated_cost ?? null,
         currency: input.currency ?? 'TZS',
         estimated_days: input.estimated_days ?? null,
-        deadline: input.deadline ?? null,
+        deadline: input.deadline ? new Date(input.deadline) : null,
         owner_user_id: input.owner_user_id ?? null,
         requirement_def_id: input.requirement_def_id ?? null,
         linked_cert_id: input.linked_cert_id ?? null,

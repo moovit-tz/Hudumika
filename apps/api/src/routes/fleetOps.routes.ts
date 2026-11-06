@@ -674,32 +674,73 @@ export async function fleetOpsRoutes(fastify: FastifyInstance) {
       origin?: string; destination?: string; scheduled_start?: string; scheduled_end?: string;
       cargo_desc?: string; notes?: string;
       cargo_type?: string; cargo_weight_kg?: number; cargo_temp_c?: number; load_capacity_pct?: number;
-      shipment_id?: string;
+      shipment_id?: string; idempotency_key?: string;
     };
     return withTenant(user.tenant_id, async (trx) => {
+      // Dispatch across a workflow boundary (ClearOS handing a cleared
+      // shipment to HuduFreight for haulage, or any caller that can retry
+      // on a timeout) must not double-book a vehicle on a resend. A plain
+      // INSERT had no dedup at all — this is the real gap "safe retries"
+      // meant to catch before this workflow is ever split across services.
+      // Not a uniqueness constraint on shipment_id itself: one shipment can
+      // legitimately need more than one trip (multi-leg transport), so the
+      // caller states retry identity explicitly instead.
+      if (body.idempotency_key) {
+        const existing = await trx.selectFrom('trips').selectAll()
+          .where('tenant_id', '=', user.tenant_id).where('idempotency_key', '=', body.idempotency_key)
+          .executeTakeFirst();
+        if (existing) return existing;
+      }
+
       const blocker = await assertDispatchable(trx, user.tenant_id, body.vehicle_id, body.driver_id, body.trailer_id);
       if (blocker) return reply.status(400).send({ error: blocker });
 
-      const trip = await trx.insertInto('trips').values({
-        tenant_id: user.tenant_id,
-        vehicle_id: body.vehicle_id,
-        driver_id: body.driver_id ?? null,
-        trailer_id: body.trailer_id ?? null,
-        customer_id: body.customer_id ?? null,
-        origin: body.origin ?? null,
-        destination: body.destination ?? null,
-        scheduled_start: body.scheduled_start ? new Date(body.scheduled_start) : null,
-        scheduled_end: body.scheduled_end ? new Date(body.scheduled_end) : null,
-        cargo_desc: body.cargo_desc ?? null,
-        cargo_type: body.cargo_type ?? null,
-        cargo_weight_kg: body.cargo_weight_kg ?? null,
-        cargo_temp_c: body.cargo_temp_c ?? null,
-        load_capacity_pct: body.load_capacity_pct ?? null,
-        notes: body.notes ?? null,
-        shipment_id: body.shipment_id ?? null,
-        job_type: body.shipment_id ? 'CLEARANCE_LINKED' : 'TRANSPORT_ONLY',
-        created_by: user.sub,
-      } as any).returningAll().executeTakeFirstOrThrow();
+      // The check above and this insert are not atomic — two concurrent
+      // retries with the same key can both pass the check and race to
+      // insert. idx_trips_tenant_idempotency_key (migration 704) is the
+      // actual guarantee; a unique_violation here means the other request
+      // won, so return its row instead of surfacing a raw 500 to a caller
+      // that did exactly the right thing by retrying. PostgreSQL marks the
+      // whole transaction aborted after any failed statement, so the
+      // fallback SELECT in the catch block needs its own SAVEPOINT to run
+      // at all — see hr.routes.ts's bestEffortInTransaction for the same
+      // pattern (found missing here while verifying this exact race live).
+      if (body.idempotency_key) await sql`SAVEPOINT trip_insert`.execute(trx);
+      let trip;
+      try {
+        trip = await trx.insertInto('trips').values({
+          tenant_id: user.tenant_id,
+          vehicle_id: body.vehicle_id,
+          driver_id: body.driver_id ?? null,
+          trailer_id: body.trailer_id ?? null,
+          customer_id: body.customer_id ?? null,
+          origin: body.origin ?? null,
+          destination: body.destination ?? null,
+          scheduled_start: body.scheduled_start ? new Date(body.scheduled_start) : null,
+          scheduled_end: body.scheduled_end ? new Date(body.scheduled_end) : null,
+          cargo_desc: body.cargo_desc ?? null,
+          cargo_type: body.cargo_type ?? null,
+          cargo_weight_kg: body.cargo_weight_kg ?? null,
+          cargo_temp_c: body.cargo_temp_c ?? null,
+          load_capacity_pct: body.load_capacity_pct ?? null,
+          notes: body.notes ?? null,
+          shipment_id: body.shipment_id ?? null,
+          job_type: body.shipment_id ? 'CLEARANCE_LINKED' : 'TRANSPORT_ONLY',
+          created_by: user.sub,
+          idempotency_key: body.idempotency_key ?? null,
+        } as any).returningAll().executeTakeFirstOrThrow();
+        if (body.idempotency_key) await sql`RELEASE SAVEPOINT trip_insert`.execute(trx);
+      } catch (err: any) {
+        if (body.idempotency_key && err?.code === '23505') {
+          await sql`ROLLBACK TO SAVEPOINT trip_insert`.execute(trx);
+          await sql`RELEASE SAVEPOINT trip_insert`.execute(trx);
+          const existing = await trx.selectFrom('trips').selectAll()
+            .where('tenant_id', '=', user.tenant_id).where('idempotency_key', '=', body.idempotency_key)
+            .executeTakeFirstOrThrow();
+          return existing;
+        }
+        throw err;
+      }
 
       // The haulage leg of a consignment's journey has been booked.
       emitDomainEvent(trx, user.tenant_id, {
@@ -820,7 +861,9 @@ export async function fleetOpsRoutes(fastify: FastifyInstance) {
         ...body,
         scheduled_start: body.scheduled_start ? new Date(body.scheduled_start) : undefined,
         scheduled_end: body.scheduled_end ? new Date(body.scheduled_end) : undefined,
-        actual_start: body.actual_start ? new Date(body.actual_start) : undefined,
+        actual_start: body.actual_start
+          ? new Date(body.actual_start)
+          : body.status === 'IN_PROGRESS' ? sql<Date>`coalesce(actual_start, now())` : undefined,
         actual_end: body.actual_end ? new Date(body.actual_end) : undefined,
         updated_at: new Date(),
       } as any)

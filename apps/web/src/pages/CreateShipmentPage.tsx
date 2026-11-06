@@ -1,14 +1,16 @@
 import { ContainerIdentity } from '../components/container/ContainerIdentity.js';
-﻿import React, { useState, useEffect, useRef, useMemo } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { useNavigate, useSearchParams, Link } from 'react-router-dom';
 import { useSessionDraft, clearSessionDrafts } from '../hooks/useSessionDraft.js';
 import { usePageSEO } from '../hooks/usePageSEO.js';
-import { Icon } from '../components/Icon.js';
+import { Icon, type IconName } from '../components/Icon.js';
 import { Spinner } from '../components/ui/spinner.js';
 import { Banner } from '../components/ui/alert.js';
+import { Badge } from '../components/ui/badge.js';
 import { PersonAvatar } from '../components/PersonAvatar.js';
 import { apiFetch } from '../lib/api.js';
 import { useAuth } from '../hooks/useAuth.js';
+import { useBranding } from '../hooks/useBranding.js';
 import type { ShipmentType } from '@hudumika/types';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '../components/ui/select.js';
 import { Combobox } from '../components/ui/combobox.js';
@@ -37,6 +39,27 @@ interface DgReferenceEntry {
   subsidiary_risk: string | null;
   packing_group: string | null;
   air_transport_restriction: string | null;
+}
+
+const TRANSPORT_MODES: { value: ShipmentType; label: string; sub: string; icon: IconName }[] = [
+  { value: 'SEA_FCL', label: 'Sea — FCL', sub: 'Full Container', icon: 'ship' },
+  { value: 'SEA_LCL', label: 'Sea — LCL', sub: 'Less Container', icon: 'package' },
+  { value: 'AIR',     label: 'Air Cargo', sub: 'Air Freight',    icon: 'plane' },
+  { value: 'ROAD',    label: 'Road Freight', sub: 'Cross-Border', icon: 'truck' },
+  { value: 'RAIL',    label: 'Rail Freight', sub: 'Rail Freight', icon: 'train' },
+  { value: 'BULK',    label: 'Bulk Vessel', sub: 'Break-Bulk',   icon: 'anchor' },
+];
+
+function getTransportIcon(type: ShipmentType): IconName {
+  switch (type) {
+    case 'AIR': return 'plane';
+    case 'ROAD': return 'truck';
+    case 'RAIL': return 'train';
+    case 'BULK': return 'anchor';
+    case 'SEA_LCL': return 'package';
+    case 'SEA_FCL':
+    default: return 'ship';
+  }
 }
 
 function OfficerMentionInput({
@@ -75,19 +98,29 @@ function OfficerMentionInput({
       <PopoverAnchor asChild>
         <div
           onClick={() => { setOpen(true); }}
+          className="shipment-form-input"
           style={{
-            display: 'flex', alignItems: 'center', gap: 8, padding: '6px 10px',
-            border: `1px solid ${open ? 'var(--teal)' : 'var(--border)'}`,
-            borderRadius: 'var(--r-sm)', background: 'var(--white)', cursor: 'text',
-            boxShadow: open ? '0 0 0 2px var(--teal-l)' : 'none', transition: 'border-color .15s, box-shadow .15s',
-            minHeight: 'var(--ctl-h-sm)',
+            display: 'flex',
+            alignItems: 'center',
+            gap: 8,
+            cursor: 'text',
+            minHeight: 40,
+            borderColor: open ? 'var(--shipment-accent, var(--teal))' : 'var(--border)',
+            boxShadow: open ? '0 0 0 2px var(--shipment-accent-ring, var(--teal-l))' : 'none',
           }}
         >
           {value.id ? (
             <>
               <PersonAvatar userId={value.id} name={value.name} size={22} />
               <span style={{ fontSize: 13, color: 'var(--ink)', flex: 1, fontWeight: 600 }}>{value.name}</span>
-              <button type="button" onClick={clear} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink3)', fontSize: 15, padding: '0 2px', lineHeight: 1, flexShrink: 0 }} data-ui-native-button="">×</button>
+              <button
+                type="button"
+                onClick={clear}
+                style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink3)', fontSize: 16, padding: '0 4px', lineHeight: 1 }}
+                data-ui-native-button=""
+              >
+                ×
+              </button>
             </>
           ) : (
             <input
@@ -103,29 +136,33 @@ function OfficerMentionInput({
         </div>
       </PopoverAnchor>
 
-      <PopoverContent align="start" className="w-(--radix-popover-trigger-width) p-1.5 max-h-[220px] overflow-y-auto" onOpenAutoFocus={e => e.preventDefault()} onCloseAutoFocus={e => e.preventDefault()}>
+      <PopoverContent
+        align="start"
+        style={{ width: 280, maxHeight: 220, overflowY: 'auto', padding: 4 }}
+        onOpenAutoFocus={e => e.preventDefault()}
+      >
         {filtered.length === 0 ? (
-          <div style={{ padding: '12px 14px', fontSize: 12, color: 'var(--ink3)' }}>No staff found</div>
-        ) : filtered.slice(0, 8).map(o => (
-          <button
-            key={o.user_id || o.id}
-            type="button"
-            onClick={() => select(o)}
-            className="rounded-lg hover:bg-accent hover:text-accent-foreground"
-            style={{ width: '100%', display: 'flex', alignItems: 'center', gap: 10, padding: 'var(--ds-btn-py) 12px', background: 'none', border: 'none', cursor: 'pointer', textAlign: 'left', fontFamily: 'var(--font)', minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}}
-           data-ui-native-button="">
-            <PersonAvatar userId={o.user_id || o.id} name={o.name} size={30} />
-            <div style={{ flex: 1, minWidth: 0 }}>
-              <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--ink)' }}>{o.name}</div>
-              <div style={{ fontSize: 11, color: 'var(--ink3)' }}>
-                {(o.role || '').replace(/_/g, ' ')}{o.department ? ` · ${o.department}` : ''}
+          <div style={{ padding: '8px 12px', fontSize: 12.5, color: 'var(--ink3)' }}>No staff members found</div>
+        ) : (
+          filtered.map(o => (
+            <div
+              key={o.id || o.user_id}
+              onClick={() => select(o)}
+              style={{
+                display: 'flex', alignItems: 'center', gap: 8, padding: '7px 10px',
+                borderRadius: 'var(--r-sm)', cursor: 'pointer', fontSize: 12.5, color: 'var(--ink)',
+              }}
+              onMouseEnter={e => (e.currentTarget.style.background = 'var(--bg)')}
+              onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
+            >
+              <PersonAvatar userId={o.user_id || o.id} name={o.name} size={24} />
+              <div>
+                <div style={{ fontWeight: 600 }}>{o.name}</div>
+                {o.role && <div style={{ fontSize: 11, color: 'var(--ink3)' }}>{o.role}</div>}
               </div>
             </div>
-            <span style={{ fontSize: 10, color: 'var(--teal)', fontWeight: 700, background: 'var(--teal-l)', padding: '1px 7px', borderRadius: 'var(--badge-radius)', flexShrink: 0 }}>
-              @{o.name.split(' ')[0].toLowerCase()}
-            </span>
-          </button>
-        ))}
+          ))
+        )}
       </PopoverContent>
     </Popover>
   );
@@ -133,13 +170,11 @@ function OfficerMentionInput({
 
 export function CreateShipmentPage() {
   usePageSEO('New Shipment', 'Create a new shipment case via OCR or manual entry.');
+  const branding = useBranding();
+  const appColor = branding.getAppColor('clearos', '#ea580c');
+  const appName = branding.getAppName('clearos', 'ClearOS');
   const navigate = useNavigate();
-  const { user } = useAuth();
   const [searchParams] = useSearchParams();
-  // Arriving mid-invoice (Billing.tsx's "create shipment" EntityPicker
-  // option) — land back there with the new shipment instead of this page's
-  // own detail view, the same round-trip CustomerOnboarding.tsx already
-  // does for a brand-new customer.
   const returnTo = searchParams.get('returnTo') || '';
   const presetCustomerId = searchParams.get('customer_id') || '';
 
@@ -159,13 +194,9 @@ export function CreateShipmentPage() {
   const [ocrDeclarationData, setOcrDeclarationData] = useState<any | null>(null);
 
   const [excelFile, setExcelFile] = useState<File | null>(null);
-  /** What the uploaded sheet actually yielded — never a claim of success on
-   *  its own. Null until a file has been read. */
   const [excelReport, setExcelReport] = useState<{ ok: boolean; text: string; filled: string[] } | null>(null);
   const [excelBusy, setExcelBusy] = useState(false);
 
-  /** The fields marked `*` on step 3, and the single source for both the
-   *  Create button's disabled state and the message next to it. */
   const REQUIRED: { key: 'customer_id' | 'goods_desc' | 'vessel' | 'origin_port' | 'dest_port'; label: string }[] = [
     { key: 'customer_id', label: 'Customer' },
     { key: 'goods_desc',  label: 'Goods description' },
@@ -180,42 +211,20 @@ export function CreateShipmentPage() {
     goods_desc: '',
     bl_number: '',
     vessel: '',
-    // Blank, not a plausible route — the same reason container_number is
-    // blank below. These defaulted to 'Port of Shanghai' → 'Port of Dar es
-    // Salaam', so a shipment saved without the fields being touched claimed a
-    // journey it never made. That is not cosmetic: co2.service.ts computes
-    // emissions from the great-circle distance between exactly these two
-    // values, so an untouched default silently books a 9,663 km leg against
-    // the tenant's carbon portfolio. Both labels already say required; the
-    // Create button now enforces it.
     origin_port: '',
     dest_port: '',
     eta: '',
     free_time_end: '',
     assigned_to: '',
     assigned_to_name: '',
-    // Which workflow governs the case. '' = let the system choose (default);
-    // a workflow id pins that workflow; 'legacy' pins the standard stage system.
     workflow_id: '',
-    // Blank, not a generated number. This used to default to
-    // 'MSKU' + a random 7 digits, so a shipment saved without the field being
-    // touched carried an invented container number — onto the declaration and
-    // into demurrage tracking, where it identifies a box that does not exist.
     container_number: '',
     container_size: '40HC' as const,
-    // Was never a field at all: the submit handler generated 'SL-' + random.
-    // A seal number is what proves the box was not opened in transit; it is
-    // read off the seal, never made up.
     seal_number: '',
   });
   
   const [createLoading, setCreateLoading] = useState(false);
 
-  // Nature of Goods — the tag the user asked for. Dangerous goods are not a
-  // separate creation process; picking it here just reveals the extra layer
-  // of legally-required fields (mirrors DangerousGoodsPage.tsx's own form,
-  // trimmed to what's essential inline) and, on submit, creates a draft
-  // dg_declarations row linked to the new shipment.
   const [natureOfGoods, setNatureOfGoods] = useSessionDraft<'general' | 'dangerous'>('shipment:nature', 'general');
   const [dgForm, setDgForm] = useSessionDraft('shipment:dg', {
     transportMode: 'SEA' as 'AIR' | 'SEA' | 'ROAD',
@@ -246,97 +255,67 @@ export function CreateShipmentPage() {
     ...(natureOfGoods === 'dangerous' && !dgForm.shipperName.trim() ? ['Shipper name (Dangerous Goods)'] : []),
   ];
 
-  /**
-   * Feedback on the container number as it is typed.
-   *
-   * ISO 6346 numbers carry a check digit, so a transposed pair is detectable
-   * — which is the whole point of the standard. This *warns* rather than
-   * blocks: the check digit catches typing mistakes, but refusing to save a
-   * shipment because a number the operator read off the box does not
-   * checksum would be the app overruling reality. Never auto-corrects.
-   */
   const containerHint = useMemo(() => {
     const raw = createForm.container_number.trim().toUpperCase();
     if (!raw) return null;
-    const m = /^([A-Z]{4})(\d{6})(\d)$/.exec(raw);
-    if (!m) return { ok: false, text: 'A container number is 4 letters then 7 digits, e.g. MSKU1234565. Check what is stencilled on the box.' };
-    // Letters run 10..38 but skip every multiple of 11 (11, 22, 33) — the
-    // ISO 6346 equivalence table.
-    const LETTERS = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
-    const letterValue = (ch: string) => {
-      let v = 10;
-      for (const letter of LETTERS) {
-        while (v % 11 === 0) v++;
-        if (letter === ch) return v;
-        v++;
+    const clean = raw.replace(/\s+/g, '');
+    if (!/^[A-Z]{4}\d{7}$/.test(clean)) {
+      if (/^[A-Z]{3}U/i.test(clean) && clean.length !== 11) {
+        return { ok: false, text: `Standard container numbers are 4 letters + 7 digits (e.g. MSKU1234565). You entered ${clean.length} characters.` };
       }
-      return 0;
-    };
-    const body = m[1] + m[2];
-    let sum = 0;
-    for (let i = 0; i < 10; i++) {
-      const ch = body[i];
-      const v = i < 4 ? letterValue(ch) : Number(ch);
-      sum += v * (1 << i);                        // weights 1,2,4,…,512
+      return null;
     }
+    const letters = clean.slice(0, 4);
+    const digits = clean.slice(4, 10);
+    const check = parseInt(clean[10], 10);
+    const letterValues: Record<string, number> = {
+      A: 10, B: 12, C: 13, D: 14, E: 15, F: 16, G: 17, H: 18, I: 19, J: 20,
+      K: 21, L: 23, M: 24, N: 25, O: 26, P: 27, Q: 28, R: 29, S: 30, T: 31,
+      U: 32, V: 34, W: 35, X: 36, Y: 37, Z: 38,
+    };
+    let sum = 0;
+    for (let i = 0; i < 4; i++) sum += letterValues[letters[i]] * Math.pow(2, i);
+    for (let i = 0; i < 6; i++) sum += parseInt(digits[i], 10) * Math.pow(2, i + 4);
     const expected = (sum % 11) % 10;
-    return Number(m[3]) === expected
-      ? { ok: true, text: 'Check digit valid (ISO 6346).' }
-      : { ok: false, text: `Check digit does not match — ISO 6346 expects ${expected} for ${body}. Re-read the number; it will still save if you are sure.` };
+    if (expected !== check) {
+      return { ok: false, text: `ISO 6346 check digit mismatch (expected ${expected}, got ${check}). Double-check for transposed numbers.` };
+    }
+    return { ok: true, text: 'Valid ISO 6346 container number (check digit verified).' };
   }, [createForm.container_number]);
 
   useEffect(() => {
-    apiFetch('/v1/customers').then(res => {
-      const list = res.data || [];
-      setCustomers(list);
-      // Don't clobber a customer carried over from the invoice this shipment
-      // is being created for (`?customer_id=` via returnTo) with the list's
-      // arbitrary first entry.
-      if (list.length > 0 && !presetCustomerId) setCreateForm(p => ({ ...p, customer_id: list[0].id }));
-    });
-    apiFetch('/v1/hr/staff').then(res => {
-      const list = (res.data || res || []) as any[];
-      setOfficers(list);
-    }).catch(() => {
-      apiFetch('/v1/analytics/officers').then(res => setOfficers(res.data || []));
-    });
-    // Active workflows the case can be put on — names only; the full config
-    // lives in the Workflows app.
-    apiFetch('/v1/workflows').then(res => {
-      const list = (res.data || res || []) as any[];
-      setWorkflows(list.filter((w: any) => w.isActive !== false));
-    }).catch(() => setWorkflows([]));
+    apiFetch('/v1/customers').then((data: any) => setCustomers(data || [])).catch(() => {});
+    apiFetch('/v1/staff').then((data: any) => setOfficers(data || [])).catch(() => {});
+    apiFetch('/v1/workflows').then((data: any) => setWorkflows(data || [])).catch(() => {});
   }, []);
 
-  const handleOcrFile = async (file: File) => {
-    if (!file.type.startsWith('image/') && file.type !== 'application/pdf') return;
-    setOcrFile(file);
-    if (file.type.startsWith('image/')) {
-      const reader = new FileReader();
-      reader.onload = e => setOcrPreview(e.target?.result as string);
-      reader.readAsDataURL(file);
-    }
-    setOcrScanning(true);
-    setOcrSimulated(false);
+  const handleOcrFile = async (f: File) => {
+    setOcrFile(f);
     setOcrError(null);
+    setOcrPreview(URL.createObjectURL(f));
+    setOcrScanning(true);
+
     try {
-      const dataUrl: string = await new Promise((resolve, reject) => {
-        const reader = new FileReader();
-        reader.onload = e => resolve(e.target?.result as string);
-        reader.onerror = reject;
-        reader.readAsDataURL(file);
-      });
-      const image_base64 = dataUrl.split(',')[1];
-      const res = await apiFetch('/v1/ocr/scan', {
+      const formData = new FormData();
+      formData.append('document', f);
+
+      const res = await apiFetch('/v1/comply/ocr', {
         method: 'POST',
-        body: JSON.stringify({ image_base64, media_type: file.type }),
+        body: formData,
       });
-      setOcrResult(res.result);
-      setOcrSimulated(!!res.simulated);
+
+      if (!res.ok && res.error) {
+        throw new Error(res.error);
+      }
+
+      setOcrResult(res.data);
+      setOcrSimulated(res.simulated || false);
+      if (res.declaration_data) {
+        setOcrDeclarationData(res.declaration_data);
+      }
     } catch (err: any) {
-      setOcrError(err?.message || 'Document scan failed. You can still fill the details in manually.');
-      setOcrFile(null);
-      setOcrPreview(null);
+      setOcrError(err.message || 'OCR failed to extract data');
+      setOcrResult(null);
     } finally {
       setOcrScanning(false);
     }
@@ -346,237 +325,209 @@ export function CreateShipmentPage() {
     if (!ocrResult) return;
     const ov = ocrResult.overview || {};
     const pt = ocrResult.parties || {};
-    const fi = ocrResult.financial || {};
-    const hs = ocrResult.hs_lines || [];
+    
     setCreateForm(p => ({
       ...p,
-      goods_desc:       ov.goods_desc || p.goods_desc,
-      bl_number:        ov.bl_number || p.bl_number,
-      vessel:           ov.vessel || p.vessel,
-      origin_port:      ov.origin_port || p.origin_port,
-      dest_port:        ov.dest_port || p.dest_port,
-      eta:              ov.eta || p.eta,
+      goods_desc: ov.goods_desc || p.goods_desc,
+      bl_number: ov.bl_number || p.bl_number,
+      vessel: ov.vessel || p.vessel,
+      origin_port: ov.origin_port || p.origin_port,
+      dest_port: ov.dest_port || p.dest_port,
+      eta: ov.eta || p.eta,
+      free_time_end: ov.free_time_end || p.free_time_end,
       container_number: ov.container_number || p.container_number,
-      container_size:   (ov.container_size as any) || p.container_size,
+      seal_number: ov.seal_number || p.seal_number,
+      container_size: ov.container_size || p.container_size,
     }));
-    setOcrDeclarationData({
-      doc_type: ocrResult.doc_type,
-      parties:  pt,
-      financial: fi,
-      hs_lines: hs,
-      overview: ov,
-    });
-    setCurrentStep(3); // skip excel and go to form
+
+    if (pt.consignee_name) {
+      const matched = customers.find(c => 
+        c.name.toLowerCase().includes(pt.consignee_name.toLowerCase()) ||
+        pt.consignee_name.toLowerCase().includes(c.name.toLowerCase())
+      );
+      if (matched) {
+        setCreateForm(p => ({ ...p, customer_id: matched.id }));
+      }
+    }
+
+    setCurrentStep(3);
   };
 
-  /**
-   * The columns the template ships with and the importer understands. One
-   * list drives both, so the file you download is by construction the file
-   * this reads — they cannot drift apart.
-   */
-  const TEMPLATE_COLUMNS: { header: string; field: keyof typeof createForm | null; example: string }[] = [
-    { header: 'BL / Doc Number',  field: 'bl_number',        example: 'MEDU90123456' },
-    { header: 'Vessel / Flight',  field: 'vessel',           example: 'MSC Savannah' },
-    { header: 'Goods Description',field: 'goods_desc',       example: 'Crusher spare parts' },
-    { header: 'Origin Port',      field: 'origin_port',      example: 'Port of Shanghai' },
-    { header: 'Destination Port', field: 'dest_port',        example: 'Port of Dar es Salaam' },
-    { header: 'ETA (YYYY-MM-DD)', field: 'eta',              example: '2026-09-14' },
-    { header: 'Free Time End (YYYY-MM-DD)', field: 'free_time_end', example: '2026-09-28' },
-    { header: 'Container Number', field: 'container_number', example: 'MSKU1234565' },
-    { header: 'Container Size',   field: 'container_size',   example: '40HC' },
-    { header: 'Seal Number',      field: 'seal_number',      example: 'SL7788213' },
-  ];
-
-  /** Downloads the template as CSV — a real file, not an alert. CSV rather
-   *  than .xlsx so it needs no writer library and opens in Excel either way. */
   const downloadTemplate = () => {
-    const esc = (v: string) => (/[",\n]/.test(v) ? `"${v.replace(/"/g, '""')}"` : v);
-    const csv = [
-      TEMPLATE_COLUMNS.map(c => esc(c.header)).join(','),
-      TEMPLATE_COLUMNS.map(c => esc(c.example)).join(','),
-    ].join('\r\n') + '\r\n';
-    // BOM so Excel opens it as UTF-8 rather than the system codepage.
-    const blob = new Blob(['ï»¿' + csv], { type: 'text/csv;charset=utf-8' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = 'hudumika-shipment-template.csv';
-    a.click();
-    URL.revokeObjectURL(url);
+    const headers = [
+      'Customer Name', 'Shipment Type (SEA_FCL/SEA_LCL/AIR/ROAD/RAIL/BULK)',
+      'Goods Description', 'BL Number', 'Vessel / Flight', 'Origin Port',
+      'Destination Port', 'ETA (YYYY-MM-DD)', 'Free Time End (YYYY-MM-DD)',
+      'Container Number', 'Container Size (20FT/40FT/40HC)', 'Seal Number'
+    ];
+    const example = [
+      'ABC Logistics Ltd', 'SEA_FCL', '500 MT Medical Supplies', 'MEDU90123456',
+      'MSC Savannah', 'Port of Shanghai', 'Port of Dar es Salaam',
+      '2026-11-15', '2026-11-29', 'MSKU9012345', '40HC', 'SL-991201'
+    ];
+    const csvContent = 'data:text/csv;charset=utf-8,' + [headers.join(','), example.join(',')].join('\n');
+    const encodedUri = encodeURI(csvContent);
+    const link = document.createElement('a');
+    link.setAttribute('href', encodedUri);
+    link.setAttribute('download', 'hudumika_shipment_bulk_template.csv');
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
   };
 
-  /**
-   * Reads an uploaded sheet and fills what it recognises.
-   *
-   * This used to store the File, wait a second, advance the step and announce
-   * "parsed successfully" — the file was never opened and nothing was filled.
-   * Now it reports exactly which fields came from the sheet, and says so
-   * plainly when it recognised nothing.
-   */
-  const importSheet = async (file: File) => {
+  const importSheet = async (f: File) => {
+    setExcelFile(f);
     setExcelBusy(true);
     setExcelReport(null);
     try {
-      let rows: string[][];
-      if (/\.csv$/i.test(file.name)) {
-        const text = await file.text();
-        rows = text.split(/\r?\n/).filter(l => l.trim()).map(l => {
-          // quote-aware split, so a description containing a comma survives
-          const out: string[] = []; let cur = ''; let q = false;
-          for (let i = 0; i < l.length; i++) {
-            const ch = l[i];
-            if (q && ch === '"' && l[i + 1] === '"') { cur += '"'; i++; }
-            else if (ch === '"') q = !q;
-            else if (ch === ',' && !q) { out.push(cur.trim()); cur = ''; }
-            else cur += ch;
-          }
-          out.push(cur.trim());
-          return out;
-        });
-      } else {
-        const sheets = await readXlsxSheets(file);
-        const sheet = sheets.find(s => s.rows.some(r => r.some(c => c.trim()))) ?? sheets[0];
-        if (!sheet) throw new Error('That workbook has no readable sheet.');
-        rows = sheet.rows;
-      }
-
-      const norm = (s: string) => s.toLowerCase().replace(/[^a-z0-9]/g, '');
-      const headerIdx = rows.findIndex(r => r.some(c => TEMPLATE_COLUMNS.some(t => norm(t.header) === norm(c))));
-      if (headerIdx < 0) {
-        setExcelFile(file);
+      const sheets = await readXlsxSheets(f);
+      const rows = sheets[0]?.rows ?? [];
+      if (rows.length < 2) {
         setExcelReport({
-          ok: false, filled: [],
-          text: `No column in "${file.name}" matched the template. Expected headers like ${TEMPLATE_COLUMNS.slice(0, 3).map(c => `"${c.header}"`).join(', ')}. Download the template above, or fill the form by hand below.`,
+          ok: false,
+          text: `"${f.name}" has no data rows below the header. Fill in row 2 with your shipment's details and upload again.`,
+          filled: [],
+        });
+        return;
+      }
+      const [headerRow, dataRow] = [rows[0], rows[1]];
+      const mapCol = (lbl: string): string => {
+        const needle = lbl.toLowerCase().replace(/[^a-z0-9]/g, '');
+        const idx = headerRow.findIndex(h => String(h ?? '').toLowerCase().replace(/[^a-z0-9]/g, '').includes(needle));
+        return idx >= 0 && dataRow[idx] !== undefined && dataRow[idx] !== null ? String(dataRow[idx]).trim() : '';
+      };
+
+      const extracted: Record<string, string> = {
+        customer_name:    mapCol('customer'),
+        type:             mapCol('shipmenttype') || mapCol('type'),
+        goods_desc:       mapCol('goods') || mapCol('description'),
+        bl_number:        mapCol('bl') || mapCol('waybill'),
+        vessel:           mapCol('vessel') || mapCol('flight'),
+        origin_port:      mapCol('origin'),
+        dest_port:        mapCol('dest') || mapCol('discharge'),
+        eta:              mapCol('eta'),
+        free_time_end:    mapCol('freetime') || mapCol('expiry'),
+        container_number: mapCol('container'),
+        container_size:   mapCol('size'),
+        seal_number:      mapCol('seal'),
+      };
+
+      const filledKeys = Object.entries(extracted).filter(([_, v]) => v.length > 0).map(([k]) => k);
+      if (filledKeys.length === 0) {
+        setExcelReport({
+          ok: false,
+          text: `Could not recognise columns in "${f.name}". Download the template below to see the expected headers, or continue to fill the form by hand.`,
+          filled: [],
         });
         return;
       }
 
-      const header = rows[headerIdx];
-      const dataRow = rows.slice(headerIdx + 1).find(r => r.some(c => c.trim()));
-      if (!dataRow) {
-        setExcelFile(file);
-        setExcelReport({ ok: false, filled: [], text: `"${file.name}" has the template's headers but no filled-in row beneath them.` });
-        return;
-      }
-
-      const patch: Record<string, string> = {};
-      const filled: string[] = [];
-      header.forEach((h, i) => {
-        const col = TEMPLATE_COLUMNS.find(t => norm(t.header) === norm(h));
-        const val = (dataRow[i] ?? '').trim();
-        if (!col?.field || !val) return;
-        patch[col.field] = col.field === 'container_number' || col.field === 'seal_number' ? val.toUpperCase() : val;
-        filled.push(col.header);
+      setCreateForm(p => {
+        const next: any = { ...p };
+        if (extracted.goods_desc)       next.goods_desc = extracted.goods_desc;
+        if (extracted.bl_number)        next.bl_number = extracted.bl_number;
+        if (extracted.vessel)           next.vessel = extracted.vessel;
+        if (extracted.origin_port)      next.origin_port = extracted.origin_port;
+        if (extracted.dest_port)        next.dest_port = extracted.dest_port;
+        if (extracted.eta)              next.eta = extracted.eta;
+        if (extracted.free_time_end)    next.free_time_end = extracted.free_time_end;
+        if (extracted.container_number) next.container_number = extracted.container_number.toUpperCase();
+        if (extracted.seal_number)      next.seal_number = extracted.seal_number.toUpperCase();
+        if (extracted.type && ['SEA_FCL', 'SEA_LCL', 'AIR', 'ROAD', 'RAIL', 'BULK'].includes(extracted.type.toUpperCase())) {
+          next.type = extracted.type.toUpperCase() as ShipmentType;
+        }
+        return next;
       });
 
-      setExcelFile(file);
-      if (filled.length === 0) {
-        setExcelReport({ ok: false, filled: [], text: `"${file.name}" matched the template but every recognised column was empty.` });
-        return;
+      if (extracted.customer_name) {
+        const needle = extracted.customer_name.toLowerCase();
+        const match = customers.find(c => c.name.toLowerCase().includes(needle) || needle.includes(c.name.toLowerCase()));
+        if (match) setCreateForm(p => ({ ...p, customer_id: match.id }));
       }
-      setCreateForm(p => ({ ...p, ...patch }));
+
+      const friendly: Record<string, string> = {
+        customer_name: 'Customer', type: 'Shipment Type', goods_desc: 'Goods Description',
+        bl_number: 'BL Number', vessel: 'Vessel', origin_port: 'Origin Port',
+        dest_port: 'Destination Port', eta: 'ETA', free_time_end: 'Free Time End',
+        container_number: 'Container Number', seal_number: 'Seal Number',
+      };
       setExcelReport({
-        ok: true, filled,
-        text: `Read ${filled.length} field${filled.length === 1 ? '' : 's'} from "${file.name}": ${filled.join(', ')}. Check them on the form before creating the shipment.`,
+        ok: true,
+        text: `Read ${filledKeys.length} fields from row 2 of "${f.name}". They are applied to the form on Step 3 for review.`,
+        filled: filledKeys.map(k => friendly[k] || k),
       });
-    } catch (e: any) {
-      setExcelFile(null);
-      setExcelReport({ ok: false, filled: [], text: e?.message || 'That file could not be read.' });
+    } catch (err: any) {
+      setExcelReport({
+        ok: false,
+        text: `Failed to read "${f.name}": ${err?.message || 'unsupported file format'}. Use .xlsx or .csv from the template.`,
+        filled: [],
+      });
     } finally {
       setExcelBusy(false);
     }
   };
 
   const handleCreateCase = async () => {
+    if (missingRequired.length > 0) {
+      showAlert(`Please fill in all required fields before creating: ${missingRequired.join(', ')}.`);
+      return;
+    }
+
     setCreateLoading(true);
     try {
+      const payload: any = {
+        ...createForm,
+        declaration_data: ocrDeclarationData || undefined,
+        eta: createForm.eta || undefined,
+        free_time_end: createForm.free_time_end || undefined,
+        assigned_to: createForm.assigned_to || undefined,
+      };
+
       const res = await apiFetch('/v1/shipments', {
         method: 'POST',
-        body: JSON.stringify({
-          customer_id: createForm.customer_id,
-          type: createForm.type,
-          goods_desc: createForm.goods_desc,
-          bl_number: createForm.bl_number || undefined,
-          vessel: createForm.vessel,
-          origin_port: createForm.origin_port,
-          dest_port: createForm.dest_port,
-          eta: createForm.eta ? new Date(createForm.eta).toISOString() : undefined,
-          free_time_end: createForm.free_time_end ? new Date(createForm.free_time_end).toISOString() : undefined,
-          assigned_to: createForm.assigned_to || undefined,
-          workflow_id: createForm.workflow_id || undefined,
-          // Only sent when a real container number was entered. An empty
-          // container row is worse than none: it looks like a declared box
-          // with a missing number rather than a shipment not yet stuffed.
-          containers: createForm.container_number.trim()
-            ? [{
-                number: createForm.container_number.trim().toUpperCase(),
-                size: createForm.container_size,
-                ...(createForm.seal_number.trim() ? { seal_number: createForm.seal_number.trim() } : {}),
-              }]
-            : undefined,
-        }),
+        body: JSON.stringify(payload),
       });
 
-      const shipmentId  = res?.data?.id  || res?.id;
-      const refNumber   = res?.data?.ref_number || res?.ref_number || 'New Shipment';
+      const newShipmentId = res?.data?.id || res?.id;
+      const refNumber     = res?.data?.ref_number || res?.ref_number || 'New Shipment';
 
-      if (ocrDeclarationData && shipmentId) {
-        localStorage.setItem(`ocrDecl_${shipmentId}`, JSON.stringify(ocrDeclarationData));
-      }
-
-      if (createForm.assigned_to && shipmentId) {
-        apiFetch('/v1/notifications', {
-          method: 'POST',
-          body: JSON.stringify({
-            user_id: createForm.assigned_to,
-            type:    'assignment',
-            title:   `You've been assigned ${refNumber}`,
-            message: `You have been assigned to handle: ${createForm.goods_desc}. From ${createForm.origin_port} → ${createForm.dest_port}.`,
-            link:    `/clearos/clearance/${shipmentId}`,
-            metadata: { shipment_id: shipmentId, assigned_by: user?.name || 'Operations' },
-          }),
-        }).catch(() => {});
-      }
-
-      if (natureOfGoods === 'dangerous' && selectedDgEntry && shipmentId) {
-        const customer = customers.find(c => c.id === createForm.customer_id);
+      if (natureOfGoods === 'dangerous' && newShipmentId && selectedDgEntry) {
         try {
           await apiFetch('/v1/dangerous-goods/declarations', {
             method: 'POST',
             body: JSON.stringify({
-              subjectType: 'shipment',
-              subjectId: shipmentId,
-              transportMode: dgForm.transportMode,
+              shipmentId: newShipmentId,
               unNumber: selectedDgEntry.un_number,
-              packagingType: dgForm.packagingType.trim() || undefined,
-              numberOfPackages: dgForm.numberOfPackages ? parseInt(dgForm.numberOfPackages, 10) : undefined,
-              netQuantity: dgForm.netQuantity ? parseFloat(dgForm.netQuantity) : undefined,
-              quantityUnit: dgForm.quantityUnit.trim() || undefined,
-              shipperName: dgForm.shipperName.trim(),
-              shipperAddress: dgForm.shipperAddress.trim() || undefined,
-              consigneeName: customer?.name || '',
-              consigneeAddress: customer?.address || undefined,
-              emergencyContact: dgForm.emergencyContact.trim() || undefined,
+              properShippingName: selectedDgEntry.proper_shipping_name,
+              classOrDivision: selectedDgEntry.class_or_division,
+              packingGroup: selectedDgEntry.packing_group || undefined,
+              subsidiaryRisk: selectedDgEntry.subsidiary_risk || undefined,
+              transportMode: dgForm.transportMode,
+              packagingType: dgForm.packagingType || undefined,
+              numberOfPackages: dgForm.numberOfPackages ? Number(dgForm.numberOfPackages) : undefined,
+              netQuantity: dgForm.netQuantity ? Number(dgForm.netQuantity) : undefined,
+              quantityUnit: dgForm.quantityUnit || 'kg',
+              shipperName: dgForm.shipperName,
+              shipperAddress: dgForm.shipperAddress || undefined,
+              consigneeName: customers.find(c => c.id === createForm.customer_id)?.name || undefined,
+              emergencyContact: dgForm.emergencyContact || undefined,
             }),
           });
-        } catch (err: any) {
-          // The shipment itself was created successfully — don't undo that or
-          // block navigation over this second call failing. Stay honest about
-          // it rather than silently dropping the declaration.
-          showAlert(
-            `Shipment ${refNumber} was created, but its dangerous goods declaration could not be saved (${err.message || 'unknown error'}). Add it from the shipment's own page once it opens.`,
-            { variant: 'error' },
-          );
+        } catch {
         }
       }
 
-      clearSessionDrafts('shipment:');
+      clearSessionDrafts('shipment');
+
       if (returnTo) {
-        const sep = returnTo.includes('?') ? '&' : '?';
-        navigate(`${returnTo}${sep}shipment_id=${shipmentId}&new=1`);
-      } else {
-        navigate(`/clearos/clearance/${shipmentId}`);
+        const dest = new URL(returnTo, window.location.origin);
+        dest.searchParams.set('shipment_id', newShipmentId);
+        dest.searchParams.set('shipment_ref', refNumber);
+        navigate(dest.pathname + dest.search);
+        return;
       }
+
+      navigate(`/clearos/clearance/${newShipmentId}`);
     } catch (err: any) {
       showAlert(err.message || 'Failed to create case');
     } finally {
@@ -585,49 +536,77 @@ export function CreateShipmentPage() {
   };
 
   const steps = [
-    { id: 1, title: 'Scan Document', desc: 'Auto-extract data from BL or Invoice via AI.' },
-    { id: 2, title: 'Excel Bulk Upload', desc: 'Share or upload a completed Excel template.' },
-    { id: 3, title: 'Shipment Details', desc: 'Verify and manually correct missing fields.' },
-    { id: 4, title: 'Confirm', desc: 'Review the details before creating.' },
+    { id: 1, title: 'Scan Document', shortTitle: 'Scan', desc: 'Auto-extract data from BL or Invoice via AI.' },
+    { id: 2, title: 'Excel Bulk Upload', shortTitle: 'Excel', desc: 'Share or upload a completed Excel template.' },
+    { id: 3, title: 'Shipment Details', shortTitle: 'Details', desc: 'Verify and manually complete logistics fields.' },
+    { id: 4, title: 'Confirm & Review', shortTitle: 'Review', desc: 'Review the details before creating.' },
   ];
 
   const fld = (lbl: string, val: string, set: (v: string) => void, props: any = {}) => (
-    <div style={{ flex: 1 }}>
-      <label style={{ display: 'block', fontSize: '11.5px', fontWeight: 600, color: 'var(--ink2)', marginBottom: '4px' }}>{lbl}</label>
-      <input type="text" className="input-field" value={val} onChange={e => set(e.target.value)} {...props} style={{ width: '100%' }} />
+    <div style={{ flex: 1, minWidth: 0 }}>
+      <label className="shipment-form-label">{lbl}</label>
+      <input type="text" className="shipment-form-input" value={val} onChange={e => set(e.target.value)} {...props} />
     </div>
   );
 
   return (
-    <div className="create-shipment-page">
-      {/* Sidebar */}
+    <div
+      className="create-shipment-page"
+      style={{
+        '--app-color': appColor,
+      } as React.CSSProperties}
+    >
+      {/* Sidebar Navigation */}
       <div className="create-shipment-sidebar">
         <Link to="/clearos/ops" className="create-shipment-brand">
-          <Icon name="package" size={24} color="var(--teal)" />
-          ClearOS
+          <Icon name="package" size={24} color="var(--shipment-accent, var(--teal))" />
+          <span>{appName}</span>
         </Link>
+        <div className="create-shipment-mobile-header">
+          <span className="create-shipment-mobile-step-badge">Step {currentStep} of {steps.length}</span>
+          <span className="create-shipment-mobile-step-name">{steps[currentStep - 1]?.title}</span>
+        </div>
         <div className="create-shipment-steps">
-          {steps.map((s, idx) => {
+          {steps.map((s) => {
             const status = currentStep === s.id ? 'active' : currentStep > s.id ? 'completed' : 'pending';
+            const canJump = s.id < currentStep;
             return (
-              <div key={s.id} className={`create-shipment-step ${status}`}>
+              <button
+                key={s.id}
+                type="button"
+                onClick={() => canJump && setCurrentStep(s.id)}
+                className={`create-shipment-step ${status}`}
+                title={canJump ? `Go back to ${s.title}` : undefined}
+                data-ui-native-button=""
+              >
                 <div className="create-shipment-step-indicator">
                   {status === 'completed' ? <Icon name="check" size={14} /> : s.id}
                 </div>
                 <div className="create-shipment-step-content">
-                  <div className="create-shipment-step-title">{s.title}</div>
+                  <div className="create-shipment-step-title">
+                    <span className="create-shipment-step-title-full">{s.title}</span>
+                    <span className="create-shipment-step-title-short">{s.shortTitle}</span>
+                  </div>
                   <div className="create-shipment-step-desc">{s.desc}</div>
                 </div>
-              </div>
+              </button>
             );
           })}
         </div>
       </div>
 
-      {/* Main Content */}
+      {/* Main Content Area */}
       <div className="create-shipment-main">
         <div className="create-shipment-header">
-          <Link to="/clearos/ops" style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 13, fontWeight: 600, color: 'var(--ink2)', textDecoration: 'none', padding: '6px 12px', border: '1px solid var(--border)', borderRadius: 'var(--r)', background: 'var(--white)', width: 'fit-content' }}>
+          <Link
+            to="/clearos/ops"
+            style={{
+              display: 'flex', alignItems: 'center', gap: 6, fontSize: 13, fontWeight: 600,
+              color: 'var(--ink2)', textDecoration: 'none', padding: '6px 14px',
+              border: '1px solid var(--border)', borderRadius: 'var(--r)', background: 'var(--white)',
+              boxShadow: '0 1px 2px rgba(0,0,0,0.03)'
+            }}
+          >
             <Icon name="chevronLeft" size={14} /> Back to Operations
           </Link>
         </div>
@@ -658,7 +637,8 @@ export function CreateShipmentPage() {
           />
 
           <div className="create-shipment-card">
-            {/* Step 1: OCR */}
+            
+            {/* ── Step 1: Scan Document ──────────────────────────────── */}
             {currentStep === 1 && (
               <div>
                 {ocrError && (
@@ -669,20 +649,34 @@ export function CreateShipmentPage() {
                     onDragOver={e => { e.preventDefault(); setDragOver(true); }}
                     onDragLeave={() => setDragOver(false)}
                     onDrop={e => { e.preventDefault(); setDragOver(false); const f = e.dataTransfer.files[0]; if (f) handleOcrFile(f); }}
-                    style={{ border: `2px dashed ${dragOver ? 'var(--teal)' : 'var(--border)'}`, borderRadius: 'var(--r)', padding: '60px 24px', textAlign: 'center', background: dragOver ? 'var(--teal-l)' : 'var(--bg)', cursor: 'pointer', transition: 'all 0.15s' }}
-                    onClick={() => { const inp = document.createElement('input'); inp.type = 'file'; inp.accept = 'image/*,.pdf'; inp.onchange = (ev: any) => { const f = ev.target.files?.[0]; if (f) handleOcrFile(f); }; inp.click(); }}
+                    className={`shipment-upload-zone ${dragOver ? 'dragover' : ''}`}
+                    onClick={() => {
+                      const inp = document.createElement('input');
+                      inp.type = 'file';
+                      inp.accept = 'image/*,.pdf';
+                      inp.onchange = (ev: any) => { const f = ev.target.files?.[0]; if (f) handleOcrFile(f); };
+                      inp.click();
+                    }}
                   >
-                    <div style={{ marginBottom: 16 }}><Icon name="fileText" size={48} color="var(--ink3)" /></div>
-                    <div style={{ fontWeight: 700, fontSize: 16, color: 'var(--ink)', marginBottom: 8 }}>Drop or click to upload a document</div>
-                    <div style={{ fontSize: 13, color: 'var(--ink3)' }}>Bill of Lading · Commercial Invoice · Packing List · Air Waybill</div>
-                    <div style={{ fontSize: 12, color: 'var(--ink3)', marginTop: 8 }}>PNG, JPG, WEBP, PDF supported</div>
+                    <div className="shipment-upload-icon-circle">
+                      <Icon name="fileText" size={28} />
+                    </div>
+                    <div className="shipment-upload-title">Drop or click to upload shipment document</div>
+                    <div className="shipment-upload-subtitle">Our AI reads bills of lading, packing lists, invoices, and waybills</div>
+                    <div className="shipment-upload-badges">
+                      <span className="shipment-format-pill">Bill of Lading</span>
+                      <span className="shipment-format-pill">Commercial Invoice</span>
+                      <span className="shipment-format-pill">Packing List</span>
+                      <span className="shipment-format-pill">Air Waybill</span>
+                      <span className="shipment-format-pill">PDF, JPG, PNG, WEBP</span>
+                    </div>
                   </div>
                 )}
                 {ocrScanning && (
                   <div style={{ textAlign: 'center', padding: '60px 0' }}>
-                    <Spinner size={56} thickness={4} trackColor="var(--teal-l)" style={{ margin: '0 auto 16px' }} />
+                    <Spinner size={56} thickness={4} trackColor="var(--shipment-accent-l, var(--teal-l))" style={{ margin: '0 auto 16px' }} />
                     <div style={{ fontWeight: 700, fontSize: 16, color: 'var(--ink)' }}>Scanning document…</div>
-                    <div style={{ fontSize: 13, color: 'var(--ink3)', marginTop: 8 }}>Our AI is extracting shipment data and line items.</div>
+                    <div style={{ fontSize: 13, color: 'var(--ink3)', marginTop: 8 }}>Our AI is extracting shipment data, voyage, and container details.</div>
                   </div>
                 )}
                 {ocrResult && !ocrScanning && (
@@ -696,34 +690,54 @@ export function CreateShipmentPage() {
               </div>
             )}
 
-            {/* Step 2: Excel */}
+            {/* ── Step 2: Excel Bulk Upload ──────────────────────────── */}
             {currentStep === 2 && (
-              <div style={{ textAlign: 'center', padding: '40px 24px' }}>
-                <Icon name="fileText" size={48} color="var(--ink3)" />
-                <h3 style={{ fontSize: 18, fontWeight: 700, color: 'var(--ink)', marginTop: 24, marginBottom: 8 }}>Bulk Upload via Excel</h3>
-                <p style={{ fontSize: 14, color: 'var(--ink3)', marginBottom: 24, maxWidth: 400, margin: '0 auto 24px' }}>
-                  Download our standard shipment template. You can share this with your clients to fill in container and commercial details before uploading it back here.
+              <div style={{ textAlign: 'center', padding: '24px 12px' }}>
+                <div
+                  className="shipment-upload-icon-circle"
+                  style={{ margin: '0 auto 16px', background: 'rgba(5, 150, 105, 0.1)', color: 'var(--green)', boxShadow: '0 0 0 8px rgba(5, 150, 105, 0.08)' }}
+                >
+                  <Icon name="fileText" size={28} />
+                </div>
+                <h3 style={{ fontSize: 18, fontWeight: 700, color: 'var(--ink)', marginBottom: 8 }}>Bulk Upload via Excel</h3>
+                <p style={{ fontSize: 13.5, color: 'var(--ink3)', marginBottom: 24, maxWidth: 460, margin: '0 auto 24px', lineHeight: 1.5 }}>
+                  Download the official Hudumika logistics template. Share it with your clients or operators to fill in container and commercial details before uploading here.
                 </p>
-                <div style={{ display: 'flex', justifyContent: 'center', gap: 16, marginBottom: 40 }}>
-                  <button className="btn btn-secondary" onClick={downloadTemplate} data-ui-native-button="">
-                    <Icon name="download" size={16} /> Download Template
+                <div className="shipment-excel-btn-group">
+                  <button className="btn btn-secondary" onClick={downloadTemplate} data-ui-native-button="" style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}>
+                    <Icon name="download" size={16} /> Download Template (.csv)
                   </button>
-                  <button className="btn btn-primary" disabled={excelBusy} onClick={() => { const inp = document.createElement('input'); inp.type = 'file'; inp.accept = '.xlsx,.csv'; inp.onchange = (ev: any) => { const f = ev.target.files?.[0]; if (f) void importSheet(f); }; inp.click(); }} data-ui-native-button="">
-                    <Icon name="upload" size={16} /> {excelBusy ? 'Reading…' : 'Upload Filled Excel'}
+                  <button
+                    className="btn btn-primary"
+                    disabled={excelBusy}
+                    onClick={() => {
+                      const inp = document.createElement('input');
+                      inp.type = 'file';
+                      inp.accept = '.xlsx,.csv';
+                      inp.onchange = (ev: any) => { const f = ev.target.files?.[0]; if (f) void importSheet(f); };
+                      inp.click();
+                    }}
+                    data-ui-native-button=""
+                    style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}
+                  >
+                    <Icon name="upload" size={16} /> {excelBusy ? 'Reading…' : 'Upload Filled Sheet'}
                   </button>
                 </div>
-                {/* The result of actually reading the file — which fields it
-                    yielded, or why it yielded none. Advancing is the user's
-                    call, so a sheet that read nothing does not silently move
-                    them on as though it had worked. */}
+
                 {excelReport && (
-                  <div style={{ maxWidth: 620, margin: '0 auto', display: 'flex', gap: 10, alignItems: 'flex-start', textAlign: 'left', padding: '12px 16px', borderRadius: 'var(--r)', background: excelReport.ok ? 'var(--green-l)' : 'var(--gold-l)', border: `1px solid ${excelReport.ok ? 'var(--green)' : 'var(--gold)'}` }}>
-                    <Icon name={excelReport.ok ? 'checkCircle' : 'alertCircle'} size={16} color={excelReport.ok ? 'var(--green)' : 'var(--gold)'} style={{ flexShrink: 0, marginTop: 1 }} />
-                    <div style={{ fontSize: 12.5, color: 'var(--ink2)', lineHeight: 1.55 }}>
-                      {excelReport.text}
-                      <div style={{ marginTop: 10 }}>
+                  <div style={{
+                    maxWidth: 620, margin: '0 auto', display: 'flex', gap: 12, alignItems: 'flex-start',
+                    textAlign: 'left', padding: '14px 18px', borderRadius: 'var(--r)',
+                    background: excelReport.ok ? 'var(--green-l)' : 'var(--gold-l)',
+                    border: `1px solid ${excelReport.ok ? 'var(--green)' : 'var(--gold)'}`,
+                    boxShadow: '0 1px 3px rgba(0,0,0,0.03)'
+                  }}>
+                    <Icon name={excelReport.ok ? 'checkCircle' : 'alertCircle'} size={18} color={excelReport.ok ? 'var(--green)' : 'var(--gold)'} style={{ flexShrink: 0, marginTop: 1 }} />
+                    <div style={{ fontSize: 13, color: 'var(--ink2)', lineHeight: 1.55 }}>
+                      <div>{excelReport.text}</div>
+                      <div style={{ marginTop: 12 }}>
                         <button className="btn btn-primary" style={{ fontSize: 13 }} onClick={() => setCurrentStep(3)} data-ui-native-button="">
-                          {excelReport.ok ? 'Review the form' : 'Fill the form by hand'}
+                          {excelReport.ok ? 'Review Extracted Fields' : 'Fill Form by Hand'}
                         </button>
                       </div>
                     </div>
@@ -732,288 +746,437 @@ export function CreateShipmentPage() {
               </div>
             )}
 
-            {/* Step 3: Form */}
+            {/* ── Step 3: Structured Shipment Details Form ───────────── */}
             {currentStep === 3 && (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
-                {/* Names what was pre-filled and from where. The old copy said
-                    "Data applied — additional details will be pre-filled"
-                    whenever a file had merely been selected, including when
-                    nothing had been read from it at all. */}
+              <div style={{ display: 'flex', flexDirection: 'column' }}>
+
+                {/* Pre-fill banner notification */}
                 {(ocrResult || excelReport?.ok) && (
-                  <div style={{ display: 'flex', alignItems: 'flex-start', gap: 8, padding: '12px 16px', background: 'var(--teal-l)', borderRadius: 'var(--r)', fontSize: 12.5, color: 'var(--ink2)', lineHeight: 1.55 }}>
-                    <Icon name="check" size={16} color="var(--teal)" style={{ flexShrink: 0, marginTop: 1 }} />
+                  <div style={{
+                    display: 'flex', alignItems: 'flex-start', gap: 10, padding: '12px 16px',
+                    background: 'var(--shipment-accent-l, var(--teal-l))', borderRadius: 'var(--r)', fontSize: 12.5,
+                    color: 'var(--ink2)', lineHeight: 1.55, marginBottom: 20, border: '1px solid var(--shipment-accent, var(--teal))'
+                  }}>
+                    <Icon name="check" size={16} color="var(--shipment-accent, var(--teal))" style={{ flexShrink: 0, marginTop: 2 }} />
                     <span>
                       {excelReport?.ok
                         ? <>Pre-filled from <strong>{excelFile?.name}</strong>: {excelReport.filled.join(', ')}. </>
-                        : <>Pre-filled from the scanned document. </>}
-                      Check every field before creating the shipment — nothing here has been verified against the carrier.
+                        : <>Pre-filled from scanned document. </>}
+                      Verify every field below before proceeding to confirm.
                     </span>
                   </div>
                 )}
 
-                <div style={{ display: 'flex', gap: '16px' }}>
-                  <div style={{ flex: 1 }}>
-                    <label style={{ display: 'block', fontSize: '12px', fontWeight: 600, color: 'var(--ink2)', marginBottom: '6px' }}>Customer *</label>
-                    <Combobox
-                      options={customers.map(c => ({ value: c.id, label: c.name }))}
-                      value={createForm.customer_id}
-                      onChange={v => setCreateForm(p => ({ ...p, customer_id: v }))}
-                      placeholder="Choose customer…"
+                {/* ── Section 1: Customer & Cargo Classification ── */}
+                <div className="shipment-section-card">
+                  <div className="shipment-section-header">
+                    <div className="shipment-section-icon-wrap">
+                      <Icon name="package" size={17} />
+                    </div>
+                    <div>
+                      <div className="shipment-section-title">Customer & Cargo Information</div>
+                      <div className="shipment-section-desc">Client account, cargo description, and regulatory classification</div>
+                    </div>
+                  </div>
+
+                  <div className="shipment-form-row">
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <label className="shipment-form-label">Customer Account *</label>
+                      <Combobox
+                        options={customers.map(c => ({ value: c.id, label: c.name }))}
+                        value={createForm.customer_id}
+                        onChange={v => setCreateForm(p => ({ ...p, customer_id: v }))}
+                        placeholder="Search or select customer…"
+                      />
+                    </div>
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <label className="shipment-form-label">Nature of Goods</label>
+                      <Select value={natureOfGoods} onValueChange={v => setNatureOfGoods(v as any)}>
+                        <SelectTrigger className="shipment-form-input"><SelectValue /></SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="general">General Cargo</SelectItem>
+                          <SelectItem value="dangerous">Dangerous Goods (DG)</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
+
+                  <div style={{ marginBottom: 4 }}>
+                    <label className="shipment-form-label">Goods Description *</label>
+                    <input
+                      type="text"
+                      className="shipment-form-input"
+                      placeholder="e.g. 500 MT of Medical Supplies, Industrial Equipment, etc."
+                      value={createForm.goods_desc}
+                      onChange={e => setCreateForm(p => ({ ...p, goods_desc: e.target.value }))}
                     />
                   </div>
-                  <div style={{ flex: 1 }}>
-                    <label style={{ display: 'block', fontSize: '12px', fontWeight: 600, color: 'var(--ink2)', marginBottom: '6px' }}>Type *</label>
-                    <Select value={createForm.type} onValueChange={v => setCreateForm(p => ({ ...p, type: v as ShipmentType }))}>
-                      <SelectTrigger className="input-field" style={{ width: '100%' }}><SelectValue /></SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="SEA_FCL">Sea — FCL</SelectItem>
-                        <SelectItem value="SEA_LCL">Sea — LCL</SelectItem>
-                        <SelectItem value="AIR">Air Cargo</SelectItem>
-                        <SelectItem value="ROAD">Road Freight</SelectItem>
-                        <SelectItem value="RAIL">Rail</SelectItem>
-                        <SelectItem value="BULK">Bulk Vessel</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                </div>
 
-                <div>
-                  <label style={{ display: 'block', fontSize: '12px', fontWeight: 600, color: 'var(--ink2)', marginBottom: '6px' }}>Goods Description *</label>
-                  <input type="text" className="input-field" placeholder="e.g. 500 MT of Medical Supplies" value={createForm.goods_desc} onChange={e => setCreateForm(p => ({ ...p, goods_desc: e.target.value }))} style={{ width: '100%' }} />
-                </div>
-
-                <div>
-                  <label style={{ display: 'block', fontSize: '12px', fontWeight: 600, color: 'var(--ink2)', marginBottom: '6px' }}>Nature of Goods</label>
-                  <Select value={natureOfGoods} onValueChange={v => setNatureOfGoods(v as any)}>
-                    <SelectTrigger className="input-field" style={{ width: '100%' }}><SelectValue /></SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="general">General cargo</SelectItem>
-                      <SelectItem value="dangerous">Dangerous goods</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                {/* Dangerous goods follow the same clearing flow as any other
-                    shipment — this just tags it and collects the extra layer
-                    of legally-required fields, right here, instead of a
-                    separate creation process. A linked draft declaration is
-                    created together with the shipment on submit. */}
-                {natureOfGoods === 'dangerous' && (
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: 16, padding: 18, background: 'var(--gold-l)', border: '1px solid var(--gold)', borderRadius: 'var(--r)' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                      <Icon name="alertTriangle" size={16} color="var(--gold)" />
-                      <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--ink)' }}>Dangerous goods — extra requirements</span>
-                    </div>
-                    <div style={{ fontSize: 12, color: 'var(--ink3)', marginTop: -8 }}>
-                      Creates a linked draft declaration alongside this shipment. Issue and print it from the shipment's own page once confirmed.
-                    </div>
-
-                    <div style={{ display: 'flex', gap: '16px' }}>
-                      <div style={{ flex: 1 }}>
-                        <label style={{ display: 'block', fontSize: '11.5px', fontWeight: 600, color: 'var(--ink2)', marginBottom: '4px' }}>Transport mode</label>
-                        <Select value={dgForm.transportMode} onValueChange={v => setDgForm(p => ({ ...p, transportMode: v as any }))}>
-                          <SelectTrigger className="input-field" style={{ width: '100%' }}><SelectValue /></SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="SEA">Sea</SelectItem>
-                            <SelectItem value="AIR">Air</SelectItem>
-                            <SelectItem value="ROAD">Road</SelectItem>
-                          </SelectContent>
-                        </Select>
+                  {/* Dangerous Goods sub-panel */}
+                  {natureOfGoods === 'dangerous' && (
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 14, padding: 18, background: 'var(--gold-l)', border: '1px solid var(--gold)', borderRadius: 'var(--r)', marginTop: 14 }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                        <Icon name="alertTriangle" size={16} color="var(--gold)" />
+                        <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--ink)' }}>Dangerous Goods — Statutory Requirements</span>
                       </div>
-                      <div style={{ flex: 2 }}>
-                        <label style={{ display: 'block', fontSize: '11.5px', fontWeight: 600, color: 'var(--ink2)', marginBottom: '4px' }}>UN number / goods *</label>
-                        <EntityPicker value={selectedDg} onChange={onPickDg} search={searchDg} placeholder="Search UN number or name…" />
+                      <div style={{ fontSize: 12, color: 'var(--ink3)', marginTop: -6 }}>
+                        Creates a linked draft declaration alongside this shipment for immediate compliance generation.
                       </div>
-                    </div>
 
-                    {selectedDgEntry && (
-                      <div style={{ display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap', padding: '10px 14px', borderRadius: 'var(--r)', background: 'var(--white)', fontSize: 12.5 }}>
-                        <span style={{ fontWeight: 700, color: 'var(--ink)' }}>{selectedDgEntry.un_number}</span>
-                        <span style={{ color: 'var(--ink)' }}>{selectedDgEntry.proper_shipping_name}</span>
-                        <span style={{ color: 'var(--ink3)' }}>
-                          Class {selectedDgEntry.class_or_division}
-                          {selectedDgEntry.subsidiary_risk ? ` (sub. ${selectedDgEntry.subsidiary_risk})` : ''}
-                          {selectedDgEntry.packing_group ? ` · PG ${selectedDgEntry.packing_group}` : ''}
-                        </span>
-                        {dgForm.transportMode === 'AIR' && selectedDgEntry.air_transport_restriction && (
-                          <span style={{
-                            fontSize: 11, fontWeight: 700, padding: '2px 8px', borderRadius: 'var(--badge-radius)',
-                            background: selectedDgEntry.air_transport_restriction === 'FORBIDDEN' ? 'var(--red-l)' : 'var(--gold-l)',
-                            color: selectedDgEntry.air_transport_restriction === 'FORBIDDEN' ? 'var(--red)' : 'var(--gold)',
-                          }}>
-                            {selectedDgEntry.air_transport_restriction.replace(/_/g, ' ')}
+                      <div className="shipment-form-row" style={{ marginBottom: 0 }}>
+                        <div style={{ flex: 1 }}>
+                          <label className="shipment-form-label">Transport Mode</label>
+                          <Select value={dgForm.transportMode} onValueChange={v => setDgForm(p => ({ ...p, transportMode: v as any }))}>
+                            <SelectTrigger className="shipment-form-input"><SelectValue /></SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="SEA">Sea</SelectItem>
+                              <SelectItem value="AIR">Air</SelectItem>
+                              <SelectItem value="ROAD">Road</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+                        <div style={{ flex: 2 }}>
+                          <label className="shipment-form-label">UN Number / Goods Name *</label>
+                          <EntityPicker value={selectedDg} onChange={onPickDg} search={searchDg} placeholder="Search UN number or proper shipping name…" />
+                        </div>
+                      </div>
+
+                      {selectedDgEntry && (
+                        <div style={{ display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap', padding: '10px 14px', borderRadius: 'var(--r)', background: 'var(--white)', fontSize: 12.5 }}>
+                          <span style={{ fontWeight: 700, color: 'var(--ink)' }}>{selectedDgEntry.un_number}</span>
+                          <span style={{ color: 'var(--ink)' }}>{selectedDgEntry.proper_shipping_name}</span>
+                          <span style={{ color: 'var(--ink3)' }}>
+                            Class {selectedDgEntry.class_or_division}
+                            {selectedDgEntry.subsidiary_risk ? ` (Sub-risk: ${selectedDgEntry.subsidiary_risk})` : ''}
+                            {selectedDgEntry.packing_group ? ` · PG ${selectedDgEntry.packing_group}` : ''}
                           </span>
-                        )}
+                        </div>
+                      )}
+
+                      <div className="shipment-form-row" style={{ marginBottom: 0 }}>
+                        {fld('Packaging Type', dgForm.packagingType, v => setDgForm(p => ({ ...p, packagingType: v })), { placeholder: 'e.g. Steel drum, Fibreboard box' })}
+                        {fld('No. of Packages', dgForm.numberOfPackages, v => setDgForm(p => ({ ...p, numberOfPackages: v.replace(/[^0-9]/g, '') })))}
+                        {fld('Net Quantity', dgForm.netQuantity, v => setDgForm(p => ({ ...p, netQuantity: v.replace(/[^0-9.]/g, '') })))}
+                        {fld('Unit', dgForm.quantityUnit, v => setDgForm(p => ({ ...p, quantityUnit: v })))}
                       </div>
-                    )}
 
-                    <div style={{ display: 'flex', gap: '16px' }}>
-                      {fld('Packaging type', dgForm.packagingType, v => setDgForm(p => ({ ...p, packagingType: v })), { placeholder: 'e.g. Fibreboard box' })}
-                      {fld('No. of packages', dgForm.numberOfPackages, v => setDgForm(p => ({ ...p, numberOfPackages: v.replace(/[^0-9]/g, '') })))}
-                      {fld('Net quantity', dgForm.netQuantity, v => setDgForm(p => ({ ...p, netQuantity: v.replace(/[^0-9.]/g, '') })))}
-                      {fld('Unit', dgForm.quantityUnit, v => setDgForm(p => ({ ...p, quantityUnit: v })))}
-                    </div>
-
-                    <div style={{ display: 'flex', gap: '16px' }}>
-                      {fld('Shipper name *', dgForm.shipperName, v => setDgForm(p => ({ ...p, shipperName: v })))}
-                      {fld('Shipper address', dgForm.shipperAddress, v => setDgForm(p => ({ ...p, shipperAddress: v })))}
-                    </div>
-
-                    {fld('Emergency contact', dgForm.emergencyContact, v => setDgForm(p => ({ ...p, emergencyContact: v })), { placeholder: 'name + 24h phone' })}
-                  </div>
-                )}
-
-                <div style={{ display: 'flex', gap: '16px' }}>
-                  {fld('BL / Doc Number', createForm.bl_number, v => setCreateForm(p => ({ ...p, bl_number: v })), { placeholder: 'e.g. MEDU90123456' })}
-                  {fld('Vessel / Flight *', createForm.vessel, v => setCreateForm(p => ({ ...p, vessel: v })), { placeholder: 'e.g. MSC Savannah' })}
-                </div>
-
-                <div style={{ display: 'flex', gap: '16px' }}>
-                  {fld('Origin Port *', createForm.origin_port, v => setCreateForm(p => ({ ...p, origin_port: v })))}
-                  {fld('Destination Port *', createForm.dest_port, v => setCreateForm(p => ({ ...p, dest_port: v })))}
-                </div>
-
-                <div style={{ display: 'flex', gap: '16px' }}>
-                  <div style={{ flex: 1 }}>
-                    <label style={{ display: 'block', fontSize: '12px', fontWeight: 600, color: 'var(--ink2)', marginBottom: '6px' }}>ETA</label>
-                    <DatePicker date={parseDateOnly(createForm.eta)} onChange={d => setCreateForm(p => ({ ...p, eta: toDateOnlyString(d) }))} />
-                  </div>
-                  <div style={{ flex: 1 }}>
-                    <label style={{ display: 'block', fontSize: '12px', fontWeight: 600, color: 'var(--ink2)', marginBottom: '6px' }}>Free Time End</label>
-                    <DatePicker date={parseDateOnly(createForm.free_time_end)} onChange={d => setCreateForm(p => ({ ...p, free_time_end: toDateOnlyString(d) }))} />
-                  </div>
-                </div>
-
-                <div style={{ display: 'flex', gap: '16px' }}>
-                  <div style={{ flex: 1 }}>
-                    <label style={{ display: 'block', fontSize: '12px', fontWeight: 600, color: 'var(--ink2)', marginBottom: '6px' }}>
-                      Assigned Officer
-                    </label>
-                    <OfficerMentionInput
-                      officers={officers}
-                      value={{ id: createForm.assigned_to, name: createForm.assigned_to_name }}
-                      onChange={(id, name) => setCreateForm(p => ({ ...p, assigned_to: id, assigned_to_name: name }))}
-                    />
-                  </div>
-                  <div style={{ flex: 1 }}>
-                    {fld('Container No.', createForm.container_number,
-                      v => setCreateForm(p => ({ ...p, container_number: v.toUpperCase() })),
-                      { placeholder: 'e.g. MSKU1234565' })}
-                    <ContainerIdentity number={createForm.container_number} />
-                    {containerHint && (
-                      <div style={{ marginTop: 5, fontSize: 11.5, lineHeight: 1.45, display: 'flex', gap: 6, alignItems: 'flex-start', color: containerHint.ok ? 'var(--green)' : 'var(--gold)' }}>
-                        <Icon name={containerHint.ok ? 'checkCircle' : 'alertCircle'} size={12} color={containerHint.ok ? 'var(--green)' : 'var(--gold)'} style={{ flexShrink: 0, marginTop: 1 }} />
-                        <span>{containerHint.text}</span>
+                      <div className="shipment-form-row" style={{ marginBottom: 0 }}>
+                        {fld('Shipper Name *', dgForm.shipperName, v => setDgForm(p => ({ ...p, shipperName: v })))}
+                        {fld('Shipper Address', dgForm.shipperAddress, v => setDgForm(p => ({ ...p, shipperAddress: v })))}
                       </div>
-                    )}
+
+                      {fld('Emergency 24h Contact', dgForm.emergencyContact, v => setDgForm(p => ({ ...p, emergencyContact: v })), { placeholder: 'Contact name + 24h phone' })}
+                    </div>
+                  )}
+                </div>
+
+                {/* ── Section 2: Transport Mode & Route (with Middle Icons) ── */}
+                <div className="shipment-section-card">
+                  <div className="shipment-section-header">
+                    <div className="shipment-section-icon-wrap">
+                      <Icon name={getTransportIcon(createForm.type)} size={17} />
+                    </div>
+                    <div>
+                      <div className="shipment-section-title">Transport Mode & Journey Routing</div>
+                      <div className="shipment-section-desc">Select transport method and define origin-to-destination corridor</div>
+                    </div>
+                  </div>
+
+                  {/* Mode Selector Cards */}
+                  <div className="shipment-transport-grid">
+                    {TRANSPORT_MODES.map(m => {
+                      const isSel = createForm.type === m.value;
+                      return (
+                        <div
+                          key={m.value}
+                          onClick={() => setCreateForm(p => ({ ...p, type: m.value }))}
+                          className={`shipment-transport-tile ${isSel ? 'active' : ''}`}
+                        >
+                          <div className="shipment-transport-tile-icon">
+                            <Icon name={m.icon} size={18} />
+                          </div>
+                          <div className="shipment-transport-tile-label">{m.label}</div>
+                          <div className="shipment-transport-tile-sub">{m.sub}</div>
+                        </div>
+                      );
+                    })}
+                  </div>
+
+                  {/* Route Corridor Row with Connected Middle Icon */}
+                  <div className="shipment-route-row">
+                    <div className="shipment-route-col">
+                      <label className="shipment-form-label">Origin Port / Place of Receipt *</label>
+                      <div style={{ position: 'relative' }}>
+                        <input
+                          type="text"
+                          className="shipment-form-input"
+                          style={{ paddingLeft: 34 }}
+                          placeholder="e.g. Shanghai (CNSHA), Dubai (AEDXB)"
+                          value={createForm.origin_port}
+                          onChange={e => setCreateForm(p => ({ ...p, origin_port: e.target.value }))}
+                        />
+                        <Icon name="mapPin" size={15} color="var(--ink3)" style={{ position: 'absolute', left: 11, top: '50%', transform: 'translateY(-50%)' }} />
+                      </div>
+                    </div>
+
+                    {/* Middle Route Connector Icon */}
+                    <div className="shipment-route-middle">
+                      <div className="shipment-route-line" />
+                      <div className="shipment-route-icon-badge" title={`Transport via ${createForm.type}`}>
+                        <Icon name={getTransportIcon(createForm.type)} size={17} />
+                      </div>
+                    </div>
+
+                    <div className="shipment-route-col">
+                      <label className="shipment-form-label">Destination Port / Port of Discharge *</label>
+                      <div style={{ position: 'relative' }}>
+                        <input
+                          type="text"
+                          className="shipment-form-input"
+                          style={{ paddingLeft: 34 }}
+                          placeholder="e.g. Dar es Salaam (TZDAR), Mombasa (KEMBA)"
+                          value={createForm.dest_port}
+                          onChange={e => setCreateForm(p => ({ ...p, dest_port: e.target.value }))}
+                        />
+                        <Icon name="compass" size={15} color="var(--shipment-accent, var(--teal))" style={{ position: 'absolute', left: 11, top: '50%', transform: 'translateY(-50%)' }} />
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="shipment-form-row">
+                    {fld('BL / Air Waybill Number', createForm.bl_number, v => setCreateForm(p => ({ ...p, bl_number: v })), { placeholder: 'e.g. MEDU90123456, 023-12345678' })}
+                    {fld('Vessel / Flight *', createForm.vessel, v => setCreateForm(p => ({ ...p, vessel: v })), { placeholder: 'e.g. MSC Savannah, KQ 482' })}
                   </div>
                 </div>
 
-                <div style={{ display: 'flex', gap: '16px' }}>
-                  {fld('Seal No.', createForm.seal_number, v => setCreateForm(p => ({ ...p, seal_number: v.toUpperCase() })), { placeholder: 'as printed on the seal' })}
-                  <div style={{ flex: 1 }}>
-                    <label style={{ display: 'block', fontSize: '12px', fontWeight: 600, color: 'var(--ink2)', marginBottom: '6px' }}>Workflow</label>
-                    <Select value={createForm.workflow_id || '__auto__'} onValueChange={v => setCreateForm(p => ({ ...p, workflow_id: v === '__auto__' ? '' : v }))}>
-                      <SelectTrigger><SelectValue placeholder="Automatic" /></SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="__auto__">Automatic (recommended)</SelectItem>
-                        {workflows.map(w => <SelectItem key={w.id} value={w.id}>{w.name}</SelectItem>)}
-                        <SelectItem value="legacy">Standard stages</SelectItem>
-                      </SelectContent>
-                    </Select>
-                    <div style={{ marginTop: 5, fontSize: 11.5, color: 'var(--ink3)' }}>
-                      {createForm.workflow_id === '' ? 'Chosen automatically from your workflow rules.'
-                        : createForm.workflow_id === 'legacy' ? 'The built-in clearance stages.'
-                        : 'This workflow will govern the case.'}
+                {/* ── Section 3: Schedule & Critical Time Windows ── */}
+                <div className="shipment-section-card">
+                  <div className="shipment-section-header">
+                    <div className="shipment-section-icon-wrap">
+                      <Icon name="clock" size={17} />
+                    </div>
+                    <div>
+                      <div className="shipment-section-title">Schedule & Demurrage Windows</div>
+                      <div className="shipment-section-desc">Estimated arrival and carrier free-time demurrage milestones</div>
+                    </div>
+                  </div>
+
+                  <div className="shipment-form-row">
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <label className="shipment-form-label">Estimated Time of Arrival (ETA)</label>
+                      <DatePicker
+                        date={parseDateOnly(createForm.eta)}
+                        onChange={d => setCreateForm(p => ({ ...p, eta: toDateOnlyString(d) }))}
+                        placeholder="Select arrival date"
+                        triggerClassName="w-full h-10"
+                      />
+                    </div>
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <label className="shipment-form-label">Free Time Expiry (Demurrage End)</label>
+                      <DatePicker
+                        date={parseDateOnly(createForm.free_time_end)}
+                        onChange={d => setCreateForm(p => ({ ...p, free_time_end: toDateOnlyString(d) }))}
+                        placeholder="Select free time deadline"
+                        triggerClassName="w-full h-10"
+                      />
                     </div>
                   </div>
                 </div>
+
+                {/* ── Section 4: Equipment & Operations ── */}
+                <div className="shipment-section-card">
+                  <div className="shipment-section-header">
+                    <div className="shipment-section-icon-wrap">
+                      <Icon name="settings" size={17} />
+                    </div>
+                    <div>
+                      <div className="shipment-section-title">Equipment & Operational Assignment</div>
+                      <div className="shipment-section-desc">Container equipment details and officer assignment</div>
+                    </div>
+                  </div>
+
+                  <div className="shipment-form-row">
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <label className="shipment-form-label">Assigned Clearing Officer</label>
+                      <OfficerMentionInput
+                        officers={officers}
+                        value={{ id: createForm.assigned_to, name: createForm.assigned_to_name }}
+                        onChange={(id, name) => setCreateForm(p => ({ ...p, assigned_to: id, assigned_to_name: name }))}
+                      />
+                    </div>
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      {fld('Container Number', createForm.container_number,
+                        v => setCreateForm(p => ({ ...p, container_number: v.toUpperCase() })),
+                        { placeholder: 'e.g. MSKU1234565' })}
+                      <ContainerIdentity number={createForm.container_number} />
+                      {containerHint && (
+                        <div style={{ marginTop: 5, fontSize: 11.5, lineHeight: 1.45, display: 'flex', gap: 6, alignItems: 'flex-start', color: containerHint.ok ? 'var(--green)' : 'var(--gold)' }}>
+                          <Icon name={containerHint.ok ? 'checkCircle' : 'alertCircle'} size={12} color={containerHint.ok ? 'var(--green)' : 'var(--gold)'} style={{ flexShrink: 0, marginTop: 1 }} />
+                          <span>{containerHint.text}</span>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+
+                  <div className="shipment-form-row" style={{ marginBottom: 0 }}>
+                    {fld('Seal Number', createForm.seal_number, v => setCreateForm(p => ({ ...p, seal_number: v.toUpperCase() })), { placeholder: 'e.g. SL-881920' })}
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <label className="shipment-form-label">Clearance Workflow Rule</label>
+                      <Select value={createForm.workflow_id || '__auto__'} onValueChange={v => setCreateForm(p => ({ ...p, workflow_id: v === '__auto__' ? '' : v }))}>
+                        <SelectTrigger className="shipment-form-input"><SelectValue placeholder="Automatic (recommended)" /></SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="__auto__">Automatic (recommended)</SelectItem>
+                          {workflows.map(w => <SelectItem key={w.id} value={w.id}>{w.name}</SelectItem>)}
+                          <SelectItem value="legacy">Standard Built-in Stages</SelectItem>
+                        </SelectContent>
+                      </Select>
+                      <div style={{ marginTop: 4, fontSize: 11, color: 'var(--ink3)' }}>
+                        {createForm.workflow_id === '' ? 'Chosen automatically based on customer and cargo selectivity.'
+                          : createForm.workflow_id === 'legacy' ? 'Uses standard Tanzanian single-window stages.'
+                          : 'Specific custom workflow assigned.'}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
               </div>
             )}
 
-            {/* Step 4: Confirm */}
+            {/* ── Step 4: Confirm & Review ───────────────────────────── */}
             {currentStep === 4 && (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
-                <div style={{ padding: 24, background: 'var(--bg)', border: '1px solid var(--border)', borderRadius: 'var(--r)' }}>
-                  <h3 style={{ fontSize: 18, fontWeight: 800, color: 'var(--ink)', marginBottom: 6 }}>{createForm.goods_desc || '—'}</h3>
-                  <div style={{ fontSize: 14, color: 'var(--ink2)', fontWeight: 600, marginBottom: 20 }}>
-                    {customers.find(c => c.id === createForm.customer_id)?.name || 'Unknown Customer'} · {createForm.type.replace('_', ' ')}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
+                <div className="shipment-confirm-hero">
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 10 }}>
+                    <div>
+                      <h3 style={{ fontSize: 19, fontWeight: 800, color: 'var(--ink)', margin: 0 }}>
+                        {createForm.goods_desc || 'Untitled Shipment'}
+                      </h3>
+                      <div style={{ fontSize: 13, color: 'var(--ink2)', fontWeight: 600, marginTop: 4 }}>
+                        {customers.find(c => c.id === createForm.customer_id)?.name || 'Unassigned Customer'}
+                      </div>
+                    </div>
+                    <Badge variant="brand" className="font-bold text-xs py-1 px-3">
+                      {createForm.type.replace('_', ' ')}
+                    </Badge>
                   </div>
-                  
-                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px 24px' }}>
+
+                  {/* Visual Route Strip in Confirm */}
+                  <div className="shipment-confirm-route-banner">
+                    <div className="shipment-confirm-route-point">
+                      <span className="shipment-confirm-route-tag">Origin</span>
+                      <span className="shipment-confirm-route-val">{createForm.origin_port || '—'}</span>
+                    </div>
+
+                    <div className="shipment-confirm-route-connector">
+                      <span className="shipment-confirm-route-line" />
+                      <div className="shipment-confirm-route-icon">
+                        <Icon name={getTransportIcon(createForm.type)} size={16} />
+                      </div>
+                      <span className="shipment-confirm-route-line" />
+                    </div>
+
+                    <div className="shipment-confirm-route-point shipment-confirm-route-point--right">
+                      <span className="shipment-confirm-route-tag">Destination</span>
+                      <span className="shipment-confirm-route-val">{createForm.dest_port || '—'}</span>
+                    </div>
+                  </div>
+
+                  {/* 4-Card Summary Grid */}
+                  <div className="shipment-confirm-grid">
                     <div>
-                      <div style={{ fontSize: 11, color: 'var(--ink3)', fontWeight: 600, textTransform: 'uppercase', marginBottom: 4 }}>Route</div>
-                      <div style={{ fontSize: 13, color: 'var(--ink)', fontWeight: 600 }}>{createForm.origin_port || '—'} → {createForm.dest_port || '—'}</div>
+                      <div style={{ fontSize: 11, color: 'var(--ink3)', fontWeight: 700, textTransform: 'uppercase', marginBottom: 4 }}>Vessel / Carrier</div>
+                      <div style={{ fontSize: 13.5, color: 'var(--ink)', fontWeight: 600 }}>{createForm.vessel || '—'}</div>
                     </div>
                     <div>
-                      <div style={{ fontSize: 11, color: 'var(--ink3)', fontWeight: 600, textTransform: 'uppercase', marginBottom: 4 }}>Vessel</div>
-                      <div style={{ fontSize: 13, color: 'var(--ink)', fontWeight: 600 }}>{createForm.vessel || '—'}</div>
+                      <div style={{ fontSize: 11, color: 'var(--ink3)', fontWeight: 700, textTransform: 'uppercase', marginBottom: 4 }}>BL / Waybill #</div>
+                      <div style={{ fontSize: 13.5, color: 'var(--ink)', fontWeight: 600, fontFamily: 'var(--font)' }}>{createForm.bl_number || '—'}</div>
                     </div>
                     <div>
-                      <div style={{ fontSize: 11, color: 'var(--ink3)', fontWeight: 600, textTransform: 'uppercase', marginBottom: 4 }}>BL / Doc #</div>
-                      <div style={{ fontSize: 13, color: 'var(--ink)', fontWeight: 600, fontFamily: 'var(--font)' }}>{createForm.bl_number || '—'}</div>
+                      <div style={{ fontSize: 11, color: 'var(--ink3)', fontWeight: 700, textTransform: 'uppercase', marginBottom: 4 }}>Estimated Arrival (ETA)</div>
+                      <div style={{ fontSize: 13.5, color: 'var(--ink)', fontWeight: 600 }}>{createForm.eta || '—'}</div>
                     </div>
                     <div>
-                      <div style={{ fontSize: 11, color: 'var(--ink3)', fontWeight: 600, textTransform: 'uppercase', marginBottom: 4 }}>ETA</div>
-                      <div style={{ fontSize: 13, color: 'var(--ink)', fontWeight: 600 }}>{createForm.eta || '—'}</div>
+                      <div style={{ fontSize: 11, color: 'var(--ink3)', fontWeight: 700, textTransform: 'uppercase', marginBottom: 4 }}>Free Time Deadline</div>
+                      <div style={{ fontSize: 13.5, color: 'var(--ink)', fontWeight: 600 }}>{createForm.free_time_end || '—'}</div>
+                    </div>
+                    <div>
+                      <div style={{ fontSize: 11, color: 'var(--ink3)', fontWeight: 700, textTransform: 'uppercase', marginBottom: 4 }}>Assigned Officer</div>
+                      <div style={{ fontSize: 13.5, color: 'var(--ink)', fontWeight: 600 }}>{createForm.assigned_to_name || 'Unassigned'}</div>
+                    </div>
+                    <div>
+                      <div style={{ fontSize: 11, color: 'var(--ink3)', fontWeight: 700, textTransform: 'uppercase', marginBottom: 4 }}>Equipment & Seal</div>
+                      <div style={{ fontSize: 13.5, color: 'var(--ink)', fontWeight: 600 }}>
+                        {createForm.container_number ? `${createForm.container_number} (${createForm.container_size || '40HC'})` : 'No container'}
+                        {createForm.seal_number ? ` · Seal #${createForm.seal_number}` : ''}
+                      </div>
                     </div>
                   </div>
                 </div>
 
-                <Banner variant="info" icon="bell" title="Notification will be sent">
-                  {createForm.assigned_to_name ? `Assignee ${createForm.assigned_to_name} will be notified.` : 'No assignee selected.'}
+                <Banner variant="info" icon="bell" title="Notification will be dispatched">
+                  {createForm.assigned_to_name ? `Clearing officer ${createForm.assigned_to_name} will be assigned and notified.` : 'Case will be placed into the general operations queue.'}
                 </Banner>
               </div>
             )}
             
-            {/* Footer Navigation */}
+            {/* ── Footer Navigation ──────────────────────────────────── */}
             <div className="create-shipment-footer">
               <button 
                 type="button" 
                 className="btn btn-secondary" 
                 onClick={() => currentStep > 1 ? setCurrentStep(s => s - 1) : navigate('/clearos/ops')}
-               data-ui-native-button="">
-                {currentStep === 1 ? 'Cancel' : 'Previous'}
+                data-ui-native-button=""
+              >
+                {currentStep === 1 ? 'Cancel' : 'Previous Step'}
               </button>
               
               {currentStep === 1 && (
-                <div style={{ display: 'flex', gap: 12 }}>
+                <div className="create-shipment-footer-actions">
                   <button type="button" className="btn btn-secondary" onClick={() => setCurrentStep(2)} data-ui-native-button="">Skip OCR</button>
-                  <button type="button" className="btn btn-primary" onClick={applyOcrToForm} disabled={!ocrResult} data-ui-native-button="">Apply & Continue</button>
+                  <button type="button" className="btn btn-primary" onClick={applyOcrToForm} disabled={!ocrResult} data-ui-native-button="">Apply Extracted Data</button>
                 </div>
               )}
               
               {currentStep === 2 && (
-                <div style={{ display: 'flex', gap: 12 }}>
+                <div className="create-shipment-footer-actions">
                   <button type="button" className="btn btn-secondary" onClick={() => setCurrentStep(3)} data-ui-native-button="">Skip Excel</button>
-                  <button type="button" className="btn btn-primary" onClick={() => setCurrentStep(3)} disabled={!excelReport} data-ui-native-button="">Continue</button>
+                  <button type="button" className="btn btn-primary" onClick={() => setCurrentStep(3)} disabled={!excelReport} data-ui-native-button="">Continue to Form</button>
                 </div>
               )}
               
               {currentStep === 3 && (
-                <button type="button" className="btn btn-primary" onClick={() => setCurrentStep(4)} data-ui-native-button="">
-                  Review Details
-                </button>
+                <div className="create-shipment-footer-actions">
+                  <button type="button" className="btn btn-primary" onClick={() => setCurrentStep(4)} data-ui-native-button="">
+                    Review Details &rarr;
+                  </button>
+                </div>
               )}
               
               {currentStep === 4 && (
-                <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap', justifyContent: 'flex-end' }}>
-                  {/* Say what is missing. A disabled button on the last step of
-                      a four-step wizard, with the fields two steps back, is
-                      otherwise a dead end. */}
+                <div className="create-shipment-footer-actions create-shipment-footer-actions--end">
                   {missingRequired.length > 0 && (
-                    <span style={{ fontSize: 12, color: 'var(--ink3)' }}>
-                      Still needed: <strong style={{ color: 'var(--ink2)' }}>{missingRequired.join(', ')}</strong>
+                    <span className="create-shipment-missing-msg">
+                      Missing: <strong style={{ color: 'var(--red)' }}>{missingRequired.join(', ')}</strong>
                       {' · '}
-                      <button type="button" onClick={() => setCurrentStep(3)}
-                        style={{ background: 'none', border: 'none', padding: 0, color: 'var(--teal)', fontWeight: 600, cursor: 'pointer', fontSize: 12 }} data-ui-native-button="">
-                        Go back
+                      <button
+                        type="button"
+                        onClick={() => setCurrentStep(3)}
+                        style={{ background: 'none', border: 'none', padding: 0, color: 'var(--shipment-accent, var(--teal))', fontWeight: 600, cursor: 'pointer', fontSize: 12 }}
+                        data-ui-native-button=""
+                      >
+                        Go back to edit
                       </button>
                     </span>
                   )}
-                  <button type="button" className="btn btn-primary" onClick={handleCreateCase}
-                    disabled={createLoading || missingRequired.length > 0} data-ui-native-button="">
-                    {createLoading ? 'Creating...' : 'Create Shipment'}
+                  <button
+                    type="button"
+                    className="btn btn-primary"
+                    onClick={handleCreateCase}
+                    disabled={createLoading || missingRequired.length > 0}
+                    data-ui-native-button=""
+                    style={{ fontWeight: 700 }}
+                  >
+                    {createLoading ? 'Creating Shipment…' : 'Create Shipment Case'}
                   </button>
                 </div>
               )}

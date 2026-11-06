@@ -158,17 +158,21 @@ function TasksSidebarContent({ collapsed }: { collapsed: boolean }) {
             key={v.id}
             type="button"
             onClick={() => setActiveTaskView(v.id)}
-            style={{
-              display: 'flex', alignItems: 'center', gap: 10, padding: 'var(--ds-btn-py) 10px', borderRadius: 'var(--r)',
-              border: 'none', cursor: 'pointer', textAlign: 'left', width: '100%',
-              background: isActive ? 'var(--teal-l)' : 'transparent',
-              color: isActive ? 'var(--teal)' : 'var(--ink2)',
-              fontWeight: isActive ? 700 : 500, fontSize: 14, minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}}
+            className={`flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm transition-all text-left w-full ${
+              isActive
+                ? 'bg-teal/10 text-teal font-bold shadow-xs'
+                : 'text-foreground/80 hover:bg-black/5 dark:hover:bg-white/5 font-medium'
+            }`}
+            data-ui-native-button=""
           >
             <Icon name={v.icon} size={15} color={isActive ? 'var(--teal)' : 'var(--ink3)'} />
-            <span style={{ flex: 1 }}>{v.label}</span>
+            <span className="flex-1 truncate">{v.label}</span>
             {count > 0 && (
-              <span style={{ fontSize: 11, fontWeight: 700, color: isActive ? 'var(--teal)' : 'var(--ink3)', background: isActive ? 'rgba(255,255,255,0.5)' : 'var(--bg)', padding: '1px 7px', borderRadius: 10 }}>{count}</span>
+              <span className={`text-[11px] font-bold px-2 py-0.5 rounded-full ${
+                isActive ? 'bg-teal text-white' : 'bg-muted text-muted-foreground'
+              }`}>
+                {count}
+              </span>
             )}
           </button>
         );
@@ -179,22 +183,26 @@ function TasksSidebarContent({ collapsed }: { collapsed: boolean }) {
         for (const l of linked) bySource.set(l.sourceApp, (bySource.get(l.sourceApp) || 0) + 1);
         return (
           <>
-            <div style={{ margin: '18px 10px 6px' }}>
-              <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--ink3)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>From other apps</span>
+            <div className="mx-2.5 mt-5 mb-1.5">
+              <span className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider">From other apps</span>
             </div>
             <button
               type="button"
               onClick={() => setActiveTaskView('linked')}
-              style={{
-                display: 'flex', alignItems: 'center', gap: 10, padding: 'var(--ds-btn-py) 10px', borderRadius: 'var(--r)',
-                border: 'none', cursor: 'pointer', textAlign: 'left', width: '100%',
-                background: view === 'linked' ? 'var(--teal-l)' : 'transparent',
-                color: view === 'linked' ? 'var(--teal)' : 'var(--ink2)',
-                fontWeight: view === 'linked' ? 700 : 500, fontSize: 14, minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25 }}
+              className={`flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm transition-all text-left w-full ${
+                view === 'linked'
+                  ? 'bg-teal/10 text-teal font-bold shadow-xs'
+                  : 'text-foreground/80 hover:bg-black/5 dark:hover:bg-white/5 font-medium'
+              }`}
+              data-ui-native-button=""
             >
               <Icon name="externalLink" size={15} color={view === 'linked' ? 'var(--teal)' : 'var(--ink3)'} />
-              <span style={{ flex: 1 }}>All</span>
-              <span style={{ fontSize: 11, fontWeight: 700, color: view === 'linked' ? 'var(--teal)' : 'var(--ink3)', background: view === 'linked' ? 'rgba(255,255,255,0.5)' : 'var(--bg)', padding: '1px 7px', borderRadius: 10 }}>{linked.length}</span>
+              <span className="flex-1 truncate">All</span>
+              <span className={`text-[11px] font-bold px-2 py-0.5 rounded-full ${
+                view === 'linked' ? 'bg-teal text-white' : 'bg-muted text-muted-foreground'
+              }`}>
+                {linked.length}
+              </span>
             </button>
             {[...bySource.entries()].sort((a, b) => a[0].localeCompare(b[0])).map(([sourceApp, count]) => {
               const isActive = view === `linked:${sourceApp}`;
@@ -203,15 +211,15 @@ function TasksSidebarContent({ collapsed }: { collapsed: boolean }) {
                   key={sourceApp}
                   type="button"
                   onClick={() => setActiveTaskView(`linked:${sourceApp}` as TaskViewId)}
-                  style={{
-                    display: 'flex', alignItems: 'center', gap: 10, padding: 'var(--ds-btn-py) 10px var(--ds-btn-py) 25px', borderRadius: 'var(--r)',
-                    border: 'none', cursor: 'pointer', textAlign: 'left', width: '100%',
-                    background: isActive ? 'var(--teal-l)' : 'transparent',
-                    color: isActive ? 'var(--teal)' : 'var(--ink2)',
-                    fontWeight: isActive ? 700 : 500, fontSize: 13, minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25 }}
+                  className={`flex items-center gap-2.5 pl-6 pr-3 py-1.5 rounded-lg text-xs transition-all text-left w-full ${
+                    isActive
+                      ? 'bg-teal/10 text-teal font-bold'
+                      : 'text-muted-foreground hover:bg-black/5 dark:hover:bg-white/5 font-medium'
+                  }`}
+                  data-ui-native-button=""
                 >
-                  <span style={{ flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{sourceApp}</span>
-                  <span style={{ fontSize: 11, fontWeight: 700, color: isActive ? 'var(--teal)' : 'var(--ink3)' }}>{count}</span>
+                  <span className="flex-1 truncate">{sourceApp}</span>
+                  <span className="text-[10.5px] font-bold">{count}</span>
                 </button>
               );
             })}
@@ -219,9 +227,14 @@ function TasksSidebarContent({ collapsed }: { collapsed: boolean }) {
         );
       })()}
 
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', margin: '18px 10px 6px' }}>
-        <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--ink3)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Lists</span>
-        <button type="button" onClick={() => setAddingList(true)} title="New list" style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink3)', display: 'flex' }}>
+      <div className="flex items-center justify-between mx-2.5 mt-5 mb-1.5">
+        <span className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider">Lists</span>
+        <button
+          type="button"
+          onClick={() => setAddingList(true)}
+          title="New list"
+          className="text-muted-foreground hover:text-foreground p-1 rounded hover:bg-black/5 dark:hover:bg-white/5 cursor-pointer"
+        >
           <Icon name="plus" size={13} />
         </button>
       </div>
@@ -230,43 +243,51 @@ function TasksSidebarContent({ collapsed }: { collapsed: boolean }) {
         const isActive = view === `list:${l.id}`;
         const count = active.filter(t => t.listId === l.id && !t.completed).length;
         return (
-          <div key={l.id} style={{ display: 'flex', alignItems: 'center' }}>
+          <div key={l.id} className="flex items-center group">
             <button
               type="button"
               onClick={() => setActiveTaskView(`list:${l.id}` as TaskViewId)}
-              style={{
-                display: 'flex', alignItems: 'center', gap: 10, padding: 'var(--ds-btn-py) 10px', borderRadius: 'var(--r)',
-                border: 'none', cursor: 'pointer', textAlign: 'left', flex: 1, minWidth: 0,
-                background: isActive ? 'var(--teal-l)' : 'transparent',
-                color: isActive ? 'var(--teal)' : 'var(--ink2)',
-                fontWeight: isActive ? 700 : 500, fontSize: 14, minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}}
+              className={`flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm transition-all text-left flex-1 min-w-0 ${
+                isActive
+                  ? 'bg-teal/10 text-teal font-bold shadow-xs'
+                  : 'text-foreground/80 hover:bg-black/5 dark:hover:bg-white/5 font-medium'
+              }`}
+              data-ui-native-button=""
             >
-              <span style={{ width: 9, height: 9, borderRadius: '50%', background: l.color, flexShrink: 0 }} />
-              <span style={{ flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{l.name}</span>
+              <span className="w-2.5 h-2.5 rounded-full shrink-0" style={{ background: l.color }} />
+              <span className="flex-1 truncate">{l.name}</span>
               {l.shared && (
-                <Icon name="userCheck" size={11} color={isActive ? 'var(--teal)' : 'var(--ink3)'} style={{ flexShrink: 0 }} />
+                <Icon name="userCheck" size={11} color={isActive ? 'var(--teal)' : 'var(--ink3)'} className="shrink-0" />
               )}
               {count > 0 && (
-                <span style={{ fontSize: 11, fontWeight: 700, color: isActive ? 'var(--teal)' : 'var(--ink3)', flexShrink: 0 }}>{count}</span>
+                <span className={`text-[11px] font-bold px-2 py-0.5 rounded-full shrink-0 ${
+                  isActive ? 'bg-teal text-white' : 'bg-muted text-muted-foreground'
+                }`}>
+                  {count}
+                </span>
               )}
             </button>
-            {/* A shared-with-me list isn't mine to manage sharing on or
-                delete — shown with whose it is instead. */}
             {l.shared ? (
-              <span title={`Shared by ${l.ownerName ?? 'a colleague'} · ${l.role === 'editor' ? 'can edit' : 'can view'}`}
-                style={{ padding: 4, flexShrink: 0, display: 'flex', color: 'var(--ink3)' }}>
+              <span
+                title={`Shared by ${l.ownerName ?? 'a colleague'} · ${l.role === 'editor' ? 'can edit' : 'can view'}`}
+                className="p-1 shrink-0 text-muted-foreground"
+              >
                 <Icon name="info" size={12} />
               </span>
             ) : (
-              <>
+              <div className="flex items-center opacity-0 group-hover:opacity-100 transition-opacity">
                 <SharePopover listId={l.id} listName={l.name} />
                 {l.id !== inboxListId() && (
-                  <button type="button" onClick={() => { if (isActive) setActiveTaskView('inbox'); deleteList(l.id); }} title="Delete list"
-                    style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink3)', padding: 4, flexShrink: 0 }}>
+                  <button
+                    type="button"
+                    onClick={() => { if (isActive) setActiveTaskView('inbox'); deleteList(l.id); }}
+                    title="Delete list"
+                    className="p-1 text-muted-foreground hover:text-red-500 rounded cursor-pointer"
+                  >
                     <Icon name="x" size={12} />
                   </button>
                 )}
-              </>
+              </div>
             )}
           </div>
         );
@@ -280,12 +301,16 @@ function TasksSidebarContent({ collapsed }: { collapsed: boolean }) {
           onKeyDown={e => { if (e.key === 'Enter') commitNewList(); if (e.key === 'Escape') { setAddingList(false); setNewListName(''); } }}
           onBlur={commitNewList}
           placeholder="List name…"
-          style={{ margin: '2px 10px', padding: '6px 8px', border: '1px solid var(--teal)', borderRadius: 6, fontSize: 13, background: 'var(--white)', color: 'var(--ink)' }}
+          className="mx-2.5 my-1 px-2.5 py-1.5 border border-teal rounded-lg text-xs bg-background text-foreground focus:outline-none"
         />
       ) : (
-        <button type="button" onClick={() => setAddingList(true)}
-          style={{ display: 'flex', alignItems: 'center', gap: 10, padding: 'var(--ds-btn-py) 10px', borderRadius: 'var(--r)', border: 'none', cursor: 'pointer', background: 'transparent', color: 'var(--ink3)', fontSize: 13, textAlign: 'left', minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}}>
-          <Icon name="plus" size={13} /> New list
+        <button
+          type="button"
+          onClick={() => setAddingList(true)}
+          className="flex items-center gap-2 px-3 py-2 text-xs font-semibold text-muted-foreground hover:text-foreground rounded-lg hover:bg-black/5 dark:hover:bg-white/5 transition-colors cursor-pointer text-left"
+        >
+          <Icon name="plus" size={13} />
+          <span>New list</span>
         </button>
       )}
     </div>

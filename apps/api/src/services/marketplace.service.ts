@@ -61,7 +61,7 @@ export class MarketplaceService {
         q = q.where('provider_tenant_id', '=', tenantId);
       }
       if (filters?.status) q = q.where('status', '=', filters.status);
-      return (await q.orderBy('created_at', 'desc').execute()).map(r => ({
+      return (await q.orderBy('created_at', 'desc').execute()).map((r: any) => ({
         ...r,
         min_fee: r.min_fee != null ? Number(r.min_fee) : null,
         max_fee: r.max_fee != null ? Number(r.max_fee) : null,
@@ -236,7 +236,7 @@ export class MarketplaceService {
         .selectAll()
         .where(col, '=', tenantId);
       if (filters?.status) q = q.where('status', '=', filters.status);
-      return (await q.orderBy('created_at', 'desc').execute()).map(r => ({
+      return (await q.orderBy('created_at', 'desc').execute()).map((r: any) => ({
         ...r,
         authority_fees: Number(r.authority_fees),
         professional_fees: Number(r.professional_fees),

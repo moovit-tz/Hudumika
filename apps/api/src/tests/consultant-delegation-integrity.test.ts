@@ -63,12 +63,12 @@ describe('J01: portfolio CRUD', () => {
       provider.tenantId, { status: 'active' },
     );
     expect(active.length).toBeGreaterThanOrEqual(1);
-    expect(active.every(p => p.status === 'active')).toBe(true);
+    expect(active.every((p: any) => p.status === 'active')).toBe(true);
   });
 
   it('updates portfolio status to terminated', async () => {
     const all = await ConsultantDelegationService.listPortfolios(provider.tenantId);
-    const ext = all.find(p => p.client_type === 'external');
+    const ext = all.find((p: any) => p.client_type === 'external');
     expect(ext).toBeTruthy();
     const updated = await ConsultantDelegationService.updatePortfolioStatus(
       provider.tenantId, ext!.id as string, 'terminated',
@@ -118,7 +118,7 @@ describe('J02: mandate lifecycle', () => {
       owner.tenantId, 'owner',
     );
     expect(ms.length).toBeGreaterThanOrEqual(1);
-    const found = ms.find(m => m.id === mandateId);
+    const found = ms.find((m: any) => m.id === mandateId);
     expect(found).toBeTruthy();
   });
 

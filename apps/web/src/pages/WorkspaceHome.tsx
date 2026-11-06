@@ -106,14 +106,17 @@ export function WorkspaceHome({ externalSearch }: WorkspaceHomeProps) {
   const { user } = useAuth();
   const branding = useBranding();
 
-  // View mode toggle: default to 5-column 'grid' cards view, switchable to 'list'
-  const [viewMode, setViewMode] = useState<'grid' | 'list'>(() => {
-    return (localStorage.getItem('hudumika_workspace_view_mode') as 'grid' | 'list') || 'grid';
+  // View mode toggle: 'grid' (4 columns) or 'cards' (card tiles)
+  const [viewMode, setViewMode] = useState<'grid' | 'cards'>(() => {
+    const saved = localStorage.getItem('hudumika_workspace_view_mode');
+    if (saved === 'cards' || saved === 'grid') return saved as 'grid' | 'cards';
+    if (saved === 'list') return 'grid';
+    return 'grid';
   });
 
   const [selectedCategory, setSelectedCategory] = useState<string>('');
 
-  const handleViewChange = (mode: 'grid' | 'list') => {
+  const handleViewChange = (mode: 'grid' | 'cards') => {
     setViewMode(mode);
     localStorage.setItem('hudumika_workspace_view_mode', mode);
   };
@@ -214,8 +217,12 @@ export function WorkspaceHome({ externalSearch }: WorkspaceHomeProps) {
         {/* ── Main Content Area ── */}
         <div className="wh-new-container">
           {/* ── Section: Attendance / Clock-in identity banner — moved here
-              from NexusHR's own "My HR" ESS dashboard at the user's request. ── */}
-          <AttendanceStatusBanner />
+              from NexusHR's own "My HR" ESS dashboard at the user's request.
+              Only for tenants actually entitled to NexusHR — showing a
+              "Clock In Now" prompt (and the identity card around it) to a
+              Petti/ComplyOS/Onsite-only tenant offers a control that leads
+              nowhere real. See the standalone-apps audit, 5 Nov 2026. ── */}
+          {isAppEnabled('nexushr', enabledApps) && <AttendanceStatusBanner />}
 
           {/* ── Section: Getting Started (hides itself once fully set up) ── */}
           {isManager && <SetupGuideWidget />}
@@ -266,39 +273,42 @@ export function WorkspaceHome({ externalSearch }: WorkspaceHomeProps) {
               <h2 className="wh-section-title">{t('hub.myWorkspaces')}</h2>
 
               <div className="wh-toolbar-actions" style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                {/* List / Grid Toggle Buttons */}
+                {/* Grid / Card Toggle Buttons */}
                 <Tabs value={viewMode} onValueChange={v => handleViewChange(v as typeof viewMode)} variant="segmented">
                   <TabsList>
-                    <TabsTrigger value="list">
-                      <Icon name="list" size={14} />
-                      <span>List View</span>
-                    </TabsTrigger>
                     <TabsTrigger value="grid">
                       <Icon name="grid" size={14} />
                       <span>Grid View</span>
                     </TabsTrigger>
+                    <TabsTrigger value="cards">
+                      <Icon name="columns" size={14} />
+                      <span>Card View</span>
+                    </TabsTrigger>
                   </TabsList>
                 </Tabs>
 
-                {/* Filter Department */}
+                {/* Filter Industry */}
                 <SingleSelectFilter
                   label="Filter"
-                  allLabel="All Departments"
+                  allLabel="All Industries"
                   value={selectedCategory || null}
                   onChange={(v) => setSelectedCategory(v ?? '')}
                   options={categories.map(cat => ({ value: cat, label: cat }))}
                 />
 
-                {/* Settings Link */}
-                <Link to="/admin/branding" className="wh-btn wh-btn--ghost wh-btn--sm" style={{ padding: '0 14px', height: 'var(--ctl-h-sm)', boxSizing: 'border-box', fontSize: 13, fontWeight: 700, borderRadius: 'var(--r-sm)', border: '1px solid var(--border)', textDecoration: 'none', color: 'var(--ink)', display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+                {/* Settings Link — the tenant's own workspace settings, not
+                    the SuperAdmin-only platform console. /admin/branding
+                    requires SUPER_ADMIN and silently bounces every other
+                    user straight back to their own home page. */}
+                <Link to="/settings" className="wh-btn wh-btn--ghost wh-btn--sm" style={{ padding: '0 14px', height: 'var(--ctl-h-sm)', boxSizing: 'border-box', fontSize: 13, fontWeight: 700, borderRadius: 'var(--r-sm)', border: '1px solid var(--border)', textDecoration: 'none', color: 'var(--ink)', display: 'inline-flex', alignItems: 'center', gap: 6 }}>
                   <Icon name="sliders" size={14} />
                   <span>SETTINGS</span>
                 </Link>
               </div>
             </div>
 
-            {/* ── Render Mode: Grid Cards Format ── */}
-            {viewMode === 'grid' ? (
+            {/* ── Render Mode: Card View (remains as it is now) ── */}
+            {viewMode === 'cards' ? (
               <div className="wh-grid-container">
                 {filteredApps.map(app => {
                   const isStarred = starredIds.includes(app.id);
@@ -348,140 +358,71 @@ export function WorkspaceHome({ externalSearch }: WorkspaceHomeProps) {
                 })}
               </div>
             ) : (
-              /* ── Render Mode: List Table Format (Single Joined Two-Column Table) ── */
-              (() => {
-                if (filteredApps.length === 0) {
-                  return (
-                    <div className="wh-table-container">
-                      <div style={{ padding: '40px', textAlign: 'center', color: 'var(--ink3)' }}>
-                        No apps found matching your filter.
-                      </div>
-                    </div>
-                  );
-                }
-
-                const mid = Math.ceil(filteredApps.length / 2);
-                const leftList = filteredApps.slice(0, mid);
-                const rightList = filteredApps.slice(mid);
-
-                return (
-                  <div className="wh-table-container">
-                    <table className="wh-table">
-                      <thead>
-                        <tr>
-                          {/* ── Left Column Headers ── */}
-                          <th className="wh-th-center" style={{ width: 40 }}></th>
-                          <th style={{ width: '24%' }}>APP</th>
-                          <th>DESCRIPTION</th>
-                          <th style={{ width: '13%', textAlign: 'right', paddingRight: 18, borderRight: '1px solid var(--border)' }}>CATEGORY</th>
-
-                          {/* ── Right Column Headers ── */}
-                          <th className="wh-th-center" style={{ width: 40, paddingLeft: 18 }}></th>
-                          <th style={{ width: '24%' }}>APP</th>
-                          <th>DESCRIPTION</th>
-                          <th style={{ width: '13%', textAlign: 'right', paddingRight: 18 }}>CATEGORY</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {leftList.map((appLeft, idx) => {
-                          const appRight = rightList[idx];
-
-                          const isStarredLeft = starredIds.includes(appLeft.id);
-                          const appColorLeft = branding.getAppColor(appLeft.id, appLeft.color);
-                          const appNameLeft = branding.getAppName(appLeft.id, appLeft.name);
-                          const appSloganLeft = branding.getAppSlogan(appLeft.id, appLeft.desc);
-
-                          const isStarredRight = appRight ? starredIds.includes(appRight.id) : false;
-                          const appColorRight = appRight ? branding.getAppColor(appRight.id, appRight.color) : '';
-                          const appNameRight = appRight ? branding.getAppName(appRight.id, appRight.name) : '';
-                          const appSloganRight = appRight ? branding.getAppSlogan(appRight.id, appRight.desc) : '';
-
-                          return (
-                            <tr key={appLeft.id} className="wh-joined-row" style={{ '--card-color-left': appColorLeft, '--card-color-right': appColorRight } as React.CSSProperties}>
-                              {/* ── Left Side App (Hover Group: Left) ── */}
-                              <td className="wh-td-cell wh-td-cell--left wh-td-center" onClick={() => handleAppClick(appLeft)}>
-                                <Tip label={isStarredLeft ? 'Remove from favorites' : 'Add to favorites'}>
-                                  <button
-                                    type="button"
-                                    className="wh-star-btn"
-                                    data-starred={isStarredLeft}
-                                    onClick={(e) => toggleStar(appLeft.id, e)}
-                                    aria-label={isStarredLeft ? `Unstar ${appNameLeft}` : `Star ${appNameLeft}`}
-                                   data-ui-native-button="">
-                                    <Icon name="star" size={17} duotone={isStarredLeft} />
-                                  </button>
-                                </Tip>
-                              </td>
-                              <td className="wh-td-cell wh-td-cell--left" onClick={() => handleAppClick(appLeft)}>
-                                <Link to={appLeft.path} onClick={() => handleAppClick(appLeft)} className="wh-td-app-link">
-                                  <div className="wh-td-icon-wrap">
-                                    <AppIcon id={appLeft.id} color={appColorLeft} logoUrl={branding.getAppLogo(appLeft.id)} size={44} />
-                                  </div>
-                                  <div className="wh-td-app-info">
-                                    <div className="wh-td-workspace-name">{appNameLeft}</div>
-                                  </div>
-                                </Link>
-                              </td>
-                              <td className="wh-td-cell wh-td-cell--left" onClick={() => handleAppClick(appLeft)}>
-                                <Tip label={appSloganLeft} side="bottom">
-                                  <div className="wh-td-workspace-desc">{appSloganLeft}</div>
-                                </Tip>
-                              </td>
-                              <td className="wh-td-cell wh-td-cell--left" style={{ textAlign: 'right', paddingRight: 18, borderRight: '1px solid var(--border)' }} onClick={() => handleAppClick(appLeft)}>
-                                <span className="wh-badge-cat">{appLeft.category}</span>
-                              </td>
-
-                              {/* ── Right Side App (Hover Group: Right) ── */}
-                              {appRight ? (
-                                <>
-                                  <td className="wh-td-cell wh-td-cell--right wh-td-center" style={{ paddingLeft: 18 }} onClick={() => handleAppClick(appRight)}>
-                                    <Tip label={isStarredRight ? 'Remove from favorites' : 'Add to favorites'}>
-                                      <button
-                                        type="button"
-                                        className="wh-star-btn"
-                                        data-starred={isStarredRight}
-                                        onClick={(e) => toggleStar(appRight.id, e)}
-                                        aria-label={isStarredRight ? `Unstar ${appNameRight}` : `Star ${appNameRight}`}
-                                       data-ui-native-button="">
-                                        <Icon name="star" size={17} duotone={isStarredRight} />
-                                      </button>
-                                    </Tip>
-                                  </td>
-                                  <td className="wh-td-cell wh-td-cell--right" onClick={() => handleAppClick(appRight)}>
-                                    <Link to={appRight.path} onClick={() => handleAppClick(appRight)} className="wh-td-app-link">
-                                      <div className="wh-td-icon-wrap">
-                                        <AppIcon id={appRight.id} color={appColorRight} logoUrl={branding.getAppLogo(appRight.id)} size={44} />
-                                      </div>
-                                      <div className="wh-td-app-info">
-                                        <div className="wh-td-workspace-name">{appNameRight}</div>
-                                      </div>
-                                    </Link>
-                                  </td>
-                                  <td className="wh-td-cell wh-td-cell--right" onClick={() => handleAppClick(appRight)}>
-                                    <Tip label={appSloganRight} side="bottom">
-                                      <div className="wh-td-workspace-desc">{appSloganRight}</div>
-                                    </Tip>
-                                  </td>
-                                  <td className="wh-td-cell wh-td-cell--right" style={{ textAlign: 'right', paddingRight: 18 }} onClick={() => handleAppClick(appRight)}>
-                                    <span className="wh-badge-cat">{appRight.category}</span>
-                                  </td>
-                                </>
-                              ) : (
-                                <>
-                                  <td className="wh-td-cell wh-td-center" style={{ paddingLeft: 18 }}></td>
-                                  <td className="wh-td-cell"></td>
-                                  <td className="wh-td-cell"></td>
-                                  <td className="wh-td-cell" style={{ textAlign: 'right', paddingRight: 18 }}></td>
-                                </>
-                              )}
-                            </tr>
-                          );
-                        })}
-                      </tbody>
-                    </table>
+              /* ── Render Mode: Joined Square Matrix Grid View (up to 8 columns) ── */
+              filteredApps.length === 0 ? (
+                <div className="wh-square-grid-container">
+                  <div style={{ padding: '40px', textAlign: 'center', color: 'var(--ink3)', gridColumn: '1 / -1' }}>
+                    No apps found matching your filter.
                   </div>
-                );
-              })()
+                </div>
+              ) : (
+                <div className="wh-square-grid-container">
+                  {filteredApps.map(app => {
+                    const isStarred = starredIds.includes(app.id);
+                    const appColor = branding.getAppColor(app.id, app.color);
+                    const appName = branding.getAppName(app.id, app.name);
+                    const appSlogan = branding.getAppSlogan(app.id, app.desc);
+
+                    return (
+                      <div
+                        key={app.id}
+                        className="wh-square-card"
+                        style={{ '--card-color': appColor } as React.CSSProperties}
+                        onClick={() => handleAppClick(app)}
+                      >
+                        {/* Top bar: Star button only — category/title/description
+                            moved into the centered info block below. */}
+                        <div className="wh-square-top">
+                          <Tip label={isStarred ? 'Remove from favorites' : 'Add to favorites'}>
+                            <button
+                              type="button"
+                              className="wh-star-btn"
+                              data-starred={isStarred}
+                              onClick={(e) => toggleStar(app.id, e)}
+                              aria-label={isStarred ? `Unstar ${appName}` : `Star ${appName}`}
+                              data-ui-native-button=""
+                            >
+                              <Icon name="star" size={16} duotone={isStarred} />
+                            </button>
+                          </Tip>
+                        </div>
+
+                        {/* Main clickable area: Large App Icon + Centered
+                            Category, Name & Description */}
+                        <Link
+                          to={app.path}
+                          onClick={() => handleAppClick(app)}
+                          className="wh-square-main"
+                        >
+                          <div className="wh-square-icon-wrap">
+                            <AppIcon id={app.id} color={appColor} logoUrl={branding.getAppLogo(app.id)} size={48} />
+                          </div>
+
+                          <div className="wh-square-info">
+                            <span className="wh-badge-cat">{app.category}</span>
+                            <span className="wh-square-name">{appName}</span>
+                            {appSlogan && (
+                              <Tip label={appSlogan} side="bottom">
+                                <p className="wh-square-desc">{appSlogan}</p>
+                              </Tip>
+                            )}
+                          </div>
+                        </Link>
+                      </div>
+                    );
+                  })}
+                </div>
+              )
             )}
           </section>
 

@@ -3,6 +3,10 @@ import { requireTrackerAccess } from '../services/tracker-integrity.js';
 import { requireEntitlement } from '../middleware/entitlement.js';
 import { FastifyInstance, FastifyRequest, FastifyReply } from 'fastify';
 import { demurrageService } from '../services/demurrage.service.js';
+import { estimateConsignment, estimateInput } from '../services/demurrage-estimate.service.js';
+import { exportDemurrageEstimate } from '../services/demurrage-estimate-export.js';
+import { withTenant } from '../db/client.js';
+import { sql } from 'kysely';
 
 export async function demurrageRoutes(app: FastifyInstance) {
   app.addHook('preHandler', app.authenticate);
@@ -102,6 +106,31 @@ export async function demurrageRoutes(app: FastifyInstance) {
     const body = req.body as any;
     const result = await demurrageService.quickCalculate(user.tenant_id, body);
     return result;
+  });
+
+  app.post('/consignment-estimate', async (req, reply) => {
+    const input = estimateInput.parse(req.body);
+    const { format } = z.object({ format: z.enum(['pdf', 'csv', 'xlsx']).optional() }).parse(req.query);
+    const lines = await estimateConsignment(req.user.tenant_id, input);
+    reply.header('Cache-Control', 'no-store');
+    if (!format) return { lines };
+    const output = await exportDemurrageEstimate(format, input.bill, input.asOf, lines);
+    const filename = input.bill.replace(/[^a-z0-9-]/gi, '-');
+    return reply.type(output.type).header('Content-Disposition', `attachment; filename="demurrage-${filename}.${format}"`).send(output.body);
+  });
+
+  app.get('/recorded-dates', async (req, reply) => {
+    const { bill } = z.object({ bill: estimateInput.shape.bill }).parse(req.query);
+    const tenantId = req.user.tenant_id;
+    const rows = await withTenant(tenantId, trx => trx.selectFrom('container_tracking as container')
+      .innerJoin('shipment_cases as shipment', 'shipment.id', 'container.shipment_id')
+      .where('container.tenant_id', '=', tenantId)
+      .where('shipment.tenant_id', '=', tenantId)
+      .where(sql<string>`upper(shipment.bl_number)`, '=', bill.toUpperCase())
+      .select(['container.container_number as number', 'container.discharge_date as discharge', 'container.return_date as returned'])
+      .execute());
+    reply.header('Cache-Control', 'no-store');
+    return { rows };
   });
 
   // ── Summary ──

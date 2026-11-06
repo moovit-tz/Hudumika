@@ -685,8 +685,8 @@ export async function settingsRoutes(fastify: FastifyInstance) {
            * `id: 'vodacom'`, so a tenant configuring 'mpesa' was silently
            * testing against the wrong endpoint with fields that don't exist
            * on that form, and 'vodacom' fell through to the "not available"
-           * default despite this case existing for exactly its shape. Daraja
-           * has no real case yet — falls to the default below, honestly.
+           * default despite this case existing for exactly its shape.
+           * Daraja now has its own real case below (see LENS-46).
            */
           case 'vodacom': {
             if (!v.apiKey || !v.publicKey) {
@@ -718,6 +718,36 @@ export async function settingsRoutes(fastify: FastifyInstance) {
             return reply.status(400).send({
               ok: false,
               message: `M-Pesa refused the session${body?.output_ResponseDesc ? `: ${body.output_ResponseDesc}` : '.'}`,
+            });
+          }
+
+          /**
+           * Safaricom Daraja (Kenya/TZ M-Pesa STK Push & B2C) — real OAuth2
+           * client-credentials token request against Daraja's own /oauth
+           * endpoint. consumerKey/consumerSecret are the only two fields
+           * this check actually needs; shortcode/passkey/initiatorName/
+           * secCredential govern specific payment flows (STK push, B2C)
+           * this read-only check never calls. See LENS-46 — this was the
+           * genuinely missing half after 'vodacom' got its own correct
+           * case; Daraja and Vodacom M-Pesa are different providers with
+           * no field overlap and must not share a case.
+           */
+          case 'mpesa': {
+            if (!v.consumerKey || !v.consumerSecret) {
+              return reply.status(400).send({ ok: false, message: 'Consumer Key and Consumer Secret are required.' });
+            }
+            const auth = Buffer.from(`${v.consumerKey}:${v.consumerSecret}`).toString('base64');
+            const host = v.sandbox === 'false'
+              ? 'https://api.safaricom.co.ke/oauth/v1/generate?grant_type=client_credentials'
+              : 'https://sandbox.safaricom.co.ke/oauth/v1/generate?grant_type=client_credentials';
+            const res = await fetch(host, { headers: { Authorization: `Basic ${auth}` } });
+            const body = await res.json().catch(() => ({} as any));
+            if (res.ok && body?.access_token) {
+              return { ok: true, message: `Safaricom Daraja credentials verified${v.sandbox === 'false' ? '' : ' (sandbox)'}.` };
+            }
+            return reply.status(400).send({
+              ok: false,
+              message: `Safaricom rejected these credentials${body?.errorMessage ? `: ${body.errorMessage}` : '.'}`,
             });
           }
 

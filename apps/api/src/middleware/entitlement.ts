@@ -1,6 +1,6 @@
 import type { FastifyRequest, FastifyReply } from 'fastify';
 import { dbPlatform, withTenant } from '../db/client.js';
-import { checkAppUsageLimit } from '../lib/usage.js';
+import { checkAppUsageLimit, isFreeCustomsCalculatorRoute } from '../lib/usage.js';
 import { isLicensedForApp } from '../lib/app-license.js';
 
 declare module 'fastify' {
@@ -9,6 +9,7 @@ declare module 'fastify' {
      *  — stashed here so index.ts's onResponse hook can increment that
      *  app's usage counter on success, without a separate route→app map. */
     meteredAppId?: string | null;
+    freeCalculatorAccess?: boolean;
   }
 }
 
@@ -107,6 +108,7 @@ export async function hasActiveAddonGrant(tenantId: string, featureKey: string):
 async function checkEntitlement(
   request: FastifyRequest,
   featureKey: string,
+  allowFreeCalculator = false,
 ): Promise<{ status: number; body: Record<string, unknown> } | null> {
   const user = request.user!;
   // Stashed unconditionally, before any pass/fail branch below — harmless if
@@ -177,6 +179,10 @@ async function checkEntitlement(
   const productGrant = grant || addonGrant ? null : await additionalProductGrant(user.tenant_id, featureKey);
 
   if (!grant && !addonGrant && !productGrant) {
+    if (allowFreeCalculator && ['ADMIN', 'TENANT_ADMIN', 'MANAGER', 'SENIOR', 'JUNIOR', 'OFFICER'].includes(user.role)) {
+      request.freeCalculatorAccess = true;
+      return null;
+    }
     return { status: 403, body: { error: 'Your current plan does not include this feature.', code: 'PLAN_UPGRADE_REQUIRED' } };
   }
 
@@ -184,7 +190,7 @@ async function checkEntitlement(
   // earlier in authenticate() — only once the tenant is confirmed to have
   // this app at all, and only for the same POST-only convention isMeteredPath
   // already uses for the blanket limit.
-  if (request.method === 'POST') {
+  if (request.method === 'POST' && !allowFreeCalculator) {
     const appGate = await checkAppUsageLimit(user.tenant_id, tenantCheck.plan, featureKey);
     if (appGate.exceeded) {
       return {
@@ -258,12 +264,14 @@ export async function tenantHasEntitlement(tenantId: string, featureKey: string)
   return additionalProductGrant(tenantId, featureKey);
 }
 
-export function requireEntitlement(featureKey: string) {
+export function requireEntitlement(featureKey: string, options?: { freeCalculatorRoutes: true }) {
   return async (request: FastifyRequest, reply: FastifyReply) => {
     if (!request.user) {
       return reply.status(401).send({ error: 'Unauthorized: Authentication required' });
     }
-    const failure = await checkEntitlement(request, featureKey);
+    const freeCalculator = featureKey === 'clearos' && options?.freeCalculatorRoutes === true
+      && isFreeCustomsCalculatorRoute(request.method, request.routeOptions.url ?? '');
+    const failure = await checkEntitlement(request, featureKey, freeCalculator);
     if (failure) return reply.status(failure.status).send(failure.body);
   };
 }

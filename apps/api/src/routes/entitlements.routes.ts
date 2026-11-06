@@ -4,7 +4,7 @@ import type { FeatureKey } from '@hudumika/types';
 import { ALL_FEATURE_KEYS } from '@hudumika/types';
 import { getUsageSummary, getUsageHistory } from '../lib/usage.js';
 import { getAiCreditBalance, isByokAllowed } from '../lib/ai-credits.js';
-import { agencyManagedOnsiteGrant, hasActiveAddonGrant } from '../middleware/entitlement.js';
+import { agencyManagedOnsiteGrant, hasActiveAddonGrant, additionalProductGrant } from '../middleware/entitlement.js';
 import { isLicensedForApp } from '../lib/app-license.js';
 import { getFinanceCapabilities } from '../services/finance-capability.service.js';
 
@@ -115,6 +115,24 @@ export async function entitlementsRoutes(fastify: FastifyInstance) {
     if (stillUngranted.length > 0) {
       const addonResults = await Promise.all(stillUngranted.map(key => hasActiveAddonGrant(user.tenant_id, key)));
       stillUngranted.forEach((key, i) => { if (addonResults[i]) features[key] = true; });
+    }
+
+    // Same gap, one layer further: checkEntitlement() ALSO grants via a
+    // standalone-product subscription (tenant_product_subscriptions +
+    // commercial_products — SEAL/HuduFreight/ClearOS/CargoTracker bought on
+    // top of the free "Hudumika Workspace" base, migrations 682-690), and
+    // this endpoint checked neither tenant_addons NOR this. A tenant on
+    // plan='workspace-free' with an active hudufreight-addon subscription
+    // passed every real API call (checkEntitlement's additionalProductGrant
+    // branch) yet /v1/entitlements reported tracking:false — invisible in
+    // every nav tile, launcher, and upgrade-prompt screen built on this
+    // response, for every one of the four standalone products that exist.
+    // Found live-testing a real signup through this exact path, not from
+    // reading the code.
+    const stillUngranted2 = BASE_FEATURES.filter(key => user.role !== 'SUPER_ADMIN' && !features[key] && appStatus[key] !== 'maintenance' && !(key in overrides));
+    if (stillUngranted2.length > 0) {
+      const productResults = await Promise.all(stillUngranted2.map(key => additionalProductGrant(user.tenant_id, key)));
+      stillUngranted2.forEach((key, i) => { if (productResults[i]) features[key] = true; });
     }
 
     // Per-seat license assignment (migration 383) — narrows a tenant-granted

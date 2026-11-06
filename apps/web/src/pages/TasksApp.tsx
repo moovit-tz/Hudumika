@@ -28,26 +28,28 @@ import { useEntitlements } from '../hooks/useEntitlements.js';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '../components/ui/dialog.js';
 import { Button } from '../components/ui/button.js';
 import { Tip } from '../components/ui/tooltip.js';
+import './TasksApp.css';
 
-/* ── STATUS & PRIORITY META (Perfex CRM Standard) ──────────────────── */
+/* ── STATUS & PRIORITY META (Perfex CRM Standard + Modern Tints) ───── */
 
-const STATUS_META: Record<TaskStatus, { label: string; variant: 'gray' | 'brand' | 'warning' | 'info' | 'success'; color: string; bg: string }> = {
-  none:        { label: 'Not Started', variant: 'gray',    color: 'var(--ink2)', bg: 'rgba(100,116,139,0.1)' },
-  in_progress: { label: 'In Progress', variant: 'brand',   color: 'var(--blue)', bg: 'var(--blue-l)' },
-  in_review:   { label: 'Testing / Review', variant: 'warning', color: 'var(--gold)', bg: 'rgba(217,119,6,0.1)' },
-  waiting:     { label: 'Awaiting Feedback', variant: 'info',  color: 'var(--purple)', bg: 'var(--purple-l)' },
-  completed:   { label: 'Complete',    variant: 'success', color: 'var(--green)', bg: 'rgba(5,150,105,0.1)' },
+const STATUS_META: Record<TaskStatus, { label: string; variant: 'gray' | 'brand' | 'warning' | 'info' | 'success'; color: string; bg: string; dotColor: string }> = {
+  none:        { label: 'Not Started', variant: 'gray',    color: 'var(--ink2)', bg: 'rgba(100,116,139,0.08)', dotColor: '#94a3b8' },
+  in_progress: { label: 'In Progress', variant: 'brand',   color: 'var(--blue)', bg: 'var(--blue-l)',           dotColor: '#2563eb' },
+  in_review:   { label: 'Testing / Review', variant: 'warning', color: 'var(--gold)', bg: 'rgba(217,119,6,0.1)',  dotColor: '#d97706' },
+  waiting:     { label: 'Awaiting Feedback', variant: 'info',  color: 'var(--purple)', bg: 'var(--purple-l)',   dotColor: '#7c3aed' },
+  completed:   { label: 'Complete',    variant: 'success', color: 'var(--green)', bg: 'rgba(5,150,105,0.1)',   dotColor: '#059669' },
 };
 
-const PRIORITY_META: Record<TaskPriority, { label: string; color: string; bg: string }> = {
-  low:    { label: 'Low',    color: 'var(--ink2)', bg: 'var(--bg-subtle)' },
-  medium: { label: 'Medium', color: 'var(--gold)', bg: 'var(--gold-l)' },
-  high:   { label: 'High',   color: 'var(--gold)', bg: 'var(--gold-l)' },
-  urgent: { label: 'Urgent', color: 'var(--red)', bg: 'var(--red-l)' },
+const PRIORITY_META: Record<TaskPriority, { label: string; color: string; bg: string; icon: IconName }> = {
+  low:    { label: 'Low',    color: 'var(--ink2)', bg: 'var(--bg-subtle, #f1f5f9)', icon: 'arrowDown' },
+  medium: { label: 'Medium', color: 'var(--gold)', bg: 'var(--gold-l)',            icon: 'minus' },
+  high:   { label: 'High',   color: '#ea580c',     bg: 'rgba(234,88,12,0.1)',       icon: 'arrowUp' },
+  urgent: { label: 'Urgent', color: 'var(--red)',  bg: 'var(--red-l)',             icon: 'alertCircle' },
 };
 
 function todayStr() { return new Date().toISOString().slice(0, 10); }
 function isOverdue(due?: string) { return !!due && due < todayStr(); }
+function isDueToday(due?: string) { return !!due && due === todayStr(); }
 
 function dateGroupLabel(dateStr: string): string {
   const d = new Date(dateStr + 'T00:00:00');
@@ -55,13 +57,18 @@ function dateGroupLabel(dateStr: string): string {
   const diffDays = Math.round((d.getTime() - t.getTime()) / 86400000);
   if (diffDays === 0) return 'Today';
   if (diffDays === 1) return 'Tomorrow';
-  if (diffDays < 0) return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) + ' (overdue)';
-  return d.toLocaleDateString('en-US', { weekday: 'long' });
+  if (diffDays < 0) return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) + ' (Overdue)';
+  return d.toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric' });
 }
 
-const VIEW_TITLES: Record<string, string> = {
-  inbox: 'Inbox', today: 'Today', upcoming: 'Upcoming', anytime: 'Anytime', someday: 'Someday',
-  assigned: 'Assigned to me', trash: 'Trash',
+const VIEW_TITLES: Record<string, { label: string; icon: IconName; description: string }> = {
+  inbox:    { label: 'Inbox',    icon: 'list',       description: 'Capture ideas, to-dos and action items before organizing.' },
+  today:    { label: 'Today',    icon: 'star',       description: 'Tasks scheduled or overdue for completion today.' },
+  upcoming: { label: 'Upcoming', icon: 'calendar',   description: 'Scheduled tasks grouped by future arrival and due dates.' },
+  anytime:  { label: 'Anytime',  icon: 'folder',     description: 'Backlog of active tasks without a specific deadline.' },
+  someday:  { label: 'Someday',  icon: 'clock',      description: 'Ideas and aspirations reserved for future review.' },
+  assigned: { label: 'Assigned to me', icon: 'userCheck', description: 'Tasks delegated to you across teams and projects.' },
+  trash:    { label: 'Trash',    icon: 'trash',      description: 'Deleted tasks — restore or purge permanently.' },
 };
 
 async function searchColleagues(q: string): Promise<PickerItem[]> {
@@ -102,9 +109,12 @@ export const TasksApp: React.FC = () => {
   const [draggingId, setDraggingId] = useState<string | null>(null);
   const openedDeepLinkRef = useRef<string | null>(null);
 
-  // Companion-panel links carry the task id so opening Tasks lands on the
-  // exact record instead of a generic list. Wait for the shared task store to
-  // hydrate, then switch to the record's owning view and expand its details.
+  // Quick Inline Add state
+  const [quickTitle, setQuickTitle] = useState('');
+  const [quickDue, setQuickDue] = useState<string>('');
+  const [quickPriority, setQuickPriority] = useState<TaskPriority>('medium');
+
+  // Deep-link auto-expand and scroll
   useEffect(() => {
     const taskId = searchParams.get('task');
     if (!taskId) return;
@@ -120,14 +130,27 @@ export const TasksApp: React.FC = () => {
     setActiveTaskView(task.deletedAt ? 'trash' : `list:${task.listId}`);
     window.setTimeout(() => {
       document.getElementById(`task-${task.id}`)?.scrollIntoView({ behavior: 'smooth', block: 'center' });
-    }, 0);
+    }, 50);
   }, [searchParams, allTodos]);
 
   const listMap = useMemo(() => Object.fromEntries(lists.map(l => [l.id, l])), [lists]);
   const active = useMemo(() => allTodos.filter(t => !t.deletedAt), [allTodos]);
 
   const currentListId = view.startsWith('list:') ? view.slice(5) : null;
-  const viewTitle = currentListId ? (listMap[currentListId]?.name || 'List') : (VIEW_TITLES[view] || 'Tasks');
+  const currentCustomList = currentListId ? listMap[currentListId] : null;
+
+  const viewInfo = useMemo(() => {
+    if (currentCustomList) {
+      return {
+        label: currentCustomList.name,
+        icon: 'folder' as IconName,
+        description: `Tasks in the "${currentCustomList.name}" list.`,
+        color: currentCustomList.color,
+      };
+    }
+    const def = VIEW_TITLES[view] || { label: 'Tasks', icon: 'list' as IconName, description: 'Manage and prioritize your work.' };
+    return { ...def, color: undefined };
+  }, [currentCustomList, view]);
 
   /* Base View Filtering */
   const baseRows: Todo[] = useMemo(() => {
@@ -145,13 +168,20 @@ export const TasksApp: React.FC = () => {
   /* Filter Toolbar Applying Status (from the KPI cards) & Search */
   const filteredRows = useMemo(() => {
     return baseRows.filter(t => {
-      if (filterStatus !== 'all' && t.status !== filterStatus) return false;
+      if (filterStatus !== 'all') {
+        if (filterStatus === 'completed') {
+          if (!t.completed && t.status !== 'completed') return false;
+        } else if (t.status !== filterStatus) {
+          return false;
+        }
+      }
       if (searchQuery.trim()) {
         const q = searchQuery.toLowerCase().trim();
         const matchTitle = t.title.toLowerCase().includes(q);
         const matchNotes = t.notes?.toLowerCase().includes(q);
         const matchTag = t.tags.some(tag => tag.toLowerCase().includes(q));
-        if (!matchTitle && !matchNotes && !matchTag) return false;
+        const matchAssignee = t.assigneeName?.toLowerCase().includes(q);
+        if (!matchTitle && !matchNotes && !matchTag && !matchAssignee) return false;
       }
       return true;
     });
@@ -162,31 +192,44 @@ export const TasksApp: React.FC = () => {
   }, [filteredRows]);
 
   const completed = useMemo(() => filteredRows.filter(t => t.completed), [filteredRows]);
+  const overdueCount = useMemo(() => active.filter(t => !t.completed && isOverdue(t.due)).length, [active]);
 
-  // Sidebar "From other apps" section (TasksShell.tsx) — a real filterable
-  // view of the same linked-tasks data, independent of the inline panel
-  // above (which only ever shows in 3 of 7 smart views).
+  // Sidebar "From other apps" section (TasksShell.tsx)
   const isLinkedView = view === 'linked' || view.startsWith('linked:');
   const linkedViewSourceApp = view.startsWith('linked:') ? view.slice(7) : null;
   const linkedFullList = linkedViewSourceApp ? linked.filter(l => l.sourceApp === linkedViewSourceApp) : linked;
 
-  /* Perfex Stat Metrics Counts */
+  /* Metric Counts */
   const counts = useMemo(() => {
-    const total = active.length;
+    const total = active.length || 1;
     const notStarted = active.filter(t => t.status === 'none' && !t.completed).length;
     const inProgress = active.filter(t => t.status === 'in_progress' && !t.completed).length;
     const inReview = active.filter(t => t.status === 'in_review' && !t.completed).length;
     const waiting = active.filter(t => t.status === 'waiting' && !t.completed).length;
     const complete = active.filter(t => t.completed || t.status === 'completed').length;
-    return { total, notStarted, inProgress, inReview, waiting, complete };
+    return {
+      total: active.length,
+      notStarted,
+      inProgress,
+      inReview,
+      waiting,
+      complete,
+      pctNotStarted: Math.round((notStarted / total) * 100),
+      pctInProgress: Math.round((inProgress / total) * 100),
+      pctInReview: Math.round((inReview / total) * 100),
+      pctWaiting: Math.round((waiting / total) * 100),
+      pctComplete: Math.round((complete / total) * 100),
+    };
   }, [active]);
 
   function toggleExpand(id: string) { setExpandedId(prev => prev === id ? null : id); setNewSubtaskTitle(''); }
+
   function handleRowDragStart(e: React.DragEvent, id: string) {
     e.dataTransfer.setData('text/todo-id', id);
     e.dataTransfer.effectAllowed = 'move';
     setDraggingId(id);
   }
+
   function handleRowDrop(e: React.DragEvent, target: Todo) {
     e.preventDefault();
     const draggedId = e.dataTransfer.getData('text/todo-id');
@@ -199,6 +242,21 @@ export const TasksApp: React.FC = () => {
       .sort((a, b) => a.order - b.order);
     const targetIdx = siblings.findIndex(t => t.id === target.id);
     reorderTodo(draggedId, targetIdx === -1 ? siblings.length : targetIdx);
+  }
+
+  function handleQuickAddSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    if (!quickTitle.trim()) return;
+    addTodo({
+      title: quickTitle.trim(),
+      listId: currentListId || inboxListId() || 'inbox',
+      due: quickDue || (view === 'today' ? todayStr() : undefined),
+      priority: quickPriority,
+      status: 'none',
+    });
+    setQuickTitle('');
+    setQuickDue('');
+    setQuickPriority('medium');
   }
 
   function exportCSV() {
@@ -220,25 +278,38 @@ export const TasksApp: React.FC = () => {
 
   const canAdd = view !== 'trash';
 
+  /* Linked tasks from other apps */
   if (isLinkedView) {
     return (
-      <div style={{ flex: 1, display: 'flex', overflow: 'hidden', background: 'var(--bg)', fontFamily: 'var(--font)' }}>
-        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden', minWidth: 0 }}>
-          <div style={{ padding: isMobile ? '16px 16px 0' : '24px 32px 0' }}>
-            <h1 style={{ fontSize: isMobile ? 22 : 26, fontWeight: 800, color: 'var(--ink)', margin: 0, letterSpacing: '-0.02em' }}>
-              {linkedViewSourceApp ? `${linkedViewSourceApp} tasks` : 'From other apps'}
-            </h1>
-            <p style={{ fontSize: 13, color: 'var(--ink3)', margin: '4px 0 0 0' }}>
-              {linkedFullList.length} open task{linkedFullList.length === 1 ? '' : 's'} assigned to you{linkedViewSourceApp ? ` in ${linkedViewSourceApp}` : ' across other apps'}. Opens the source app to edit — read-only here.
-            </p>
+      <div className="tasks-page-root">
+        <div className="tasks-main-container">
+          <div className="tasks-hero-bar">
+            <div className="tasks-hero-left">
+              <div className="tasks-hero-icon-wrap">
+                <Icon name="externalLink" size={22} />
+              </div>
+              <div className="tasks-hero-titles">
+                <h1 className="tasks-hero-title">
+                  {linkedViewSourceApp ? `${linkedViewSourceApp} tasks` : 'From other apps'}
+                </h1>
+                <p className="tasks-hero-subtext">
+                  {linkedFullList.length} open task{linkedFullList.length === 1 ? '' : 's'} assigned to you across connected apps.
+                </p>
+              </div>
+            </div>
           </div>
-          <div style={{ flex: 1, overflowY: 'auto', padding: isMobile ? 16 : 32 }}>
+
+          <div className="tasks-content-area">
             {linkedFullList.length === 0 ? (
-              <div style={{ textAlign: 'center', padding: '48px 0', color: 'var(--ink3)', fontSize: 14 }}>
-                Nothing here right now.
+              <div className="tasks-empty-container">
+                <div className="tasks-empty-circle">
+                  <Icon name="checkCircle" size={32} />
+                </div>
+                <h3 className="tasks-empty-title">All caught up!</h3>
+                <p className="tasks-empty-desc">No outstanding cross-app tasks assigned to your profile right now.</p>
               </div>
             ) : (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 8, maxWidth: 640 }}>
+              <div className="tasks-list-stack" style={{ maxWidth: 760 }}>
                 {linkedFullList.map(l => <LinkedTaskRow key={l.id} task={l} />)}
               </div>
             )}
@@ -249,23 +320,44 @@ export const TasksApp: React.FC = () => {
   }
 
   return (
-    <div style={{ flex: 1, display: 'flex', overflow: 'hidden', background: 'var(--bg)', fontFamily: 'var(--font)' }}>
-      <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden', minWidth: 0 }}>
-        
-        {/* ── Top Header Title & Actions ── */}
-        <div style={{ padding: isMobile ? '16px 16px 0' : '24px 32px 0', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 12 }}>
-          <div>
-            <h1 style={{ fontSize: isMobile ? 22 : 26, fontWeight: 800, color: 'var(--ink)', margin: 0, letterSpacing: '-0.02em' }}>
-              {viewTitle}
-            </h1>
-            <p style={{ fontSize: 13, color: 'var(--ink3)', margin: '4px 0 0 0' }}>
-              {view === 'trash' ? 'Deleted tasks — restore or remove permanently.' : `${incomplete.length} active tasks • ${completed.length} completed`}
-            </p>
+    <div className="tasks-page-root">
+      <div className="tasks-main-container">
+
+        {/* ── Top Hero Bar ─────────────────────────────────────────────── */}
+        <div className="tasks-hero-bar">
+          <div className="tasks-hero-left">
+            <div className="tasks-hero-icon-wrap">
+              {viewInfo.color ? (
+                <span className="tasks-hero-list-pip" style={{ background: viewInfo.color, width: 16, height: 16 }} />
+              ) : (
+                <Icon name={viewInfo.icon} size={22} />
+              )}
+            </div>
+            <div className="tasks-hero-titles">
+              <div className="tasks-hero-title-row">
+                <h1 className="tasks-hero-title">{viewInfo.label}</h1>
+                {view !== 'trash' && (
+                  <Badge variant="brand" className="font-bold">
+                    {incomplete.length} active
+                  </Badge>
+                )}
+                {overdueCount > 0 && view !== 'trash' && (
+                  <Badge variant="error" className="font-bold">
+                    {overdueCount} overdue
+                  </Badge>
+                )}
+              </div>
+              <p className="tasks-hero-subtext">
+                {view === 'trash'
+                  ? 'Deleted tasks — restore or remove permanently.'
+                  : `${viewInfo.description} · ${completed.length} completed`}
+              </p>
+            </div>
           </div>
 
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-            {/* Display Mode Switcher */}
-            <Tabs value={displayMode} onValueChange={(v) => setDisplayMode(v as any)} variant="segmented">
+          <div className="tasks-hero-actions">
+            {/* View Mode Switcher */}
+            <Tabs value={displayMode} onValueChange={v => setDisplayMode(v as any)} variant="segmented">
               <TabsList>
                 <TabsTrigger value="list" title="List View">
                   <Icon name="list" size={14} /> List
@@ -276,78 +368,198 @@ export const TasksApp: React.FC = () => {
               </TabsList>
             </Tabs>
 
-            <div style={{ position: 'relative', width: isMobile ? 160 : 220 }}>
-              <Icon name="search" size={14} color="var(--ink3)" style={{ position: 'absolute', left: 9, top: '50%', transform: 'translateY(-50%)' }} />
+            {/* Quick Search with Clear */}
+            <div className="tasks-search-wrap">
+              <Icon name="search" size={14} className="tasks-search-icon" />
               <input
                 type="text"
                 value={searchQuery}
                 onChange={e => setSearchQuery(e.target.value)}
-                placeholder="Search tasks…"
-                style={{ width: '100%', boxSizing: 'border-box', padding: '6px 10px 6px 30px', border: '1px solid var(--border)', borderRadius: 'var(--r)', fontSize: 12.5, background: 'var(--white)', color: 'var(--ink)' }}
+                placeholder="Search tasks, tags, notes…"
+                className="tasks-search-input"
               />
+              {searchQuery && (
+                <button
+                  type="button"
+                  onClick={() => setSearchQuery('')}
+                  className="tasks-search-clear"
+                  title="Clear search"
+                >
+                  <Icon name="x" size={13} />
+                </button>
+              )}
             </div>
 
-            <Button size="sm" variant="outline" onClick={exportCSV} style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-              <Icon name="download" size={14} /> Export CSV
+            <Button size="sm" variant="outline" onClick={exportCSV} className="flex items-center gap-1.5 font-medium">
+              <Icon name="download" size={14} />
+              <span className="hidden sm:inline">Export</span>
             </Button>
 
             {canAdd && (
-              <Button size="sm" onClick={() => setCreateModalOpen(true)} style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                <Icon name="plus" size={15} /> + New Task
+              <Button size="sm" onClick={() => setCreateModalOpen(true)} className="flex items-center gap-1.5 font-bold shadow-xs">
+                <Icon name="plus" size={15} />
+                <span>New Task</span>
               </Button>
             )}
           </div>
         </div>
 
-        {/* ── Perfex CRM Stat Summary Bar (5 KPI Cards) ── */}
-        <div style={{ padding: isMobile ? '12px 16px' : '16px 32px 8px 32px' }}>
-          <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr 1fr' : 'repeat(5, 1fr)', gap: 12 }}>
-            
-            <button type="button" onClick={() => setFilterStatus(prev => prev === 'none' ? 'all' : 'none')} style={{
-              background: 'var(--white)', border: `1px solid ${filterStatus === 'none' ? 'var(--teal)' : 'var(--border)'}`,
-              borderRadius: 'var(--r)', padding: '10px 14px', textAlign: 'left', cursor: 'pointer', transition: 'all 0.15s'
-            }} data-ui-native-button="">
-              <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--ink2)', textTransform: 'uppercase' }}>Not Started</div>
-              <div style={{ fontSize: 18, fontWeight: 800, color: 'var(--ink)', marginTop: 2 }}>{counts.notStarted}</div>
-            </button>
+        {/* ── 5-State Interactive Status KPI Bar ────────────────────────── */}
+        {view !== 'trash' && (
+          <div className="tasks-kpi-bar">
+            <div className="tasks-kpi-grid">
+              
+              {/* 1. Not Started */}
+              <button
+                type="button"
+                onClick={() => setFilterStatus(prev => prev === 'none' ? 'all' : 'none')}
+                className={`tasks-kpi-card ${filterStatus === 'none' ? 'tasks-kpi-card--active' : ''}`}
+                data-ui-native-button=""
+              >
+                <div className="tasks-kpi-card-header">
+                  <span className="tasks-kpi-label" style={{ color: 'var(--ink2)' }}>Not Started</span>
+                  <span className="tasks-kpi-indicator-dot" style={{ background: STATUS_META.none.dotColor }} />
+                </div>
+                <div className="tasks-kpi-count-row">
+                  <span className="tasks-kpi-count">{counts.notStarted}</span>
+                  <span className="tasks-kpi-percent">{counts.pctNotStarted}%</span>
+                </div>
+                <div className="tasks-kpi-progress-track">
+                  <div className="tasks-kpi-progress-bar" style={{ width: `${counts.pctNotStarted}%`, background: STATUS_META.none.dotColor }} />
+                </div>
+              </button>
 
-            <button type="button" onClick={() => setFilterStatus(prev => prev === 'in_progress' ? 'all' : 'in_progress')} style={{
-              background: 'var(--white)', border: `1px solid ${filterStatus === 'in_progress' ? 'var(--teal)' : 'var(--border)'}`,
-              borderRadius: 'var(--r)', padding: '10px 14px', textAlign: 'left', cursor: 'pointer', transition: 'all 0.15s'
-            }} data-ui-native-button="">
-              <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--blue)', textTransform: 'uppercase' }}>In Progress</div>
-              <div style={{ fontSize: 18, fontWeight: 800, color: 'var(--blue)', marginTop: 2 }}>{counts.inProgress}</div>
-            </button>
+              {/* 2. In Progress */}
+              <button
+                type="button"
+                onClick={() => setFilterStatus(prev => prev === 'in_progress' ? 'all' : 'in_progress')}
+                className={`tasks-kpi-card ${filterStatus === 'in_progress' ? 'tasks-kpi-card--active' : ''}`}
+                data-ui-native-button=""
+              >
+                <div className="tasks-kpi-card-header">
+                  <span className="tasks-kpi-label" style={{ color: 'var(--blue)' }}>In Progress</span>
+                  <span className="tasks-kpi-indicator-dot" style={{ background: STATUS_META.in_progress.dotColor }} />
+                </div>
+                <div className="tasks-kpi-count-row">
+                  <span className="tasks-kpi-count" style={{ color: 'var(--blue)' }}>{counts.inProgress}</span>
+                  <span className="tasks-kpi-percent">{counts.pctInProgress}%</span>
+                </div>
+                <div className="tasks-kpi-progress-track">
+                  <div className="tasks-kpi-progress-bar" style={{ width: `${counts.pctInProgress}%`, background: STATUS_META.in_progress.dotColor }} />
+                </div>
+              </button>
 
-            <button type="button" onClick={() => setFilterStatus(prev => prev === 'in_review' ? 'all' : 'in_review')} style={{
-              background: 'var(--white)', border: `1px solid ${filterStatus === 'in_review' ? 'var(--teal)' : 'var(--border)'}`,
-              borderRadius: 'var(--r)', padding: '10px 14px', textAlign: 'left', cursor: 'pointer', transition: 'all 0.15s'
-            }} data-ui-native-button="">
-              <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--gold)', textTransform: 'uppercase' }}>Testing / Review</div>
-              <div style={{ fontSize: 18, fontWeight: 800, color: 'var(--gold)', marginTop: 2 }}>{counts.inReview}</div>
-            </button>
+              {/* 3. Testing / Review */}
+              <button
+                type="button"
+                onClick={() => setFilterStatus(prev => prev === 'in_review' ? 'all' : 'in_review')}
+                className={`tasks-kpi-card ${filterStatus === 'in_review' ? 'tasks-kpi-card--active' : ''}`}
+                data-ui-native-button=""
+              >
+                <div className="tasks-kpi-card-header">
+                  <span className="tasks-kpi-label" style={{ color: 'var(--gold)' }}>Review / QA</span>
+                  <span className="tasks-kpi-indicator-dot" style={{ background: STATUS_META.in_review.dotColor }} />
+                </div>
+                <div className="tasks-kpi-count-row">
+                  <span className="tasks-kpi-count" style={{ color: 'var(--gold)' }}>{counts.inReview}</span>
+                  <span className="tasks-kpi-percent">{counts.pctInReview}%</span>
+                </div>
+                <div className="tasks-kpi-progress-track">
+                  <div className="tasks-kpi-progress-bar" style={{ width: `${counts.pctInReview}%`, background: STATUS_META.in_review.dotColor }} />
+                </div>
+              </button>
 
-            <button type="button" onClick={() => setFilterStatus(prev => prev === 'waiting' ? 'all' : 'waiting')} style={{
-              background: 'var(--white)', border: `1px solid ${filterStatus === 'waiting' ? 'var(--teal)' : 'var(--border)'}`,
-              borderRadius: 'var(--r)', padding: '10px 14px', textAlign: 'left', cursor: 'pointer', transition: 'all 0.15s'
-            }} data-ui-native-button="">
-              <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--purple)', textTransform: 'uppercase' }}>Awaiting Feedback</div>
-              <div style={{ fontSize: 18, fontWeight: 800, color: 'var(--purple)', marginTop: 2 }}>{counts.waiting}</div>
-            </button>
+              {/* 4. Awaiting Feedback */}
+              <button
+                type="button"
+                onClick={() => setFilterStatus(prev => prev === 'waiting' ? 'all' : 'waiting')}
+                className={`tasks-kpi-card ${filterStatus === 'waiting' ? 'tasks-kpi-card--active' : ''}`}
+                data-ui-native-button=""
+              >
+                <div className="tasks-kpi-card-header">
+                  <span className="tasks-kpi-label" style={{ color: 'var(--purple)' }}>Waiting</span>
+                  <span className="tasks-kpi-indicator-dot" style={{ background: STATUS_META.waiting.dotColor }} />
+                </div>
+                <div className="tasks-kpi-count-row">
+                  <span className="tasks-kpi-count" style={{ color: 'var(--purple)' }}>{counts.waiting}</span>
+                  <span className="tasks-kpi-percent">{counts.pctWaiting}%</span>
+                </div>
+                <div className="tasks-kpi-progress-track">
+                  <div className="tasks-kpi-progress-bar" style={{ width: `${counts.pctWaiting}%`, background: STATUS_META.waiting.dotColor }} />
+                </div>
+              </button>
 
-            <button type="button" onClick={() => setFilterStatus(prev => prev === 'completed' ? 'all' : 'completed')} style={{
-              background: 'var(--white)', border: `1px solid ${filterStatus === 'completed' ? 'var(--teal)' : 'var(--border)'}`,
-              borderRadius: 'var(--r)', padding: '10px 14px', textAlign: 'left', cursor: 'pointer', transition: 'all 0.15s'
-            }} data-ui-native-button="">
-              <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--green)', textTransform: 'uppercase' }}>Completed</div>
-              <div style={{ fontSize: 18, fontWeight: 800, color: 'var(--green)', marginTop: 2 }}>{counts.complete}</div>
-            </button>
+              {/* 5. Completed */}
+              <button
+                type="button"
+                onClick={() => setFilterStatus(prev => prev === 'completed' ? 'all' : 'completed')}
+                className={`tasks-kpi-card ${filterStatus === 'completed' ? 'tasks-kpi-card--active' : ''}`}
+                data-ui-native-button=""
+              >
+                <div className="tasks-kpi-card-header">
+                  <span className="tasks-kpi-label" style={{ color: 'var(--green)' }}>Completed</span>
+                  <span className="tasks-kpi-indicator-dot" style={{ background: STATUS_META.completed.dotColor }} />
+                </div>
+                <div className="tasks-kpi-count-row">
+                  <span className="tasks-kpi-count" style={{ color: 'var(--green)' }}>{counts.complete}</span>
+                  <span className="tasks-kpi-percent">{counts.pctComplete}%</span>
+                </div>
+                <div className="tasks-kpi-progress-track">
+                  <div className="tasks-kpi-progress-bar" style={{ width: `${counts.pctComplete}%`, background: STATUS_META.completed.dotColor }} />
+                </div>
+              </button>
 
+            </div>
           </div>
-        </div>
+        )}
 
-        {/* ── Main View Content Area ── */}
-        <div style={{ flex: 1, overflowY: 'auto', padding: isMobile ? '0 16px 24px' : '0 32px 32px' }}>
+        {/* ── Lightning-Fast Inline Quick Task Bar ──────────────────────── */}
+        {canAdd && displayMode === 'list' && (
+          <div className="tasks-quick-add-wrap">
+            <form onSubmit={handleQuickAddSubmit} className="tasks-quick-add-bar">
+              <Icon name="plus" size={16} className="text-teal-600 dark:text-teal-400 shrink-0" />
+              <input
+                type="text"
+                value={quickTitle}
+                onChange={e => setQuickTitle(e.target.value)}
+                placeholder={`+ Add a task to ${viewInfo.label}… press Enter to save`}
+                className="tasks-quick-add-input"
+              />
+              <div className="tasks-quick-add-controls">
+                <DatePicker
+                  date={parseDateOnly(quickDue)}
+                  onChange={d => setQuickDue(toDateOnlyString(d))}
+                  placeholder="Due date"
+                  triggerClassName="h-7 text-xs px-2.5 rounded-full border-border bg-transparent shadow-none hover:bg-black/5 dark:hover:bg-white/5"
+                />
+
+                <Select value={quickPriority} onValueChange={v => setQuickPriority(v as TaskPriority)}>
+                  <SelectTrigger className="h-7 text-xs px-2.5 rounded-full border-border bg-transparent shadow-none hover:bg-black/5 dark:hover:bg-white/5 w-auto">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="low">Low Priority</SelectItem>
+                    <SelectItem value="medium">Medium Priority</SelectItem>
+                    <SelectItem value="high">High Priority</SelectItem>
+                    <SelectItem value="urgent">Urgent</SelectItem>
+                  </SelectContent>
+                </Select>
+
+                <Button
+                  type="submit"
+                  size="sm"
+                  disabled={!quickTitle.trim()}
+                  className="h-7 px-3 text-xs font-semibold rounded-full shadow-xs"
+                >
+                  Add
+                </Button>
+              </div>
+            </form>
+          </div>
+        )}
+
+        {/* ── Main View Content Area ───────────────────────────────────── */}
+        <div className="tasks-content-area">
 
           {/* KANBAN BOARD VIEW */}
           {displayMode === 'kanban' ? (
@@ -355,42 +567,98 @@ export const TasksApp: React.FC = () => {
           ) : (
             /* LIST VIEW */
             filteredRows.length === 0 ? (
-              <div style={{ textAlign: 'center', padding: '60px 0', color: 'var(--ink3)', fontSize: 14 }}>
-                {view === 'trash' ? 'Trash is empty.' : 'No tasks match current filter options.'}
+              <div className="tasks-empty-container">
+                <div className="tasks-empty-circle">
+                  <Icon name={filterStatus !== 'all' || searchQuery ? 'search' : 'checkCircle'} size={32} />
+                </div>
+                <h3 className="tasks-empty-title">
+                  {searchQuery || filterStatus !== 'all'
+                    ? 'No matching tasks'
+                    : view === 'trash'
+                    ? 'Trash is empty'
+                    : 'All caught up!'}
+                </h3>
+                <p className="tasks-empty-desc">
+                  {searchQuery || filterStatus !== 'all'
+                    ? 'No tasks match your current search or status filter. Try resetting your criteria.'
+                    : view === 'trash'
+                    ? 'Tasks deleted from any view will appear here for recovery or permanent cleanup.'
+                    : `No outstanding tasks in ${viewInfo.label}. Add one above or plan ahead!`}
+                </p>
+                {(searchQuery || filterStatus !== 'all') && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => { setSearchQuery(''); setFilterStatus('all'); }}
+                  >
+                    Reset Filters
+                  </Button>
+                )}
               </div>
             ) : view === 'upcoming' ? (
-              <UpcomingGrouped todos={incomplete} listMap={listMap} expandedId={expandedId} onToggleExpand={toggleExpand}
-                newSubtaskTitle={newSubtaskTitle} setNewSubtaskTitle={setNewSubtaskTitle} />
+              <UpcomingGrouped
+                todos={incomplete}
+                listMap={listMap}
+                expandedId={expandedId}
+                onToggleExpand={toggleExpand}
+                newSubtaskTitle={newSubtaskTitle}
+                setNewSubtaskTitle={setNewSubtaskTitle}
+              />
             ) : (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+              <div className="tasks-list-stack">
                 {incomplete.map(t => (
-                  <div key={t.id}
+                  <div
+                    key={t.id}
                     draggable={!isMobile && view !== 'trash'}
                     onDragStart={e => handleRowDragStart(e, t.id)}
                     onDragOver={e => e.preventDefault()}
                     onDrop={e => handleRowDrop(e, t)}
-                    style={{ opacity: draggingId === t.id ? 0.4 : 1, cursor: view !== 'trash' && !isMobile ? 'grab' : undefined }}
+                    className={draggingId === t.id ? 'task-item-card--dragging' : ''}
                   >
-                    <TaskRow todo={t} list={listMap[t.listId]} expanded={expandedId === t.id} onToggleExpand={() => toggleExpand(t.id)}
-                      newSubtaskTitle={newSubtaskTitle} setNewSubtaskTitle={setNewSubtaskTitle} trashed={view === 'trash'} />
+                    <TaskRow
+                      todo={t}
+                      list={listMap[t.listId]}
+                      expanded={expandedId === t.id}
+                      onToggleExpand={() => toggleExpand(t.id)}
+                      newSubtaskTitle={newSubtaskTitle}
+                      setNewSubtaskTitle={setNewSubtaskTitle}
+                      trashed={view === 'trash'}
+                    />
                   </div>
                 ))}
               </div>
             )
           )}
 
+          {/* Completed Accordion Section */}
           {completed.length > 0 && view !== 'trash' && displayMode === 'list' && (
-            <div style={{ marginTop: 24 }}>
-              <button type="button" onClick={() => setShowCompleted(v => !v)}
-                style={{ display: 'flex', alignItems: 'center', gap: 6, background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink3)', fontSize: 13, fontWeight: 600, padding: '6px 0' }} data-ui-native-button="">
-                <Icon name={showCompleted ? 'chevronDown' : 'chevronRight'} size={13} />
-                Completed ({completed.length})
+            <div className="mt-8 pt-4 border-t border-border/70">
+              <button
+                type="button"
+                onClick={() => setShowCompleted(v => !v)}
+                className="flex items-center gap-2 text-sm font-semibold text-muted-foreground hover:text-foreground transition-colors py-2"
+                data-ui-native-button=""
+              >
+                <Icon name={showCompleted ? 'chevronDown' : 'chevronRight'} size={14} />
+                <span>Completed Tasks</span>
+                <Badge variant="gray" className="text-xs">
+                  {completed.length}
+                </Badge>
               </button>
+
               {showCompleted && (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginTop: 10 }}>
+                <div className="tasks-list-stack mt-3">
                   {completed.map(t => (
-                    <TaskRow key={t.id} todo={t} list={listMap[t.listId]} expanded={expandedId === t.id} onToggleExpand={() => toggleExpand(t.id)}
-                      newSubtaskTitle={newSubtaskTitle} setNewSubtaskTitle={setNewSubtaskTitle} trashed={false} />
+                    <TaskRow
+                      key={t.id}
+                      todo={t}
+                      list={listMap[t.listId]}
+                      expanded={expandedId === t.id}
+                      onToggleExpand={() => toggleExpand(t.id)}
+                      newSubtaskTitle={newSubtaskTitle}
+                      setNewSubtaskTitle={setNewSubtaskTitle}
+                      trashed={false}
+                    />
                   ))}
                 </div>
               )}
@@ -400,7 +668,7 @@ export const TasksApp: React.FC = () => {
         </div>
       </div>
 
-      {/* ── New Task Full Dialog Modal (Perfex CRM Standard) ── */}
+      {/* ── New Task Full Dialog Modal ───────────────────────────────── */}
       {createModalOpen && (
         <CreateTaskModal
           open={createModalOpen}
@@ -442,7 +710,7 @@ function TasksKanbanBoard({ todos, listMap, onTaskClick }: {
     <KanbanBoard<TaskKanbanCard, TaskStatus>
       columns={KANBAN_COLUMNS}
       items={items}
-      emptyMessage="Drop tasks here"
+      emptyMessage="No tasks in this lane"
       onDrop={(itemId, _from, toCol) => {
         updateTodo(itemId, toCol === 'completed' ? { status: toCol, completed: true } : { status: toCol as TaskStatus, completed: false });
       }}
@@ -450,38 +718,44 @@ function TasksKanbanBoard({ todos, listMap, onTaskClick }: {
         const t = item.todo;
         const list = listMap[t.listId];
         return (
-          <div onClick={() => onTaskClick(t.id)}>
-            <div className="kb-card-topline">
+          <div onClick={() => onTaskClick(t.id)} className="cursor-pointer">
+            <div className="kb-card-topline flex items-center gap-1.5 mb-2">
               {t.priority && (
                 <Badge variant={t.priority === 'urgent' ? 'error' : t.priority === 'high' ? 'warning' : t.priority === 'medium' ? 'info' : 'gray'}>
                   {t.priority}
                 </Badge>
               )}
               {list && (
-                <span style={{ marginLeft: 'auto', fontSize: 10.5, color: 'var(--ink3)', fontWeight: 600, display: 'flex', alignItems: 'center', gap: 4 }}>
-                  <span style={{ width: 6, height: 6, borderRadius: '50%', background: list.color }} />
+                <span className="ml-auto text-[11px] font-semibold text-muted-foreground flex items-center gap-1.5">
+                  <span className="w-1.5 h-1.5 rounded-full" style={{ background: list.color }} />
                   {list.name}
                 </span>
               )}
             </div>
-            <div className="kb-card-title">{t.title}</div>
+
+            <div className="kb-card-title font-semibold text-sm leading-snug mb-2">{t.title}</div>
+
             {t.subtasks.length > 0 && (
-              <div style={{ marginBottom: 8 }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 11, color: 'var(--ink3)', marginBottom: 3 }}>
+              <div className="mb-2.5">
+                <div className="flex justify-between text-[11px] text-muted-foreground mb-1">
                   <span>Subtasks</span>
                   <span>{t.subtasks.filter(s => s.completed).length}/{t.subtasks.length}</span>
                 </div>
-                <div style={{ height: 4, borderRadius: 'var(--r-sm)', background: 'var(--border)', overflow: 'hidden' }}>
-                  <div style={{ height: '100%', width: `${Math.round((t.subtasks.filter(s => s.completed).length / t.subtasks.length) * 100)}%`, background: 'var(--teal)' }} />
+                <div className="h-1 rounded-full bg-border overflow-hidden">
+                  <div
+                    className="h-full bg-teal-600 dark:bg-teal-400 rounded-full"
+                    style={{ width: `${Math.round((t.subtasks.filter(s => s.completed).length / t.subtasks.length) * 100)}%` }}
+                  />
                 </div>
               </div>
             )}
-            <div className="kb-card-meta" style={{ marginTop: 10, paddingTop: 8, borderTop: '1px solid var(--border)' }}>
-              <span className="kb-meta-item" style={{ color: isOverdue(t.due) ? 'var(--red)' : undefined, fontWeight: isOverdue(t.due) ? 700 : undefined }}>
-                <Icon name="calendar" size={12} color={isOverdue(t.due) ? 'var(--red)' : 'var(--ink3)'} strokeWidth={1.75} />
-                {t.due || 'No due date'}
+
+            <div className="kb-card-meta flex items-center justify-between pt-2 border-t border-border/60 text-xs">
+              <span className={`inline-flex items-center gap-1 ${isOverdue(t.due) ? 'text-red-600 dark:text-red-400 font-bold' : 'text-muted-foreground'}`}>
+                <Icon name="calendar" size={12} />
+                {t.due || 'No date'}
               </span>
-              <span style={{ marginLeft: 'auto' }}><TaskTimerWidget todo={t} /></span>
+              <TaskTimerWidget todo={t} />
             </div>
           </div>
         );
@@ -524,20 +798,21 @@ function TaskTimerWidget({ todo }: { todo: Todo }) {
     <button
       type="button"
       onClick={toggleTimer}
-      title={isTimerActive ? 'Stop live timer' : 'Start live timer'}
-      style={{
-        display: 'flex', alignItems: 'center', gap: 4, padding: '3px 8px', borderRadius: 'var(--r)',
-        border: 'none', background: isTimerActive ? 'var(--red-l)' : 'var(--bg)',
-        color: isTimerActive ? 'var(--red)' : 'var(--ink2)', fontSize: 11, fontWeight: 700, cursor: 'pointer'
-      }}
-     data-ui-native-button="">
+      title={isTimerActive ? 'Stop live timer' : 'Start stopwatch'}
+      className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[11px] font-bold transition-all ${
+        isTimerActive
+          ? 'bg-red-500/10 text-red-600 dark:text-red-400 ring-1 ring-red-500/30 animate-pulse'
+          : 'bg-muted/60 hover:bg-muted text-muted-foreground hover:text-foreground'
+      }`}
+      data-ui-native-button=""
+    >
       <Icon name={isTimerActive ? 'clock' : 'play'} size={10} />
       <span>{isTimerActive ? fmtStopwatch(elapsedSec) : formatMinutes(todo.timeLoggedMinutes)}</span>
     </button>
   );
 }
 
-/* ── CREATE TASK MODAL (Perfex CRM Standard) ────────────────────────── */
+/* ── CREATE TASK MODAL ──────────────────────────────────────────────── */
 
 function CreateTaskModal({ open, onClose, defaultListId, lists }: {
   open: boolean; onClose: () => void; defaultListId: string; lists: any[];
@@ -570,25 +845,28 @@ function CreateTaskModal({ open, onClose, defaultListId, lists }: {
     <Dialog open={open} onOpenChange={onClose}>
       <DialogContent className="max-w-lg p-6">
         <DialogHeader>
-          <DialogTitle style={{ fontSize: 18, fontWeight: 800 }}>Create New Task</DialogTitle>
+          <DialogTitle className="text-lg font-bold">Create New Task</DialogTitle>
         </DialogHeader>
 
-        <form onSubmit={handleSave} style={{ display: 'flex', flexDirection: 'column', gap: 14, marginTop: 10 }}>
+        <form onSubmit={handleSave} className="flex flex-col gap-4 mt-2">
           <div>
-            <label style={{ fontSize: 12, fontWeight: 700, color: 'var(--ink2)', display: 'block', marginBottom: 4 }}>Subject / Task Name *</label>
+            <label className="text-xs font-bold text-muted-foreground block mb-1.5">Subject / Task Name *</label>
             <input
-              type="text" required autoFocus
-              value={title} onChange={e => setTitle(e.target.value)}
+              type="text"
+              required
+              autoFocus
+              value={title}
+              onChange={e => setTitle(e.target.value)}
               placeholder="e.g. Prepare customs documentation for shipment #1042"
-              style={{ width: '100%', boxSizing: 'border-box', padding: '8px 12px', border: '1px solid var(--border)', borderRadius: 'var(--r)', fontSize: 13.5 }}
+              className="w-full px-3 py-2 border border-border rounded-lg text-sm bg-background focus:outline-none focus:ring-2 focus:ring-teal/30 focus:border-teal"
             />
           </div>
 
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+          <div className="grid grid-cols-2 gap-3">
             <div>
-              <label style={{ fontSize: 12, fontWeight: 700, color: 'var(--ink2)', display: 'block', marginBottom: 4 }}>Task List</label>
+              <label className="text-xs font-bold text-muted-foreground block mb-1.5">Task List</label>
               <Select value={listId} onValueChange={setListId}>
-                <SelectTrigger style={{ width: '100%' }}><SelectValue /></SelectTrigger>
+                <SelectTrigger className="w-full text-xs h-9"><SelectValue /></SelectTrigger>
                 <SelectContent>
                   {lists.map((l: any) => (
                     <SelectItem key={l.id} value={l.id}>{l.name}</SelectItem>
@@ -598,9 +876,9 @@ function CreateTaskModal({ open, onClose, defaultListId, lists }: {
             </div>
 
             <div>
-              <label style={{ fontSize: 12, fontWeight: 700, color: 'var(--ink2)', display: 'block', marginBottom: 4 }}>Priority</label>
+              <label className="text-xs font-bold text-muted-foreground block mb-1.5">Priority</label>
               <Select value={priority} onValueChange={v => setPriority(v as TaskPriority)}>
-                <SelectTrigger style={{ width: '100%' }}><SelectValue /></SelectTrigger>
+                <SelectTrigger className="w-full text-xs h-9"><SelectValue /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="low">Low</SelectItem>
                   <SelectItem value="medium">Medium</SelectItem>
@@ -611,11 +889,11 @@ function CreateTaskModal({ open, onClose, defaultListId, lists }: {
             </div>
           </div>
 
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+          <div className="grid grid-cols-2 gap-3">
             <div>
-              <label style={{ fontSize: 12, fontWeight: 700, color: 'var(--ink2)', display: 'block', marginBottom: 4 }}>Initial Status</label>
+              <label className="text-xs font-bold text-muted-foreground block mb-1.5">Initial Status</label>
               <Select value={status} onValueChange={v => setStatus(v as TaskStatus)}>
-                <SelectTrigger style={{ width: '100%' }}><SelectValue /></SelectTrigger>
+                <SelectTrigger className="w-full text-xs h-9"><SelectValue /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="none">Not Started</SelectItem>
                   <SelectItem value="in_progress">In Progress</SelectItem>
@@ -626,39 +904,40 @@ function CreateTaskModal({ open, onClose, defaultListId, lists }: {
             </div>
 
             <div>
-              <label style={{ fontSize: 12, fontWeight: 700, color: 'var(--ink2)', display: 'block', marginBottom: 4 }}>Due Date</label>
+              <label className="text-xs font-bold text-muted-foreground block mb-1.5">Due Date</label>
               <DatePicker
                 date={parseDateOnly(due)}
                 onChange={d => setDue(toDateOnlyString(d))}
                 placeholder="Select date"
-                triggerClassName="w-full"
+                triggerClassName="w-full h-9 text-xs"
               />
             </div>
           </div>
 
           <div>
-            <label style={{ fontSize: 12, fontWeight: 700, color: 'var(--ink2)', display: 'block', marginBottom: 4 }}>Assignee</label>
+            <label className="text-xs font-bold text-muted-foreground block mb-1.5">Assignee</label>
             <EntityPicker
               value={assignee}
               onChange={setAssignee}
               search={searchColleagues}
-              placeholder="Assign to staff member…"
+              placeholder="Assign to colleague…"
             />
           </div>
 
           <div>
-            <label style={{ fontSize: 12, fontWeight: 700, color: 'var(--ink2)', display: 'block', marginBottom: 4 }}>Description / Notes</label>
+            <label className="text-xs font-bold text-muted-foreground block mb-1.5">Description / Notes</label>
             <textarea
-              value={notes} onChange={e => setNotes(e.target.value)}
-              placeholder="Add detailed task instructions or checklist requirements…"
+              value={notes}
+              onChange={e => setNotes(e.target.value)}
+              placeholder="Add detailed task instructions, checklist details, or links…"
               rows={3}
-              style={{ width: '100%', boxSizing: 'border-box', padding: '8px 10px', border: '1px solid var(--border)', borderRadius: 'var(--r)', fontSize: 13, resize: 'vertical' }}
+              className="w-full px-3 py-2 border border-border rounded-lg text-sm bg-background resize-y focus:outline-none focus:ring-2 focus:ring-teal/30 focus:border-teal"
             />
           </div>
 
-          <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 10, marginTop: 10 }}>
+          <div className="flex justify-end gap-2 mt-2 pt-2 border-t border-border/60">
             <Button type="button" variant="outline" onClick={onClose}>Cancel</Button>
-            <Button type="submit">Create Task</Button>
+            <Button type="submit" className="font-semibold">Create Task</Button>
           </div>
         </form>
       </DialogContent>
@@ -666,62 +945,38 @@ function CreateTaskModal({ open, onClose, defaultListId, lists }: {
   );
 }
 
-/* ── HELPER COMPONENTS (LinkedTaskRow, AvatarStack, MeetingsPanel, TaskRow, CommentsSection) ── */
+/* ── LINKED TASK ROW (From other apps) ──────────────────────────────── */
 
 function LinkedTaskRow({ task }: { task: import('../data/calendarStore.js').LinkedTask }) {
   return (
-    <Link to={task.path} style={{
-      display: 'flex', alignItems: 'center', gap: 12, padding: '12px 14px', textDecoration: 'none',
-      background: 'var(--white)', borderRadius: 'var(--r)', border: '1px dashed var(--border)',
-    }}>
-      <Icon name="externalLink" size={14} color="var(--ink3)" />
-      <div style={{ flex: 1, minWidth: 0 }}>
-        <div style={{ fontSize: 14, color: 'var(--ink)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{task.title}</div>
-        <div style={{ fontSize: 11, color: 'var(--ink3)', marginTop: 2 }}>
-          {task.sourceApp} · {task.sourceLabel}{task.due ? ` · Due ${task.due}` : ''}
+    <Link
+      to={task.path}
+      className="flex items-center gap-3 p-3.5 bg-card hover:bg-card/80 border border-border rounded-xl transition-all shadow-xs group"
+    >
+      <div className="w-8 h-8 rounded-lg bg-teal/10 text-teal flex items-center justify-center shrink-0">
+        <Icon name="externalLink" size={15} />
+      </div>
+      <div className="flex-1 min-w-0">
+        <div className="text-sm font-semibold text-foreground group-hover:text-teal truncate transition-colors">
+          {task.title}
+        </div>
+        <div className="text-xs text-muted-foreground mt-0.5 flex items-center gap-2">
+          <Badge variant="gray" className="text-[10px] py-0 px-1.5">{task.sourceApp}</Badge>
+          <span>{task.sourceLabel}</span>
+          {task.due && <span className="text-muted-foreground/80">· Due {task.due}</span>}
         </div>
       </div>
+      <Icon name="chevronRight" size={14} className="text-muted-foreground/50 group-hover:text-foreground shrink-0 transition-colors" />
     </Link>
   );
 }
-
-const EVENT_CATEGORY_COLOR: Record<string, string> = {
-  work: 'var(--blue)', personal: 'var(--green)', customs: 'var(--gold)', todo: 'var(--purple)',
-};
 
 function initials(name: string): string {
   const parts = name.trim().split(/\s+/);
   return ((parts[0]?.[0] || '') + (parts[1]?.[0] || '')).toUpperCase() || '?';
 }
 
-function AvatarStack({ names }: { names: string[] }) {
-  const shown = names.slice(0, 4);
-  const extra = names.length - shown.length;
-  return (
-    <div style={{ display: 'flex' }}>
-      {shown.map((n, i) => (
-        <div key={i} title={n} style={{
-          width: 26, height: 26, borderRadius: '50%', background: 'var(--teal-l)', color: 'var(--teal)',
-          display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 10.5, fontWeight: 700,
-          border: '2px solid var(--white)', marginLeft: i === 0 ? 0 : -8,
-        }}>
-          {initials(n)}
-        </div>
-      ))}
-      {extra > 0 && (
-        <div style={{
-          width: 26, height: 26, borderRadius: '50%', background: 'var(--bg)', color: 'var(--ink3)',
-          display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 10, fontWeight: 700,
-          border: '2px solid var(--white)', marginLeft: -8,
-        }}>
-          +{extra}
-        </div>
-      )}
-    </div>
-  );
-}
-
-
+/* ── UPCOMING GROUPED VIEW ──────────────────────────────────────────── */
 
 function UpcomingGrouped({ todos, listMap, expandedId, onToggleExpand, newSubtaskTitle, setNewSubtaskTitle }: {
   todos: Todo[]; listMap: Record<string, { id: string; name: string; color: string }>;
@@ -735,25 +990,47 @@ function UpcomingGrouped({ todos, listMap, expandedId, onToggleExpand, newSubtas
     groups.get(key)!.push(t);
   }
   const sortedKeys = [...groups.keys()].sort();
+
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
-      {sortedKeys.map(key => (
-        <div key={key}>
-          <div style={{ display: 'flex', alignItems: 'baseline', gap: 8, marginBottom: 10 }}>
-            <span style={{ fontSize: 15, fontWeight: 700, color: 'var(--ink)' }}>{new Date(key + 'T00:00:00').getDate()}</span>
-            <span style={{ fontSize: 15, fontWeight: 700, color: 'var(--ink)' }}>{dateGroupLabel(key)}</span>
+    <div className="flex flex-col gap-6">
+      {sortedKeys.map(key => {
+        const isPast = isOverdue(key);
+        const isCurrentDay = isDueToday(key);
+        return (
+          <div key={key}>
+            <div className="flex items-center gap-2.5 mb-2.5">
+              <span className={`text-sm font-bold flex items-center gap-2 ${
+                isPast ? 'text-red-600 dark:text-red-400' : isCurrentDay ? 'text-teal-600 dark:text-teal-400 font-extrabold' : 'text-foreground'
+              }`}>
+                <Icon name="calendar" size={14} />
+                {dateGroupLabel(key)}
+              </span>
+              <Badge variant={isPast ? 'error' : isCurrentDay ? 'brand' : 'gray'} className="text-[10px]">
+                {groups.get(key)!.length}
+              </Badge>
+            </div>
+            <div className="tasks-list-stack">
+              {groups.get(key)!.map(t => (
+                <TaskRow
+                  key={t.id}
+                  todo={t}
+                  list={listMap[t.listId]}
+                  expanded={expandedId === t.id}
+                  onToggleExpand={() => onToggleExpand(t.id)}
+                  newSubtaskTitle={newSubtaskTitle}
+                  setNewSubtaskTitle={setNewSubtaskTitle}
+                  trashed={false}
+                />
+              ))}
+            </div>
           </div>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-            {groups.get(key)!.map(t => (
-              <TaskRow key={t.id} todo={t} list={listMap[t.listId]} expanded={expandedId === t.id} onToggleExpand={() => onToggleExpand(t.id)}
-                newSubtaskTitle={newSubtaskTitle} setNewSubtaskTitle={setNewSubtaskTitle} trashed={false} />
-            ))}
-          </div>
-        </div>
-      ))}
+        );
+      })}
     </div>
   );
 }
+
+/* ── INDIVIDUAL TASK ROW ────────────────────────────────────────────── */
 
 function TaskRow({ todo, list, expanded, onToggleExpand, newSubtaskTitle, setNewSubtaskTitle, trashed }: {
   todo: Todo; list?: { id: string; name: string; color: string };
@@ -776,165 +1053,280 @@ function TaskRow({ todo, list, expanded, onToggleExpand, newSubtaskTitle, setNew
     if (tag && !todo.tags.includes(tag)) updateTodo(todo.id, { tags: [...todo.tags, tag] });
     setNewTag('');
   }
+
   function removeTag(tag: string) {
     updateTodo(todo.id, { tags: todo.tags.filter(t => t !== tag) });
   }
 
   return (
-    <div id={`task-${todo.id}`} className="list-row-accent" data-variant={!trashed && todo.status !== 'none' ? statusMeta.variant : undefined}
-      style={{
-        background: 'var(--white)', borderRadius: 'var(--r)', overflow: 'hidden',
-        borderTop: '1px solid var(--border)', borderRight: '1px solid var(--border)', borderBottom: '1px solid var(--border)',
-      }}>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '12px 14px', opacity: todo.completed ? 0.6 : 1 }}>
+    <div
+      id={`task-${todo.id}`}
+      className={`task-item-card ${expanded ? 'task-item-card--expanded' : ''} ${todo.completed ? 'task-item-card--completed' : ''}`}
+    >
+      <div className="task-item-primary-row" onClick={onToggleExpand}>
+        
+        {/* Drag handle */}
+        {!trashed && (
+          <span className="task-drag-handle" title="Drag to reorder" onClick={e => e.stopPropagation()}>
+            <Icon name="moreVertical" size={14} />
+          </span>
+        )}
+
+        {/* Checkbox */}
         {trashed ? (
-          <Icon name="trash" size={16} color="var(--ink3)" />
+          <Icon name="trash" size={16} className="text-muted-foreground shrink-0" />
         ) : (
           <button
             type="button"
             disabled={readOnly}
-            onClick={() => !readOnly && updateTodo(todo.id, { completed: !todo.completed })}
-            title={readOnly ? 'You have view-only access to this list' : undefined}
-            style={{
-              width: 20, height: 20, borderRadius: '50%', flexShrink: 0,
-              border: todo.completed ? 'none' : '2px solid var(--border2)',
-              background: todo.completed ? 'var(--teal)' : 'transparent',
-              cursor: readOnly ? 'not-allowed' : 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
-              opacity: readOnly ? 0.5 : 1,
+            onClick={e => {
+              e.stopPropagation();
+              if (!readOnly) updateTodo(todo.id, { completed: !todo.completed });
             }}
-           data-ui-native-button="">
-            {todo.completed && <Icon name="check" size={12} color="hsl(var(--primary-foreground))" />}
+            title={readOnly ? 'View-only access' : todo.completed ? 'Mark incomplete' : 'Mark complete'}
+            className={`task-checkbox-btn ${todo.completed ? 'task-checkbox-btn--checked' : ''}`}
+            data-ui-native-button=""
+          >
+            {todo.completed && <Icon name="check" size={12} color="#ffffff" />}
           </button>
         )}
 
-        <div style={{ flex: 1, minWidth: 0, cursor: 'pointer' }} onClick={onToggleExpand}
-          role="button" tabIndex={0} onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onToggleExpand(); } }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
-            <span style={{
-              fontSize: 14, fontWeight: 600, color: todo.completed ? 'var(--ink3)' : 'var(--ink)',
-              textDecoration: todo.completed ? 'line-through' : 'none',
-              overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
-            }}>
+        {/* Star Button */}
+        {!trashed && (
+          <button
+            type="button"
+            disabled={readOnly}
+            onClick={e => {
+              e.stopPropagation();
+              if (!readOnly) updateTodo(todo.id, { starred: !todo.starred });
+            }}
+            title={todo.starred ? 'Unstar task' : 'Star task'}
+            className={`task-star-btn ${todo.starred ? 'task-star-btn--active' : ''}`}
+            data-ui-native-button=""
+          >
+            <Icon name="star" size={14} />
+          </button>
+        )}
+
+        {/* Main Content Column */}
+        <div className="task-main-col">
+          <div className="task-title-line">
+            <span className={`task-title-text ${todo.completed ? 'task-title-text--completed' : ''}`}>
               {todo.title}
             </span>
-            {todo.starred && <Icon name="star" size={13} color="var(--gold)" />}
-            {todo.reminder && <Icon name="clock" size={13} color="var(--teal)" />}
+
+            {/* Priority Badge */}
             {todo.priority && (
-              <span style={{ fontSize: 10, fontWeight: 700, padding: '2px 6px', borderRadius: 'var(--r-sm)', background: priorityMeta.bg, color: priorityMeta.color, textTransform: 'uppercase' }}>
+              <span
+                style={{ background: priorityMeta.bg, color: priorityMeta.color }}
+                className="inline-flex items-center gap-1 text-[10.5px] font-bold px-2 py-0.5 rounded-md uppercase tracking-wider"
+              >
+                <Icon name={priorityMeta.icon} size={10} />
                 {priorityMeta.label}
+              </span>
+            )}
+
+            {/* List pill */}
+            {list && (
+              <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-muted-foreground ml-1">
+                <span className="w-1.5 h-1.5 rounded-full" style={{ background: list.color }} />
+                {list.name}
               </span>
             )}
           </div>
 
-          <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginTop: 4, flexWrap: 'wrap' }}>
-            {list && (
-              <span style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 11, color: 'var(--ink3)', fontWeight: 600 }}>
-                <span style={{ width: 6, height: 6, borderRadius: '50%', background: list.color }} />
-                {list.name}
+          <div className="task-meta-line">
+            {/* Due Date Indicator */}
+            {todo.due && (
+              <span className={`task-meta-badge ${
+                isOverdue(todo.due) && !todo.completed
+                  ? 'task-meta-badge--overdue'
+                  : isDueToday(todo.due) && !todo.completed
+                  ? 'task-meta-badge--today'
+                  : ''
+              }`}>
+                <Icon name="calendar" size={11} />
+                {isOverdue(todo.due) && !todo.completed ? `Overdue (${todo.due})` : isDueToday(todo.due) ? 'Due Today' : `Due ${todo.due}`}
               </span>
             )}
-            {todo.due && <span style={{ fontSize: 11, color: isOverdue(todo.due) && !todo.completed ? 'var(--red)' : 'var(--ink3)', fontWeight: isOverdue(todo.due) ? 700 : 400 }}>Due {todo.due}</span>}
-            {todo.subtasks.length > 0 && <span style={{ fontSize: 11, color: 'var(--ink3)' }}>{doneSubtasks}/{todo.subtasks.length} subtasks</span>}
-            {todo.notes && <Icon name="fileText" size={11} color="var(--ink3)" />}
+
+            {/* Subtasks Fraction */}
+            {todo.subtasks.length > 0 && (
+              <span className="task-meta-badge">
+                <Icon name="checkCircle" size={11} />
+                {doneSubtasks}/{todo.subtasks.length} subtasks
+              </span>
+            )}
+
+            {/* Notes preview icon */}
+            {todo.notes && (
+              <span className="task-meta-badge" title="Has notes">
+                <Icon name="fileText" size={11} />
+              </span>
+            )}
+
+            {/* Reminder */}
+            {todo.reminder && (
+              <span className="task-meta-badge text-teal-600 dark:text-teal-400" title="Reminder set">
+                <Icon name="clock" size={11} />
+              </span>
+            )}
+
+            {/* Assignee Avatar & Name */}
             {todo.assigneeName && (
-              <span style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 11, color: 'var(--teal)', fontWeight: 600 }}>
-                <PersonAvatar userId={todo.assigneeId} name={todo.assigneeName} size={14} /> {todo.assigneeName}
+              <span className="inline-flex items-center gap-1.5 text-xs font-medium text-teal-700 dark:text-teal-300 bg-teal/10 px-2 py-0.5 rounded-full">
+                <PersonAvatar userId={todo.assigneeId} name={todo.assigneeName} size={14} />
+                <span>{todo.assigneeName}</span>
               </span>
             )}
+
+            {/* Tags */}
             {todo.tags.map(tag => (
-              <span key={tag} style={{ fontSize: 10.5, fontWeight: 600, color: 'var(--teal)', background: 'var(--teal-l)', padding: '1px 7px', borderRadius: 'var(--r)'}}>#{tag}</span>
+              <span key={tag} className="task-tag-chip">
+                #{tag}
+              </span>
             ))}
           </div>
         </div>
 
-        {/* Stopwatch Live Timer */}
-        {!trashed && <TaskTimerWidget todo={todo} />}
+        {/* Right Action Widgets */}
+        <div className="task-right-actions" onClick={e => e.stopPropagation()}>
+          {/* Stopwatch Live Timer */}
+          {!trashed && <TaskTimerWidget todo={todo} />}
 
-        {!trashed && todo.status !== 'none' && (
-          readOnly ? (
-            <Badge variant={statusMeta.variant}>{statusMeta.label}</Badge>
-          ) : (
+          {/* Status Dropdown Badge */}
+          {!trashed && (
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <button type="button" style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0 }} data-ui-native-button="">
-                  <Badge variant={statusMeta.variant}>{statusMeta.label}</Badge>
+                <button
+                  type="button"
+                  disabled={readOnly}
+                  className="cursor-pointer transition-transform hover:scale-105"
+                  data-ui-native-button=""
+                >
+                  <Badge variant={statusMeta.variant} className="font-semibold text-xs py-0.5 px-2.5">
+                    {statusMeta.label}
+                  </Badge>
                 </button>
               </DropdownMenuTrigger>
               <StatusMenuItems todoId={todo.id} />
             </DropdownMenu>
-          )
-        )}
-        {!trashed && !readOnly && todo.status === 'none' && (
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <button type="button" style={{ background: 'none', border: '1px dashed var(--border)', borderRadius: 'var(--badge-radius)', cursor: 'pointer', padding: '3px 9px', fontSize: 11, color: 'var(--ink3)' }} data-ui-native-button="">+ Status</button>
-            </DropdownMenuTrigger>
-            <StatusMenuItems todoId={todo.id} />
-          </DropdownMenu>
-        )}
+          )}
 
-        {trashed ? (
-          todo.isOwner ? (
-            <div style={{ display: 'flex', gap: 4 }}>
-              <Tip label="Restore"><button type="button" aria-label="Restore" onClick={() => restoreTodo(todo.id)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink3)', padding: 6 }} data-ui-native-button=""><Icon name="refresh" size={15} /></button></Tip>
-              <Tip label="Delete forever"><button type="button" aria-label="Delete forever" onClick={() => purgeTodo(todo.id)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--red)', padding: 6 }} data-ui-native-button=""><Icon name="trash" size={15} /></button></Tip>
-            </div>
-          ) : (
-            <span style={{ fontSize: 11, color: 'var(--ink3)' }}>Deleted by owner</span>
-          )
-        ) : readOnly ? null : (
-          <DropdownMenu>
-            <Tip label="More actions">
+          {/* Trashed Actions */}
+          {trashed ? (
+            todo.isOwner ? (
+              <div className="flex gap-1">
+                <Tip label="Restore task">
+                  <button
+                    type="button"
+                    onClick={() => restoreTodo(todo.id)}
+                    className="task-icon-action-btn hover:text-teal"
+                    data-ui-native-button=""
+                  >
+                    <Icon name="refresh" size={15} />
+                  </button>
+                </Tip>
+                <Tip label="Delete forever">
+                  <button
+                    type="button"
+                    onClick={() => purgeTodo(todo.id)}
+                    className="task-icon-action-btn hover:text-red-600"
+                    data-ui-native-button=""
+                  >
+                    <Icon name="trash" size={15} />
+                  </button>
+                </Tip>
+              </div>
+            ) : (
+              <span className="text-xs text-muted-foreground">Deleted by owner</span>
+            )
+          ) : readOnly ? null : (
+            <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <button type="button" aria-label="More actions" style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink3)', padding: 6 }} data-ui-native-button=""><Icon name="moreVertical" size={16} /></button>
+                <button
+                  type="button"
+                  className="task-icon-action-btn"
+                  title="More actions"
+                  data-ui-native-button=""
+                >
+                  <Icon name="moreVertical" size={15} />
+                </button>
               </DropdownMenuTrigger>
-            </Tip>
-            <DropdownMenuContent align="end">
-              <DropdownMenuItem onClick={() => updateTodo(todo.id, { starred: !todo.starred })}>
-                <Icon name="star" size={13} className="text-muted-foreground" /> {todo.starred ? 'Unstar' : 'Star'}
-              </DropdownMenuItem>
-
-              <DropdownMenuSeparator />
-              <DropdownMenuItem onClick={() => updateTodo(todo.id, { priority: 'urgent' })}>Set Urgent Priority</DropdownMenuItem>
-              <DropdownMenuItem onClick={() => updateTodo(todo.id, { priority: 'high' })}>Set High Priority</DropdownMenuItem>
-              <DropdownMenuItem onClick={() => updateTodo(todo.id, { priority: 'medium' })}>Set Medium Priority</DropdownMenuItem>
-              <DropdownMenuItem onClick={() => updateTodo(todo.id, { priority: 'low' })}>Set Low Priority</DropdownMenuItem>
-              <DropdownMenuSeparator />
-
-              {todo.isOwner && (
-                <DropdownMenuItem onClick={() => updateTodo(todo.id, { someday: !todo.someday, due: todo.someday ? todo.due : undefined })}>
-                  <Icon name="clock" size={13} className="text-muted-foreground" /> {todo.someday ? 'Remove from Someday' : 'Move to Someday'}
+              <DropdownMenuContent align="end">
+                <DropdownMenuItem onClick={() => updateTodo(todo.id, { starred: !todo.starred })}>
+                  <Icon name="star" size={13} className="text-muted-foreground" />
+                  <span>{todo.starred ? 'Unstar' : 'Star'}</span>
                 </DropdownMenuItem>
-              )}
-              <DropdownMenuItem onClick={() => cloneTask(todo.id)}>
-                <Icon name="copy" size={13} className="text-muted-foreground" /> Clone
-              </DropdownMenuItem>
-              {todo.isOwner && (
-                <DropdownMenuItem onClick={() => deleteTodo(todo.id)} className="text-destructive">
-                  <Icon name="trash" size={13} /> Delete
-                </DropdownMenuItem>
-              )}
-            </DropdownMenuContent>
-          </DropdownMenu>
-        )}
 
-        <Icon name={expanded ? 'chevronUp' : 'chevronDown'} size={14} color="var(--ink3)" onClick={onToggleExpand} style={{ cursor: 'pointer' }} />
+                <DropdownMenuSeparator />
+                <DropdownMenuItem onClick={() => updateTodo(todo.id, { priority: 'urgent' })}>
+                  <span className="w-2 h-2 rounded-full bg-red-500 mr-2" /> Urgent Priority
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => updateTodo(todo.id, { priority: 'high' })}>
+                  <span className="w-2 h-2 rounded-full bg-orange-500 mr-2" /> High Priority
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => updateTodo(todo.id, { priority: 'medium' })}>
+                  <span className="w-2 h-2 rounded-full bg-amber-500 mr-2" /> Medium Priority
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => updateTodo(todo.id, { priority: 'low' })}>
+                  <span className="w-2 h-2 rounded-full bg-slate-400 mr-2" /> Low Priority
+                </DropdownMenuItem>
+
+                <DropdownMenuSeparator />
+                {todo.isOwner && (
+                  <DropdownMenuItem onClick={() => updateTodo(todo.id, { someday: !todo.someday, due: todo.someday ? todo.due : undefined })}>
+                    <Icon name="clock" size={13} className="text-muted-foreground" />
+                    <span>{todo.someday ? 'Remove from Someday' : 'Move to Someday'}</span>
+                  </DropdownMenuItem>
+                )}
+                <DropdownMenuItem onClick={() => cloneTask(todo.id)}>
+                  <Icon name="copy" size={13} className="text-muted-foreground" />
+                  <span>Clone Task</span>
+                </DropdownMenuItem>
+                {todo.isOwner && (
+                  <DropdownMenuItem onClick={() => deleteTodo(todo.id)} className="text-destructive">
+                    <Icon name="trash" size={13} />
+                    <span>Delete Task</span>
+                  </DropdownMenuItem>
+                )}
+              </DropdownMenuContent>
+            </DropdownMenu>
+          )}
+
+          {/* Chevron expand */}
+          <button
+            type="button"
+            onClick={onToggleExpand}
+            className="task-icon-action-btn"
+            title={expanded ? 'Collapse details' : 'Expand details'}
+          >
+            <Icon name={expanded ? 'chevronUp' : 'chevronDown'} size={15} />
+          </button>
+        </div>
       </div>
 
+      {/* ── Expanded Task Detail Deck ─────────────────────────────────── */}
       {expanded && (
-        <div style={{ borderTop: '1px solid var(--border)', padding: '16px', background: 'var(--bg)', display: 'flex', flexDirection: 'column', gap: 14 }}>
-          
-          <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', alignItems: 'center' }}>
+        <div className="task-detail-deck">
+          {/* Controls Bar */}
+          <div className="task-detail-meta-grid">
             <DatePicker
               date={parseDateOnly(todo.due)}
               onChange={d => updateTodo(todo.id, { due: toDateOnlyString(d) || undefined, someday: d ? false : todo.someday })}
               placeholder="Set due date"
-              triggerClassName="w-auto h-8 text-xs"
+              triggerClassName="w-auto h-8 text-xs font-semibold rounded-lg bg-card"
               disabled={trashed || readOnly}
             />
 
-            <Select value={todo.priority || 'medium'} disabled={trashed || readOnly} onValueChange={v => updateTodo(todo.id, { priority: v as TaskPriority })}>
-              <SelectTrigger style={{ width: 'auto', minHeight: 28, fontSize: 12 }}><SelectValue /></SelectTrigger>
+            <Select
+              value={todo.priority || 'medium'}
+              disabled={trashed || readOnly}
+              onValueChange={v => updateTodo(todo.id, { priority: v as TaskPriority })}
+            >
+              <SelectTrigger className="w-auto min-h-8 text-xs font-semibold rounded-lg bg-card">
+                <SelectValue />
+              </SelectTrigger>
               <SelectContent>
                 <SelectItem value="low">Low Priority</SelectItem>
                 <SelectItem value="medium">Medium Priority</SelectItem>
@@ -948,7 +1340,21 @@ function TaskRow({ todo, list, expanded, onToggleExpand, newSubtaskTitle, setNew
               onChange={v => updateTodo(todo.id, { reminder: v })}
               open={reminderOpen}
               onOpenChange={setReminderOpen}
-              triggerStyle={{ background: 'none', border: '1px solid var(--border)', borderRadius: 'var(--r-sm)', cursor: 'pointer', color: 'var(--ink3)', padding: '4px 8px', display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, height: 32, boxSizing: 'border-box' }}
+              triggerStyle={{
+                background: 'var(--card-bg, #ffffff)',
+                border: '1px solid var(--border)',
+                borderRadius: '8px',
+                cursor: 'pointer',
+                color: 'var(--ink2)',
+                padding: '4px 10px',
+                display: 'flex',
+                alignItems: 'center',
+                gap: 6,
+                fontSize: 12,
+                fontWeight: 600,
+                height: 32,
+                boxSizing: 'border-box'
+              }}
             />
 
             {entitlements?.features.projects && (
@@ -958,7 +1364,9 @@ function TaskRow({ todo, list, expanded, onToggleExpand, newSubtaskTitle, setNew
                   disabled={trashed || readOnly}
                   onValueChange={v => updateTodo(todo.id, { recurrenceRule: v === 'none' ? null : { freq: v as 'daily' | 'weekly' | 'monthly', interval: todo.recurrenceRule?.interval || 1 } })}
                 >
-                  <SelectTrigger style={{ width: 'auto', minHeight: 28, fontSize: 12 }}><SelectValue /></SelectTrigger>
+                  <SelectTrigger className="w-auto min-h-8 text-xs font-semibold rounded-lg bg-card">
+                    <SelectValue />
+                  </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="none">Doesn't repeat</SelectItem>
                     <SelectItem value="daily">Repeats daily</SelectItem>
@@ -967,50 +1375,60 @@ function TaskRow({ todo, list, expanded, onToggleExpand, newSubtaskTitle, setNew
                   </SelectContent>
                 </Select>
                 {todo.recurrenceRule && (
-                  <span style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 12, color: 'var(--ink3)' }}>
+                  <span className="flex items-center gap-1.5 text-xs text-muted-foreground font-medium">
                     every
                     <input
-                      type="number" min={1} max={365} value={todo.recurrenceRule.interval}
+                      type="number"
+                      min={1}
+                      max={365}
+                      value={todo.recurrenceRule.interval}
                       disabled={trashed || readOnly}
                       onChange={e => updateTodo(todo.id, { recurrenceRule: { ...todo.recurrenceRule!, interval: Math.max(1, Number(e.target.value) || 1) } })}
-                      style={{ width: 44, padding: '3px 5px', border: '1px solid var(--border)', borderRadius: 'var(--r-sm)', fontSize: 12 }}
+                      className="w-12 px-1.5 py-1 border border-border rounded text-xs bg-card text-center"
                     />
                   </span>
                 )}
               </>
             )}
+
+            {/* Assignee */}
+            {!trashed && (
+              todo.isOwner ? (
+                <div className="w-56">
+                  <EntityPicker
+                    value={todo.assigneeId ? { id: todo.assigneeId, label: todo.assigneeName || 'Assigned' } : null}
+                    onChange={item => updateTodo(todo.id, { assigneeId: item?.id ?? null, assigneeName: item?.label })}
+                    search={searchColleagues}
+                    placeholder="Assign to colleague…"
+                  />
+                </div>
+              ) : isAssignedToMe ? (
+                <div className="text-xs text-muted-foreground flex items-center gap-1.5 bg-card px-2.5 py-1.5 rounded-lg border border-border">
+                  <PersonAvatar name={todo.ownerName ?? 'a colleague'} size={16} />
+                  <span>Assigned by {todo.ownerName ?? 'colleague'}</span>
+                </div>
+              ) : todo.assigneeName ? (
+                <div className="text-xs text-muted-foreground flex items-center gap-1.5 bg-card px-2.5 py-1.5 rounded-lg border border-border">
+                  <PersonAvatar userId={todo.assigneeId} name={todo.assigneeName} size={16} />
+                  <span>Assigned to {todo.assigneeName}</span>
+                </div>
+              ) : null
+            )}
           </div>
 
-          {!trashed && (
-            todo.isOwner ? (
-              <div style={{ maxWidth: 260 }}>
-                <EntityPicker
-                  value={todo.assigneeId ? { id: todo.assigneeId, label: todo.assigneeName || 'Assigned' } : null}
-                  onChange={item => updateTodo(todo.id, { assigneeId: item?.id ?? null, assigneeName: item?.label })}
-                  search={searchColleagues}
-                  placeholder="Assign to a colleague…"
-                />
-              </div>
-            ) : isAssignedToMe ? (
-              <div style={{ fontSize: 12.5, color: 'var(--ink3)', display: 'flex', alignItems: 'center', gap: 6 }}>
-                <PersonAvatar name={todo.ownerName ?? 'a colleague'} size={16} /> Assigned to you by {todo.ownerName ?? 'a colleague'}
-              </div>
-            ) : todo.assigneeName ? (
-              <div style={{ fontSize: 12.5, color: 'var(--ink3)', display: 'flex', alignItems: 'center', gap: 6 }}>
-                <PersonAvatar userId={todo.assigneeId} name={todo.assigneeName} size={16} /> Assigned to {todo.assigneeName}
-              </div>
-            ) : null
-          )}
+          {/* Description & Notes */}
+          <div>
+            <textarea
+              value={todo.notes || ''}
+              onChange={e => updateTodo(todo.id, { notes: e.target.value })}
+              placeholder="Add detailed task description, checklist steps or notes…"
+              rows={3}
+              disabled={trashed || readOnly}
+              className="task-detail-notes-input"
+            />
+          </div>
 
-          <textarea
-            value={todo.notes || ''}
-            onChange={e => updateTodo(todo.id, { notes: e.target.value })}
-            placeholder="Detailed description & instructions…"
-            rows={3}
-            disabled={trashed || readOnly}
-            style={{ padding: '8px 10px', border: '1px solid var(--border)', borderRadius: 'var(--r)', fontSize: 13, resize: 'vertical', background: 'var(--white)', color: 'var(--ink)', fontFamily: 'var(--font)' }}
-          />
-
+          {/* Meeting Link Panel */}
           {!trashed && !readOnly && (
             <MeetingLinkPanel
               title={todo.title}
@@ -1019,13 +1437,21 @@ function TaskRow({ todo, list, expanded, onToggleExpand, newSubtaskTitle, setNew
             />
           )}
 
+          {/* Tags */}
           {!trashed && (
-            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, alignItems: 'center' }}>
+            <div className="flex flex-wrap gap-1.5 items-center">
               {todo.tags.map(tag => (
-                <span key={tag} style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 11, fontWeight: 600, color: 'var(--teal)', background: 'var(--teal-l)', padding: '3px 8px', borderRadius: 'var(--r)'}}>
+                <span key={tag} className="task-tag-chip">
                   #{tag}
                   {!readOnly && (
-                    <button type="button" onClick={() => removeTag(tag)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--teal)', display: 'flex', padding: 0 }} data-ui-native-button=""><Icon name="x" size={10} /></button>
+                    <button
+                      type="button"
+                      onClick={() => removeTag(tag)}
+                      className="hover:text-red-500 cursor-pointer p-0.5 ml-0.5"
+                      data-ui-native-button=""
+                    >
+                      <Icon name="x" size={10} />
+                    </button>
                   )}
                 </span>
               ))}
@@ -1035,38 +1461,66 @@ function TaskRow({ todo, list, expanded, onToggleExpand, newSubtaskTitle, setNew
                   onChange={e => setNewTag(e.target.value)}
                   onKeyDown={e => { if (e.key === 'Enter') addTag(); }}
                   onBlur={() => newTag.trim() && addTag()}
-                  placeholder="+ tag"
-                  style={{ width: 70, border: '1px dashed var(--border)', borderRadius: 'var(--r)', padding: '3px 8px', fontSize: 11, background: 'transparent', color: 'var(--ink)', outline: 'none' }}
+                  placeholder="+ add tag"
+                  className="w-20 px-2 py-0.5 text-xs border border-dashed border-border rounded-md bg-transparent focus:outline-none focus:border-teal"
                 />
               )}
             </div>
           )}
 
           {/* Subtasks Checklist */}
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 6, background: 'var(--white)', padding: 12, borderRadius: 'var(--r)', border: '1px solid var(--border)' }}>
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-              <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--ink3)', textTransform: 'uppercase' }}>Checklist / Subtasks</span>
+          <div className="task-subtasks-card">
+            <div className="task-subtasks-header">
+              <span className="task-subtasks-title">Subtasks & Checklist</span>
               {todo.subtasks.length > 0 && (
-                <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--teal)' }}>
+                <span className="text-xs font-bold text-teal">
                   {Math.round((doneSubtasks / todo.subtasks.length) * 100)}% Complete
                 </span>
               )}
             </div>
-            {todo.subtasks.map(s => (
-              <div key={s.id} style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                <button type="button" disabled={readOnly} onClick={() => !readOnly && updateSubtask(todo.id, s.id, { completed: !s.completed })}
-                  style={{ width: 16, height: 16, borderRadius: '50%', border: s.completed ? 'none' : '2px solid var(--border2)', background: s.completed ? 'var(--teal)' : 'transparent', cursor: readOnly ? 'not-allowed' : 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, opacity: readOnly ? 0.6 : 1 }} data-ui-native-button="">
-                  {s.completed && <Icon name="check" size={10} color="hsl(var(--primary-foreground))" />}
-                </button>
-                <span style={{ flex: 1, fontSize: 13, color: s.completed ? 'var(--ink3)' : 'var(--ink)', textDecoration: s.completed ? 'line-through' : 'none' }}>{s.title}</span>
-                {!readOnly && (
-                  <button type="button" onClick={() => deleteSubtask(todo.id, s.id)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink3)' }} data-ui-native-button=""><Icon name="x" size={12} /></button>
-                )}
+
+            {todo.subtasks.length > 0 && (
+              <div className="w-full h-1.5 rounded-full bg-border overflow-hidden mb-1">
+                <div
+                  className="h-full bg-teal rounded-full transition-all duration-300"
+                  style={{ width: `${Math.round((doneSubtasks / todo.subtasks.length) * 100)}%` }}
+                />
               </div>
-            ))}
+            )}
+
+            <div className="flex flex-col gap-1.5">
+              {todo.subtasks.map(s => (
+                <div key={s.id} className="task-subtask-row">
+                  <button
+                    type="button"
+                    disabled={readOnly}
+                    onClick={() => !readOnly && updateSubtask(todo.id, s.id, { completed: !s.completed })}
+                    className={`task-subtask-check ${s.completed ? 'task-subtask-check--checked' : ''}`}
+                    data-ui-native-button=""
+                  >
+                    {s.completed && <Icon name="check" size={10} color="#ffffff" />}
+                  </button>
+                  <span className={`flex-1 text-sm ${s.completed ? 'line-through text-muted-foreground' : 'text-foreground'}`}>
+                    {s.title}
+                  </span>
+                  {!readOnly && (
+                    <button
+                      type="button"
+                      onClick={() => deleteSubtask(todo.id, s.id)}
+                      className="text-muted-foreground hover:text-red-500 p-1"
+                      title="Delete subtask"
+                      data-ui-native-button=""
+                    >
+                      <Icon name="x" size={12} />
+                    </button>
+                  )}
+                </div>
+              ))}
+            </div>
+
             {!trashed && !readOnly && (
-              <div style={{ display: 'flex', gap: 8, alignItems: 'center', marginTop: 4 }}>
-                <Icon name="plus" size={12} color="var(--ink3)" />
+              <div className="flex items-center gap-2 pt-1 border-t border-border/50">
+                <Icon name="plus" size={13} className="text-muted-foreground" />
                 <input
                   value={newSubtaskTitle}
                   onChange={e => setNewSubtaskTitle(e.target.value)}
@@ -1076,19 +1530,22 @@ function TaskRow({ todo, list, expanded, onToggleExpand, newSubtaskTitle, setNew
                       setNewSubtaskTitle('');
                     }
                   }}
-                  placeholder="Add subtask item…"
-                  style={{ flex: 1, border: 'none', outline: 'none', fontSize: 12.5, background: 'transparent', color: 'var(--ink)' }}
+                  placeholder="Add a new checklist item… press Enter"
+                  className="flex-1 text-xs bg-transparent border-none outline-none text-foreground placeholder:text-muted-foreground"
                 />
               </div>
             )}
           </div>
 
+          {/* Comments & Activity Stream */}
           {!trashed && <CommentsSection taskId={todo.id} readOnly={readOnly} />}
         </div>
       )}
     </div>
   );
 }
+
+/* ── COMMENTS & ACTIVITY SECTION ────────────────────────────────────── */
 
 function CommentsSection({ taskId, readOnly }: { taskId: string; readOnly: boolean }) {
   const { user } = useAuth();
@@ -1125,57 +1582,74 @@ function CommentsSection({ taskId, readOnly }: { taskId: string; readOnly: boole
   }
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 8, borderTop: '1px solid var(--border)', paddingTop: 10 }}>
-      <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--ink3)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-        Comments & Activity{comments?.length ? ` (${comments.length})` : ''}
+    <div className="task-comments-deck">
+      <div className="text-xs font-bold text-muted-foreground uppercase tracking-wider">
+        Comments & Discussion {comments?.length ? `(${comments.length})` : ''}
       </div>
+
       {comments === null ? (
-        <div style={{ fontSize: 12, color: 'var(--ink3)' }}>Loading comments…</div>
+        <div className="text-xs text-muted-foreground py-2">Loading discussion…</div>
+      ) : comments.length === 0 ? (
+        <div className="text-xs text-muted-foreground/70 italic py-1">No comments yet. Type below to start a discussion.</div>
       ) : (
-        comments.map(c => (
-          <div key={c.id} style={{ display: 'flex', gap: 8, alignItems: 'flex-start' }}>
-            <div style={{
-              width: 22, height: 22, borderRadius: '50%', background: 'var(--teal-l)', color: 'var(--teal)',
-              display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 9.5, fontWeight: 700, flexShrink: 0,
-            }}>
-              {initials(c.authorName)}
-            </div>
-            <div style={{ flex: 1, minWidth: 0 }}>
-              <div style={{ display: 'flex', alignItems: 'baseline', gap: 6 }}>
-                <span style={{ fontSize: 12.5, fontWeight: 600, color: 'var(--ink)' }}>{c.authorName}</span>
-                <span style={{ fontSize: 10.5, color: 'var(--ink3)' }}>{new Date(c.createdAt).toLocaleString()}</span>
+        <div className="flex flex-col gap-2.5">
+          {comments.map(c => (
+            <div key={c.id} className="flex gap-2.5 items-start bg-card p-2.5 rounded-lg border border-border/60">
+              <div className="w-6 h-6 rounded-full bg-teal-500/10 text-teal flex items-center justify-center text-[10px] font-bold shrink-0">
+                {initials(c.authorName)}
               </div>
-              <div style={{ fontSize: 13, color: 'var(--ink)', whiteSpace: 'pre-wrap' }}>{c.content}</div>
+              <div className="flex-1 min-w-0">
+                <div className="flex items-baseline gap-2">
+                  <span className="text-xs font-bold text-foreground">{c.authorName}</span>
+                  <span className="text-[10px] text-muted-foreground">{new Date(c.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} · {new Date(c.createdAt).toLocaleDateString()}</span>
+                </div>
+                <div className="text-xs text-foreground mt-0.5 whitespace-pre-wrap">{c.content}</div>
+              </div>
+              {c.authorId === user?.id && (
+                <button
+                  type="button"
+                  onClick={() => remove(c.id)}
+                  title="Delete comment"
+                  className="text-muted-foreground hover:text-red-500 p-1 shrink-0"
+                  data-ui-native-button=""
+                >
+                  <Icon name="x" size={11} />
+                </button>
+              )}
             </div>
-            {c.authorId === user?.id && (
-              <button type="button" onClick={() => remove(c.id)} title="Delete comment"
-                style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink3)', padding: 2, flexShrink: 0 }} data-ui-native-button="">
-                <Icon name="x" size={11} />
-              </button>
-            )}
-          </div>
-        ))
+          ))}
+        </div>
       )}
+
       {!readOnly && (
-        <MentionInput
-          value={draft}
-          onChange={(v, m) => { setDraft(v); setDraftMentions(m); }}
-          users={colleagues}
-          placeholder="Write a comment… type @ to mention someone"
-          disabled={posting}
-          onSubmit={submit}
-        />
+        <div className="mt-1">
+          <MentionInput
+            value={draft}
+            onChange={(v, m) => { setDraft(v); setDraftMentions(m); }}
+            users={colleagues}
+            placeholder="Write a comment… type @ to mention a team member"
+            disabled={posting}
+            onSubmit={submit}
+          />
+        </div>
       )}
     </div>
   );
 }
 
+/* ── STATUS MENU ITEMS HELPER ───────────────────────────────────────── */
+
 function StatusMenuItems({ todoId }: { todoId: string }) {
   return (
     <DropdownMenuContent align="end">
       {(Object.keys(STATUS_META) as TaskStatus[]).map(s => (
-        <DropdownMenuItem key={s} onClick={() => updateTodo(todoId, s === 'completed' ? { status: s, completed: true } : { status: s })}>
-          <Badge variant={STATUS_META[s].variant}>{STATUS_META[s].label}</Badge>
+        <DropdownMenuItem
+          key={s}
+          onClick={() => updateTodo(todoId, s === 'completed' ? { status: s, completed: true } : { status: s, completed: false })}
+          className="flex items-center gap-2 cursor-pointer"
+        >
+          <span className="w-2 h-2 rounded-full" style={{ background: STATUS_META[s].dotColor }} />
+          <span>{STATUS_META[s].label}</span>
         </DropdownMenuItem>
       ))}
     </DropdownMenuContent>

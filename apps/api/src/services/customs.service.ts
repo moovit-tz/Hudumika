@@ -1113,6 +1113,28 @@ export async function calculateMultiItemLandedCost(input: MultiItemInput): Promi
     return result;
   }
 
+  /** Same largest-remainder technique as apportion(), but for reconciling an
+   *  already-computed array of values against a target integer sum — not
+   *  for splitting one total by FOB share. Needed because the UI's per-line
+   *  "Landed Total" column and its "Total" footer row are each formatted
+   *  with fmt() = Math.round(n) independently: rounding five unrounded
+   *  line totals and separately rounding their unrounded sum does not
+   *  generally produce numbers that add up (LENS-47 — reported by Moovit
+   *  Mobility as the printed per-line figures disagreeing with the printed
+   *  total). Rounding the *displayed* per-line figures to sum to the exact
+   *  *displayed* total, instead of each being independently correct in
+   *  isolation, is what actually matches what a customer manually totals
+   *  off the page. */
+  function roundToSum(values: number[], targetSum: number): number[] {
+    const floors = values.map(Math.floor);
+    const remainder = targetSum - floors.reduce((a, b) => a + b, 0);
+    if (remainder <= 0) return floors;
+    const order = values.map((v, i) => ({ i, frac: v - floors[i] })).sort((a, b) => b.frac - a.frac);
+    const result = [...floors];
+    for (let k = 0; k < remainder; k++) result[order[k % order.length].i] += 1;
+    return result;
+  }
+
   const freightAlloc = apportion(totalFreightTzs);
   const insuranceAlloc = apportion(totalInsuranceTzs);
   const destinationAlloc = apportion(totalDestinationTzs);
@@ -1215,6 +1237,19 @@ export async function calculateMultiItemLandedCost(input: MultiItemInput): Promi
   });
   sumLanded += extraAlloc.reduce((a, b) => a + b, 0);
   sumLandedExVat += extraAlloc.reduce((a, b) => a + b, 0);
+
+  // Reconcile the two figures a reader actually compares on the printed
+  // report: the rounded per-line "Landed Total" column against the
+  // rounded grand "Total" row. Both fmt() to Math.round() independently
+  // in the UI, so round the per-line values here, against the exact same
+  // rounded target the UI shows as the total, rather than leaving each
+  // line correct only in isolation. See LENS-47.
+  const roundedLandedTotals = roundToSum(lineResults.map(l => l.landed_total), Math.round(sumLanded));
+  const roundedLandedTotalsExVat = roundToSum(lineResults.map(l => l.landed_total_ex_vat), Math.round(sumLandedExVat));
+  lineResults.forEach((line, i) => {
+    line.landed_total = roundedLandedTotals[i];
+    line.landed_total_ex_vat = roundedLandedTotalsExVat[i];
+  });
 
   const effectiveStatutoryRatePct = cifTzsTotal > 0 ? (sumStatutory / cifTzsTotal) * 100 : 0;
   const landedMultiplier = cifTzsTotal > 0 ? sumLanded / cifTzsTotal : 0;

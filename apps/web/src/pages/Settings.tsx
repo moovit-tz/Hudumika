@@ -41,6 +41,7 @@ export { NAV } from './settings/shared.js';
 import { SettingsCtx, NAV, type SettingsCtxType } from './settings/shared.js';
 import {
   CompanySection,
+  LocationsSection,
   LocalizationSection,
   LandingExperienceSection,
   SiemExportSection,
@@ -223,6 +224,7 @@ export const CommunicationsSection: React.FC = () => {
 export function renderSection(key: string): React.ReactNode {
   switch (key) {
     case 'company':             return <CompanySection />;
+    case 'locations':           return <LocationsSection />;
     case 'elsewhere':           return <ElsewhereSection />;
     // Merged into Company Information's own "Company Branding" card.
     case 'branding':            return <CompanySection />;
@@ -317,6 +319,8 @@ export const Settings: React.FC = () => {
       case 'company':
       case 'branding':
         return 'Organization identity, profile, and branding configuration.';
+      case 'locations':
+        return 'Branches, warehouses, and offices registered to this workspace.';
       case 'localization':
         return 'Configure workspace timezone, language, and regional preferences.';
       case 'landing-experience':

@@ -1,8 +1,9 @@
 import { dbPlatform, withTenant } from '../db/client.js';
 import { checkSeatLimit } from '../lib/plan-limits.js';
 import type { TenantPlan } from '@hudumika/types';
-import { PLAN_LEVELS } from '@hudumika/types';
+import { PLAN_LEVELS, SIGNUP_BASE_PLAN_CODES } from '@hudumika/types';
 import { computePlanAmount, periodBounds, prorationFactor } from './subscription-billing.service.js';
+import { currencyChangeBlocker } from './subscription-currency-change.service.js';
 
 type BillingCycle = 'monthly' | 'annual';
 
@@ -17,7 +18,7 @@ export interface PlanChangeRequest {
 export interface PlanChangeResult {
   success: boolean;
   error?: string;
-  code?: 'PLAN_NOT_FOUND' | 'SEAT_LIMIT_EXCEEDED' | 'SAME_PLAN' | 'PLAN_INACTIVE';
+  code?: 'PLAN_NOT_FOUND' | 'SEAT_LIMIT_EXCEEDED' | 'SAME_PLAN' | 'PLAN_INACTIVE' | 'CURRENCY_CHANGE_REQUIRES_REVIEW';
   fromPlan: string;
   toPlan: string;
   fromCycle: BillingCycle;
@@ -25,6 +26,7 @@ export interface PlanChangeResult {
   prorationAmount: number | null;
   prorationCurrency: string | null;
   changeId: string | null;
+  scheduledFor?: Date;
 }
 
 export async function changePlan(req: PlanChangeRequest): Promise<PlanChangeResult> {
@@ -37,9 +39,13 @@ export async function changePlan(req: PlanChangeRequest): Promise<PlanChangeResu
   const fromPlan = tenant.plan as TenantPlan;
   const fromCycle = (tenant.billing_cycle ?? 'monthly') as BillingCycle;
   const toCycle = req.toCycle ?? fromCycle;
+  const changeContext = { fromPlan, toPlan: req.toPlan, fromCycle, toCycle, prorationAmount: null, prorationCurrency: null, changeId: null };
 
   if (fromPlan === req.toPlan && fromCycle === toCycle) {
     return { success: false, error: 'Already on this plan and cycle', code: 'SAME_PLAN', fromPlan, toPlan: req.toPlan, fromCycle, toCycle, prorationAmount: null, prorationCurrency: null, changeId: null };
+  }
+  if (fromPlan !== req.toPlan && !SIGNUP_BASE_PLAN_CODES.includes(req.toPlan)) {
+    return { ...changeContext, success: false, error: 'Select Starter, Business, or Scale for a plan change.', code: 'PLAN_NOT_FOUND' };
   }
 
   const newPkg = await dbPlatform.selectFrom('packages').selectAll()
@@ -49,6 +55,42 @@ export async function changePlan(req: PlanChangeRequest): Promise<PlanChangeResu
   }
   if (!newPkg.is_active) {
     return { success: false, error: 'Target plan is not active', code: 'PLAN_INACTIVE', fromPlan, toPlan: req.toPlan, fromCycle, toCycle, prorationAmount: null, prorationCurrency: null, changeId: null };
+  }
+  const oldPkg = fromPlan === req.toPlan ? newPkg : await dbPlatform.selectFrom('packages').selectAll()
+    .where('code', '=', fromPlan).executeTakeFirst();
+  if (oldPkg && (oldPkg.currency ?? 'USD') !== (newPkg.currency ?? 'USD')) {
+    const failure = (error: string): PlanChangeResult => ({
+      ...changeContext, success: false, code: 'CURRENCY_CHANGE_REQUIRES_REVIEW', error,
+    });
+    if (toCycle !== fromCycle) return failure('Keep your current billing cycle when switching currency. You can change the cycle afterward.');
+    return withTenant(req.tenantId, async trx => {
+      const current = await trx.selectFrom('tenants').select(['plan', 'billing_cycle', 'created_at'])
+        .where('id', '=', req.tenantId).forUpdate().executeTakeFirstOrThrow();
+      if (current.plan !== fromPlan || (current.billing_cycle ?? 'monthly') !== fromCycle) {
+        return failure('Your plan changed. Reload billing and try again.');
+      }
+      const scheduled = await trx.selectFrom('subscription_currency_changes').selectAll()
+        .where('tenant_id', '=', req.tenantId).where('status', '=', 'scheduled').executeTakeFirst();
+      if (scheduled) {
+        return scheduled.to_plan === req.toPlan
+          ? { ...changeContext, success: true, scheduledFor: scheduled.effective_at }
+          : failure('Cancel the scheduled currency change before choosing another plan.');
+      }
+      const now = new Date();
+      const anniversary = current.created_at ? new Date(current.created_at).getUTCMonth() : undefined;
+      const { end } = periodBounds(now, fromCycle, anniversary);
+      const effectiveAt = new Date(end.getTime() + 86_400_000);
+      const currency = newPkg.currency ?? 'USD';
+      const blocker = await currencyChangeBlocker(trx, req.tenantId, req.toPlan, currency, effectiveAt);
+      if (blocker) return failure(blocker);
+      const values = {
+        from_plan: fromPlan, to_plan: req.toPlan, billing_cycle: fromCycle, currency,
+        effective_at: effectiveAt, requested_by: req.initiatedBy ?? null, status: 'scheduled' as const, blocked_reason: null,
+      };
+      await trx.insertInto('subscription_currency_changes').values({ tenant_id: req.tenantId, ...values })
+        .onConflict(conflict => conflict.column('tenant_id').doUpdateSet(values)).execute();
+      return { ...changeContext, success: true, scheduledFor: effectiveAt };
+    });
   }
 
   const seatCheck = await checkSeatLimit(req.tenantId, req.toPlan);
@@ -64,9 +106,6 @@ export async function changePlan(req: PlanChangeRequest): Promise<PlanChangeResu
   const now = new Date();
 
   if (fromPlan !== req.toPlan) {
-    const oldPkg = await dbPlatform.selectFrom('packages').selectAll()
-      .where('code', '=', fromPlan).executeTakeFirst();
-
     if (oldPkg) {
       const seats = await withTenant(req.tenantId, async (trx) => {
         const row = await trx.selectFrom('users').select(({ fn }) => fn.countAll<number>().as('c'))
@@ -93,9 +132,13 @@ export async function changePlan(req: PlanChangeRequest): Promise<PlanChangeResu
   }
 
   // Apply the change
-  await dbPlatform.updateTable('tenants')
+  const changed = await dbPlatform.updateTable('tenants')
     .set({ plan: req.toPlan, billing_cycle: toCycle, updated_at: new Date() } as any)
-    .where('id', '=', req.tenantId).execute();
+    .where('id', '=', req.tenantId).where('plan', '=', fromPlan).where('billing_cycle', '=', fromCycle)
+    .returning('id').executeTakeFirst();
+  if (!changed) {
+    return { ...changeContext, success: false, error: 'Your plan changed. Reload billing and try again.' };
+  }
 
   // Record the audit trail
   const change = await dbPlatform.insertInto('tenant_plan_changes' as any)

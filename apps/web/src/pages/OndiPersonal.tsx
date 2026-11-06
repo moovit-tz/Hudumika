@@ -7,7 +7,6 @@ import { useAuth } from '../hooks/useAuth.js';
 import { apiFetch } from '../lib/api.js';
 import { PageHeader } from '../components/PageHeader.js';
 import { PersonAvatar } from '../components/PersonAvatar.js';
-import { FeaturedIcon } from '../components/ui/featured-icon.js';
 import { Icon } from '../components/Icon.js';
 import { Badge } from '../components/ui/badge.js';
 import { Button } from '../components/ui/button.js';
@@ -203,9 +202,7 @@ export const OndiPersonal: React.FC = () => {
           <div>
             <div className="op-card-hdr">
               <div className="op-card-hdr-left">
-                <FeaturedIcon variant="brand" size="sm" shape="square">
-                  <Icon name="shield" size={16} />
-                </FeaturedIcon>
+                <Icon name="shield" size={18} color="var(--teal)" />
                 <div>
                   <h2 className="op-card-title">Your Ondi Security</h2>
                   <p className="op-card-sub">Recommended steps to secure this account</p>
@@ -262,9 +259,7 @@ export const OndiPersonal: React.FC = () => {
           <div>
             <div className="op-card-hdr">
               <div className="op-card-hdr-left">
-                <FeaturedIcon variant="info" size="sm" shape="square">
-                  <Icon name="activity" size={16} />
-                </FeaturedIcon>
+                <Icon name="activity" size={18} color="var(--blue)" />
                 <div>
                   <h2 className="op-card-title">Recent Activity</h2>
                   <p className="op-card-sub">Latest sign-ins and security events</p>
@@ -304,9 +299,7 @@ export const OndiPersonal: React.FC = () => {
           <div>
             <div className="op-card-hdr">
               <div className="op-card-hdr-left">
-                <FeaturedIcon variant="brand" size="sm" shape="square">
-                  <Icon name="fingerprint" size={16} />
-                </FeaturedIcon>
+                <Icon name="fingerprint" size={18} color="var(--teal)" />
                 <div>
                   <h2 className="op-card-title">Personal Identity</h2>
                   <p className="op-card-sub">Primary profile & verified identity record</p>
@@ -415,9 +408,7 @@ export const OndiPersonal: React.FC = () => {
           <div>
             <div className="op-card-hdr">
               <div className="op-card-hdr-left">
-                <FeaturedIcon variant="brand" size="sm" shape="square">
-                  <Icon name="trendingUp" size={16} />
-                </FeaturedIcon>
+                <Icon name="trendingUp" size={18} color="var(--teal)" />
                 <div>
                   <h2 className="op-card-title">Identity Trust Score</h2>
                   <p className="op-card-sub">Algorithmic risk & signal evaluation</p>
@@ -546,9 +537,7 @@ export const OndiPersonal: React.FC = () => {
         <div className="op-posture-card">
           <div className="op-posture-top">
             <div className="op-posture-head">
-              <FeaturedIcon variant={twoFA?.enabled ? 'success' : 'warning'} size="sm" shape="square">
-                <Icon name="key" size={16} />
-              </FeaturedIcon>
+              <Icon name="key" size={18} color={twoFA?.enabled ? 'var(--green)' : 'var(--gold)'} />
               <div>
                 <h3 className="op-posture-title">Two-Factor Authentication</h3>
                 <p className="op-posture-desc">TOTP authenticator & passkeys</p>
@@ -582,9 +571,7 @@ export const OndiPersonal: React.FC = () => {
         <div className="op-posture-card">
           <div className="op-posture-top">
             <div className="op-posture-head">
-              <FeaturedIcon variant="info" size="sm" shape="square">
-                <Icon name="smartphone" size={16} />
-              </FeaturedIcon>
+              <Icon name="smartphone" size={18} color="var(--blue)" />
               <div>
                 <h3 className="op-posture-title">Trusted Devices</h3>
                 <p className="op-posture-desc">Active sessions & recognized hardware</p>
@@ -613,9 +600,7 @@ export const OndiPersonal: React.FC = () => {
         <div className="op-posture-card">
           <div className="op-posture-top">
             <div className="op-posture-head">
-              <FeaturedIcon variant={pwStatus?.expired ? 'error' : 'gray'} size="sm" shape="square">
-                <Icon name="lock" size={16} />
-              </FeaturedIcon>
+              <Icon name="lock" size={18} color={pwStatus?.expired ? 'var(--red)' : 'var(--ink3)'} />
               <div>
                 <h3 className="op-posture-title">Password Hygiene</h3>
                 <p className="op-posture-desc">Credential age & rotation policy</p>
@@ -645,9 +630,7 @@ export const OndiPersonal: React.FC = () => {
       <div className="op-reliability-wrap">
         <div className="op-rel-hdr">
           <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-            <FeaturedIcon variant="brand" size="sm" shape="square">
-              <Icon name="activity" size={16} />
-            </FeaturedIcon>
+            <Icon name="activity" size={18} color="var(--teal)" />
             <div>
               <h2 className="op-card-title">Organizational Reliability Signals</h2>
               <p className="op-card-sub">Internal operational performance signals based on verified workspace record</p>
@@ -745,9 +728,7 @@ export const OndiPersonal: React.FC = () => {
       {/* ── Fast Navigation Ecosystem Hub ── */}
       <div className="op-nav-grid">
         <Link to="/ondi/personal/documents" className="op-nav-card">
-          <FeaturedIcon variant="brand" size="sm" shape="square">
-            <Icon name="fileText" size={16} />
-          </FeaturedIcon>
+          <Icon name="fileText" size={18} color="var(--teal)" />
           <div className="op-nav-info">
             <div className="op-nav-title">ID Documents</div>
             <div className="op-nav-desc">Passports &amp; National ID Vault</div>
@@ -756,9 +737,7 @@ export const OndiPersonal: React.FC = () => {
         </Link>
 
         <Link to="/ondi/personal/wallet" className="op-nav-card">
-          <FeaturedIcon variant="info" size="sm" shape="square">
-            <Icon name="key" size={16} />
-          </FeaturedIcon>
+          <Icon name="key" size={18} color="var(--blue)" />
           <div className="op-nav-info">
             <div className="op-nav-title">Credentials Wallet</div>
             <div className="op-nav-desc">Verifiable certificates &amp; keys</div>
@@ -767,9 +746,7 @@ export const OndiPersonal: React.FC = () => {
         </Link>
 
         <Link to="/ondi/personal/devices" className="op-nav-card">
-          <FeaturedIcon variant="warning" size="sm" shape="square">
-            <Icon name="smartphone" size={16} />
-          </FeaturedIcon>
+          <Icon name="smartphone" size={18} color="var(--gold)" />
           <div className="op-nav-info">
             <div className="op-nav-title">Device Security</div>
             <div className="op-nav-desc">Hardware tokens &amp; logins</div>
@@ -778,9 +755,7 @@ export const OndiPersonal: React.FC = () => {
         </Link>
 
         <Link to="/ondi/personal/privacy" className="op-nav-card">
-          <FeaturedIcon variant="gray" size="sm" shape="square">
-            <Icon name="shield" size={16} />
-          </FeaturedIcon>
+          <Icon name="shield" size={18} color="var(--ink3)" />
           <div className="op-nav-info">
             <div className="op-nav-title">Privacy &amp; Consents</div>
             <div className="op-nav-desc">Data sharing &amp; OAuth scopes</div>

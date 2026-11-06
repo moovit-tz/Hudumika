@@ -63,7 +63,7 @@ describe('L02: tenant metrics', () => {
 
   it('tenant B cannot see tenant A snapshots', async () => {
     const snaps = await EnterpriseMetricsService.listTenantSnapshots(tenantB.tenantId);
-    const fromA = snaps.filter(s => s.tenant_id === tenantA.tenantId);
+    const fromA = snaps.filter((s: any) => s.tenant_id === tenantA.tenantId);
     expect(fromA).toHaveLength(0);
   });
 });

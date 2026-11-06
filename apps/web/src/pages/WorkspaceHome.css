@@ -1,4 +1,4 @@
-﻿@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@1,600;1,700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@1,600;1,700&display=swap');
 
 /* ══════════════════════════════════════════════════
    Workspace Home — Redesigned High-Fidelity Dashboard
@@ -1265,4 +1265,226 @@
     min-width: 180px;
     padding: 12px 14px;
   }
+}
+
+/* ── 8-COLUMN JOINED SQUARE MATRIX GRID ── */
+.wh-square-grid-container {
+  display: grid;
+  grid-template-columns: repeat(8, 1fr);
+  width: 100%;
+}
+
+.wh-square-card {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  aspect-ratio: 1 / 1;
+  background: var(--white);
+  padding: 8px 6px 10px;
+  box-sizing: border-box;
+  overflow: hidden;
+  text-decoration: none;
+  cursor: pointer;
+  border-radius: 0;
+  border: 1px solid var(--border);
+  box-shadow: none;
+  transition: background-color 0.15s ease;
+}
+
+.wh-square-card:hover {
+  background-color: var(--hover-bg);
+}
+
+.wh-square-card:hover .wh-square-name {
+  color: var(--card-color, var(--teal));
+}
+
+.wh-square-card:hover .wh-square-icon-wrap .app-lnch-svg-icon {
+  transform: scale(1.08);
+}
+
+.wh-square-top {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  width: 100%;
+  margin-bottom: 2px;
+  z-index: 2;
+}
+
+.wh-square-top .wh-star-btn {
+  width: 20px;
+  height: 20px;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 0 !important;
+}
+
+.wh-square-top .wh-star-btn:hover {
+  border-radius: 0 !important;
+}
+
+/* Same rounded pill as the "Recently opened" cards' .wh-badge-cat (the
+   blanket ".wh-square-card *{border-radius:0!important}" rule above would
+   otherwise flatten it to a sharp-cornered tag, unlike every other badge
+   on this page). */
+.wh-square-info .wh-badge-cat {
+  border-radius: 6px !important;
+  margin-bottom: 1px;
+}
+
+.wh-square-card,
+.wh-square-card * {
+  border-radius: 0 !important;
+}
+
+.wh-square-main {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  flex: 1;
+  min-width: 0;
+  text-decoration: none;
+  color: inherit;
+  gap: 6px;
+}
+
+.wh-square-icon-wrap {
+  width: 52px;
+  height: 52px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  border-radius: 0;
+}
+
+.wh-square-icon-wrap .app-lnch-svg-icon {
+  transition: transform 0.22s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.wh-square-info {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  width: 100%;
+  min-width: 0;
+}
+
+.wh-square-name {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--ink);
+  letter-spacing: -0.01em;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 100%;
+  transition: color 0.15s ease;
+}
+
+.wh-square-desc {
+  font-size: 10.5px;
+  color: var(--ink3);
+  line-height: 1.3;
+  display: -webkit-box;
+  -webkit-line-clamp: 1;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 92%;
+  margin: 0;
+}
+
+/* Responsive Breakpoints - Down from 8 columns */
+@media (max-width: 1480px) {
+  .wh-square-grid-container {
+    grid-template-columns: repeat(7, 1fr);
+  }
+}
+
+@media (max-width: 1280px) {
+  .wh-square-grid-container {
+    grid-template-columns: repeat(6, 1fr);
+  }
+}
+
+@media (max-width: 1060px) {
+  .wh-square-grid-container {
+    grid-template-columns: repeat(5, 1fr);
+  }
+}
+
+@media (max-width: 860px) {
+  .wh-square-grid-container {
+    grid-template-columns: repeat(4, 1fr);
+  }
+
+  .wh-square-icon-wrap {
+    width: 48px;
+    height: 48px;
+  }
+}
+
+@media (max-width: 660px) {
+  .wh-square-grid-container {
+    grid-template-columns: repeat(3, 1fr);
+  }
+
+  .wh-square-card {
+    padding: 8px 6px;
+  }
+
+  .wh-square-icon-wrap {
+    width: 44px;
+    height: 44px;
+  }
+
+  .wh-square-desc {
+    display: none;
+  }
+}
+
+@media (max-width: 460px) {
+  .wh-square-grid-container {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .wh-square-card {
+    padding: 10px 8px;
+  }
+
+  .wh-square-icon-wrap {
+    width: 44px;
+    height: 44px;
+  }
+
+  .wh-square-name {
+    font-size: 13px;
+  }
+
+  .wh-square-desc {
+    display: none;
+  }
+}
+
+[data-theme="dark"] .wh-square-card {
+  background: var(--wh-night-card);
+}
+
+[data-theme="dark"] .wh-square-card:hover {
+  background: var(--hover-bg);
+}
+
+[data-theme="dark"] .wh-square-name {
+  color: rgba(255, 255, 255, 0.9);
+}
+
+[data-theme="dark"] .wh-square-desc {
+  color: rgba(255, 255, 255, 0.45);
 }

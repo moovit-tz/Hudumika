@@ -1,4 +1,4 @@
-﻿import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { Icon } from '../../components/Icon.js';
 import { apiFetch } from '../../lib/api.js';
 import { SectionLoading } from '../../components/ui/spinner.js';
@@ -8,13 +8,18 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '
 import { Checkbox } from '../../components/ui/checkbox.js';
 import { Input } from '../../components/ui/input.js';
 import { Button } from '../../components/ui/button.js';
+import { Card } from '../../components/ui/card.js';
+import { FeaturedIcon } from '../../components/ui/featured-icon.js';
+import { Badge } from '../../components/ui/badge.js';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../../components/ui/select.js';
+import { conversionIsLive, convertAmount, formatAmount, refreshFxRates } from '../../lib/currency.js';
 import { LAUNCHER_APPS } from '../../components/LauncherApps.js';
 import { showAlert } from '../../lib/alert.js';
 import { showConfirm } from '../../lib/confirm.js';
 import { PaginationBar } from '../../components/PaginationBar.js';
-import { ALL_FEATURE_KEYS } from '@hudumika/types';
+import { ALL_FEATURE_KEYS, SIGNUP_BASE_PLAN_CODES } from '@hudumika/types';
 import {
-  Badge, CoAv, PLAN_CFG, SUB_CFG,
+  Badge as LegacyBadge, CoAv, PLAN_CFG, SUB_CFG,
   type Company, type Subscription, type Package, type Addon, type Domain,
   type SubStatus,
   COMPANIES, SUBSCRIPTIONS,
@@ -137,12 +142,12 @@ export function SubscriptionsView() {
                   <span style={{ fontWeight:600, fontSize:13 }}>{co.name}</span>
                 </div>
               </TD>
-              <TD><Badge cfg={PLAN_CFG[sub.plan]} /></TD>
+              <TD><LegacyBadge cfg={PLAN_CFG[sub.plan]} /></TD>
               <TD><span style={{ fontSize:12, textTransform:'capitalize', color:'var(--ink2)' }}>{sub.billing}</span></TD>
               <TD nowrap><span style={{ fontSize:12, color:'var(--ink3)' }}>{fmtDate(sub.start)}</span></TD>
               <TD nowrap><span style={{ fontSize:12, color:'var(--ink3)' }}>{fmtDate(sub.end)}</span></TD>
               <TD right><span style={{ fontWeight:700, fontFamily:'var(--font)' }}>{sub.amount===0?'Free':fmtCurrency(sub.amount)}</span></TD>
-              <TD><Badge cfg={SUB_CFG[sub.status]} /></TD>
+              <TD><LegacyBadge cfg={SUB_CFG[sub.status]} /></TD>
               <TD>
                 <div style={{ display:'flex', gap:2 }}>
                   <ActBtn icon="edit"  title="Edit"   onClick={()=>{}} />
@@ -360,6 +365,28 @@ function AppQuotasEditor({ packageCode }: { packageCode: string }) {
   );
 }
 
+type CatalogPackage = Package & {
+  currency: string;
+  flatMonthly: number | null;
+  flatAnnual: number | null;
+  subscriptionCount: number;
+  standaloneOffer: boolean;
+  industryOffer: boolean;
+};
+
+const PACKAGE_FILTERS = [
+  { key: 'plans', label: 'Base plans' },
+  { key: 'addons', label: 'Add-ons' },
+  { key: 'industry', label: 'Industry packages' },
+  { key: 'other', label: 'Other catalogue records' },
+] as const;
+function catalogGroup(pkg: CatalogPackage) {
+  if (SIGNUP_BASE_PLAN_CODES.includes(pkg.code)) return 'plans';
+  if (pkg.standaloneOffer) return 'addons';
+  if (pkg.industryOffer) return 'industry';
+  return 'other';
+}
+
 export function PackagesView() {
   // null = still loading. Was seeded with the hardcoded PACKAGES sample
   // array and only overwritten `if (mapped.length)` — so every load of this
@@ -375,12 +402,18 @@ export function PackagesView() {
   // /v1/packages/all (every package, active or not) rather than the public
   // /v1/packages, since this console is where a dormant tier — the free
   // plan, legacy 'scale' — gets reactivated, not just where live ones get edited.
-  const [packages, setPackages] = useState<Package[] | null>(null);
+  const [packages, setPackages] = useState<CatalogPackage[] | null>(null);
+  const [catalogFilter, setCatalogFilter] = useState<(typeof PACKAGE_FILTERS)[number]['key']>('plans');
+  const [displayCurrency, setDisplayCurrency] = useState('TZS');
+  const [selectedTenant, setSelectedTenant] = useState('catalogue');
+  const [tenants, setTenants] = useState<{ id: string; name: string; slug: string; plan: string }[]>([]);
+  const [tenantError, setTenantError] = useState(false);
+  const [, setFxReady] = useState(false);
   const [packagesError, setPackagesError] = useState(false);
   const [billing, setBilling] = useState<'monthly'|'annual'>('monthly');
-  const [editing, setEditing] = useState<Package|null>(null);
+  const [editing, setEditing] = useState<CatalogPackage|null>(null);
   const [showAdd, setShowAdd] = useState(false);
-  const [newPkg, setNewPkg] = useState({ name:'', monthly:0, annual:0, maxUsers:10, pricePerSeat:0 });
+  const [newPkg, setNewPkg] = useState({ name:'', monthly:0, annual:0, maxUsers:10, pricePerSeat:0, currency:'TZS' });
   const [addons, setAddons] = useState<Addon[] | null>(null);
   const [addonsError, setAddonsError] = useState(false);
   const [editingAddon, setEditingAddon] = useState<Addon|null>(null);
@@ -389,7 +422,7 @@ export function PackagesView() {
   // Edit/Create/Deactivate below are wired to real endpoints (packages.routes.ts POST/PATCH/DELETE,
   // SuperAdmin-gated). The Feature Gates checklist in the edit modal is a separate, already-wired
   // endpoint (/v1/superadmin/packages/:code/features) — see FeatureGatesEditor below.
-  function mapFromApi(pkg: { id:string; code:string; name:string; monthly_price:number; annual_price:number; max_users:number; price_per_seat:number|null; extra_seat_price:number|null; extra_seat_threshold:number|null; monthly_item_limit:number|null; storage_limit_bytes:number|null; monthly_ai_credits:number; byok_ai_allowed:boolean; features:string[]; color:string; popular:boolean; is_active:boolean }): Package {
+  function mapFromApi(pkg: import('@hudumika/types').Package & { tenant_count: number; subscription_count: number; standalone_offer: boolean; industry_offer: boolean }): CatalogPackage {
     return {
       id: pkg.id,
       code: pkg.code,
@@ -404,7 +437,13 @@ export function PackagesView() {
       storageLimitGb: pkg.storage_limit_bytes != null ? Math.round(pkg.storage_limit_bytes / 1073741824) : null,
       monthlyAiCredits: pkg.monthly_ai_credits ?? 0,
       byokAiAllowed: pkg.byok_ai_allowed ?? false,
-      active: 0,
+      active: pkg.tenant_count,
+      currency: pkg.currency ?? 'USD',
+      flatMonthly: pkg.price_flat_monthly ?? null,
+      flatAnnual: pkg.price_flat_annual ?? null,
+      subscriptionCount: pkg.subscription_count,
+      standaloneOffer: pkg.standalone_offer,
+      industryOffer: pkg.industry_offer,
       // A package with no color set (onsite-standalone, agency-managed) used
       // to fall through to `${pkg.color}18` → "null18" and an unset Icon
       // color, which is exactly how one plan card ended up a different,
@@ -434,177 +473,552 @@ export function PackagesView() {
     }).catch(() => setAddonsError(true));
   }
 
-  useEffect(() => { reload(); reloadAddons(); }, []);
+  useEffect(() => {
+    reload();
+    reloadAddons();
+    void refreshFxRates().then(() => setFxReady(true));
+    apiFetch<typeof tenants>('/v1/superadmin/tenants')
+      .then(rows => setTenants(rows.sort((a, b) => a.name.localeCompare(b.name))))
+      .catch(() => setTenantError(true));
+  }, []);
+  const tenantPlan = tenants.find(tenant => tenant.id === selectedTenant)?.plan;
+  const tenantCurrency = packages?.find(pkg => pkg.code === tenantPlan)?.currency;
+  const currency = tenantCurrency ?? displayCurrency;
+  const visiblePackages = packages?.filter(pkg => catalogGroup(pkg) === catalogFilter);
+  function packageMoney(amount: number, source: string) {
+    if (amount === 0 || source === currency) return formatAmount(amount, currency);
+    return conversionIsLive(source, currency)
+      ? `≈ ${formatAmount(convertAmount(amount, source, currency), currency)}`
+      : 'FX unavailable';
+  }
+  function packagePrice(pkg: CatalogPackage, cycle: 'monthly' | 'annual') {
+    if (pkg.flatMonthly !== null || pkg.flatAnnual !== null) {
+      return cycle === 'monthly' ? pkg.flatMonthly ?? 0 : pkg.flatAnnual ?? (pkg.flatMonthly ?? 0) * 12;
+    }
+    return cycle === 'monthly' ? pkg.monthly : pkg.annual;
+  }
+
+  const stats = useMemo(() => {
+    const total = packages?.filter(p => catalogGroup(p) === 'plans').length ?? 0;
+    const active = packages?.filter(p => catalogGroup(p) === 'plans' && p.isActive).length ?? 0;
+    const tenantCount = packages?.reduce((acc, p) => acc + (p.active || 0), 0) ?? 0;
+    const addonCount = (addons?.length ?? 0) + (packages?.filter(p => catalogGroup(p) === 'addons').length ?? 0);
+    return { total, active, tenantCount, addonCount };
+  }, [packages, addons]);
 
   return (
-    <div>
-      <PageHdr title="Subscription Packages" sub="Manage subscription plans and pricing"
+    <div className="space-y-6">
+      <PageHdr
+        title="Subscription Packages"
+        sub="Configure pricing tiers, seat allowances, app quotas, and modular add-ons"
         action={
-          <div style={{ display:'flex', gap:10, alignItems:'center' }}>
-            <div style={{ display:'flex', border:'1px solid var(--border)', borderRadius: 'var(--r-sm)', overflow:'hidden' }}>
-              {(['monthly','annual'] as const).map(b=>(
-                <button key={b} onClick={()=>setBilling(b)} style={{ padding:'var(--ds-btn-py-sm) 14px', border:'none', cursor:'pointer', fontSize:12, fontWeight:600, background:billing===b?'hsl(var(--primary))':'var(--white)', color:billing===b?'hsl(var(--primary-foreground))':'var(--ink3)', textTransform:'capitalize', minHeight: 'var(--ctl-h-sm)', boxSizing: 'border-box', lineHeight: 1.25}} data-ui-native-button="">{b}</button>
-              ))}
+          <div className="flex flex-wrap items-center gap-2.5 max-sm:w-full max-sm:justify-between">
+            <div className="inline-flex items-center rounded-lg border border-border bg-muted/40 p-1">
+              <button
+                type="button"
+                onClick={() => setBilling('monthly')}
+                className={`px-3 py-1.5 text-xs font-semibold rounded-md transition-all ${
+                  billing === 'monthly'
+                    ? 'bg-background text-foreground shadow-xs'
+                    : 'text-muted-foreground hover:text-foreground'
+                }`}
+                data-ui-native-button=""
+              >
+                Monthly
+              </button>
+              <button
+                type="button"
+                onClick={() => setBilling('annual')}
+                className={`px-3 py-1.5 text-xs font-semibold rounded-md transition-all ${
+                  billing === 'annual'
+                    ? 'bg-background text-foreground shadow-xs'
+                    : 'text-muted-foreground hover:text-foreground'
+                }`}
+                data-ui-native-button=""
+              >
+                Annual
+              </button>
             </div>
-            <button onClick={()=>setShowAdd(true)} className="btn btn-primary btn-sm" style={{gap:6}} data-ui-native-button=""><Icon name="plus" size={13}/>New Package</button>
+            {catalogFilter === 'other' && <Button onClick={() => setShowAdd(true)} size="sm" className="gap-1.5 min-h-[var(--ctl-h-sm)]">
+              <Icon name="plus" size={14} />
+              New catalogue record
+            </Button>}
           </div>
         }
       />
+      {/* ── Pricing Context & Currency Simulator Toolbar ── */}
+      <Card className="p-3.5 sm:p-4 border border-border bg-card/75 rounded-xl shadow-xs">
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-3.5">
+          <div className="flex flex-wrap items-center gap-2.5">
+            <div className="flex items-center gap-1.5 text-xs font-bold text-foreground">
+              <FeaturedIcon variant="brand" size="sm">
+                <Icon name="sliders" size={13} />
+              </FeaturedIcon>
+              <span>Pricing Simulator</span>
+            </div>
+
+            <div className="flex flex-wrap items-center gap-2">
+              <Select value={selectedTenant} onValueChange={setSelectedTenant}>
+                <SelectTrigger className="w-56 sm:w-64 h-8 text-xs font-medium" aria-label="Tenant currency preview">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="catalogue">Standard Catalogue Rates</SelectItem>
+                  {tenants.map(tenant => (
+                    <SelectItem key={tenant.id} value={tenant.id}>
+                      {tenant.name} ({tenant.slug})
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+
+              <div className="inline-flex items-center rounded-lg border border-border bg-muted/40 p-0.5">
+                {(['TZS', 'USD'] as const).map(curr => (
+                  <button
+                    key={curr}
+                    type="button"
+                    disabled={!!tenantCurrency}
+                    onClick={() => setDisplayCurrency(curr)}
+                    className={`px-2.5 py-1 text-xs font-semibold rounded-md transition-all ${
+                      currency === curr
+                        ? 'bg-background text-foreground shadow-xs'
+                        : 'text-muted-foreground hover:text-foreground disabled:opacity-50'
+                    }`}
+                    data-ui-native-button=""
+                  >
+                    {curr}
+                  </button>
+                ))}
+              </div>
+            </div>
+          </div>
+
+          <div className="text-[11.5px] text-muted-foreground flex items-center gap-2">
+            <span className="w-2 h-2 rounded-full bg-emerald-500 shrink-0" />
+            <span>
+              {tenantCurrency
+                ? `Locked to tenant plan currency (${tenantCurrency})`
+                : `Active currency: ${currency} · Converted amounts use live FX rates`}
+            </span>
+          </div>
+        </div>
+        {tenantError && <p role="alert" className="text-xs text-destructive mt-2">Could not load tenants for currency preview.</p>}
+        {selectedTenant !== 'catalogue' && packages && !tenantCurrency && (
+          <p className="text-xs text-muted-foreground mt-2">No plan currency found for selected workspace. Choose a display currency above.</p>
+        )}
+      </Card>
+
+      {/* ── Top Executive Posture KPI Grid ── */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3.5">
+        <Card className="p-4 flex items-center justify-between border border-border shadow-xs bg-card hover:border-foreground/20 transition-colors">
+          <div>
+            <div className="text-2xl font-extrabold tracking-tight text-foreground">{packages ? stats.total : '—'}</div>
+            <div className="text-xs font-medium text-muted-foreground mt-0.5">Base Plan Tiers</div>
+          </div>
+          <FeaturedIcon variant="brand" size="md">
+            <Icon name="package" size={18} />
+          </FeaturedIcon>
+        </Card>
+
+        <Card className="p-4 flex items-center justify-between border border-border shadow-xs bg-card hover:border-foreground/20 transition-colors">
+          <div>
+            <div className="text-2xl font-extrabold tracking-tight text-emerald-600 dark:text-emerald-400">{packages ? stats.active : '—'}</div>
+            <div className="text-xs font-medium text-muted-foreground mt-0.5">Live Signup Tiers</div>
+          </div>
+          <FeaturedIcon variant="success" size="md">
+            <Icon name="checkCircle" size={18} />
+          </FeaturedIcon>
+        </Card>
+
+        <Card className="p-4 flex items-center justify-between border border-border shadow-xs bg-card hover:border-foreground/20 transition-colors">
+          <div>
+            <div className="text-2xl font-extrabold tracking-tight text-foreground">{packages ? stats.tenantCount : '—'}</div>
+            <div className="text-xs font-medium text-muted-foreground mt-0.5">Active Tenant Plans</div>
+          </div>
+          <FeaturedIcon variant="info" size="md">
+            <Icon name="users" size={18} />
+          </FeaturedIcon>
+        </Card>
+
+        <Card className="p-4 flex items-center justify-between border border-border shadow-xs bg-card hover:border-foreground/20 transition-colors">
+          <div>
+            <div className="text-2xl font-extrabold tracking-tight text-foreground">{addons ? stats.addonCount : '—'}</div>
+            <div className="text-xs font-medium text-muted-foreground mt-0.5">Modular Add-ons</div>
+          </div>
+          <FeaturedIcon variant="warning" size="md">
+            <Icon name="layers" size={18} />
+          </FeaturedIcon>
+        </Card>
+      </div>
 
       {packages === null && !packagesError && (
-        <div style={{ padding:'32px 0', textAlign:'center', color:'var(--ink3)', fontSize:13 }}>Loading packages…</div>
-      )}
-      {packagesError && (
-        <div style={{ padding:'32px 0', textAlign:'center', color:'var(--red)', fontSize:13 }}>
-          Couldn't load packages. <button onClick={reload} className="btn btn-secondary btn-sm" style={{ marginLeft:8 }} data-ui-native-button="">Retry</button>
+        <div className="py-12 text-center text-muted-foreground text-xs flex flex-col items-center gap-2">
+          <SectionLoading />
+          <span>Loading subscription catalog…</span>
         </div>
       )}
-      {packages !== null && packages.length === 0 && (
-        <div style={{ padding:'32px 0', textAlign:'center', color:'var(--ink3)', fontSize:13 }}>No active packages configured yet.</div>
+
+      {packagesError && (
+        <div className="py-12 text-center text-destructive text-xs">
+          Couldn't load subscription packages.
+          <Button variant="outline" size="sm" onClick={reload} className="ml-2">
+            Retry
+          </Button>
+        </div>
       )}
-      <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fit,minmax(240px,1fr))', gap:20 }}>
-        {packages?.map(pkg=>(
-          <div key={pkg.id} className="card" style={{ padding:'28px 26px', position:'relative', border:`2px solid ${pkg.popular&&pkg.isActive?pkg.color:'var(--border)'}`, opacity: pkg.isActive ? 1 : 0.6 }}>
-            {pkg.popular && pkg.isActive && (
-              <div style={{ position:'absolute', top:-12, left:'50%', transform:'translateX(-50%)', background:pkg.color, color:'#fff', fontSize:10, fontWeight:800, padding:'4px 14px', borderRadius:'var(--badge-radius)', whiteSpace:'nowrap', letterSpacing:'0.06em' }}>MOST POPULAR</div>
-            )}
-            {!pkg.isActive && (
-              <div style={{ position:'absolute', top:-12, left:'50%', transform:'translateX(-50%)', background:'var(--ink3)', color:'#fff', fontSize:10, fontWeight:800, padding:'4px 14px', borderRadius:'var(--badge-radius)', whiteSpace:'nowrap', letterSpacing:'0.06em' }}>INACTIVE — hidden from signups</div>
-            )}
 
-            <div style={{ display:'flex', alignItems:'center', gap:12, marginBottom:16 }}>
-              <span style={{ display:'inline-flex', alignItems:'center', justifyContent:'center', width:40, height:40, borderRadius: 'var(--r)', background:`${pkg.color}18` }}>
-                <Icon name="package" size={18} color={pkg.color} />
-              </span>
-              <div>
-                <div style={{ fontSize:15, fontWeight:800, color:'var(--ink)' }}>{pkg.name}</div>
-                <div style={{ fontSize:11, color:'var(--ink3)' }}>{pkg.maxUsers===0?'Unlimited':pkg.maxUsers} users max</div>
-              </div>
-            </div>
-
-            <div style={{ marginBottom:20 }}>
-              <div style={{ display:'flex', alignItems:'baseline', gap:4 }}>
-                <span style={{ fontSize:32, fontWeight:900, color:pkg.color, letterSpacing:'-0.03em' }}>${billing==='monthly'?pkg.monthly:pkg.annual}</span>
-                <span style={{ fontSize:13, color:'var(--ink3)' }}>/{billing==='monthly'?'mo':'yr'}</span>
-              </div>
-              {billing==='annual' && (
-                <div style={{ fontSize:11, color:'var(--green)', fontWeight:600, marginTop:2 }}>Save ${(pkg.monthly*12-pkg.annual).toFixed(0)}/yr vs monthly</div>
-              )}
-              {pkg.pricePerSeat != null && (
-                <div style={{ fontSize:11.5, color:'var(--ink3)', marginTop:6 }}>
-                  Billed at <strong style={{ color:'var(--ink2)' }}>${pkg.pricePerSeat}/seat/mo</strong> — the real per-tenant charge
-                  {pkg.extraSeatThreshold != null && pkg.extraSeatPrice != null && (
-                    <> (${pkg.extraSeatPrice}/seat past seat {pkg.extraSeatThreshold})</>
-                  )}
-                </div>
-              )}
-            </div>
-
-            <div style={{ display:'flex', flexDirection:'column', gap:8, marginBottom:20 }}>
-              {pkg.features.map(f=>(
-                <div key={f} style={{ display:'flex', alignItems:'flex-start', gap:8 }}>
-                  <Icon name="check" size={14} color={pkg.color} style={{ flexShrink:0, marginTop:1 }} />
-                  <span style={{ fontSize:12.5, color:'var(--ink2)' }}>{f}</span>
-                </div>
-              ))}
-            </div>
-
-            <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', paddingTop:16, borderTop:'1px solid var(--border)' }}>
-              <span style={{ fontSize:12, color:'var(--ink3)' }}><strong style={{ color:'var(--ink)' }}>{pkg.active}</strong> active {pkg.active===1?'company':'companies'}</span>
-              <button onClick={()=>setEditing(pkg)} className="btn btn-secondary btn-sm" style={{ gap:5 }} data-ui-native-button="">
-                <Icon name="edit" size={12} />Edit
-              </button>
-            </div>
-          </div>
-        ))}
-      </div>
-
-      {/* Get more with add-ons — purchasable independent of which of the
-          three base packages a tenant is on (376_package_addons.sql),
-          the same idea as Google Workspace selling AI access or extra
-          storage next to its own plan tiers rather than as a competing
-          tier. Onsite lives here now instead of being a fourth package —
-          it's for a narrow slice of tenants (agencies, web hosts/cloud
-          infra teams, IT providers), not a general-audience tier.
-          Used to render nothing at all — no header, no message — whenever
-          `addons` was empty, which is indistinguishable on screen from
-          "still loading" or "the fetch failed": always show the header now,
-          and say which of those three states this actually is. */}
-      <div style={{ marginTop:36 }}>
-        <div style={{ fontSize:16, fontWeight:800, color:'var(--ink)', marginBottom:4 }}>Get more with add-ons</div>
-        <div style={{ fontSize:12.5, color:'var(--ink3)', marginBottom:16 }}>Purchasable on top of any package above — not a separate tier.</div>
-        {addons === null && !addonsError && (
-          <div style={{ padding:'16px 0', color:'var(--ink3)', fontSize:13 }}>Loading add-ons…</div>
-        )}
-        {addonsError && (
-          <div style={{ padding:'16px 0', color:'var(--red)', fontSize:13 }}>
-            Couldn't load add-ons. <button onClick={reloadAddons} className="btn btn-secondary btn-sm" style={{ marginLeft:8 }} data-ui-native-button="">Retry</button>
-          </div>
-        )}
-        {addons !== null && addons.length === 0 && !addonsError && (
-          <div style={{ padding:'16px 0', color:'var(--ink3)', fontSize:13 }}>No add-ons configured yet.</div>
-        )}
-        {addons !== null && addons.length > 0 && (
-          <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fit,minmax(300px,1fr))', gap:14 }}>
-            {addons.map(addon => (
-              <div key={addon.id} className="card" style={{ padding:'18px 20px', display:'flex', gap:14, alignItems:'flex-start' }}>
-                <span style={{ display:'inline-flex', alignItems:'center', justifyContent:'center', width:36, height:36, borderRadius: 'var(--r)', background:`${addon.color}18`, flexShrink:0 }}>
-                  <Icon name="globe" size={16} color={addon.color} />
+      {/* ── Category Filter Navigation ── */}
+      {packages && !packagesError && (
+        <div className="flex items-center gap-2 overflow-x-auto pb-1 scrollbar-none" role="group" aria-label="Package categories">
+          {PACKAGE_FILTERS.map(({ key, label }) => {
+            const count = packages.filter(pkg => catalogGroup(pkg) === key).length + (key === 'addons' ? addons?.length ?? 0 : 0);
+            const isSelected = catalogFilter === key;
+            const iconName = key === 'plans' ? 'package' : key === 'addons' ? 'layers' : key === 'industry' ? 'briefcase' : 'list';
+            return (
+              <Button
+                key={key}
+                type="button"
+                size="sm"
+                variant={isSelected ? 'default' : 'outline'}
+                aria-pressed={isSelected}
+                onClick={() => setCatalogFilter(key)}
+                className="shrink-0 gap-2 h-8 text-xs font-medium transition-all"
+              >
+                <Icon name={iconName} size={13} className={isSelected ? 'text-primary-foreground' : 'text-muted-foreground'} />
+                <span>{label}</span>
+                <span className={`text-[10px] font-bold px-1.5 py-0.2 rounded-full ${
+                  isSelected ? 'bg-primary-foreground/20 text-primary-foreground' : 'bg-muted text-muted-foreground'
+                }`}>
+                  {count}
                 </span>
-                <div style={{ flex:1, minWidth:0 }}>
-                  <div style={{ display:'flex', alignItems:'baseline', justifyContent:'space-between', gap:10 }}>
-                    <span style={{ fontSize:14, fontWeight:800, color:'var(--ink)' }}>{addon.name}</span>
-                    <span style={{ fontSize:15, fontWeight:800, color:addon.color, whiteSpace:'nowrap' }}>
-                      ${billing==='monthly'?addon.monthly:addon.annual}<span style={{ fontSize:11, fontWeight:600, color:'var(--ink3)' }}>/{billing==='monthly'?'mo':'yr'}</span>
+              </Button>
+            );
+          })}
+        </div>
+      )}
+
+      {visiblePackages?.length === 0 && !packagesError && catalogFilter !== 'addons' && (
+        <div className="py-12 text-center text-muted-foreground text-xs">
+          No packages recorded in this category.
+        </div>
+      )}
+
+      {/* ── Tier Cards Grid ── */}
+      {catalogFilter === 'plans' && (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {visiblePackages?.map(pkg => {
+            const monthly = packagePrice(pkg, 'monthly');
+            const annual = packagePrice(pkg, 'annual');
+            const accentColor = pkg.color || 'var(--teal)';
+            return (
+              <Card
+                key={pkg.id}
+                className={`relative flex flex-col justify-between transition-all duration-200 hover:shadow-lg border border-border rounded-xl bg-card text-card-foreground overflow-hidden ${
+                  pkg.popular && pkg.isActive
+                    ? 'ring-2 ring-[var(--teal)]/40 shadow-sm'
+                    : ''
+                } ${!pkg.isActive ? 'opacity-75' : ''}`}
+              >
+                {/* Visual Top Accent Strip */}
+                <div
+                  className="h-1 w-full shrink-0"
+                  style={{
+                    background: pkg.popular && pkg.isActive ? 'var(--teal)' : accentColor,
+                  }}
+                />
+
+                <div className="p-5 sm:p-6 pb-0">
+                  {/* Header: Identity & Status Badges */}
+                  <div className="flex items-start justify-between gap-3 mb-3.5">
+                    <div className="flex items-center gap-3">
+                      <FeaturedIcon variant={pkg.popular && pkg.isActive ? 'brand' : 'gray'} size="md">
+                        <Icon name="package" size={18} />
+                      </FeaturedIcon>
+                      <div>
+                        <h4 className="text-lg font-extrabold text-foreground tracking-tight">{pkg.name}</h4>
+                        <div className="flex items-center gap-1.5 mt-0.5">
+                          <span className="text-[11px] font-mono font-semibold text-muted-foreground bg-muted/60 px-1.5 py-0.5 rounded">
+                            {pkg.code}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                    <div className="flex flex-col items-end gap-1 shrink-0">
+                      {pkg.popular && pkg.isActive && (
+                        <Badge variant="brand" className="text-[10px] uppercase font-bold tracking-wider">
+                          Most Popular
+                        </Badge>
+                      )}
+                      {!pkg.isActive && (
+                        <Badge variant="gray" className="text-[10px] uppercase font-bold tracking-wider">
+                          {pkg.standaloneOffer ? 'Standalone' : 'Inactive'}
+                        </Badge>
+                      )}
+                      {pkg.industryOffer && (
+                        <Badge variant="info" className="text-[10px] uppercase font-bold tracking-wider">
+                          Industry
+                        </Badge>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Price Section */}
+                  <div className="my-4 pt-3 border-t border-border/60">
+                    <div className="flex items-baseline gap-1.5">
+                      <span className="text-3xl sm:text-4xl font-extrabold tracking-tight text-foreground font-[var(--font)]">
+                        {packageMoney(billing === 'monthly' ? monthly : annual, pkg.currency)}
+                      </span>
+                      <span className="text-xs font-semibold text-muted-foreground">/{billing === 'monthly' ? 'mo' : 'yr'}</span>
+                    </div>
+
+                    {billing === 'annual' && annual > 0 && monthly * 12 > annual && (
+                      <div className="mt-1.5 inline-flex items-center gap-1 text-[11px] font-semibold text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded-full">
+                        <Icon name="trendingUp" size={11} />
+                        Save {packageMoney(monthly * 12 - annual, pkg.currency)}/yr vs monthly
+                      </div>
+                    )}
+
+                    {pkg.flatMonthly === null && pkg.flatAnnual === null && pkg.pricePerSeat != null && (
+                      <div className="text-xs text-muted-foreground mt-2 font-medium">
+                        Per-seat billing: <strong className="text-foreground">{packageMoney(pkg.pricePerSeat, pkg.currency)}/seat/mo</strong>
+                        {pkg.extraSeatThreshold != null && pkg.extraSeatPrice != null && (
+                          <span className="text-[11px]"> ({packageMoney(pkg.extraSeatPrice, pkg.currency)}/seat past {pkg.extraSeatThreshold})</span>
+                        )}
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Creative 2x2 Resource & Quota Specification Grid */}
+                  <div className="grid grid-cols-2 gap-2 my-4 p-3 bg-muted/30 rounded-lg border border-border/60">
+                    <div className="flex flex-col">
+                      <span className="text-[10px] uppercase font-bold tracking-wider text-muted-foreground flex items-center gap-1">
+                        <Icon name="users" size={11} /> User Cap
+                      </span>
+                      <span className="text-xs font-bold text-foreground mt-0.5">
+                        {pkg.maxUsers === 0 ? 'Unlimited' : `${pkg.maxUsers} Users`}
+                      </span>
+                    </div>
+                    <div className="flex flex-col">
+                      <span className="text-[10px] uppercase font-bold tracking-wider text-muted-foreground flex items-center gap-1">
+                        <Icon name="archive" size={11} /> Cloud Storage
+                      </span>
+                      <span className="text-xs font-bold text-foreground mt-0.5">
+                        {pkg.storageLimitGb ? `${pkg.storageLimitGb} GB` : 'Unlimited'}
+                      </span>
+                    </div>
+                    <div className="flex flex-col">
+                      <span className="text-[10px] uppercase font-bold tracking-wider text-muted-foreground flex items-center gap-1">
+                        <Icon name="layers" size={11} /> Items / Month
+                      </span>
+                      <span className="text-xs font-bold text-foreground mt-0.5">
+                        {pkg.monthlyItemLimit ? `${pkg.monthlyItemLimit.toLocaleString()}` : 'Unlimited'}
+                      </span>
+                    </div>
+                    <div className="flex flex-col">
+                      <span className="text-[10px] uppercase font-bold tracking-wider text-muted-foreground flex items-center gap-1">
+                        <Icon name="zap" size={11} /> Platform AI
+                      </span>
+                      <span className="text-xs font-bold text-foreground mt-0.5">
+                        {pkg.monthlyAiCredits > 0 ? `${pkg.monthlyAiCredits.toLocaleString()} Credits` : 'None'}
+                      </span>
+                    </div>
+                  </div>
+
+                  {pkg.byokAiAllowed && (
+                    <div className="mb-4 inline-flex items-center gap-1.5 text-[11px] font-semibold text-[var(--teal)] bg-[var(--teal-l)] px-2.5 py-1 rounded-md">
+                      <Icon name="key" size={12} />
+                      Custom AI Provider Keys Allowed (BYOK)
+                    </div>
+                  )}
+
+                  {/* Features List */}
+                  <div className="space-y-2 mb-6">
+                    <div className="text-[11px] uppercase font-bold tracking-wider text-muted-foreground mb-2">Included Capabilities</div>
+                    {pkg.features.map(f => (
+                      <div key={f} className="flex items-start gap-2 text-xs text-muted-foreground">
+                        <Icon name="check" size={13} className="text-emerald-600 dark:text-emerald-400 shrink-0 mt-0.5" />
+                        <span className="leading-snug text-foreground/85">{f}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Card Footer with Live Workspace Adoption */}
+                <div className="p-5 sm:p-6 pt-3.5 border-t border-border bg-muted/10 mt-auto">
+                  <div className="flex items-center justify-between text-xs mb-2">
+                    <span className="text-muted-foreground font-medium flex items-center gap-1.5">
+                      <span className={`w-2 h-2 rounded-full ${pkg.isActive ? 'bg-emerald-500' : 'bg-muted-foreground/40'}`} />
+                      <strong className="text-foreground">{pkg.active}</strong> active workspace{pkg.active === 1 ? '' : 's'}
+                    </span>
+                    <span className="text-[11px] text-muted-foreground font-medium">
+                      {pkg.subscriptionCount} subscription{pkg.subscriptionCount === 1 ? '' : 's'}
                     </span>
                   </div>
-                  <p style={{ fontSize:12, color:'var(--ink2)', margin:'4px 0 10px', lineHeight:1.5 }}>{addon.description}</p>
-                  <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', gap:10 }}>
-                    <span style={{ fontSize:11.5, color:'var(--ink3)' }}><strong style={{ color:'var(--ink)' }}>{addon.activeCompanies}</strong> active {addon.activeCompanies===1?'company':'companies'}</span>
-                    <button onClick={()=>setEditingAddon(addon)} className="btn btn-secondary btn-sm" style={{ gap:5 }} data-ui-native-button="">
-                      <Icon name="edit" size={12} />Edit
-                    </button>
-                  </div>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setEditing(pkg)}
+                    className="w-full gap-1.5 h-8.5 text-xs font-semibold"
+                  >
+                    <Icon name="sliders" size={12} />
+                    Configure Tier & Quotas
+                  </Button>
                 </div>
-              </div>
+              </Card>
+            );
+          })}
+        </div>
+      )}
+      {catalogFilter !== 'plans' && !!visiblePackages?.length && (
+        <Card className="border border-border rounded-xl overflow-hidden shadow-xs">
+          <DataTable headers={[
+            catalogFilter === 'addons' ? 'Standalone product' : 'Catalogue record',
+            'Status',
+            'Price rate',
+            'Tenant Adoption',
+            'Actions',
+          ]}>
+            {visiblePackages.map(pkg => (
+              <TR key={pkg.id}>
+                <TD>
+                  <div className="font-bold text-foreground text-sm">{pkg.name}</div>
+                  <div className="text-xs font-mono text-muted-foreground mt-0.5">{pkg.code}</div>
+                </TD>
+                <TD>
+                  {pkg.standaloneOffer ? (
+                    <Badge variant="info">Standalone</Badge>
+                  ) : pkg.isActive ? (
+                    <Badge variant="success">Active for signup</Badge>
+                  ) : (
+                    <Badge variant="gray">Inactive</Badge>
+                  )}
+                </TD>
+                <TD>
+                  <span className="font-bold text-foreground">
+                    {packageMoney(packagePrice(pkg, billing), pkg.currency)}
+                  </span>
+                  <span className="text-xs text-muted-foreground"> / {billing === 'monthly' ? 'mo' : 'yr'}</span>
+                </TD>
+                <TD>
+                  <span className="text-xs text-muted-foreground">
+                    <strong className="text-foreground">{pkg.active}</strong> tenants · {pkg.subscriptionCount} subscriptions
+                  </span>
+                </TD>
+                <TD>
+                  <Button variant="outline" size="sm" onClick={() => setEditing(pkg)} className="gap-1 h-7 text-xs">
+                    <Icon name="edit" size={11} /> Edit
+                  </Button>
+                </TD>
+              </TR>
             ))}
-          </div>
-        )}
-      </div>
+          </DataTable>
+        </Card>
+      )}
 
-      {/* Add-on edit modal — pricing/description only; an add-on has no
-          user/storage tiers of its own to configure. */}
+      {/* ── Add-ons Section ── */}
+      {catalogFilter === 'addons' && (
+        <div className="mt-8">
+          <div className="flex items-center justify-between flex-wrap gap-2 mb-4">
+            <div>
+              <h3 className="text-base font-bold text-foreground">Modular extensions</h3>
+              <p className="text-xs text-muted-foreground mt-0.5">Optional platform capabilities purchasable on top of any active base plan.</p>
+            </div>
+            {addons && (
+              <Badge variant="gray">{addons.length} Extension{addons.length === 1 ? '' : 's'}</Badge>
+            )}
+          </div>
+
+          {addons === null && !addonsError && (
+            <div className="py-8 text-center text-muted-foreground text-xs flex flex-col items-center gap-2">
+              <SectionLoading />
+              <span>Loading modular add-ons…</span>
+            </div>
+          )}
+
+          {addonsError && (
+            <div className="py-8 text-center text-destructive text-xs">
+              Couldn't load add-ons. <Button variant="outline" size="sm" onClick={reloadAddons} className="ml-2">Retry</Button>
+            </div>
+          )}
+
+          {addons !== null && addons.length === 0 && !addonsError && (
+            <div className="py-8 text-center text-muted-foreground text-xs">No add-ons configured yet.</div>
+          )}
+
+          {addons !== null && addons.length > 0 && (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+              {addons.map(addon => (
+                <Card
+                  key={addon.id}
+                  className="p-5 flex flex-col justify-between transition-all hover:shadow-md border border-border bg-card text-card-foreground rounded-xl"
+                >
+                  <div>
+                    <div className="flex items-start justify-between gap-3 mb-2.5">
+                      <div className="flex items-center gap-2.5">
+                        <FeaturedIcon variant="brand" size="sm">
+                          <Icon name="layers" size={15} />
+                        </FeaturedIcon>
+                        <span className="text-sm font-bold text-foreground">{addon.name}</span>
+                      </div>
+                      <span className="text-sm font-extrabold text-foreground shrink-0 font-[var(--font)]">
+                        {packageMoney(billing === 'monthly' ? addon.monthly : addon.annual, 'USD')}
+                        <span className="text-[11px] font-normal text-muted-foreground">/{billing === 'monthly' ? 'mo' : 'yr'}</span>
+                      </span>
+                    </div>
+                    <p className="text-xs text-muted-foreground my-2.5 leading-relaxed">{addon.description}</p>
+                  </div>
+
+                  <div className="flex items-center justify-between pt-3 border-t border-border mt-3">
+                    <span className="text-xs text-muted-foreground">
+                      <strong className="text-foreground font-semibold">{addon.activeCompanies}</strong> active {addon.activeCompanies === 1 ? 'company' : 'companies'}
+                    </span>
+                    <Button variant="outline" size="sm" onClick={() => setEditingAddon(addon)} className="gap-1.5 h-7 text-xs font-medium">
+                      <Icon name="edit" size={11} />
+                      Edit
+                    </Button>
+                  </div>
+                </Card>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* ── Add-on Edit Modal ── */}
       <Dialog open={!!editingAddon} onOpenChange={o => { if (!o) setEditingAddon(null); }}>
-        <DialogContent className="sm:max-w-md">
+        <DialogContent className="w-[95vw] sm:max-w-md p-5 sm:p-6">
           {editingAddon && (
             <>
               <DialogHeader>
                 <DialogTitle>Edit Add-on — {editingAddon.name}</DialogTitle>
               </DialogHeader>
 
-              <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:14 }}>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5 my-4">
                 <div>
-                  <label style={{ fontSize:12, fontWeight:600, color:'var(--ink2)', display:'block', marginBottom:5 }}>Monthly Price ($)</label>
-                  <Input type="number" value={editingAddon.monthly} onChange={e=>setEditingAddon(p=>p?({...p,monthly:Number(e.target.value)}):p)} />
+                  <label className="text-xs font-semibold text-foreground block mb-1.5">Monthly price (USD)</label>
+                  <Input type="number" value={editingAddon.monthly} onChange={e => setEditingAddon(p => p ? ({ ...p, monthly: Number(e.target.value) }) : p)} />
                 </div>
                 <div>
-                  <label style={{ fontSize:12, fontWeight:600, color:'var(--ink2)', display:'block', marginBottom:5 }}>Annual Price ($)</label>
-                  <Input type="number" value={editingAddon.annual} onChange={e=>setEditingAddon(p=>p?({...p,annual:Number(e.target.value)}):p)} />
+                  <label className="text-xs font-semibold text-foreground block mb-1.5">Annual price (USD)</label>
+                  <Input type="number" value={editingAddon.annual} onChange={e => setEditingAddon(p => p ? ({ ...p, annual: Number(e.target.value) }) : p)} />
                 </div>
               </div>
-              <div style={{ marginTop:14 }}>
-                <label style={{ fontSize:12, fontWeight:600, color:'var(--ink2)', display:'block', marginBottom:5 }}>Description — who this is for</label>
+
+              <div className="mb-4">
+                <label className="text-xs font-semibold text-foreground block mb-1.5">Description — target audience</label>
                 <textarea
                   value={editingAddon.description}
-                  onChange={e=>setEditingAddon(p=>p?({...p,description:e.target.value}):p)}
+                  onChange={e => setEditingAddon(p => p ? ({ ...p, description: e.target.value }) : p)}
                   rows={3}
-                  style={{ width:'100%', padding:'9px 12px', border:'1px solid var(--border)', borderRadius: 'var(--r)', fontSize:13, fontFamily:'var(--font)', color:'var(--ink)', resize:'vertical', boxSizing:'border-box' }}
+                  className="w-full rounded-md border border-input bg-transparent px-3 py-2 text-xs shadow-xs focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring text-foreground font-[var(--font)]"
                 />
               </div>
 
-              <DialogFooter className="sm:justify-between">
+              <DialogFooter className="flex-col-reverse sm:flex-row sm:justify-between gap-2">
                 <Button
-                  type="button" variant="destructive" size="sm"
+                  type="button"
+                  variant="destructive"
+                  size="sm"
                   onClick={async () => {
                     if (!(await showConfirm(`Deactivate the ${editingAddon.name} add-on? It will stop appearing to new signups.`, { variant: 'warning', confirmLabel: 'Deactivate' }))) return;
                     try {
@@ -618,16 +1032,18 @@ export function PackagesView() {
                 >
                   Deactivate
                 </Button>
-                <div style={{ display:'flex', gap:8 }}>
-                  <Button type="button" variant="outline" size="sm" onClick={()=>setEditingAddon(null)}>Cancel</Button>
+                <div className="flex items-center gap-2">
+                  <Button type="button" variant="outline" size="sm" onClick={() => setEditingAddon(null)}>Cancel</Button>
                   <Button
-                    type="button" size="sm"
+                    type="button"
+                    size="sm"
                     onClick={async () => {
                       try {
                         const updated = await apiFetch(`/v1/addons/${editingAddon.code}`, {
                           method: 'PATCH',
                           body: JSON.stringify({
-                            monthlyPrice: editingAddon.monthly, annualPrice: editingAddon.annual,
+                            monthlyPrice: editingAddon.monthly,
+                            annualPrice: editingAddon.annual,
                             description: editingAddon.description,
                           }),
                         });
@@ -647,41 +1063,39 @@ export function PackagesView() {
         </DialogContent>
       </Dialog>
 
-      {/* Edit modal — one scrollable dialog body (not two nested mini-scroll
-          boxes), sticky title + footer, so Save/Deactivate are always
-          reachable regardless of how tall the feature/quota tables get. */}
+      {/* ── Package Edit Modal ── */}
       <Dialog open={!!editing} onOpenChange={o => { if (!o) setEditing(null); }}>
-        <DialogContent className="sm:max-w-xl max-h-[85vh] overflow-y-auto">
+        <DialogContent className="w-[95vw] sm:max-w-2xl max-h-[88vh] overflow-y-auto p-5 sm:p-6">
           {editing && (
             <>
               <DialogHeader>
                 <DialogTitle>Edit Package — {editing.name}</DialogTitle>
               </DialogHeader>
 
-              <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:14 }}>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5 my-4">
                 {[
-                  { label:'Monthly Price ($)',  key:'monthly', hint:undefined },
-                  { label:'Annual Price ($)',   key:'annual',  hint:undefined },
-                  { label:'Max Users', key:'maxUsers', hint:'0 = unlimited' },
-                  { label:'Monthly item limit, all apps', key:'monthlyItemLimit', hint:'0 = unlimited' },
-                  { label:'Storage limit, GB', key:'storageLimitGb', hint:'0 = unlimited' },
-                  { label:'AI credits / month (platform-billed)', key:'monthlyAiCredits', hint:'0 = no platform AI on this tier' },
-                ].map(f=>(
+                  { label: `Monthly price (${editing.currency})`, key: editing.flatMonthly !== null || editing.flatAnnual !== null ? 'flatMonthly' : 'monthly', hint: undefined },
+                  { label: `Annual price (${editing.currency})`, key: editing.flatMonthly !== null || editing.flatAnnual !== null ? 'flatAnnual' : 'annual', hint: undefined },
+                  { label: 'Max Users', key: 'maxUsers', hint: '0 = unlimited' },
+                  { label: 'Monthly item limit, all apps', key: 'monthlyItemLimit', hint: '0 = unlimited' },
+                  { label: 'Storage limit, GB', key: 'storageLimitGb', hint: '0 = unlimited' },
+                  { label: 'AI credits / month', key: 'monthlyAiCredits', hint: '0 = no platform AI' },
+                ].map(f => (
                   <div key={f.key}>
-                    <label style={{ fontSize:12, fontWeight:600, color:'var(--ink2)', display:'block', marginBottom:5 }}>
-                      {f.label}{f.hint && <span style={{ fontWeight:400, color:'var(--ink3)' }}> ({f.hint})</span>}
+                    <label className="text-xs font-semibold text-foreground block mb-1.5">
+                      {f.label}{f.hint && <span className="font-normal text-muted-foreground"> ({f.hint})</span>}
                     </label>
-                    <Input type="number" value={(editing as any)[f.key] ?? 0} onChange={e=>setEditing(p=>p?({...p,[f.key]:Number(e.target.value)}):p)} />
+                    <Input
+                      type="number"
+                      value={(editing as any)[f.key] ?? (f.key === 'flatAnnual' ? (editing.flatMonthly ?? 0) * 12 : 0)}
+                      onChange={e => setEditing(p => p ? ({ ...p, [f.key]: Number(e.target.value) }) : p)}
+                    />
                   </div>
                 ))}
               </div>
 
-              {/* The real per-tenant charge (billing.routes.ts's computePlanAmount)
-                  reads price_per_seat, not the flat monthly/annual figures above —
-                  those were never editable anywhere in this console before now,
-                  which is exactly why Subscription.tsx's own per-seat pricing has
-                  had to be hand-migrated through SQL up to this point. */}
-              <div style={{ marginTop:16, padding:'14px 16px', border:'1px solid var(--border)', borderRadius: 'var(--r)', background:'var(--bg)' }}>
+              {/* Per-seat pricing toggle */}
+              <div className="my-3.5 p-3.5 sm:p-4 border border-border rounded-xl bg-muted/20">
                 <FeatureToggleRow
                   icon={<Icon name="users" size={18} strokeWidth={1.75} />}
                   title="Per-seat pricing"
@@ -695,26 +1109,43 @@ export function PackagesView() {
                   }) : p)}
                 />
                 {editing.pricePerSeat != null && (
-                  <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr 1fr', gap:14, marginTop:14 }}>
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mt-3.5 pt-3.5 border-t border-border/60">
                     <div>
-                      <label style={{ fontSize:12, fontWeight:600, color:'var(--ink2)', display:'block', marginBottom:5 }}>Price per seat ($/mo)</label>
-                      <Input type="number" min={0} value={editing.pricePerSeat} onChange={e=>setEditing(p=>p?({...p,pricePerSeat:Number(e.target.value)}):p)} />
+                      <label className="text-xs font-semibold text-foreground block mb-1">Price per seat ({editing.currency}/mo)</label>
+                      <Input
+                        type="number"
+                        min={0}
+                        value={editing.pricePerSeat}
+                        onChange={e => setEditing(p => p ? ({ ...p, pricePerSeat: Number(e.target.value) }) : p)}
+                      />
                     </div>
                     <div>
-                      <label style={{ fontSize:12, fontWeight:600, color:'var(--ink2)', display:'block', marginBottom:5 }}>
-                        Discount past seat # <span style={{ fontWeight:400, color:'var(--ink3)' }}>(blank = none)</span>
+                      <label className="text-xs font-semibold text-foreground block mb-1">
+                        Discount past seat # <span className="font-normal text-muted-foreground">(opt)</span>
                       </label>
-                      <Input type="number" min={1} placeholder="e.g. 5" value={editing.extraSeatThreshold ?? ''} onChange={e=>setEditing(p=>p?({...p,extraSeatThreshold:e.target.value===''?null:Number(e.target.value)}):p)} />
+                      <Input
+                        type="number"
+                        min={1}
+                        placeholder="e.g. 5"
+                        value={editing.extraSeatThreshold ?? ''}
+                        onChange={e => setEditing(p => p ? ({ ...p, extraSeatThreshold: e.target.value === '' ? null : Number(e.target.value) }) : p)}
+                      />
                     </div>
                     <div>
-                      <label style={{ fontSize:12, fontWeight:600, color:'var(--ink2)', display:'block', marginBottom:5 }}>Discounted seat price ($/mo)</label>
-                      <Input type="number" min={0} placeholder="e.g. 4" value={editing.extraSeatPrice ?? ''} onChange={e=>setEditing(p=>p?({...p,extraSeatPrice:e.target.value===''?null:Number(e.target.value)}):p)} />
+                      <label className="text-xs font-semibold text-foreground block mb-1">Discounted seat price ({editing.currency}/mo)</label>
+                      <Input
+                        type="number"
+                        min={0}
+                        placeholder="e.g. 4"
+                        value={editing.extraSeatPrice ?? ''}
+                        onChange={e => setEditing(p => p ? ({ ...p, extraSeatPrice: e.target.value === '' ? null : Number(e.target.value) }) : p)}
+                      />
                     </div>
                   </div>
                 )}
               </div>
 
-              <div style={{ marginTop:12, padding:'2px 16px', border:'1px solid var(--border)', borderRadius: 'var(--r)'}}>
+              <div className="mb-3.5 p-3.5 sm:p-4 border border-border rounded-xl bg-muted/20">
                 <FeatureToggleRow
                   icon={<Icon name="eye" size={18} strokeWidth={1.75} />}
                   title="Active — visible to signups"
@@ -724,13 +1155,13 @@ export function PackagesView() {
                 />
               </div>
 
-              <div style={{ marginTop:12, padding:'2px 16px', border:'1px solid var(--border)', borderRadius: 'var(--r)'}}>
+              <div className="mb-4 p-3.5 sm:p-4 border border-border rounded-xl bg-muted/20">
                 <FeatureToggleRow
                   icon={<Icon name="sparkle" size={18} strokeWidth={1.75} />}
                   title="Bring your own AI key (BYOK)"
                   description={editing.byokAiAllowed
-                    ? 'On — a tenant on this tier can enter their own provider key in Settings, which always wins over the platform default and is billed to them directly, not against the AI-credits allowance above.'
-                    : 'Off — a tenant on this tier can only use the platform-billed AI key (see AI credits/month above); any key they type in Settings is ignored.'}
+                    ? 'On — a tenant on this tier can enter their own provider key in Settings, which is billed directly to them.'
+                    : 'Off — a tenant on this tier can only use the platform-billed AI key allowance.'}
                   checked={editing.byokAiAllowed}
                   onCheckedChange={(checked: boolean) => setEditing(p => p ? ({ ...p, byokAiAllowed: checked }) : p)}
                 />
@@ -739,90 +1170,114 @@ export function PackagesView() {
               <FeatureGatesEditor packageCode={editing.code} />
               <AppQuotasEditor packageCode={editing.code} />
 
-              <DialogFooter>
-                <div style={{ display:'flex', gap:8 }}>
-                  <Button type="button" variant="outline" size="sm" onClick={()=>setEditing(null)}>Cancel</Button>
-                  <Button
-                    type="button" size="sm"
-                    onClick={async () => {
-                      // Deactivating goes through the same PATCH as every other
-                      // field now (the "Active" toggle above) instead of a
-                      // separate destructive action — one save, one confirm,
-                      // and reactivating (flip it back on, Save) works the same way.
-                      if (!editing.isActive && packages?.find(pk => pk.id === editing.id)?.isActive) {
-                        if (!(await showConfirm(`Deactivate the ${editing.name} package? It will stop appearing to new signups — any tenant already on it keeps working.`, { variant: 'warning', confirmLabel: 'Deactivate' }))) return;
-                      }
-                      try {
-                        const updated = await apiFetch(`/v1/packages/${editing.code}`, {
-                          method: 'PATCH',
-                          body: JSON.stringify({
-                            monthly_price: editing.monthly, annual_price: editing.annual, max_users: editing.maxUsers,
-                            price_per_seat: editing.pricePerSeat,
-                            extra_seat_price: editing.extraSeatPrice,
-                            extra_seat_threshold: editing.extraSeatThreshold,
-                            monthly_item_limit: editing.monthlyItemLimit ? editing.monthlyItemLimit : null,
-                            storage_limit_bytes: editing.storageLimitGb ? editing.storageLimitGb * 1073741824 : null,
-                            monthly_ai_credits: editing.monthlyAiCredits ?? 0,
-                            byok_ai_allowed: editing.byokAiAllowed ?? false,
-                            is_active: editing.isActive,
-                          }),
-                        });
-                        setPackages(p => (p ?? []).map(pk => pk.id === editing.id ? mapFromApi(updated) : pk));
-                        setEditing(null);
-                      } catch (err: any) {
-                        showAlert(`Failed to save: ${err?.message ?? 'Unknown error'}`);
-                      }
-                    }}
-                  >
-                    Save Changes
-                  </Button>
-                </div>
+              <DialogFooter className="mt-4 flex-col-reverse sm:flex-row gap-2">
+                <Button type="button" variant="outline" size="sm" onClick={() => setEditing(null)}>Cancel</Button>
+                <Button
+                  type="button"
+                  size="sm"
+                  onClick={async () => {
+                    if (!editing.isActive && packages?.find(pk => pk.id === editing.id)?.isActive) {
+                      if (!(await showConfirm(`Deactivate the ${editing.name} package? It will stop appearing to new signups — any tenant already on it keeps working.`, { variant: 'warning', confirmLabel: 'Deactivate' }))) return;
+                    }
+                    try {
+                      await apiFetch(`/v1/packages/${editing.code}`, {
+                        method: 'PATCH',
+                        body: JSON.stringify({
+                          monthly_price: editing.monthly,
+                          annual_price: editing.annual,
+                          price_flat_monthly: editing.flatMonthly,
+                          price_flat_annual: editing.flatAnnual,
+                          max_users: editing.maxUsers,
+                          price_per_seat: editing.pricePerSeat,
+                          extra_seat_price: editing.extraSeatPrice,
+                          extra_seat_threshold: editing.extraSeatThreshold,
+                          monthly_item_limit: editing.monthlyItemLimit ? editing.monthlyItemLimit : null,
+                          storage_limit_bytes: editing.storageLimitGb ? editing.storageLimitGb * 1073741824 : null,
+                          monthly_ai_credits: editing.monthlyAiCredits ?? 0,
+                          byok_ai_allowed: editing.byokAiAllowed ?? false,
+                          is_active: editing.isActive,
+                        }),
+                      });
+                      reload();
+                      setEditing(null);
+                    } catch (err: any) {
+                      showAlert(`Failed to save: ${err?.message ?? 'Unknown error'}`);
+                    }
+                  }}
+                >
+                  Save Changes
+                </Button>
               </DialogFooter>
             </>
           )}
         </DialogContent>
       </Dialog>
 
-      {/* Add modal */}
+      {/* ── New Package Modal ── */}
       <Dialog open={showAdd} onOpenChange={setShowAdd}>
-        <DialogContent className="sm:max-w-md">
+        <DialogContent className="w-[95vw] sm:max-w-md p-5 sm:p-6">
           <DialogHeader>
-            <DialogTitle>New Package</DialogTitle>
+            <DialogTitle>New catalogue record</DialogTitle>
           </DialogHeader>
-          {[
-            { label:'Package Name *', key:'name',     type:'text' },
-            { label:'Monthly Price ($)', key:'monthly', type:'number' },
-            { label:'Annual Price ($)',  key:'annual',  type:'number' },
-            { label:'Max Users',         key:'maxUsers',type:'number' },
-            { label:'Price per seat ($/mo, optional — 0 = flat/custom pricing)', key:'pricePerSeat', type:'number' },
-          ].map(f=>(
-            <div key={f.key}>
-              <label style={{ fontSize:12, fontWeight:600, color:'var(--ink2)', display:'block', marginBottom:5 }}>{f.label}</label>
-              <Input type={f.type} value={(newPkg as any)[f.key]} onChange={e=>setNewPkg(p=>({...p,[f.key]:f.type==='number'?Number(e.target.value):e.target.value}))} placeholder={f.key==='name'?'Enterprise Plus':undefined} />
-            </div>
-          ))}
-          <DialogFooter>
-            <Button type="button" variant="outline" size="sm" onClick={()=>setShowAdd(false)}>Cancel</Button>
-            <Button type="button" size="sm" disabled={!newPkg.name.trim()} onClick={async ()=>{
-              if (!newPkg.name.trim()) return;
-              const code = newPkg.name.trim().toLowerCase().replace(/\s+/g,'-');
-              try {
-                await apiFetch('/v1/packages', {
-                  method: 'POST',
-                  body: JSON.stringify({
-                    code, name: newPkg.name.trim(),
-                    monthly_price: newPkg.monthly, annual_price: newPkg.annual, max_users: newPkg.maxUsers,
-                    price_per_seat: newPkg.pricePerSeat > 0 ? newPkg.pricePerSeat : null,
-                    features: ['Custom features'], color: 'var(--teal)', popular: false, sort_order: 99,
-                  }),
-                });
-                reload();
-                setNewPkg({name:'',monthly:0,annual:0,maxUsers:10,pricePerSeat:0});
-                setShowAdd(false);
-              } catch (err: any) {
-                showAlert(`Failed to create package: ${err?.message ?? 'Unknown error'}`);
-              }
-            }}>Create Package</Button>
+          <div className="space-y-3.5 my-4">
+            <Select value={newPkg.currency} onValueChange={currency => setNewPkg(pkg => ({ ...pkg, currency }))}>
+              <SelectTrigger aria-label="New package currency"><SelectValue /></SelectTrigger>
+              <SelectContent><SelectItem value="TZS">TZS</SelectItem><SelectItem value="USD">USD</SelectItem></SelectContent>
+            </Select>
+            {[
+              { label: 'Package Name *', key: 'name', type: 'text' },
+              { label: `Monthly price (${newPkg.currency})`, key: 'monthly', type: 'number' },
+              { label: `Annual price (${newPkg.currency})`, key: 'annual', type: 'number' },
+              { label: 'Max Users',         key: 'maxUsers', type: 'number' },
+              { label: `Price per seat (${newPkg.currency}/mo, optional)`, key: 'pricePerSeat', type: 'number' },
+            ].map(f => (
+              <div key={f.key}>
+                <label className="text-xs font-semibold text-foreground block mb-1.5">{f.label}</label>
+                <Input
+                  type={f.type}
+                  value={(newPkg as any)[f.key]}
+                  onChange={e => setNewPkg(p => ({ ...p, [f.key]: f.type === 'number' ? Number(e.target.value) : e.target.value }))}
+                  placeholder={f.key === 'name' ? 'Enterprise Plus' : undefined}
+                />
+              </div>
+            ))}
+          </div>
+          <DialogFooter className="flex-col-reverse sm:flex-row gap-2">
+            <Button type="button" variant="outline" size="sm" onClick={() => setShowAdd(false)}>Cancel</Button>
+            <Button
+              type="button"
+              size="sm"
+              disabled={!newPkg.name.trim()}
+              onClick={async () => {
+                if (!newPkg.name.trim()) return;
+                const code = newPkg.name.trim().toLowerCase().replace(/\s+/g, '-');
+                try {
+                  await apiFetch('/v1/packages', {
+                    method: 'POST',
+                    body: JSON.stringify({
+                      code,
+                      name: newPkg.name.trim(),
+                      currency: newPkg.currency,
+                      monthly_price: newPkg.monthly,
+                      annual_price: newPkg.annual,
+                      max_users: newPkg.maxUsers,
+                      price_per_seat: newPkg.pricePerSeat > 0 ? newPkg.pricePerSeat : null,
+                      features: ['Custom features'],
+                      color: 'var(--teal)',
+                      popular: false,
+                      sort_order: 99,
+                    }),
+                  });
+                  reload();
+                  setNewPkg({ name: '', monthly: 0, annual: 0, maxUsers: 10, pricePerSeat: 0, currency: 'TZS' });
+                  setShowAdd(false);
+                } catch (err: any) {
+                  showAlert(`Failed to create package: ${err?.message ?? 'Unknown error'}`);
+                }
+              }}
+            >
+              Create Package
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

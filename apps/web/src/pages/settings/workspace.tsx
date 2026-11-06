@@ -35,6 +35,92 @@ import { useAuth } from '../../hooks/useAuth.js';
 import { APP_META } from '../Utilities.js';
 import { AI_PROVIDERS } from '../../lib/aiProviders.js';
 import { SettingsCtx, Toggle, Field, ToggleRow, Card, SaveRow, useFields, useSettingsFields } from './shared.js';
+import { Button } from '../../components/ui/button.js';
+import { Input } from '../../components/ui/input.js';
+
+// -- section: Locations ------------------------------------------------------
+
+interface LocationRow {
+  id: string; name: string; code: string; type: string; city: string; country: string;
+}
+
+/** Tenant business locations (migration 001's `locations` table), plan-limit
+ *  governed by checkLocationLimit (lib/plan-limits.ts) — see LENS-53. Kept
+ *  deliberately plain: one list, one add row, no dialog, since the whole
+ *  record is five short fields. */
+export const LocationsSection: React.FC = () => {
+  const [rows, setRows] = useState<LocationRow[] | null>(null);
+  const [adding, setAdding] = useState(false);
+  const [error, setError] = useState('');
+  const [f, set] = useFields({ name: '', code: '', type: 'branch', city: '', country: '' });
+
+  const load = () => apiFetch('/v1/locations').then((r: LocationRow[]) => setRows(r)).catch(() => setRows([]));
+  useEffect(() => { load(); }, []);
+
+  const add = async () => {
+    setError('');
+    if (!f.name.trim() || !f.code.trim() || !f.city.trim() || !f.country.trim()) {
+      setError('Name, code, city and country are required.');
+      return;
+    }
+    setAdding(true);
+    try {
+      await apiFetch('/v1/locations', { method: 'POST', body: JSON.stringify(f) });
+      set('name', ''); set('code', ''); set('city', ''); set('country', '');
+      await load();
+    } catch (e: any) {
+      setError(e?.message || 'Could not add location — check your plan’s location limit.');
+    } finally {
+      setAdding(false);
+    }
+  };
+
+  const remove = async (id: string) => {
+    const ok = await showConfirm('Remove this location?');
+    if (!ok) return;
+    try {
+      await apiFetch(`/v1/locations/${id}`, { method: 'DELETE' });
+      await load();
+    } catch {
+      showAlert('Could not remove location');
+    }
+  };
+
+  return (
+    <div className="sett-section">
+      <Card title="Business locations" desc="Branches, warehouses, or offices registered to this workspace. Your plan sets how many you can add.">
+        {rows === null ? (
+          <SectionLoading />
+        ) : (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+            {rows.length === 0 && <p className="s-fld-hint">No additional locations yet.</p>}
+            {rows.map(loc => (
+              <div key={loc.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, padding: '10px 12px', border: '1px solid var(--border)', borderRadius: 'var(--r)' }}>
+                <div>
+                  <div style={{ fontWeight: 600 }}>{loc.name} <span className="s-fld-hint" style={{ display: 'inline' }}>({loc.code})</span></div>
+                  <div className="s-fld-hint">{loc.type} · {loc.city}, {loc.country}</div>
+                </div>
+                <Button variant="ghost" size="sm" onClick={() => remove(loc.id)}>Remove</Button>
+              </div>
+            ))}
+          </div>
+        )}
+
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: 12, marginTop: 16 }}>
+          <Field label="Name"><Input value={f.name} onChange={e => set('name', e.target.value)} placeholder="Mwanza Branch" /></Field>
+          <Field label="Code"><Input value={f.code} onChange={e => set('code', e.target.value)} placeholder="MWZ" /></Field>
+          <Field label="Type"><Input value={f.type} onChange={e => set('type', e.target.value)} placeholder="branch" /></Field>
+          <Field label="City"><Input value={f.city} onChange={e => set('city', e.target.value)} placeholder="Mwanza" /></Field>
+          <Field label="Country"><Input value={f.country} onChange={e => set('country', e.target.value)} placeholder="Tanzania" /></Field>
+        </div>
+        {error && <p className="s-fld-hint" style={{ color: 'var(--red)' }}>{error}</p>}
+        <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: 12 }}>
+          <Button onClick={add} disabled={adding}>{adding ? 'Adding…' : 'Add location'}</Button>
+        </div>
+      </Card>
+    </div>
+  );
+};
 
 // -- section: Company --------------------------------------------------------
 export const CompanySection: React.FC = () => {

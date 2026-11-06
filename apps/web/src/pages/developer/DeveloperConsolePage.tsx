@@ -241,9 +241,13 @@ function DeveloperOverviewTab({
             <span>Total Requests (7d)</span>
             <Icon name="activity" size={16} style={{ color: 'var(--teal)' }} />
           </div>
-          <div className="dev-stat-val">{telemetry?.total_requests ?? 1420}</div>
-          <div className="dev-stat-sub" style={{ color: 'var(--green)' }}>
-            ✓ 99.8% Success Rate
+          <div className="dev-stat-val">{telemetry?.total_requests ?? 0}</div>
+          {/* Real rate when there's at least one request to measure — a
+              hardcoded 99.8% here would report a number nobody observed. */}
+          <div className="dev-stat-sub" style={{ color: telemetry && telemetry.total_requests > 0 ? 'var(--green)' : 'var(--ink3)' }}>
+            {telemetry && telemetry.total_requests > 0
+              ? `✓ ${((telemetry.successful_requests / telemetry.total_requests) * 100).toFixed(1)}% Success Rate`
+              : 'No requests yet'}
           </div>
         </div>
 
@@ -252,8 +256,11 @@ function DeveloperOverviewTab({
             <span>Average Latency</span>
             <Icon name="clock" size={16} style={{ color: 'var(--blue)' }} />
           </div>
-          <div className="dev-stat-val">{telemetry?.avg_latency_ms ?? 48} ms</div>
-          <div className="dev-stat-sub">Across East Africa PoPs</div>
+          {/* Not instrumented anywhere in this pipeline yet — the backend
+              reports null rather than a fabricated figure; show the same
+              honest absence here instead of masking it with a fallback. */}
+          <div className="dev-stat-val">{telemetry?.avg_latency_ms != null ? `${telemetry.avg_latency_ms} ms` : '—'}</div>
+          <div className="dev-stat-sub">{telemetry?.avg_latency_ms != null ? 'Across East Africa PoPs' : 'Not yet measured'}</div>
         </div>
 
         <div className="dev-stat-card">
@@ -261,7 +268,7 @@ function DeveloperOverviewTab({
             <span>Billable Units</span>
             <Icon name="fileText" size={16} style={{ color: 'var(--purple)' }} />
           </div>
-          <div className="dev-stat-val">{telemetry?.billable_units ?? 950}</div>
+          <div className="dev-stat-val">{telemetry?.billable_units ?? 0}</div>
           <div className="dev-stat-sub">Included allowance: 100 free/mo</div>
         </div>
 
@@ -271,7 +278,7 @@ function DeveloperOverviewTab({
             <Icon name="coins" size={16} style={{ color: 'var(--gold)' }} />
           </div>
           <div className="dev-stat-val">
-            {(account.billing_account?.balance_credits ?? 50000).toLocaleString()} {account.billing_account?.currency || 'TZS'}
+            {(account.billing_account?.balance_credits ?? 0).toLocaleString()} {account.billing_account?.currency || 'TZS'}
           </div>
           <div className="dev-stat-sub">
             <button
@@ -1005,19 +1012,19 @@ function DeveloperAnalyticsTab({
       <div className="dev-stats-grid">
         <div className="dev-stat-card">
           <div className="dev-stat-hdr"><span>Total Requests</span></div>
-          <div className="dev-stat-val">{telemetry?.total_requests ?? 1420}</div>
+          <div className="dev-stat-val">{telemetry?.total_requests ?? 0}</div>
         </div>
         <div className="dev-stat-card">
           <div className="dev-stat-hdr"><span>Successful Calls</span></div>
-          <div className="dev-stat-val" style={{ color: 'var(--green)' }}>{telemetry?.successful_requests ?? 1417}</div>
+          <div className="dev-stat-val" style={{ color: 'var(--green)' }}>{telemetry?.successful_requests ?? 0}</div>
         </div>
         <div className="dev-stat-card">
           <div className="dev-stat-hdr"><span>Failed / Error Calls</span></div>
-          <div className="dev-stat-val" style={{ color: 'var(--red)' }}>{telemetry?.error_requests ?? 3}</div>
+          <div className="dev-stat-val" style={{ color: 'var(--red)' }}>{telemetry?.error_requests ?? 0}</div>
         </div>
         <div className="dev-stat-card">
           <div className="dev-stat-hdr"><span>Billed Units</span></div>
-          <div className="dev-stat-val">{telemetry?.billable_units ?? 950}</div>
+          <div className="dev-stat-val">{telemetry?.billable_units ?? 0}</div>
         </div>
       </div>
 
@@ -1057,6 +1064,8 @@ function DeveloperBillingTab({ account }: { account: DeveloperAccount }) {
   const [topUpAmount, setTopUpAmount] = useState(100000);
   const [processing, setProcessing] = useState(false);
 
+  const [searchParams] = useSearchParams();
+
   function load() {
     apiFetch(`/v1/developer/accounts/${account.id}/billing`).then(setBillingData).catch(() => {});
   }
@@ -1065,20 +1074,33 @@ function DeveloperBillingTab({ account }: { account: DeveloperAccount }) {
     load();
   }, [account.id]);
 
+  // After returning from the gateway's hosted checkout, verify the payment
+  // directly with the gateway before this balance moves at all — same
+  // pattern as Subscription.tsx's ESB top-up return handler.
+  useEffect(() => {
+    const txRef = searchParams.get('tx_ref');
+    const topup = searchParams.get('topup');
+    if (topup && txRef) {
+      apiFetch(`/v1/developer/accounts/${account.id}/billing/topup/verify`, {
+        method: 'POST', body: JSON.stringify({ tx_ref: txRef }),
+      })
+        .then(() => { showAlert('Top-up successful!'); load(); })
+        .catch((err: any) => showAlert(`Top-up verification failed: ${err.message}`));
+      window.history.replaceState({}, '', window.location.pathname);
+    }
+  }, [searchParams, account.id]);
+
   async function handleTopUp(e: React.FormEvent) {
     e.preventDefault();
     setProcessing(true);
     try {
-      await apiFetch(`/v1/developer/accounts/${account.id}/billing/topup`, {
+      const checkout = await apiFetch(`/v1/developer/accounts/${account.id}/billing/topup/checkout`, {
         method: 'POST',
         body: JSON.stringify({ amount: topUpAmount }),
       });
-      setIsTopUpOpen(false);
-      showAlert(`Added ${topUpAmount.toLocaleString()} TZS to prepaid balance!`);
-      load();
+      window.location.href = checkout.url;
     } catch (err: any) {
       showAlert(err.message || 'Top-up failed');
-    } finally {
       setProcessing(false);
     }
   }
@@ -1146,7 +1168,7 @@ function DeveloperBillingTab({ account }: { account: DeveloperAccount }) {
         <div>
           <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--ink3)', textTransform: 'uppercase' }}>Available Prepaid Balance</div>
           <div style={{ fontSize: 26, fontWeight: 800, color: 'var(--teal)', marginTop: 4 }}>
-            {(billingData?.billing_account?.balance_credits ?? 50000).toLocaleString()} {billingData?.billing_account?.currency || 'TZS'}
+            {(billingData?.billing_account?.balance_credits ?? 0).toLocaleString()} {billingData?.billing_account?.currency || 'TZS'}
           </div>
         </div>
         <Button size="sm" onClick={() => setIsTopUpOpen(true)}>+ Top Up Balance</Button>

@@ -1,4 +1,5 @@
-import { withTenant, dbPlatform } from '../db/client.js';
+import { withTenant, dbPlatform, type Database } from '../db/client.js';
+import type { Transaction } from 'kysely';
 
 /**
  * Server-side enforcement of plan-level seat and location limits.
@@ -23,13 +24,13 @@ export interface LimitCheckResult {
   message?: string;
 }
 
-export async function checkSeatLimit(tenantId: string, targetPlanCode?: string): Promise<LimitCheckResult> {
-  return withTenant(tenantId, async (trx) => {
+export async function checkSeatLimit(tenantId: string, targetPlanCode?: string, transaction?: Transaction<Database>): Promise<LimitCheckResult> {
+  const check = async (trx: Transaction<Database>): Promise<LimitCheckResult> => {
     const planCode = targetPlanCode
       ?? (await trx.selectFrom('tenants').select('plan').where('id', '=', tenantId).executeTakeFirst())?.plan;
     if (!planCode) return { allowed: false, current: 0, limit: 0, message: 'Tenant not found' };
 
-    const pkg = await dbPlatform.selectFrom('packages').select(['max_users', 'included_seats'])
+    const pkg = await trx.selectFrom('packages').select(['max_users', 'included_seats'])
       .where('code', '=', planCode).executeTakeFirst();
     if (!pkg) return { allowed: true, current: 0, limit: null };
 
@@ -43,10 +44,11 @@ export async function checkSeatLimit(tenantId: string, targetPlanCode?: string):
       .where('role', '!=', 'CUSTOMER')
       .executeTakeFirst();
 
-    const pendingInvites = await trx.selectFrom('invitations' as any)
+    const pendingInvites = await trx.selectFrom('hr_invitations')
       .select(({ fn }) => fn.countAll<number>().as('c'))
       .where('tenant_id', '=', tenantId)
-      .where('status', '=', 'pending')
+      .where('status', '=', 'PENDING')
+      .where('expires_at', '>', new Date())
       .executeTakeFirst();
 
     const current = Number(activeUsers?.c ?? 0) + Number(pendingInvites?.c ?? 0);
@@ -61,7 +63,8 @@ export async function checkSeatLimit(tenantId: string, targetPlanCode?: string):
     }
 
     return { allowed: true, current, limit };
-  });
+  };
+  return transaction ? check(transaction) : withTenant(tenantId, check);
 }
 
 export async function checkLocationLimit(tenantId: string): Promise<LimitCheckResult> {

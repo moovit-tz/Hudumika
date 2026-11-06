@@ -9,6 +9,7 @@ import { useEnabledApps, isAppEnabled } from '../hooks/useEnabledApps.js';
 import { LAUNCHER_APPS, INTERNAL_APP_IDS } from './LauncherApps.js';
 import { useAuth } from '../hooks/useAuth.js';
 import { getRecentApps, recordRecentApp } from '../lib/recentApps.js';
+import { Tip } from './ui/tooltip.js';
 import './AppLauncher.css';
 
 export const LAUNCHER_APP_META: Record<string, { icon: IconName; color: string; label?: string }> = {
@@ -166,26 +167,32 @@ export function AppLauncher({ renderTrigger, variant = 'icon' }: AppLauncherProp
   const trigger = renderTrigger
     ? renderTrigger({ open: launcherOpen, onClick: () => setLauncherOpen(d => !d) })
     : variant === 'pill' ? (
-      <button
-        type="button"
-        className={`ah-header-pill-btn${launcherOpen ? ' is-active' : ''}`}
-        onClick={() => setLauncherOpen(d => !d)}
-        title={t('header.allApps')}
-        aria-expanded={launcherOpen}
-       data-ui-native-button="">
-        <Icon name="grid" size={14} style={{ color: 'var(--teal)' }} />
-        <span>Apps</span>
-        <Icon name="chevronDown" size={11} className="ah-pill-chevron" />
-      </button>
+      <Tip label={t('header.allApps') || 'Apps'} side="bottom">
+        <button
+          type="button"
+          className={`ah-header-pill-btn${launcherOpen ? ' is-active' : ''}`}
+          onClick={() => setLauncherOpen(d => !d)}
+          aria-label={t('header.allApps') || 'Apps'}
+          aria-expanded={launcherOpen}
+          data-ui-native-button=""
+        >
+          <Icon name="grid" size={14} style={{ color: 'var(--teal)' }} />
+          <span>Apps</span>
+          <Icon name="chevronDown" size={11} className="ah-pill-chevron" />
+        </button>
+      </Tip>
     ) : (
-      <button
-        type="button"
-        className={`app-header-icon-btn${launcherOpen ? ' app-header-icon-btn--open' : ''}`}
-        onClick={() => setLauncherOpen(d => !d)}
-        title={t('header.allApps')}
-       data-ui-native-button="">
-        <Icon name="grid" size={17} />
-      </button>
+      <Tip label={t('header.allApps') || 'Apps'} side="bottom">
+        <button
+          type="button"
+          className={`app-header-icon-btn${launcherOpen ? ' app-header-icon-btn--open' : ''}`}
+          onClick={() => setLauncherOpen(d => !d)}
+          aria-label={t('header.allApps') || 'Apps'}
+          data-ui-native-button=""
+        >
+          <Icon name="grid" size={17} />
+        </button>
+      </Tip>
     );
 
   const overlay = (
@@ -201,25 +208,38 @@ export function AppLauncher({ renderTrigger, variant = 'icon' }: AppLauncherProp
             <span className="app-lnch-panel-title">Apps</span>
           </div>
           <div className="app-lnch-panel-hdr-btns">
-            <Link
-              to="/workspace"
-              className="app-lnch-settings-btn"
-              onClick={closeLauncher}
-              title="Manage workspace apps & settings"
-            >
-              <Icon name="settings" size={15} />
-            </Link>
-            <button
-              type="button"
-              className={`app-lnch-edit-toggle${editMode ? ' app-lnch-edit-toggle--active' : ''}`}
-              onClick={() => setEditMode(m => !m)}
-              title={editMode ? t('launcher.done') : t('launcher.rearrange')}
-             data-ui-native-button="">
-              <Icon name={editMode ? 'check' : 'edit'} size={13} />
-            </button>
-            <button type="button" className="app-lnch-panel-close" onClick={closeLauncher} title={t('launcher.close')} data-ui-native-button="">
-              <Icon name="close" size={14} />
-            </button>
+            <Tip label="Manage workspace apps & settings" side="bottom">
+              <Link
+                to="/workspace"
+                className="app-lnch-settings-btn"
+                onClick={closeLauncher}
+                aria-label="Manage workspace apps & settings"
+              >
+                <Icon name="settings" size={15} />
+              </Link>
+            </Tip>
+            <Tip label={editMode ? t('launcher.done') : t('launcher.rearrange')} side="bottom">
+              <button
+                type="button"
+                className={`app-lnch-edit-toggle${editMode ? ' app-lnch-edit-toggle--active' : ''}`}
+                onClick={() => setEditMode(m => !m)}
+                aria-label={editMode ? t('launcher.done') : t('launcher.rearrange')}
+                data-ui-native-button=""
+              >
+                <Icon name={editMode ? 'check' : 'edit'} size={13} />
+              </button>
+            </Tip>
+            <Tip label={t('launcher.close') || 'Close'} side="bottom">
+              <button
+                type="button"
+                className="app-lnch-panel-close"
+                onClick={closeLauncher}
+                aria-label={t('launcher.close') || 'Close'}
+                data-ui-native-button=""
+              >
+                <Icon name="close" size={14} />
+              </button>
+            </Tip>
           </div>
         </div>
 
@@ -303,7 +323,7 @@ export function AppLauncher({ renderTrigger, variant = 'icon' }: AppLauncherProp
 
           <Link to="/" className="app-lnch-adobe-footer-item" onClick={closeLauncher}>
             <Icon name="grid" size={15} style={{ color: 'var(--ink2)' }} />
-            <span className="app-lnch-adobe-footer-label">All modules</span>
+            <span className="app-lnch-adobe-footer-label">All apps</span>
           </Link>
         </div>
       </div>

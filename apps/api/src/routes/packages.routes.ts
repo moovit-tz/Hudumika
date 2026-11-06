@@ -3,6 +3,7 @@ import { z } from 'zod';
 import { dbPlatform } from '../db/client.js';
 import { requireRole } from '../middleware/rbac.js';
 import type { Package, TenantPlan } from '@hudumika/types';
+import { SIGNUP_BASE_PLAN_CODES } from '@hudumika/types';
 
 const packageCreateSchema = z.object({
   code: z.string().trim().min(1).max(50),
@@ -94,6 +95,15 @@ export async function packagesRoutes(fastify: FastifyInstance) {
     return { data: rows.map(toPackage) };
   });
 
+  fastify.get('/signup', async () => {
+    const rows = await dbPlatform.selectFrom('packages').selectAll()
+      .where('is_active', '=', true)
+      .where('code', 'in', SIGNUP_BASE_PLAN_CODES)
+      .orderBy('sort_order', 'asc')
+      .execute();
+    return { data: rows.map(toPackage) };
+  });
+
   /**
    * GET /v1/packages/all — every package, active or not (SuperAdmin only).
    * The public GET / above deliberately hides inactive packages from
@@ -103,10 +113,26 @@ export async function packagesRoutes(fastify: FastifyInstance) {
    */
   fastify.get('/all', { preHandler: [fastify.authenticate, requireRole('SUPER_ADMIN')] }, async () => {
     const rows = await dbPlatform.selectFrom('packages').selectAll()
+      .select(eb => [
+        eb.selectFrom('tenants').select(({ fn }) => fn.countAll().as('count'))
+          .whereRef('tenants.plan', '=', 'packages.code').as('tenant_count'),
+        eb.selectFrom('tenant_product_subscriptions').select(({ fn }) => fn.countAll().as('count'))
+          .whereRef('tenant_product_subscriptions.package_code', '=', 'packages.code').as('subscription_count'),
+        eb.exists(eb.selectFrom('commercial_products').select('id')
+          .whereRef('commercial_products.default_package_code', '=', 'packages.code')).as('standalone_offer'),
+        eb.exists(eb.selectFrom('industry_registry').select('key')
+          .whereRef('industry_registry.default_package_code', '=', 'packages.code')).as('industry_offer'),
+      ])
       .orderBy('sort_order', 'asc')
       .execute();
 
-    return { data: rows.map(toPackage) };
+    return { data: rows.map(row => ({
+      ...toPackage(row),
+      tenant_count: Number(row.tenant_count),
+      subscription_count: Number(row.subscription_count),
+      standalone_offer: row.standalone_offer,
+      industry_offer: row.industry_offer,
+    })) };
   });
 
   /**

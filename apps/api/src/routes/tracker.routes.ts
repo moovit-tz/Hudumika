@@ -1,4 +1,4 @@
-import { sql } from 'kysely';
+import { sql, type Transaction } from 'kysely';
 import { parseTrackerPage, trackerPage } from '../services/tracker-pagination.js';
 import { createHash, createHmac, timingSafeEqual } from 'node:crypto';
 import { env } from '../config/env.js';
@@ -7,11 +7,26 @@ import { z } from 'zod';
 import { validateContainerNumber } from '@hudumika/types';
 import { requireTrackerAccess, validateTrackerReferences, containerWriteSchema, lifecycleStages } from '../services/tracker-integrity.js';
 import type { FastifyInstance, FastifyRequest } from 'fastify';
-import { withTenant, dbPlatform } from '../db/client.js';
+import { withTenant, dbPlatform, type Database } from '../db/client.js';
 import { requireEntitlement } from '../middleware/entitlement.js';
+import { lookupTaneswBill, lookupTaneswContainer, MultipleTaneswMatches } from '../services/tanesw-tracking.service.js';
 
 function trackingDigest(body: any) {
   return createHash('sha256').update(JSON.stringify(Object.fromEntries(['tracking_type','tracking_number','carrier','origin_name','origin_code','dest_name','dest_code','current_location','status','status_code','eta','progress_pct','events','source','provider'].map(k => [k, body[k] ?? null])))).digest('hex');
+}
+
+async function recordTrackingActivation(
+  trx: Transaction<Database>,
+  tenantId: string,
+  snapshot: { id: string; tracking_type: string; tracking_number: string },
+) {
+  await trx.insertInto('cargotracker_activations').values({
+    tenant_id: tenantId,
+    tracking_type: snapshot.tracking_type,
+    tracking_number: sql<string>`upper(regexp_replace(${snapshot.tracking_number}, '[[:space:]]', '', 'g'))`,
+    snapshot_id: snapshot.id,
+  }).onConflict(conflict => conflict.columns(['tenant_id', 'tracking_type', 'tracking_number']).doNothing())
+    .execute();
 }
 const eventSchema = z.object({ timestamp: z.string().max(100), location: z.string().max(500), description: z.string().max(4000), status_code: z.string().max(100).optional() });
 const snapshotSchema = z.object({
@@ -283,6 +298,30 @@ export async function trackerRoutes(fastify: FastifyInstance) {
     if (req.body && typeof req.body === 'object') await withTenant((req as any).user.tenant_id, trx => validateTrackerReferences(trx, (req as any).user.tenant_id, req.body));
   });
 
+  fastify.post('/tanzania', { config: { rateLimit: { max: 10, timeWindow: '1 minute' } } }, async (req, reply) => {
+    if (process.env.NODE_ENV === 'production' && process.env.TANESW_TRACKING_ENABLED !== 'true') {
+      return reply.code(503).send({ error: 'Use the TRA portal for Tanzania tracking in this environment.' });
+    }
+    const input = z.object({
+      number: z.string().trim().regex(/^[A-Z0-9][A-Z0-9./-]{2,63}$/i),
+      container: z.object({
+        cargoReference: z.string().regex(/^[A-Z0-9-]{3,40}$/),
+        number: z.string().regex(/^[A-Z0-9-]{3,30}$/),
+      }).optional(),
+    }).safeParse(req.body);
+    if (!input.success) return reply.code(400).send({ error: 'Enter a valid bill of lading number.' });
+
+    try {
+      const bill = input.data.number.toUpperCase();
+      const container = input.data.container;
+      const result = container ? await lookupTaneswContainer(bill, container.cargoReference, container.number) : await lookupTaneswBill(bill);
+      return reply.header('Cache-Control', 'no-store').send({ result });
+    } catch (error) {
+      if (error instanceof MultipleTaneswMatches) return reply.code(409).send({ error: error.message });
+      return reply.code(502).send({ error: 'TANESW is unavailable. Try again or check the TRA portal.' });
+    }
+  });
+
   // POST /v1/tracker/track
   fastify.post('/track', async (req: FastifyRequest, reply) => {
     const user = (req as any).user;
@@ -342,7 +381,7 @@ export async function trackerRoutes(fastify: FastifyInstance) {
     const user = (req as any).user;
     const body = snapshotSchema.parse(req.body);
     const fetchedAt = verifyLiveProof(body, user.tenant_id);
-    return withTenant(user.tenant_id, async (trx) => {
+    const snapshot = await withTenant(user.tenant_id, async (trx) => {
       const snap = await trx.insertInto('tracking_snapshots').values({
         tenant_id:        user.tenant_id,
         shipment_id:      body.shipment_id ?? null,
@@ -363,9 +402,11 @@ export async function trackerRoutes(fastify: FastifyInstance) {
         source: body.source, provider: body.provider ?? null, fetched_at: fetchedAt ?? null,
         share_expires_at: new Date(Date.now() + 7 * 86400000),
         created_by:       user.sub,
-      }).returningAll().executeTakeFirst();
-      return reply.code(201).send(snap);
+      }).returningAll().executeTakeFirstOrThrow();
+      if (fetchedAt) await recordTrackingActivation(trx, user.tenant_id, snap);
+      return snap;
     });
+    return reply.code(201).send(snapshot);
   });
 
   // GET /v1/tracker/snapshots
@@ -408,7 +449,10 @@ export async function trackerRoutes(fastify: FastifyInstance) {
       if (!existing) return undefined;
       if (fetchedAt && existing.fetched_at && fetchedAt < new Date(existing.fetched_at)) throw Object.assign(new Error('A newer provider result is already saved'), { statusCode: 409 });
       if (body.source === 'live' && existing.source !== 'live') patch.eta_initial = body.eta_initial || body.eta ? new Date((body.eta_initial || body.eta)!) : null;
-      return trx.updateTable('tracking_snapshots').set(patch).where('id','=',id).where('tenant_id','=',user.tenant_id).returningAll().executeTakeFirst();
+      const snapshot = await trx.updateTable('tracking_snapshots').set(patch)
+        .where('id','=',id).where('tenant_id','=',user.tenant_id).returningAll().executeTakeFirstOrThrow();
+      if (fetchedAt) await recordTrackingActivation(trx, user.tenant_id, snapshot);
+      return snapshot;
     });
     if (!updated) return reply.code(404).send({ error: 'Snapshot not found' });
     return updated;
@@ -737,6 +781,44 @@ export async function trackerRoutes(fastify: FastifyInstance) {
       if (!row) return reply.code(404).send({ error: 'Repair not found' });
       return row;
     });
+  });
+
+  fastify.get('/tracked', async req => {
+    const { page, limit } = z.object({
+      page: z.coerce.number().int().min(1).max(100_000).default(1),
+      limit: z.coerce.number().int().min(1).max(100).default(10),
+    }).parse(req.query);
+    const tenantId = req.user.tenant_id;
+    const { rows } = await withTenant(tenantId, trx => sql<{ id: string; container: unknown; snapshots: unknown[] }>`
+      with fleet as (
+        select t.id, t.container_number, t.iso_code, t.size_type, t.carrier_name,
+          t.carrier_code, t.color_hex, t.lifecycle_stage, t.updated_at, c.name as customer_name,
+          regexp_replace(upper(t.container_number), '[[:space:]]', '', 'g') as tracking_key
+        from tracked_containers t
+        left join customers c on c.id = t.customer_id and c.tenant_id = ${tenantId}
+        where t.tenant_id = ${tenantId}
+      ), snapshots as (
+        select s.*, regexp_replace(upper(s.tracking_number), '[[:space:]]', '', 'g') as tracking_key
+        from tracking_snapshots s where s.tenant_id = ${tenantId}
+      ), attached as (
+        select tracking_key, jsonb_agg(to_jsonb(s) - 'tracking_key' order by s.created_at desc, s.id desc) as snapshots,
+          max(s.created_at) as latest
+        from snapshots s where s.tracking_type = 'BL'
+        group by tracking_key
+      ), entries as (
+        select 'container:' || f.id as id, to_jsonb(f) - 'tracking_key' as container,
+          coalesce(a.snapshots, '[]'::jsonb) as snapshots, greatest(f.updated_at, a.latest) as sort_at
+        from fleet f left join attached a using (tracking_key)
+        union all
+        select 'tracking:' || s.id, null::jsonb, jsonb_build_array(to_jsonb(s) - 'tracking_key'), s.created_at
+        from snapshots s
+        where s.tracking_type <> 'BL' or not exists (select 1 from fleet f where f.tracking_key = s.tracking_key)
+      )
+      select id, container, snapshots from entries
+      order by sort_at desc, id desc
+      limit ${limit + 1} offset ${(page - 1) * limit}
+    `.execute(trx));
+    return { data: rows.slice(0, limit), has_more: rows.length > limit };
   });
 
   // GET /v1/tracker/containers — List containers for this tenant

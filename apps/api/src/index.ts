@@ -205,6 +205,7 @@ import { queryBuilderRoutes } from './routes/query-builder.routes.js';
 import { onboardingRoutes } from './routes/onboarding.routes.js';
 import { packagesRoutes } from './routes/packages.routes.js';
 import { addonsRoutes } from './routes/addons.routes.js';
+import { locationsRoutes } from './routes/locations.routes.js';
 import { traRoutes } from './routes/tra.routes.js';
 import { customsRoutes } from './routes/customs.routes.js';
 import { advancedCalculatorRoutes } from './routes/advanced-calculators.routes.js';
@@ -220,7 +221,7 @@ import { renewalFinanceRoutes } from './routes/renewal-finance.routes.js';
 import { workflowDefRoutes, matrixRoutes, workflowInstanceRoutes } from './routes/industry-workflow.routes.js';
 import { launchPlannerRoutes } from './routes/launch-planner.routes.js';
 import { portfolioRoutes, mandateRoutes, engagementRoutes } from './routes/consultant-delegation.routes.js';
-import { listingRoutes, enquiryRoutes, quotationRoutes, assignmentRoutes, disputeRoutes } from './routes/marketplace.routes.js';
+import { listingRoutes, enquiryRoutes, quotationRoutes as marketplaceQuotationRoutes, assignmentRoutes, disputeRoutes } from './routes/marketplace.routes.js';
 import { platformMetricsRoutes, tenantMetricsRoutes, resourceLimitRoutes, jobRoutes, bulkOperationRoutes } from './routes/enterprise-metrics.routes.js';
 import { organizationsRoutes } from './routes/organizations.routes.js';
 import supportRoutes from './routes/support.routes.js';
@@ -755,6 +756,7 @@ export async function registerApp() {
     await server.register(complyLegalRoutes, { prefix: '/v1/comply/legal' });
     await server.register(onboardingRoutes, { prefix: '/v1/onboarding' });
     await server.register(packagesRoutes, { prefix: '/v1/packages' });
+    await server.register(locationsRoutes, { prefix: '/v1/locations' });
     await server.register(addonsRoutes, { prefix: '/v1/addons' });
     await server.register(traRoutes, { prefix: '/v1/tra' });
     await server.register(customsRoutes, { prefix: '/v1/customs' });
@@ -837,7 +839,7 @@ export async function registerApp() {
 
     await server.register(listingRoutes, { prefix: '/v1/marketplace/listings' });
     await server.register(enquiryRoutes, { prefix: '/v1/marketplace/enquiries' });
-    await server.register(quotationRoutes, { prefix: '/v1/marketplace/quotations' });
+    await server.register(marketplaceQuotationRoutes, { prefix: '/v1/marketplace/quotations' });
     await server.register(assignmentRoutes, { prefix: '/v1/marketplace/assignments' });
     await server.register(disputeRoutes, { prefix: '/v1/marketplace/disputes' });
 

@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { Icon } from './Icon.js';
-import { Tooltip, TooltipTrigger, TooltipContent, TooltipProvider } from './ui/tooltip.js';
+import { Tip, Tooltip, TooltipTrigger, TooltipContent, TooltipProvider } from './ui/tooltip.js';
 import './HeaderPill.css';
 
 /**
@@ -111,15 +111,17 @@ export const HeaderPill: React.FC<Props> = ({ items, onOpen, onDismiss, onExpand
       onBlurCapture={() => setFocused(false)}
     >
       {/* Search is one click away, in the place the magnifier has always been. */}
-      <button
-        type="button"
-        className="app-header-pill-search"
-        onClick={onExpandSearch}
-        title="Search (/)"
-        aria-label="Search"
-       data-ui-native-button="">
-        <Icon name="search" size={15} />
-      </button>
+      <Tip label="Search (/)" side="bottom">
+        <button
+          type="button"
+          className="app-header-pill-search"
+          onClick={onExpandSearch}
+          aria-label="Search (/)"
+          data-ui-native-button=""
+        >
+          <Icon name="search" size={15} />
+        </button>
+      </Tip>
 
       {/*
         aria-live is deliberately off. The rotation is decorative repetition of
@@ -137,7 +139,8 @@ export const HeaderPill: React.FC<Props> = ({ items, onOpen, onDismiss, onExpand
               type="button"
               className="app-header-pill-body"
               onClick={() => onOpen(item)}
-             data-ui-native-button="">
+              data-ui-native-button=""
+            >
               <span className="app-header-pill-badge">{item.badge || 'NEW'}</span>
               <span className="app-header-pill-title">{item.title}</span>
               {item.message && <span className="app-header-pill-sub">{item.message}</span>}
@@ -159,32 +162,41 @@ export const HeaderPill: React.FC<Props> = ({ items, onOpen, onDismiss, onExpand
         {showControls && (
           <>
             <span className="app-header-pill-count">{index + 1}/{items.length}</span>
-            <button
-              type="button"
-              className="app-header-pill-icon"
-              onClick={() => setPaused(p => !p)}
-              title={paused ? 'Resume' : 'Pause'}
-              aria-pressed={paused}
-             data-ui-native-button="">
-              <Icon name={paused ? 'play' : 'pause'} size={12} />
-            </button>
-            <button type="button" className="app-header-pill-icon" onClick={() => go(-1)} title="Previous" aria-label="Previous notification" data-ui-native-button="">
-              <Icon name="chevronLeft" size={13} />
-            </button>
-            <button type="button" className="app-header-pill-icon" onClick={() => go(1)} title="Next" aria-label="Next notification" data-ui-native-button="">
-              <Icon name="chevronRight" size={13} />
-            </button>
+            <Tip label={paused ? 'Resume ticker' : 'Pause ticker'} side="bottom">
+              <button
+                type="button"
+                className="app-header-pill-icon"
+                onClick={() => setPaused(p => !p)}
+                aria-label={paused ? 'Resume ticker' : 'Pause ticker'}
+                aria-pressed={paused}
+                data-ui-native-button=""
+              >
+                <Icon name={paused ? 'play' : 'pause'} size={12} />
+              </button>
+            </Tip>
+            <Tip label="Previous notification" side="bottom">
+              <button type="button" className="app-header-pill-icon" onClick={() => go(-1)} aria-label="Previous notification" data-ui-native-button="">
+                <Icon name="chevronLeft" size={13} />
+              </button>
+            </Tip>
+            <Tip label="Next notification" side="bottom">
+              <button type="button" className="app-header-pill-icon" onClick={() => go(1)} aria-label="Next notification" data-ui-native-button="">
+                <Icon name="chevronRight" size={13} />
+              </button>
+            </Tip>
           </>
         )}
-        <button
-          type="button"
-          className="app-header-pill-icon"
-          onClick={() => onDismiss(item)}
-          title="Dismiss"
-          aria-label="Dismiss notification"
-         data-ui-native-button="">
-          <Icon name="x" size={13} />
-        </button>
+        <Tip label="Dismiss notification" side="bottom">
+          <button
+            type="button"
+            className="app-header-pill-icon"
+            onClick={() => onDismiss(item)}
+            aria-label="Dismiss notification"
+            data-ui-native-button=""
+          >
+            <Icon name="x" size={13} />
+          </button>
+        </Tip>
       </div>
     </div>
   );

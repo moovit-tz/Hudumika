@@ -28,10 +28,10 @@ export async function listingRoutes(fastify: FastifyInstance) {
     );
   });
 
-  fastify.get('/:id', async (request) => {
+  fastify.get('/:id', async (request, reply) => {
     const { id } = request.params as { id: string };
     const l = await MarketplaceService.getListing(request.user!.tenant_id, id);
-    if (!l) return request.server.httpErrors.notFound('Listing not found');
+    if (!l) return reply.status(404).send({ error: 'Listing not found' });
     return l;
   });
 

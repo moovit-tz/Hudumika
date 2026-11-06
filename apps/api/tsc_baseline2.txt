@@ -1,0 +1,12 @@
+src/services/enterprise-metrics.service.ts(49,8): error TS2349: This expression is not callable.
+  Each member of the union type '{ <SE extends SelectExpression<Database, any>>(selections: readonly SE[]): SelectQueryBuilder<Database, any, { [E in FlattenSelectExpression<SE> as ExtractAliasFromSelectExpression<...>]: SelectType<...>; }>; <CB extends SelectCallback<...>>(callback: CB): SelectQueryBuilder<...>; <SE extends SelectExpression<...>>(...' has signatures, but none of those signatures are compatible with each other.
+src/services/launch-planner.service.ts(34,9): error TS2322: Type 'string | null' is not assignable to type 'ValueExpression<Database, "launch_cases", Date | null> | undefined'.
+  Type 'string' is not assignable to type 'ValueExpression<Database, "launch_cases", Date | null> | undefined'.
+src/services/launch-planner.service.ts(167,9): error TS2322: Type 'string | null' is not assignable to type 'ValueExpression<Database, "launch_plan_items", Date | null> | undefined'.
+  Type 'string' is not assignable to type 'ValueExpression<Database, "launch_plan_items", Date | null> | undefined'.
+src/tests/enterprise-metrics-integrity.test.ts(31,17): error TS2339: Property 'metric_type' does not exist on type '{ mrr_amount: number; }'.
+src/tests/enterprise-metrics-integrity.test.ts(32,17): error TS2339: Property 'total_tenants' does not exist on type '{ mrr_amount: number; }'.
+src/tests/enterprise-metrics-integrity.test.ts(33,17): error TS2339: Property 'active_tenants' does not exist on type '{ mrr_amount: number; }'.
+src/tests/enterprise-metrics-integrity.test.ts(34,17): error TS2339: Property 'total_users' does not exist on type '{ mrr_amount: number; }'.
+src/tests/enterprise-metrics-integrity.test.ts(40,18): error TS2339: Property 'metric_type' does not exist on type '{ mrr_amount: number; }'.
+src/tests/esb-ledger-integrity.test.ts(10,35): error TS2345: Argument of type '"ESB"' is not assignable to parameter of type 'UserRole | undefined'.

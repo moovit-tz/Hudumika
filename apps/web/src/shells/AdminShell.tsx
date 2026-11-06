@@ -16,6 +16,7 @@ import { Utilities }         from '../pages/Utilities.js';
 import { Reports }           from '../pages/Reports.js';
 import { Subscription }      from '../pages/Subscription.js';
 import { useAuth }           from '../hooks/useAuth.js';
+import { useEnabledApps, isAppEnabled } from '../hooks/useEnabledApps.js';
 
 export function AdminShell() {
   const { user } = useAuth();
@@ -30,9 +31,16 @@ export function AdminShell() {
   const hasTeamPermission     = isAdmin || !!user?.org_permissions?.includes('team.manage');
   const hasBillingPermission  = isAdmin || !!user?.org_permissions?.includes('billing.manage');
   const hasReportsPermission  = isAdmin || user?.role === 'FINANCE' || !!user?.org_permissions?.includes('reports.manage');
+  const enabledApps = useEnabledApps();
 
+  // Role/permission filtering existed; entitlement filtering never did —
+  // a Petti/Onsite/HuduFreight-only tenant saw "ClearOS / Freight",
+  // "Payment Gateways" and every customs/fleet integration regardless of
+  // whether they're entitled to any of it. See the standalone-apps plan,
+  // M1 ("settings... scoped to the single app").
   const filteredSettingsNav = SETTINGS_NAV.map(g => {
     const items = g.items.filter(item => {
+      if (item.entitlementKey && !isAppEnabled(item.entitlementKey, enabledApps)) return false;
       if (item.key === 'developer-api') return hasApiKeysPermission;
       return hasSettingsPermission;
     });

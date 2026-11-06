@@ -38,12 +38,13 @@ TooltipContent.displayName = TooltipPrimitive.Content.displayName
  * A single <TooltipProvider> up the tree (or the one this renders) supplies the
  * timing.
  */
-export function Tip({ label, children, side = 'top', delayDuration = 200, className }: {
+export function Tip({ label, children, side = 'top', delayDuration = 200, className, sideOffset = 4 }: {
   label: React.ReactNode;
   children: React.ReactNode;
   side?: 'top' | 'bottom' | 'left' | 'right';
   delayDuration?: number;
   className?: string;
+  sideOffset?: number;
 }) {
   // A hover tooltip is not an accessible name until its content is mounted.
   const trigger = React.isValidElement<React.HTMLAttributes<HTMLButtonElement>>(children)
@@ -58,7 +59,7 @@ export function Tip({ label, children, side = 'top', delayDuration = 200, classN
     <TooltipProvider delayDuration={delayDuration}>
       <Tooltip>
         <TooltipTrigger asChild>{trigger}</TooltipTrigger>
-        <TooltipContent side={side} className={className}>{label}</TooltipContent>
+        <TooltipContent side={side} sideOffset={sideOffset} className={className}>{label}</TooltipContent>
       </Tooltip>
     </TooltipProvider>
   );

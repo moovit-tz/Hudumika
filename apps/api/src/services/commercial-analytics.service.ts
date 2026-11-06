@@ -1,5 +1,7 @@
 import { dbPlatform } from '../db/client.js';
 import { sql } from 'kysely';
+import { PLAN_LEVELS } from '@hudumika/types';
+import type { TenantPlan } from '@hudumika/types';
 
 export const CommercialAnalyticsService = {
   async getPayingWorkspaces(): Promise<{
@@ -55,6 +57,38 @@ export const CommercialAnalyticsService = {
       mrr_tzs, mrr_usd,
       arr_tzs: mrr_tzs * 12, arr_usd: mrr_usd * 12,
       by_plan: rows.map(r => ({ plan: r.plan, count: Number(r.count), mrr: Number(r.mrr) || 0, currency: r.currency })),
+    };
+  },
+
+  /**
+   * Subscription margin (master-prompt Phase 5) — deliberately partial, and
+   * says so. This platform has no hosting/infra cost attribution anywhere,
+   * so the only real allocable cost against subscription revenue is support
+   * time logged with category='included' (support_time_entries, migration
+   * 638) — the support that's bundled into the plan price with no separate
+   * invoice. 'paid_support' and 'implementation' categories have their own
+   * revenue line (Phase 4) and are excluded here on purpose: subtracting
+   * them too would double-count a cost the tenant already paid for
+   * separately. See LENS-60 — do not extend this to claim a full P&L
+   * margin without first adding real infra-cost attribution.
+   */
+  async getSubscriptionMargin(): Promise<{
+    revenue_tzs: number;
+    included_support_cost_tzs: number;
+    margin_tzs: number;
+    allocation_note: string;
+  }> {
+    const mrr = await this.getMrr();
+    const row = await dbPlatform.selectFrom('support_time_entries')
+      .select(sql<number>`coalesce(sum(duration_minutes * loaded_cost_per_hour / 60.0), 0)`.as('cost'))
+      .where('category', '=', 'included')
+      .executeTakeFirst();
+    const included_support_cost_tzs = Math.round(Number(row?.cost) || 0);
+    return {
+      revenue_tzs: mrr.mrr_tzs,
+      included_support_cost_tzs,
+      margin_tzs: mrr.mrr_tzs - included_support_cost_tzs,
+      allocation_note: 'Subscription revenue (TZS MRR) minus included-tier support cost only — hosting/infra cost is not tracked anywhere in this platform and is not included, so this is a partial margin, not a full P&L.',
     };
   },
 
@@ -115,12 +149,31 @@ export const CommercialAnalyticsService = {
       .orderBy('month', 'asc')
       .execute();
 
+    // tenant_plan_changes (migration 635) already records every from_plan ->
+    // to_plan transition with a timestamp — classifying upgrade vs downgrade
+    // only needs PLAN_LEVELS comparison, not a new column (see LENS-61).
+    const changes = await dbPlatform.selectFrom('tenant_plan_changes' as any)
+      .select(['from_plan', 'to_plan', 'effective_at'])
+      .where('effective_at', '>=', since)
+      .execute() as Array<{ from_plan: string; to_plan: string; effective_at: Date }>;
+
+    const changeCounts = new Map<string, { upgrades: number; downgrades: number }>();
+    for (const c of changes) {
+      const month = new Date(c.effective_at).toISOString().slice(0, 7);
+      const fromLevel = PLAN_LEVELS[c.from_plan as TenantPlan] ?? null;
+      const toLevel = PLAN_LEVELS[c.to_plan as TenantPlan] ?? null;
+      if (fromLevel == null || toLevel == null || fromLevel === toLevel) continue;
+      const bucket = changeCounts.get(month) ?? { upgrades: 0, downgrades: 0 };
+      if (toLevel > fromLevel) bucket.upgrades++; else bucket.downgrades++;
+      changeCounts.set(month, bucket);
+    }
+
     return rows.map(r => ({
       month: r.month,
       new_paid: Number(r.new_paid),
       churned: Number(r.churned),
-      upgrades: 0,
-      downgrades: 0,
+      upgrades: changeCounts.get(r.month)?.upgrades ?? 0,
+      downgrades: changeCounts.get(r.month)?.downgrades ?? 0,
     }));
   },
 
@@ -169,8 +222,8 @@ export const CommercialAnalyticsService = {
     const rows = await dbPlatform.selectFrom('support_time_entries')
       .select([
         'category',
-        sql<number>`sum(minutes) / 60.0`.as('hours'),
-        sql<number>`sum(minutes * loaded_cost_per_hour / 60.0)`.as('cost'),
+        sql<number>`sum(duration_minutes) / 60.0`.as('hours'),
+        sql<number>`sum(duration_minutes * loaded_cost_per_hour / 60.0)`.as('cost'),
       ])
       .groupBy('category')
       .execute();

@@ -50,9 +50,18 @@ export const SettingsCtx = createContext<SettingsCtxType>({ s: {}, save: async (
 // groups, several down to a single item after the DEAD/STUB cleanup below —
 // regrouped into 5 properly populated categories instead of leaving
 // one-item groups (Platform, Sales, App Settings, Other) standing alone.
-export const NAV: Array<{ group: string; icon: IconName; items: Array<{ key: string; label: string; icon: IconName }> }> = [
+// entitlementKey (optional, same convention as RailApp in
+// GoogleWorkspaceRightSidebar.tsx / LAUNCHER_APPS): when set, AdminShell.tsx
+// hides this item from an ordinary tenant admin who isn't entitled to it.
+// Previously this list had no entitlement awareness at all — a Petti/
+// Onsite/HuduFreight-only tenant saw "ClearOS / Freight", "Payment
+// Gateways" and every integration section regardless, each leading to a
+// page that either 403s or configures a product they don't have. See the
+// standalone-apps plan, M1 ("settings... scoped to the single app").
+export const NAV: Array<{ group: string; icon: IconName; items: Array<{ key: string; label: string; icon: IconName; entitlementKey?: string }> }> = [
   { group: 'General', icon: 'settings', items: [
     { key: 'company',            label: 'Company Information',  icon: 'building'      },
+    { key: 'locations',          label: 'Locations',            icon: 'mapPin'        },
     { key: 'localization',       label: 'Localization',         icon: 'globe'         },
     { key: 'landing-experience', label: 'Landing Experience',   icon: 'layoutDashboard' },
     // 'branding' removed as its own nav entry — merged into Company
@@ -66,12 +75,12 @@ export const NAV: Array<{ group: string; icon: IconName; items: Array<{ key: str
     { key: 'communications',     label: 'Communications',       icon: 'zap'           },
   ]},
   { group: 'Finance', icon: 'dollarSign', items: [
-    { key: 'finance-general',    label: 'General',              icon: 'dollarSign'    },
+    { key: 'finance-general',    label: 'General',              icon: 'dollarSign',    entitlementKey: 'finops' },
     // Now the real source of truth for Petti's wallet gateway and the
     // onboarding charge flow — see lib/payment-gateway.ts. Payment Modes
     // and e-Invoice were removed: no component, no backend, gated nothing.
-    { key: 'payment-gateways',   label: 'Payment Gateways',     icon: 'creditCard'    },
-    { key: 'invoices',           label: 'Invoices',             icon: 'fileText'      },
+    { key: 'payment-gateways',   label: 'Payment Gateways',     icon: 'creditCard',    entitlementKey: 'finops' },
+    { key: 'invoices',           label: 'Invoices',             icon: 'fileText',      entitlementKey: 'finops' },
     // Tax rates, quotations, purchase orders and currencies each had a panel
     // here that saved to a key nothing read, while the real implementations
     // live in FinOps. One control per thing; this one points at it.
@@ -81,7 +90,7 @@ export const NAV: Array<{ group: string; icon: IconName; items: Array<{ key: str
     // Categories (/finance/expenses/categories), same underlying data,
     // reachable from where it's actually used. The row below still points
     // there for anyone who lands here first.
-    { key: 'elsewhere',          label: 'Finance setup',        icon: 'externalLink' },
+    { key: 'elsewhere',          label: 'Finance setup',        icon: 'externalLink', entitlementKey: 'finops' },
     // Credit Notes and Subscriptions removed: no component, no backend —
     // real credit-note/subscription concepts live elsewhere (Customers,
     // seal-billing, SuperAdmin's Company Subscriptions), not this key.
@@ -94,11 +103,11 @@ export const NAV: Array<{ group: string; icon: IconName; items: Array<{ key: str
   // feature that doesn't exist (no customer self-signup route anywhere) or
   // was write-only with no consumer, so it didn't move with it.
   { group: 'Apps', icon: 'package', items: [
-    { key: 'app-freight',        label: 'ClearOS / Freight',    icon: 'package'       },
+    { key: 'app-freight',        label: 'ClearOS / Freight',    icon: 'package',       entitlementKey: 'clearos' },
     // Calendar, PDF and Tags removed: no component, no backend (PDF's
     // "engine: wkhtmltopdf" option didn't even match how this platform
     // actually generates PDFs — pdfkit, everywhere).
-    { key: 'other-esign',        label: 'E-Sign',               icon: 'stamp'         },
+    { key: 'other-esign',        label: 'E-Sign',               icon: 'stamp',         entitlementKey: 'sign' },
   ]},
   { group: 'Integrations', icon: 'globe', items: [
     { key: 'int-google',         label: 'Google',               icon: 'globe'         },
@@ -116,14 +125,14 @@ export const NAV: Array<{ group: string; icon: IconName; items: Array<{ key: str
     // platform — whatsapp.ts always uses the platform-wide META_* env vars,
     // and the tenant-override params it accepts have no caller. This label
     // used to claim a WhatsApp config that didn't exist here or anywhere.
-    { key: 'int-sms',            label: 'SMS',                  icon: 'messageSquare' },
-    { key: 'int-tancis',         label: 'TRA VFD / EFDMS',      icon: 'anchor'        },
+    { key: 'int-sms',            label: 'SMS',                  icon: 'messageSquare', entitlementKey: 'sms' },
+    { key: 'int-tancis',         label: 'TRA VFD / EFDMS',      icon: 'anchor',        entitlementKey: 'clearos' },
     // 'int-tpa' (TPA Port Authority) removed: no component (fell through to
     // the "Configuration pending" placeholder), no backend, and no real TPA
     // API integration anywhere in the platform to eventually back it with —
     // same category as the other dead placeholders already removed.
-    { key: 'int-shipsgo',        label: 'ShipsGo / Ship24',     icon: 'compass'       },
-    { key: 'int-gpswox',         label: 'GPSWOX Fleet Tracking', icon: 'mapPin'       },
+    { key: 'int-shipsgo',        label: 'ShipsGo / Ship24',     icon: 'compass',       entitlementKey: 'tracking' },
+    { key: 'int-gpswox',         label: 'GPSWOX Fleet Tracking', icon: 'mapPin',       entitlementKey: 'tracking' },
     // MinIO, Redis/BullMQ and the vague "General" tab are removed. They are
     // platform infrastructure — the object store and the queue backend the
     // operator configures with REDIS_URL and S3 env vars — not tenant settings.

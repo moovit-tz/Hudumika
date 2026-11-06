@@ -148,7 +148,7 @@ const penaltyPatchSchema = z.object({
 
 export async function customsRoutes(fastify: FastifyInstance) {
   fastify.addHook('preHandler', fastify.authenticate);
-  fastify.addHook('preHandler', requireEntitlement('clearos'));
+  fastify.addHook('preHandler', requireEntitlement('clearos', { freeCalculatorRoutes: true }));
   // Production-readiness audit HUD-0024/0031: GET /penalties (customs
   // penalty/violation records, no customer_id scoping) and the rest of this
   // clearing-operations file had no role check beyond entitlement — proven
@@ -362,6 +362,7 @@ export async function customsRoutes(fastify: FastifyInstance) {
       .filter((i: { id: string; text: string }) => i.id && i.text);
 
     const data = await suggestHsCodes(items, Math.min(Number(body.per_item) || 3, 5));
+    if (request.freeCalculatorAccess) return { data };
 
     // Overlay what this tenant has actually declared before for goods
     // described like this. It does not reorder the tariff-text ranking — it
@@ -591,7 +592,7 @@ ${items.map((i: any) => `- id ${i.id} | goods: "${i.text}"\n  candidates:\n${i.c
 
     // Optionally save to history
     let history_saved: boolean | null = null;
-    if (body.save_to_history !== false) {
+    if (!request.freeCalculatorAccess && body.save_to_history !== false) {
       try {
         await withTenant(user.tenant_id, trx => trx.insertInto('landed_cost_records').values({
           tenant_id: user.tenant_id,
@@ -779,7 +780,7 @@ ${items.map((i: any) => `- id ${i.id} | goods: "${i.text}"\n  candidates:\n${i.c
     }
 
     let history_saved: boolean | null = null;
-    if (body.save_to_history !== false) {
+    if (!request.freeCalculatorAccess && body.save_to_history !== false) {
       try {
         await withTenant(user.tenant_id, trx => trx.insertInto('landed_cost_records').values({
           tenant_id: user.tenant_id,

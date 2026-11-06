@@ -1,5 +1,6 @@
 import type { Transaction } from 'kysely';
 import type { Database, PackagesTable } from '../db/client.js';
+import { applyScheduledCurrencyChange } from './subscription-currency-change.service.js';
 
 /**
  * Subscription invoicing: the period invoice (plan + seats + add-ons)
@@ -148,7 +149,7 @@ async function billableSeats(trx: Trx, tenantId: string): Promise<number> {
   return Math.max(1, Number(row?.c ?? 1));
 }
 
-function buildPriceSnapshot(pkg: any, cycle: BillingCycle): PriceSnapshot {
+export function buildPriceSnapshot(pkg: any, cycle: BillingCycle): PriceSnapshot {
   return {
     plan_code: pkg.code,
     currency: pkg.currency ?? 'USD',
@@ -167,7 +168,8 @@ function buildPriceSnapshot(pkg: any, cycle: BillingCycle): PriceSnapshot {
 
 /** Ensures the period invoice for the current billing period exists; returns it and whether it was just created. */
 export async function generatePeriodInvoice(trx: Trx, tenantId: string, now = new Date()) {
-  const tenant = await trx.selectFrom('tenants').select(['plan', 'billing_cycle', 'created_at']).where('id', '=', tenantId).executeTakeFirst();
+  const tenant = await trx.selectFrom('tenants').select(['plan', 'billing_cycle', 'created_at'])
+    .where('id', '=', tenantId).forUpdate().executeTakeFirst();
   if (!tenant) throw new Error('Tenant not found');
 
   const cycle = (tenant.billing_cycle ?? 'monthly') as BillingCycle;
@@ -183,8 +185,9 @@ export async function generatePeriodInvoice(trx: Trx, tenantId: string, now = ne
   const existing = await trx.selectFrom('subscription_invoices').selectAll()
     .where('tenant_id', '=', tenantId).where('kind', '=', 'period').where('period_start', '=', iso(start)).executeTakeFirst();
   if (existing) return { invoice: existing, created: false };
+  const plan = await applyScheduledCurrencyChange(trx, tenantId, tenant.plan, cycle, start, now) ?? tenant.plan;
 
-  const pkg = await trx.selectFrom('packages').selectAll().where('code', '=', tenant.plan).executeTakeFirst();
+  const pkg = await trx.selectFrom('packages').selectAll().where('code', '=', plan).executeTakeFirst();
   if (!pkg) throw new Error('Current plan has no pricing configured');
 
   const seats = await billableSeats(trx, tenantId);
@@ -206,9 +209,9 @@ export async function generatePeriodInvoice(trx: Trx, tenantId: string, now = ne
   // code, even though the line is always 0.00. Shown, not suppressed: an
   // invoice that silently drops a line is harder to reason about than one
   // that shows 0.00.
-  const planLabel = tenant.plan === 'workspace-free'
+  const planLabel = plan === 'workspace-free'
     ? 'Hudumika Workspace — included'
-    : `${tenant.plan} plan — ${seats} seat${seats === 1 ? '' : 's'} / ${periodLabel}`;
+    : `${plan} plan — ${seats} seat${seats === 1 ? '' : 's'} / ${periodLabel}`;
   const lines: InvoiceLine[] = [{ description: planLabel, quantity: 1, unit_price: planAmount, amount: planAmount, kind: 'plan' }];
   for (const a of addonRows) {
     const unit = cycle === 'annual' ? Number(a.annual_price ?? 0) : Number(a.monthly_price);
@@ -249,7 +252,7 @@ export async function generatePeriodInvoice(trx: Trx, tenantId: string, now = ne
   const snapshot = buildPriceSnapshot(pkg, cycle);
 
   const invoice = await trx.insertInto('subscription_invoices').values({
-    tenant_id: tenantId, invoice_number: await nextInvoiceNumber(trx, tenantId, key), plan_code: tenant.plan, seats,
+    tenant_id: tenantId, invoice_number: await nextInvoiceNumber(trx, tenantId, key), plan_code: plan, seats,
     currency, amount, addons_amount: addonsAmount,
     period_start: iso(start), period_end: iso(end), due_date: iso(due),
     status: statusFor(amount, due, now), kind: 'period', line_items: JSON.stringify(lines),

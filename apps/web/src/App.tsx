@@ -3,6 +3,7 @@ import React, { useState, useEffect, Suspense } from 'react';
 import { BrowserRouter, Routes, Route, Navigate, Outlet, useLocation, useParams, Link } from 'react-router-dom';
 import { AuthProvider, useAuth } from './hooks/useAuth.js';
 import { getOndiConfig } from './lib/ondiConfig.js';
+import { getSingleAppEntry } from './lib/appEntry.js';
 import { OrgAuthProvider, useOrgAuth } from './hooks/useOrgAuth.js';
 import { IdleLockProvider, useIdleLock } from './hooks/useIdleLock.js';
 import { LockScreen } from './components/LockScreen.js';
@@ -134,6 +135,13 @@ const GerejiShell = React.lazy(() => import('./shells/GerejiShell.js').then(m =>
 const HubPage: React.FC = () => {
   const [hubSearch, setHubSearch] = React.useState('');
   const { isAgentic } = useLandingStyle();
+  // Single-app entry (lib/appEntry.ts) — a dedicated subdomain (or the
+  // ?app_entry= dev override) lands directly in that product instead of
+  // the generic multi-app launcher. See the standalone-apps plan, M1.
+  const singleApp = getSingleAppEntry();
+  if (singleApp) {
+    return <Navigate to={`/${singleApp}`} replace />;
+  }
   if (isAgentic) {
     return (
       <Suspense fallback={<SkeletonPage />}>
@@ -452,7 +460,23 @@ const AppContentBody: React.FC = () => {
             password would land back on OndiLogin instead of the form that
             needs it once Ondi SSO is the default. */}
         <Route path="/auth/login"           element={<Navigate to="/login" replace />} />
-        <Route path="*"                     element={ondiSsoDefault ? <OndiLogin /> : <Login />} />
+        {/* A deep link hit while signed out (e.g. a standalone app's own
+            URL, a notification link, a bookmark) used to render the login
+            page directly in place at that URL with no returnTo ever set —
+            Login.tsx and OndiSignInPanel.tsx both only ever read returnTo
+            from the query string, so after signing in the user landed on
+            "/" and the original destination was lost. Redirecting here
+            (same shape as /ondi/authorize just above) is what actually
+            preserves it, matching how Onsite's own acceptance test
+            ("sign-in and return to a deep link") and every other
+            standalone app entry point needs this to behave. Root "/" is
+            excluded so the plain hub visit doesn't pick up a pointless
+            ?returnTo=%2F. */}
+        <Route path="*" element={
+          pathname === '/'
+            ? (ondiSsoDefault ? <OndiLogin /> : <Login />)
+            : <Navigate replace to={`/login?${new URLSearchParams({ returnTo: pathname + search })}`} />
+        } />
       </Routes>
     </Suspense>
   );

@@ -7,7 +7,7 @@ import { createTestTenant, type TestTenant } from './helpers.js';
 let tenant: TestTenant;
 
 beforeAll(async () => {
-  tenant = await createTestTenant('ESB');
+  tenant = await createTestTenant('TENANT_ADMIN');
 }, 120000);
 
 afterAll(async () => {

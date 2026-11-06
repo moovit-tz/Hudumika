@@ -42,8 +42,23 @@ async function getSigningKey(): Promise<SigningKey> {
   return cachedKey;
 }
 
+/**
+ * ONDI_ISSUER_OVERRIDE is a process environment variable, deliberately
+ * never written into the shared .env file both the embedded server
+ * (index.ts) and the standalone one (ondi-standalone-server.ts) load —
+ * setting it only at the standalone process's own launch (its npm script)
+ * gives it a distinct `iss` claim and discovery document without the
+ * embedded instance ever seeing it. Without this, both processes report
+ * the exact same issuer (webauthnOrigin(), from PUBLIC_APP_URL/
+ * CORS_ORIGINS) since they import the same env config — a token minted by
+ * one would claim to come from the other, which is the actual "identity
+ * boundary" a second issuer process needs before any relying party should
+ * be pointed at it. Does not touch webauthnOrigin()/webauthnRpID() —
+ * WebAuthn RP ID must stay tied to the real browser-facing app origin
+ * regardless of which process issued the OIDC token.
+ */
 export function issuerUrl(): string {
-  return webauthnOrigin();
+  return (process.env.ONDI_ISSUER_OVERRIDE || webauthnOrigin()).trim().replace(/\/+$/, '');
 }
 
 export async function signJwt(payload: Record<string, unknown>): Promise<string> {

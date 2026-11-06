@@ -1,0 +1,34 @@
+src/routes/consultant-delegation.routes.ts(36,35): error TS2339: Property 'httpErrors' does not exist on type 'FastifyInstance<RawServerDefault, IncomingMessage, ServerResponse<IncomingMessage>, FastifyBaseLogger, FastifyTypeProviderDefault>'.
+src/routes/consultant-delegation.routes.ts(73,35): error TS2339: Property 'httpErrors' does not exist on type 'FastifyInstance<RawServerDefault, IncomingMessage, ServerResponse<IncomingMessage>, FastifyBaseLogger, FastifyTypeProviderDefault>'.
+src/routes/marketplace.routes.ts(34,35): error TS2339: Property 'httpErrors' does not exist on type 'FastifyInstance<RawServerDefault, IncomingMessage, ServerResponse<IncomingMessage>, FastifyBaseLogger, FastifyTypeProviderDefault>'.
+src/services/consultant-delegation.service.ts(2,27): error TS2305: Module '"../db/client.js"' has no exported member 'TenantDb'.
+src/services/consultant-delegation.service.ts(441,68): error TS7006: Parameter 'r' implicitly has an 'any' type.
+src/services/enterprise-metrics.service.ts(1,39): error TS2305: Module '"../db/client.js"' has no exported member 'TenantDb'.
+src/services/enterprise-metrics.service.ts(49,8): error TS2349: This expression is not callable.
+  Each member of the union type '{ <SE extends SelectExpression<Database, any>>(selections: readonly SE[]): SelectQueryBuilder<Database, any, { [E in FlattenSelectExpression<SE> as ExtractAliasFromSelectExpression<...>]: SelectType<...>; }>; <CB extends SelectCallback<...>>(callback: CB): SelectQueryBuilder<...>; <SE extends SelectExpression<...>>(...' has signatures, but none of those signatures are compatible with each other.
+src/services/enterprise-metrics.service.ts(198,22): error TS7006: Parameter 'oc' implicitly has an 'any' type.
+src/services/enterprise-metrics.service.ts(233,23): error TS7006: Parameter 'r' implicitly has an 'any' type.
+src/services/enterprise-metrics.service.ts(261,22): error TS7006: Parameter 'oc' implicitly has an 'any' type.
+src/services/enterprise-metrics.service.ts(356,24): error TS7006: Parameter 'oc' implicitly has an 'any' type.
+src/services/launch-planner.service.ts(34,9): error TS2322: Type 'string | null' is not assignable to type 'ValueExpression<Database, "launch_cases", Date | null> | undefined'.
+  Type 'string' is not assignable to type 'ValueExpression<Database, "launch_cases", Date | null> | undefined'.
+src/services/launch-planner.service.ts(167,9): error TS2322: Type 'string | null' is not assignable to type 'ValueExpression<Database, "launch_plan_items", Date | null> | undefined'.
+  Type 'string' is not assignable to type 'ValueExpression<Database, "launch_plan_items", Date | null> | undefined'.
+src/services/marketplace.service.ts(1,27): error TS2305: Module '"../db/client.js"' has no exported member 'TenantDb'.
+src/services/marketplace.service.ts(64,68): error TS7006: Parameter 'r' implicitly has an 'any' type.
+src/services/marketplace.service.ts(239,68): error TS7006: Parameter 'r' implicitly has an 'any' type.
+src/tests/consultant-delegation-integrity.test.ts(66,25): error TS7006: Parameter 'p' implicitly has an 'any' type.
+src/tests/consultant-delegation-integrity.test.ts(71,26): error TS7006: Parameter 'p' implicitly has an 'any' type.
+src/tests/consultant-delegation-integrity.test.ts(121,27): error TS7006: Parameter 'm' implicitly has an 'any' type.
+src/tests/enterprise-metrics-integrity.test.ts(31,17): error TS2339: Property 'metric_type' does not exist on type '{ mrr_amount: number; }'.
+src/tests/enterprise-metrics-integrity.test.ts(32,17): error TS2339: Property 'total_tenants' does not exist on type '{ mrr_amount: number; }'.
+src/tests/enterprise-metrics-integrity.test.ts(33,17): error TS2339: Property 'active_tenants' does not exist on type '{ mrr_amount: number; }'.
+src/tests/enterprise-metrics-integrity.test.ts(34,17): error TS2339: Property 'total_users' does not exist on type '{ mrr_amount: number; }'.
+src/tests/enterprise-metrics-integrity.test.ts(40,18): error TS2339: Property 'metric_type' does not exist on type '{ mrr_amount: number; }'.
+src/tests/enterprise-metrics-integrity.test.ts(66,32): error TS7006: Parameter 's' implicitly has an 'any' type.
+src/tests/esb-ledger-integrity.test.ts(10,35): error TS2345: Argument of type '"ESB"' is not assignable to parameter of type 'UserRole | undefined'.
+src/tests/marketplace-integrity.test.ts(66,28): error TS7006: Parameter 'l' implicitly has an 'any' type.
+src/tests/marketplace-integrity.test.ts(77,28): error TS7006: Parameter 'l' implicitly has an 'any' type.
+src/tests/marketplace-integrity.test.ts(110,27): error TS7006: Parameter 'e' implicitly has an 'any' type.
+src/tests/marketplace-integrity.test.ts(167,27): error TS7006: Parameter 'q' implicitly has an 'any' type.
+src/tests/marketplace-integrity.test.ts(293,27): error TS7006: Parameter 'd' implicitly has an 'any' type.

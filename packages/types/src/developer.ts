@@ -277,7 +277,11 @@ export interface DeveloperTelemetrySummary {
   total_requests: number;
   successful_requests: number;
   error_requests: number;
-  avg_latency_ms: number;
+  // null — this platform does not instrument real request latency anywhere
+  // yet (dev_usage_events has no duration column), so there is nothing to
+  // average. A fabricated number here looked like real telemetry; null means
+  // "not measured," which the console renders as an honest empty state.
+  avg_latency_ms: number | null;
   billable_units: number;
   total_cost: number;
   currency: string;
@@ -287,7 +291,7 @@ export interface DeveloperTelemetrySummary {
     date: string;
     requests: number;
     errors: number;
-    latency_ms: number;
+    latency_ms: number | null;
     units: number;
   }>;
 }

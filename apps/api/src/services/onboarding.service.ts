@@ -15,7 +15,7 @@ import { enforcePasswordPolicy } from '../lib/password-policy.js';
 import { PrivacyPolicyService } from './privacy-policy.service.js';
 import { IndustryRegistryService } from './industry-registry.service.js';
 import { OrgModelService } from './org-model.service.js';
-import { PERSONAL_EMAIL_DOMAINS, type MatchedTenant, type JoinRequestInput, type JoinRequestSubmitResponse } from '@hudumika/types';
+import { PERSONAL_EMAIL_DOMAINS, signupPackageAmount, type MatchedTenant, type JoinRequestInput, type JoinRequestSubmitResponse } from '@hudumika/types';
 import type { OnboardingCompleteInput, OnboardingCompleteResponse, TenantPlan, JWTPayload } from '@hudumika/types';
 import type { FastifyInstance } from 'fastify';
 
@@ -236,7 +236,7 @@ export class OnboardingService {
     // hashed when the pending_signups row was written (never store a
     // plaintext password, even transiently) — skipPaymentGate bypasses the
     // 501/simulateCharge block entirely rather than re-deciding anything.
-    opts: { skipPaymentGate?: boolean; passwordAlreadyHashed?: boolean; realTxRef?: string } = {},
+    opts: { skipPaymentGate?: boolean; passwordAlreadyHashed?: boolean; realTxRef?: string; verifiedPayment?: { amount: number; currency: string } } = {},
   ): Promise<OnboardingCompleteResponse> {
     const email = input.account.email.trim().toLowerCase();
 
@@ -265,7 +265,8 @@ export class OnboardingService {
       throw new OnboardingError(400, 'Selected package is not available');
     }
 
-    const amount = input.billing_cycle === 'annual' ? Number(pkg.annual_price) : Number(pkg.monthly_price);
+    const amount = opts.verifiedPayment?.amount ?? signupPackageAmount(pkg, input.billing_cycle);
+    const currency = opts.verifiedPayment?.currency ?? pkg.currency ?? 'USD';
 
     // opts.realTxRef: the actual Flutterwave transaction reference, already
     // verified directly with the gateway before this function was ever
@@ -409,7 +410,7 @@ export class OnboardingService {
         package_code: pkg.code,
         billing_cycle: input.billing_cycle,
         amount,
-        currency: 'USD',
+        currency,
         method: input.payment.method,
         status: 'completed',
         tx_ref: charge.tx_ref,
@@ -426,7 +427,7 @@ export class OnboardingService {
       // Referral tracking must never block a real signup that already
       // succeeded — a commission that fails to record is a bug to fix, not
       // a reason to fail the account creation that already happened.
-      computeAndRecordCommission(tenant.id, amount, 'USD', charge.tx_ref, input.payment.mobile_number ?? null)
+      computeAndRecordCommission(tenant.id, amount, currency, charge.tx_ref, input.payment.mobile_number ?? null)
         .catch(err => fastify.log.error(err, 'Failed to record referral commission'));
     }
 

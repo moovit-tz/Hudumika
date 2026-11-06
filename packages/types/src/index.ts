@@ -46,3 +46,4 @@ export * from './pos-receipt.js';
 export * from './finance-catalog.js';
 export * from './hr-time-reconciliation.js';
 export * from './org-model.js';
+export * from './tanesw-tracking.js';

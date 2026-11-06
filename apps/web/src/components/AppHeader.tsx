@@ -27,8 +27,10 @@ import {
   DropdownMenuSubContent,
 } from './ui/dropdown-menu.js';
 import { Popover, PopoverAnchor, PopoverContent } from './ui/popover.js';
+import { Tip } from './ui/tooltip.js';
 import { toggleThemeWithAnimation } from '../lib/theme.js';
 import { isRightSidebarCollapsed, toggleRightSidebar, RIGHT_SIDEBAR_TOGGLE_EVENT } from '../lib/rightSidebarState.js';
+import { getSingleAppEntry } from '../lib/appEntry.js';
 import './AppHeader.css';
 
 // ── Helpers ───────────────────────────────────────────────────
@@ -548,14 +550,16 @@ export function AppHeader({
 
           {/* Left: Hamburger (mobile) + Brand (hub only) */}
           <div className="app-header-left">
+            <Tip label={t('header.menu') || 'Menu'} side="bottom">
             <button
               type="button"
               className="app-header-icon-btn app-header-hamburger"
               onClick={() => setMobileOpen(true)}
-              title={t('header.menu')}
+              aria-label={t('header.menu') || 'Menu'}
              data-ui-native-button="">
               <Icon name="menu" size={20} />
             </button>
+          </Tip>
 
             {!isHub && activeApp && (
               <div className="app-header-mobile-brand-container">
@@ -640,34 +644,37 @@ export function AppHeader({
                   onChange={e => handleSearchInput(e.target.value)}
                 />
                 {searchValue && (
-                  <button
-                    type="button"
-                    className={`app-header-hub-search-clear${isAppSearch ? ' app-header-hub-search-clear--with-scope' : ''}`}
-                    aria-label="Clear search"
-                    onClick={() => { handleSearch(''); setResultsOpen(false); }}
-                   data-ui-native-button="">
-                    ✕
-                  </button>
+                  <Tip label="Clear search" side="bottom">
+                    <button
+                      type="button"
+                      className={`app-header-hub-search-clear${isAppSearch ? ' app-header-hub-search-clear--with-scope' : ''}`}
+                      aria-label="Clear search"
+                      onClick={() => { handleSearch(''); setResultsOpen(false); }}
+                     data-ui-native-button="">
+                      ✕
+                    </button>
+                  </Tip>
                 )}
                 {isAppSearch && (
-                  <button
-                    type="button"
-                    className="app-header-search-scope"
-                    aria-label={searchEverywhere ? 'Search this app only' : 'Search every app'}
-                    title={searchEverywhere ? 'Searching everywhere' : 'Searching this app'}
-                    onClick={() => {
-                      if (searchEverywhere) {
-                        setSearchEverywhere(false);
-                        setResultsOpen(false);
-                      } else {
-                        const seed = appSearch ?? '';
-                        setGlobalSearch(seed);
-                        setSearchEverywhere(true);
-                        setResultsOpen(seed.trim().length >= 2);
-                      }
-                      setActiveResult(-1);
-                    }}
-                   data-ui-native-button="">{searchEverywhere ? 'All' : 'App'}</button>
+                  <Tip label={searchEverywhere ? 'Search this app only' : 'Search every app'} side="bottom">
+                    <button
+                      type="button"
+                      className="app-header-search-scope"
+                      aria-label={searchEverywhere ? 'Search this app only' : 'Search every app'}
+                      onClick={() => {
+                        if (searchEverywhere) {
+                          setSearchEverywhere(false);
+                          setResultsOpen(false);
+                        } else {
+                          const seed = appSearch ?? '';
+                          setGlobalSearch(seed);
+                          setSearchEverywhere(true);
+                          setResultsOpen(seed.trim().length >= 2);
+                        }
+                        setActiveResult(-1);
+                      }}
+                     data-ui-native-button="">{searchEverywhere ? 'All' : 'App'}</button>
+                  </Tip>
                 )}
               </div>
             </PopoverAnchor>
@@ -683,9 +690,11 @@ export function AppHeader({
             </PopoverContent>
           </Popover>
 
-          <button className="app-header-icon-btn mobile-search-btn" onClick={() => setMobileSearchOpen(true)} title="Search" data-ui-native-button="">
-            <Icon name="search" size={20} />
-          </button>
+          <Tip label="Search" side="bottom">
+            <button className="app-header-icon-btn mobile-search-btn" onClick={() => setMobileSearchOpen(true)} aria-label="Search" data-ui-native-button="">
+              <Icon name="search" size={20} />
+            </button>
+          </Tip>
 
           {/* Right actions */}
           <div className="app-header-actions">
@@ -706,10 +715,14 @@ export function AppHeader({
                 "CLR-2026-0087" rather than a uuid. */}
             {isStaff && (
               isCheckedIn ? (
+                <Tip label="Click to switch task or check out" side="bottom">
                 <div
                   className="app-header-clock-card"
                   onClick={() => triggerOpen(clockContext())}
-                  title="Click to switch task or check out"
+                  role="button"
+                  tabIndex={0}
+                  aria-label="Click to switch task or check out"
+                  onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); triggerOpen(clockContext()); } }}
                 >
                   <div className="app-header-clock-icon-badge" style={{ background: headerClockColor }}>
                     <Icon name="clock" size={15} color="#fff" />
@@ -728,84 +741,98 @@ export function AppHeader({
                       <span className="app-header-clock-time">{clockStats.formatted}</span>
                     </div>
                   </div>
-                  <Link
-                    to="/nexushr/clock-in"
-                    className="app-header-clock-link-btn"
-                    onClick={(e) => e.stopPropagation()}
-                    title="View full task details & weekly timesheet"
-                  >
-                    <Icon name="arrowUpRight" size={14} />
-                  </Link>
+                  <Tip label="View full task details & weekly timesheet" side="bottom">
+                    <Link
+                      to="/nexushr/clock-in"
+                      className="app-header-clock-link-btn"
+                      onClick={(e) => e.stopPropagation()}
+                      aria-label="View full task details & weekly timesheet"
+                    >
+                      <Icon name="arrowUpRight" size={14} />
+                    </Link>
+                  </Tip>
                 </div>
+              </Tip>
               ) : (
-                <button
-                  type="button"
-                  className="app-header-icon-btn"
-                  onClick={() => triggerOpen(clockContext())}
-                  title={t('header.clockIn')}
-                 data-ui-native-button="">
-                  <Icon name="clock" size={19} color="var(--ink)" />
-                </button>
+                <Tip label={t('header.clockIn') || 'Clock In'} side="bottom">
+                  <button
+                    type="button"
+                    className="app-header-icon-btn"
+                    onClick={() => triggerOpen(clockContext())}
+                    aria-label={t('header.clockIn') || 'Clock In'}
+                   data-ui-native-button="">
+                    <Icon name="clock" size={19} color="var(--ink)" />
+                  </button>
+                </Tip>
               )
             )}
 
             {/* Full page */}
-            <button
-              type="button"
-              className="app-header-icon-btn app-header-layout-toggle"
-              onClick={toggleFullPage}
-              title={isFs ? t('header.exitFullPage') : t('header.fullPage')}
-              aria-pressed={isFs}
-             data-ui-native-button="">
-              <Icon name={isFs ? 'minimize' : 'maximize'} size={19} color="var(--ink)" />
-            </button>
+            <Tip label={isFs ? t('header.exitFullPage') : t('header.fullPage')} side="bottom">
+              <button
+                type="button"
+                className="app-header-icon-btn app-header-layout-toggle"
+                onClick={toggleFullPage}
+                aria-label={isFs ? t('header.exitFullPage') : t('header.fullPage')}
+                aria-pressed={isFs}
+               data-ui-native-button="">
+                <Icon name={isFs ? 'minimize' : 'maximize'} size={19} color="var(--ink)" />
+              </button>
+            </Tip>
 
             {/* Filter / collapse panel toggle (app-specific) */}
             {filterControl && (
-              <button
-                type="button"
-                className={`app-header-icon-btn${filterControl.open ? ' app-header-icon-btn--open' : ''}${filterControl.hasActive ? ' app-header-icon-btn--active' : ''}`}
-                onClick={filterControl.onToggle}
-                title={filterControl.open ? 'Collapse filters' : 'Expand filters'}
-               data-ui-native-button="">
-                <Icon name={filterControl.open ? 'chevronUp' : 'chevronDown'} size={17} />
-              </button>
+              <Tip label={filterControl.open ? 'Collapse filters' : 'Expand filters'} side="bottom">
+                <button
+                  type="button"
+                  className={`app-header-icon-btn${filterControl.open ? ' app-header-icon-btn--open' : ''}${filterControl.hasActive ? ' app-header-icon-btn--active' : ''}`}
+                  onClick={filterControl.onToggle}
+                  aria-label={filterControl.open ? 'Collapse filters' : 'Expand filters'}
+                 data-ui-native-button="">
+                  <Icon name={filterControl.open ? 'chevronUp' : 'chevronDown'} size={17} />
+                </button>
+              </Tip>
             )}
 
             {/* Landing style mode switcher pill (Normal ↔ Agentic) */}
-            <button
-              type="button"
-              className="app-header-mode-pill"
-              onClick={() => setLandingStyle(isAgentic ? 'advanced' : 'basic')}
-              disabled={landingStyleSaving}
-              title={isAgentic ? 'Switch to Normal Workspace View' : 'Switch to Agentic View (AI workspace with Agent Flow, Automations & Controls)'}
-              aria-label={isAgentic ? 'Switch to Normal View' : 'Switch to Agentic View'}
-             data-ui-chrome-button="">
-              <Icon name={isAgentic ? 'layoutDashboard' : 'sparkle'} size={13} />
-              <span className="app-header-mode-pill-text">{isAgentic ? 'Normal View' : 'Agentic View'}</span>
-            </button>
+            <Tip label={isAgentic ? 'Switch to Normal Workspace View' : 'Switch to Agentic View (AI workspace with Agent Flow, Automations & Controls)'} side="bottom">
+              <button
+                type="button"
+                className="app-header-mode-pill"
+                onClick={() => setLandingStyle(isAgentic ? 'advanced' : 'basic')}
+                disabled={landingStyleSaving}
+                aria-label={isAgentic ? 'Switch to Normal View' : 'Switch to Agentic View'}
+               data-ui-chrome-button="">
+                <Icon name={isAgentic ? 'layoutDashboard' : 'sparkle'} size={13} />
+                <span className="app-header-mode-pill-text">{isAgentic ? 'Normal View' : 'Agentic View'}</span>
+              </button>
+            </Tip>
 
             {/* Theme toggle */}
-            <button
-              type="button"
-              className="app-header-icon-btn"
-              onClick={toggleTheme}
-              title={isDark ? t('header.lightMode') : t('header.darkMode')}
-             data-ui-native-button="">
-              <Icon name={isDark ? 'sun' : 'moon'} size={17} />
-            </button>
+            <Tip label={isDark ? t('header.lightMode') : t('header.darkMode')} side="bottom">
+              <button
+                type="button"
+                className="app-header-icon-btn"
+                onClick={toggleTheme}
+                aria-label={isDark ? t('header.lightMode') : t('header.darkMode')}
+               data-ui-native-button="">
+                <Icon name={isDark ? 'sun' : 'moon'} size={17} />
+              </button>
+            </Tip>
 
             {/* Language switcher */}
             <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <button
-                  type="button"
-                  className="app-header-icon-btn"
-                  title={t('header.language')}
-                 data-ui-native-button="">
-                  <Icon name="globe" size={17} />
-                </button>
-              </DropdownMenuTrigger>
+              <Tip label={t('header.language') || 'Language'} side="bottom">
+                <DropdownMenuTrigger asChild>
+                  <button
+                    type="button"
+                    className="app-header-icon-btn"
+                    aria-label={t('header.language') || 'Language'}
+                   data-ui-native-button="">
+                    <Icon name="globe" size={17} />
+                  </button>
+                </DropdownMenuTrigger>
+              </Tip>
               <DropdownMenuContent align="end" className="w-56">
                 {LANGUAGES.map(l => (
                   <DropdownMenuItem
@@ -823,7 +850,11 @@ export function AppHeader({
 
             </div>
             <DropdownMenu>
-              <DropdownMenuTrigger asChild><button type="button" className="app-header-icon-btn app-header-mobile-more" aria-label="More header actions"><Icon name="moreHorizontal" size={20} /></button></DropdownMenuTrigger>
+              <Tip label="More header actions" side="bottom">
+                <DropdownMenuTrigger asChild>
+                  <button type="button" className="app-header-icon-btn app-header-mobile-more" aria-label="More header actions"><Icon name="moreHorizontal" size={20} /></button>
+                </DropdownMenuTrigger>
+              </Tip>
               <DropdownMenuContent align="end" className="w-64 max-w-[calc(100vw-32px)]">
                 {isStaff && <DropdownMenuItem onSelect={() => triggerOpen(clockContext())}><Icon name="clock" size={18} />{isCheckedIn ? 'Manage current task' : t('header.clockIn')}</DropdownMenuItem>}
                 <DropdownMenuItem disabled={landingStyleSaving} onSelect={() => setLandingStyle(isAgentic ? 'advanced' : 'basic')}><Icon name="sparkle" size={18} />{isAgentic ? 'Normal View' : 'Agentic View'}</DropdownMenuItem>
@@ -835,17 +866,21 @@ export function AppHeader({
               </DropdownMenuContent>
             </DropdownMenu>
 
-            {/* Apps launcher trigger + panel */}
-            <AppLauncher />
+            {/* Apps launcher trigger + panel — hidden in single-app entry
+                mode (lib/appEntry.ts): switching to another product isn't
+                a real option on a dedicated single-app subdomain, so the
+                trigger shouldn't offer it. See the standalone-apps plan, M1. */}
+            {!getSingleAppEntry() && <AppLauncher />}
 
             {/* User avatar & restyled profile card dropdown */}
             <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <button
-                  ref={avatarRef}
-                  type="button"
-                  className="app-header-avatar-trigger"
-                  title={user?.name ?? t('header.account')}
+              <Tip label={user?.name ?? t('header.account')} side="bottom">
+                <DropdownMenuTrigger asChild>
+                  <button
+                    ref={avatarRef}
+                    type="button"
+                    className="app-header-avatar-trigger"
+                    aria-label={user?.name ?? t('header.account')}
                   style={{ position: 'relative', width: 36, height: 36, borderRadius: '50%', padding: 0, border: 'none', background: 'transparent', cursor: 'pointer', flexShrink: 0 }}
                 >
                   {/* Shared with every other app. The picture is fetched once
@@ -864,6 +899,7 @@ export function AppHeader({
                   />
                 </button>
               </DropdownMenuTrigger>
+              </Tip>
               <DropdownMenuContent align="end" className="app-header-profile-menu" style={{ zIndex: 99999 }}>
                 {/* Header User Identity Block (Refreshed) */}
                 <div className="ah-menu-identity">

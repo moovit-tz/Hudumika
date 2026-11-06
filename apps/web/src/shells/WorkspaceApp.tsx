@@ -21,6 +21,7 @@ interface WorkspaceAppProps {
   /** See RequireAppEnabled's own doc comment — routes that must render even
    *  when this app is blocked by plan/maintenance. */
   bypassGatePaths?: string[];
+  freeAccessPaths?: string[];
 }
 
 // Map app id → brand label shown next to the Hudumika logo
@@ -154,7 +155,7 @@ export const MobileNavContext = React.createContext<{
   setMobileOpen: (v: boolean) => void;
 }>({ mobileOpen: false, setMobileOpen: () => {} });
 
-export function WorkspaceApp({ appId, children, bypassGatePaths }: WorkspaceAppProps) {
+export function WorkspaceApp({ appId, children, bypassGatePaths, freeAccessPaths }: WorkspaceAppProps) {
   const [mobileOpen, setMobileOpen] = useState(false);
   const wrapperRef = useRef<HTMLDivElement>(null);
   const branding = useBranding();
@@ -360,7 +361,7 @@ export function WorkspaceApp({ appId, children, bypassGatePaths }: WorkspaceAppP
   );
 
   if (UNGATED_APP_IDS.has(appId)) return body;
-  return <RequireAppEnabled appId={appId} bypassPaths={bypassGatePaths}>{body}</RequireAppEnabled>;
+  return <RequireAppEnabled appId={appId} bypassPaths={bypassGatePaths} freeAccessPaths={freeAccessPaths}>{body}</RequireAppEnabled>;
 }
 
 export function useActiveApp(): AppId | null {
