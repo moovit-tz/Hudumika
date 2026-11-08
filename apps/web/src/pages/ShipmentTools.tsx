@@ -280,7 +280,7 @@ function ToolCard({ title, desc, tags, color, bg, icon, onRun, children }: {
         {children}
         <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: 4 }}>
           <button type="button" onClick={onRun}
-            style={{ padding: 'var(--ds-btn-py) 24px', borderRadius: 'var(--r)', border: 'none', background: color, color: '#fff', fontWeight: 700, fontSize: 13, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 7, transition: 'opacity .15s', minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}}
+            style={{ padding: 'var(--ds-btn-py) 24px', borderRadius: 'var(--r)', border: 'none', background: color, color: '#fff', fontWeight: 700, fontSize: "var(--text-base)", cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 7, transition: 'opacity .15s', minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}}
             onMouseOver={e => (e.currentTarget.style.opacity = '.85')}
             onMouseOut={e => (e.currentTarget.style.opacity = '1')} data-ui-native-button="">
             <Icon name="zap" size={13} color="#fff" />
@@ -306,7 +306,7 @@ function TF({ label, hint, full, children }: { label: string; hint?: string; ful
 function Seg({ active, onClick, label }: { active: boolean; onClick: () => void; label: string }) {
   return (
     <button type="button" onClick={onClick}
-      style={{ padding: 'var(--ds-btn-py-sm) 13px', borderRadius: 'var(--r)', border: `1.5px solid ${active ? 'var(--teal)' : 'var(--border)'}`, background: active ? 'var(--teal-l)' : 'var(--white)', color: active ? 'var(--teal)' : 'var(--ink3)', fontWeight: active ? 700 : 400, fontSize: 12, cursor: 'pointer', transition: 'all .12s', whiteSpace: 'nowrap', minHeight: 'var(--ctl-h-sm)', boxSizing: 'border-box', lineHeight: 1.25}} data-ui-native-button="">
+      style={{ padding: 'var(--ds-btn-py-sm) 13px', borderRadius: 'var(--r)', border: `1.5px solid ${active ? 'var(--teal)' : 'var(--border)'}`, background: active ? 'var(--teal-l)' : 'var(--white)', color: active ? 'var(--teal)' : 'var(--ink3)', fontWeight: active ? 700 : 400, fontSize: "var(--text-base)", cursor: 'pointer', transition: 'all .12s', whiteSpace: 'nowrap', minHeight: 'var(--ctl-h-sm)', boxSizing: 'border-box', lineHeight: 1.25}} data-ui-native-button="">
       {label}
     </button>
   );
@@ -477,13 +477,13 @@ export const ShipmentTools: React.FC = () => {
         >
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
             <TF label="CIF Value (USD)" hint="Cost + Insurance + Freight">
-              <input className="input-field" type="number" min="0" placeholder="e.g. 15000" value={lcCif} onChange={e => setLcCif(e.target.value)} />
+              <input data-ui-field="input" className="input-field" type="number" min="0" placeholder="e.g. 15000" value={lcCif} onChange={e => setLcCif(e.target.value)} />
             </TF>
             <TF label="HS Code" hint="First 4–6 digits">
-              <input className="input-field" placeholder="e.g. 8471" value={lcHs} onChange={e => setLcHs(e.target.value)} />
+              <input data-ui-field="input" className="input-field" placeholder="e.g. 8471" value={lcHs} onChange={e => setLcHs(e.target.value)} />
             </TF>
             <TF label="Quantity (units)">
-              <input className="input-field" type="number" min="1" value={lcQty} onChange={e => setLcQty(e.target.value)} />
+              <input data-ui-field="input" className="input-field" type="number" min="1" value={lcQty} onChange={e => setLcQty(e.target.value)} />
             </TF>
             <TF label="Mode">
               <div style={{ display: 'flex', gap: 6 }}>
@@ -527,10 +527,10 @@ export const ShipmentTools: React.FC = () => {
         >
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
             <TF label="HS Code" hint="Chapter (2 digits) is enough">
-              <input className="input-field" placeholder="e.g. 8471 or 84" value={ccHs} onChange={e => setCcHs(e.target.value)} />
+              <input data-ui-field="input" className="input-field" placeholder="e.g. 8471 or 84" value={ccHs} onChange={e => setCcHs(e.target.value)} />
             </TF>
             <TF label="Country of Origin" hint="ISO 2-letter code">
-              <input className="input-field" placeholder="e.g. CN, DE, KE" value={ccOrigin}
+              <input data-ui-field="input" className="input-field" placeholder="e.g. CN, DE, KE" value={ccOrigin}
                 onChange={e => setCcOrigin(e.target.value.toUpperCase())}
                 style={{ textTransform: 'uppercase', letterSpacing: '.05em' }} />
             </TF>
@@ -586,18 +586,18 @@ export const ShipmentTools: React.FC = () => {
               </Select>
             </TF>
             <TF label="Declared CIF (USD)">
-              <input className="input-field" type="number" min="0" placeholder="As declared to customs" value={pDeclared} onChange={e => setPDeclared(e.target.value)} />
+              <input data-ui-field="input" className="input-field" type="number" min="0" placeholder="As declared to customs" value={pDeclared} onChange={e => setPDeclared(e.target.value)} />
             </TF>
             {pViolation !== 'late_payment' && (
               <TF label="Actual CIF (USD)" hint="True market value">
-                <input className="input-field" type="number" min="0" placeholder="Discovered on inspection" value={pActual} onChange={e => setPActual(e.target.value)} />
+                <input data-ui-field="input" className="input-field" type="number" min="0" placeholder="Discovered on inspection" value={pActual} onChange={e => setPActual(e.target.value)} />
               </TF>
             )}
             <TF label="HS Code" hint={activeHs && activeHs !== lcHs ? `Using ${activeHs}` : 'Uses landed cost HS if set'}>
-              <input className="input-field" placeholder="e.g. 8471" value={lcHs} onChange={e => setLcHs(e.target.value)} />
+              <input data-ui-field="input" className="input-field" placeholder="e.g. 8471" value={lcHs} onChange={e => setLcHs(e.target.value)} />
             </TF>
             <TF label="Months Late">
-              <input className="input-field" type="number" min="0" value={pMonths} onChange={e => setPMonths(e.target.value)} />
+              <input data-ui-field="input" className="input-field" type="number" min="0" value={pMonths} onChange={e => setPMonths(e.target.value)} />
             </TF>
             <div style={{ gridColumn: '1 / -1', display: 'flex', gap: 20, flexWrap: 'wrap', paddingTop: 2 }}>
               {([['pNoPvoc', 'No PVoC/COC certificate', pNoPvoc, setPNoPvoc], ['pNoDi', 'No DI Inspection permit', pNoDi, setPNoDi]] as const).map(([, label, val, set]) => (
@@ -641,7 +641,7 @@ export const ShipmentTools: React.FC = () => {
                   <Icon name="download" size={13} /> Export PDF
                 </Button>
                 <button type="button" onClick={() => setSummary('')}
-                  style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink3)', fontSize: 20, lineHeight: 1, padding: '0 4px' }} data-ui-native-button="">×</button>
+                  style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink3)', fontSize: "var(--text-base)", lineHeight: 1, padding: '0 4px' }} data-ui-native-button="">×</button>
               </div>
             }
           >

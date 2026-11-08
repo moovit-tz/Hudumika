@@ -28,7 +28,7 @@ export function MaintenancePage() {
         onClick={() => window.location.reload()}
         style={{
           padding: 'var(--ds-btn-py) 20px', borderRadius: 'var(--r)', border: 'none', cursor: 'pointer',
-          background: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))', fontWeight: 700, fontSize: 13,
+          background: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))', fontWeight: 700, fontSize: "var(--text-base)",
           fontFamily: 'var(--font)', minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25,
         }}
        data-ui-native-button="">

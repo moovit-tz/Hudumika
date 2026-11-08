@@ -318,7 +318,7 @@ export function DocumentsPanel({ job, shipmentId, isLive, onRefresh }: { job: Cl
 
   return (
     <Card title="Documents" collapsible defaultOpen action={uploadedAny ? (
-      <button type="button" onClick={() => job.documents.filter(d => !d.pending).forEach(downloadDoc)} style={{ display: 'flex', alignItems: 'center', gap: 5, background: 'none', border: 'none', color: 'var(--teal)', fontSize: 12, fontWeight: 700, cursor: 'pointer' }} data-ui-native-button="">
+      <button type="button" onClick={() => job.documents.filter(d => !d.pending).forEach(downloadDoc)} style={{ display: 'flex', alignItems: 'center', gap: 5, background: 'none', border: 'none', color: 'var(--teal)', fontSize: "var(--text-base)", fontWeight: 700, cursor: 'pointer' }} data-ui-native-button="">
         <Icon name="download" size={12} color="var(--teal)" /> Download All
       </button>
     ) : undefined}>
@@ -509,7 +509,7 @@ export function FilesTab({ job, isMobile, shipmentId, isLive, onRefresh }: { job
             </SelectContent>
           </Select>
           <button type="button" onClick={() => handleUploadClick()} disabled={savingStaged}
-            style={{ display: 'flex', alignItems: 'center', gap: 7, padding: 'var(--ds-btn-py) 16px', background: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))', border: 'none', borderRadius: 'var(--r)', fontSize: 13, fontWeight: 700, cursor: savingStaged ? 'wait' : 'pointer', opacity: savingStaged ? 0.75 : 1, minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}} data-ui-native-button="">
+            style={{ display: 'flex', alignItems: 'center', gap: 7, padding: 'var(--ds-btn-py) 16px', background: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))', border: 'none', borderRadius: 'var(--r)', fontSize: "var(--text-base)", fontWeight: 700, cursor: savingStaged ? 'wait' : 'pointer', opacity: savingStaged ? 0.75 : 1, minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}} data-ui-native-button="">
             <Icon name="upload" size={14} /> Upload Document
           </button>
         </div>
@@ -523,7 +523,7 @@ export function FilesTab({ job, isMobile, shipmentId, isLive, onRefresh }: { job
               {stagedFiles.length} file{stagedFiles.length !== 1 ? 's' : ''} ready to upload
             </div>
             <button type="button" onClick={() => setStagedFiles([])} disabled={savingStaged}
-              style={{ fontSize: 12, color: 'var(--ink3)', background: 'none', border: 'none', cursor: 'pointer', fontWeight: 600 }} data-ui-native-button="">
+              style={{ fontSize: "var(--text-base)", color: 'var(--ink3)', background: 'none', border: 'none', cursor: 'pointer', fontWeight: 600 }} data-ui-native-button="">
               Clear all
             </button>
           </div>
@@ -550,11 +550,11 @@ export function FilesTab({ job, isMobile, shipmentId, isLive, onRefresh }: { job
           </div>
           <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
             <button type="button" onClick={() => handleUploadClick()} disabled={savingStaged}
-              style={{ padding: 'var(--ds-btn-py) 14px', borderRadius: 'var(--r)', border: '1px solid var(--border)', background: 'var(--white)', color: 'var(--ink)', fontSize: 13, fontWeight: 600, cursor: 'pointer', minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}} data-ui-native-button="">
+              style={{ padding: 'var(--ds-btn-py) 14px', borderRadius: 'var(--r)', border: '1px solid var(--border)', background: 'var(--white)', color: 'var(--ink)', fontSize: "var(--text-base)", fontWeight: 600, cursor: 'pointer', minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}} data-ui-native-button="">
               + Add more
             </button>
             <button type="button" onClick={saveStagedFiles} disabled={savingStaged}
-              style={{ display: 'flex', alignItems: 'center', gap: 6, padding: 'var(--ds-btn-py) 16px', borderRadius: 'var(--r)', border: 'none', background: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))', fontSize: 13, fontWeight: 700, cursor: savingStaged ? 'wait' : 'pointer', opacity: savingStaged ? 0.75 : 1, minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}} data-ui-native-button="">
+              style={{ display: 'flex', alignItems: 'center', gap: 6, padding: 'var(--ds-btn-py) 16px', borderRadius: 'var(--r)', border: 'none', background: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))', fontSize: "var(--text-base)", fontWeight: 700, cursor: savingStaged ? 'wait' : 'pointer', opacity: savingStaged ? 0.75 : 1, minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}} data-ui-native-button="">
               {savingStaged ? 'Saving…' : `Save ${stagedFiles.length} file${stagedFiles.length !== 1 ? 's' : ''}`}
             </button>
           </div>
@@ -586,14 +586,14 @@ export function FilesTab({ job, isMobile, shipmentId, isLive, onRefresh }: { job
                   {ex?.status === 'done'       && <span style={{ fontSize: 11, padding: '3px 8px', borderRadius: 'var(--r-sm)', background: 'var(--green-l)', color: 'var(--green)', fontWeight: 700, border: '1px solid var(--green)' }}>✓ AI Extracted · {ex.confidence}%</span>}
                   {ex?.status === 'processing' && <span style={{ fontSize: 11, padding: '3px 8px', borderRadius: 'var(--r-sm)', background: 'var(--gold-l)', color: 'var(--gold)', fontWeight: 700 }}>Processing…</span>}
                   {(!ex || ex.status === 'pending') && (
-                    <button type="button" onClick={e => { e.stopPropagation(); handleExtract(doc.id); }} style={{ fontSize: 12, padding: 'var(--ds-btn-py-sm) 12px', borderRadius: 'var(--r)', border: '1px solid var(--teal)', color: 'var(--teal)', background: 'var(--white)', cursor: 'pointer', fontWeight: 700, minHeight: 'var(--ctl-h-sm)', boxSizing: 'border-box', lineHeight: 1.25}} data-ui-native-button="">
+                    <button type="button" onClick={e => { e.stopPropagation(); handleExtract(doc.id); }} style={{ fontSize: "var(--text-base)", padding: 'var(--ds-btn-py-sm) 12px', borderRadius: 'var(--r)', border: '1px solid var(--teal)', color: 'var(--teal)', background: 'var(--white)', cursor: 'pointer', fontWeight: 700, minHeight: 'var(--ctl-h-sm)', boxSizing: 'border-box', lineHeight: 1.25}} data-ui-native-button="">
                       Extract with AI
                     </button>
                   )}
                   {doc.status === 'VERIFIED' ? (
                     <span title="Verified" style={{ fontSize: 11, fontWeight: 700, padding: '3px 8px', borderRadius: 'var(--r-sm)', background: 'var(--green-l)', color: 'var(--green)', border: '1px solid var(--green)', display: 'inline-flex', alignItems: 'center', gap: 3 }}><Icon name="checkCircle" size={12} color="var(--green)" /> Verified</span>
                   ) : canVerify ? (
-                    <button type="button" onClick={e => { e.stopPropagation(); verifyDoc(doc.id); }} disabled={verifying === doc.id} title="Mark this document as verified" style={{ fontSize: 12, padding: 'var(--ds-btn-py-sm) 12px', borderRadius: 'var(--r)', border: '1px solid var(--green)', color: 'var(--green)', background: 'var(--white)', cursor: verifying === doc.id ? 'default' : 'pointer', fontWeight: 700, minHeight: 'var(--ctl-h-sm)', boxSizing: 'border-box', lineHeight: 1.25 }} data-ui-native-button="">
+                    <button type="button" onClick={e => { e.stopPropagation(); verifyDoc(doc.id); }} disabled={verifying === doc.id} title="Mark this document as verified" style={{ fontSize: "var(--text-base)", padding: 'var(--ds-btn-py-sm) 12px', borderRadius: 'var(--r)', border: '1px solid var(--green)', color: 'var(--green)', background: 'var(--white)', cursor: verifying === doc.id ? 'default' : 'pointer', fontWeight: 700, minHeight: 'var(--ctl-h-sm)', boxSizing: 'border-box', lineHeight: 1.25 }} data-ui-native-button="">
                       {verifying === doc.id ? '…' : 'Verify'}
                     </button>
                   ) : null}
@@ -705,7 +705,7 @@ export function CO2Tab({ job, shipmentId, isLive, onRefresh }: { job: ClearanceJ
         )}
 
         <button type="button" onClick={handleCalculate} disabled={!canCalculate || calcSaving}
-          style={{ padding: 'var(--ds-btn-py) 22px', background: canCalculate ? 'var(--green)' : 'var(--border)', color: canCalculate ? 'hsl(var(--green-foreground))' : 'var(--ink3)', border: 'none', borderRadius: 'var(--r)', fontSize: 14, fontWeight: 700, cursor: canCalculate && !calcSaving ? 'pointer' : 'default', opacity: calcSaving ? 0.7 : 1, minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}} data-ui-native-button="">
+          style={{ padding: 'var(--ds-btn-py) 22px', background: canCalculate ? 'var(--green)' : 'var(--border)', color: canCalculate ? 'hsl(var(--green-foreground))' : 'var(--ink3)', border: 'none', borderRadius: 'var(--r)', fontSize: "var(--text-base)", fontWeight: 700, cursor: canCalculate && !calcSaving ? 'pointer' : 'default', opacity: calcSaving ? 0.7 : 1, minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}} data-ui-native-button="">
           {calcSaving ? 'Calculating…' : job.co2EmissionsKg !== undefined ? 'Recalculate CO₂' : 'Calculate CO₂'}
         </button>
 

@@ -163,7 +163,7 @@ export function CMSRequestApprovalModal({
                   <div style={{ fontSize: 12.5, color: 'var(--ink3)' }}>No active team members found.</div>
                 ) : (
                   <Select value={assignedTo} onValueChange={setAssignedTo}>
-                    <SelectTrigger className="input-field" style={{ fontSize: 13 }}>
+                    <SelectTrigger className="input-field" style={{ fontSize: "var(--text-base)" }}>
                       <SelectValue placeholder="Choose reviewer…" />
                     </SelectTrigger>
                     <SelectContent>
@@ -181,12 +181,12 @@ export function CMSRequestApprovalModal({
                 <label style={{ display: 'block', fontSize: 11.5, fontWeight: 700, color: 'var(--ink3)', textTransform: 'uppercase', marginBottom: 6 }}>
                   Review Due Date (Optional)
                 </label>
-                <input
+                <input data-ui-field="input"
                   type="datetime-local"
                   value={dueDate}
                   onChange={e => setDueDate(e.target.value)}
                   className="input-field"
-                  style={{ fontSize: 12.5 }}
+                  style={{ fontSize: "var(--text-base)" }}
                 />
               </div>
 
@@ -194,13 +194,13 @@ export function CMSRequestApprovalModal({
                 <label style={{ display: 'block', fontSize: 11.5, fontWeight: 700, color: 'var(--ink3)', textTransform: 'uppercase', marginBottom: 6 }}>
                   Note to Reviewer (Optional)
                 </label>
-                <textarea
+                <textarea data-ui-field="textarea"
                   value={note}
                   onChange={e => setNote(e.target.value)}
                   placeholder="Context for the reviewer, key changes to check, or compliance concerns…"
                   rows={3}
                   className="input-field"
-                  style={{ fontSize: 12.5, resize: 'vertical' }}
+                  style={{ fontSize: "var(--text-base)", resize: 'vertical' }}
                 />
               </div>
 

@@ -105,7 +105,7 @@ export const StepPayment: React.FC<StepProps> = ({ draft, update, onNext, onBack
         <>
           <div className="login-field">
             <label className="reg-label">Card number</label>
-            <input
+            <input data-ui-field="input"
               type="text"
               placeholder="4242 4242 4242 4242"
               value={p.card_number}
@@ -117,7 +117,7 @@ export const StepPayment: React.FC<StepProps> = ({ draft, update, onNext, onBack
           </div>
           <div className="login-field">
             <label className="reg-label">Name on card</label>
-            <input
+            <input data-ui-field="input"
               type="text"
               placeholder="John Mwangi"
               value={p.card_holder}
@@ -130,7 +130,7 @@ export const StepPayment: React.FC<StepProps> = ({ draft, update, onNext, onBack
           <div className="ob-payment-row">
             <div className="login-field">
               <label className="reg-label">Expiry</label>
-              <input
+              <input data-ui-field="input"
                 type="text"
                 placeholder="MM/YY"
                 value={p.card_expiry}
@@ -142,7 +142,7 @@ export const StepPayment: React.FC<StepProps> = ({ draft, update, onNext, onBack
             </div>
             <div className="login-field">
               <label className="reg-label">CVC</label>
-              <input
+              <input data-ui-field="input"
                 type="text"
                 placeholder="123"
                 value={p.card_cvc}
@@ -167,7 +167,7 @@ export const StepPayment: React.FC<StepProps> = ({ draft, update, onNext, onBack
           </div>
           <div className="login-field">
             <label className="reg-label">Mobile number</label>
-            <input
+            <input data-ui-field="input"
               type="tel"
               placeholder="+255 7XX XXX XXX"
               value={p.mobile_number}

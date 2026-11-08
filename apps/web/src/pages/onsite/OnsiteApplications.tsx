@@ -212,7 +212,7 @@ export function OnsiteApplications() {
             <DialogBody style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
               <div className="onsite-form-group">
                 <label>Application Name *</label>
-                <input
+                <input data-ui-field="input"
                   type="text"
                   className="onsite-input"
                   placeholder="my-api-service"
@@ -238,7 +238,7 @@ export function OnsiteApplications() {
                 </div>
                 <div className="onsite-form-group">
                   <label>Git Repository URL</label>
-                  <input
+                  <input data-ui-field="input"
                     type="text"
                     className="onsite-input"
                     placeholder="https://github.com/org/repo"
@@ -251,7 +251,7 @@ export function OnsiteApplications() {
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '1rem' }}>
                 <div className="onsite-form-group">
                   <label>Build Command</label>
-                  <input
+                  <input data-ui-field="input"
                     type="text"
                     className="onsite-input"
                     value={buildCommand}
@@ -260,7 +260,7 @@ export function OnsiteApplications() {
                 </div>
                 <div className="onsite-form-group">
                   <label>Start Command</label>
-                  <input
+                  <input data-ui-field="input"
                     type="text"
                     className="onsite-input"
                     value={startCommand}

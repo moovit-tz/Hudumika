@@ -371,7 +371,7 @@ export const TasksApp: React.FC = () => {
             {/* Quick Search with Clear */}
             <div className="tasks-search-wrap">
               <Icon name="search" size={14} className="tasks-search-icon" />
-              <input
+              <input data-ui-field="input" data-field-appearance="bare"
                 type="text"
                 value={searchQuery}
                 onChange={e => setSearchQuery(e.target.value)}
@@ -379,7 +379,7 @@ export const TasksApp: React.FC = () => {
                 className="tasks-search-input"
               />
               {searchQuery && (
-                <button
+                <button data-ui-native-button=""
                   type="button"
                   onClick={() => setSearchQuery('')}
                   className="tasks-search-clear"
@@ -518,7 +518,7 @@ export const TasksApp: React.FC = () => {
           <div className="tasks-quick-add-wrap">
             <form onSubmit={handleQuickAddSubmit} className="tasks-quick-add-bar">
               <Icon name="plus" size={16} className="text-teal-600 dark:text-teal-400 shrink-0" />
-              <input
+              <input data-ui-field="input"
                 type="text"
                 value={quickTitle}
                 onChange={e => setQuickTitle(e.target.value)}
@@ -851,7 +851,7 @@ function CreateTaskModal({ open, onClose, defaultListId, lists }: {
         <form onSubmit={handleSave} className="flex flex-col gap-4 mt-2">
           <div>
             <label className="text-xs font-bold text-muted-foreground block mb-1.5">Subject / Task Name *</label>
-            <input
+            <input data-ui-field="input"
               type="text"
               required
               autoFocus
@@ -1295,7 +1295,7 @@ function TaskRow({ todo, list, expanded, onToggleExpand, newSubtaskTitle, setNew
           )}
 
           {/* Chevron expand */}
-          <button
+          <button data-ui-native-button=""
             type="button"
             onClick={onToggleExpand}
             className="task-icon-action-btn"
@@ -1377,7 +1377,7 @@ function TaskRow({ todo, list, expanded, onToggleExpand, newSubtaskTitle, setNew
                 {todo.recurrenceRule && (
                   <span className="flex items-center gap-1.5 text-xs text-muted-foreground font-medium">
                     every
-                    <input
+                    <input data-ui-field="input"
                       type="number"
                       min={1}
                       max={365}
@@ -1418,7 +1418,7 @@ function TaskRow({ todo, list, expanded, onToggleExpand, newSubtaskTitle, setNew
 
           {/* Description & Notes */}
           <div>
-            <textarea
+            <textarea data-ui-field="textarea"
               value={todo.notes || ''}
               onChange={e => updateTodo(todo.id, { notes: e.target.value })}
               placeholder="Add detailed task description, checklist steps or notes…"
@@ -1456,7 +1456,7 @@ function TaskRow({ todo, list, expanded, onToggleExpand, newSubtaskTitle, setNew
                 </span>
               ))}
               {!readOnly && (
-                <input
+                <input data-ui-field="input"
                   value={newTag}
                   onChange={e => setNewTag(e.target.value)}
                   onKeyDown={e => { if (e.key === 'Enter') addTag(); }}
@@ -1521,7 +1521,7 @@ function TaskRow({ todo, list, expanded, onToggleExpand, newSubtaskTitle, setNew
             {!trashed && !readOnly && (
               <div className="flex items-center gap-2 pt-1 border-t border-border/50">
                 <Icon name="plus" size={13} className="text-muted-foreground" />
-                <input
+                <input data-ui-field="input"
                   value={newSubtaskTitle}
                   onChange={e => setNewSubtaskTitle(e.target.value)}
                   onKeyDown={e => {

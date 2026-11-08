@@ -55,12 +55,12 @@ export const TenantManagement: React.FC = () => {
         titleEm="management"
       />
       <div style={{ marginBottom: '16px' }}>
-        <input
+        <input data-ui-field="input"
           type="text"
           placeholder="Filter companies..."
           value={filter}
           onChange={(e) => setFilter(e.target.value)}
-          style={{ padding: '8px', borderRadius: 'var(--r-sm)', border: '1px solid var(--border)', width: '100%', maxWidth: '300px' }}
+          style={{ padding: "var(--ds-input-py) var(--space-md)", borderRadius: 'var(--r-sm)', border: '1px solid var(--border)', width: '100%', maxWidth: '300px' }}
         />
       </div>
       <button

@@ -283,18 +283,18 @@ export const OndiPrivacy: React.FC = () => {
                     <label style={{ fontSize: 12.5, fontWeight: 600, color: 'var(--ink)' }}>
                       Reason for deactivation (Optional)
                     </label>
-                    <textarea
+                    <textarea data-ui-field="textarea"
                       value={reason}
                       onChange={(e) => setReason(e.target.value)}
                       placeholder="e.g. Departing organization, role transfer, or account consolidation…"
                       rows={3}
                       style={{
                         width: '100%',
-                        padding: '10px 12px',
+                        padding: "var(--ds-input-py) var(--space-md)",
                         border: '1px solid var(--border)',
                         borderRadius: 'var(--r-sm, 8px)',
                         fontFamily: 'var(--font)',
-                        fontSize: 13,
+                        fontSize: "var(--text-base)",
                         color: 'var(--ink)',
                         background: 'var(--white)',
                         boxSizing: 'border-box',

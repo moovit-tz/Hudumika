@@ -627,8 +627,8 @@ export const TrackingDashboard: React.FC = () => {
                       type="button"
                       onClick={() => setMapMode(mode)}
                       style={{
-                        padding: '4px 10px',
-                        fontSize: 11,
+                        padding: "var(--action-py) var(--space-md)",
+                        fontSize: "var(--text-xs)",
                         fontWeight: 700,
                         borderRadius: 'var(--r-sm)',
                         border: '1px solid',
@@ -724,7 +724,7 @@ export const TrackingDashboard: React.FC = () => {
                   size="sm"
                   variant="default"
                   onClick={() => allShipments[0] && navigate(`/tracking/shipments/${allShipments[0].id}`)}
-                  style={{ position: 'absolute', top: 12, right: 12, fontSize: 11, gap: 4 }}
+                  style={{ position: 'absolute', top: 12, right: 12, fontSize: "var(--text-xs)", gap: 4 }}
                 >
                   <span>Inspect Live Shipment</span>
                   <Icon name="arrowRight" size={12} />
@@ -1205,7 +1205,7 @@ export const TrackingDashboard: React.FC = () => {
               <button
                 type="button"
                 onClick={() => setCopilotOpen(false)}
-                style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink3)', padding: 4 }}
+                style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink3)', padding: "var(--action-py) var(--space-md)" }}
                data-ui-native-button="">
                 <Icon name="close" size={18} />
               </button>
@@ -1245,11 +1245,11 @@ export const TrackingDashboard: React.FC = () => {
                   onClick={() => handleSendCopilot('Which shipments are currently at risk of SLA breach?')}
                   style={{
                     textAlign: 'left',
-                    padding: '8px 12px',
+                    padding: "var(--action-py) var(--space-md)",
                     borderRadius: 'var(--r-sm)',
                     background: 'var(--bg)',
                     border: '1px solid var(--border)',
-                    fontSize: 12,
+                    fontSize: "var(--text-base)",
                     cursor: 'pointer',
                     fontFamily: 'var(--font)',
                   }}
@@ -1263,11 +1263,11 @@ export const TrackingDashboard: React.FC = () => {
                   onClick={() => handleSendCopilot('Suggest a rebalancing plan for warehouse container overflow')}
                   style={{
                     textAlign: 'left',
-                    padding: '8px 12px',
+                    padding: "var(--action-py) var(--space-md)",
                     borderRadius: 'var(--r-sm)',
                     background: 'var(--bg)',
                     border: '1px solid var(--border)',
-                    fontSize: 12,
+                    fontSize: "var(--text-base)",
                     cursor: 'pointer',
                     fontFamily: 'var(--font)',
                   }}
@@ -1281,11 +1281,11 @@ export const TrackingDashboard: React.FC = () => {
                   onClick={() => handleSendCopilot('Summarize fleet maintenance needs for high-risk vehicles')}
                   style={{
                     textAlign: 'left',
-                    padding: '8px 12px',
+                    padding: "var(--action-py) var(--space-md)",
                     borderRadius: 'var(--r-sm)',
                     background: 'var(--bg)',
                     border: '1px solid var(--border)',
-                    fontSize: 12,
+                    fontSize: "var(--text-base)",
                     cursor: 'pointer',
                     fontFamily: 'var(--font)',
                   }}

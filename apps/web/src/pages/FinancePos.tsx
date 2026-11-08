@@ -479,7 +479,7 @@ export function FinancePos() {
       {/* ═══ Metrics strip ═══ */}
       {analytics && (
         <div className="pos-metrics">
-          <div className="pos-metric"><span>Today sales</span><strong>{cash(analytics.today.revenue, currency)}</strong><small>{analytics.today.sales_count} transactions</small></div>
+          <div className="pos-metric pos-metric--primary"><span>Today’s sales</span><strong>{cash(analytics.today.revenue, currency)}</strong><small>{analytics.today.sales_count} transactions</small></div>
           <div className="pos-metric"><span>Average sale</span><strong>{cash(analytics.today.average_sale, currency)}</strong><small>Per receipt</small></div>
           <div className="pos-metric"><span>Gross margin</span><strong>{cash(analytics.today.margin, currency)}</strong><small>After tax &amp; cost</small></div>
           <div className="pos-metric"><span>Discounts</span><strong>{cash(analytics.today.discounts, currency)}</strong><small>{analytics.today.revenue ? `${((analytics.today.discounts / analytics.today.revenue) * 100).toFixed(1)}%` : '0%'} of revenue</small></div>
@@ -493,12 +493,12 @@ export function FinancePos() {
 
       {/* ═══ Main Body: Catalogue + Cart ═══ */}
       {!readOnly && (
-        <ResizablePanelGroup direction="horizontal" className="pos-body" autoSaveId="hudumika-pos-columns-v1">
-          <ResizablePanel id="pos-categories" order={1} defaultSize={7} minSize={6} maxSize={20} className="pos-column">
+        <ResizablePanelGroup direction="horizontal" className="pos-body" autoSaveId="hudumika-pos-columns-v2">
+          <ResizablePanel id="pos-categories" order={1} defaultSize={8} minSize={7} maxSize={18} className="pos-column">
           <nav className="pos-category-nav" aria-label="Product categories">
             {[{ name: '', label: 'All', icon: 'grid' as IconName, count: data.products.length }, ...categories.map(name => ({ name, label: name, icon: categoryIcon(name), count: data.products.filter(product => product.category === name).length }))].map(category => (
-              <button key={category.name} className={`pos-cat-tile${selectedCategory === category.name ? ' is-active' : ''}`} aria-pressed={selectedCategory === category.name} onClick={() => { setSelectedCategory(category.name); setProductPage(1); }}>
-                <span className="pos-cat-icon"><Icon name={category.icon} size={22} /></span>
+              <button data-ui-native-button="" key={category.name} className={`pos-cat-tile${selectedCategory === category.name ? ' is-active' : ''}`} aria-pressed={selectedCategory === category.name} onClick={() => { setSelectedCategory(category.name); setProductPage(1); }}>
+                <span className="pos-cat-icon"><Icon name={category.icon} size={20} /></span>
                 <span className="pos-cat-label">{category.label}</span>
               </button>
             ))}
@@ -507,7 +507,7 @@ export function FinancePos() {
           <ResizableHandle className="pos-column-divider" aria-label="Resize product categories" />
 
           {/* ── LEFT: Catalogue ── */}
-          <ResizablePanel id="pos-products" order={2} defaultSize={65} minSize={30} className="pos-column">
+          <ResizablePanel id="pos-products" order={2} defaultSize={60} minSize={30} className="pos-column">
           <div className="pos-catalogue">
             <div className="pos-catalogue-head">
               <div className="pos-catalogue-left">
@@ -522,13 +522,14 @@ export function FinancePos() {
                   value={search}
                   onChange={e => setSearch(e.target.value)}
                   onKeyDown={handleCatalogueKey}
-                  placeholder="Search product…"
+                  data-field-appearance="bare"
+                  placeholder="Search products or scan barcode…"
                 />
               </div>
               <DropdownMenu><DropdownMenuTrigger asChild><Button variant="outline" size="icon" aria-label="Product display"><Icon name={productView === 'grid' ? 'grid' : 'list'} size={16} /></Button></DropdownMenuTrigger><DropdownMenuContent><DropdownMenuItem onSelect={() => setProductView('grid')}>Grid view</DropdownMenuItem><DropdownMenuItem onSelect={() => setProductView('list')}>List view</DropdownMenuItem></DropdownMenuContent></DropdownMenu>
             </div>
 
-            {!sel.shift && <div className="pos-closed-banner"><FeaturedIcon variant="warning" size="sm"><Icon name="lock" size={16}/></FeaturedIcon><div><strong>Your register is closed</strong><span>Open the register to add products and take payments.</span></div><Button size="sm" onClick={() => setShiftDialog('open')}>Open register</Button></div>}
+            {!sel.shift && <div className="pos-closed-banner"><FeaturedIcon variant="brand" size="sm"><Icon name="lock" size={16}/></FeaturedIcon><div><strong>Your register is closed</strong><span>Open the register to add products and take payments.</span></div><Button size="sm" onClick={() => setShiftDialog('open')}>Open register</Button></div>}
 
             <div className="pos-grid" data-view={productView} ref={productGridRef}>
               {pageProducts.map(product => {
@@ -536,21 +537,25 @@ export function FinancePos() {
                 const unavailable = !!locationId && available !== undefined && available <= 0;
                 const inCart = cart.find(line => line.id === product.id)?.qty ?? 0;
                 return (
-                  <button type="button" className={`pos-tile${inCart > 0 ? ' is-in-cart' : ''}`} key={product.id} onClick={() => addProduct(product)} disabled={!sel.shift || unavailable}>
-                    <div className="pos-tile-img"><FeaturedIcon size="md" variant="gray"><Icon name={categoryIcon(product.category ?? '')} size={24}/></FeaturedIcon>{inCart > 0 && <Badge variant="brand" className="pos-tile-qty">{inCart}</Badge>}{unavailable && <span className="pos-tile-unavail">Not Available</span>}</div>
+                  <button data-ui-native-button="" type="button" className={`pos-tile${inCart > 0 ? ' is-in-cart' : ''}`} key={product.id} onClick={() => addProduct(product)} disabled={!sel.shift || unavailable}>
+                    <div className="pos-tile-img">
+                      <FeaturedIcon size="md" variant={inCart > 0 ? 'brand' : 'gray'}><Icon name={categoryIcon(product.category ?? '')} size={22}/></FeaturedIcon>
+                      {locationId && available !== undefined && (
+                        <Badge variant={available <= 0 ? 'secondary' : 'brand'} className="pos-tile-stock">
+                          {available <= 0 ? 'Out of stock' : `${available} ${product.unit}`}
+                        </Badge>
+                      )}
+                      {inCart > 0 && <Badge variant="brand" className="pos-tile-qty">{inCart}</Badge>}
+                      {unavailable && <span className="pos-tile-unavail">Not Available</span>}
+                    </div>
                     <div className="pos-tile-info">
                       <div className="pos-tile-name">{product.name}</div>
                       <div className="pos-tile-code">SKU: {product.code || '—'}</div>
                     </div>
                     <div className="pos-tile-bottom">
                       <div className="pos-tile-price">{cash(product.sale_price, product.currency)}</div>
-                      <span className="pos-tile-add" aria-hidden="true"><Icon name="plus" size={18}/></span>
+                      <span className="pos-tile-add" aria-hidden="true"><Icon name="plus" size={16}/></span>
                     </div>
-                    {locationId && available !== undefined && (
-                      <Badge variant={available <= 0 ? 'destructive' : available <= 5 ? 'warning' : 'success'} className="pos-tile-stock">
-                        {available <= 0 ? 'Out of stock' : `${available} ${product.unit}`}
-                      </Badge>
-                    )}
                   </button>
                 );
               })}
@@ -568,7 +573,7 @@ export function FinancePos() {
           <ResizableHandle className="pos-column-divider" aria-label="Resize order details" />
 
           {/* ── RIGHT: Cart Panel ── */}
-          <ResizablePanel id="pos-order" order={3} defaultSize={28} minSize={25} maxSize={50} className="pos-column">
+          <ResizablePanel id="pos-order" order={3} defaultSize={32} minSize={26} maxSize={50} className="pos-column">
           <div className="pos-cart-panel">
             <div className="pos-cart-head">
               <div className="pos-cart-head-top">
@@ -579,7 +584,7 @@ export function FinancePos() {
             </div>
 
             <div className="pos-customer-bar">
-              <PersonAvatar userId={customerId || undefined} name={customerId ? sel.customers.find(c => c.id === customerId)?.name ?? 'Customer' : 'Walk-in'} size={40} />
+              <PersonAvatar userId={customerId || undefined} name={customerId ? sel.customers.find(c => c.id === customerId)?.name ?? 'Customer' : 'Walk-in'} size={36} />
               <div className="pos-customer-info">
                 <Combobox
                   options={[{value:'',label:'Walk-in customer'}, ...sel.customers.map(c => ({value:c.id,label:c.name,sublabel:c.email ?? undefined}))]}
@@ -588,72 +593,74 @@ export function FinancePos() {
             </div>
 
             <div className="pos-cart-scroll">
-            <Accordion type="single" collapsible className="pos-sale-settings">
-              <AccordionItem value="details"><AccordionTrigger>Sale details<span className="pos-settings-summary">{locationId ? sel.locations.find(l => l.id === locationId)?.name ?? '' : ''}{saleNotes ? ` · ${saleNotes}` : ''}</span></AccordionTrigger><AccordionContent>
-            <div className="pos-cart-fields">
-              <label className="pos-field"><span>Stock location</span><Combobox
-                options={[{value:'',label:'No stock deduction'}, ...sel.locations.map(l => ({value:l.id,label:`${l.warehouse_name} · ${l.name}`,sublabel:l.code}))]}
-                value={locationId} onChange={setLocationId} placeholder="No stock deduction" searchPlaceholder="Stock location…" /></label>
-              <label className="pos-field"><span>Sale note <small>Optional</small></span><Input aria-label="Sale note" value={saleNotes} onChange={e => setSaleNotes(e.target.value)} placeholder="Add a customer or order reference" /></label>
-            </div>
-              </AccordionContent></AccordionItem>
-            </Accordion>
+              <Accordion type="single" collapsible className="pos-sale-settings">
+                <AccordionItem value="details"><AccordionTrigger>Sale details<span className="pos-settings-summary">{locationId ? sel.locations.find(l => l.id === locationId)?.name ?? '' : ''}{saleNotes ? ` · ${saleNotes}` : ''}</span></AccordionTrigger><AccordionContent>
+              <div className="pos-cart-fields">
+                <label className="pos-field"><span>Stock location</span><Combobox
+                  options={[{value:'',label:'No stock deduction'}, ...sel.locations.map(l => ({value:l.id,label:`${l.warehouse_name} · ${l.name}`,sublabel:l.code}))]}
+                  value={locationId} onChange={setLocationId} placeholder="No stock deduction" searchPlaceholder="Stock location…" /></label>
+                <label className="pos-field"><span>Sale note <small>Optional</small></span><Input aria-label="Sale note" value={saleNotes} onChange={e => setSaleNotes(e.target.value)} placeholder="Add a customer or order reference" /></label>
+              </div>
+                </AccordionContent></AccordionItem>
+              </Accordion>
 
-            {/* Line items */}
-            <div className="pos-lines">
-              {!cart.length && (
-                <div className="pos-lines-empty">
-                  <FeaturedIcon variant="gray" size="lg"><Icon name="shoppingCart" size={28} /></FeaturedIcon>
-                  <strong>Your sale starts here</strong>
-                  <span>Add products from the catalogue.</span>
-                </div>
-              )}
-              {cart.map(line => {
-                const lineMax = line.sale_price * line.qty;
-                const displayValue = line.discountMode === 'pct' && lineMax > 0
-                  ? Math.round((line.discount / lineMax) * 10000) / 100
-                  : line.discount;
-                const lineTotal = (line.sale_price * line.qty - line.discount) * (1 + line.tax_rate / 100);
-                return (
-                  <div className="pos-line" key={line.id}>
-                    <div className="pos-line-info">
-                      <strong>{line.name}</strong>
-                      <small>{cash(line.sale_price, line.currency)} × {line.qty}{line.tax_rate > 0 ? ` · ${line.tax_rate}% tax` : ''}</small>
-                    </div>
-                    <div className="pos-line-qty">
-                      <Button variant="ghost" size="xs" type="button" aria-label={`Decrease quantity of ${line.name}`} onClick={() => changeQty(line.id, line.qty - 1)}>−</Button>
-                      <span>{line.qty}</span>
-                      <Button variant="ghost" size="xs" type="button" aria-label={`Increase quantity of ${line.name}`} onClick={() => changeQty(line.id, line.qty + 1)}>+</Button>
-                    </div>
-                    <div className="pos-line-total">{cash(lineTotal, line.currency)}</div>
-                    {line.discount > 0 && (
-                      <div className="pos-line-discount-row">
-                        <Badge variant="success">−{cash(line.discount, line.currency)}</Badge>
-                        <Tip label={line.discountMode === 'pct' ? 'Switch to fixed' : 'Switch to %'}>
-                          <Button variant="ghost" size="xs" type="button" aria-label={`Switch discount mode for ${line.name}`} className="pos-line-discount-toggle" onClick={() => toggleDiscountMode(line.id)}>
-                            {line.discountMode === 'pct' ? '%' : currency}
-                          </Button>
-                        </Tip>
-                        <Input
-                          aria-label={`Discount for ${line.name}`} type="number" min="0"
-                          max={line.discountMode === 'pct' ? 100 : lineMax}
-                          value={displayValue || ''}
-                          onChange={e => changeDiscount(line.id, Number(e.target.value))}
-                          className="pos-discount-input"
-                        />
-                      </div>
-                    )}
-                    {line.discount === 0 && (
-                      <div className="pos-line-discount-row">
-                        <Button variant="ghost" size="xs" type="button" className="pos-line-discount-toggle" onClick={() => changeDiscount(line.id, 1)} style={{ fontSize: 10, color: 'var(--ink3)' }}>+ Discount</Button>
-                      </div>
-                    )}
+              {/* Line items */}
+              <div className="pos-lines">
+                {!cart.length && (
+                  <div className="pos-lines-empty">
+                    <FeaturedIcon variant="brand" size="md"><Icon name="shoppingCart" size={24} /></FeaturedIcon>
+                    <strong>Your sale starts here</strong>
+                    <span>Add products from the catalogue.</span>
                   </div>
-                );
-              })}
+                )}
+                {cart.map(line => {
+                  const lineMax = line.sale_price * line.qty;
+                  const displayValue = line.discountMode === 'pct' && lineMax > 0
+                    ? Math.round((line.discount / lineMax) * 10000) / 100
+                    : line.discount;
+                  const lineTotal = (line.sale_price * line.qty - line.discount) * (1 + line.tax_rate / 100);
+                  return (
+                    <div className="pos-line" key={line.id}>
+                      <div className="pos-line-info">
+                        <strong>{line.name}</strong>
+                        <small>{cash(line.sale_price, line.currency)} × {line.qty}{line.tax_rate > 0 ? ` · ${line.tax_rate}% tax` : ''}</small>
+                      </div>
+                      <div className="pos-line-qty">
+                        <Button variant="ghost" size="xs" type="button" aria-label={`Decrease quantity of ${line.name}`} onClick={() => changeQty(line.id, line.qty - 1)}>−</Button>
+                        <span>{line.qty}</span>
+                        <Button variant="ghost" size="xs" type="button" aria-label={`Increase quantity of ${line.name}`} onClick={() => changeQty(line.id, line.qty + 1)}>+</Button>
+                      </div>
+                      <div className="pos-line-bottom">
+                        {line.discount > 0 ? (
+                          <div className="pos-line-discount-row">
+                            <Badge variant="brand">−{cash(line.discount, line.currency)}</Badge>
+                            <Tip label={line.discountMode === 'pct' ? 'Switch to fixed' : 'Switch to %'}>
+                              <Button variant="ghost" size="xs" type="button" aria-label={`Switch discount mode for ${line.name}`} className="pos-line-discount-toggle" onClick={() => toggleDiscountMode(line.id)}>
+                                {line.discountMode === 'pct' ? '%' : currency}
+                              </Button>
+                            </Tip>
+                            <Input
+                              aria-label={`Discount for ${line.name}`} type="number" min="0"
+                              max={line.discountMode === 'pct' ? 100 : lineMax}
+                              value={displayValue || ''}
+                              onChange={e => changeDiscount(line.id, Number(e.target.value))}
+                              className="pos-discount-input"
+                            />
+                          </div>
+                        ) : (
+                          <div className="pos-line-discount-row">
+                            <Button variant="ghost" size="xs" type="button" className="pos-line-discount-toggle" onClick={() => changeDiscount(line.id, 1)} style={{ fontSize: "var(--text-xs)", color: 'var(--ink3)' }}>+ Discount</Button>
+                          </div>
+                        )}
+                        <div className="pos-line-total">{cash(lineTotal, line.currency)}</div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
             </div>
 
-            {/* ── Cart Footer: Totals + Payment + Charge ── */}
+            {/* ── Docked Cart Footer: Totals + Payment + Balance ── */}
             <div className="pos-cart-footer">
               <div className="pos-totals">
                 <div><span>Subtotal</span><b>{cash(totals.subtotal, currency)}</b></div>
@@ -669,12 +676,12 @@ export function FinancePos() {
               {/* Payment section */}
               <div className="pos-pay-section">
                 <div className="pos-pay-head">
-                  <span><Icon name="creditCard" size={16}/>Payment details</span>
+                  <span><Icon name="creditCard" size={15}/>Payment details</span>
                   <Button size="xs" variant="ghost" onClick={addPayment}><Icon name="plus" size={12}/>Split</Button>
                 </div>
                 {payments.map((payment, index) => (
                   <React.Fragment key={payment.id}>
-                    <div className="pos-pay-row">
+                    <div className={`pos-pay-row${payments.length > 1 ? ' is-multi' : ''}`}>
                       <Select value={payment.method} onValueChange={value => updatePayment(payment.id, { method:value as PosPaymentMethod })}>
                         <SelectTrigger aria-label={`Payment ${index + 1} method`}><SelectValue/></SelectTrigger>
                         <SelectContent>{METHODS.map(m => <SelectItem key={m.value} value={m.value}>{m.label}</SelectItem>)}</SelectContent>
@@ -707,13 +714,10 @@ export function FinancePos() {
               {quotaExhausted && (
                 <div className="pos-quota-alert"><Icon name="lock" size={14}/><span>Monthly POS transaction allowance is used.</span></div>
               )}
-
-              {/* Charge row */}
-            </div>
             </div>
               <div className="pos-checkout-footer">
-                <button type="button" className="pos-action-btn" disabled={!cart.length || saving} onClick={() => { setHoldLabel(customerId ? sel.customers.find(c => c.id === customerId)?.name ?? '' : `Walk-in · ${new Date().toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'})}`); setHoldDialog('save'); }}><span className="pos-action-icon"><Icon name="pause" size={18}/></span><span>Hold</span></button>
-                <button type="button" className="pos-action-btn" disabled={!sel.shift || !cart.length || saving} onClick={() => { showAlert('Invoice mode is available after checkout — select a customer and check out to generate a linked invoice.'); }}><span className="pos-action-icon"><Icon name="fileText" size={18}/></span><span>Bill</span></button>
+                <button data-ui-native-button="" type="button" className="pos-action-btn" disabled={!cart.length || saving} onClick={() => { setHoldLabel(customerId ? sel.customers.find(c => c.id === customerId)?.name ?? '' : `Walk-in · ${new Date().toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'})}`); setHoldDialog('save'); }}><span className="pos-action-icon"><Icon name="pause" size={18}/></span><span>Hold</span></button>
+                <button data-ui-native-button="" type="button" className="pos-action-btn" disabled={!sel.shift || !cart.length || saving} onClick={() => { showAlert('Invoice mode is available after checkout — select a customer and check out to generate a linked invoice.'); }}><span className="pos-action-icon"><Icon name="fileText" size={18}/></span><span>Bill</span></button>
                 <Button size="lg"
                   type="button"
                   className="pos-charge-btn"
@@ -777,7 +781,7 @@ export function FinancePos() {
               <div className="pos-history-filters">
                 <div className="pos-history-search">
                   <Icon name="search" size={15} className="pos-search-icon" />
-                  <input
+                  <input data-ui-field="input"
                     type="text"
                     value={receiptSearch}
                     onChange={e => { setReceiptSearch(e.target.value); setReceiptPage(1); }}
@@ -785,7 +789,7 @@ export function FinancePos() {
                     aria-label="Search receipts"
                   />
                   {receiptSearch && (
-                    <button
+                    <button data-ui-native-button=""
                       type="button"
                       className="pos-search-clear"
                       onClick={() => { setReceiptSearch(''); setReceiptPage(1); }}
@@ -811,7 +815,7 @@ export function FinancePos() {
 
               <div className="pos-history-list">
                 {sales.map(sale => (
-                  <button
+                  <button data-ui-native-button=""
                     type="button"
                     key={sale.id}
                     className="pos-history-item"

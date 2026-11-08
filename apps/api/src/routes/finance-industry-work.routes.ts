@@ -13,13 +13,17 @@ import { allocateStock, dispatchAllocation, releaseAllocation } from '../service
 import { accrueWorkCost, allocatePostedWorkCost, getWorkPostedResults, listWorkCostSources } from '../services/finance-work-accounting.service.js';
 import { GLService } from '../services/gl.service.js';
 import { createInspection, recordInspectionResult, releaseQualityHold, progressStage, recordWaste, recordTraceabilityLink, traceForward, traceBackward } from '../services/manufacturing-quality.service.js';
+import { createMedication, listMedications, createPrescriptionForDispensing, approvePrescription, rejectPrescription, dispenseMedication, returnDispensedMedication, holdBatch, releaseBatchHold, recallReport } from '../services/pharmacy.service.js';
 import { createPropertyUnit, listPropertyUnits, createLease, generateLeaseCharges, listLeaseCharges,
   addBoqItem, listBoqItems, createProgressCertificate,
   registerVehicle, listVehicles, createJobCard, progressJobCard,
   createPolicy, fileClaim, adjudicateClaim,
-  createLoan, generateLoanSchedule, recordLoanRepayment,
+  createLoan, generateLoanSchedule, recordLoanRepayment, reverseLoanRepayment, refundLoanCredit,
   createRoom, listRooms, createReservation, checkInGuest, checkOutGuest, addFolioCharge,
-  registerStudent, listStudents, createFeeStructure, enrollStudent } from '../services/industry-domains.service.js';
+  registerStudent, listStudents, createFeeStructure, enrollStudent,
+  createPatient, listPatients, createAppointment, progressAppointment,
+  createEncounter, signEncounter, amendEncounter, createOrder, recordResult,
+  createPrescription, amendPrescription } from '../services/industry-domains.service.js';
 
 const day = z.string().regex(/^\d{4}-\d{2}-\d{2}$/).refine(value => {
   const date = new Date(`${value}T00:00:00Z`);
@@ -452,6 +456,16 @@ export async function financeIndustryWorkRoutes(server: FastifyInstance) {
     }).parse(request.body);
     return reply.status(201).send(await recordLoanRepayment(request.user.tenant_id, request.user.sub, loanId, input));
   });
+  server.post('/loan-repayments/:repaymentId/reverse', { preHandler: writers }, async request => {
+    const { repaymentId } = z.object({ repaymentId: z.string().uuid() }).parse(request.params);
+    const { reason } = z.object({ reason: z.string().trim().min(1).max(1000) }).parse(request.body);
+    return reverseLoanRepayment(request.user.tenant_id, request.user.sub, repaymentId, reason);
+  });
+  server.post('/loan-credits/:creditId/refund', { preHandler: writers }, async request => {
+    const { creditId } = z.object({ creditId: z.string().uuid() }).parse(request.params);
+    const { refund_reference } = z.object({ refund_reference: z.string().max(200).optional() }).parse(request.body ?? {});
+    return refundLoanCredit(request.user.tenant_id, request.user.sub, creditId, refund_reference);
+  });
 
   // ═══════ HOSPITALITY / ACCOMMODATION ═══════
   server.post('/rooms', { preHandler: writers }, async (request, reply) => {
@@ -520,5 +534,148 @@ export async function financeIndustryWorkRoutes(server: FastifyInstance) {
       scholarship_pct: z.number().min(0).max(100).optional(),
     }).parse(request.body);
     return reply.status(201).send(await enrollStudent(request.user.tenant_id, request.user.sub, id, input));
+  });
+
+  // ═══════ HEALTHCARE ═══════
+  server.post('/patients', { preHandler: writers }, async (request, reply) => {
+    const input = z.object({
+      first_name: z.string().trim().min(1).max(100), last_name: z.string().trim().min(1).max(100),
+      date_of_birth: day.optional(), gender: z.enum(['male', 'female', 'other']).optional(),
+      phone: z.string().max(50).optional(), email: z.string().email().optional(),
+      address: z.string().max(500).optional(), national_id: z.string().max(100).optional(),
+      customer_id: z.string().uuid().optional(), notes: z.string().max(2000).optional(),
+    }).parse(request.body);
+    const result = await createPatient(request.user.tenant_id, input);
+    return reply.status(201).send(result);
+  });
+  server.get('/patients', async request => listPatients(request.user.tenant_id, (request.query as any).search ?? ''));
+
+  server.post('/:id/appointments', { preHandler: writers }, async (request, reply) => {
+    const { id } = paramsSchema.parse(request.params);
+    const input = z.object({
+      patient_id: z.string().uuid(), provider_id: z.string().uuid(), scheduled_at: z.string(),
+      duration_minutes: z.number().int().positive().max(1440).optional(), reason: z.string().max(1000).optional(),
+    }).parse(request.body);
+    return reply.status(201).send(await createAppointment(request.user.tenant_id, request.user.sub, id, input));
+  });
+  server.post('/:id/appointments/:apptId/:status', { preHandler: writers }, async request => {
+    const { apptId, status } = z.object({
+      id: z.string().uuid(), apptId: z.string().uuid(),
+      status: z.enum(['checked_in', 'completed', 'cancelled', 'no_show']),
+    }).parse(request.params);
+    return progressAppointment(request.user.tenant_id, apptId, status);
+  });
+
+  server.post('/:id/encounters', { preHandler: writers }, async (request, reply) => {
+    const { id } = paramsSchema.parse(request.params);
+    const input = z.object({
+      patient_id: z.string().uuid(), appointment_id: z.string().uuid().optional(), provider_id: z.string().uuid(),
+      chief_complaint: z.string().max(2000).optional(), notes: z.string().max(5000).optional(),
+    }).parse(request.body);
+    return reply.status(201).send(await createEncounter(request.user.tenant_id, request.user.sub, id, input));
+  });
+  server.post('/:id/encounters/:encId/sign', { preHandler: writers }, async request => {
+    const { encId } = z.object({ id: z.string().uuid(), encId: z.string().uuid() }).parse(request.params);
+    return signEncounter(request.user.tenant_id, request.user.sub, encId);
+  });
+  server.post('/:id/encounters/:encId/amend', { preHandler: writers }, async request => {
+    const { encId } = z.object({ id: z.string().uuid(), encId: z.string().uuid() }).parse(request.params);
+    const input = z.object({
+      notes: z.string().max(5000).optional(), chief_complaint: z.string().max(2000).optional(),
+      reason: z.string().trim().min(1).max(1000),
+    }).parse(request.body);
+    return amendEncounter(request.user.tenant_id, request.user.sub, encId, input);
+  });
+
+  server.post('/:id/encounters/:encId/orders', { preHandler: writers }, async (request, reply) => {
+    const { encId } = z.object({ id: z.string().uuid(), encId: z.string().uuid() }).parse(request.params);
+    const input = z.object({
+      order_type: z.enum(['lab', 'imaging', 'referral', 'procedure', 'other']),
+      description: z.string().trim().min(1).max(1000),
+    }).parse(request.body);
+    return reply.status(201).send(await createOrder(request.user.tenant_id, request.user.sub, encId, input));
+  });
+  server.post('/:id/orders/:orderId/results', { preHandler: writers }, async (request, reply) => {
+    const { orderId } = z.object({ id: z.string().uuid(), orderId: z.string().uuid() }).parse(request.params);
+    const input = z.object({
+      result_text: z.string().trim().min(1).max(5000), status: z.enum(['preliminary', 'final']).optional(),
+    }).parse(request.body);
+    return reply.status(201).send(await recordResult(request.user.tenant_id, request.user.sub, orderId, input));
+  });
+
+  server.post('/:id/encounters/:encId/prescriptions', { preHandler: writers }, async (request, reply) => {
+    const { encId } = z.object({ id: z.string().uuid(), encId: z.string().uuid() }).parse(request.params);
+    const input = z.object({
+      patient_id: z.string().uuid(), medication_name: z.string().trim().min(1).max(300),
+      dosage: z.string().trim().min(1).max(200), frequency: z.string().trim().min(1).max(200),
+      duration: z.string().max(200).optional(),
+    }).parse(request.body);
+    return reply.status(201).send(await createPrescription(request.user.tenant_id, request.user.sub, encId, input));
+  });
+  server.post('/:id/prescriptions/:rxId/amend', { preHandler: writers }, async request => {
+    const { rxId } = z.object({ id: z.string().uuid(), rxId: z.string().uuid() }).parse(request.params);
+    const input = z.object({
+      dosage: z.string().max(200).optional(), frequency: z.string().max(200).optional(),
+      reason: z.string().trim().min(1).max(1000),
+    }).parse(request.body);
+    return amendPrescription(request.user.tenant_id, request.user.sub, rxId, input);
+  });
+
+  // ═══════ PHARMACY DISPENSING ═══════
+  server.post('/pharmacy/medications', { preHandler: writers }, async (request, reply) => {
+    const input = z.object({
+      item_id: z.string().uuid(), name: z.string().trim().min(1).max(200), strength: z.string().trim().min(1).max(50),
+      form: z.enum(['tablet', 'capsule', 'syrup', 'injection', 'cream', 'drops', 'inhaler', 'other']),
+      pack_size: z.string().max(50).optional(), controlled: z.boolean().optional(),
+    }).parse(request.body);
+    return reply.status(201).send(await createMedication(request.user.tenant_id, input));
+  });
+  server.get('/pharmacy/medications', async request => listMedications(request.user.tenant_id));
+
+  server.post('/:id/pharmacy/prescriptions', { preHandler: writers }, async (request, reply) => {
+    const { id } = paramsSchema.parse(request.params);
+    const input = z.object({
+      medication_id: z.string().uuid(), patient_name: z.string().trim().min(1).max(200), patient_contact: z.string().max(200).optional(),
+      prescriber_name: z.string().trim().min(1).max(200), prescriber_license: z.string().max(100).optional(),
+      dosage: z.string().trim().min(1).max(200), quantity_prescribed: z.number().positive().max(1e6),
+    }).parse(request.body);
+    return reply.status(201).send(await createPrescriptionForDispensing(request.user.tenant_id, request.user.sub, id, input));
+  });
+  server.post('/pharmacy/prescriptions/:rxId/approve', { preHandler: writers }, async request => {
+    const { rxId } = z.object({ rxId: z.string().uuid() }).parse(request.params);
+    return approvePrescription(request.user.tenant_id, request.user.sub, rxId);
+  });
+  server.post('/pharmacy/prescriptions/:rxId/reject', { preHandler: writers }, async request => {
+    const { rxId } = z.object({ rxId: z.string().uuid() }).parse(request.params);
+    const { reason } = z.object({ reason: z.string().trim().min(1).max(1000) }).parse(request.body);
+    return rejectPrescription(request.user.tenant_id, request.user.sub, rxId, reason);
+  });
+  server.post('/pharmacy/prescriptions/:rxId/dispense', { preHandler: writers }, async (request, reply) => {
+    const { rxId } = z.object({ rxId: z.string().uuid() }).parse(request.params);
+    const input = z.object({
+      location_id: z.string().uuid(), batch_no: z.string().max(100).optional(),
+      substituted_item_id: z.string().uuid().optional(), substitution_reason: z.string().max(500).optional(),
+    }).parse(request.body);
+    return reply.status(201).send(await dispenseMedication(request.user.tenant_id, request.user.sub, rxId, input));
+  });
+  server.post('/pharmacy/dispensations/:dispId/return', { preHandler: writers }, async request => {
+    const { dispId } = z.object({ dispId: z.string().uuid() }).parse(request.params);
+    const input = z.object({ location_id: z.string().uuid() }).parse(request.body);
+    return returnDispensedMedication(request.user.tenant_id, request.user.sub, dispId, input);
+  });
+
+  server.post('/pharmacy/batch-holds', { preHandler: writers }, async (request, reply) => {
+    const input = z.object({
+      item_id: z.string().uuid(), batch_no: z.string().trim().min(1).max(100), reason: z.string().trim().min(1).max(1000),
+    }).parse(request.body);
+    return reply.status(201).send(await holdBatch(request.user.tenant_id, request.user.sub, input));
+  });
+  server.post('/pharmacy/batch-holds/:holdId/release', { preHandler: writers }, async request => {
+    const { holdId } = z.object({ holdId: z.string().uuid() }).parse(request.params);
+    return releaseBatchHold(request.user.tenant_id, request.user.sub, holdId);
+  });
+  server.get('/pharmacy/recall', async request => {
+    const { item_id, batch_no } = z.object({ item_id: z.string().uuid(), batch_no: z.string().min(1) }).parse(request.query);
+    return recallReport(request.user.tenant_id, item_id, batch_no);
   });
 }

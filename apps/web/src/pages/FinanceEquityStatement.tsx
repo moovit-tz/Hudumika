@@ -161,7 +161,7 @@ export function FinanceEquityStatement() {
             sub2Label: 'PAID', sub2Value: String(dividends.filter(d => d.status === 'PAID').length), barHighlight: 'var(--red)',
           },
           {
-            title: 'Closing Equity', value: fmt(totals?.closing ?? 0), icon: 'checkCircle',
+            emphasis: 'primary', title: 'Closing Equity', value: fmt(totals?.closing ?? 0), icon: 'checkCircle',
             sub1Label: 'OPENING', sub1Value: fmt(totals?.opening ?? 0),
             sub2Label: 'MOVEMENT', sub2Value: fmt((totals?.closing ?? 0) - (totals?.opening ?? 0)), barHighlight: 'var(--green)',
           },

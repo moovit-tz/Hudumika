@@ -204,7 +204,7 @@ export function JobChargesTab({ job, shipmentId, isLive, onRefresh }: { job: Cle
         <button
           type="button"
           onClick={() => { setEditLine(null); setForm(blankForm()); setShowForm(true); }}
-          style={{ fontSize: 12.5, fontWeight: 700, color: 'hsl(var(--primary-foreground))', background: 'hsl(var(--primary))', border: 'none', borderRadius: 'var(--r)', padding: 'var(--ds-btn-py-sm) 16px', cursor: 'pointer', minHeight: 'var(--ctl-h-sm)', boxSizing: 'border-box', lineHeight: 1.25 }}
+          style={{ fontSize: "var(--text-base)", fontWeight: 700, color: 'hsl(var(--primary-foreground))', background: 'hsl(var(--primary))', border: 'none', borderRadius: 'var(--r)', padding: 'var(--ds-btn-py-sm) 16px', cursor: 'pointer', minHeight: 'var(--ctl-h-sm)', boxSizing: 'border-box', lineHeight: 1.25 }}
          data-ui-native-button="">
           + Add charge
         </button>
@@ -293,7 +293,7 @@ export function JobChargesTab({ job, shipmentId, isLive, onRefresh }: { job: Cle
                           type="button"
                           title={line.cost_posted ? 'AP posted — click to unpost' : 'Mark AP as posted'}
                           onClick={e => { e.stopPropagation(); togglePosted(line, 'cost'); }}
-                          style={{ width: 20, height: 20, borderRadius: 4, border: `1.5px solid ${line.cost_posted ? 'var(--green)' : 'var(--border2)'}`, background: line.cost_posted ? 'var(--green)' : 'transparent', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}
+                          style={{ width: "var(--ctl-h-xs)", height: "var(--ctl-h-xs)", borderRadius: "var(--r-sm)", border: `1.5px solid ${line.cost_posted ? 'var(--green)' : 'var(--border2)'}`, background: line.cost_posted ? 'var(--green)' : 'transparent', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}
                          data-ui-native-button="">
                           {line.cost_posted && <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>}
                         </button>
@@ -309,7 +309,7 @@ export function JobChargesTab({ job, shipmentId, isLive, onRefresh }: { job: Cle
                           type="button"
                           title={line.sell_posted ? 'AR posted — click to unpost' : 'Mark AR as posted'}
                           onClick={e => { e.stopPropagation(); togglePosted(line, 'sell'); }}
-                          style={{ width: 20, height: 20, borderRadius: 4, border: `1.5px solid ${line.sell_posted ? 'var(--green)' : 'var(--border2)'}`, background: line.sell_posted ? 'var(--green)' : 'transparent', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}
+                          style={{ width: "var(--ctl-h-xs)", height: "var(--ctl-h-xs)", borderRadius: "var(--r-sm)", border: `1.5px solid ${line.sell_posted ? 'var(--green)' : 'var(--border2)'}`, background: line.sell_posted ? 'var(--green)' : 'transparent', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}
                          data-ui-native-button="">
                           {line.sell_posted && <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>}
                         </button>
@@ -320,7 +320,7 @@ export function JobChargesTab({ job, shipmentId, isLive, onRefresh }: { job: Cle
                           type="button"
                           title="Edit charge"
                           onClick={e => { e.stopPropagation(); openEdit(line); }}
-                          style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 4, color: 'var(--ink3)', borderRadius: 4, display: 'inline-flex', alignItems: 'center' }}
+                          style={{ background: 'none', border: 'none', cursor: 'pointer', padding: "var(--action-py) var(--space-md)", color: 'var(--ink3)', borderRadius: "var(--r-sm)", display: 'inline-flex', alignItems: 'center' }}
                          data-ui-native-button="">
                           <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
                         </button>
@@ -359,7 +359,7 @@ export function JobChargesTab({ job, shipmentId, isLive, onRefresh }: { job: Cle
               </div>
               <div style={{ fontSize: 14.5, fontWeight: 700, color: 'var(--ink)' }}>{selectedLine.description}</div>
             </div>
-            <button type="button" onClick={() => setSelectedId(null)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink3)', padding: 4, fontSize: 18, lineHeight: 1 }} data-ui-native-button="">×</button>
+            <button type="button" onClick={() => setSelectedId(null)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink3)', padding: "var(--action-py) var(--space-md)", fontSize: "var(--text-base)", lineHeight: 1 }} data-ui-native-button="">×</button>
           </div>
 
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
@@ -427,7 +427,7 @@ export function JobChargesTab({ job, shipmentId, isLive, onRefresh }: { job: Cle
                   type="button"
                   onClick={() => handleDelete(selectedLine.id)}
                   disabled={deleting === selectedLine.id}
-                  style={{ marginLeft: 'auto', fontSize: 11.5, color: 'var(--red)', background: 'none', border: '1px solid var(--red)', borderRadius: 'var(--r-sm)', padding: '3px 10px', cursor: 'pointer', opacity: deleting === selectedLine.id ? 0.5 : 1 }}
+                  style={{ marginLeft: 'auto', fontSize: "var(--text-base)", color: 'var(--red)', background: 'none', border: '1px solid var(--red)', borderRadius: 'var(--r-sm)', padding: "var(--action-py) var(--space-md)", cursor: 'pointer', opacity: deleting === selectedLine.id ? 0.5 : 1 }}
                  data-ui-native-button="">
                   {deleting === selectedLine.id ? 'Deleting…' : 'Delete charge'}
                 </button>
@@ -443,7 +443,7 @@ export function JobChargesTab({ job, shipmentId, isLive, onRefresh }: { job: Cle
           <form onSubmit={handleSave} style={{ background: 'var(--white)', borderRadius: 'var(--r)', boxShadow: 'var(--elev-lg)', width: '100%', maxWidth: 780, maxHeight: '90vh', overflowY: 'auto', padding: 24 }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
               <div style={{ fontSize: 15, fontWeight: 700, color: 'var(--ink)' }}>{editLine ? 'Edit charge line' : 'Add charge line'}</div>
-              <button type="button" onClick={() => { setShowForm(false); setEditLine(null); }} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink3)', fontSize: 20, lineHeight: 1 }} data-ui-native-button="">×</button>
+              <button type="button" onClick={() => { setShowForm(false); setEditLine(null); }} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink3)', fontSize: "var(--text-base)", lineHeight: 1 }} data-ui-native-button="">×</button>
             </div>
 
             {/* Identity */}
@@ -462,7 +462,7 @@ export function JobChargesTab({ job, shipmentId, isLive, onRefresh }: { job: Cle
               </div>
               <div>
                 <label style={{ display: 'block', fontSize: 10.5, fontWeight: 700, color: 'var(--ink3)', textTransform: 'uppercase', letterSpacing: '.06em', marginBottom: 5 }}>Description</label>
-                <input value={form.description} onChange={e => setForm(f => ({ ...f, description: e.target.value }))} required placeholder="Charge description" style={{ width: '100%', padding: '8px 10px', fontSize: 12.5, borderRadius: 'var(--r)', border: '1px solid var(--border2)', background: 'var(--white)', color: 'var(--ink)', boxSizing: 'border-box', minHeight: 'var(--ctl-h-sm)' }} />
+                <input data-ui-field="input" value={form.description} onChange={e => setForm(f => ({ ...f, description: e.target.value }))} required placeholder="Charge description" style={{ width: '100%', padding: "var(--ds-input-py) var(--space-md)", fontSize: "var(--text-base)", borderRadius: 'var(--r)', border: '1px solid var(--border2)', background: 'var(--white)', color: 'var(--ink)', boxSizing: 'border-box', minHeight: 'var(--ctl-h-sm)' }} />
               </div>
               <div>
                 <label style={{ display: 'block', fontSize: 10.5, fontWeight: 700, color: 'var(--ink3)', textTransform: 'uppercase', letterSpacing: '.06em', marginBottom: 5 }}>Inv. Type</label>
@@ -489,7 +489,7 @@ export function JobChargesTab({ job, shipmentId, isLive, onRefresh }: { job: Cle
                   ].map(f => (
                     <div key={f.key}>
                       <label style={{ display: 'block', fontSize: 10.5, fontWeight: 700, color: 'var(--ink3)', marginBottom: 4 }}>{f.label}</label>
-                      <input value={(form as any)[f.key]} onChange={e => setForm(frm => ({ ...frm, [f.key]: e.target.value }))} placeholder={f.placeholder} style={{ width: '100%', padding: '7px 10px', fontSize: 12.5, borderRadius: 'var(--r-sm)', border: '1px solid var(--border2)', background: 'var(--white)', color: 'var(--ink)', boxSizing: 'border-box' }} />
+                      <input data-ui-field="input" value={(form as any)[f.key]} onChange={e => setForm(frm => ({ ...frm, [f.key]: e.target.value }))} placeholder={f.placeholder} style={{ width: '100%', padding: "var(--ds-input-py) var(--space-md)", fontSize: "var(--text-base)", borderRadius: 'var(--r-sm)', border: '1px solid var(--border2)', background: 'var(--white)', color: 'var(--ink)', boxSizing: 'border-box' }} />
                     </div>
                   ))}
                   <div style={{ display: 'grid', gridTemplateColumns: '70px 1fr', gap: 8 }}>
@@ -502,17 +502,17 @@ export function JobChargesTab({ job, shipmentId, isLive, onRefresh }: { job: Cle
                     </div>
                     <div>
                       <label style={{ display: 'block', fontSize: 10.5, fontWeight: 700, color: 'var(--ink3)', marginBottom: 4 }}>Cost Amount</label>
-                      <input type="number" step="0.01" value={form.cost_amount} onChange={e => { const v = e.target.value; setForm(f => ({ ...f, cost_amount: v, cost_local_amount: computeLocal(v, f.cost_exchange_rate) })); }} placeholder="0.00" style={{ width: '100%', padding: '7px 10px', fontSize: 12.5, borderRadius: 'var(--r-sm)', border: '1px solid var(--border2)', background: 'var(--white)', color: 'var(--ink)', boxSizing: 'border-box', fontFamily: 'monospace' }} />
+                      <input data-ui-field="input" type="number" step="0.01" value={form.cost_amount} onChange={e => { const v = e.target.value; setForm(f => ({ ...f, cost_amount: v, cost_local_amount: computeLocal(v, f.cost_exchange_rate) })); }} placeholder="0.00" style={{ width: '100%', padding: "var(--ds-input-py) var(--space-md)", fontSize: "var(--text-base)", borderRadius: 'var(--r-sm)', border: '1px solid var(--border2)', background: 'var(--white)', color: 'var(--ink)', boxSizing: 'border-box', fontFamily: "var(--font)" }} />
                     </div>
                   </div>
                   <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
                     <div>
                       <label style={{ display: 'block', fontSize: 10.5, fontWeight: 700, color: 'var(--ink3)', marginBottom: 4 }}>FX Rate (→TZS)</label>
-                      <input type="number" step="0.000001" value={form.cost_exchange_rate} onChange={e => { const v = e.target.value; setForm(f => ({ ...f, cost_exchange_rate: v, cost_local_amount: computeLocal(f.cost_amount, v) })); }} placeholder="2700" style={{ width: '100%', padding: '7px 10px', fontSize: 12.5, borderRadius: 'var(--r-sm)', border: '1px solid var(--border2)', background: 'var(--white)', color: 'var(--ink)', boxSizing: 'border-box', fontFamily: 'monospace' }} />
+                      <input data-ui-field="input" type="number" step="0.000001" value={form.cost_exchange_rate} onChange={e => { const v = e.target.value; setForm(f => ({ ...f, cost_exchange_rate: v, cost_local_amount: computeLocal(f.cost_amount, v) })); }} placeholder="2700" style={{ width: '100%', padding: "var(--ds-input-py) var(--space-md)", fontSize: "var(--text-base)", borderRadius: 'var(--r-sm)', border: '1px solid var(--border2)', background: 'var(--white)', color: 'var(--ink)', boxSizing: 'border-box', fontFamily: "var(--font)" }} />
                     </div>
                     <div>
                       <label style={{ display: 'block', fontSize: 10.5, fontWeight: 700, color: 'var(--ink3)', marginBottom: 4 }}>Local Cost (TZS)</label>
-                      <input type="number" step="1" value={form.cost_local_amount} onChange={e => setForm(f => ({ ...f, cost_local_amount: e.target.value }))} placeholder="auto" style={{ width: '100%', padding: '7px 10px', fontSize: 12.5, borderRadius: 'var(--r-sm)', border: '1px solid var(--border2)', background: 'var(--bg)', color: 'var(--ink)', boxSizing: 'border-box', fontFamily: 'monospace' }} />
+                      <input data-ui-field="input" type="number" step="1" value={form.cost_local_amount} onChange={e => setForm(f => ({ ...f, cost_local_amount: e.target.value }))} placeholder="auto" style={{ width: '100%', padding: "var(--ds-input-py) var(--space-md)", fontSize: "var(--text-base)", borderRadius: 'var(--r-sm)', border: '1px solid var(--border2)', background: 'var(--bg)', color: 'var(--ink)', boxSizing: 'border-box', fontFamily: "var(--font)" }} />
                     </div>
                   </div>
                 </div>
@@ -528,7 +528,7 @@ export function JobChargesTab({ job, shipmentId, isLive, onRefresh }: { job: Cle
                   ].map(f => (
                     <div key={f.key}>
                       <label style={{ display: 'block', fontSize: 10.5, fontWeight: 700, color: 'var(--ink3)', marginBottom: 4 }}>{f.label}</label>
-                      <input value={(form as any)[f.key]} onChange={e => setForm(frm => ({ ...frm, [f.key]: e.target.value }))} placeholder={f.placeholder} style={{ width: '100%', padding: '7px 10px', fontSize: 12.5, borderRadius: 'var(--r-sm)', border: '1px solid var(--border2)', background: 'var(--white)', color: 'var(--ink)', boxSizing: 'border-box' }} />
+                      <input data-ui-field="input" value={(form as any)[f.key]} onChange={e => setForm(frm => ({ ...frm, [f.key]: e.target.value }))} placeholder={f.placeholder} style={{ width: '100%', padding: "var(--ds-input-py) var(--space-md)", fontSize: "var(--text-base)", borderRadius: 'var(--r-sm)', border: '1px solid var(--border2)', background: 'var(--white)', color: 'var(--ink)', boxSizing: 'border-box' }} />
                     </div>
                   ))}
                   <div style={{ display: 'grid', gridTemplateColumns: '70px 1fr', gap: 8 }}>
@@ -541,17 +541,17 @@ export function JobChargesTab({ job, shipmentId, isLive, onRefresh }: { job: Cle
                     </div>
                     <div>
                       <label style={{ display: 'block', fontSize: 10.5, fontWeight: 700, color: 'var(--ink3)', marginBottom: 4 }}>Sell Amount</label>
-                      <input type="number" step="0.01" value={form.sell_amount} onChange={e => { const v = e.target.value; setForm(f => ({ ...f, sell_amount: v, sell_local_amount: computeLocal(v, f.sell_exchange_rate) })); }} placeholder="0.00" style={{ width: '100%', padding: '7px 10px', fontSize: 12.5, borderRadius: 'var(--r-sm)', border: '1px solid var(--border2)', background: 'var(--white)', color: 'var(--ink)', boxSizing: 'border-box', fontFamily: 'monospace' }} />
+                      <input data-ui-field="input" type="number" step="0.01" value={form.sell_amount} onChange={e => { const v = e.target.value; setForm(f => ({ ...f, sell_amount: v, sell_local_amount: computeLocal(v, f.sell_exchange_rate) })); }} placeholder="0.00" style={{ width: '100%', padding: "var(--ds-input-py) var(--space-md)", fontSize: "var(--text-base)", borderRadius: 'var(--r-sm)', border: '1px solid var(--border2)', background: 'var(--white)', color: 'var(--ink)', boxSizing: 'border-box', fontFamily: "var(--font)" }} />
                     </div>
                   </div>
                   <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
                     <div>
                       <label style={{ display: 'block', fontSize: 10.5, fontWeight: 700, color: 'var(--ink3)', marginBottom: 4 }}>FX Rate (→TZS)</label>
-                      <input type="number" step="0.000001" value={form.sell_exchange_rate} onChange={e => { const v = e.target.value; setForm(f => ({ ...f, sell_exchange_rate: v, sell_local_amount: computeLocal(f.sell_amount, v) })); }} placeholder="2700" style={{ width: '100%', padding: '7px 10px', fontSize: 12.5, borderRadius: 'var(--r-sm)', border: '1px solid var(--border2)', background: 'var(--white)', color: 'var(--ink)', boxSizing: 'border-box', fontFamily: 'monospace' }} />
+                      <input data-ui-field="input" type="number" step="0.000001" value={form.sell_exchange_rate} onChange={e => { const v = e.target.value; setForm(f => ({ ...f, sell_exchange_rate: v, sell_local_amount: computeLocal(f.sell_amount, v) })); }} placeholder="2700" style={{ width: '100%', padding: "var(--ds-input-py) var(--space-md)", fontSize: "var(--text-base)", borderRadius: 'var(--r-sm)', border: '1px solid var(--border2)', background: 'var(--white)', color: 'var(--ink)', boxSizing: 'border-box', fontFamily: "var(--font)" }} />
                     </div>
                     <div>
                       <label style={{ display: 'block', fontSize: 10.5, fontWeight: 700, color: 'var(--ink3)', marginBottom: 4 }}>Local Sell (TZS)</label>
-                      <input type="number" step="1" value={form.sell_local_amount} onChange={e => setForm(f => ({ ...f, sell_local_amount: e.target.value }))} placeholder="auto" style={{ width: '100%', padding: '7px 10px', fontSize: 12.5, borderRadius: 'var(--r-sm)', border: '1px solid var(--border2)', background: 'var(--bg)', color: 'var(--ink)', boxSizing: 'border-box', fontFamily: 'monospace' }} />
+                      <input data-ui-field="input" type="number" step="1" value={form.sell_local_amount} onChange={e => setForm(f => ({ ...f, sell_local_amount: e.target.value }))} placeholder="auto" style={{ width: '100%', padding: "var(--ds-input-py) var(--space-md)", fontSize: "var(--text-base)", borderRadius: 'var(--r-sm)', border: '1px solid var(--border2)', background: 'var(--bg)', color: 'var(--ink)', boxSizing: 'border-box', fontFamily: "var(--font)" }} />
                     </div>
                   </div>
                 </div>
@@ -561,12 +561,12 @@ export function JobChargesTab({ job, shipmentId, isLive, onRefresh }: { job: Cle
             {/* Override comment */}
             <div style={{ marginTop: 14 }}>
               <label style={{ display: 'block', fontSize: 10.5, fontWeight: 700, color: 'var(--ink3)', textTransform: 'uppercase', letterSpacing: '.06em', marginBottom: 5 }}>Override Comment (optional)</label>
-              <input value={form.override_comment} onChange={e => setForm(f => ({ ...f, override_comment: e.target.value }))} placeholder="Reason for any manual rate override…" style={{ width: '100%', padding: '8px 10px', fontSize: 12.5, borderRadius: 'var(--r)', border: '1px solid var(--border2)', background: 'var(--white)', color: 'var(--ink)', boxSizing: 'border-box' }} />
+              <input data-ui-field="input" value={form.override_comment} onChange={e => setForm(f => ({ ...f, override_comment: e.target.value }))} placeholder="Reason for any manual rate override…" style={{ width: '100%', padding: "var(--ds-input-py) var(--space-md)", fontSize: "var(--text-base)", borderRadius: 'var(--r)', border: '1px solid var(--border2)', background: 'var(--white)', color: 'var(--ink)', boxSizing: 'border-box' }} />
             </div>
 
             <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 10, marginTop: 20 }}>
               <button type="button" onClick={() => { setShowForm(false); setEditLine(null); }}
-                style={{ padding: 'var(--ds-btn-py-sm) 18px', fontSize: 13, borderRadius: 'var(--r)', border: '1px solid var(--border2)', background: 'var(--bg)', color: 'var(--ink)', cursor: 'pointer', minHeight: 'var(--ctl-h-sm)', boxSizing: 'border-box', lineHeight: 1.25 }} data-ui-native-button="">
+                style={{ padding: 'var(--ds-btn-py-sm) 18px', fontSize: "var(--text-base)", borderRadius: 'var(--r)', border: '1px solid var(--border2)', background: 'var(--bg)', color: 'var(--ink)', cursor: 'pointer', minHeight: 'var(--ctl-h-sm)', boxSizing: 'border-box', lineHeight: 1.25 }} data-ui-native-button="">
                 Cancel
               </button>
               <button type="submit" disabled={saving}
@@ -712,7 +712,7 @@ export function LedgerTab({ job, shipmentId, isLive, onRefresh }: { job: Clearan
       {/* Add entry */}
       <div style={{ marginBottom: 20, display: 'flex', gap: 10 }}>
         {!showForm ? (
-          <button type="button" onClick={() => setShowForm(true)} style={{ display: 'flex', alignItems: 'center', gap: 7, padding: 'var(--ds-btn-py) 16px', background: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))', border: 'none', borderRadius: 'var(--r)', fontSize: 13, fontWeight: 700, cursor: 'pointer', minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}} data-ui-native-button="">
+          <button type="button" onClick={() => setShowForm(true)} style={{ display: 'flex', alignItems: 'center', gap: 7, padding: 'var(--ds-btn-py) 16px', background: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))', border: 'none', borderRadius: 'var(--r)', fontSize: "var(--text-base)", fontWeight: 700, cursor: 'pointer', minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}} data-ui-native-button="">
             <Icon name="plus" size={14} /> Record Entry
           </button>
         ) : null}
@@ -720,7 +720,7 @@ export function LedgerTab({ job, shipmentId, isLive, onRefresh }: { job: Clearan
           <Tip label="Publish billed revenue as an invoice in FinOps Billing">
             <span>
               <button type="button" onClick={handleFinalize} disabled={finalizing}
-                style={{ display: 'flex', alignItems: 'center', gap: 7, padding: 'var(--ds-btn-py) 16px', background: 'var(--white)', color: 'var(--teal)', border: '1px solid var(--teal)', borderRadius: 'var(--r)', fontSize: 13, fontWeight: 700, cursor: finalizing ? 'wait' : 'pointer', opacity: finalizing ? 0.6 : 1, minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}} data-ui-native-button="">
+                style={{ display: 'flex', alignItems: 'center', gap: 7, padding: 'var(--ds-btn-py) 16px', background: 'var(--white)', color: 'var(--teal)', border: '1px solid var(--teal)', borderRadius: 'var(--r)', fontSize: "var(--text-base)", fontWeight: 700, cursor: finalizing ? 'wait' : 'pointer', opacity: finalizing ? 0.6 : 1, minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}} data-ui-native-button="">
                 <Icon name="fileText" size={14} /> {finalizing ? 'Finalizing…' : 'Finalize Invoice'}
               </button>
             </span>
@@ -733,7 +733,7 @@ export function LedgerTab({ job, shipmentId, isLive, onRefresh }: { job: Clearan
             {/* Type toggle */}
             <div style={{ display: 'flex', gap: 6, marginBottom: 14 }}>
               {(['charge', 'payment'] as const).map(t => (
-                <button key={t} type="button" onClick={() => setEntryType(t)} style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 5, flex: 1, padding: '7px', border: `1px solid ${entryType === t ? 'var(--teal)' : 'var(--border)'}`, borderRadius: 'var(--r)', background: entryType === t ? 'var(--teal-l)' : 'var(--white)', color: entryType === t ? 'var(--teal)' : 'var(--ink3)', fontSize: 12, fontWeight: 700, cursor: 'pointer' }} data-ui-native-button="">
+                <button key={t} type="button" onClick={() => setEntryType(t)} style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 5, flex: 1, padding: "var(--action-py) var(--space-md)", border: `1px solid ${entryType === t ? 'var(--teal)' : 'var(--border)'}`, borderRadius: 'var(--r)', background: entryType === t ? 'var(--teal-l)' : 'var(--white)', color: entryType === t ? 'var(--teal)' : 'var(--ink3)', fontSize: "var(--text-base)", fontWeight: 700, cursor: 'pointer' }} data-ui-native-button="">
                   <Icon name={t === 'charge' ? 'arrowUp' : 'arrowDown'} size={12} /> {t === 'charge' ? 'Charge' : 'Payment Received'}
                 </button>
               ))}
@@ -750,16 +750,16 @@ export function LedgerTab({ job, shipmentId, isLive, onRefresh }: { job: Clearan
               </div>
               <div>
                 <label style={{ fontSize: 11, fontWeight: 600, color: 'var(--ink3)', display: 'block', marginBottom: 4 }}>Amount (TZS)</label>
-                <input type="number" value={amount} onChange={e => setAmount(e.target.value)} className="input-field" placeholder="0" required style={{ width: '100%', fontFamily: 'var(--font)' }} />
+                <input data-ui-field="input" type="number" value={amount} onChange={e => setAmount(e.target.value)} className="input-field" placeholder="0" required style={{ width: '100%', fontFamily: 'var(--font)' }} />
               </div>
             </div>
             <div style={{ marginBottom: 10 }}>
               <label style={{ fontSize: 11, fontWeight: 600, color: 'var(--ink3)', display: 'block', marginBottom: 4 }}>Description</label>
-              <input type="text" value={desc} onChange={e => setDesc(e.target.value)} className="input-field" placeholder="e.g. Agency handling fee" required style={{ width: '100%' }} />
+              <input data-ui-field="input" type="text" value={desc} onChange={e => setDesc(e.target.value)} className="input-field" placeholder="e.g. Agency handling fee" required style={{ width: '100%' }} />
             </div>
             <div style={{ marginBottom: 14 }}>
               <label style={{ fontSize: 11, fontWeight: 600, color: 'var(--ink3)', display: 'block', marginBottom: 4 }}>Reference (optional)</label>
-              <input type="text" value={ref} onChange={e => setRef(e.target.value)} className="input-field" placeholder="Invoice / receipt number" style={{ width: '100%', fontFamily: 'var(--font)' }} />
+              <input data-ui-field="input" type="text" value={ref} onChange={e => setRef(e.target.value)} className="input-field" placeholder="Invoice / receipt number" style={{ width: '100%', fontFamily: 'var(--font)' }} />
             </div>
             <div style={{ display: 'flex', gap: 8 }}>
               <button type="submit" className="btn btn-primary btn-sm" style={{ flex: 1 }} disabled={ledgSaving} data-ui-native-button="">{ledgSaving ? 'Saving…' : 'Add Entry'}</button>

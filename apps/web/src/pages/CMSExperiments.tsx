@@ -65,7 +65,7 @@ export function CMSExperimentsList() {
             <div style={{ fontWeight: 700, fontSize: 14, color: 'var(--ink)', marginBottom: 14 }}>New experiment</div>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
               <FL label="Name">
-                <input className="input-field" value={name} placeholder="e.g. Homepage hero" onChange={e => setName(e.target.value)} autoFocus />
+                <input data-ui-field="input" className="input-field" value={name} placeholder="e.g. Homepage hero" onChange={e => setName(e.target.value)} autoFocus />
               </FL>
               <div style={{ display: 'flex', gap: 8 }}>
                 <button className="btn btn-primary btn-sm" disabled={saving} onClick={handleCreate} data-ui-native-button="">{saving ? 'Creating…' : 'Create experiment'}</button>
@@ -227,7 +227,7 @@ export function CMSExperimentDetail() {
         </div>
 
         <div style={{ marginTop: 24, paddingTop: 18, borderTop: '1px solid var(--border)' }}>
-          <button onClick={handleDelete} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 12.5, color: 'var(--red)' }} data-ui-native-button="">Delete this experiment</button>
+          <button onClick={handleDelete} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: "var(--text-base)", color: 'var(--red)' }} data-ui-native-button="">Delete this experiment</button>
         </div>
       </div>
     </div>

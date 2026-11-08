@@ -134,11 +134,11 @@ export function BulkBar({ count, onClear, actions }: { count: number; onClear: (
     <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '8px 14px', marginBottom: 12, borderRadius: 'var(--r)', background: 'var(--teal-l)', border: '1px solid var(--teal)' }}>
       <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--teal-deep, var(--teal))' }}>{count} selected</span>
       {actions.map(a => (
-        <button key={a.label} type="button" onClick={a.onClick} className="btn btn-secondary btn-sm" style={{ fontSize: 12, color: a.danger ? 'var(--red)' : undefined }} data-ui-native-button="">
+        <button key={a.label} type="button" onClick={a.onClick} className="btn btn-secondary btn-sm" style={{ fontSize: "var(--text-base)", color: a.danger ? 'var(--red)' : undefined }} data-ui-native-button="">
           {a.label}
         </button>
       ))}
-      <button type="button" onClick={onClear} style={{ marginLeft: 'auto', background: 'none', border: 'none', color: 'var(--ink3)', fontSize: 12.5, cursor: 'pointer' }} data-ui-native-button="">Clear</button>
+      <button type="button" onClick={onClear} style={{ marginLeft: 'auto', background: 'none', border: 'none', color: 'var(--ink3)', fontSize: "var(--text-base)", cursor: 'pointer' }} data-ui-native-button="">Clear</button>
     </div>
   );
 }
@@ -206,7 +206,7 @@ export function MediaPicker({ open, onClose, onSelect }: { open: boolean; onClos
                   style={{ position: 'relative', border: '1px solid var(--border)', borderRadius: 'var(--r-sm)', overflow: 'hidden', cursor: 'pointer', aspectRatio: '1', background: 'var(--bg)' }}>
                   <img src={m.url} alt={m.filename} style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
                   <button type="button" onClick={e => handleDelete(m.id, e)} title="Delete"
-                    style={{ position: 'absolute', top: 4, right: 4, width: 20, height: 20, borderRadius: '50%', background: 'rgba(0,0,0,0.55)', border: 'none', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }} data-ui-native-button="">
+                    style={{ position: 'absolute', top: 4, right: 4, width: "var(--ctl-h-xs)", height: "var(--ctl-h-xs)", borderRadius: '50%', background: 'rgba(0,0,0,0.55)', border: 'none', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }} data-ui-native-button="">
                     <Icon name="x" size={11} />
                   </button>
                 </div>

@@ -261,11 +261,11 @@ function PersonalizeControl({ visibility, onChange }: { visibility?: CmsBlockVis
         <span><Icon name="target" size={11} /> Personalize</span>
         <button type="button" onClick={() => { onChange(undefined); setOpen(false); }} data-ui-native-button="">Remove</button>
       </div>
-      <select className="be-select" value={visibility?.visitorType || ''} onChange={e => set({ visitorType: (e.target.value || undefined) as CmsBlockVisibility['visitorType'] })}>
+      <select data-ui-field="select" className="be-select" value={visibility?.visitorType || ''} onChange={e => set({ visitorType: (e.target.value || undefined) as CmsBlockVisibility['visitorType'] })}>
         {VISITOR_TYPE_OPTIONS.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
       </select>
-      <input className="be-input" placeholder="Only if referrer contains… (e.g. google)" value={visibility?.referrerContains || ''} onChange={e => set({ referrerContains: e.target.value })} />
-      <input className="be-input" placeholder="Only if ?utm_source= contains… (e.g. newsletter)" value={visibility?.utmSource || ''} onChange={e => set({ utmSource: e.target.value })} />
+      <input data-ui-field="input" className="be-input" placeholder="Only if referrer contains… (e.g. google)" value={visibility?.referrerContains || ''} onChange={e => set({ referrerContains: e.target.value })} />
+      <input data-ui-field="input" className="be-input" placeholder="Only if ?utm_source= contains… (e.g. newsletter)" value={visibility?.utmSource || ''} onChange={e => set({ utmSource: e.target.value })} />
       <p className="be-personalize-note">Evaluated on the real public site only — this canvas always shows the block so you can keep editing it.</p>
     </div>
   );
@@ -353,7 +353,7 @@ function BlockContent({ block, onChange, onSlash, components, componentBlocks, i
   const paragraphRef = useRef<HTMLTextAreaElement>(null);
   const quoteRef = useRef<HTMLTextAreaElement>(null);
   const slotField = isSlottableBlockType(block.type) && isComponentDef ? (
-    <input className="be-input" style={{ fontSize: 11.5, marginTop: 6 }} placeholder="Slot name (optional) — lets each placement override this text, e.g. “headline”"
+    <input data-ui-field="input" className="be-input" style={{ fontSize: "var(--text-base)", marginTop: 6 }} placeholder="Slot name (optional) — lets each placement override this text, e.g. “headline”"
       value={p.slot || ''} onChange={e => onChange({ slot: e.target.value.trim() })} />
   ) : null;
 
@@ -374,7 +374,7 @@ function BlockContent({ block, onChange, onSlash, components, componentBlocks, i
       return (
         <>
           <TextFormatToolbar textareaRef={paragraphRef} value={p.text || ''} onChange={v => onChange({ text: v })} />
-          <textarea ref={paragraphRef} className="be-input be-text" rows={2} placeholder="Type “/” for block types, or just start writing…" value={p.text || ''} autoFocus
+          <textarea data-ui-field="textarea" ref={paragraphRef} className="be-input be-text" rows={2} placeholder="Type “/” for block types, or just start writing…" value={p.text || ''} autoFocus
             onChange={e => {
               const v = e.target.value;
               // A real slash-command trigger: an empty paragraph that becomes
@@ -390,11 +390,11 @@ function BlockContent({ block, onChange, onSlash, components, componentBlocks, i
       return (
         <>
           <div className="be-heading-row">
-            <select className="be-select" value={p.level ?? 2} onChange={e => onChange({ level: Number(e.target.value) })}>
+            <select data-ui-field="select" className="be-select" value={p.level ?? 2} onChange={e => onChange({ level: Number(e.target.value) })}>
               <option value={2}>H2</option>
               <option value={3}>H3</option>
             </select>
-            <input className="be-input" autoFocus style={{ fontSize: p.level === 3 ? 17 : 20, fontWeight: 700 }} placeholder="Heading text" value={p.text || ''} onChange={e => onChange({ text: e.target.value })} />
+            <input data-ui-field="input" className="be-input" autoFocus style={{ fontSize: p.level === 3 ? 17 : 20, fontWeight: 700 }} placeholder="Heading text" value={p.text || ''} onChange={e => onChange({ text: e.target.value })} />
           </div>
           {slotField}
         </>
@@ -403,16 +403,16 @@ function BlockContent({ block, onChange, onSlash, components, componentBlocks, i
       return (
         <>
           <TextFormatToolbar textareaRef={quoteRef} value={p.text || ''} onChange={v => onChange({ text: v })} />
-          <textarea ref={quoteRef} className="be-input be-quote" rows={2} placeholder="Quote text" value={p.text || ''} autoFocus onChange={e => onChange({ text: e.target.value })} />
+          <textarea data-ui-field="textarea" ref={quoteRef} className="be-input be-quote" rows={2} placeholder="Quote text" value={p.text || ''} autoFocus onChange={e => onChange({ text: e.target.value })} />
           {slotField}
         </>
       );
     case 'image':
       return (
         <div className="be-stack">
-          <input className="be-input" autoFocus placeholder="Image URL — pick one from Media in Customize, then paste it here" value={p.url || ''} onChange={e => onChange({ url: e.target.value })} />
+          <input data-ui-field="input" className="be-input" autoFocus placeholder="Image URL — pick one from Media in Customize, then paste it here" value={p.url || ''} onChange={e => onChange({ url: e.target.value })} />
           <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
-            <input className="be-input" style={{ flex: 1 }} placeholder="Alt text" value={p.alt || ''} onChange={e => onChange({ alt: e.target.value })} />
+            <input data-ui-field="input" className="be-input" style={{ flex: 1 }} placeholder="Alt text" value={p.alt || ''} onChange={e => onChange({ alt: e.target.value })} />
             {p.url && (
               <button type="button" className="be-add-btn" disabled={altLoading} title="Generate alt text with AI" onClick={() => generateAltText(p.url)} style={{ flexShrink: 0 }} data-ui-native-button="">
                 <Icon name="sparkle" size={11} /> {altLoading ? 'Generating…' : 'Generate'}
@@ -431,7 +431,7 @@ function BlockContent({ block, onChange, onSlash, components, componentBlocks, i
           {items.map((item, idx) => (
             <div key={idx} className="be-list-row">
               <span className="be-list-marker">{p.ordered ? `${idx + 1}.` : '•'}</span>
-              <input className="be-input" value={item} onChange={e => { const next = [...items]; next[idx] = e.target.value; onChange({ items: next }); }} />
+              <input data-ui-field="input" className="be-input" value={item} onChange={e => { const next = [...items]; next[idx] = e.target.value; onChange({ items: next }); }} />
               <button type="button" onClick={() => onChange({ items: items.filter((_, i2) => i2 !== idx) })} data-ui-native-button=""><Icon name="x" size={11} /></button>
             </div>
           ))}
@@ -442,16 +442,16 @@ function BlockContent({ block, onChange, onSlash, components, componentBlocks, i
     case 'button':
       return (
         <div className="be-stack">
-          <input className="be-input" autoFocus placeholder="Button label" value={p.label || ''} onChange={e => onChange({ label: e.target.value })} />
-          <input className="be-input" placeholder="https://…" value={p.url || ''} onChange={e => onChange({ url: e.target.value })} />
+          <input data-ui-field="input" className="be-input" autoFocus placeholder="Button label" value={p.label || ''} onChange={e => onChange({ label: e.target.value })} />
+          <input data-ui-field="input" className="be-input" placeholder="https://…" value={p.url || ''} onChange={e => onChange({ url: e.target.value })} />
           {slotField}
         </div>
       );
     case 'embed':
       return (
         <div className="be-stack">
-          <input className="be-input" autoFocus placeholder="https://www.youtube.com/embed/… (YouTube, Vimeo, Google Maps/Calendar, Calendly, Spotify)" value={p.url || ''} onChange={e => onChange({ url: e.target.value })} />
-          <input className="be-input" placeholder="Title (for accessibility — what is this embed?)" value={p.title || ''} onChange={e => onChange({ title: e.target.value })} />
+          <input data-ui-field="input" className="be-input" autoFocus placeholder="https://www.youtube.com/embed/… (YouTube, Vimeo, Google Maps/Calendar, Calendly, Spotify)" value={p.url || ''} onChange={e => onChange({ url: e.target.value })} />
+          <input data-ui-field="input" className="be-input" placeholder="Title (for accessibility — what is this embed?)" value={p.title || ''} onChange={e => onChange({ title: e.target.value })} />
         </div>
       );
     case 'divider':
@@ -468,7 +468,7 @@ function BlockContent({ block, onChange, onSlash, components, componentBlocks, i
         return <div className="be-empty-hint">No forms yet — create one under CMS → Forms, then come back to place it here.</div>;
       }
       return (
-        <select className="be-select" style={{ width: '100%' }} value={p.formKey || ''} onChange={e => onChange({ formKey: e.target.value })}>
+        <select data-ui-field="select" className="be-select" style={{ width: '100%' }} value={p.formKey || ''} onChange={e => onChange({ formKey: e.target.value })}>
           <option value="" disabled>Choose a form…</option>
           {opts.map(f => <option key={f.key} value={f.key}>{f.name}</option>)}
         </select>
@@ -484,7 +484,7 @@ function BlockContent({ block, onChange, onSlash, components, componentBlocks, i
         return <div className="be-empty-hint">No experiments yet — create one under CMS → Experiments, then come back to place it here.</div>;
       }
       return (
-        <select className="be-select" style={{ width: '100%' }} value={p.experimentKey || ''} onChange={e => onChange({ experimentKey: e.target.value })}>
+        <select data-ui-field="select" className="be-select" style={{ width: '100%' }} value={p.experimentKey || ''} onChange={e => onChange({ experimentKey: e.target.value })}>
           <option value="" disabled>Choose an experiment…</option>
           {opts.map(x => <option key={x.key} value={x.key}>{x.name}</option>)}
         </select>
@@ -504,7 +504,7 @@ function BlockContent({ block, onChange, onSlash, components, componentBlocks, i
       const overrides = (p.overrides ?? {}) as Record<string, string>;
       return (
         <div className="be-stack">
-          <select className="be-select" style={{ width: '100%' }} value={p.componentId || ''} onChange={e => onChange({ componentId: e.target.value, overrides: {} })}>
+          <select data-ui-field="select" className="be-select" style={{ width: '100%' }} value={p.componentId || ''} onChange={e => onChange({ componentId: e.target.value, overrides: {} })}>
             <option value="" disabled>Choose a component…</option>
             {opts.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
           </select>
@@ -513,7 +513,7 @@ function BlockContent({ block, onChange, onSlash, components, componentBlocks, i
               <div style={{ fontSize: 10.5, fontWeight: 700, color: 'var(--ink3)', textTransform: 'uppercase', letterSpacing: '.04em' }}>Overrides for this placement</div>
               {slots.map(s => (
                 <div key={s.slot}>
-                  <input className="be-input" placeholder={s.defaultValue || s.slot}
+                  <input data-ui-field="input" className="be-input" placeholder={s.defaultValue || s.slot}
                     value={overrides[s.slot] ?? ''}
                     onChange={e => onChange({ overrides: { ...overrides, [s.slot]: e.target.value } })} />
                 </div>

@@ -144,7 +144,7 @@ export function OnsiteSupport() {
               <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
                 <div className="onsite-form-group">
                   <label>Subject *</label>
-                  <input
+                  <input data-ui-field="input"
                     type="text"
                     className="onsite-input"
                     placeholder="e.g. My domain isn't resolving"
@@ -176,7 +176,7 @@ export function OnsiteSupport() {
                 </div>
                 <div className="onsite-form-group">
                   <label>Describe the issue *</label>
-                  <textarea
+                  <textarea data-ui-field="textarea"
                     className="onsite-textarea"
                     rows={5}
                     placeholder="What's happening, and what have you already tried?"

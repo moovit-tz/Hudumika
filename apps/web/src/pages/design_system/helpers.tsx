@@ -62,7 +62,7 @@ export function NumberField({
         {description && <span className="ds-number-desc">{description}</span>}
       </div>
       <div className="ds-number-input-group">
-        <input
+        <input data-ui-field="input"
           type="number"
           className="ds-number-input"
           value={value}

@@ -90,11 +90,11 @@ function CatModal({ initial, categories, onSave, onClose }: {
           <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
             <div>
               <label style={lbl}>Name *</label>
-              <input type="text" title="Category name" value={f.name} onChange={e => set('name', e.target.value)} style={inp} placeholder="e.g. Electronics" />
+              <input data-ui-field="input" type="text" title="Category name" value={f.name} onChange={e => set('name', e.target.value)} style={inp} placeholder="e.g. Electronics" />
             </div>
             <div>
               <label style={lbl}>URL Slug</label>
-              <input type="text" title="URL slug" value={f.slug} onChange={e => set('slug', slugify(e.target.value))} style={inp} placeholder="e.g. electronics" />
+              <input data-ui-field="input" type="text" title="URL slug" value={f.slug} onChange={e => set('slug', slugify(e.target.value))} style={inp} placeholder="e.g. electronics" />
             </div>
             <div>
               <label style={lbl}>Parent Category</label>
@@ -108,11 +108,11 @@ function CatModal({ initial, categories, onSave, onClose }: {
             </div>
             <div>
               <label style={lbl}>Image URL</label>
-              <input type="url" title="Image URL" value={f.image_url} onChange={e => set('image_url', e.target.value)} style={inp} placeholder="https://…" />
+              <input data-ui-field="input" type="url" title="Image URL" value={f.image_url} onChange={e => set('image_url', e.target.value)} style={inp} placeholder="https://…" />
             </div>
             <div>
               <label style={lbl}>Description</label>
-              <textarea title="Description" value={f.description} onChange={e => set('description', e.target.value)} rows={2} style={{ ...inp, resize: 'vertical' }} />
+              <textarea data-ui-field="textarea" title="Description" value={f.description} onChange={e => set('description', e.target.value)} rows={2} style={{ ...inp, resize: 'vertical' }} />
             </div>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
               <div>
@@ -128,7 +128,7 @@ function CatModal({ initial, categories, onSave, onClose }: {
               </div>
               <div>
                 <label style={lbl}>Sort Order</label>
-                <input type="number" title="Sort order" value={f.sort_order} min={0} onChange={e => set('sort_order', parseInt(e.target.value) || 0)} style={inp} />
+                <input data-ui-field="input" type="number" title="Sort order" value={f.sort_order} min={0} onChange={e => set('sort_order', parseInt(e.target.value) || 0)} style={inp} />
               </div>
             </div>
             <label style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer', fontSize: 13 }}>
@@ -243,11 +243,11 @@ export const ProductCategoriesPage: React.FC = () => {
         <td style={{ padding: '10px 14px', fontSize: 12, color: 'var(--ink3)', textAlign: 'center' }}>{children.length}</td>
         <td style={{ padding: '10px 10px' }}>
           <div style={{ display: 'flex', gap: 2 }}>
-            <Tip label="Edit"><button type="button" aria-label={`Edit ${cat.name}`} onClick={() => setEditing(cat)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink3)', padding: 5, borderRadius: 'var(--r-sm)' }}
+            <Tip label="Edit"><button type="button" aria-label={`Edit ${cat.name}`} onClick={() => setEditing(cat)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink3)', padding: "var(--action-py) var(--space-md)", borderRadius: 'var(--r-sm)' }}
               onMouseEnter={e => (e.currentTarget.style.background = 'var(--hover-bg)')} onMouseLeave={e => (e.currentTarget.style.background = 'none')} data-ui-native-button="">
               <Icon name="edit" size={14} />
             </button></Tip>
-            <Tip label="Delete"><button type="button" aria-label={`Delete ${cat.name}`} onClick={() => handleDelete(cat)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--red)', padding: 5, borderRadius: 'var(--r-sm)' }}
+            <Tip label="Delete"><button type="button" aria-label={`Delete ${cat.name}`} onClick={() => handleDelete(cat)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--red)', padding: "var(--action-py) var(--space-md)", borderRadius: 'var(--r-sm)' }}
               onMouseEnter={e => (e.currentTarget.style.background = 'var(--red-l)')} onMouseLeave={e => (e.currentTarget.style.background = 'none')} data-ui-native-button="">
               <Icon name="trash" size={14} />
             </button></Tip>

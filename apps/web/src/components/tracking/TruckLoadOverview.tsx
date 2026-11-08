@@ -241,7 +241,7 @@ export function TruckLoadOverview({
               />
               <div className="truck-load-trailer">
                 {cutawayCrates.map((crate) => (
-                  <button
+                  <button data-ui-native-button=""
                     key={crate.id}
                     type="button"
                     className={`truck-load-block ${selected === crate.id ? 'is-selected' : ''}`}
@@ -432,7 +432,7 @@ export function TruckLoadOverview({
                         e.stopPropagation();
                         onUnloadItem(it.id);
                       }}
-                      style={{ height: 26, fontSize: 11, color: '#ef4444' }}
+                      style={{ height: "var(--ctl-h)", fontSize: "var(--text-xs)", color: '#ef4444' }}
                     >
                       Unload
                     </Button>

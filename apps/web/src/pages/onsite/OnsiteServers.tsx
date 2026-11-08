@@ -202,7 +202,7 @@ export function OnsiteServers() {
               <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
                 <div className="onsite-form-group">
                   <label>Server Hostname / Label *</label>
-                  <input
+                  <input data-ui-field="input"
                     type="text"
                     className="onsite-input"
                     placeholder="prod-web-node-01"
@@ -213,7 +213,7 @@ export function OnsiteServers() {
                 </div>
                 <div className="onsite-form-group">
                   <label>IP Address</label>
-                  <input
+                  <input data-ui-field="input"
                     type="text"
                     className="onsite-input"
                     placeholder="203.0.113.10"
@@ -237,7 +237,7 @@ export function OnsiteServers() {
                   </div>
                   <div className="onsite-form-group">
                     <label>Region</label>
-                    <input
+                    <input data-ui-field="input"
                       type="text"
                       className="onsite-input"
                       value={region}

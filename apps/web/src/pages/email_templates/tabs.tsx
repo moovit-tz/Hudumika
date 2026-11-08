@@ -314,7 +314,7 @@ export function MyTemplatesTab({ onGoToMarketplace }: { onGoToMarketplace: () =>
         <div className="email-template-nav-top">
           <div className="email-template-search">
             <Icon name="search" size={14} />
-            <input
+            <input data-ui-field="input"
               value={search}
               onChange={e => setSearch(e.target.value)}
               placeholder="Search template library…"

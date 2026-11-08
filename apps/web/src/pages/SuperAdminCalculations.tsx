@@ -110,9 +110,9 @@ export const SuperAdminCalculations: React.FC = () => {
         <div className="sac-tools">
           <div style={{ position: 'relative' }}>
             <Icon name="search" size={15} color="var(--ink3)" style={{ position: 'absolute', left: 13, top: '50%', transform: 'translateY(-50%)' }} />
-            <input className="input-field" placeholder="Search description, HS code, customer or tenant…" value={q}
+            <input data-ui-field="input" className="input-field" placeholder="Search description, HS code, customer or tenant…" value={q}
               onChange={e => { setQ(e.target.value); setOffset(0); }}
-              style={{ width: '100%', boxSizing: 'border-box', paddingLeft: 38, fontSize: 13 }} />
+              style={{ width: '100%', boxSizing: 'border-box', paddingLeft: 38, fontSize: "var(--text-base)" }} />
           </div>
           <Select value={kind} onValueChange={v => { setKind(v); setOffset(0); }}>
             <SelectTrigger><SelectValue /></SelectTrigger>

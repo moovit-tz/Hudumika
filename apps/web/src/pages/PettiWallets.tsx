@@ -314,7 +314,7 @@ export function PettiWallets() {
                       <button
                         type="button"
                         onClick={() => handleToggleStatus(w)}
-                        style={{ fontSize: 11.5, fontWeight: 700, color: w.status === 'active' ? 'var(--red)' : 'var(--green)', background: 'none', border: 'none', cursor: 'pointer' }}
+                        style={{ fontSize: "var(--text-base)", fontWeight: 700, color: w.status === 'active' ? 'var(--red)' : 'var(--green)', background: 'none', border: 'none', cursor: 'pointer' }}
                        data-ui-native-button="">
                         {w.status === 'active' ? 'Close' : 'Reopen'}
                       </button>

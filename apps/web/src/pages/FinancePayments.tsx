@@ -379,7 +379,7 @@ export const FinancePayments: React.FC = () => {
             barHighlight: 'var(--red)'
           },
           {
-            title: 'NET POSITION',
+            emphasis: 'primary', title: 'NET POSITION',
             value: fmt(netTotal, selectedCurrency),
             sub1Label: netTotal >= 0 ? 'SURPLUS' : 'DEFICIT', sub1Value: netTotal >= 0 ? 'IN' : 'OUT',
             sub2Label: 'STATUS', sub2Value: netTotal >= 0 ? 'NET POSITIVE' : 'NET NEGATIVE',

@@ -17,6 +17,7 @@ export const FINANCE_CAPABILITY_KEYS = [
   'finance.property',
   'finance.hospitality',
   'finance.education',
+  'finance.healthcare',
   'finance.insurance',
   'finance.lending',
 ] as const;
@@ -58,6 +59,7 @@ export const FINANCE_CAPABILITIES: readonly FinanceCapabilityDefinition[] = [
   { key: 'finance.property', name: 'Property management', description: 'Lease management, tenant billing, units and charge generation.', category: 'operations', edition: 'advanced', configurable: true, dependencies: ['finance.core'], status: 'available' },
   { key: 'finance.hospitality', name: 'Hospitality', description: 'Room inventory, reservations, check-in/out and guest folios.', category: 'operations', edition: 'advanced', configurable: true, dependencies: ['finance.core'], status: 'available' },
   { key: 'finance.education', name: 'Education', description: 'Student management, fee structures and enrollment billing.', category: 'operations', edition: 'advanced', configurable: true, dependencies: ['finance.core'], status: 'available' },
+  { key: 'finance.healthcare', name: 'Healthcare', description: 'Patient records, booking, clinical encounters and billing.', category: 'operations', edition: 'advanced', configurable: true, dependencies: ['finance.core'], status: 'available' },
   { key: 'finance.insurance', name: 'Insurance', description: 'Policy underwriting, premium tracking and claims adjudication.', category: 'operations', edition: 'advanced', configurable: true, dependencies: ['finance.core'], status: 'available' },
   { key: 'finance.lending', name: 'Lending & Microfinance', description: 'Loan origination, amortisation, repayment allocation and arrears.', category: 'operations', edition: 'advanced', configurable: true, dependencies: ['finance.core', 'finance.accounting.advanced'], status: 'available' },
 ] as const;
@@ -121,7 +123,7 @@ export const FINANCE_INDUSTRIES: readonly FinanceIndustryDefinition[] = [
   { key: 'restaurant', name: 'Restaurant & Food Service', description: 'Table orders, kitchen tickets, menu costing and revenue.', recommendedCapabilities: ['finance.inventory', 'finance.pos'] },
   { key: 'agriculture', name: 'Agriculture & Livestock', description: 'Planting seasons, harvest yields, input costs and crop-to-market.', recommendedCapabilities: ['finance.inventory', 'finance.procurement'] },
   { key: 'education', name: 'Education', description: 'Student enrolment, fee structures, term billing.', recommendedCapabilities: ['finance.education'] },
-  { key: 'healthcare', name: 'Healthcare', description: 'Patient encounters, procedure billing and insurance claims.', recommendedCapabilities: ['finance.inventory'] },
+  { key: 'healthcare', name: 'Healthcare', description: 'Patient encounters, procedure billing and insurance claims.', recommendedCapabilities: ['finance.healthcare', 'finance.inventory'] },
   { key: 'pharmaceutical', name: 'Pharmaceutical', description: 'GMP batch manufacturing, stability testing and regulatory holds.', recommendedCapabilities: ['finance.inventory', 'finance.manufacturing', 'finance.procurement'] },
   { key: 'mining', name: 'Mining & Extraction', description: 'Extraction operations, ore processing and royalty billing.', recommendedCapabilities: ['finance.inventory', 'finance.procurement'] },
   { key: 'energy', name: 'Energy & Utilities', description: 'Meter readings, consumption billing and tariff structures.', recommendedCapabilities: [] },

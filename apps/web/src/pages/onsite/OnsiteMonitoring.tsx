@@ -197,7 +197,7 @@ export function OnsiteMonitoring() {
             <DialogBody style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
               <div className="onsite-form-group">
                 <label>Monitor Name *</label>
-                <input
+                <input data-ui-field="input"
                   type="text"
                   className="onsite-input"
                   placeholder="Production Web App"
@@ -208,7 +208,7 @@ export function OnsiteMonitoring() {
               </div>
               <div className="onsite-form-group">
                 <label>Target URL *</label>
-                <input
+                <input data-ui-field="input"
                   type="url"
                   className="onsite-input"
                   placeholder="https://my-app.com/health"
@@ -231,7 +231,7 @@ export function OnsiteMonitoring() {
                 </div>
                 <div className="onsite-form-group">
                   <label>Expected HTTP Status</label>
-                  <input
+                  <input data-ui-field="input"
                     type="number"
                     className="onsite-input"
                     value={expectedStatus}

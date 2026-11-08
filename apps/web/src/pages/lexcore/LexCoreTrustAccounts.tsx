@@ -117,7 +117,7 @@ export function LexCoreTrustAccounts() {
                       <td><Badge variant={a.status === 'active' ? 'success' : 'gray'}>{a.status}</Badge></td>
                       <td>
                         <DropdownMenu>
-                          <DropdownMenuTrigger asChild><button type="button" style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 4, color: 'var(--ink3)' }} onClick={e => e.stopPropagation()}><Icon name="moreHorizontal" size={16} /></button></DropdownMenuTrigger>
+                          <DropdownMenuTrigger asChild><button data-ui-native-button="" type="button" style={{ background: 'none', border: 'none', cursor: 'pointer', padding: "var(--action-py) var(--space-md)", color: 'var(--ink3)' }} onClick={e => e.stopPropagation()}><Icon name="moreHorizontal" size={16} /></button></DropdownMenuTrigger>
                           <DropdownMenuContent>
                             <DropdownMenuItem onClick={() => { setTxnDialog({ type: 'deposit', account: a }); }}><Icon name="plus" size={14} /> Deposit Funds</DropdownMenuItem>
                             <DropdownMenuItem onClick={() => { setTxnDialog({ type: 'disburse', account: a }); }}><Icon name="minus" size={14} /> Disburse Funds</DropdownMenuItem>

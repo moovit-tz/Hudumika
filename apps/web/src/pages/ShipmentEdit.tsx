@@ -369,11 +369,11 @@ export const ShipmentEdit: React.FC = () => {
               <>
                 <div style={fldStyle}>
                   <label style={lblStyle}>Cargo Description</label>
-                  <input style={inpStyle} value={form.goods_desc || ''} onChange={set('goods_desc')} placeholder="e.g. Bagged cement, 500 units" />
+                  <input data-ui-field="input" style={inpStyle} value={form.goods_desc || ''} onChange={set('goods_desc')} placeholder="e.g. Bagged cement, 500 units" />
                 </div>
                 <div style={fldStyle}>
                   <label style={lblStyle}>HS Code</label>
-                  <input style={inpStyle} value={form.hs_code || ''} onChange={set('hs_code')} placeholder="e.g. 2523.29.00" />
+                  <input data-ui-field="input" style={inpStyle} value={form.hs_code || ''} onChange={set('hs_code')} placeholder="e.g. 2523.29.00" />
                 </div>
 
                 <div style={fldStyle}>
@@ -452,36 +452,36 @@ export const ShipmentEdit: React.FC = () => {
                     <div style={{ display: 'flex', gap: '16px' }}>
                       <div style={{ flex: 1 }}>
                         <label style={{ display: 'block', fontSize: '11.5px', fontWeight: 600, color: 'var(--ink2)', marginBottom: '4px' }}>Packaging type</label>
-                        <input type="text" className="input-field" style={{ width: '100%' }} value={dgForm.packagingType} onChange={e => setDgForm(p => ({ ...p, packagingType: e.target.value }))} placeholder="e.g. Fibreboard box" />
+                        <input data-ui-field="input" type="text" className="input-field" style={{ width: '100%' }} value={dgForm.packagingType} onChange={e => setDgForm(p => ({ ...p, packagingType: e.target.value }))} placeholder="e.g. Fibreboard box" />
                       </div>
                       <div style={{ flex: 1 }}>
                         <label style={{ display: 'block', fontSize: '11.5px', fontWeight: 600, color: 'var(--ink2)', marginBottom: '4px' }}>No. of packages</label>
-                        <input type="text" className="input-field" style={{ width: '100%' }} value={dgForm.numberOfPackages} onChange={e => setDgForm(p => ({ ...p, numberOfPackages: e.target.value.replace(/[^0-9]/g, '') }))} />
+                        <input data-ui-field="input" type="text" className="input-field" style={{ width: '100%' }} value={dgForm.numberOfPackages} onChange={e => setDgForm(p => ({ ...p, numberOfPackages: e.target.value.replace(/[^0-9]/g, '') }))} />
                       </div>
                       <div style={{ flex: 1 }}>
                         <label style={{ display: 'block', fontSize: '11.5px', fontWeight: 600, color: 'var(--ink2)', marginBottom: '4px' }}>Net quantity</label>
-                        <input type="text" className="input-field" style={{ width: '100%' }} value={dgForm.netQuantity} onChange={e => setDgForm(p => ({ ...p, netQuantity: e.target.value.replace(/[^0-9.]/g, '') }))} />
+                        <input data-ui-field="input" type="text" className="input-field" style={{ width: '100%' }} value={dgForm.netQuantity} onChange={e => setDgForm(p => ({ ...p, netQuantity: e.target.value.replace(/[^0-9.]/g, '') }))} />
                       </div>
                       <div style={{ flex: 1 }}>
                         <label style={{ display: 'block', fontSize: '11.5px', fontWeight: 600, color: 'var(--ink2)', marginBottom: '4px' }}>Unit</label>
-                        <input type="text" className="input-field" style={{ width: '100%' }} value={dgForm.quantityUnit} onChange={e => setDgForm(p => ({ ...p, quantityUnit: e.target.value }))} />
+                        <input data-ui-field="input" type="text" className="input-field" style={{ width: '100%' }} value={dgForm.quantityUnit} onChange={e => setDgForm(p => ({ ...p, quantityUnit: e.target.value }))} />
                       </div>
                     </div>
 
                     <div style={{ display: 'flex', gap: '16px' }}>
                       <div style={{ flex: 1 }}>
                         <label style={{ display: 'block', fontSize: '11.5px', fontWeight: 600, color: 'var(--ink2)', marginBottom: '4px' }}>Shipper name *</label>
-                        <input type="text" className="input-field" style={{ width: '100%' }} value={dgForm.shipperName} onChange={e => setDgForm(p => ({ ...p, shipperName: e.target.value }))} />
+                        <input data-ui-field="input" type="text" className="input-field" style={{ width: '100%' }} value={dgForm.shipperName} onChange={e => setDgForm(p => ({ ...p, shipperName: e.target.value }))} />
                       </div>
                       <div style={{ flex: 1 }}>
                         <label style={{ display: 'block', fontSize: '11.5px', fontWeight: 600, color: 'var(--ink2)', marginBottom: '4px' }}>Shipper address</label>
-                        <input type="text" className="input-field" style={{ width: '100%' }} value={dgForm.shipperAddress} onChange={e => setDgForm(p => ({ ...p, shipperAddress: e.target.value }))} />
+                        <input data-ui-field="input" type="text" className="input-field" style={{ width: '100%' }} value={dgForm.shipperAddress} onChange={e => setDgForm(p => ({ ...p, shipperAddress: e.target.value }))} />
                       </div>
                     </div>
 
                     <div>
                       <label style={{ display: 'block', fontSize: '11.5px', fontWeight: 600, color: 'var(--ink2)', marginBottom: '4px' }}>Emergency contact</label>
-                      <input type="text" className="input-field" style={{ width: '100%' }} value={dgForm.emergencyContact} onChange={e => setDgForm(p => ({ ...p, emergencyContact: e.target.value }))} placeholder="name + 24h phone" />
+                      <input data-ui-field="input" type="text" className="input-field" style={{ width: '100%' }} value={dgForm.emergencyContact} onChange={e => setDgForm(p => ({ ...p, emergencyContact: e.target.value }))} placeholder="name + 24h phone" />
                     </div>
                   </div>
                 )}
@@ -492,14 +492,14 @@ export const ShipmentEdit: React.FC = () => {
             {currentStep === 2 && (
               <>
                 <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: 14 }}>
-                  <div style={fldStyle}><label style={lblStyle}>B/L Number</label><input style={inpStyle} value={form.bl_number || ''} onChange={set('bl_number')} /></div>
-                  <div style={fldStyle}><label style={lblStyle}>AWB Number</label><input style={inpStyle} value={form.awb_number || ''} onChange={set('awb_number')} /></div>
-                  <div style={fldStyle}><label style={lblStyle}>TANSAD Number</label><input style={inpStyle} value={form.tansad_number || ''} onChange={set('tansad_number')} /></div>
-                  <div style={fldStyle}><label style={lblStyle}>Vessel</label><input style={inpStyle} value={form.vessel || ''} onChange={set('vessel')} /></div>
-                  <div style={fldStyle}><label style={lblStyle}>Origin Port</label><input style={inpStyle} value={form.origin_port || ''} onChange={set('origin_port')} /></div>
-                  <div style={fldStyle}><label style={lblStyle}>Port of Loading</label><input style={inpStyle} value={form.port_of_loading || ''} onChange={set('port_of_loading')} /></div>
-                  <div style={fldStyle}><label style={lblStyle}>Destination Port</label><input style={inpStyle} value={form.dest_port || ''} onChange={set('dest_port')} /></div>
-                  <div style={fldStyle}><label style={lblStyle}>Port of Discharge</label><input style={inpStyle} value={form.port_of_discharge || ''} onChange={set('port_of_discharge')} /></div>
+                  <div style={fldStyle}><label style={lblStyle}>B/L Number</label><input data-ui-field="input" style={inpStyle} value={form.bl_number || ''} onChange={set('bl_number')} /></div>
+                  <div style={fldStyle}><label style={lblStyle}>AWB Number</label><input data-ui-field="input" style={inpStyle} value={form.awb_number || ''} onChange={set('awb_number')} /></div>
+                  <div style={fldStyle}><label style={lblStyle}>TANSAD Number</label><input data-ui-field="input" style={inpStyle} value={form.tansad_number || ''} onChange={set('tansad_number')} /></div>
+                  <div style={fldStyle}><label style={lblStyle}>Vessel</label><input data-ui-field="input" style={inpStyle} value={form.vessel || ''} onChange={set('vessel')} /></div>
+                  <div style={fldStyle}><label style={lblStyle}>Origin Port</label><input data-ui-field="input" style={inpStyle} value={form.origin_port || ''} onChange={set('origin_port')} /></div>
+                  <div style={fldStyle}><label style={lblStyle}>Port of Loading</label><input data-ui-field="input" style={inpStyle} value={form.port_of_loading || ''} onChange={set('port_of_loading')} /></div>
+                  <div style={fldStyle}><label style={lblStyle}>Destination Port</label><input data-ui-field="input" style={inpStyle} value={form.dest_port || ''} onChange={set('dest_port')} /></div>
+                  <div style={fldStyle}><label style={lblStyle}>Port of Discharge</label><input data-ui-field="input" style={inpStyle} value={form.port_of_discharge || ''} onChange={set('port_of_discharge')} /></div>
                   <div style={fldStyle}><label style={lblStyle}>ETA</label><DatePicker date={parseDateOnly(form.eta)} onChange={d => setForm(f => ({...f, eta: toDateOnlyString(d)}))} /></div>
                   <div style={fldStyle}><label style={lblStyle}>Free Time Ends</label><DatePicker date={parseDateOnly(form.free_time_end)} onChange={d => setForm(f => ({...f, free_time_end: toDateOnlyString(d)}))} /></div>
                   <div style={fldStyle}><label style={lblStyle}>SLA Deadline</label><DatePicker date={parseDateOnly(form.sla_deadline)} onChange={d => setForm(f => ({...f, sla_deadline: toDateOnlyString(d)}))} /></div>
@@ -511,8 +511,8 @@ export const ShipmentEdit: React.FC = () => {
             {currentStep === 3 && (
               <>
                 <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: 14 }}>
-                  <div style={fldStyle}><label style={lblStyle}>Gross Weight (KG)</label><input type="number" min="0" style={inpStyle} value={form.gross_weight_kg || ''} onChange={set('gross_weight_kg')} /></div>
-                  <div style={fldStyle}><label style={lblStyle}>CIF Value (USD)</label><input type="number" min="0" style={inpStyle} value={form.cif_value_usd || ''} onChange={set('cif_value_usd')} /></div>
+                  <div style={fldStyle}><label style={lblStyle}>Gross Weight (KG)</label><input data-ui-field="input" type="number" min="0" style={inpStyle} value={form.gross_weight_kg || ''} onChange={set('gross_weight_kg')} /></div>
+                  <div style={fldStyle}><label style={lblStyle}>CIF Value (USD)</label><input data-ui-field="input" type="number" min="0" style={inpStyle} value={form.cif_value_usd || ''} onChange={set('cif_value_usd')} /></div>
                 </div>
               </>
             )}
@@ -530,7 +530,7 @@ export const ShipmentEdit: React.FC = () => {
                 </div>
                 <div style={fldStyle}>
                   <label style={lblStyle}>Internal Notes</label>
-                  <textarea style={{ ...inpStyle, minHeight: 120, resize: 'vertical' }} value={form.internal_notes || ''} onChange={set('internal_notes')} placeholder="Internal notes, not visible to the customer" />
+                  <textarea data-ui-field="textarea" style={{ ...inpStyle, minHeight: 120, resize: 'vertical' }} value={form.internal_notes || ''} onChange={set('internal_notes')} placeholder="Internal notes, not visible to the customer" />
                 </div>
               </>
             )}
@@ -542,7 +542,7 @@ export const ShipmentEdit: React.FC = () => {
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 16 }}>
             {currentStep === 4 ? (
               <button type="button" onClick={handleDelete} disabled={deleting}
-                style={{ display: 'flex', alignItems: 'center', gap: 6, padding: 'var(--ds-btn-py) 18px', borderRadius: 'var(--r)', border: '1px solid var(--red)', background: 'var(--red-l)', color: 'var(--red)', fontSize: 13, fontWeight: 700, cursor: deleting ? 'default' : 'pointer', opacity: deleting ? 0.6 : 1, minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}} data-ui-native-button="">
+                style={{ display: 'flex', alignItems: 'center', gap: 6, padding: 'var(--ds-btn-py) 18px', borderRadius: 'var(--r)', border: '1px solid var(--red)', background: 'var(--red-l)', color: 'var(--red)', fontSize: "var(--text-base)", fontWeight: 700, cursor: deleting ? 'default' : 'pointer', opacity: deleting ? 0.6 : 1, minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}} data-ui-native-button="">
                 <Icon name="trash" size={14} /> {deleting ? 'Deleting…' : 'Delete'}
               </button>
             ) : (
@@ -551,17 +551,17 @@ export const ShipmentEdit: React.FC = () => {
             
             <div style={{ display: 'flex', gap: 12, marginLeft: 'auto' }}>
               {currentStep > 1 && (
-                <button type="button" onClick={() => setCurrentStep(s => s - 1)} style={{ padding: 'var(--ds-btn-py) 20px', borderRadius: 'var(--r)', border: '1px solid var(--border)', background: 'var(--white)', color: 'var(--ink2)', fontSize: 13, fontWeight: 600, cursor: 'pointer', minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}} data-ui-native-button="">
+                <button type="button" onClick={() => setCurrentStep(s => s - 1)} style={{ padding: 'var(--ds-btn-py) 20px', borderRadius: 'var(--r)', border: '1px solid var(--border)', background: 'var(--white)', color: 'var(--ink2)', fontSize: "var(--text-base)", fontWeight: 600, cursor: 'pointer', minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}} data-ui-native-button="">
                   Previous
                 </button>
               )}
               {currentStep < 4 ? (
-                <button type="button" onClick={() => setCurrentStep(s => s + 1)} style={{ padding: 'var(--ds-btn-py) 20px', borderRadius: 'var(--r)', border: 'none', background: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))', fontSize: 13, fontWeight: 700, cursor: 'pointer', minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}} data-ui-native-button="">
+                <button type="button" onClick={() => setCurrentStep(s => s + 1)} style={{ padding: 'var(--ds-btn-py) 20px', borderRadius: 'var(--r)', border: 'none', background: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))', fontSize: "var(--text-base)", fontWeight: 700, cursor: 'pointer', minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}} data-ui-native-button="">
                   Next Step
                 </button>
               ) : (
                 <button type="button" onClick={handleSave} disabled={saving}
-                  style={{ padding: 'var(--ds-btn-py) 24px', borderRadius: 'var(--r)', border: 'none', background: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))', fontSize: 13, fontWeight: 700, cursor: saving ? 'default' : 'pointer', opacity: saving ? 0.7 : 1, minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}} data-ui-native-button="">
+                  style={{ padding: 'var(--ds-btn-py) 24px', borderRadius: 'var(--r)', border: 'none', background: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))', fontSize: "var(--text-base)", fontWeight: 700, cursor: saving ? 'default' : 'pointer', opacity: saving ? 0.7 : 1, minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}} data-ui-native-button="">
                   {saving ? 'Saving…' : 'Save Changes'}
                 </button>
               )}

@@ -498,17 +498,17 @@ export const BlissWhatsApp: React.FC = () => {
               </div>
               <div style={{ position: 'relative', width: isMobile ? '100%' : 200 }}>
                 <Icon name="search" size={13} style={{ position: 'absolute', left: 9, top: 9, color: 'var(--ink3)' }} />
-                <input
+                <input data-ui-field="input"
                   className="input-field"
                   value={convSearch}
                   onChange={e => setConvSearch(e.target.value)}
                   placeholder="Filter conversations…"
                   style={{
                     width: '100%',
-                    height: 32,
+                    height: "var(--ctl-h)",
                     paddingLeft: 28,
-                    paddingRight: 8,
-                    fontSize: 12,
+                    paddingRight: "var(--space-md)",
+                    fontSize: "var(--text-base)",
                   }}
                 />
               </div>
@@ -620,7 +620,7 @@ export const BlissWhatsApp: React.FC = () => {
             }}>
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
                 <div style={{ fontSize: 13.5, fontWeight: 800, color: 'var(--ink)' }}>Active Keyword Automations</div>
-                <Button variant="ghost" size="sm" onClick={() => setTab('automation')} style={{ fontSize: 11.5 }}>
+                <Button variant="ghost" size="sm" onClick={() => setTab('automation')} style={{ fontSize: "var(--text-base)" }}>
                   View all ({rules.length}) →
                 </Button>
               </div>
@@ -705,12 +705,12 @@ export const BlissWhatsApp: React.FC = () => {
               </label>
               <div style={{ position: 'relative' }}>
                 <Icon name="phone" size={13} style={{ position: 'absolute', left: 10, top: 10, color: 'var(--ink3)' }} />
-                <input
+                <input data-ui-field="input"
                   className="input-field"
                   value={testPhone}
                   onChange={e => setTestPhone(e.target.value)}
                   placeholder="+255 712 345 678"
-                  style={{ paddingLeft: 30, fontFamily: 'var(--font)', fontSize: 13, height: 34 }}
+                  style={{ paddingLeft: 30, fontFamily: 'var(--font)', fontSize: "var(--text-base)", height: "var(--ctl-h)" }}
                 />
               </div>
               <span style={{ fontSize: 11, color: 'var(--ink3)', marginTop: 3, display: 'block' }}>
@@ -724,13 +724,13 @@ export const BlissWhatsApp: React.FC = () => {
                 <label style={{ fontSize: 11.5, fontWeight: 800, color: 'var(--ink)', textTransform: 'uppercase', letterSpacing: '0.04em', display: 'block', marginBottom: 5 }}>
                   Message Content
                 </label>
-                <textarea
+                <textarea data-ui-field="textarea"
                   className="input-field"
                   rows={4}
                   value={testText}
                   onChange={e => setTestText(e.target.value)}
                   placeholder="Enter message text…"
-                  style={{ fontSize: 13, lineHeight: 1.4, resize: 'vertical' }}
+                  style={{ fontSize: "var(--text-base)", lineHeight: 1.4, resize: 'vertical' }}
                 />
                 <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 11, color: 'var(--ink3)', marginTop: 4 }}>
                   <span>Simulates live agent broadcast</span>
@@ -775,9 +775,9 @@ export const BlissWhatsApp: React.FC = () => {
                           <span style={{ fontSize: 11, fontWeight: 800, color: 'var(--teal)', fontFamily: 'var(--font)', width: 34 }}>
                             {`{{${num}}}`}
                           </span>
-                          <input
+                          <input data-ui-field="input"
                             className="input-field"
-                            style={{ height: 28, fontSize: 12 }}
+                            style={{ height: "var(--ctl-h)", fontSize: "var(--text-base)" }}
                             value={templateVariables[num]}
                             onChange={e => setTemplateVariables(prev => ({ ...prev, [num]: e.target.value }))}
                             placeholder={`Value for {{${num}}}`}
@@ -795,7 +795,7 @@ export const BlissWhatsApp: React.FC = () => {
               size="default"
               onClick={sendTest}
               disabled={sendingTest}
-              style={{ fontWeight: 800, height: 40, fontSize: 13 }}
+              style={{ fontWeight: 800, height: "var(--action-h)", fontSize: "var(--text-base)" }}
             >
               <Icon name="send" size={15} />
               {sendingTest ? 'Dispatching over Meta API…' : 'Send Test Message'}
@@ -927,13 +927,13 @@ export const BlissWhatsApp: React.FC = () => {
 
             {/* Input bar — typing here updates testText (text mode) and send triggers sendTest */}
             <div style={{ background: 'var(--card-bg, var(--white))', padding: '8px 12px', display: 'flex', alignItems: 'center', gap: 8, borderTop: '1px solid var(--border)' }}>
-              <input
+              <input data-ui-field="input"
                 value={testMode === 'text' ? testText : ''}
                 onChange={e => { if (testMode === 'text') setTestText(e.target.value); }}
                 onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey && !sendingTest) { e.preventDefault(); sendTest(); } }}
                 placeholder={testMode === 'text' ? 'Type a message…' : 'Select a template above'}
                 disabled={testMode !== 'text'}
-                style={{ flex: 1, background: 'var(--card-sunken)', borderRadius: 'var(--r)', padding: '6px 14px', fontSize: 12, color: 'var(--ink)', border: '1px solid var(--border)', outline: 'none', minWidth: 0 }}
+                style={{ flex: 1, background: 'var(--card-sunken)', borderRadius: 'var(--r)', padding: "var(--ds-input-py) var(--space-md)", fontSize: "var(--text-base)", color: 'var(--ink)', border: '1px solid var(--border)', outline: 'none', minWidth: 0 }}
               />
               <div
                 onClick={sendingTest ? undefined : sendTest}
@@ -996,12 +996,12 @@ export const BlissWhatsApp: React.FC = () => {
             <div style={{ display: 'flex', alignItems: 'center', gap: 8, width: isMobile ? '100%' : 'auto' }}>
               <div style={{ position: 'relative', width: isMobile ? '100%' : 220 }}>
                 <Icon name="search" size={13} style={{ position: 'absolute', left: 9, top: 9, color: 'var(--ink3)' }} />
-                <input
+                <input data-ui-field="input"
                   className="input-field"
                   value={templateSearch}
                   onChange={e => setTemplateSearch(e.target.value)}
                   placeholder="Search templates…"
-                  style={{ width: '100%', height: 32, paddingLeft: 28, paddingRight: 8, fontSize: 12 }}
+                  style={{ width: '100%', height: "var(--ctl-h)", paddingLeft: 28, paddingRight: "var(--space-md)", fontSize: "var(--text-base)" }}
                 />
               </div>
 
@@ -1111,7 +1111,7 @@ export const BlissWhatsApp: React.FC = () => {
                             setTestMode('template');
                             setTab('simulator');
                           }}
-                          style={{ fontSize: 11.5, color: 'var(--teal)', fontWeight: 700 }}
+                          style={{ fontSize: "var(--text-base)", color: 'var(--teal)', fontWeight: 700 }}
                         >
                           <Icon name="send" size={12} /> Test in Simulator
                         </Button>
@@ -1174,7 +1174,7 @@ export const BlissWhatsApp: React.FC = () => {
                     size="sm"
                     onClick={() => createRule(p.keyword, p.matchType, p.replyText)}
                     disabled={savingRule || rules.some(r => parseConfig(r).keyword.toUpperCase() === p.keyword)}
-                    style={{ fontSize: 11.5 }}
+                    style={{ fontSize: "var(--text-base)" }}
                   >
                     {rules.some(r => parseConfig(r).keyword.toUpperCase() === p.keyword) ? 'Already Added' : '+ Add Auto-Reply'}
                   </Button>
@@ -1283,11 +1283,11 @@ export const BlissWhatsApp: React.FC = () => {
                 Callback URL (Inbound Messages &amp; Status Receipts)
               </label>
               <div style={{ display: 'flex', gap: 6 }}>
-                <input
+                <input data-ui-field="input"
                   readOnly
                   className="input-field"
                   value={webhookUrl}
-                  style={{ fontFamily: 'var(--font)', fontSize: 12, background: 'var(--card-sunken)', flex: 1, height: 34 }}
+                  style={{ fontFamily: 'var(--font)', fontSize: "var(--text-base)", background: 'var(--card-sunken)', flex: 1, height: "var(--ctl-h)" }}
                 />
                 <Button variant="outline" size="sm" onClick={handleCopyWebhook} style={{ flexShrink: 0 }}>
                   <Icon name={copiedWebhook ? 'check' : 'copy'} size={13} />
@@ -1381,7 +1381,7 @@ export const BlissWhatsApp: React.FC = () => {
             <div style={{ display: 'flex', flexDirection: 'column', gap: 14, margin: '12px 0' }}>
               <div>
                 <label style={{ fontSize: 11.5, fontWeight: 700, color: 'var(--ink2)' }}>TEMPLATE NAME (lowercase_underscore)</label>
-                <input
+                <input data-ui-field="input"
                   className="input-field"
                   value={tplName}
                   onChange={e => setTplName(e.target.value.toLowerCase().replace(/[^a-z0-9_]/g, '_'))}
@@ -1405,7 +1405,7 @@ export const BlissWhatsApp: React.FC = () => {
 
                 <div>
                   <label style={{ fontSize: 11.5, fontWeight: 700, color: 'var(--ink2)' }}>LANGUAGE</label>
-                  <input className="input-field" value={tplLanguage} onChange={e => setTplLanguage(e.target.value)} placeholder="en_US" style={{ marginTop: 4 }} />
+                  <input data-ui-field="input" className="input-field" value={tplLanguage} onChange={e => setTplLanguage(e.target.value)} placeholder="en_US" style={{ marginTop: 4 }} />
                 </div>
               </div>
 
@@ -1415,12 +1415,12 @@ export const BlissWhatsApp: React.FC = () => {
                   <button
                     type="button"
                     onClick={() => setTplBody(prev => `${prev} {{${(prev.match(/\{\{\d+\}\}/g) || []).length + 1}}}`)}
-                    style={{ background: 'none', border: 'none', color: 'var(--teal)', fontSize: 11, fontWeight: 700, cursor: 'pointer' }}
+                    style={{ background: 'none', border: 'none', color: 'var(--teal)', fontSize: "var(--text-xs)", fontWeight: 700, cursor: 'pointer' }}
                    data-ui-native-button="">
                     + Insert Variable
                   </button>
                 </div>
-                <textarea
+                <textarea data-ui-field="textarea"
                   className="input-field"
                   rows={4}
                   value={tplBody}
@@ -1453,7 +1453,7 @@ export const BlissWhatsApp: React.FC = () => {
               <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: 12 }}>
                 <div>
                   <label style={{ fontSize: 11.5, fontWeight: 700, color: 'var(--ink2)' }}>KEYWORD / TRIGGER</label>
-                  <input
+                  <input data-ui-field="input"
                     className="input-field"
                     value={ruleKeyword}
                     onChange={e => setRuleKeyword(e.target.value.toUpperCase())}
@@ -1477,7 +1477,7 @@ export const BlissWhatsApp: React.FC = () => {
 
               <div>
                 <label style={{ fontSize: 11.5, fontWeight: 700, color: 'var(--ink2)' }}>AUTO-REPLY MESSAGE</label>
-                <textarea
+                <textarea data-ui-field="textarea"
                   className="input-field"
                   rows={3}
                   value={ruleReply}

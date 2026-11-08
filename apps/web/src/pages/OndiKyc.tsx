@@ -203,7 +203,7 @@ export const OndiKyc: React.FC = () => {
             <div className="ondi-toolbar">
               <div className="ondi-search-input">
                 <Icon name="search" size={15} />
-                <input
+                <input data-ui-field="input"
                   type="text"
                   placeholder="Search name, email, doc #..."
                   value={search}
@@ -294,10 +294,10 @@ export const OndiKyc: React.FC = () => {
                             type="button"
                             onClick={() => handleSelectRow(row)}
                             style={{
-                              fontSize: 12,
+                              fontSize: "var(--text-base)",
                               fontWeight: 700,
                               borderRadius: 'var(--r-sm)',
-                              padding: '6px 14px',
+                              padding: "var(--action-py) var(--space-md)",
                               border: isSelected ? '1px solid var(--teal)' : '1px solid var(--border)',
                               cursor: 'pointer',
                               background: isSelected ? 'var(--teal-l)' : 'var(--white)',
@@ -348,7 +348,7 @@ export const OndiKyc: React.FC = () => {
               </div>
               <button
                 onClick={() => { setSelectedRow(null); setPreviewUrl(null); }}
-                style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink3)', padding: 4 }}
+                style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink3)', padding: "var(--action-py) var(--space-md)" }}
                data-ui-native-button="">
                 <Icon name="x" size={18} />
               </button>
@@ -440,14 +440,14 @@ export const OndiKyc: React.FC = () => {
                 disabled={busyId === selectedRow.id}
                 style={{
                   flex: 1,
-                  padding: '10px 16px',
+                  padding: "var(--action-py) var(--space-md)",
                   border: '1px solid var(--red)',
                   background: 'var(--red-l)',
                   color: 'var(--red)',
                   borderRadius: 'var(--r)',
                   fontWeight: 700,
                   cursor: 'pointer',
-                  fontSize: 13,
+                  fontSize: "var(--text-base)",
                   opacity: busyId === selectedRow.id ? 0.6 : 1,
                   transition: 'all 0.15s ease'
                 }}
@@ -460,14 +460,14 @@ export const OndiKyc: React.FC = () => {
                 disabled={busyId === selectedRow.id}
                 style={{
                   flex: 1,
-                  padding: '10px 16px',
+                  padding: "var(--action-py) var(--space-md)",
                   border: 'none',
                   background: 'var(--teal)',
                   color: '#fff',
                   borderRadius: 'var(--r)',
                   fontWeight: 700,
                   cursor: 'pointer',
-                  fontSize: 13,
+                  fontSize: "var(--text-base)",
                   opacity: busyId === selectedRow.id ? 0.6 : 1,
                   boxShadow: '0 2px 8px var(--teal-m)',
                   transition: 'all 0.15s ease'

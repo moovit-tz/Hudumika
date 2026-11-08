@@ -54,7 +54,7 @@ export function ComplyTopbar({ onMenuToggle }: Props) {
         <span className="comply-topbar-search-icon">
           <Icon name="search" size={15} strokeWidth={1.8} />
         </span>
-        <input
+        <input data-ui-field="input" data-field-appearance="bare"
           type="search"
           className="comply-topbar-search-input"
           placeholder="Search here..."

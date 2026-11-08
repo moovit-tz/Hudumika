@@ -100,7 +100,7 @@ function CreateRuleForm({ agents, onCancel, onSave, saving }: {
         </div>
         <div>
           <label style={{ fontSize: 11.5, fontWeight: 700, color: 'var(--ink2)', display: 'block', marginBottom: 4 }}>Name</label>
-          <input className="input-field" value={name} onChange={e => setName(e.target.value)} placeholder="e.g. Round-robin support" />
+          <input data-ui-field="input" className="input-field" value={name} onChange={e => setName(e.target.value)} placeholder="e.g. Round-robin support" />
         </div>
 
         {type === 'auto_assign' && (
@@ -138,7 +138,7 @@ function CreateRuleForm({ agents, onCancel, onSave, saving }: {
           <>
             <div>
               <label style={{ fontSize: 11.5, fontWeight: 700, color: 'var(--ink2)', display: 'block', marginBottom: 4 }}>Escalate when elapsed % of SLA reaches</label>
-              <input type="number" className="input-field" min={1} max={100} value={thresholdPercent} onChange={e => setThresholdPercent(Number(e.target.value) || 80)} />
+              <input data-ui-field="input" type="number" className="input-field" min={1} max={100} value={thresholdPercent} onChange={e => setThresholdPercent(Number(e.target.value) || 80)} />
             </div>
             <div>
               <label style={{ fontSize: 11.5, fontWeight: 700, color: 'var(--ink2)', display: 'block', marginBottom: 4 }}>Escalate to role</label>
@@ -157,7 +157,7 @@ function CreateRuleForm({ agents, onCancel, onSave, saving }: {
         {type === 'status_automation' && (
           <div>
             <label style={{ fontSize: 11.5, fontWeight: 700, color: 'var(--ink2)', display: 'block', marginBottom: 4 }}>Auto-close resolved tickets after (days)</label>
-            <input type="number" className="input-field" min={1} value={autoCloseAfterDays} onChange={e => setAutoCloseAfterDays(Number(e.target.value) || 1)} />
+            <input data-ui-field="input" type="number" className="input-field" min={1} value={autoCloseAfterDays} onChange={e => setAutoCloseAfterDays(Number(e.target.value) || 1)} />
           </div>
         )}
 
@@ -286,7 +286,7 @@ export const BlissAutomations: React.FC = () => {
                         {canManage && (
                           <Tip label="Delete rule">
                             <button type="button" aria-label="Delete rule" onClick={e => { e.stopPropagation(); handleDelete(rule); }}
-                              style={{ border: 'none', background: 'none', cursor: 'pointer', color: 'var(--ink3)', padding: 2 }} data-ui-native-button="">
+                              style={{ border: 'none', background: 'none', cursor: 'pointer', color: 'var(--ink3)', padding: "var(--action-py) var(--space-md)" }} data-ui-native-button="">
                               <Icon name="trash" size={13} />
                             </button>
                           </Tip>

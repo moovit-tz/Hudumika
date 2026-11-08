@@ -140,13 +140,13 @@ export function CMSSites() {
               display: 'inline-flex',
               alignItems: 'center',
               gap: 8,
-              padding: '8px 16px',
-              borderRadius: 8,
+              padding: "var(--action-py) var(--space-md)",
+              borderRadius: "var(--r-sm)",
               background: 'var(--teal)',
               color: '#fff',
               border: 'none',
               fontWeight: 600,
-              fontSize: 13,
+              fontSize: "var(--text-base)",
               cursor: 'pointer',
             }}
            data-ui-native-button="">
@@ -205,13 +205,13 @@ export function CMSSites() {
             <button
               onClick={openCreate}
               style={{
-                padding: '8px 16px',
-                borderRadius: 8,
+                padding: "var(--action-py) var(--space-md)",
+                borderRadius: "var(--r-sm)",
                 background: 'var(--teal)',
                 color: '#fff',
                 border: 'none',
                 fontWeight: 600,
-                fontSize: 13,
+                fontSize: "var(--text-base)",
                 cursor: 'pointer',
               }}
              data-ui-native-button="">
@@ -283,7 +283,7 @@ export function CMSSites() {
                     <button
                       onClick={() => handleMakeDefault(site)}
                       style={{
-                        fontSize: 12,
+                        fontSize: "var(--text-base)",
                         color: 'var(--teal)',
                         background: 'transparent',
                         border: 'none',
@@ -301,9 +301,9 @@ export function CMSSites() {
                     <button
                       onClick={() => openEdit(site)}
                       style={{
-                        padding: '6px 12px',
-                        fontSize: 12,
-                        borderRadius: 6,
+                        padding: "var(--action-py) var(--space-md)",
+                        fontSize: "var(--text-base)",
+                        borderRadius: "var(--r-sm)",
                         border: '1px solid var(--border)',
                         background: 'var(--surface)',
                         color: 'var(--text)',
@@ -317,9 +317,9 @@ export function CMSSites() {
                       <button
                         onClick={() => handleDelete(site)}
                         style={{
-                          padding: '6px 10px',
-                          fontSize: 12,
-                          borderRadius: 6,
+                          padding: "var(--action-py) var(--space-md)",
+                          fontSize: "var(--text-base)",
+                          borderRadius: "var(--r-sm)",
                           border: '1px solid color-mix(in srgb, var(--red) 30%, var(--border))',
                           background: 'var(--red-l)',
                           color: 'var(--red)',
@@ -379,7 +379,7 @@ export function CMSSites() {
                 <label style={{ display: 'block', fontSize: 13, fontWeight: 600, color: 'var(--text)', marginBottom: 6 }}>
                   Site Name *
                 </label>
-                <input
+                <input data-ui-field="input"
                   type="text"
                   value={form.name}
                   onChange={e => {
@@ -393,12 +393,12 @@ export function CMSSites() {
                   placeholder="e.g. Careers & Recruitment Portal"
                   style={{
                     width: '100%',
-                    padding: '8px 12px',
-                    borderRadius: 8,
+                    padding: "var(--ds-input-py) var(--space-md)",
+                    borderRadius: "var(--r-sm)",
                     border: '1px solid var(--border)',
                     background: 'var(--bg)',
                     color: 'var(--text)',
-                    fontSize: 13,
+                    fontSize: "var(--text-base)",
                   }}
                 />
               </div>
@@ -407,7 +407,7 @@ export function CMSSites() {
                 <label style={{ display: 'block', fontSize: 13, fontWeight: 600, color: 'var(--text)', marginBottom: 6 }}>
                   Site Slug (Identifier) *
                 </label>
-                <input
+                <input data-ui-field="input"
                   type="text"
                   value={form.slug}
                   disabled={!!editingSite}
@@ -415,12 +415,12 @@ export function CMSSites() {
                   placeholder="e.g. careers"
                   style={{
                     width: '100%',
-                    padding: '8px 12px',
-                    borderRadius: 8,
+                    padding: "var(--ds-input-py) var(--space-md)",
+                    borderRadius: "var(--r-sm)",
                     border: '1px solid var(--border)',
                     background: editingSite ? 'var(--bg-muted)' : 'var(--bg)',
                     color: 'var(--text)',
-                    fontSize: 13,
+                    fontSize: "var(--text-base)",
                   }}
                 />
                 <span style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 4, display: 'block' }}>
@@ -432,19 +432,19 @@ export function CMSSites() {
                 <label style={{ display: 'block', fontSize: 13, fontWeight: 600, color: 'var(--text)', marginBottom: 6 }}>
                   Custom Domain (Optional)
                 </label>
-                <input
+                <input data-ui-field="input"
                   type="text"
                   value={form.domain}
                   onChange={e => setForm(f => ({ ...f, domain: e.target.value.toLowerCase().trim() }))}
                   placeholder="e.g. careers.company.com"
                   style={{
                     width: '100%',
-                    padding: '8px 12px',
-                    borderRadius: 8,
+                    padding: "var(--ds-input-py) var(--space-md)",
+                    borderRadius: "var(--r-sm)",
                     border: '1px solid var(--border)',
                     background: 'var(--bg)',
                     color: 'var(--text)',
-                    fontSize: 13,
+                    fontSize: "var(--text-base)",
                   }}
                 />
                 <span style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 4, display: 'block' }}>
@@ -468,12 +468,12 @@ export function CMSSites() {
               <button
                 onClick={() => setModalOpen(false)}
                 style={{
-                  padding: '8px 16px',
-                  borderRadius: 8,
+                  padding: "var(--action-py) var(--space-md)",
+                  borderRadius: "var(--r-sm)",
                   border: '1px solid var(--border)',
                   background: 'transparent',
                   color: 'var(--text)',
-                  fontSize: 13,
+                  fontSize: "var(--text-base)",
                   fontWeight: 500,
                   cursor: 'pointer',
                 }}
@@ -484,12 +484,12 @@ export function CMSSites() {
                 onClick={handleSave}
                 disabled={saving}
                 style={{
-                  padding: '8px 18px',
-                  borderRadius: 8,
+                  padding: "var(--action-py) var(--space-md)",
+                  borderRadius: "var(--r-sm)",
                   border: 'none',
                   background: 'var(--teal)',
                   color: '#fff',
-                  fontSize: 13,
+                  fontSize: "var(--text-base)",
                   fontWeight: 600,
                   cursor: 'pointer',
                   opacity: saving ? 0.7 : 1,

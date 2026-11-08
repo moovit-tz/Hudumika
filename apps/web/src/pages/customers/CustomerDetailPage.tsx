@@ -1693,7 +1693,7 @@ export const CustomerDetailPage: React.FC = () => {
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
               <div style={{ gridColumn: '1 / -1' }}>
                 <label style={{ fontSize: 12, fontWeight: 700, color: 'var(--ink2)', display: 'block', marginBottom: 4 }}>Company Name</label>
-                <input
+                <input data-ui-field="input"
                   className="input-field"
                   style={{ width: '100%' }}
                   value={form.name || ''}
@@ -1702,9 +1702,9 @@ export const CustomerDetailPage: React.FC = () => {
               </div>
               <div>
                 <label style={{ fontSize: 12, fontWeight: 700, color: 'var(--ink2)', display: 'block', marginBottom: 4 }}>Reference Code</label>
-                <input
+                <input data-ui-field="input"
                   className="input-field"
-                  style={{ width: '100%', textTransform: 'uppercase', fontFamily: 'monospace' }}
+                  style={{ width: '100%', textTransform: 'uppercase', fontFamily: "var(--font)" }}
                   placeholder="e.g. ALK"
                   value={form.ref_code || ''}
                   onChange={e => setForm(f => ({ ...f, ref_code: e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 20) }))}
@@ -1713,7 +1713,7 @@ export const CustomerDetailPage: React.FC = () => {
               </div>
               <div>
                 <label style={{ fontSize: 12, fontWeight: 700, color: 'var(--ink2)', display: 'block', marginBottom: 4 }}>Primary Phone</label>
-                <input
+                <input data-ui-field="input"
                   className="input-field"
                   style={{ width: '100%' }}
                   value={form.phone || form.phone_wa || ''}
@@ -1722,7 +1722,7 @@ export const CustomerDetailPage: React.FC = () => {
               </div>
               <div>
                 <label style={{ fontSize: 12, fontWeight: 700, color: 'var(--ink2)', display: 'block', marginBottom: 4 }}>Primary Email</label>
-                <input
+                <input data-ui-field="input"
                   className="input-field"
                   style={{ width: '100%' }}
                   value={form.email || ''}
@@ -1731,7 +1731,7 @@ export const CustomerDetailPage: React.FC = () => {
               </div>
               <div>
                 <label style={{ fontSize: 12, fontWeight: 700, color: 'var(--ink2)', display: 'block', marginBottom: 4 }}>Tax Identification (TIN)</label>
-                <input
+                <input data-ui-field="input"
                   className="input-field"
                   style={{ width: '100%' }}
                   value={form.tax_id || ''}
@@ -1740,7 +1740,7 @@ export const CustomerDetailPage: React.FC = () => {
               </div>
               <div>
                 <label style={{ fontSize: 12, fontWeight: 700, color: 'var(--ink2)', display: 'block', marginBottom: 4 }}>Payment Terms</label>
-                <input
+                <input data-ui-field="input"
                   className="input-field"
                   style={{ width: '100%' }}
                   value={form.payment_terms || form.credit_days || ''}
@@ -1749,7 +1749,7 @@ export const CustomerDetailPage: React.FC = () => {
               </div>
               <div>
                 <label style={{ fontSize: 12, fontWeight: 700, color: 'var(--ink2)', display: 'block', marginBottom: 4 }}>Preferred Port</label>
-                <input
+                <input data-ui-field="input"
                   className="input-field"
                   style={{ width: '100%' }}
                   value={form.preferred_port || ''}
@@ -1758,7 +1758,7 @@ export const CustomerDetailPage: React.FC = () => {
               </div>
               <div>
                 <label style={{ fontSize: 12, fontWeight: 700, color: 'var(--ink2)', display: 'block', marginBottom: 4 }}>City / Location</label>
-                <input
+                <input data-ui-field="input"
                   className="input-field"
                   style={{ width: '100%' }}
                   value={form.city || ''}
@@ -1785,9 +1785,9 @@ export const CustomerDetailPage: React.FC = () => {
           </DialogHeader>
           <DialogBody>
             <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-              <input
+              <input data-ui-field="input"
                 className="input-field"
-                style={{ flex: 1, fontFamily: 'monospace', fontSize: 12 }}
+                style={{ flex: 1, fontFamily: "var(--font)", fontSize: "var(--text-base)" }}
                 readOnly
                 value={window.location.href}
               />
@@ -1821,7 +1821,7 @@ export const CustomerDetailPage: React.FC = () => {
             <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
               <div>
                 <label style={{ fontSize: 12, fontWeight: 700, color: 'var(--ink2)', display: 'block', marginBottom: 4 }}>Full Name</label>
-                <input
+                <input data-ui-field="input"
                   className="input-field"
                   style={{ width: '100%' }}
                   placeholder="e.g. Sarah Jenkins"
@@ -1831,7 +1831,7 @@ export const CustomerDetailPage: React.FC = () => {
               </div>
               <div>
                 <label style={{ fontSize: 12, fontWeight: 700, color: 'var(--ink2)', display: 'block', marginBottom: 4 }}>Job Title / Role</label>
-                <input
+                <input data-ui-field="input"
                   className="input-field"
                   style={{ width: '100%' }}
                   placeholder="e.g. Procurement Lead / Logistics Officer"
@@ -1841,7 +1841,7 @@ export const CustomerDetailPage: React.FC = () => {
               </div>
               <div>
                 <label style={{ fontSize: 12, fontWeight: 700, color: 'var(--ink2)', display: 'block', marginBottom: 4 }}>Direct Email</label>
-                <input
+                <input data-ui-field="input"
                   className="input-field"
                   style={{ width: '100%' }}
                   placeholder="name@company.com"
@@ -1851,7 +1851,7 @@ export const CustomerDetailPage: React.FC = () => {
               </div>
               <div>
                 <label style={{ fontSize: 12, fontWeight: 700, color: 'var(--ink2)', display: 'block', marginBottom: 4 }}>Mobile / WhatsApp</label>
-                <input
+                <input data-ui-field="input"
                   className="input-field"
                   style={{ width: '100%' }}
                   placeholder="+255 700 000 000"
@@ -1896,7 +1896,7 @@ export const CustomerDetailPage: React.FC = () => {
           <DialogBody>
             <div>
               <label style={{ fontSize: 12, fontWeight: 700, color: 'var(--ink2)', display: 'block', marginBottom: 4 }}>Invite Email</label>
-              <input
+              <input data-ui-field="input"
                 className="input-field"
                 style={{ width: '100%' }}
                 placeholder="client@company.com"
@@ -1956,7 +1956,7 @@ export const CustomerDetailPage: React.FC = () => {
               <button
                 type="button"
                 onClick={() => linkDocInputRef.current?.click()}
-                style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 10, width: '100%', padding: '32px 16px', border: '2px dashed var(--border)', borderRadius: 'var(--r)', background: 'var(--bg)', cursor: 'pointer', color: 'var(--ink3)', fontFamily: 'var(--font)', transition: 'background 120ms' }}
+                style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 10, width: '100%', padding: "var(--action-py) var(--space-md)", border: '2px dashed var(--border)', borderRadius: 'var(--r)', background: 'var(--bg)', cursor: 'pointer', color: 'var(--ink3)', fontFamily: 'var(--font)', transition: 'background 120ms' }}
                data-ui-native-button="">
                 <Icon name="upload" size={22} style={{ color: 'var(--teal)' }} />
                 <span style={{ fontSize: 13, fontWeight: 600 }}>Click to select a file</span>
@@ -2006,7 +2006,7 @@ export const CustomerDetailPage: React.FC = () => {
             <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
               <div>
                 <label style={{ fontSize: 12, fontWeight: 700, color: 'var(--ink2)', display: 'block', marginBottom: 5 }}>Agreement Title</label>
-                <input
+                <input data-ui-field="input"
                   className="input-field"
                   style={{ width: '100%' }}
                   placeholder="e.g. Service Level Agreement — Q4 2026"
@@ -2016,7 +2016,7 @@ export const CustomerDetailPage: React.FC = () => {
               </div>
               <div>
                 <label style={{ fontSize: 12, fontWeight: 700, color: 'var(--ink2)', display: 'block', marginBottom: 5 }}>Recipient Email</label>
-                <input
+                <input data-ui-field="input"
                   className="input-field"
                   style={{ width: '100%' }}
                   type="email"
@@ -2028,7 +2028,7 @@ export const CustomerDetailPage: React.FC = () => {
                   <button
                     type="button"
                     onClick={() => setDispatchEmail(sel.email!)}
-                    style={{ marginTop: 5, fontSize: 11, color: 'var(--teal)', background: 'none', border: 'none', cursor: 'pointer', padding: 0, fontFamily: 'var(--font)' }}
+                    style={{ marginTop: 5, fontSize: "var(--text-xs)", color: 'var(--teal)', background: 'none', border: 'none', cursor: 'pointer', padding: 0, fontFamily: 'var(--font)' }}
                    data-ui-native-button="">
                     Use {sel.email}
                   </button>

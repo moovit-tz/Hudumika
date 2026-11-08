@@ -182,9 +182,9 @@ export function DField({ label, children }: { label: string; children: React.Rea
 }
 export function DInput({ value, onChange, placeholder, mono, readOnly }: { value: string; onChange?: (v: string) => void; placeholder?: string; mono?: boolean; readOnly?: boolean }) {
   return (
-    <input className="input-field" title={placeholder} placeholder={placeholder} value={value} readOnly={readOnly}
+    <input data-ui-field="input" className="input-field" title={placeholder} placeholder={placeholder} value={value} readOnly={readOnly}
       onChange={e => onChange?.(e.target.value)}
-      style={{ fontSize: 13, padding: '9px 10px', fontFamily: mono ? 'var(--font)' : undefined }} />
+      style={{ fontSize: "var(--text-base)", padding: "var(--ds-input-py) var(--space-md)", fontFamily: mono ? 'var(--font)' : undefined }} />
   );
 }
 export function DSelect({ value, onChange, options }: { value: string; onChange: (v: string) => void; options: [string, string][] }) {
@@ -461,7 +461,7 @@ export function AdvanceStageModal({ job, onClose, onAdvance, embedded = false }:
       <div style={embedded ? {} : { maxWidth: 560, margin: '0 auto' }}>
         <div style={{ padding: '16px 20px 0 20px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <div style={{ fontSize: 15, fontWeight: 700, color: 'var(--ink)' }}>Advance Stage</div>
-          <button type="button" onClick={onClose} style={{ background: 'var(--bg)', border: 'none', borderRadius: 'var(--r)', cursor: 'pointer', color: 'var(--ink3)', padding: 6, display: 'flex' }} aria-label="Close" data-ui-native-button=""><Icon name="x" size={16} /></button>
+          <button type="button" onClick={onClose} style={{ background: 'var(--bg)', border: 'none', borderRadius: 'var(--r)', cursor: 'pointer', color: 'var(--ink3)', padding: "var(--action-py) var(--space-md)", display: 'flex' }} aria-label="Close" data-ui-native-button=""><Icon name="x" size={16} /></button>
         </div>
         <div style={{ padding: 20 }}>
           <div style={{ marginBottom: 14 }}>
@@ -495,11 +495,11 @@ export function AdvanceStageModal({ job, onClose, onAdvance, embedded = false }:
 
           <div style={{ marginBottom: 14 }}>
             <label style={{ fontSize: 12, fontWeight: 600, color: 'var(--ink2)', display: 'block', marginBottom: 5 }}>Transition Note <span style={{ fontWeight: 400, color: 'var(--ink3)' }}>(visible to listeners)</span></label>
-            <textarea value={note} onChange={e => setNote(e.target.value)} rows={3} placeholder="What was completed? Any key info to share…" style={{ width: '100%', padding: '9px 12px', borderRadius: 'var(--r-sm)', border: '1px solid var(--border)', background: 'var(--white)', color: 'var(--ink)', fontSize: 13, resize: 'none', fontFamily: 'var(--font)', boxSizing: 'border-box' as const }} />
+            <textarea data-ui-field="textarea" value={note} onChange={e => setNote(e.target.value)} rows={3} placeholder="What was completed? Any key info to share…" style={{ width: '100%', padding: "var(--ds-input-py) var(--space-md)", borderRadius: 'var(--r-sm)', border: '1px solid var(--border)', background: 'var(--white)', color: 'var(--ink)', fontSize: "var(--text-base)", resize: 'none', fontFamily: 'var(--font)', boxSizing: 'border-box' as const }} />
           </div>
           <div style={{ marginBottom: 16 }}>
             <label style={{ fontSize: 12, fontWeight: 600, color: 'var(--ink2)', display: 'block', marginBottom: 5 }}>Blocker / Pending <span style={{ fontWeight: 400, color: 'var(--ink3)' }}>(optional)</span></label>
-            <textarea value={blocker} onChange={e => setBlocker(e.target.value)} rows={2} placeholder="Any blockers or outstanding actions?" style={{ width: '100%', padding: '9px 12px', borderRadius: 'var(--r-sm)', border: '1px solid var(--border)', background: 'var(--white)', color: 'var(--ink)', fontSize: 13, resize: 'none', fontFamily: 'var(--font)', boxSizing: 'border-box' as const }} />
+            <textarea data-ui-field="textarea" value={blocker} onChange={e => setBlocker(e.target.value)} rows={2} placeholder="Any blockers or outstanding actions?" style={{ width: '100%', padding: "var(--ds-input-py) var(--space-md)", borderRadius: 'var(--r-sm)', border: '1px solid var(--border)', background: 'var(--white)', color: 'var(--ink)', fontSize: "var(--text-base)", resize: 'none', fontFamily: 'var(--font)', boxSizing: 'border-box' as const }} />
           </div>
           <div style={{ marginBottom: 20 }}>
             <label style={{ fontSize: 12, fontWeight: 600, color: 'var(--ink2)', display: 'block', marginBottom: 8 }}>Notify via</label>
@@ -507,7 +507,7 @@ export function AdvanceStageModal({ job, onClose, onAdvance, embedded = false }:
               {(['internal', 'whatsapp', 'email', 'teams', 'sms'] as Channel[]).map(ch => {
                 const cfg = CH_CFG[ch]; const on = chans.includes(ch);
                 return (
-                  <button key={ch} type="button" onClick={() => toggle(ch)} style={{ padding: 'var(--ds-btn-py-sm) 12px', borderRadius: 'var(--badge-radius)', fontSize: 12, fontWeight: 600, cursor: 'pointer', border: `1px solid ${on ? cfg.color : 'var(--border)'}`, background: on ? cfg.bg : 'var(--white)', color: on ? cfg.color : 'var(--ink3)', transition: 'all 0.15s', minHeight: 'var(--ctl-h-sm)', boxSizing: 'border-box', lineHeight: 1.25}} data-ui-native-button="">
+                  <button key={ch} type="button" onClick={() => toggle(ch)} style={{ padding: 'var(--ds-btn-py-sm) 12px', borderRadius: 'var(--badge-radius)', fontSize: "var(--text-base)", fontWeight: 600, cursor: 'pointer', border: `1px solid ${on ? cfg.color : 'var(--border)'}`, background: on ? cfg.bg : 'var(--white)', color: on ? cfg.color : 'var(--ink3)', transition: 'all 0.15s', minHeight: 'var(--ctl-h-sm)', boxSizing: 'border-box', lineHeight: 1.25}} data-ui-native-button="">
                     {cfg.label}
                   </button>
                 );
@@ -515,8 +515,8 @@ export function AdvanceStageModal({ job, onClose, onAdvance, embedded = false }:
             </div>
           </div>
           <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end' }}>
-            <button type="button" onClick={onClose} style={{ padding: 'var(--ds-btn-py) 20px', border: '1px solid var(--border)', borderRadius: 'var(--r)', background: 'var(--white)', color: 'var(--ink)', fontSize: 13, cursor: 'pointer', minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}} data-ui-native-button="">Cancel</button>
-            <button type="button" disabled={!selected} onClick={() => selected && onAdvance(selected, note, blocker, chans)} style={{ padding: 'var(--ds-btn-py) 20px', background: selected ? 'hsl(var(--primary))' : 'var(--border)', color: selected ? 'hsl(var(--primary-foreground))' : 'var(--ink3)', border: 'none', borderRadius: 'var(--r)', fontSize: 13, fontWeight: 700, cursor: selected ? 'pointer' : 'default', minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}} data-ui-native-button="">
+            <button type="button" onClick={onClose} style={{ padding: 'var(--ds-btn-py) 20px', border: '1px solid var(--border)', borderRadius: 'var(--r)', background: 'var(--white)', color: 'var(--ink)', fontSize: "var(--text-base)", cursor: 'pointer', minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}} data-ui-native-button="">Cancel</button>
+            <button type="button" disabled={!selected} onClick={() => selected && onAdvance(selected, note, blocker, chans)} style={{ padding: 'var(--ds-btn-py) 20px', background: selected ? 'hsl(var(--primary))' : 'var(--border)', color: selected ? 'hsl(var(--primary-foreground))' : 'var(--ink3)', border: 'none', borderRadius: 'var(--r)', fontSize: "var(--text-base)", fontWeight: 700, cursor: selected ? 'pointer' : 'default', minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}} data-ui-native-button="">
               Update Stage →
             </button>
           </div>
@@ -585,7 +585,7 @@ export function DocVerifyList({ job, shipmentId, isLive, onRefresh }: { job: Cle
           {d.status === 'VERIFIED' ? (
             <span style={{ fontSize: 10.5, fontWeight: 700, padding: '2px 8px', borderRadius: 'var(--badge-radius)', background: 'var(--green-l)', color: 'var(--green)', display: 'inline-flex', alignItems: 'center', gap: 3 }}><Icon name="checkCircle" size={11} color="var(--green)" /> Verified</span>
           ) : canVerify ? (
-            <button type="button" onClick={() => verify(d.id)} disabled={verifying === d.id} style={{ fontSize: 11, fontWeight: 700, padding: 'var(--ds-btn-py-xs) 10px', borderRadius: 'var(--r)', border: '1px solid var(--green)', background: 'var(--white)', color: 'var(--green)', cursor: verifying === d.id ? 'default' : 'pointer', minHeight: 'var(--ctl-h-xs)', boxSizing: 'border-box', lineHeight: 1.25 }} data-ui-native-button="">
+            <button type="button" onClick={() => verify(d.id)} disabled={verifying === d.id} style={{ fontSize: "var(--text-xs)", fontWeight: 700, padding: 'var(--ds-btn-py-xs) 10px', borderRadius: 'var(--r)', border: '1px solid var(--green)', background: 'var(--white)', color: 'var(--green)', cursor: verifying === d.id ? 'default' : 'pointer', minHeight: 'var(--ctl-h-xs)', boxSizing: 'border-box', lineHeight: 1.25 }} data-ui-native-button="">
               {verifying === d.id ? '…' : 'Verify'}
             </button>
           ) : <span style={{ fontSize: 11, color: 'var(--ink3)' }}>{d.status === 'RECEIVED' ? 'Received' : ''}</span>}
@@ -1210,11 +1210,11 @@ export function DeclarationTab({ job, shipmentId, isLive, onRefresh }: { job: Cl
           </div>
           <div style={{ display: 'flex', gap: 6, flexShrink: 0 }}>
             <button type="button" onClick={() => { localStorage.removeItem(`ocrDecl_${job.id}`); setOcrBanner(null); }}
-              style={{ fontSize: 11, color: 'var(--ink3)', background: 'none', border: '1px solid var(--border)', borderRadius: 'var(--r)', padding: 'var(--ds-btn-py-xs) 10px', cursor: 'pointer', minHeight: 'var(--ctl-h-xs)', boxSizing: 'border-box', lineHeight: 1.25}} data-ui-native-button="">
+              style={{ fontSize: "var(--text-xs)", color: 'var(--ink3)', background: 'none', border: '1px solid var(--border)', borderRadius: 'var(--r)', padding: 'var(--ds-btn-py-xs) 10px', cursor: 'pointer', minHeight: 'var(--ctl-h-xs)', boxSizing: 'border-box', lineHeight: 1.25}} data-ui-native-button="">
               Dismiss
             </button>
             <button type="button" onClick={applyOcrData}
-              style={{ fontSize: 11, fontWeight: 700, color: 'hsl(var(--primary-foreground))', background: 'hsl(var(--primary))', border: 'none', borderRadius: 'var(--r)', padding: 'var(--ds-btn-py-xs) 12px', cursor: 'pointer', minHeight: 'var(--ctl-h-xs)', boxSizing: 'border-box', lineHeight: 1.25}} data-ui-native-button="">
+              style={{ fontSize: "var(--text-xs)", fontWeight: 700, color: 'hsl(var(--primary-foreground))', background: 'hsl(var(--primary))', border: 'none', borderRadius: 'var(--r)', padding: 'var(--ds-btn-py-xs) 12px', cursor: 'pointer', minHeight: 'var(--ctl-h-xs)', boxSizing: 'border-box', lineHeight: 1.25}} data-ui-native-button="">
               Apply OCR data
             </button>
           </div>
@@ -1302,10 +1302,10 @@ export function DeclarationTab({ job, shipmentId, isLive, onRefresh }: { job: Cl
                 <DField label="TIN"><DInput value={parties[key].tin} onChange={v => setParties(p => ({ ...p, [key]: { ...p[key], tin: v } }))} placeholder="Company TIN" mono /></DField>
                 <DField label="Country"><DInput value={parties[key].country} onChange={v => setParties(p => ({ ...p, [key]: { ...p[key], country: v } }))} placeholder="CN" /></DField>
                 <DField label="Company Name">
-                  <input className="input-field" title="Company name" placeholder="Company name" value={parties[key].name} onChange={e => setParties(p => ({ ...p, [key]: { ...p[key], name: e.target.value } }))} style={{ fontSize: 12, padding: '5px 8px' }} />
+                  <input data-ui-field="input" className="input-field" title="Company name" placeholder="Company name" value={parties[key].name} onChange={e => setParties(p => ({ ...p, [key]: { ...p[key], name: e.target.value } }))} style={{ fontSize: "var(--text-base)", padding: "var(--ds-input-py) var(--space-md)" }} />
                 </DField>
                 <DField label="Address">
-                  <input className="input-field" title="Address" placeholder="Street, City" value={parties[key].address} onChange={e => setParties(p => ({ ...p, [key]: { ...p[key], address: e.target.value } }))} style={{ fontSize: 12, padding: '5px 8px' }} />
+                  <input data-ui-field="input" className="input-field" title="Address" placeholder="Street, City" value={parties[key].address} onChange={e => setParties(p => ({ ...p, [key]: { ...p[key], address: e.target.value } }))} style={{ fontSize: "var(--text-base)", padding: "var(--ds-input-py) var(--space-md)" }} />
                 </DField>
               </div>
             </div>
@@ -1453,7 +1453,7 @@ export function DeclarationTab({ job, shipmentId, isLive, onRefresh }: { job: Cl
               )}
               <ValuationSignalBadge hsCode={line.hs} countryOfOrigin={line.origin} />
               <DField label="Description of Goods">
-                <input className="input-field" title="Goods description" placeholder="Full description per invoice" value={line.desc} onChange={e => setItems(p => p.map((l, j) => j === i ? { ...l, desc: e.target.value } : l))} style={{ fontSize: 12, padding: '5px 8px', marginTop: 2 }} />
+                <input data-ui-field="input" className="input-field" title="Goods description" placeholder="Full description per invoice" value={line.desc} onChange={e => setItems(p => p.map((l, j) => j === i ? { ...l, desc: e.target.value } : l))} style={{ fontSize: "var(--text-base)", padding: "var(--ds-input-py) var(--space-md)", marginTop: 2 }} />
               </DField>
               <div className="decl-grid" style={{ marginTop: 8 }}>
                 <DField label="Quantity"><DInput value={line.qty} onChange={v => setItems(p => p.map((l, j) => j === i ? { ...l, qty: v } : l))} placeholder="550" mono /></DField>

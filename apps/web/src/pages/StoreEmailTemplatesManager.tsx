@@ -596,7 +596,7 @@ function DetailDialog({
                       className="setm-zoom-btn"
                       onClick={resetView}
                       aria-label="Reset pan position"
-                      style={{ borderLeft: '1px solid var(--border)', marginLeft: 2, paddingLeft: 6 }}
+                      style={{ borderLeft: '1px solid var(--border)', marginLeft: 2, paddingLeft: "var(--space-md)" }}
                      data-ui-native-button="">
                       <Icon name="refresh" size={12} />
                     </button>
@@ -1033,7 +1033,7 @@ export function StoreEmailTemplatesManager({ embedded = false }: { embedded?: bo
           {/* Search Box */}
           <div className="setm-search-box">
             <Icon name="search" size={15} className="setm-search-icon" />
-            <input
+            <input data-ui-field="input" data-field-appearance="bare"
               className="setm-search-input"
               placeholder="Search templates, subjects or keywords…"
               value={search}

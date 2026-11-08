@@ -301,7 +301,7 @@ Tone: ${tone}. Format as clean, structured HTML with proper headings, sections, 
               onChange={e => setTitle(e.target.value)}
               placeholder="e.g. Master Services Agreement, Commercial Lease, NDA, Employment Contract..."
               autoFocus
-              style={{ height: 40 }}
+              style={{ height: "var(--ctl-h)" }}
             />
           </div>
 
@@ -391,7 +391,7 @@ Tone: ${tone}. Format as clean, structured HTML with proper headings, sections, 
                 value={partyOne}
                 onChange={e => setPartyOne(e.target.value)}
                 placeholder="e.g. Acme Logistics Ltd / John Doe"
-                style={{ height: 38 }}
+                style={{ height: "var(--ctl-h)" }}
               />
             </div>
 
@@ -403,7 +403,7 @@ Tone: ${tone}. Format as clean, structured HTML with proper headings, sections, 
                 value={partyTwo}
                 onChange={e => setPartyTwo(e.target.value)}
                 placeholder="e.g. Global Freight Partners / Jane Smith"
-                style={{ height: 38 }}
+                style={{ height: "var(--ctl-h)" }}
               />
             </div>
           </div>
@@ -421,7 +421,7 @@ Tone: ${tone}. Format as clean, structured HTML with proper headings, sections, 
               onChange={e => setRequirements(e.target.value)}
               placeholder="Describe what needs to be included (e.g. scope of services, delivery milestones, $15,000 monthly fee, 14-day payment grace period, 3-year confidentiality, 30 days termination notice)..."
               rows={4}
-              style={{ fontSize: 13, lineHeight: 1.5 }}
+              style={{ fontSize: "var(--text-base)", lineHeight: 1.5 }}
             />
 
             {/* Quick Helper Chips */}
@@ -431,7 +431,7 @@ Tone: ${tone}. Format as clean, structured HTML with proper headings, sections, 
               </span>
               <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginTop: 4 }}>
                 {QUICK_CLAUSES.map(c => (
-                  <button
+                  <button data-ui-native-button=""
                     key={c.label}
                     type="button"
                     onClick={() => handleAddClause(c.text)}
@@ -439,8 +439,8 @@ Tone: ${tone}. Format as clean, structured HTML with proper headings, sections, 
                       background: 'var(--bg)',
                       border: '1px solid var(--border, #cbd5e1)',
                       borderRadius: 9999,
-                      padding: '3px 9px',
-                      fontSize: 11,
+                      padding: "var(--action-py) var(--space-md)",
+                      fontSize: "var(--text-xs)",
                       color: 'var(--ink2, #334155)',
                       cursor: 'pointer',
                       transition: 'all 0.15s ease',

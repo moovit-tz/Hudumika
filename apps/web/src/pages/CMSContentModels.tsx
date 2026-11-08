@@ -75,14 +75,14 @@ export function CMSContentModelsList() {
             <div style={{ fontWeight: 700, fontSize: 14, color: 'var(--ink)', marginBottom: 14 }}>New content model</div>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
               <FL label="Name (singular)">
-                <input className="input-field" value={form.name} placeholder="e.g. Product"
+                <input data-ui-field="input" className="input-field" value={form.name} placeholder="e.g. Product"
                   onChange={e => setForm(f => ({ ...f, name: e.target.value, key: f.key || autoKey(e.target.value) }))} />
               </FL>
-              <FL label="Name (plural)"><input className="input-field" value={form.name_plural} placeholder="e.g. Products" onChange={e => setForm(f => ({ ...f, name_plural: e.target.value }))} /></FL>
+              <FL label="Name (plural)"><input data-ui-field="input" className="input-field" value={form.name_plural} placeholder="e.g. Products" onChange={e => setForm(f => ({ ...f, name_plural: e.target.value }))} /></FL>
               <FL label="Key (used in URLs, can't change later)">
-                <input className="input-field" style={{ fontFamily: 'var(--font)' }} value={form.key} placeholder="product" onChange={e => setForm(f => ({ ...f, key: autoKey(e.target.value) }))} />
+                <input data-ui-field="input" className="input-field" style={{ fontFamily: 'var(--font)' }} value={form.key} placeholder="product" onChange={e => setForm(f => ({ ...f, key: autoKey(e.target.value) }))} />
               </FL>
-              <FL label="Description"><input className="input-field" value={form.description} onChange={e => setForm(f => ({ ...f, description: e.target.value }))} /></FL>
+              <FL label="Description"><input data-ui-field="input" className="input-field" value={form.description} onChange={e => setForm(f => ({ ...f, description: e.target.value }))} /></FL>
               <FL label="Icon">
                 <Select value={form.icon} onValueChange={v => setForm(f => ({ ...f, icon: v }))}>
                   <SelectTrigger className="input-field"><SelectValue /></SelectTrigger>
@@ -270,11 +270,11 @@ export function CMSContentModelDetail() {
                   <tr key={f.id} style={{ borderBottom: '1px solid var(--border)' }}>
                     <td style={{ padding: '10px 4px', whiteSpace: 'nowrap' }}>
                       <button onClick={() => handleMoveField(f.id, 'up')} disabled={i === 0} title="Move up"
-                        style={{ background: 'none', border: 'none', cursor: i === 0 ? 'default' : 'pointer', opacity: i === 0 ? 0.3 : 1, padding: 2 }} data-ui-native-button="">
+                        style={{ background: 'none', border: 'none', cursor: i === 0 ? 'default' : 'pointer', opacity: i === 0 ? 0.3 : 1, padding: "var(--action-py) var(--space-md)" }} data-ui-native-button="">
                         <Icon name="arrowUp" size={13} />
                       </button>
                       <button onClick={() => handleMoveField(f.id, 'down')} disabled={i === (model.fields ?? []).length - 1} title="Move down"
-                        style={{ background: 'none', border: 'none', cursor: i === (model.fields ?? []).length - 1 ? 'default' : 'pointer', opacity: i === (model.fields ?? []).length - 1 ? 0.3 : 1, padding: 2 }} data-ui-native-button="">
+                        style={{ background: 'none', border: 'none', cursor: i === (model.fields ?? []).length - 1 ? 'default' : 'pointer', opacity: i === (model.fields ?? []).length - 1 ? 0.3 : 1, padding: "var(--action-py) var(--space-md)" }} data-ui-native-button="">
                         <Icon name="arrowDown" size={13} />
                       </button>
                     </td>
@@ -309,7 +309,7 @@ export function CMSContentModelDetail() {
                       </label>
                     </td>
                     <td style={{ padding: '10px 16px', textAlign: 'right' }}>
-                      <button onClick={() => handleDeleteField(f.id, f.label)} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 11, color: 'var(--red)' }} data-ui-native-button="">Remove</button>
+                      <button onClick={() => handleDeleteField(f.id, f.label)} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: "var(--text-xs)", color: 'var(--red)' }} data-ui-native-button="">Remove</button>
                     </td>
                   </tr>
                 ))}
@@ -323,7 +323,7 @@ export function CMSContentModelDetail() {
 
         {addingField ? (
           <div className="card" style={{ padding: '18px 20px', marginTop: 14, display: 'flex', flexDirection: 'column', gap: 12 }}>
-            <FL label="Label"><input className="input-field" value={fieldForm.label} placeholder="e.g. Price" onChange={e => setFieldForm(f => ({ ...f, label: e.target.value }))} /></FL>
+            <FL label="Label"><input data-ui-field="input" className="input-field" value={fieldForm.label} placeholder="e.g. Price" onChange={e => setFieldForm(f => ({ ...f, label: e.target.value }))} /></FL>
             <FL label="Type">
               <Select value={fieldForm.field_type} onValueChange={v => setFieldForm(f => ({ ...f, field_type: v as CmsFieldType }))}>
                 <SelectTrigger className="input-field"><SelectValue /></SelectTrigger>
@@ -331,7 +331,7 @@ export function CMSContentModelDetail() {
               </Select>
             </FL>
             {fieldForm.field_type === 'select' && (
-              <FL label="Options (comma-separated)"><input className="input-field" value={fieldForm.options} placeholder="Draft, In Stock, Sold Out" onChange={e => setFieldForm(f => ({ ...f, options: e.target.value }))} /></FL>
+              <FL label="Options (comma-separated)"><input data-ui-field="input" className="input-field" value={fieldForm.options} placeholder="Draft, In Stock, Sold Out" onChange={e => setFieldForm(f => ({ ...f, options: e.target.value }))} /></FL>
             )}
             {fieldForm.field_type === 'relation' && (
               <FL label="Relates to">
@@ -356,7 +356,7 @@ export function CMSContentModelDetail() {
             )}
             {fieldForm.field_type === 'computed' && (
               <FL label="Formula">
-                <input
+                <input data-ui-field="input"
                   className="input-field"
                   style={{ fontFamily: 'var(--font)' }}
                   value={fieldForm.formula}
@@ -368,7 +368,7 @@ export function CMSContentModelDetail() {
                 </div>
               </FL>
             )}
-            <FL label="Help text (optional)"><input className="input-field" value={fieldForm.help_text} onChange={e => setFieldForm(f => ({ ...f, help_text: e.target.value }))} /></FL>
+            <FL label="Help text (optional)"><input data-ui-field="input" className="input-field" value={fieldForm.help_text} onChange={e => setFieldForm(f => ({ ...f, help_text: e.target.value }))} /></FL>
             {fieldForm.field_type !== 'computed' && (
               <label style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 12.5 }}>
                 <Checkbox checked={fieldForm.required} onCheckedChange={checked => setFieldForm(f => ({ ...f, required: Boolean(checked) }))} /> Required
@@ -386,7 +386,7 @@ export function CMSContentModelDetail() {
         )}
 
         <div style={{ marginTop: 32, paddingTop: 18, borderTop: '1px solid var(--border)' }}>
-          <button onClick={handleDeleteModel} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 12.5, color: 'var(--red)' }} data-ui-native-button="">Delete this model</button>
+          <button onClick={handleDeleteModel} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: "var(--text-base)", color: 'var(--red)' }} data-ui-native-button="">Delete this model</button>
         </div>
       </div>
     </div>

@@ -128,7 +128,7 @@ export function OnsiteProjects() {
               <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
                 <div className="onsite-form-group">
                   <label>Project Name *</label>
-                  <input
+                  <input data-ui-field="input"
                     type="text"
                     className="onsite-input"
                     placeholder="e.g. Acme Corp Portal"
@@ -139,7 +139,7 @@ export function OnsiteProjects() {
                 </div>
                 <div className="onsite-form-group">
                   <label>Description</label>
-                  <textarea
+                  <textarea data-ui-field="textarea"
                     className="onsite-textarea"
                     placeholder="Client infrastructure for Acme Corp"
                     value={description}

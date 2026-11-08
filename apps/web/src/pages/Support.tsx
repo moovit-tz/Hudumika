@@ -491,14 +491,14 @@ export const Support: React.FC<{
             <form onSubmit={handleCreate} className="spt-modal-form">
               <div className="spt-modal-field">
                 <label className="spt-modal-label">Subject *</label>
-                <input required className="spt-modal-input" value={newForm.subject}
+                <input data-ui-field="input" required className="spt-modal-input" value={newForm.subject}
                   onChange={e => setNewForm(p => ({ ...p, subject: e.target.value }))}
                   placeholder="Brief summary of the issue" />
               </div>
               <div className="spt-modal-grid">
                 <div className="spt-modal-field">
                   <label className="spt-modal-label">Customer *</label>
-                  <input required list="cust-list" className="spt-modal-input" value={newForm.customer}
+                  <input data-ui-field="input" required list="cust-list" className="spt-modal-input" value={newForm.customer}
                     onChange={e => { const v = e.target.value; const m = custMap.get(v.toLowerCase()); setNewForm(p => ({ ...p, customer: v, customer_id: m?.id || '' })); }}
                     placeholder="Customer name" />
                   <datalist id="cust-list">{custNames.map(c => <option key={c} value={c} />)}</datalist>
@@ -528,7 +528,7 @@ export const Support: React.FC<{
               </div>
               <div className="spt-modal-field">
                 <label className="spt-modal-label">Description</label>
-                <textarea rows={3} className="spt-modal-textarea" value={newForm.description}
+                <textarea data-ui-field="textarea" rows={3} className="spt-modal-textarea" value={newForm.description}
                   onChange={e => setNewForm(p => ({ ...p, description: e.target.value }))}
                   placeholder="Detailed message or initial inquiry…" />
               </div>
@@ -577,7 +577,7 @@ export const Support: React.FC<{
                         style={{
                           background: 'none',
                           border: 'none',
-                          fontSize: 28,
+                          fontSize: "var(--text-base)",
                           color: active ? 'var(--gold)' : 'var(--border)',
                           cursor: 'pointer',
                           transition: 'transform 0.15s ease',
@@ -605,13 +605,13 @@ export const Support: React.FC<{
                         type="button"
                         onClick={() => setNpsScore(score)}
                         style={{
-                          width: 30,
-                          height: 30,
+                          width: "var(--ctl-h)",
+                          height: "var(--ctl-h)",
                           borderRadius: '50%',
                           border: active ? 'none' : '1px solid var(--border)',
                           background: active ? 'var(--teal)' : 'var(--white)',
                           color: active ? 'hsl(var(--primary-foreground))' : 'var(--ink)',
-                          fontSize: 12,
+                          fontSize: "var(--text-base)",
                           fontWeight: 700,
                           cursor: 'pointer',
                         }}
@@ -625,7 +625,7 @@ export const Support: React.FC<{
 
               <div className="spt-modal-field">
                 <label className="spt-modal-label">Additional Comments (Optional)</label>
-                <textarea
+                <textarea data-ui-field="textarea"
                   rows={2}
                   className="spt-modal-textarea"
                   value={feedbackText}

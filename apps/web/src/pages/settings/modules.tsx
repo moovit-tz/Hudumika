@@ -276,7 +276,7 @@ export const ModulesSection: React.FC = () => {
           <div className="s-mods-search-icon">
             <Icon name="search" size={15} />
           </div>
-          <input
+          <input data-ui-field="input" data-field-appearance="bare"
             type="text"
             placeholder="Search modules by name, category, or features…"
             value={searchQuery}
@@ -320,7 +320,7 @@ export const ModulesSection: React.FC = () => {
         <div className="s-mods-toolbar-actions">
           {/* Status Dropdown */}
           <Select value={selectedStatus} onValueChange={v => setSelectedStatus(v as any)}>
-            <SelectTrigger className="s-mods-status-trigger" style={{ height: 36 }}>
+            <SelectTrigger className="s-mods-status-trigger" style={{ height: "var(--ctl-h)" }}>
               <SelectValue placeholder="All Statuses" />
             </SelectTrigger>
             <SelectContent>
@@ -351,7 +351,7 @@ export const ModulesSection: React.FC = () => {
                 size="sm"
                 onClick={enableAllModules}
                 disabled={savingBulk}
-                style={{ height: 36, whiteSpace: 'nowrap' }}
+                style={{ height: "var(--ctl-h)", whiteSpace: 'nowrap' }}
               >
                 <Icon name="check" size={13} style={{ marginRight: 4 }} />
                 Enable All
@@ -361,7 +361,7 @@ export const ModulesSection: React.FC = () => {
                 size="sm"
                 onClick={resetModulesToDefault}
                 disabled={savingBulk}
-                style={{ height: 36, color: 'var(--ink3)', whiteSpace: 'nowrap' }}
+                style={{ height: "var(--ctl-h)", color: 'var(--ink3)', whiteSpace: 'nowrap' }}
               >
                 Reset Defaults
               </Button>
@@ -753,12 +753,12 @@ export function AppLicensePanel({
                         Granted Members ({grants.length})
                       </div>
                       {grants.length > 3 && (
-                        <input
+                        <input data-ui-field="input"
                           type="text"
                           placeholder="Filter members…"
                           value={searchGrantQuery}
                           onChange={e => setSearchGrantQuery(e.target.value)}
-                          style={{ fontSize: 11.5, padding: '3px 8px', borderRadius: 'var(--r-sm)', border: '1px solid var(--border)', background: 'var(--bg)', width: 140 }}
+                          style={{ fontSize: "var(--text-base)", padding: "var(--ds-input-py) var(--space-md)", borderRadius: 'var(--r-sm)', border: '1px solid var(--border)', background: 'var(--bg)', width: 140 }}
                         />
                       )}
                     </div>

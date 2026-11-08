@@ -213,7 +213,7 @@ export function OnsiteApplicationDetail() {
             </p>
 
             <form onSubmit={handleAddSecret} style={{ display: 'flex', gap: '0.75rem', marginTop: '0.5rem', flexWrap: 'wrap' }}>
-              <input
+              <input data-ui-field="input"
                 type="text"
                 className="onsite-input"
                 placeholder="VARIABLE_NAME"
@@ -222,7 +222,7 @@ export function OnsiteApplicationDetail() {
                 style={{ flex: 1, minWidth: '160px' }}
                 required
               />
-              <input
+              <input data-ui-field="input"
                 type="password"
                 className="onsite-input"
                 placeholder="Secret value"
@@ -298,11 +298,11 @@ export function OnsiteApplicationDetail() {
               <form onSubmit={handleAddEnvironment} style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', marginTop: '1rem', paddingTop: '1rem', borderTop: '1px solid var(--border)' }}>
                 <div className="onsite-form-group">
                   <label>Environment name *</label>
-                  <input type="text" className="onsite-input" placeholder="staging" value={envName} onChange={(e) => setEnvName(e.target.value)} required />
+                  <input data-ui-field="input" type="text" className="onsite-input" placeholder="staging" value={envName} onChange={(e) => setEnvName(e.target.value)} required />
                 </div>
                 <div className="onsite-form-group">
                   <label>Branch</label>
-                  <input type="text" className="onsite-input" placeholder="develop" value={envBranch} onChange={(e) => setEnvBranch(e.target.value)} />
+                  <input data-ui-field="input" type="text" className="onsite-input" placeholder="develop" value={envBranch} onChange={(e) => setEnvBranch(e.target.value)} />
                 </div>
                 <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.5rem' }}>
                   <Button type="button" variant="outline" size="sm" onClick={() => setShowAddEnv(false)}>

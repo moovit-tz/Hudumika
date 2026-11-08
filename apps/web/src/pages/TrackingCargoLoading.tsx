@@ -407,17 +407,17 @@ function CargoUnitDialog({
               <label style={{ fontSize: 12, fontWeight: 700, color: 'var(--ink2)', display: 'block', marginBottom: 4 }}>
                 Unit Type
               </label>
-              <select
+              <select data-ui-field="select"
                 value={unitType}
                 onChange={(e) => setUnitType(e.target.value)}
                 style={{
                   width: '100%',
-                  height: 36,
+                  height: "var(--ctl-h)",
                   padding: '0 10px',
-                  borderRadius: 6,
+                  borderRadius: "var(--r-sm)",
                   border: '1px solid var(--border)',
                   background: 'var(--card-bg)',
-                  fontSize: 13,
+                  fontSize: "var(--text-base)",
                   color: 'var(--ink)',
                 }}
               >
@@ -1449,7 +1449,7 @@ export const TrackingCargoLoading: React.FC = () => {
                   <label style={{ fontSize: 12, fontWeight: 700, color: 'var(--ink2)', display: 'block', marginBottom: 4 }}>
                     Trailer Unit (Optional)
                   </label>
-                  <select
+                  <select data-ui-field="select"
                     value={selectedTrailerId}
                     onChange={(e) => {
                       setSelectedTrailerId(e.target.value);
@@ -1457,12 +1457,12 @@ export const TrackingCargoLoading: React.FC = () => {
                     }}
                     style={{
                       width: '100%',
-                      height: 38,
+                      height: "var(--ctl-h)",
                       padding: '0 10px',
-                      borderRadius: 6,
+                      borderRadius: "var(--r-sm)",
                       border: '1px solid var(--border)',
                       background: 'var(--card-bg)',
-                      fontSize: 13,
+                      fontSize: "var(--text-base)",
                       color: 'var(--ink)',
                     }}
                   >
@@ -1479,7 +1479,7 @@ export const TrackingCargoLoading: React.FC = () => {
                   <label style={{ fontSize: 12, fontWeight: 700, color: 'var(--ink2)', display: 'block', marginBottom: 4 }}>
                     Warehouse Facility
                   </label>
-                  <select
+                  <select data-ui-field="select"
                     value={selectedLocationId}
                     onChange={(e) => {
                       setSelectedLocationId(e.target.value);
@@ -1487,12 +1487,12 @@ export const TrackingCargoLoading: React.FC = () => {
                     }}
                     style={{
                       width: '100%',
-                      height: 38,
+                      height: "var(--ctl-h)",
                       padding: '0 10px',
-                      borderRadius: 6,
+                      borderRadius: "var(--r-sm)",
                       border: '1px solid var(--border)',
                       background: 'var(--card-bg)',
-                      fontSize: 13,
+                      fontSize: "var(--text-base)",
                       color: 'var(--ink)',
                     }}
                   >
@@ -1646,7 +1646,7 @@ export const TrackingCargoLoading: React.FC = () => {
                                 size="sm"
                                 variant="ghost"
                                 onClick={() => { setEditingItem(it); setShowItemModal(true); }}
-                                style={{ height: 26, fontSize: 11, marginRight: 4 }}
+                                style={{ height: "var(--ctl-h)", fontSize: "var(--text-xs)", marginRight: 4 }}
                               >
                                 Edit
                               </Button>
@@ -1661,7 +1661,7 @@ export const TrackingCargoLoading: React.FC = () => {
                                   }
                                   setItems(prev => prev.filter(x => x.id !== it.id));
                                 }}
-                                style={{ height: 26, fontSize: 11, color: 'var(--red)' }}
+                                style={{ height: "var(--ctl-h)", fontSize: "var(--text-xs)", color: 'var(--red)' }}
                               >
                                 Remove
                               </Button>
@@ -1878,7 +1878,7 @@ export const TrackingCargoLoading: React.FC = () => {
                                 const val = Math.max(0, parseInt(e.target.value) || 0);
                                 setItems(prev => prev.map(x => x.id === it.id ? { ...x, loaded_quantity: val } : x));
                               }}
-                              style={{ height: 32, fontWeight: 700 }}
+                              style={{ height: "var(--ctl-h)", fontWeight: 700 }}
                             />
                           </td>
                           <td style={{ padding: '10px 12px', width: 120 }}>
@@ -1891,7 +1891,7 @@ export const TrackingCargoLoading: React.FC = () => {
                                 const val = Math.max(0, parseInt(e.target.value) || 0);
                                 setItems(prev => prev.map(x => x.id === it.id ? { ...x, damaged_quantity: val } : x));
                               }}
-                              style={{ height: 32, color: damaged > 0 ? 'var(--red)' : 'inherit' }}
+                              style={{ height: "var(--ctl-h)", color: damaged > 0 ? 'var(--red)' : 'inherit' }}
                             />
                           </td>
                           <td style={{ padding: '10px 12px' }}>
@@ -1902,7 +1902,7 @@ export const TrackingCargoLoading: React.FC = () => {
                                 const val = e.target.value;
                                 setItems(prev => prev.map(x => x.id === it.id ? { ...x, damage_description: val } : x));
                               }}
-                              style={{ height: 32, fontSize: 12 }}
+                              style={{ height: "var(--ctl-h)", fontSize: "var(--text-base)" }}
                             />
                           </td>
                           <td style={{ padding: '10px 12px' }}>

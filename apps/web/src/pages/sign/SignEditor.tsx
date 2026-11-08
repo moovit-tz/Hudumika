@@ -1191,7 +1191,7 @@ export function SignEditor() {
             <>
               <div className="sign-panel-title" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                 <span>AI Scan</span>
-                <Button variant="ghost" size="icon" onClick={() => setAiAssist(null)} style={{ height: 20, width: 20, minHeight: 0, color: 'var(--ink3)' }}><Icon name="x" size={13} /></Button>
+                <Button variant="ghost" size="icon" onClick={() => setAiAssist(null)} style={{ height: "var(--ctl-h-xs)", width: "var(--ctl-h-xs)", minHeight: "var(--ctl-h-xs)", color: 'var(--ink3)' }}><Icon name="x" size={13} /></Button>
               </div>
               <div style={{ margin: '0 12px 16px' }}>
                 {!aiAssist.available ? (

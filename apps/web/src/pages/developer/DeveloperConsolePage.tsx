@@ -481,23 +481,23 @@ function DeveloperProjectsTab({
               <div className="dev-modal-body">
                 <div>
                   <label style={{ display: 'block', fontSize: 13, fontWeight: 700, marginBottom: 6 }}>Project Name *</label>
-                  <input
+                  <input data-ui-field="input"
                     type="text"
                     required
                     placeholder="e.g. Acme KYC Integration"
                     value={newProjectName}
                     onChange={e => setNewProjectName(e.target.value)}
-                    style={{ width: '100%', padding: '8px 12px', borderRadius: 'var(--r)', border: '1px solid var(--border)', fontSize: 13 }}
+                    style={{ width: '100%', padding: "var(--ds-input-py) var(--space-md)", borderRadius: 'var(--r)', border: '1px solid var(--border)', fontSize: "var(--text-base)" }}
                   />
                 </div>
                 <div>
                   <label style={{ display: 'block', fontSize: 13, fontWeight: 700, marginBottom: 6 }}>Description</label>
-                  <textarea
+                  <textarea data-ui-field="textarea"
                     placeholder="What is this project integrating?"
                     value={newProjectDesc}
                     onChange={e => setNewProjectDesc(e.target.value)}
                     rows={3}
-                    style={{ width: '100%', padding: '8px 12px', borderRadius: 'var(--r)', border: '1px solid var(--border)', fontSize: 13 }}
+                    style={{ width: '100%', padding: "var(--ds-input-py) var(--space-md)", borderRadius: 'var(--r)', border: '1px solid var(--border)', fontSize: "var(--text-base)" }}
                   />
                 </div>
               </div>
@@ -700,13 +700,13 @@ function DeveloperCredentialsTab({
                 <div className="dev-modal-body">
                   <div>
                     <label style={{ display: 'block', fontSize: 13, fontWeight: 700, marginBottom: 6 }}>Key Name *</label>
-                    <input
+                    <input data-ui-field="input"
                       type="text"
                       required
                       placeholder="e.g. Backend Server Key"
                       value={keyName}
                       onChange={e => setKeyName(e.target.value)}
-                      style={{ width: '100%', padding: '8px 12px', borderRadius: 'var(--r)', border: '1px solid var(--border)', fontSize: 13 }}
+                      style={{ width: '100%', padding: "var(--ds-input-py) var(--space-md)", borderRadius: 'var(--r)', border: '1px solid var(--border)', fontSize: "var(--text-base)" }}
                     />
                   </div>
                   <div style={{ fontSize: 12, color: 'var(--ink3)' }}>
@@ -931,13 +931,13 @@ function DeveloperMarketplaceTab({
             type="button"
             onClick={() => setCategoryFilter(cat)}
             style={{
-              padding: '6px 14px',
+              padding: "var(--action-py) var(--space-md)",
               borderRadius: 'var(--r-sm)',
               border: '1px solid var(--border)',
               background: categoryFilter === cat ? 'hsl(var(--primary))' : 'var(--white)',
               color: categoryFilter === cat ? 'hsl(var(--primary-foreground))' : 'var(--ink)',
               fontWeight: 700,
-              fontSize: 12,
+              fontSize: "var(--text-base)",
               textTransform: 'capitalize',
               cursor: 'pointer',
             }}
@@ -1140,7 +1140,7 @@ function DeveloperBillingTab({ account }: { account: DeveloperAccount }) {
                         type="button"
                         onClick={() => setTopUpAmount(amt)}
                         style={{
-                          padding: '10px',
+                          padding: "var(--action-py) var(--space-md)",
                           borderRadius: 'var(--r)',
                           border: `1px solid ${topUpAmount === amt ? 'var(--teal)' : 'var(--border)'}`,
                           background: topUpAmount === amt ? 'var(--teal-l)' : 'var(--white)',
@@ -1265,13 +1265,13 @@ function DeveloperOrganizationTab({ account }: { account: DeveloperAccount }) {
               <div className="dev-modal-body">
                 <div>
                   <label style={{ display: 'block', fontSize: 13, fontWeight: 700, marginBottom: 6 }}>User Email *</label>
-                  <input
+                  <input data-ui-field="input"
                     type="email"
                     required
                     placeholder="teammate@company.com"
                     value={inviteEmail}
                     onChange={e => setInviteEmail(e.target.value)}
-                    style={{ width: '100%', padding: '8px 12px', borderRadius: 'var(--r)', border: '1px solid var(--border)', fontSize: 13 }}
+                    style={{ width: '100%', padding: "var(--ds-input-py) var(--space-md)", borderRadius: 'var(--r)', border: '1px solid var(--border)', fontSize: "var(--text-base)" }}
                   />
                 </div>
                 <div>

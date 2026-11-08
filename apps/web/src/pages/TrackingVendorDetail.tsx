@@ -252,11 +252,11 @@ function EditVendorModal({
 
           <div>
             <label style={labelStyle}>Agreed Commercial Terms &amp; Scope Notes</label>
-            <textarea
+            <textarea data-ui-field="textarea"
               value={notes}
               onChange={e => setNotes(e.target.value)}
               rows={3}
-              style={{ width: '100%', boxSizing: 'border-box', padding: '8px 12px', fontSize: 13, borderRadius: 'var(--r-sm)', border: '1px solid var(--border)', background: 'var(--input-bg, var(--surface))', color: 'var(--ink)', fontFamily: 'inherit' }}
+              style={{ width: '100%', boxSizing: 'border-box', padding: "var(--ds-input-py) var(--space-md)", fontSize: "var(--text-base)", borderRadius: 'var(--r-sm)', border: '1px solid var(--border)', background: 'var(--input-bg, var(--surface))', color: 'var(--ink)', fontFamily: "var(--font)" }}
               placeholder="Commercial rates, warranties, account reference, contact persons..."
             />
           </div>
@@ -1040,19 +1040,19 @@ export const TrackingVendorDetail: React.FC = () => {
         {/* Integrated Quick-Action Bar */}
         <div className="trk-vd-quick-actions-bar">
           <div className="trk-vd-action-group">
-            <button type="button" className="trk-vd-btn primary" onClick={() => setShowExpenseModal(true)}>
+            <button data-ui-native-button="" type="button" className="trk-vd-btn primary" onClick={() => setShowExpenseModal(true)}>
               <Icon name="dollarSign" size={13} /> + Expense
             </button>
-            <button type="button" className="trk-vd-btn" onClick={() => setShowMaintenanceModal(true)}>
+            <button data-ui-native-button="" type="button" className="trk-vd-btn" onClick={() => setShowMaintenanceModal(true)}>
               <Icon name="tool" size={13} color="var(--teal)" /> + Work Order
             </button>
-            <button type="button" className="trk-vd-btn" onClick={() => setShowFuelModal(true)}>
+            <button data-ui-native-button="" type="button" className="trk-vd-btn" onClick={() => setShowFuelModal(true)}>
               <Icon name="zap" size={13} color="var(--gold)" /> + Fuel
             </button>
-            <button type="button" className="trk-vd-btn" onClick={() => setShowPartModal(true)}>
+            <button data-ui-native-button="" type="button" className="trk-vd-btn" onClick={() => setShowPartModal(true)}>
               <Icon name="package" size={13} color="var(--teal)" /> + Part
             </button>
-            <button type="button" className="trk-vd-btn" onClick={() => setShowEditModal(true)}>
+            <button data-ui-native-button="" type="button" className="trk-vd-btn" onClick={() => setShowEditModal(true)}>
               <Icon name="edit" size={13} /> Edit Particulars
             </button>
           </div>

@@ -258,7 +258,7 @@ export const StepPackage: React.FC<StepProps> = ({ draft, update, onNext, onBack
 
         <div className="ob-package-controls">
           {/* Billing Cycle Toggle */}
-          <div className="ob-billing-toggle">
+          <div className="ob-billing-toggle" data-ds-tabs-exempt="">
             <button
               type="button"
               className={`ob-billing-opt${draft.billing_cycle === 'monthly' ? ' ob-billing-opt--active' : ''}`}
@@ -275,13 +275,13 @@ export const StepPackage: React.FC<StepProps> = ({ draft, update, onNext, onBack
               aria-pressed={draft.billing_cycle === 'annual'}
               data-ui-native-button=""
             >
-              {t('onboarding.annual')}
+              <span>{t('onboarding.annual')}</span>
               <span className="ob-save-badge">Save ~17%</span>
             </button>
           </div>
 
           {/* Standalone Product vs Full Plan Switcher */}
-          <div className="ob-billing-toggle">
+          <div className="ob-billing-toggle" data-ds-tabs-exempt="">
             <button
               type="button"
               className={`ob-billing-opt${mode === 'plan' ? ' ob-billing-opt--active' : ''}`}
@@ -320,7 +320,9 @@ export const StepPackage: React.FC<StepProps> = ({ draft, update, onNext, onBack
         <div className="ob-tailor-package-apps">
           {(tailorApps.length ? tailorApps : ['gereji', 'seal', 'ngao', 'projects']).map(app => (
             <span key={app} className="ob-tailor-app-tag">
-              <span className="ob-app-check">✓</span>
+              <span className="ob-app-check">
+                <Icon name="check" size={12} />
+              </span>
               <span>{CORE_APP_DISPLAY[app] || app.charAt(0).toUpperCase() + app.slice(1)}</span>
             </span>
           ))}
@@ -387,7 +389,9 @@ export const StepPackage: React.FC<StepProps> = ({ draft, update, onNext, onBack
                     <ul className="ob-product-bullets">
                       {meta.bullets.map((b, idx) => (
                         <li key={idx}>
-                          <span className="ob-bullet-check">✓</span>
+                          <span className="ob-bullet-check">
+                            <Icon name="check" size={12} />
+                          </span>
                           <span>{b}</span>
                         </li>
                       ))}
@@ -492,57 +496,70 @@ export const StepPackage: React.FC<StepProps> = ({ draft, update, onNext, onBack
                     </div>
                   )}
 
-                  {/* Title & Badge */}
-                  <div className="ob-pkg-header-row">
-                    <div className="ob-pkg-name">{pkg.name}</div>
-                    {isPro && <span className="ob-badge-popular-green">{t('onboarding.popular')}</span>}
+                  {/* Sticky Card Top Header & Subscription Action (Google Workspace style) */}
+                  <div className="ob-pkg-card-sticky-top">
+                    {/* Title & Badge */}
+                    <div className="ob-pkg-header-row">
+                      <div className="ob-pkg-name">{pkg.name}</div>
+                      {isPro && <span className="ob-badge-popular-green">{t('onboarding.popular')}</span>}
+                    </div>
+
+                    <p className="ob-pkg-tagline">{persona}</p>
+
+                    {/* Price */}
+                    {isCustom ? (
+                      <div className="ob-pkg-price-block">
+                        <div className="ob-pkg-price ob-pkg-price--custom">
+                          Custom
+                        </div>
+                        <div className="ob-pkg-custom-note">Metered per enterprise quotation</div>
+                      </div>
+                    ) : (
+                      <div className="ob-pkg-price-block">
+                        <div className="ob-pkg-price">
+                          <span className="ob-pkg-price-val">{displayPrice}</span>
+                          {priceUnit && <span className="ob-pkg-price-unit">{priceUnit}</span>}
+                          {seatsNote && <span className="ob-pkg-seats-note">{seatsNote}</span>}
+                        </div>
+                        {annualNote && (
+                          <div className="ob-pkg-annual-note">{annualNote}</div>
+                        )}
+                      </div>
+                    )}
+
+                    {/* Action Button */}
+                    <button
+                      type="button"
+                      className={`ob-pkg-btn ${selected ? 'ob-pkg-btn--solid' : 'ob-pkg-btn--outline'}`}
+                      onClick={(e) => { e.stopPropagation(); update({ package_code: pkg.code }); }}
+                      aria-pressed={selected}
+                      data-ui-native-button=""
+                    >
+                      {selected ? t('onboarding.selectedPlan') : isCustom ? t('onboarding.contactSales') : t('onboarding.buyPlan')}
+                    </button>
                   </div>
-
-                  <p className="ob-pkg-tagline">{persona}</p>
-
-                  {/* Price */}
-                  {isCustom ? (
-                    <div className="ob-pkg-price ob-pkg-price--custom">
-                      Custom
-                      <span className="ob-pkg-custom-note">Metered per enterprise quotation</span>
-                    </div>
-                  ) : (
-                    <div className="ob-pkg-price">
-                      <span className="ob-pkg-price-val">{displayPrice}</span>
-                      {priceUnit && <span className="ob-pkg-price-unit">{priceUnit}</span>}
-                      {seatsNote && <span className="ob-pkg-seats-note">{seatsNote}</span>}
-                      {annualNote && (
-                        <span className="ob-pkg-annual-note">{annualNote}</span>
-                      )}
-                    </div>
-                  )}
-
-                  {/* Action Button */}
-                  <button
-                    type="button"
-                    className={`ob-pkg-btn ${selected ? 'ob-pkg-btn--solid' : 'ob-pkg-btn--outline'}`}
-                    onClick={(e) => { e.stopPropagation(); update({ package_code: pkg.code }); }}
-                    aria-pressed={selected}
-                    data-ui-native-button=""
-                  >
-                    {selected ? t('onboarding.selectedPlan') : isCustom ? t('onboarding.contactSales') : t('onboarding.buyPlan')}
-                  </button>
 
                   {/* Feature Groups */}
                   <div className="ob-pkg-group">
                     <div className="ob-pkg-group-title">Users & Workspaces</div>
                     <ul className="ob-pkg-feature-list">
                       <li className="ob-pkg-feature-item">
-                        <span className="ob-pkg-feature-icon">✓</span>
+                        <span className="ob-pkg-feature-icon">
+                          <Icon name="check" size={11} />
+                        </span>
                         <span>{pkg.max_users === 0 ? 'Unlimited users' : `${pkg.included_seats || pkg.max_users} users included`}</span>
                         {isPro && <span className="ob-boosted-pill"><Icon name="trendingUp" size={12} />Boosted</span>}
                       </li>
                       <li className="ob-pkg-feature-item">
-                        <span className="ob-pkg-feature-icon">✓</span>
+                        <span className="ob-pkg-feature-icon">
+                          <Icon name="check" size={11} />
+                        </span>
                         <span>{pkg.max_locations === 0 ? 'Unlimited locations' : `Up to ${pkg.max_locations ?? 1} location${(pkg.max_locations ?? 1) > 1 ? 's' : ''}`}</span>
                       </li>
                       <li className="ob-pkg-feature-item">
-                        <span className="ob-pkg-feature-icon">✓</span>
+                        <span className="ob-pkg-feature-icon">
+                          <Icon name="check" size={11} />
+                        </span>
                         <span>Built for East African enterprises</span>
                       </li>
                     </ul>
@@ -552,17 +569,23 @@ export const StepPackage: React.FC<StepProps> = ({ draft, update, onNext, onBack
                     <div className="ob-pkg-group-title">Operations & Logistics</div>
                     <ul className="ob-pkg-feature-list">
                       <li className="ob-pkg-feature-item">
-                        <span className="ob-pkg-feature-icon">✓</span>
+                        <span className="ob-pkg-feature-icon">
+                          <Icon name="check" size={11} />
+                        </span>
                         <span>{pkg.monthly_item_limit ? `${pkg.monthly_item_limit.toLocaleString()} shipments / month` : isScale ? '2,000 shipments / month' : isPro ? '500 shipments / month' : '100 shipments / month'}</span>
                         {isPro && <span className="ob-boosted-pill"><Icon name="trendingUp" size={12} />Boosted</span>}
                       </li>
                       <li className="ob-pkg-feature-item">
-                        <span className="ob-pkg-feature-icon">✓</span>
+                        <span className="ob-pkg-feature-icon">
+                          <Icon name="check" size={11} />
+                        </span>
                         <span>Customs & TANCIS integration</span>
                       </li>
                       {(isPro || isScale) && (
                         <li className="ob-pkg-feature-item">
-                          <span className="ob-pkg-feature-icon">✓</span>
+                          <span className="ob-pkg-feature-icon">
+                            <Icon name="check" size={11} />
+                          </span>
                           <span>Demurrage Risk Radar</span>
                           {isPro && <span className="ob-boosted-pill"><Icon name="trendingUp" size={12} />Boosted</span>}
                         </li>
@@ -574,11 +597,15 @@ export const StepPackage: React.FC<StepProps> = ({ draft, update, onNext, onBack
                     <div className="ob-pkg-group-title">Storage & AI Compliance</div>
                     <ul className="ob-pkg-feature-list">
                       <li className="ob-pkg-feature-item">
-                        <span className="ob-pkg-feature-icon">✓</span>
+                        <span className="ob-pkg-feature-icon">
+                          <Icon name="check" size={11} />
+                        </span>
                         <span>{storageLabel(pkg)}</span>
                       </li>
                       <li className="ob-pkg-feature-item">
-                        <span className="ob-pkg-feature-icon">✓</span>
+                        <span className="ob-pkg-feature-icon">
+                          <Icon name="check" size={11} />
+                        </span>
                         <span>OCR & Document AI extraction</span>
                       </li>
                     </ul>
@@ -610,6 +637,9 @@ export const StepPackage: React.FC<StepProps> = ({ draft, update, onNext, onBack
 
             {showMatrix && (
               <div id="google-workspace-comparison" className="ob-matrix-container" role="region" aria-label="Feature comparison">
+                <div className="ob-matrix-swipe-hint">
+                  <span>← Swipe horizontally to compare plans →</span>
+                </div>
                 <table className="ob-gw-matrix-table">
                   {/* Sticky Table Header */}
                   <thead>
@@ -685,7 +715,9 @@ export const StepPackage: React.FC<StepProps> = ({ draft, update, onNext, onBack
                                 >
                                   {typeof val === 'boolean' ? (
                                     val ? (
-                                      <span className="ob-matrix-check" title="Included">✓</span>
+                                      <span className="ob-matrix-check" title="Included">
+                                        <Icon name="check" size={12} />
+                                      </span>
                                     ) : (
                                       <span className="ob-matrix-dash" title="Not included">—</span>
                                     )

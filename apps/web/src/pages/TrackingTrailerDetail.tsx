@@ -98,7 +98,7 @@ export const TrackingTrailerDetail: React.FC = () => {
           title="Documents"
           action={
             <button type="button" onClick={() => setAddingDoc(a => !a)}
-              style={{ fontSize: 12, fontWeight: 600, color: 'var(--teal)', background: 'none', border: 'none', cursor: 'pointer' }} data-ui-native-button="">
+              style={{ fontSize: "var(--text-base)", fontWeight: 600, color: 'var(--teal)', background: 'none', border: 'none', cursor: 'pointer' }} data-ui-native-button="">
               <Icon name={addingDoc ? 'x' : 'plus'} size={13} /> {addingDoc ? 'Cancel' : 'Add document'}
             </button>
           }
@@ -111,8 +111,8 @@ export const TrackingTrailerDetail: React.FC = () => {
                   {DOC_TYPES.map(d => <SelectItem key={d} value={d}>{d}</SelectItem>)}
                 </SelectContent>
               </Select>
-              <input placeholder="Document number" value={docNumber} onChange={e => setDocNumber(e.target.value)} style={{ padding: '8px 10px', borderRadius: 'var(--r)', border: '1px solid var(--border)', fontFamily: 'var(--font)', fontSize: 12.5, flex: 1, minWidth: 120 }} />
-              <input type="date" value={docExpiry} onChange={e => setDocExpiry(e.target.value)} style={{ padding: '8px 10px', borderRadius: 'var(--r)', border: '1px solid var(--border)', fontFamily: 'var(--font)', fontSize: 12.5 }} />
+              <input data-ui-field="input" placeholder="Document number" value={docNumber} onChange={e => setDocNumber(e.target.value)} style={{ padding: "var(--ds-input-py) var(--space-md)", borderRadius: 'var(--r)', border: '1px solid var(--border)', fontFamily: 'var(--font)', fontSize: "var(--text-base)", flex: 1, minWidth: 120 }} />
+              <input data-ui-field="input" type="date" value={docExpiry} onChange={e => setDocExpiry(e.target.value)} style={{ padding: "var(--ds-input-py) var(--space-md)", borderRadius: 'var(--r)', border: '1px solid var(--border)', fontFamily: 'var(--font)', fontSize: "var(--text-base)" }} />
               <Button type="submit" size="sm">Save</Button>
             </form>
           )}

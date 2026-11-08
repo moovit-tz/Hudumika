@@ -928,7 +928,7 @@ export const StaffDetail: React.FC = () => {
                 {/* More Dropdown Menu */}
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
-                    <button
+                    <button data-ui-native-button=""
                       type="button"
                       className={`staff-more-tabs-btn${isSecondaryActive ? ' is-active' : ''}`}
                       data-state={isSecondaryActive ? 'active' : 'inactive'}
@@ -1051,10 +1051,10 @@ export const StaffDetail: React.FC = () => {
                         <span className="staff-field-label">Performance Review</span>
                         <span className="staff-field-value" style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
                           <span>{performanceDisplay.num}</span>
-                          <button
+                          <button data-ui-native-button=""
                             type="button"
                             onClick={() => setTab('Performance')}
-                            style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer', color: 'var(--teal)', fontSize: 12, fontWeight: 600 }}
+                            style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer', color: 'var(--teal)', fontSize: "var(--text-base)", fontWeight: 600 }}
                           >
                             (Reviews &rarr;)
                           </button>
@@ -1064,10 +1064,10 @@ export const StaffDetail: React.FC = () => {
                         <span className="staff-field-label">Learning &amp; Growth</span>
                         <span className="staff-field-value" style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
                           <span>Active records</span>
-                          <button
+                          <button data-ui-native-button=""
                             type="button"
                             onClick={() => setTab('Learning & Dev')}
-                            style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer', color: 'var(--teal)', fontSize: 12, fontWeight: 600 }}
+                            style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer', color: 'var(--teal)', fontSize: "var(--text-base)", fontWeight: 600 }}
                           >
                             (Training &rarr;)
                           </button>
@@ -1177,7 +1177,7 @@ export const StaffDetail: React.FC = () => {
                     <span>Attendance &amp; Leave Overview</span>
                   </h2>
                   <div style={{ display: 'flex', gap: 10, fontSize: 12 }}>
-                    <button
+                    <button data-ui-native-button=""
                       type="button"
                       onClick={() => setTab('Attendance')}
                       style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer', color: 'var(--teal)', fontWeight: 600 }}
@@ -1185,7 +1185,7 @@ export const StaffDetail: React.FC = () => {
                       Attendance &rarr;
                     </button>
                     <span style={{ color: 'var(--ink3)' }}>&bull;</span>
-                    <button
+                    <button data-ui-native-button=""
                       type="button"
                       onClick={() => setTab('Leaves')}
                       style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer', color: 'var(--teal)', fontWeight: 600 }}

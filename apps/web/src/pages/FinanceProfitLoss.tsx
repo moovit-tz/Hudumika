@@ -243,7 +243,7 @@ export const FinanceProfitLoss: React.FC = () => {
         actions={
           <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
             {canSegmentByBusinessLine && <Select value={businessLineId} onValueChange={setBusinessLineId}>
-              <SelectTrigger aria-label="Business line" style={{ width: 190, height: 34, padding: '0 10px', fontSize: 12, fontWeight: 600 }}><SelectValue placeholder="All business lines" /></SelectTrigger>
+              <SelectTrigger aria-label="Business line" style={{ width: 190, height: "var(--ctl-h)", padding: '0 10px', fontSize: "var(--text-base)", fontWeight: 600 }}><SelectValue placeholder="All business lines" /></SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">All business lines</SelectItem>
                 {(financeConfiguration.data?.businessLines ?? []).map(line => (
@@ -252,7 +252,7 @@ export const FinanceProfitLoss: React.FC = () => {
               </SelectContent>
             </Select>}
             <Select value={period} onValueChange={setPeriod}>
-              <SelectTrigger aria-label="Period" style={{ width: 'auto', height: 34, padding: '0 10px', fontSize: 12, fontWeight: 600 }}><SelectValue /></SelectTrigger>
+              <SelectTrigger aria-label="Period" style={{ width: 'auto', height: "var(--ctl-h)", padding: '0 10px', fontSize: "var(--text-base)", fontWeight: 600 }}><SelectValue /></SelectTrigger>
               <SelectContent>
                 {PERIODS.map(p => <SelectItem key={p} value={p}>{p}</SelectItem>)}
               </SelectContent>
@@ -283,7 +283,7 @@ export const FinanceProfitLoss: React.FC = () => {
             sub2Label: 'GROSS PROFIT', sub2Value: fmtM(grossProfit), barHighlight: 'var(--red)',
           },
           {
-            title: 'Net Profit', value: fmtM(netProfit), icon: 'checkCircle',
+            emphasis: 'primary', title: 'Net Profit', value: fmtM(netProfit), icon: 'checkCircle',
             sub1Label: 'NET MARGIN', sub1Value: `${netMargin}%`,
             sub2Label: 'OPERATING PROFIT', sub2Value: fmtM(operatingProfit), barHighlight: 'var(--green)',
           },

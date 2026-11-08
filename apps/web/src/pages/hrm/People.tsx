@@ -121,13 +121,13 @@ export function EmployeesPage() {
         {/* Search */}
         <div style={{ position: 'relative', width: 260 }}>
           <Icon name="search" size={13} color="var(--ink3)" style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)' }} />
-          <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search name or email—"
-            style={{ width: '100%', padding: '7px 10px 7px 32px', border: '1px solid var(--border)', borderRadius: 'var(--r)', fontFamily: 'var(--font)', fontSize: 13, background: 'var(--white)', color: 'var(--ink)', boxSizing: 'border-box' as const }} />
+          <input data-ui-field="input" value={search} onChange={e => setSearch(e.target.value)} placeholder="Search name or email—"
+            style={{ width: '100%', padding: "var(--ds-input-py) var(--space-md)", border: '1px solid var(--border)', borderRadius: 'var(--r)', fontFamily: 'var(--font)', fontSize: "var(--text-base)", background: 'var(--white)', color: 'var(--ink)', boxSizing: 'border-box' as const }} />
         </div>
 
         {/* Dept filter */}
         <Select value={deptF || '__all__'} onValueChange={v => setDeptF(v === '__all__' ? '' : v)}>
-          <SelectTrigger style={{ width: 'auto', padding: '7px 10px', height: 'auto' }}><SelectValue /></SelectTrigger>
+          <SelectTrigger style={{ width: 'auto', padding: "var(--ds-input-py) var(--space-md)", height: 'auto' }}><SelectValue /></SelectTrigger>
           <SelectContent>
             <SelectItem value="__all__">All Departments</SelectItem>
             {depts.map(d => <SelectItem key={d} value={d}>{d}</SelectItem>)}
@@ -241,7 +241,7 @@ export function EmployeesPage() {
             }}>
               <div style={{ marginBottom: 16 }}>
                 <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: 'var(--ink)', marginBottom: 4 }}>Work Email</label>
-                <input name="email" type="email" required placeholder="john@company.com" style={{ width: '100%', padding: '8px 12px', border: '1px solid var(--border)', borderRadius: 'var(--r)', boxSizing: 'border-box' as const, fontFamily: 'var(--font)' }} />
+                <input data-ui-field="input" name="email" type="email" required placeholder="john@company.com" style={{ width: '100%', padding: "var(--ds-input-py) var(--space-md)", border: '1px solid var(--border)', borderRadius: 'var(--r)', boxSizing: 'border-box' as const, fontFamily: 'var(--font)' }} />
               </div>
               <div style={{ marginBottom: 24 }}>
                 <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: 'var(--ink)', marginBottom: 4 }}>System Role</label>
@@ -375,7 +375,7 @@ export function RolesPage() {
           </Tabs>
           {dirty && (
             <button type="button" onClick={save} disabled={saving}
-              style={{ display:'flex', alignItems:'center', gap:6, padding:'var(--ds-btn-py) 16px', borderRadius:'var(--r)', border:'none', background: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))', fontWeight:700, fontSize:13, fontFamily:'var(--font)', cursor:'pointer', minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}} data-ui-native-button="">
+              style={{ display:'flex', alignItems:'center', gap:6, padding:'var(--ds-btn-py) 16px', borderRadius:'var(--r)', border:'none', background: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))', fontWeight:700, fontSize:"var(--text-base)", fontFamily:'var(--font)', cursor:'pointer', minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}} data-ui-native-button="">
               <Icon name="save" size={14} color="hsl(var(--primary-foreground))" />{saving ? 'Saving—' : 'Save Changes'}
             </button>
           )}
@@ -390,8 +390,8 @@ export function RolesPage() {
         <>
           {/* Filter */}
           <div style={{ marginBottom:16, maxWidth:340 }}>
-            <input value={filter} onChange={e => setFilter(e.target.value)} placeholder="Filter modules—"
-              style={{ width:'100%', padding:'8px 12px', border:'1px solid var(--border)', borderRadius: 'var(--r)', fontSize:13, fontFamily:'var(--font)', color:'var(--ink)', background:'var(--white)', boxSizing:'border-box' as const }} />
+            <input data-ui-field="input" value={filter} onChange={e => setFilter(e.target.value)} placeholder="Filter modules—"
+              style={{ width:'100%', padding:"var(--ds-input-py) var(--space-md)", border:'1px solid var(--border)', borderRadius: 'var(--r)', fontSize:"var(--text-base)", fontFamily:'var(--font)', color:'var(--ink)', background:'var(--white)', boxSizing:'border-box' as const }} />
           </div>
 
           <div style={{ background:'var(--white)', borderRadius: 'var(--r)', border:'1px solid var(--border)', overflow:'hidden', marginBottom:24 }}>
@@ -435,7 +435,7 @@ export function RolesPage() {
                           return (
                             <td key={`${key}-${a}`} style={{ padding:'6px 4px', textAlign:'center', borderLeft: a === 'view' ? '2px solid var(--border)' : undefined }}>
                               <button type="button" onClick={() => toggle(key, res, a)}
-                                style={{ width:20, height:20, borderRadius:'var(--r-sm)', border:`2px solid ${on ? meta.color : 'var(--border)'}`,
+                                style={{ width:"var(--ctl-h-xs)", height:"var(--ctl-h-xs)", borderRadius:'var(--r-sm)', border:`2px solid ${on ? meta.color : 'var(--border)'}`,
                                   background: on ? meta.color : 'transparent', cursor:'pointer',
                                   display:'inline-flex', alignItems:'center', justifyContent:'center', transition:'all 0.1s' }} data-ui-native-button="">
                                 {on && <Icon name="check" size={10} color="#fff" />}
@@ -555,7 +555,7 @@ export function RolesPage() {
                         return (
                           <td key={a} style={{ padding:'8px 12px', textAlign:'center' }}>
                             <button type="button" onClick={() => toggle(selected, res, a)}
-                              style={{ width:22, height:22, borderRadius:'var(--r-sm)', border:`2px solid ${on ? selMeta.color : 'var(--border)'}`,
+                              style={{ width:"var(--ctl-h-xs)", height:"var(--ctl-h-xs)", borderRadius:'var(--r-sm)', border:`2px solid ${on ? selMeta.color : 'var(--border)'}`,
                                 background: on ? selMeta.color : 'transparent', cursor:'pointer',
                                 display:'inline-flex', alignItems:'center', justifyContent:'center', transition:'all 0.12s' }} data-ui-native-button="">
                               {on && <Icon name="check" size={11} color="#fff" />}
@@ -568,7 +568,7 @@ export function RolesPage() {
                           const on = isAllowed(selected, res, a);
                           if (on !== !allOn) toggle(selected, res, a);
                         })}
-                          style={{ fontSize:11, fontWeight:700, padding:'var(--ds-btn-py-xs) 8px', borderRadius:'var(--r)', border:'none', cursor:'pointer',
+                          style={{ fontSize:"var(--text-xs)", fontWeight:700, padding:'var(--ds-btn-py-xs) 8px', borderRadius:'var(--r)', border:'none', cursor:'pointer',
                             background: allOn ? selMeta.bg : 'var(--bg)', color: allOn ? selMeta.color : 'var(--ink3)', fontFamily:'var(--font)', minHeight: 'var(--ctl-h-xs)', boxSizing: 'border-box', lineHeight: 1.25}} data-ui-native-button="">
                           {allOn ? 'Revoke all' : 'Grant all'}
                         </button>
@@ -766,7 +766,7 @@ export function DeleteRequestsPage() {
             </div>
             <div style={{ flex: 1, minWidth: 200 }}>
               <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: 'var(--ink2)', marginBottom: 4 }}>Reason</label>
-              <input name="reason" placeholder="e.g. Resigned from company" style={{ width: '100%', padding: '7px 10px', border: '1px solid var(--border)', borderRadius: 'var(--r)', fontFamily: 'var(--font)', fontSize: 13, boxSizing: 'border-box' as const }} />
+              <input data-ui-field="input" name="reason" placeholder="e.g. Resigned from company" style={{ width: '100%', padding: "var(--ds-input-py) var(--space-md)", border: '1px solid var(--border)', borderRadius: 'var(--r)', fontFamily: 'var(--font)', fontSize: "var(--text-base)", boxSizing: 'border-box' as const }} />
             </div>
             <PrimaryBtn label="Submit Request" type="submit" />
           </form>
@@ -808,7 +808,7 @@ function DeptForm({ staff, initial, onCancel, onSubmit }: {
       }} style={{ padding: 16, display: 'flex', gap: 12, alignItems: 'flex-end', flexWrap: 'wrap' }}>
         <div style={{ flex: 1, minWidth: 180 }}>
           <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: 'var(--ink2)', marginBottom: 4 }}>Department Name</label>
-          <input name="name" required defaultValue={initial?.name} placeholder="e.g. Operations" style={{ width: '100%', padding: '7px 10px', border: '1px solid var(--border)', borderRadius: 'var(--r)', fontFamily: 'var(--font)', fontSize: 13, boxSizing: 'border-box' as const }} />
+          <input data-ui-field="input" name="name" required defaultValue={initial?.name} placeholder="e.g. Operations" style={{ width: '100%', padding: "var(--ds-input-py) var(--space-md)", border: '1px solid var(--border)', borderRadius: 'var(--r)', fontFamily: 'var(--font)', fontSize: "var(--text-base)", boxSizing: 'border-box' as const }} />
         </div>
         <div>
           <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: 'var(--ink2)', marginBottom: 4 }}>Head</label>
@@ -960,7 +960,7 @@ export function TeamsPage() {
           }} style={{ padding: 16, display: 'flex', gap: 12, alignItems: 'flex-end', flexWrap: 'wrap' }}>
             <div style={{ flex: 1, minWidth: 180 }}>
               <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: 'var(--ink2)', marginBottom: 4 }}>Team Name</label>
-              <input name="name" required placeholder="e.g. Finance Team" style={{ width: '100%', padding: '7px 10px', border: '1px solid var(--border)', borderRadius: 'var(--r)', fontFamily: 'var(--font)', fontSize: 13, boxSizing: 'border-box' as const }} />
+              <input data-ui-field="input" name="name" required placeholder="e.g. Finance Team" style={{ width: '100%', padding: "var(--ds-input-py) var(--space-md)", border: '1px solid var(--border)', borderRadius: 'var(--r)', fontFamily: 'var(--font)', fontSize: "var(--text-base)", boxSizing: 'border-box' as const }} />
             </div>
             <div>
               <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: 'var(--ink2)', marginBottom: 4 }}>Team Lead</label>

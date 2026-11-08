@@ -381,7 +381,7 @@ export function SmsSenderIds() {
                                 size="sm"
                                 variant="ghost"
                                 onClick={() => handleSetDefault(gateway.id, item)}
-                                style={{ fontSize: 11.5, height: 24, padding: '0 8px' }}
+                                style={{ fontSize: "var(--text-base)", height: "var(--ctl-h)", padding: '0 8px' }}
                               >
                                 Set as default
                               </Button>

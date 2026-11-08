@@ -284,7 +284,7 @@ export function SimpleWysiwygEditor({
             )}
 
             <Select value={category} onValueChange={setCategory}>
-              <SelectTrigger style={{ height: 32, minWidth: 140, fontSize: 12 }}>
+              <SelectTrigger style={{ height: "var(--ctl-h)", minWidth: 140, fontSize: "var(--text-base)" }}>
                 <SelectValue placeholder="Category" />
               </SelectTrigger>
               <SelectContent>
@@ -546,7 +546,7 @@ export function SimpleWysiwygEditor({
                   <div style={{ flex: 1 }}>
                     <label style={{ fontSize: 12, fontWeight: 600, display: 'block', marginBottom: 4 }}>Alignment</label>
                     <Select value={btnAlign} onValueChange={v => setBtnAlign(v as any)}>
-                      <SelectTrigger style={{ height: 36 }}><SelectValue /></SelectTrigger>
+                      <SelectTrigger style={{ height: "var(--ctl-h)" }}><SelectValue /></SelectTrigger>
                       <SelectContent>
                         <SelectItem value="center">Center</SelectItem>
                         <SelectItem value="left">Left</SelectItem>

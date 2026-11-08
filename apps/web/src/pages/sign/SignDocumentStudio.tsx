@@ -577,7 +577,7 @@ export function SignDocumentStudio({
               setDirty(true);
             }}
             placeholder="Document Title"
-            style={{ fontWeight: 700, fontSize: 14, height: 36, maxWidth: 320, background: 'transparent', border: '1px solid transparent' }}
+            style={{ fontWeight: 700, fontSize: "var(--text-base)", height: "var(--ctl-h)", maxWidth: 320, background: 'transparent', border: '1px solid transparent' }}
             className="hover:border-slate-300 focus:border-teal-500"
             title="Click to rename document"
           />
@@ -711,7 +711,7 @@ export function SignDocumentStudio({
         {/* Paragraph / Heading selector */}
         <div style={{ minWidth: 120 }}>
           <Select defaultValue="p" onValueChange={val => exec('formatBlock', val)}>
-            <SelectTrigger style={{ height: 32, fontSize: 12 }}>
+            <SelectTrigger style={{ height: "var(--ctl-h)", fontSize: "var(--text-base)" }}>
               <SelectValue placeholder="Style" />
             </SelectTrigger>
             <SelectContent>
@@ -727,7 +727,7 @@ export function SignDocumentStudio({
         {/* Font Family */}
         <div style={{ minWidth: 120 }}>
           <Select defaultValue={fontFamily} onValueChange={val => { setFontFamily(val); exec('fontName', val); }}>
-            <SelectTrigger style={{ height: 32, fontSize: 12 }}>
+            <SelectTrigger style={{ height: "var(--ctl-h)", fontSize: "var(--text-base)" }}>
               <SelectValue placeholder="Font" />
             </SelectTrigger>
             <SelectContent>
@@ -742,70 +742,70 @@ export function SignDocumentStudio({
         <div style={{ height: 20, width: 1, background: 'var(--border, #cbd5e1)', margin: '0 2px' }} />
 
         {/* Basic Text Formatting */}
-        <Button variant="ghost" size="icon" style={{ width: 30, height: 30 }} onClick={() => exec('bold')} title="Bold (Ctrl+B)">
+        <Button variant="ghost" size="icon" style={{ width: "var(--ctl-h)", height: "var(--ctl-h)" }} onClick={() => exec('bold')} title="Bold (Ctrl+B)">
           <strong style={{ fontSize: 13 }}>B</strong>
         </Button>
-        <Button variant="ghost" size="icon" style={{ width: 30, height: 30 }} onClick={() => exec('italic')} title="Italic (Ctrl+I)">
+        <Button variant="ghost" size="icon" style={{ width: "var(--ctl-h)", height: "var(--ctl-h)" }} onClick={() => exec('italic')} title="Italic (Ctrl+I)">
           <em style={{ fontSize: 13, fontFamily: 'serif' }}>I</em>
         </Button>
-        <Button variant="ghost" size="icon" style={{ width: 30, height: 30 }} onClick={() => exec('underline')} title="Underline (Ctrl+U)">
+        <Button variant="ghost" size="icon" style={{ width: "var(--ctl-h)", height: "var(--ctl-h)" }} onClick={() => exec('underline')} title="Underline (Ctrl+U)">
           <u style={{ fontSize: 13 }}>U</u>
         </Button>
-        <Button variant="ghost" size="icon" style={{ width: 30, height: 30 }} onClick={() => exec('strikeThrough')} title="Strikethrough">
+        <Button variant="ghost" size="icon" style={{ width: "var(--ctl-h)", height: "var(--ctl-h)" }} onClick={() => exec('strikeThrough')} title="Strikethrough">
           <s style={{ fontSize: 13 }}>S</s>
         </Button>
 
         <div style={{ height: 20, width: 1, background: 'var(--border, #cbd5e1)', margin: '0 2px' }} />
 
         {/* Text Alignment */}
-        <Button variant="ghost" size="icon" style={{ width: 30, height: 30 }} onClick={() => exec('justifyLeft')} title="Align Left">
+        <Button variant="ghost" size="icon" style={{ width: "var(--ctl-h)", height: "var(--ctl-h)" }} onClick={() => exec('justifyLeft')} title="Align Left">
           <Icon name="alignLeft" size={14} />
         </Button>
-        <Button variant="ghost" size="icon" style={{ width: 30, height: 30 }} onClick={() => exec('justifyCenter')} title="Align Center">
+        <Button variant="ghost" size="icon" style={{ width: "var(--ctl-h)", height: "var(--ctl-h)" }} onClick={() => exec('justifyCenter')} title="Align Center">
           <Icon name="alignCenter" size={14} />
         </Button>
-        <Button variant="ghost" size="icon" style={{ width: 30, height: 30 }} onClick={() => exec('justifyRight')} title="Align Right">
+        <Button variant="ghost" size="icon" style={{ width: "var(--ctl-h)", height: "var(--ctl-h)" }} onClick={() => exec('justifyRight')} title="Align Right">
           <Icon name="alignRight" size={14} />
         </Button>
-        <Button variant="ghost" size="icon" style={{ width: 30, height: 30 }} onClick={() => exec('justifyFull')} title="Justify (Formal Legal)">
+        <Button variant="ghost" size="icon" style={{ width: "var(--ctl-h)", height: "var(--ctl-h)" }} onClick={() => exec('justifyFull')} title="Justify (Formal Legal)">
           <Icon name="menu" size={14} />
         </Button>
 
         <div style={{ height: 20, width: 1, background: 'var(--border, #cbd5e1)', margin: '0 2px' }} />
 
         {/* Lists & Indents */}
-        <Button variant="ghost" size="icon" style={{ width: 30, height: 30 }} onClick={() => exec('insertUnorderedList')} title="Bulleted List">
+        <Button variant="ghost" size="icon" style={{ width: "var(--ctl-h)", height: "var(--ctl-h)" }} onClick={() => exec('insertUnorderedList')} title="Bulleted List">
           <Icon name="list" size={14} />
         </Button>
-        <Button variant="ghost" size="icon" style={{ width: 30, height: 30 }} onClick={() => exec('insertOrderedList')} title="Numbered List (1., 2., 3.)">
+        <Button variant="ghost" size="icon" style={{ width: "var(--ctl-h)", height: "var(--ctl-h)" }} onClick={() => exec('insertOrderedList')} title="Numbered List (1., 2., 3.)">
           <span style={{ fontSize: 11, fontWeight: 700 }}>1.</span>
         </Button>
-        <Button variant="ghost" size="icon" style={{ width: 30, height: 30 }} onClick={() => exec('outdent')} title="Decrease Indent">
+        <Button variant="ghost" size="icon" style={{ width: "var(--ctl-h)", height: "var(--ctl-h)" }} onClick={() => exec('outdent')} title="Decrease Indent">
           <Icon name="chevronLeft" size={14} />
         </Button>
-        <Button variant="ghost" size="icon" style={{ width: 30, height: 30 }} onClick={() => exec('indent')} title="Increase Indent">
+        <Button variant="ghost" size="icon" style={{ width: "var(--ctl-h)", height: "var(--ctl-h)" }} onClick={() => exec('indent')} title="Increase Indent">
           <Icon name="chevronRight" size={14} />
         </Button>
 
         <div style={{ height: 20, width: 1, background: 'var(--border, #cbd5e1)', margin: '0 2px' }} />
 
         {/* Insert Elements Group */}
-        <Button variant="outline" size="sm" style={{ height: 30, padding: '0 8px', gap: 5, fontSize: 12 }} onClick={() => imageInputRef.current?.click()} title="Insert Image">
+        <Button variant="outline" size="sm" style={{ height: "var(--ctl-h)", padding: '0 8px', gap: 5, fontSize: "var(--text-base)" }} onClick={() => imageInputRef.current?.click()} title="Insert Image">
           <Icon name="image" size={13} />
           <span>Image</span>
         </Button>
 
-        <Button variant="outline" size="sm" style={{ height: 30, padding: '0 8px', gap: 5, fontSize: 12 }} onClick={handleInsertLink} title="Insert Link">
+        <Button variant="outline" size="sm" style={{ height: "var(--ctl-h)", padding: '0 8px', gap: 5, fontSize: "var(--text-base)" }} onClick={handleInsertLink} title="Insert Link">
           <Icon name="link" size={13} />
           <span>Link</span>
         </Button>
 
-        <Button variant="outline" size="sm" style={{ height: 30, padding: '0 8px', gap: 5, fontSize: 12 }} onClick={handleInsertTable} title="Insert Table">
+        <Button variant="outline" size="sm" style={{ height: "var(--ctl-h)", padding: '0 8px', gap: 5, fontSize: "var(--text-base)" }} onClick={handleInsertTable} title="Insert Table">
           <Icon name="grid" size={13} />
           <span>Table</span>
         </Button>
 
-        <Button variant="outline" size="sm" style={{ height: 30, padding: '0 8px', gap: 5, fontSize: 12 }} onClick={handleInsertCode} title="Insert Code / Tech Schema">
+        <Button variant="outline" size="sm" style={{ height: "var(--ctl-h)", padding: '0 8px', gap: 5, fontSize: "var(--text-base)" }} onClick={handleInsertCode} title="Insert Code / Tech Schema">
           <Icon name="terminal" size={13} />
           <span>Code</span>
         </Button>
@@ -813,7 +813,7 @@ export function SignDocumentStudio({
         {/* Insert Boilerplate Clauses */}
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <Button variant="outline" size="sm" style={{ height: 30, padding: '0 8px', gap: 5, fontSize: 12 }}>
+            <Button variant="outline" size="sm" style={{ height: "var(--ctl-h)", padding: '0 8px', gap: 5, fontSize: "var(--text-base)" }}>
               <Icon name="fileText" size={13} />
               <span>Clause ▾</span>
             </Button>
@@ -832,7 +832,7 @@ export function SignDocumentStudio({
         {/* Insert Variable Token */}
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <Button variant="outline" size="sm" style={{ height: 30, padding: '0 8px', gap: 5, fontSize: 12 }}>
+            <Button variant="outline" size="sm" style={{ height: "var(--ctl-h)", padding: '0 8px', gap: 5, fontSize: "var(--text-base)" }}>
               <span style={{ fontFamily: 'monospace', fontWeight: 'bold' }}>[Var] ▾</span>
             </Button>
           </DropdownMenuTrigger>
@@ -847,7 +847,7 @@ export function SignDocumentStudio({
         </DropdownMenu>
 
         {/* Insert Signature Block */}
-        <Button variant="outline" size="sm" style={{ height: 30, padding: '0 8px', gap: 5, fontSize: 12 }} onClick={() => insertHtmlAtCursor(SIGNATURE_BLOCK_HTML)} title="Insert Dual Signature Block">
+        <Button variant="outline" size="sm" style={{ height: "var(--ctl-h)", padding: '0 8px', gap: 5, fontSize: "var(--text-base)" }} onClick={() => insertHtmlAtCursor(SIGNATURE_BLOCK_HTML)} title="Insert Dual Signature Block">
           <Icon name="edit" size={13} />
           <span>Signatures</span>
         </Button>
@@ -857,7 +857,7 @@ export function SignDocumentStudio({
         {/* Page Format */}
         <div style={{ minWidth: 100 }}>
           <Select value={pageFormat} onValueChange={v => setPageFormat(v as PageFormatKey)}>
-            <SelectTrigger style={{ height: 30, fontSize: 12 }}>
+            <SelectTrigger style={{ height: "var(--ctl-h)", fontSize: "var(--text-base)" }}>
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
@@ -871,20 +871,20 @@ export function SignDocumentStudio({
         </div>
 
         {/* Page Break */}
-        <Button variant="ghost" size="icon" style={{ width: 30, height: 30 }} onClick={handleInsertPageBreak} title="Insert Page Break">
+        <Button variant="ghost" size="icon" style={{ width: "var(--ctl-h)", height: "var(--ctl-h)" }} onClick={handleInsertPageBreak} title="Insert Page Break">
           <Icon name="plus" size={14} />
         </Button>
 
         <div style={{ height: 20, width: 1, background: 'var(--border, #cbd5e1)', margin: '0 2px' }} />
 
         {/* Undo / Redo */}
-        <Button variant="ghost" size="icon" style={{ width: 30, height: 30 }} onClick={() => exec('undo')} title="Undo (Ctrl+Z)">
+        <Button variant="ghost" size="icon" style={{ width: "var(--ctl-h)", height: "var(--ctl-h)" }} onClick={() => exec('undo')} title="Undo (Ctrl+Z)">
           <Icon name="arrowLeft" size={14} />
         </Button>
-        <Button variant="ghost" size="icon" style={{ width: 30, height: 30 }} onClick={() => exec('redo')} title="Redo (Ctrl+Y)">
+        <Button variant="ghost" size="icon" style={{ width: "var(--ctl-h)", height: "var(--ctl-h)" }} onClick={() => exec('redo')} title="Redo (Ctrl+Y)">
           <Icon name="arrowRight" size={14} />
         </Button>
-        <Button variant="ghost" size="icon" style={{ width: 30, height: 30 }} onClick={() => exec('removeFormat')} title="Clear Formatting">
+        <Button variant="ghost" size="icon" style={{ width: "var(--ctl-h)", height: "var(--ctl-h)" }} onClick={() => exec('removeFormat')} title="Clear Formatting">
           <Icon name="trash" size={14} />
         </Button>
       </div>

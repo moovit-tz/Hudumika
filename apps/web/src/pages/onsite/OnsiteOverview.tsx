@@ -61,7 +61,7 @@ export function OnsiteOverview() {
       <div className="onsite-hero-greeting">
         <h2>Hi, {userName}! How can I help you today?</h2>
         <form onSubmit={handlePromptSubmit} className="onsite-prompt-box">
-          <input
+          <input data-ui-field="input"
             type="text"
             className="onsite-prompt-input"
             placeholder="Find domains, websites, email, or servers"

@@ -443,9 +443,9 @@ export async function glRoutes(fastify: FastifyInstance) {
     return withTenant(tid, async (trx) => {
       const r = await sql<{ total: string; active: string; currencies: string }>`
         SELECT count(*)::text AS total,
-               count(*) FILTER (WHERE is_active)::text AS active,
+               count(*) FILTER (WHERE active)::text AS active,
                count(DISTINCT currency) FILTER (WHERE currency IS NOT NULL)::text AS currencies
-        FROM finance_entities WHERE tenant_id = ${tid}
+        FROM accounting_entities WHERE tenant_id = ${tid}
       `.execute(trx);
       const t = await sql<{ cnt: string }>`
         SELECT count(*)::text AS cnt FROM intercompany_transactions WHERE tenant_id = ${tid}
@@ -592,6 +592,10 @@ export async function glRoutes(fastify: FastifyInstance) {
 
         let opening_cash = 0;
         let closing_cash = 0;
+        if (cashAccountIds.length === 0) {
+          // A new workspace has no cash accounts yet; avoid an invalid IN ().
+          return { cashAccountIds, opening_cash, closing_cash, arReceipts: { total: 0 }, apPayments: { total: 0 }, directExpenses: { total: 0 } };
+        }
 
         if (cashAccountIds.length > 0) {
           const openingSum = await trx

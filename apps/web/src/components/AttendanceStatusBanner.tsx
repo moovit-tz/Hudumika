@@ -350,7 +350,7 @@ export function AttendanceStatusBanner() {
                 <Link to={kpiLink} onClick={() => setClockOutSummary(null)} style={{ fontSize: 13, fontWeight: 700, color: 'var(--teal)', textDecoration: 'none' }}>
                   View HR insights →
                 </Link>
-                <Button type="button" onClick={() => setClockOutSummary(null)} style={{ height: 38, padding: '0 18px', fontSize: 13, fontWeight: 700, borderRadius: 'var(--r)', background: 'var(--bg)', color: 'var(--ink)', border: '1px solid var(--border)', cursor: 'pointer' }}>
+                <Button type="button" onClick={() => setClockOutSummary(null)} style={{ height: "var(--action-h)", padding: '0 18px', fontSize: "var(--text-base)", fontWeight: 700, borderRadius: 'var(--r)', background: 'var(--bg)', color: 'var(--ink)', border: '1px solid var(--border)', cursor: 'pointer' }}>
                   Close
                 </Button>
               </div>

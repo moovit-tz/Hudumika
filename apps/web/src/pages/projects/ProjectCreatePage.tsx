@@ -358,7 +358,7 @@ export function ProjectCreatePage() {
         <>
           {/* Top Intake Mode Selector Strip */}
           <div className="pcp-intake-strip">
-            <button
+            <button data-ui-native-button=""
               type="button"
               className={`pcp-intake-mode-card${intakeOpen ? ' is-active' : ''}`}
               onClick={() => setIntakeOpen(true)}
@@ -377,7 +377,7 @@ export function ProjectCreatePage() {
               </div>
             </button>
 
-            <button
+            <button data-ui-native-button=""
               type="button"
               className={`pcp-intake-mode-card${!intakeOpen ? ' is-active' : ''}`}
               onClick={() => setIntakeOpen(false)}
@@ -576,7 +576,7 @@ export function ProjectCreatePage() {
                             selected.source_ids.join(',') === brief.source_ids.join(',')
                         );
                         return (
-                          <button
+                          <button data-ui-native-button=""
                             key={index}
                             type="button"
                             className={`pcp-candidate-btn${isSelected ? ' is-selected' : ''}`}

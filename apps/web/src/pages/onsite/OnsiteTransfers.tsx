@@ -60,7 +60,7 @@ export function OnsiteTransfers() {
         </p>
 
         <Button
-          style={{ marginTop: '0.5rem', minHeight: '40px', padding: '0 1.5rem', fontSize: '0.875rem' }}
+          style={{ marginTop: '0.5rem', minHeight: "var(--action-h)", padding: '0 1.5rem', fontSize: '0.875rem' }}
           onClick={() => setShowModal(true)}
         >
           Transfer to Onsite
@@ -86,7 +86,7 @@ export function OnsiteTransfers() {
               <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
                 <div className="onsite-form-group">
                   <label>Domain Name to Transfer *</label>
-                  <input
+                  <input data-ui-field="input"
                     type="text"
                     className="onsite-input"
                     placeholder="example.com"
@@ -97,7 +97,7 @@ export function OnsiteTransfers() {
                 </div>
                 <div className="onsite-form-group">
                   <label>EPP / Auth Code (Authorization Key)</label>
-                  <input
+                  <input data-ui-field="input"
                     type="text"
                     className="onsite-input"
                     placeholder="Secret EPP transfer code from current registrar"

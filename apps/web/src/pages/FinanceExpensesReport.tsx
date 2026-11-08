@@ -144,14 +144,14 @@ export const FinanceExpensesReport: React.FC = () => {
         actions={
           <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
             <Select value={category} onValueChange={setCategory}>
-              <SelectTrigger aria-label="Category" style={{ width: 'auto', height: 34, padding: '0 10px', fontSize: 12, fontWeight: 600 }}><SelectValue /></SelectTrigger>
+              <SelectTrigger aria-label="Category" style={{ width: 'auto', height: "var(--ctl-h)", padding: '0 10px', fontSize: "var(--text-base)", fontWeight: 600 }}><SelectValue /></SelectTrigger>
               <SelectContent>
                 <SelectItem value="All Categories">All Categories</SelectItem>
                 {allCategories.map(c => <SelectItem key={c} value={c}>{catLabel(c)}</SelectItem>)}
               </SelectContent>
             </Select>
             <Select value={period} onValueChange={v => setPeriod(v as Period)}>
-              <SelectTrigger aria-label="Period" style={{ width: 'auto', height: 34, padding: '0 10px', fontSize: 12, fontWeight: 600 }}><SelectValue /></SelectTrigger>
+              <SelectTrigger aria-label="Period" style={{ width: 'auto', height: "var(--ctl-h)", padding: '0 10px', fontSize: "var(--text-base)", fontWeight: 600 }}><SelectValue /></SelectTrigger>
               <SelectContent>
                 {PERIODS.map(p => <SelectItem key={p} value={p}>{p}</SelectItem>)}
               </SelectContent>

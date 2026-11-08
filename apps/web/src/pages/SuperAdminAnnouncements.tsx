@@ -120,25 +120,25 @@ export const SuperAdminAnnouncements: React.FC = () => {
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 12 }}>
           <label style={{ display: 'flex', flexDirection: 'column', gap: 5 }}>
             <span style={{ fontSize: 11.5, fontWeight: 700, color: 'var(--ink3)', textTransform: 'uppercase', letterSpacing: '.5px' }}>Title</span>
-            <input className="input-field" value={form.title} required
+            <input data-ui-field="input" className="input-field" value={form.title} required
               onChange={e => setForm(f => ({ ...f, title: e.target.value }))}
               placeholder="Scheduled maintenance Sunday" />
           </label>
           <label style={{ display: 'flex', flexDirection: 'column', gap: 5 }}>
             <span style={{ fontSize: 11.5, fontWeight: 700, color: 'var(--ink3)', textTransform: 'uppercase', letterSpacing: '.5px' }}>Supporting line</span>
-            <input className="input-field" value={form.body}
+            <input data-ui-field="input" className="input-field" value={form.body}
               onChange={e => setForm(f => ({ ...f, body: e.target.value }))}
               placeholder="02:00–04:00 EAT, ClearOS read-only" />
           </label>
           <label style={{ display: 'flex', flexDirection: 'column', gap: 5 }}>
             <span style={{ fontSize: 11.5, fontWeight: 700, color: 'var(--ink3)', textTransform: 'uppercase', letterSpacing: '.5px' }}>Badge</span>
-            <input className="input-field" value={form.badge} maxLength={24}
+            <input data-ui-field="input" className="input-field" value={form.badge} maxLength={24}
               onChange={e => setForm(f => ({ ...f, badge: e.target.value }))}
               placeholder="NEW" />
           </label>
           <label style={{ display: 'flex', flexDirection: 'column', gap: 5 }}>
             <span style={{ fontSize: 11.5, fontWeight: 700, color: 'var(--ink3)', textTransform: 'uppercase', letterSpacing: '.5px' }}>Links to</span>
-            <input className="input-field" value={form.link}
+            <input data-ui-field="input" className="input-field" value={form.link}
               onChange={e => setForm(f => ({ ...f, link: e.target.value }))}
               placeholder="/clearos/ops" />
           </label>
@@ -155,7 +155,7 @@ export const SuperAdminAnnouncements: React.FC = () => {
           </label>
           <label style={{ display: 'flex', flexDirection: 'column', gap: 5 }}>
             <span style={{ fontSize: 11.5, fontWeight: 700, color: 'var(--ink3)', textTransform: 'uppercase', letterSpacing: '.5px' }}>Stops showing</span>
-            <input className="input-field" type="datetime-local" value={form.ends_at}
+            <input data-ui-field="input" className="input-field" type="datetime-local" value={form.ends_at}
               onChange={e => setForm(f => ({ ...f, ends_at: e.target.value }))} />
           </label>
         </div>
@@ -206,11 +206,11 @@ export const SuperAdminAnnouncements: React.FC = () => {
                   <td style={{ padding: '11px 14px', color: 'var(--ink2)', fontVariantNumeric: 'tabular-nums' }}>{a.dismissed_count}</td>
                   <td style={{ padding: '11px 10px', whiteSpace: 'nowrap' }}>
                     <Tip label={a.active ? 'Switch off' : 'Switch on'}><button type="button" aria-label={a.active ? 'Switch off' : 'Switch on'} onClick={() => toggle(a)}
-                      style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 4, color: 'var(--ink3)' }} data-ui-native-button="">
+                      style={{ background: 'none', border: 'none', cursor: 'pointer', padding: "var(--action-py) var(--space-md)", color: 'var(--ink3)' }} data-ui-native-button="">
                       <Icon name={a.active ? 'pause' : 'play'} size={14} />
                     </button></Tip>
                     <Tip label="Delete"><button type="button" aria-label={`Delete ${a.title}`} onClick={() => remove(a)}
-                      style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 4, color: 'var(--ink3)' }} data-ui-native-button="">
+                      style={{ background: 'none', border: 'none', cursor: 'pointer', padding: "var(--action-py) var(--space-md)", color: 'var(--ink3)' }} data-ui-native-button="">
                       <Icon name="trash2" size={14} />
                     </button></Tip>
                   </td>

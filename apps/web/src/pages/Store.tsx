@@ -315,7 +315,7 @@ export const Store: React.FC = () => {
             <div className="store-catalog-actions">
               <div className="store-search-wrap">
                 <Icon name="search" size={16} color="var(--ink3)" />
-                <input
+                <input data-ui-field="input" data-field-appearance="bare"
                   type="search"
                   className="store-search-input"
                   aria-label={`Search ${categoryMeta.label.toLowerCase()}`}

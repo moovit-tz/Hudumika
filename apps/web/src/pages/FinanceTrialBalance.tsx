@@ -139,7 +139,7 @@ export const FinanceTrialBalance: React.FC = () => {
         actions={
           <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'nowrap', whiteSpace: 'nowrap' }}>
             <Select value={String(periodIdx)} onValueChange={v => setPeriodIdx(Number(v))}>
-              <SelectTrigger aria-label="Period" style={{ width: 'auto', height: 34, padding: '0 10px', fontSize: 12, fontWeight: 600 }}><SelectValue /></SelectTrigger>
+              <SelectTrigger aria-label="Period" style={{ width: 'auto', height: "var(--ctl-h)", padding: '0 10px', fontSize: "var(--text-base)", fontWeight: 600 }}><SelectValue /></SelectTrigger>
               <SelectContent>
                 {PERIODS.map((p, i) => <SelectItem key={p.label} value={String(i)}>{p.label}</SelectItem>)}
               </SelectContent>
@@ -175,7 +175,7 @@ export const FinanceTrialBalance: React.FC = () => {
           duplicate filter control. */}
       <MetricsRow cards={[
         {
-          title: 'Total Debits', value: `${cur} ${totals.debit.toLocaleString()}`, icon: 'trendingUp',
+          emphasis: 'primary', title: 'Total Debits', value: `${cur} ${totals.debit.toLocaleString()}`, icon: 'trendingUp',
           sub1Label: 'ACCOUNTS', sub1Value: String(rows.filter(a => a.closing_debit > 0).length),
           sub2Label: 'PERIOD', sub2Value: period.label, barHighlight: 'var(--blue)',
         },

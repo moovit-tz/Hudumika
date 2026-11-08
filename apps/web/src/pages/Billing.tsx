@@ -172,7 +172,7 @@ function InvoiceDateFilterPopover({
     <Popover open={open} onOpenChange={setOpen}>
       <div className="inline-flex items-center gap-1">
         <PopoverTrigger asChild>
-          <button
+          <button data-ui-native-button=""
             type="button"
             className={cn(
               "inv-date-trigger inline-flex items-center gap-1.5 rounded-md border border-border bg-card px-2.5 h-[30px] text-xs font-medium text-foreground transition-colors hover:bg-accent hover:text-accent-foreground",
@@ -187,7 +187,7 @@ function InvoiceDateFilterPopover({
         </PopoverTrigger>
         {isActive && (
           <Tip label="Clear date filter">
-            <button
+            <button data-ui-native-button=""
               type="button"
               onClick={() => onChange('', '')}
               className="inline-flex items-center justify-center w-6 h-6 rounded-full text-muted-foreground hover:bg-accent hover:text-foreground transition-colors"
@@ -209,7 +209,7 @@ function InvoiceDateFilterPopover({
                 { id: 'month', label: 'This month' },
                 { id: 'all', label: 'All time' },
               ].map(p => (
-                <button
+                <button data-ui-native-button=""
                   key={p.id}
                   type="button"
                   onClick={() => applyPreset(p.id as any)}
@@ -558,7 +558,7 @@ export const Billing: React.FC = () => {
       />
       <MetricsRow cards={[
         {
-          title: 'Total Invoices', value: String(invStats.total),
+          emphasis: 'primary', title: 'Total Invoices', value: String(invStats.total),
           sub1Label: 'DRAFT', sub1Value: String(invStats.draftCount),
           sub2Label: 'SENT', sub2Value: String(invStats.total - invStats.draftCount), barHighlight: 'var(--teal)',
         },
@@ -766,7 +766,7 @@ export const Billing: React.FC = () => {
                             {inv.id}
                           </Link>
                           <Tip label={isCopied ? "Copied!" : "Copy invoice #"}>
-                            <button
+                            <button data-ui-native-button=""
                               type="button"
                               className="inv-copy-btn opacity-0 group-hover:opacity-100 focus:opacity-100 transition-opacity p-0.5 text-muted-foreground hover:text-foreground rounded"
                               onClick={e => {
@@ -878,7 +878,7 @@ export const Billing: React.FC = () => {
                       <td className="text-right pr-3" onClick={e => e.stopPropagation()}>
                         <DropdownMenu>
                           <DropdownMenuTrigger asChild>
-                            <button
+                            <button data-ui-native-button=""
                               type="button"
                               className="inv-row-more-btn inline-flex items-center justify-center w-7 h-7 rounded-md text-muted-foreground hover:text-foreground hover:bg-accent transition-colors"
                               title="Invoice options"

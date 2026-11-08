@@ -78,30 +78,30 @@ function AddClientModal({ onClose, onAdded }: { onClose: () => void; onAdded: ()
         <form onSubmit={submit} style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
           <div>
             <label style={labelStyle}>Application display name</label>
-            <input required value={name} onChange={e => setName(e.target.value)} placeholder="e.g. Corporate Helpdesk" style={inputStyle} />
+            <input data-ui-field="input" required value={name} onChange={e => setName(e.target.value)} placeholder="e.g. Corporate Helpdesk" style={inputStyle} />
           </div>
           <div>
             <label style={labelStyle}>Client ID (Unique slug)</label>
-            <input required value={clientId} onChange={e => setClientId(e.target.value)} placeholder="e.g. corp-helpdesk" style={inputStyle} />
+            <input data-ui-field="input" required value={clientId} onChange={e => setClientId(e.target.value)} placeholder="e.g. corp-helpdesk" style={inputStyle} />
           </div>
           <div>
             <label style={labelStyle}>Callback / Redirect URIs (comma-separated)</label>
-            <textarea required value={redirectUris} onChange={e => setRedirectUris(e.target.value)} placeholder="http://localhost:3000/callback, https://helpdesk.company.com/oauth" style={{ ...inputStyle, height: 60, resize: 'vertical' }} />
+            <textarea data-ui-field="textarea" required value={redirectUris} onChange={e => setRedirectUris(e.target.value)} placeholder="http://localhost:3000/callback, https://helpdesk.company.com/oauth" style={{ ...inputStyle, height: 60, resize: 'vertical' }} />
           </div>
           <div>
             <label style={labelStyle}>Client Secret (Optional — blank for public PKCE)</label>
-            <input type="password" value={clientSecret} onChange={e => setClientSecret(e.target.value)} placeholder="••••••••••••" style={inputStyle} />
+            <input data-ui-field="input" type="password" value={clientSecret} onChange={e => setClientSecret(e.target.value)} placeholder="••••••••••••" style={inputStyle} />
           </div>
           <div>
             <label style={labelStyle}>App Logo URL (Optional)</label>
-            <input value={logoUrl} onChange={e => setLogoUrl(e.target.value)} placeholder="https://company.com/logo.png" style={inputStyle} />
+            <input data-ui-field="input" value={logoUrl} onChange={e => setLogoUrl(e.target.value)} placeholder="https://company.com/logo.png" style={inputStyle} />
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 4 }}>
             <Checkbox id="firstParty" checked={firstParty} onCheckedChange={c => setFirstParty(c === true)} />
             <label htmlFor="firstParty" style={{ fontSize: 12.5, fontWeight: 600, color: 'var(--ink)', cursor: 'pointer' }}>First-party application (Bypasses user consent screen)</label>
           </div>
           <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end', marginTop: 8 }}>
-            <button type="button" onClick={onClose} style={{ padding: 'var(--ds-btn-py) 18px', borderRadius: 'var(--r)', border: '1px solid var(--border)', background: 'var(--bg)', color: 'var(--ink)', fontFamily: 'var(--font)', cursor: 'pointer', fontSize: 13, minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}} data-ui-native-button="">Cancel</button>
+            <button type="button" onClick={onClose} style={{ padding: 'var(--ds-btn-py) 18px', borderRadius: 'var(--r)', border: '1px solid var(--border)', background: 'var(--bg)', color: 'var(--ink)', fontFamily: 'var(--font)', cursor: 'pointer', fontSize: "var(--text-base)", minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}} data-ui-native-button="">Cancel</button>
             <button type="submit" disabled={saving || !name.trim() || !clientId.trim() || !redirectUris.trim()} style={{ padding: 'var(--ds-btn-py) 18px', borderRadius: 'var(--r)', border: 'none', background: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))', fontFamily: 'var(--font)', fontWeight: 600, cursor: 'pointer', fontSize: 13, opacity: (saving || !name.trim() || !clientId.trim() || !redirectUris.trim()) ? 0.6 : 1, minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}} data-ui-native-button="">
               {saving ? 'Creating…' : 'Register application'}
             </button>
@@ -169,7 +169,7 @@ function AddProviderModal({ onClose, onAdded, onStartSaml }: { onClose: () => vo
           </div>
           <div>
             <label style={labelStyle}>Display name</label>
-            <input required value={name} onChange={e => setName(e.target.value)} placeholder={type === 'SAML' ? 'e.g. Company Okta' : 'e.g. Company Google Workspace'} style={inputStyle} />
+            <input data-ui-field="input" required value={name} onChange={e => setName(e.target.value)} placeholder={type === 'SAML' ? 'e.g. Company Okta' : 'e.g. Company Google Workspace'} style={inputStyle} />
           </div>
           {type === 'SAML' ? (
             <div style={{ background: 'var(--teal-l)', border: '1px solid var(--border)', borderRadius: 'var(--r)', padding: '10px 12px', fontSize: 12, color: 'var(--ink2)' }}>
@@ -179,20 +179,20 @@ function AddProviderModal({ onClose, onAdded, onStartSaml }: { onClose: () => vo
             <>
               <div>
                 <label style={labelStyle}>Client ID</label>
-                <input value={clientId} onChange={e => setClientId(e.target.value)} style={inputStyle} />
+                <input data-ui-field="input" value={clientId} onChange={e => setClientId(e.target.value)} style={inputStyle} />
               </div>
               <div>
                 <label style={labelStyle}>Client secret</label>
-                <input type="password" value={clientSecret} onChange={e => setClientSecret(e.target.value)} style={inputStyle} />
+                <input data-ui-field="input" type="password" value={clientSecret} onChange={e => setClientSecret(e.target.value)} style={inputStyle} />
               </div>
               <div>
                 <label style={labelStyle}>Metadata URL (OIDC)</label>
-                <input value={metadataUrl} onChange={e => setMetadataUrl(e.target.value)} placeholder="https://…" style={inputStyle} />
+                <input data-ui-field="input" value={metadataUrl} onChange={e => setMetadataUrl(e.target.value)} placeholder="https://…" style={inputStyle} />
               </div>
             </>
           )}
           <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end', marginTop: 4 }}>
-            <button type="button" onClick={onClose} style={{ padding: 'var(--ds-btn-py) 18px', borderRadius: 'var(--r)', border: '1px solid var(--border)', background: 'var(--bg)', color: 'var(--ink)', fontFamily: 'var(--font)', cursor: 'pointer', fontSize: 13, minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}} data-ui-native-button="">Cancel</button>
+            <button type="button" onClick={onClose} style={{ padding: 'var(--ds-btn-py) 18px', borderRadius: 'var(--r)', border: '1px solid var(--border)', background: 'var(--bg)', color: 'var(--ink)', fontFamily: 'var(--font)', cursor: 'pointer', fontSize: "var(--text-base)", minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}} data-ui-native-button="">Cancel</button>
             <button type="submit" disabled={saving || !canSubmit} style={{ padding: 'var(--ds-btn-py) 18px', borderRadius: 'var(--r)', border: 'none', background: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))', fontFamily: 'var(--font)', fontWeight: 600, cursor: 'pointer', fontSize: 13, opacity: (saving || !canSubmit) ? 0.6 : 1, minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}} data-ui-native-button="">
               {saving ? 'Saving…' : type === 'SAML' ? 'Continue' : 'Add provider'}
             </button>
@@ -371,14 +371,14 @@ function SamlSetupWizard({ existing, initialName, onClose, onSaved }: { existing
           <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
             <div>
               <label style={labelStyle}>Display name</label>
-              <input required autoFocus value={name} onChange={e => setName(e.target.value)} placeholder="e.g. Company Okta" style={inputStyle} />
+              <input data-ui-field="input" required autoFocus value={name} onChange={e => setName(e.target.value)} placeholder="e.g. Company Okta" style={inputStyle} />
             </div>
             <div>
               <label style={labelStyle}>Which identity provider is this?</label>
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
                 {(Object.keys(SAML_VENDOR_GUIDES) as Array<keyof typeof SAML_VENDOR_GUIDES>).map(v => (
                   <button key={v} type="button" onClick={() => setVendor(v)}
-                    style={{ padding: '9px 12px', borderRadius: 'var(--r)', border: vendor === v ? '1.5px solid var(--teal)' : '1px solid var(--border)', background: vendor === v ? 'var(--teal-l)' : 'var(--bg)', color: vendor === v ? 'var(--teal)' : 'var(--ink)', fontWeight: 600, fontSize: 12.5, cursor: 'pointer', fontFamily: 'var(--font)', textAlign: 'left' }} data-ui-native-button="">
+                    style={{ padding: "var(--action-py) var(--space-md)", borderRadius: 'var(--r)', border: vendor === v ? '1.5px solid var(--teal)' : '1px solid var(--border)', background: vendor === v ? 'var(--teal-l)' : 'var(--bg)', color: vendor === v ? 'var(--teal)' : 'var(--ink)', fontWeight: 600, fontSize: "var(--text-base)", cursor: 'pointer', fontFamily: 'var(--font)', textAlign: 'left' }} data-ui-native-button="">
                     {SAML_VENDOR_GUIDES[v].label}
                   </button>
                 ))}
@@ -415,15 +415,15 @@ function SamlSetupWizard({ existing, initialName, onClose, onSaved }: { existing
             </div>
             <div>
               <label style={labelStyle}>IdP Entity ID / Issuer</label>
-              <input required value={idpEntityId} onChange={e => setIdpEntityId(e.target.value)} placeholder="https://your-idp.example.com/entity" style={inputStyle} />
+              <input data-ui-field="input" required value={idpEntityId} onChange={e => setIdpEntityId(e.target.value)} placeholder="https://your-idp.example.com/entity" style={inputStyle} />
             </div>
             <div>
               <label style={labelStyle}>IdP SSO / Login URL</label>
-              <input required value={idpSsoUrl} onChange={e => setIdpSsoUrl(e.target.value)} placeholder="https://your-idp.example.com/sso" style={inputStyle} />
+              <input data-ui-field="input" required value={idpSsoUrl} onChange={e => setIdpSsoUrl(e.target.value)} placeholder="https://your-idp.example.com/sso" style={inputStyle} />
             </div>
             <div>
               <label style={labelStyle}>IdP signing certificate (X.509, PEM)</label>
-              <textarea required value={idpCertificate} onChange={e => setIdpCertificate(e.target.value)} placeholder="-----BEGIN CERTIFICATE-----…" style={{ ...inputStyle, height: 90, resize: 'vertical', fontFamily: 'var(--font)', fontSize: 11.5 }} />
+              <textarea data-ui-field="textarea" required value={idpCertificate} onChange={e => setIdpCertificate(e.target.value)} placeholder="-----BEGIN CERTIFICATE-----…" style={{ ...inputStyle, height: 90, resize: 'vertical', fontFamily: 'var(--font)', fontSize: "var(--text-base)" }} />
             </div>
           </div>
         )}
@@ -496,7 +496,7 @@ function CopyRow({ label, value }: { label: string; value: string }) {
       <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
         <code style={{ flex: 1, fontFamily: 'var(--font)', fontSize: 11.5, background: 'var(--bg)', padding: '8px 10px', borderRadius: 'var(--r)', border: '1px solid var(--border)', overflow: 'auto', whiteSpace: 'nowrap' }}>{value}</code>
         <Tip label={copied ? 'Copied' : 'Copy'}><button type="button" aria-label={copied ? 'Copied' : 'Copy'} onClick={() => { navigator.clipboard.writeText(value); setCopied(true); setTimeout(() => setCopied(false), 1500); }}
-          style={{ border: '1px solid var(--border)', background: 'var(--bg)', borderRadius: 'var(--r)', padding: '6px 8px', cursor: 'pointer', color: copied ? 'var(--teal)' : 'var(--ink3)', flexShrink: 0, minHeight: 'var(--ctl-h-sm)', boxSizing: 'border-box' }} data-ui-native-button="">
+          style={{ border: '1px solid var(--border)', background: 'var(--bg)', borderRadius: 'var(--r)', padding: "var(--action-py) var(--space-md)", cursor: 'pointer', color: copied ? 'var(--teal)' : 'var(--ink3)', flexShrink: 0, minHeight: 'var(--ctl-h-sm)', boxSizing: 'border-box' }} data-ui-native-button="">
           <Icon name={copied ? 'check' : 'copy'} size={13} />
         </button></Tip>
       </div>
@@ -630,12 +630,12 @@ export const OndiSSO: React.FC = () => {
         actions={activeTab === 'registry' ? (
           subTab === 'idps' ? (
             <button type="button" onClick={() => governanceEntitled && setShowAdd(true)} disabled={!governanceEntitled} title={governanceEntitled ? undefined : 'Requires the Enterprise Identity & Governance add-on'}
-              style={{ display: 'flex', alignItems: 'center', gap: 6, background: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))', border: 'none', borderRadius: 'var(--r)', padding: 'var(--ds-btn-py) 16px', fontFamily: 'var(--font)', fontWeight: 600, fontSize: 13, cursor: governanceEntitled ? 'pointer' : 'not-allowed', opacity: governanceEntitled ? 1 : 0.5, minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}} data-ui-native-button="">
+              style={{ display: 'flex', alignItems: 'center', gap: 6, background: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))', border: 'none', borderRadius: 'var(--r)', padding: 'var(--ds-btn-py) 16px', fontFamily: 'var(--font)', fontWeight: 600, fontSize: "var(--text-base)", cursor: governanceEntitled ? 'pointer' : 'not-allowed', opacity: governanceEntitled ? 1 : 0.5, minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}} data-ui-native-button="">
               <Icon name="plusCircle" size={15} /> Add provider
             </button>
           ) : (
             <button type="button" onClick={() => governanceEntitled && setShowAddClient(true)} disabled={!governanceEntitled} title={governanceEntitled ? undefined : 'Requires the Enterprise Identity & Governance add-on'}
-              style={{ display: 'flex', alignItems: 'center', gap: 6, background: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))', border: 'none', borderRadius: 'var(--r)', padding: 'var(--ds-btn-py) 16px', fontFamily: 'var(--font)', fontWeight: 600, fontSize: 13, cursor: governanceEntitled ? 'pointer' : 'not-allowed', opacity: governanceEntitled ? 1 : 0.5, minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}} data-ui-native-button="">
+              style={{ display: 'flex', alignItems: 'center', gap: 6, background: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))', border: 'none', borderRadius: 'var(--r)', padding: 'var(--ds-btn-py) 16px', fontFamily: 'var(--font)', fontWeight: 600, fontSize: "var(--text-base)", cursor: governanceEntitled ? 'pointer' : 'not-allowed', opacity: governanceEntitled ? 1 : 0.5, minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}} data-ui-native-button="">
               <Icon name="plusCircle" size={15} /> Add SSO client
             </button>
           )
@@ -703,7 +703,7 @@ export const OndiSSO: React.FC = () => {
                         </td>
                         <td style={{ padding: '10px 14px' }}>
                           <button type="button" onClick={() => toggleEnabled(p)} disabled={needsSetup || !governanceEntitled} title={needsSetup ? 'Finish setup before enabling' : !governanceEntitled ? 'Requires the Enterprise Identity & Governance add-on' : undefined}
-                            style={{ fontSize: 11, fontWeight: 700, borderRadius: 20, padding: '4px 12px', border: 'none', cursor: (needsSetup || !governanceEntitled) ? 'not-allowed' : 'pointer', opacity: (needsSetup || !governanceEntitled) ? 0.6 : 1, background: p.enabled ? 'var(--green-l)' : 'var(--bg)', color: p.enabled ? 'var(--green)' : 'var(--ink2)', minHeight: 'var(--ctl-h-xs)', boxSizing: 'border-box', lineHeight: 1.25}} data-ui-native-button="">
+                            style={{ fontSize: "var(--text-xs)", fontWeight: 700, borderRadius: "var(--r-sm)", padding: "var(--action-py) var(--space-md)", border: 'none', cursor: (needsSetup || !governanceEntitled) ? 'not-allowed' : 'pointer', opacity: (needsSetup || !governanceEntitled) ? 0.6 : 1, background: p.enabled ? 'var(--green-l)' : 'var(--bg)', color: p.enabled ? 'var(--green)' : 'var(--ink2)', minHeight: 'var(--ctl-h-xs)', boxSizing: 'border-box', lineHeight: 1.25}} data-ui-native-button="">
                             {p.enabled ? 'Enabled' : 'Disabled'}
                           </button>
                         </td>
@@ -713,18 +713,18 @@ export const OndiSSO: React.FC = () => {
                             {isSaml && (
                               needsSetup ? (
                                 <button type="button" onClick={() => governanceEntitled && setSamlWizard(p)} disabled={!governanceEntitled} title={governanceEntitled ? undefined : 'Requires the Enterprise Identity & Governance add-on'}
-                                  style={{ fontSize: 11.5, fontWeight: 700, border: '1px solid var(--teal)', background: 'var(--teal-l)', color: 'var(--teal)', borderRadius: 'var(--r)', padding: '6px 12px', cursor: governanceEntitled ? 'pointer' : 'not-allowed', opacity: governanceEntitled ? 1 : 0.5, fontFamily: 'var(--font)', minHeight: 'var(--ctl-h-sm)', boxSizing: 'border-box', lineHeight: 1.25}} data-ui-native-button="">
+                                  style={{ fontSize: "var(--text-base)", fontWeight: 700, border: '1px solid var(--teal)', background: 'var(--teal-l)', color: 'var(--teal)', borderRadius: 'var(--r)', padding: "var(--action-py) var(--space-md)", cursor: governanceEntitled ? 'pointer' : 'not-allowed', opacity: governanceEntitled ? 1 : 0.5, fontFamily: 'var(--font)', minHeight: 'var(--ctl-h-sm)', boxSizing: 'border-box', lineHeight: 1.25}} data-ui-native-button="">
                                   Finish setup
                                 </button>
                               ) : (
                                 <Tip label="View connection details"><button type="button" aria-label="View connection details" onClick={() => setSamlWizard(p)}
-                                  style={{ border: '1px solid var(--border)', background: 'var(--bg)', borderRadius: 'var(--r)', padding: '6px 8px', cursor: 'pointer', color: 'var(--teal)', minHeight: 'var(--ctl-h-sm)', boxSizing: 'border-box', lineHeight: 1.25}} data-ui-native-button="">
+                                  style={{ border: '1px solid var(--border)', background: 'var(--bg)', borderRadius: 'var(--r)', padding: "var(--action-py) var(--space-md)", cursor: 'pointer', color: 'var(--teal)', minHeight: 'var(--ctl-h-sm)', boxSizing: 'border-box', lineHeight: 1.25}} data-ui-native-button="">
                                   <Icon name="link" size={13} />
                                 </button></Tip>
                               )
                             )}
                             <Tip label="Remove"><button type="button" aria-label={`Remove ${p.name}`} onClick={() => remove(p.id)}
-                              style={{ border: '1px solid var(--border)', background: 'var(--bg)', borderRadius: 'var(--r)', padding: '6px 8px', cursor: 'pointer', color: 'var(--red)', minHeight: 'var(--ctl-h-sm)', boxSizing: 'border-box', lineHeight: 1.25}} data-ui-native-button="">
+                              style={{ border: '1px solid var(--border)', background: 'var(--bg)', borderRadius: 'var(--r)', padding: "var(--action-py) var(--space-md)", cursor: 'pointer', color: 'var(--red)', minHeight: 'var(--ctl-h-sm)', boxSizing: 'border-box', lineHeight: 1.25}} data-ui-native-button="">
                               <Icon name="trash" size={13} />
                             </button></Tip>
                           </div>
@@ -794,7 +794,7 @@ export const OndiSSO: React.FC = () => {
                           </td>
                           <td style={{ padding: '12px 14px', textAlign: 'right' }}>
                             <Tip label="Remove Client"><button type="button" aria-label={`Remove ${c.name}`} onClick={() => removeClient(c.id)}
-                              style={{ border: '1px solid var(--border)', background: 'var(--bg)', borderRadius: 'var(--r)', padding: '6px 8px', cursor: 'pointer', color: 'var(--red)', minHeight: 'var(--ctl-h-sm)', boxSizing: 'border-box', lineHeight: 1.25}} data-ui-native-button="">
+                              style={{ border: '1px solid var(--border)', background: 'var(--bg)', borderRadius: 'var(--r)', padding: "var(--action-py) var(--space-md)", cursor: 'pointer', color: 'var(--red)', minHeight: 'var(--ctl-h-sm)', boxSizing: 'border-box', lineHeight: 1.25}} data-ui-native-button="">
                               <Icon name="trash" size={13} />
                             </button></Tip>
                           </td>

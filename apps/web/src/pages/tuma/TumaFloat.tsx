@@ -89,7 +89,7 @@ export function TumaFloat() {
                     <td>
                       <DropdownMenu>
                         <DropdownMenuTrigger asChild>
-                          <button type="button" style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 4, color: 'var(--ink3)' }}><Icon name="moreHorizontal" size={16} /></button>
+                          <button data-ui-native-button="" type="button" style={{ background: 'none', border: 'none', cursor: 'pointer', padding: "var(--action-py) var(--space-md)", color: 'var(--ink3)' }}><Icon name="moreHorizontal" size={16} /></button>
                         </DropdownMenuTrigger>
                         <DropdownMenuContent>
                           <DropdownMenuItem onClick={() => setActionDialog({ type: 'replenish', account: a })}><Icon name="plus" size={14} /> Replenish Float</DropdownMenuItem>

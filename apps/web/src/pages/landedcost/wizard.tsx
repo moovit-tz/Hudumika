@@ -109,13 +109,13 @@ export function TextInput({ value, onChange, placeholder, type = 'text' }: {
   value: string; onChange: (v: string) => void; placeholder?: string; type?: string;
 }) {
   return (
-    <input
+    <input data-ui-field="input"
       className="input-field"
       type={type}
       value={value}
       placeholder={placeholder}
       onChange={e => onChange(e.target.value)}
-      style={{ width: '100%', boxSizing: 'border-box', height: 44, fontSize: 14 }}
+      style={{ width: '100%', boxSizing: 'border-box', height: "var(--ctl-h)", fontSize: "var(--text-base)" }}
     />
   );
 }
@@ -132,7 +132,7 @@ export function OverrideField({ label, suffix, value, onChange, placeholder, hin
         {label}{active && ' · override'}
       </label>
       <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-        <input
+        <input data-ui-field="input"
           className="input-field"
           type="number"
           min="0"
@@ -141,14 +141,14 @@ export function OverrideField({ label, suffix, value, onChange, placeholder, hin
           placeholder={placeholder}
           onChange={e => onChange(e.target.value)}
           style={{
-            flex: 1, minWidth: 0, boxSizing: 'border-box', height: 40, fontSize: 13.5,
+            flex: 1, minWidth: 0, boxSizing: 'border-box', height: "var(--ctl-h)", fontSize: "var(--text-base)",
             borderColor: active ? 'var(--gold)' : undefined,
           }}
         />
         <span style={{ fontSize: 11.5, color: 'var(--ink3)', flexShrink: 0 }}>{suffix}</span>
         {active && (
           <button type="button" onClick={() => onChange('')} title="Clear override"
-            style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink3)', padding: 2, flexShrink: 0 }} data-ui-native-button="">
+            style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink3)', padding: "var(--action-py) var(--space-md)", flexShrink: 0 }} data-ui-native-button="">
             <Icon name="x" size={13} />
           </button>
         )}

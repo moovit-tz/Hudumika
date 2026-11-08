@@ -132,7 +132,7 @@ function EngagementDrawer({ engagement, onClose, onSendMessage, onSetMilestone, 
                       {m.amount && <div style={{ fontSize: 12, color: 'var(--ink3)' }}>{m.amount}</div>}
                     </div>
                     <Select value={m.status} onValueChange={(v) => onSetMilestone(engagement.id, m.id, v)}>
-                      <SelectTrigger className="input-field" style={{ width: 120, fontSize: 12 }}><SelectValue /></SelectTrigger>
+                      <SelectTrigger className="input-field" style={{ width: 120, fontSize: "var(--text-base)" }}><SelectValue /></SelectTrigger>
                       <SelectContent>
                         <SelectItem value="pending">Pending</SelectItem>
                         <SelectItem value="paid">Paid</SelectItem>

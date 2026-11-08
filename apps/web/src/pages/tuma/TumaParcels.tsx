@@ -193,7 +193,7 @@ export function TumaParcels() {
                           {(TRANSITIONS[p.status]?.length ?? 0) > 0 && (
                             <DropdownMenu>
                               <DropdownMenuTrigger asChild>
-                                <button type="button" className="btn-icon" data-ui-native-button="" style={{ padding: 4 }}>
+                                <button type="button" className="btn-icon" data-ui-native-button="" style={{ padding: "var(--action-py) var(--space-md)" }}>
                                   <Icon name="moreVertical" size={16} />
                                 </button>
                               </DropdownMenuTrigger>
@@ -298,21 +298,21 @@ export function TumaParcels() {
                 </label>
                 <label style={{ display: 'flex', flexDirection: 'column', gap: 4, fontSize: 13 }}>
                   Origin Office *
-                  <select value={form.origin_office_id} onChange={e => setForm(f => ({ ...f, origin_office_id: e.target.value }))} required className="login-input" style={{ height: 38 }}>
+                  <select data-ui-field="select" value={form.origin_office_id} onChange={e => setForm(f => ({ ...f, origin_office_id: e.target.value }))} required className="login-input" style={{ height: "var(--ctl-h)" }}>
                     <option value="">Select office…</option>
                     {offices.map(o => <option key={o.id} value={o.id}>{o.name}</option>)}
                   </select>
                 </label>
                 <label style={{ display: 'flex', flexDirection: 'column', gap: 4, fontSize: 13 }}>
                   Destination Office *
-                  <select value={form.dest_office_id} onChange={e => setForm(f => ({ ...f, dest_office_id: e.target.value }))} required className="login-input" style={{ height: 38 }}>
+                  <select data-ui-field="select" value={form.dest_office_id} onChange={e => setForm(f => ({ ...f, dest_office_id: e.target.value }))} required className="login-input" style={{ height: "var(--ctl-h)" }}>
                     <option value="">Select office…</option>
                     {offices.map(o => <option key={o.id} value={o.id}>{o.name}</option>)}
                   </select>
                 </label>
                 <label style={{ display: 'flex', flexDirection: 'column', gap: 4, fontSize: 13 }}>
                   Vehicle (optional)
-                  <select value={form.vehicle_id} onChange={e => setForm(f => ({ ...f, vehicle_id: e.target.value }))} className="login-input" style={{ height: 38 }}>
+                  <select data-ui-field="select" value={form.vehicle_id} onChange={e => setForm(f => ({ ...f, vehicle_id: e.target.value }))} className="login-input" style={{ height: "var(--ctl-h)" }}>
                     <option value="">None</option>
                     {vehicles.map(v => <option key={v.id} value={v.id}>{v.registration_number}</option>)}
                   </select>
@@ -350,7 +350,7 @@ export function TumaParcels() {
           <DialogBody>
             <label style={{ display: 'flex', flexDirection: 'column', gap: 4, fontSize: 13 }}>
               Assign Vehicle
-              <select value={dispatchVehicle} onChange={e => setDispatchVehicle(e.target.value)} className="login-input" style={{ height: 38 }}>
+              <select data-ui-field="select" value={dispatchVehicle} onChange={e => setDispatchVehicle(e.target.value)} className="login-input" style={{ height: "var(--ctl-h)" }}>
                 <option value="">Select vehicle…</option>
                 {vehicles.map(v => <option key={v.id} value={v.id}>{v.registration_number}</option>)}
               </select>

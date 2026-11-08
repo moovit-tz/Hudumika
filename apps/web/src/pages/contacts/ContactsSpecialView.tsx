@@ -92,7 +92,7 @@ export function ContactsSpecialView({ view, loading, directory, discovery, conta
           <div className="cts-dir-toolbar">
             <div className="cts-dir-search">
               <Icon name="search" size={15} />
-              <input
+              <input data-ui-field="input"
                 value={searchTerm}
                 onChange={e => { setSearchTerm(e.target.value); setPage(1); }}
                 placeholder="Search by name, email or phone…"
@@ -503,7 +503,7 @@ export function ContactsSpecialView({ view, loading, directory, discovery, conta
           <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
             <div className="cts-special-search">
               <Icon name="search" size={14} color="var(--ink3)" />
-              <input
+              <input data-ui-field="input"
                 placeholder="Search by name or email…"
                 value={searchTerm}
                 onChange={e => { setSearchTerm(e.target.value); setPage(1); }}
@@ -789,7 +789,7 @@ export function ContactsSpecialView({ view, loading, directory, discovery, conta
                             setEntityTypeOverrides(prev => ({ ...prev, [row.email]: val }));
                           }}
                         >
-                          <SelectTrigger style={{ width: 130, height: 30, fontSize: 12 }}>
+                          <SelectTrigger style={{ width: 130, height: "var(--ctl-h)", fontSize: "var(--text-base)" }}>
                             <SelectValue />
                           </SelectTrigger>
                           <SelectContent>
@@ -799,9 +799,9 @@ export function ContactsSpecialView({ view, loading, directory, discovery, conta
                         </Select>
                       </td>
                       <td style={{ padding: '8px 10px' }}>
-                        <input
+                        <input data-ui-field="input"
                           className="input-field"
-                          style={{ height: 30, fontSize: 12.5, padding: '0 8px' }}
+                          style={{ height: "var(--ctl-h)", fontSize: "var(--text-base)", padding: '0 8px' }}
                           value={customName}
                           onChange={e => setModalNameOverrides(prev => ({ ...prev, [row.email]: e.target.value }))}
                           placeholder={currentType === 'company' ? 'Company name…' : 'Full name…'}

@@ -76,7 +76,7 @@ export function DatePicker({ date: controlledDate, defaultDate, onChange, name, 
             here, a sibling of the popover content, so it survives close. */}
         {name && <input type="hidden" name={name} value={toDateOnlyString(date)} />}
         <PopoverTrigger asChild>
-          <button type="button" disabled={disabled} className={cn(triggerClass, date && "pr-9", !date && "text-muted-foreground", triggerClassName)}>
+          <button data-ui-field="date" data-field-appearance={/date-picker-seamless|border-0/.test(triggerClassName ?? '') ? 'bare' : undefined} type="button" disabled={disabled} className={cn(triggerClass, date && "pr-9", !date && "text-muted-foreground", triggerClassName)}>
             <CalendarIcon className="h-4 w-4 shrink-0 opacity-60" />
             <span className="flex-1 truncate">{date ? format(date, "d MMM yyyy") : placeholder}</span>
           </button>
@@ -147,7 +147,7 @@ export function DateTimePicker({ date: controlledDate, defaultDate, onChange, pl
     <Popover open={open} onOpenChange={setOpen}>
       <div className="relative w-full">
         <PopoverTrigger asChild>
-          <button type="button" disabled={disabled} className={cn(triggerClass, date && "pr-9", !date && "text-muted-foreground", triggerClassName)}>
+          <button data-ui-field="date" data-field-appearance={/date-picker-seamless|border-0/.test(triggerClassName ?? '') ? 'bare' : undefined} type="button" disabled={disabled} className={cn(triggerClass, date && "pr-9", !date && "text-muted-foreground", triggerClassName)}>
             <CalendarIcon className="h-4 w-4 shrink-0 opacity-60" />
             <span className="flex-1 truncate">{date ? format(date, "d MMM yyyy, HH:mm") : placeholder}</span>
           </button>
@@ -228,7 +228,7 @@ export function DateRangePicker({
     <Popover open={open} onOpenChange={setOpen}>
       <div className="relative w-full">
         <PopoverTrigger asChild>
-          <button type="button" disabled={disabled} className={cn(triggerClass, range?.from && "pr-9", !range?.from && "text-muted-foreground", triggerClassName)}>
+          <button data-ui-field="date" data-field-appearance={/date-picker-seamless|border-0/.test(triggerClassName ?? '') ? 'bare' : undefined} type="button" disabled={disabled} className={cn(triggerClass, range?.from && "pr-9", !range?.from && "text-muted-foreground", triggerClassName)}>
             <CalendarIcon className="h-4 w-4 shrink-0 opacity-60" />
             <span className="flex-1 truncate">{label}</span>
           </button>

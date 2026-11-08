@@ -46,7 +46,7 @@ export function ConnectedStorageCards({ connections, onOpen }: { connections: St
             onClick={() => onOpen(p.id)}
             className="hover:bg-(--bg)"
             style={{
-              width: '100%', display: 'flex', alignItems: 'center', gap: 12, padding: '10px 12px',
+              width: '100%', display: 'flex', alignItems: 'center', gap: 12, padding: "var(--action-py) var(--space-md)",
               background: 'none', border: 'none', borderTop: i > 0 ? '1px solid var(--border)' : 'none',
               cursor: 'pointer', textAlign: 'left', fontFamily: 'var(--font)', borderRadius: i === 0 ? 'var(--r)' : 0,
             }}

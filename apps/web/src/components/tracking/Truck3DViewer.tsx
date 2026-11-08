@@ -809,7 +809,7 @@ export const Truck3DViewer: React.FC<Truck3DViewerProps> = ({
               ['cab', 'Cab Hotspots'],
             ] as [CameraPreset, string][]
           ).map(([p, label]) => (
-            <button
+            <button data-ui-native-button=""
               key={p}
               type="button"
               onClick={() => {
@@ -820,9 +820,9 @@ export const Truck3DViewer: React.FC<Truck3DViewerProps> = ({
                 border: 'none',
                 background: cameraPreset === p ? 'var(--teal)' : 'transparent',
                 color: cameraPreset === p ? '#ffffff' : 'var(--ink2)',
-                padding: '5px 10px',
-                borderRadius: '6px',
-                fontSize: 11,
+                padding: "var(--action-py) var(--space-md)",
+                borderRadius: "var(--r-sm)",
+                fontSize: "var(--text-xs)",
                 fontWeight: 600,
                 cursor: 'pointer',
                 whiteSpace: 'nowrap',
@@ -836,7 +836,7 @@ export const Truck3DViewer: React.FC<Truck3DViewerProps> = ({
           <div style={{ width: 1, height: 16, background: 'var(--border)', margin: '0 2px', flexShrink: 0 }} />
 
           {/* Toggle Trailer Transparency */}
-          <button
+          <button data-ui-native-button=""
             type="button"
             title={transparentTrailer ? 'Make trailer solid' : 'Make trailer translucent'}
             onClick={() => setTransparentTrailer(!transparentTrailer)}
@@ -844,9 +844,9 @@ export const Truck3DViewer: React.FC<Truck3DViewerProps> = ({
               border: 'none',
               background: transparentTrailer ? 'var(--teal-l)' : 'transparent',
               color: transparentTrailer ? 'var(--teal)' : 'var(--ink3)',
-              padding: '5px 8px',
-              borderRadius: '6px',
-              fontSize: 11,
+              padding: "var(--action-py) var(--space-md)",
+              borderRadius: "var(--r-sm)",
+              fontSize: "var(--text-xs)",
               fontWeight: 600,
               cursor: 'pointer',
               display: 'flex',
@@ -859,7 +859,7 @@ export const Truck3DViewer: React.FC<Truck3DViewerProps> = ({
           </button>
 
           {/* Auto Rotate Toggle */}
-          <button
+          <button data-ui-native-button=""
             type="button"
             title={autoRotate ? 'Stop 360° rotation' : 'Start 360° rotation'}
             onClick={() => setAutoRotate(!autoRotate)}
@@ -867,9 +867,9 @@ export const Truck3DViewer: React.FC<Truck3DViewerProps> = ({
               border: 'none',
               background: autoRotate ? 'var(--teal-l)' : 'transparent',
               color: autoRotate ? 'var(--teal)' : 'var(--ink3)',
-              padding: '5px 8px',
-              borderRadius: '6px',
-              fontSize: 11,
+              padding: "var(--action-py) var(--space-md)",
+              borderRadius: "var(--r-sm)",
+              fontSize: "var(--text-xs)",
               fontWeight: 600,
               cursor: 'pointer',
               display: 'flex',
@@ -923,7 +923,7 @@ export const Truck3DViewer: React.FC<Truck3DViewerProps> = ({
         </div>
 
         {onAddCargoClick && (
-          <button
+          <button data-ui-native-button=""
             type="button"
             onClick={onAddCargoClick}
             style={{
@@ -931,9 +931,9 @@ export const Truck3DViewer: React.FC<Truck3DViewerProps> = ({
               background: 'var(--teal)',
               color: '#ffffff',
               border: 'none',
-              borderRadius: '8px',
-              padding: '7px 14px',
-              fontSize: 11.5,
+              borderRadius: "var(--r-sm)",
+              padding: "var(--action-py) var(--space-md)",
+              fontSize: "var(--text-base)",
               fontWeight: 700,
               cursor: 'pointer',
               display: 'flex',

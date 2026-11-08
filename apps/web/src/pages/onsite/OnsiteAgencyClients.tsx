@@ -214,7 +214,7 @@ function NewClientModal({ onClose, onCreated }: { onClose: () => void; onCreated
             <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
               <div className="onsite-form-group">
                 <label>Company name *</label>
-                <input
+                <input data-ui-field="input"
                   type="text"
                   className="onsite-input"
                   placeholder="Client Co Ltd"
@@ -226,7 +226,7 @@ function NewClientModal({ onClose, onCreated }: { onClose: () => void; onCreated
               <div className="onsite-form-group">
                 <label>Subdomain *</label>
                 <div className="ob-domain-row">
-                  <input
+                  <input data-ui-field="input"
                     type="text"
                     className="onsite-input"
                     value={subdomain}
@@ -242,7 +242,7 @@ function NewClientModal({ onClose, onCreated }: { onClose: () => void; onCreated
               </div>
               <div className="onsite-form-group">
                 <label>Client admin email *</label>
-                <input
+                <input data-ui-field="input"
                   type="email"
                   className="onsite-input"
                   placeholder="jane@clientco.com"

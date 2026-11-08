@@ -1196,7 +1196,7 @@ export const Leads: React.FC = () => {
                   {!editingId && <LeadPartyLinks linkedOrg={linkedOrg} setLinkedOrg={setLinkedOrg} linkedPerson={linkedPerson} setLinkedPerson={setLinkedPerson} setForm={setAddForm} />}
                   <div style={{ gridColumn: '1/-1' }}>
                     <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: 'var(--ink2)', marginBottom: 5 }}>Company Name *</label>
-                    <input type="text" className="input-field" placeholder="Acme Imports Ltd" required value={addForm.company} onChange={e => setF('company', e.target.value)} />
+                    <input data-ui-field="input" type="text" className="input-field" placeholder="Acme Imports Ltd" required value={addForm.company} onChange={e => setF('company', e.target.value)} />
                   </div>
                   {([
                     { label: 'Contact Person *', key: 'contact_name',  req: true,  ph: 'John Doe'            },
@@ -1209,7 +1209,7 @@ export const Leads: React.FC = () => {
                   ] as const).map(({ label, key, req, ph }) => (
                     <div key={key}>
                       <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: 'var(--ink2)', marginBottom: 5 }}>{label}</label>
-                      <input type="text" className="input-field" placeholder={ph} required={req}
+                      <input data-ui-field="input" type="text" className="input-field" placeholder={ph} required={req}
                         value={String(addForm[key as keyof FormState] || '')}
                         onChange={e => setF(key as keyof FormState, e.target.value)} />
                     </div>
@@ -1271,7 +1271,7 @@ export const Leads: React.FC = () => {
                   )}
                   <div style={{ gridColumn: '1/-1' }}>
                     <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: 'var(--ink2)', marginBottom: 5 }}>Notes</label>
-                    <textarea className="input-field" placeholder="Brief description of the opportunity…" rows={3}
+                    <textarea data-ui-field="textarea" className="input-field" placeholder="Brief description of the opportunity…" rows={3}
                       value={addForm.notes || ''} onChange={e => setF('notes', e.target.value)} style={{ resize: 'vertical', minHeight: 70 }} />
                   </div>
                 </div>
@@ -1346,7 +1346,7 @@ export const Leads: React.FC = () => {
             )}
             {savedViews.length > 0 && (
               <Select value={activeViewId || '__none__'} onValueChange={v => { setActiveViewId(v === '__none__' ? null : v); setPage(1); }}>
-                <SelectTrigger style={{ minWidth: 140, height: 'var(--ctl-h-sm)', fontSize: 12.5 }}>
+                <SelectTrigger style={{ minWidth: 140, height: 'var(--ctl-h-sm)', fontSize: "var(--text-base)" }}>
                   <SelectValue placeholder="Saved view" />
                 </SelectTrigger>
                 <SelectContent>
@@ -1360,7 +1360,7 @@ export const Leads: React.FC = () => {
 
             {(search || filterStage || filterSource || filterPriority || filterTerritory || activeViewId) && (
               <button type="button" onClick={() => { setSearch(''); setFilterStage(''); setFilterSource(''); setFilterPriority(''); setFilterTerritory(''); setActiveViewId(null); setViewMatchIds(null); setPage(1); }}
-                style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 13, color: 'var(--teal)', fontFamily: 'var(--font)', padding: '0 2px' }} data-ui-native-button="">
+                style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: "var(--text-base)", color: 'var(--teal)', fontFamily: 'var(--font)', padding: '0 2px' }} data-ui-native-button="">
                 Clear
               </button>
             )}
@@ -1370,9 +1370,9 @@ export const Leads: React.FC = () => {
             <span style={{ fontSize: 12.5, color: 'var(--ink3)', whiteSpace: 'nowrap' }}>{filtered.length} leads</span>
             <div style={{ position: 'relative', minWidth: 180, maxWidth: 280 }}>
               <Icon name="search" size={14} style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)', color: 'var(--ink3)', pointerEvents: 'none' } as React.CSSProperties} />
-              <input type="text" placeholder="Search leads…" value={search}
+              <input data-ui-field="input" type="text" placeholder="Search leads…" value={search}
                 onChange={e => { setSearch(e.target.value); setPage(1); }}
-                style={{ width: '100%', padding: '7px 10px 7px 32px', border: '1px solid var(--border)', borderRadius: 'var(--r)', fontSize: 13, fontFamily: 'var(--font)', background: 'var(--bg)', color: 'var(--ink)', outline: 'none', boxSizing: 'border-box' }} />
+                style={{ width: '100%', padding: "var(--ds-input-py) var(--space-md)", border: '1px solid var(--border)', borderRadius: 'var(--r)', fontSize: "var(--text-base)", fontFamily: 'var(--font)', background: 'var(--bg)', color: 'var(--ink)', outline: 'none', boxSizing: 'border-box' }} />
             </div>
           </div>
 
@@ -1395,7 +1395,7 @@ export const Leads: React.FC = () => {
                 {bulkApplying ? 'Applying…' : 'Apply'}
               </Button>
               <button type="button" onClick={() => { setSelectedIds([]); setBulkAction(''); }}
-                style={{ marginLeft: 'auto', background: 'none', border: 'none', cursor: 'pointer', fontSize: 12.5, color: 'var(--ink3)', fontFamily: 'var(--font)' }} data-ui-native-button="">
+                style={{ marginLeft: 'auto', background: 'none', border: 'none', cursor: 'pointer', fontSize: "var(--text-base)", color: 'var(--ink3)', fontFamily: 'var(--font)' }} data-ui-native-button="">
                 Clear selection
               </button>
             </div>
@@ -1510,7 +1510,7 @@ export const Leads: React.FC = () => {
                 {getPageNums(pg, totalPages).map((p, i) =>
                   p === '…' ? <span key={i} style={{ padding: '0 6px', color: 'var(--ink3)', fontSize: 13 }}>…</span> :
                   <button key={p} type="button" onClick={() => setPage(Number(p))}
-                    style={{ border: `1px solid ${pg === p ? 'var(--teal)' : 'var(--border)'}`, borderRadius: 'var(--r)', padding: 'var(--ds-btn-py-xs) 10px', background: pg === p ? 'hsl(var(--primary))' : 'var(--white)', cursor: 'pointer', fontSize: 13, color: pg === p ? 'hsl(var(--primary-foreground))' : 'var(--ink)', minWidth: 32, minHeight: 'var(--ctl-h-xs)', boxSizing: 'border-box', lineHeight: 1.25}} data-ui-native-button="">
+                    style={{ border: `1px solid ${pg === p ? 'var(--teal)' : 'var(--border)'}`, borderRadius: 'var(--r)', padding: 'var(--ds-btn-py-xs) 10px', background: pg === p ? 'hsl(var(--primary))' : 'var(--white)', cursor: 'pointer', fontSize: "var(--text-base)", color: pg === p ? 'hsl(var(--primary-foreground))' : 'var(--ink)', minWidth: 32, minHeight: 'var(--ctl-h-xs)', boxSizing: 'border-box', lineHeight: 1.25}} data-ui-native-button="">
                     {p}
                   </button>
                 )}
@@ -1540,7 +1540,7 @@ export const Leads: React.FC = () => {
                 {!editingId && <LeadPartyLinks linkedOrg={linkedOrg} setLinkedOrg={setLinkedOrg} linkedPerson={linkedPerson} setLinkedPerson={setLinkedPerson} setForm={setAddForm} />}
                 <div style={{ gridColumn: '1/-1' }}>
                   <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: 'var(--ink2)', marginBottom: 5 }}>Company Name *</label>
-                  <input type="text" className="input-field" placeholder="Acme Imports Ltd" required value={addForm.company} onChange={e => setF('company', e.target.value)} />
+                  <input data-ui-field="input" type="text" className="input-field" placeholder="Acme Imports Ltd" required value={addForm.company} onChange={e => setF('company', e.target.value)} />
                 </div>
                 {([
                   { label: 'Contact Person *', key: 'contact_name',  req: true,  ph: 'John Doe'            },
@@ -1553,7 +1553,7 @@ export const Leads: React.FC = () => {
                 ] as const).map(({ label, key, req, ph }) => (
                   <div key={key}>
                     <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: 'var(--ink2)', marginBottom: 5 }}>{label}</label>
-                    <input type="text" className="input-field" placeholder={ph} required={req}
+                    <input data-ui-field="input" type="text" className="input-field" placeholder={ph} required={req}
                       value={String(addForm[key as keyof FormState] || '')}
                       onChange={e => setF(key as keyof FormState, e.target.value)} />
                   </div>
@@ -1615,7 +1615,7 @@ export const Leads: React.FC = () => {
                 )}
                 <div style={{ gridColumn: '1/-1' }}>
                   <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: 'var(--ink2)', marginBottom: 5 }}>Notes</label>
-                  <textarea className="input-field" placeholder="Brief description of the opportunity…" rows={3}
+                  <textarea data-ui-field="textarea" className="input-field" placeholder="Brief description of the opportunity…" rows={3}
                     value={addForm.notes || ''} onChange={e => setF('notes', e.target.value)} style={{ resize: 'vertical', minHeight: 70 }} />
                 </div>
               </div>

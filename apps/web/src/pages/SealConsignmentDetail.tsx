@@ -367,7 +367,7 @@ export function SealConsignmentDetail() {
                       Gated in {new Date(c.gate_in_at).toLocaleString()}
                     </span>
                     <Select value={c.yard_slot_id ?? '__none__'} onValueChange={v => handleAssignYardSlot(c.id, v === '__none__' ? '' : v)} disabled={assigningSlot === c.id}>
-                      <SelectTrigger style={{ width: 160, height: 36 }}><SelectValue placeholder="Yard slot…" /></SelectTrigger>
+                      <SelectTrigger style={{ width: 160, height: "var(--ctl-h)" }}><SelectValue placeholder="Yard slot…" /></SelectTrigger>
                       <SelectContent>
                         <SelectItem value="__none__">Unassigned</SelectItem>
                         {yardSlots.map(s => <SelectItem key={s.id} value={s.id}>{s.code} ({s.occupiedCount}/{s.capacityTeu})</SelectItem>)}
@@ -375,7 +375,7 @@ export function SealConsignmentDetail() {
                     </Select>
                     {vehicles.length > 0 && (
                       <Select value={c.vehicle_id ?? '__none__'} onValueChange={v => handleAssignVehicle(c.id, v === '__none__' ? '' : v)} disabled={assigningVehicle === c.id}>
-                        <SelectTrigger style={{ width: 180, height: 36 }}><SelectValue placeholder="Vehicle (HuduFreight)…" /></SelectTrigger>
+                        <SelectTrigger style={{ width: 180, height: "var(--ctl-h)" }}><SelectValue placeholder="Vehicle (HuduFreight)…" /></SelectTrigger>
                         <SelectContent>
                           <SelectItem value="__none__">Unassigned</SelectItem>
                           {vehicles.map(v => <SelectItem key={v.id} value={v.id}>{v.name}{v.plateNumber ? ` (${v.plateNumber})` : ''}</SelectItem>)}

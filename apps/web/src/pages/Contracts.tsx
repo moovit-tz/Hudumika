@@ -115,8 +115,8 @@ export const Contracts: React.FC = () => {
           <Button size="sm" onClick={() => setCreating(true)} style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
             <Icon name="plus" size={15} /> New Contract
           </Button>
-          <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search subject or customer…"
-            style={{ padding: 'var(--ds-input-py, 7px) 12px', border: '1px solid var(--border)', borderRadius: 'var(--r-sm)', fontSize: 13, width: 240, background: 'var(--white)', color: 'var(--ink)' }} />
+          <input data-ui-field="input" value={search} onChange={e => setSearch(e.target.value)} placeholder="Search subject or customer…"
+            style={{ padding: 'var(--ds-input-py, 7px) 12px', border: '1px solid var(--border)', borderRadius: 'var(--r-sm)', fontSize: "var(--text-base)", width: 240, background: 'var(--white)', color: 'var(--ink)' }} />
         </div>
 
         {creating && (
@@ -126,11 +126,11 @@ export const Contracts: React.FC = () => {
             <div style={{ flex: 1, minWidth: 220 }}>
               <EntityPicker value={newCustomer} onChange={setNewCustomer} search={searchCustomers} placeholder="Customer…" />
             </div>
-            <input
+            <input data-ui-field="input"
               autoFocus value={newSubject} onChange={e => setNewSubject(e.target.value)}
               onKeyDown={e => { if (e.key === 'Enter') createContract(); if (e.key === 'Escape') setCreating(false); }}
               placeholder="Subject…"
-              style={{ flex: 2, minWidth: 220, padding: 'var(--ds-input-py, 7px) 10px', border: '1px solid var(--border)', borderRadius: 'var(--r-sm)', fontSize: 14, background: 'var(--white)', color: 'var(--ink)' }}
+              style={{ flex: 2, minWidth: 220, padding: 'var(--ds-input-py, 7px) 10px', border: '1px solid var(--border)', borderRadius: 'var(--r-sm)', fontSize: "var(--text-base)", background: 'var(--white)', color: 'var(--ink)' }}
             />
             <Button size="sm" onClick={createContract} disabled={!newSubject.trim() || !newCustomer}>Create</Button>
             <Button size="sm" variant="outline" onClick={() => setCreating(false)}>Cancel</Button>

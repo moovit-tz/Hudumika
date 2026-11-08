@@ -219,7 +219,7 @@ export const ReportIssuePage: React.FC = () => {
         titleEm="Issue"
         subtitle="Tell us what went wrong. It reaches the Hudumika platform team as a tracked ticket, and you can follow it here."
         actions={
-          <button type="button" className="btn btn-secondary" style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 13 }}
+          <button type="button" className="btn btn-secondary" style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: "var(--text-base)" }}
             onClick={() => navigate(-1)} data-ui-native-button="">
             <Icon name="arrowLeft" size={14} /> Back
           </button>
@@ -246,10 +246,10 @@ export const ReportIssuePage: React.FC = () => {
                 </div>
               )}
               <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
-                <button type="button" className="btn btn-primary" style={{ fontSize: 13 }} onClick={() => { setSent(null); setUploadNote(''); }} data-ui-native-button="">
+                <button type="button" className="btn btn-primary" style={{ fontSize: "var(--text-base)" }} onClick={() => { setSent(null); setUploadNote(''); }} data-ui-native-button="">
                   Report something else
                 </button>
-                <button type="button" className="btn btn-secondary" style={{ fontSize: 13 }} onClick={() => openTicket(sent.id)} data-ui-native-button="">
+                <button type="button" className="btn btn-secondary" style={{ fontSize: "var(--text-base)" }} onClick={() => openTicket(sent.id)} data-ui-native-button="">
                   Open this report
                 </button>
               </div>
@@ -269,9 +269,9 @@ export const ReportIssuePage: React.FC = () => {
 
               <div className="ri-field">
                 <label className="ri-lab">Summary</label>
-                <input className="input-field" value={subject} onChange={e => setSubject(e.target.value)}
+                <input data-ui-field="input" className="input-field" value={subject} onChange={e => setSubject(e.target.value)}
                   placeholder="e.g. Landed total does not match the per-line reference"
-                  style={{ width: '100%', boxSizing: 'border-box', fontSize: 13.5 }} />
+                  style={{ width: '100%', boxSizing: 'border-box', fontSize: "var(--text-base)" }} />
               </div>
 
               <div className="ri-field ri-row2">
@@ -306,9 +306,9 @@ export const ReportIssuePage: React.FC = () => {
 
               <div className="ri-field">
                 <label className="ri-lab">What happened</label>
-                <textarea className="input-field" value={message} onChange={e => setMessage(e.target.value)} rows={6}
+                <textarea data-ui-field="textarea" className="input-field" value={message} onChange={e => setMessage(e.target.value)} rows={6}
                   placeholder={'What you did, what you expected, and what happened instead.\n\nExample: imported a 206-line invoice, accepted the suggested HS codes, and the FOB on the report was $312 lower than the invoice states.'}
-                  style={{ width: '100%', boxSizing: 'border-box', fontSize: 13.5, resize: 'vertical', lineHeight: 1.6 }} />
+                  style={{ width: '100%', boxSizing: 'border-box', fontSize: "var(--text-base)", resize: 'vertical', lineHeight: 1.6 }} />
               </div>
 
               <div className="ri-field">
@@ -355,7 +355,7 @@ export const ReportIssuePage: React.FC = () => {
               </div>
 
               <button type="button" className="btn btn-primary" disabled={sending}
-                style={{ width: '100%', fontSize: 14, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}
+                style={{ width: '100%', fontSize: "var(--text-base)", display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}
                 onClick={submit} data-ui-native-button="">
                 <Icon name="send" size={14} color="#fff" />
                 {sending ? 'Filing the report…' : 'File this report'}

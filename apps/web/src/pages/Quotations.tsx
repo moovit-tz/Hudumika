@@ -181,10 +181,10 @@ function RejectModal({ onConfirm, onCancel }: { onConfirm:(r:string)=>void; onCa
       <DialogContent className="max-w-110 gap-0">
         <DialogTitle style={{ fontSize:16, fontWeight:700, color:'var(--ink)', marginBottom:6 }}>Reject Quotation</DialogTitle>
         <div style={{ fontSize:13, color:'var(--ink2)', marginBottom:16 }}>Provide a reason. This will be logged on the quote record.</div>
-        <textarea title="Rejection reason" placeholder="Enter rejection reason..." value={reason} onChange={e=>setReason(e.target.value)} rows={4}
-          style={{ width:'100%', padding:'10px 12px', border:'1px solid var(--border)', borderRadius: 'var(--r)', fontSize:13, resize:'vertical', boxSizing:'border-box' as const, fontFamily:'inherit', outline:'none' }} />
+        <textarea data-ui-field="textarea" title="Rejection reason" placeholder="Enter rejection reason..." value={reason} onChange={e=>setReason(e.target.value)} rows={4}
+          style={{ width:'100%', padding:"var(--ds-input-py) var(--space-md)", border:'1px solid var(--border)', borderRadius: 'var(--r)', fontSize:"var(--text-base)", resize:'vertical', boxSizing:'border-box' as const, fontFamily:"var(--font)", outline:'none' }} />
         <div style={{ display:'flex', gap:8, justifyContent:'flex-end', marginTop:16 }}>
-          <button type="button" onClick={onCancel} style={{ padding:'var(--ds-btn-py) 18px', border:'1px solid var(--border)', borderRadius: 'var(--r)', background:'var(--bg)', cursor:'pointer', fontWeight:600, fontSize:13, color:'var(--ink2)', minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}} data-ui-native-button="">Cancel</button>
+          <button type="button" onClick={onCancel} style={{ padding:'var(--ds-btn-py) 18px', border:'1px solid var(--border)', borderRadius: 'var(--r)', background:'var(--bg)', cursor:'pointer', fontWeight:600, fontSize:"var(--text-base)", color:'var(--ink2)', minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}} data-ui-native-button="">Cancel</button>
           <Button type="button" variant="destructive" disabled={!reason.trim()} onClick={()=>reason.trim()&&onConfirm(reason.trim())}>
             Reject Quote
           </Button>
@@ -250,8 +250,8 @@ function ServicePicker({ onSelect, currency = 'USD' }: {
   return (
     <div style={{ width:480, display:'flex', flexDirection:'column', maxHeight:400 }}>
       <div style={{ padding:'10px 12px', borderBottom:'1px solid var(--border)' }}>
-        <input type="text" title="Search services" placeholder="Search products & services…" value={q} onChange={e=>handleInput(e.target.value)} autoFocus
-          style={{ width:'100%', padding:'8px 12px', border:'1px solid var(--border)', borderRadius: 'var(--r)', fontSize:13, outline:'none', boxSizing:'border-box' as const }}/>
+        <input data-ui-field="input" type="text" title="Search services" placeholder="Search products & services…" value={q} onChange={e=>handleInput(e.target.value)} autoFocus
+          style={{ width:'100%', padding:"var(--ds-input-py) var(--space-md)", border:'1px solid var(--border)', borderRadius: 'var(--r)', fontSize:"var(--text-base)", outline:'none', boxSizing:'border-box' as const }}/>
       </div>
       <div style={{ overflowY:'auto', flex:1, padding:'8px 0' }}>
         {loading ? (
@@ -329,7 +329,7 @@ function LineItemsEditor({ lines, currency, onChange }: {
                 <tr key={l._key} style={{ borderBottom:'1px solid var(--border)', verticalAlign:'middle' }}>
                   <td style={{ padding:'6px 8px', minWidth:240, position:'relative' }}>
                     <div style={{ display:'flex', gap:4, alignItems:'center' }}>
-                      <input type="text" title="Description" placeholder="Describe the service or charge..." value={l.description}
+                      <input data-ui-field="input" type="text" title="Description" placeholder="Describe the service or charge..." value={l.description}
                         onChange={e=>update(l._key,'description',e.target.value)} style={{ ...inpS, flex:1 }}/>
                       <Popover open={pickerKey===l._key} onOpenChange={o=>setPickerKey(o?l._key:null)}>
                         <Tip label="Pick from catalog">
@@ -355,22 +355,22 @@ function LineItemsEditor({ lines, currency, onChange }: {
                     </Select>
                   </td>
                   <td style={{ padding:'6px 8px', width:72 }}>
-                    <input type="number" title="Quantity" value={l.quantity} min={0} step={0.01}
+                    <input data-ui-field="input" type="number" title="Quantity" value={l.quantity} min={0} step={0.01}
                       onChange={e=>update(l._key,'quantity',parseFloat(e.target.value)||0)} style={{ ...inpS, textAlign:'right' }}/>
                   </td>
                   <td style={{ padding:'6px 8px', width:120 }}>
-                    <input type="number" title="Unit price" value={l.unit_price} min={0} step={0.01}
+                    <input data-ui-field="input" type="number" title="Unit price" value={l.unit_price} min={0} step={0.01}
                       onChange={e=>update(l._key,'unit_price',parseFloat(e.target.value)||0)} style={{ ...inpS, textAlign:'right' }}/>
                   </td>
                   <td style={{ padding:'6px 8px', width:80 }}>
-                    <input type="number" title="Tax rate %" value={l.tax_rate} min={0} max={100} step={0.5}
+                    <input data-ui-field="input" type="number" title="Tax rate %" value={l.tax_rate} min={0} max={100} step={0.5}
                       onChange={e=>update(l._key,'tax_rate',parseFloat(e.target.value)||0)} style={{ ...inpS, textAlign:'right' }}/>
                   </td>
                   <td style={{ padding:'6px 12px', textAlign:'right', fontWeight:700, whiteSpace:'nowrap', minWidth:110 }}>{fmt(tot,currency)}</td>
                   <td style={{ padding:'6px 4px', width:32 }}>
                     <Tip label="Remove line">
                       <button type="button" aria-label="Remove line" onClick={()=>remove(l._key)}
-                        style={{ background:'none', border:'none', cursor:'pointer', color:'var(--red)', padding:4, display:'flex', borderRadius:'var(--r-sm)' }} data-ui-native-button="">
+                        style={{ background:'none', border:'none', cursor:'pointer', color:'var(--red)', padding:"var(--action-py) var(--space-md)", display:'flex', borderRadius:'var(--r-sm)' }} data-ui-native-button="">
                         <Icon name="trash" size={13}/>
                       </button>
                     </Tip>
@@ -385,13 +385,13 @@ function LineItemsEditor({ lines, currency, onChange }: {
       <div style={{ display:'flex', justifyContent:'space-between', alignItems:'flex-start', padding:'12px 8px 4px', flexWrap:'wrap', gap:12 }}>
         <div style={{ display:'flex', gap:8, position:'relative' }}>
           <button type="button" onClick={addBlank}
-            style={{ display:'flex', alignItems:'center', gap:6, padding:'var(--ds-btn-py) 14px', border:'1px dashed var(--teal)', borderRadius: 'var(--r)', background:'var(--teal-l)', color:'var(--teal)', cursor:'pointer', fontWeight:600, fontSize:13, minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}} data-ui-native-button="">
+            style={{ display:'flex', alignItems:'center', gap:6, padding:'var(--ds-btn-py) 14px', border:'1px dashed var(--teal)', borderRadius: 'var(--r)', background:'var(--teal-l)', color:'var(--teal)', cursor:'pointer', fontWeight:600, fontSize:"var(--text-base)", minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}} data-ui-native-button="">
             <Icon name="plus" size={13}/> Add Line
           </button>
           <Popover open={showCatalog} onOpenChange={setShowCatalog}>
             <PopoverTrigger asChild>
               <button type="button"
-                style={{ display:'flex', alignItems:'center', gap:6, padding:'var(--ds-btn-py) 14px', border:'1px solid var(--border)', borderRadius: 'var(--r)', background:'var(--white)', color:'var(--ink2)', cursor:'pointer', fontWeight:600, fontSize:13, minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}} data-ui-native-button="">
+                style={{ display:'flex', alignItems:'center', gap:6, padding:'var(--ds-btn-py) 14px', border:'1px solid var(--border)', borderRadius: 'var(--r)', background:'var(--white)', color:'var(--ink2)', cursor:'pointer', fontWeight:600, fontSize:"var(--text-base)", minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}} data-ui-native-button="">
                 <Icon name="clipboard" size={13}/> From Catalog
               </button>
             </PopoverTrigger>
@@ -532,23 +532,23 @@ function QuoteFormView({ mode, initial, onSave, onCancel, isMobile = false }: {
               </div>
               <div>
                 <label style={lbl}>Contact Name *</label>
-                <input type="text" title="Customer name" value={f.customer_name} onChange={e=>set('customer_name',e.target.value)} placeholder="Full name" style={inp}/>
+                <input data-ui-field="input" type="text" title="Customer name" value={f.customer_name} onChange={e=>set('customer_name',e.target.value)} placeholder="Full name" style={inp}/>
               </div>
               <div>
                 <label style={lbl}>Company</label>
-                <input type="text" title="Company" value={f.customer_company} onChange={e=>set('customer_company',e.target.value)} placeholder="Company name" style={inp}/>
+                <input data-ui-field="input" type="text" title="Company" value={f.customer_company} onChange={e=>set('customer_company',e.target.value)} placeholder="Company name" style={inp}/>
               </div>
               <div>
                 <label style={lbl}>Email Address</label>
-                <input type="email" title="Email" value={f.customer_email} onChange={e=>set('customer_email',e.target.value)} placeholder="email@company.com" style={inp}/>
+                <input data-ui-field="input" type="email" title="Email" value={f.customer_email} onChange={e=>set('customer_email',e.target.value)} placeholder="email@company.com" style={inp}/>
               </div>
               <div>
                 <label style={lbl}>Phone / WhatsApp</label>
-                <input type="text" title="Phone" value={f.customer_phone} onChange={e=>set('customer_phone',e.target.value)} placeholder="+255 xxx xxx xxx" style={inp}/>
+                <input data-ui-field="input" type="text" title="Phone" value={f.customer_phone} onChange={e=>set('customer_phone',e.target.value)} placeholder="+255 xxx xxx xxx" style={inp}/>
               </div>
               <div>
                 <label style={lbl}>TIN / VAT Number</label>
-                <input type="text" title="TIN" value={f.customer_tin} onChange={e=>set('customer_tin',e.target.value)} placeholder="Tax identification number" style={inp}/>
+                <input data-ui-field="input" type="text" title="TIN" value={f.customer_tin} onChange={e=>set('customer_tin',e.target.value)} placeholder="Tax identification number" style={inp}/>
               </div>
             </div>
           </div>
@@ -559,7 +559,7 @@ function QuoteFormView({ mode, initial, onSave, onCancel, isMobile = false }: {
             <div style={{ padding:20, display:'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap:16 }}>
               <div style={{ gridColumn:'1/-1' }}>
                 <label style={lbl}>Quotation Subject / Title *</label>
-                <input type="text" title="Title" placeholder="Scope, supply or service quotation" value={f.title}
+                <input data-ui-field="input" type="text" title="Title" placeholder="Scope, supply or service quotation" value={f.title}
                   onChange={e=>set('title',e.target.value)} style={inp}/>
               </div>
               {showLogistics && <div>
@@ -582,11 +582,11 @@ function QuoteFormView({ mode, initial, onSave, onCancel, isMobile = false }: {
               </div>
               {showLogistics && <><div>
                 <label style={lbl}>Origin Port / City</label>
-                <input type="text" title="Origin" placeholder="e.g. Dar es Salaam" value={f.origin_port} onChange={e=>set('origin_port',e.target.value)} style={inp}/>
+                <input data-ui-field="input" type="text" title="Origin" placeholder="e.g. Dar es Salaam" value={f.origin_port} onChange={e=>set('origin_port',e.target.value)} style={inp}/>
               </div>
               <div>
                 <label style={lbl}>Destination Port / City</label>
-                <input type="text" title="Destination" placeholder="e.g. Hamburg" value={f.destination_port} onChange={e=>set('destination_port',e.target.value)} style={inp}/>
+                <input data-ui-field="input" type="text" title="Destination" placeholder="e.g. Hamburg" value={f.destination_port} onChange={e=>set('destination_port',e.target.value)} style={inp}/>
               </div></>}
               <div>
                 <label style={lbl}>Valid Until</label>
@@ -609,13 +609,13 @@ function QuoteFormView({ mode, initial, onSave, onCancel, isMobile = false }: {
             <div style={{ padding:20, display:'flex', flexDirection:'column', gap:16 }}>
               <div>
                 <label style={lbl}>Client-Facing Notes</label>
-                <textarea title="Notes" placeholder="Any important notes for the client..." value={f.notes} onChange={e=>set('notes',e.target.value)} rows={3}
-                  style={{ ...inp, resize:'vertical', fontFamily:'inherit' }}/>
+                <textarea data-ui-field="textarea" title="Notes" placeholder="Any important notes for the client..." value={f.notes} onChange={e=>set('notes',e.target.value)} rows={3}
+                  style={{ ...inp, resize:'vertical', fontFamily:"var(--font)" }}/>
               </div>
               <div>
                 <label style={lbl}>Terms &amp; Conditions</label>
-                <textarea title="Terms and conditions" value={f.terms} onChange={e=>set('terms',e.target.value)} rows={7}
-                  style={{ ...inp, resize:'vertical', fontFamily:'inherit', fontSize:12, lineHeight:1.7 }}/>
+                <textarea data-ui-field="textarea" title="Terms and conditions" value={f.terms} onChange={e=>set('terms',e.target.value)} rows={7}
+                  style={{ ...inp, resize:'vertical', fontFamily:"var(--font)", fontSize:"var(--text-base)", lineHeight:1.7 }}/>
               </div>
             </div>
           </div>
@@ -1000,7 +1000,7 @@ export const Quotations: React.FC = () => {
       <MetricsRow cards={[
         { title:'TOTAL QUOTES', value:String(stats?.total ?? totalQuotes), sub1Label:'THIS PAGE', sub1Value:String(quotes.length), sub2Label:'PAGES', sub2Value:String(Math.ceil(totalQuotes / qPageSize)), barHighlight:'var(--teal)', loading: !stats },
         { title:'CONVERTED', value:String(stats?.converted ?? 0), sub1Label:'WIN RATE', sub1Value:`${stats?.win_rate ?? 0}%`, sub2Label:'APPROVED', sub2Value:String(stats?.approved ?? 0), barHighlight:'var(--green)', loading: !stats },
-        { title:'PIPELINE VALUE', value:`TZS ${(stats?.pipeline_value ?? 0).toLocaleString()}`, sub1Label:'AVG QUOTE', sub1Value:`TZS ${(stats?.avg_quote ?? 0).toLocaleString()}`, sub2Label:'PENDING VALUE', sub2Value:`TZS ${(stats?.pending_value ?? 0).toLocaleString()}`, barHighlight:'var(--gold)', loading: !stats },
+        { emphasis: 'primary', title:'PIPELINE VALUE', value:`TZS ${(stats?.pipeline_value ?? 0).toLocaleString()}`, sub1Label:'AVG QUOTE', sub1Value:`TZS ${(stats?.avg_quote ?? 0).toLocaleString()}`, sub2Label:'PENDING VALUE', sub2Value:`TZS ${(stats?.pending_value ?? 0).toLocaleString()}`, barHighlight:'var(--gold)', loading: !stats },
         { title:'REJECTED / EXPIRED', value:String((stats?.rejected ?? 0) + (stats?.expired ?? 0)), sub1Label:'REJECTED', sub1Value:String(stats?.rejected ?? 0), sub2Label:'EXPIRED', sub2Value:String(stats?.expired ?? 0), barHighlight:'var(--red)', loading: !stats },
       ]}/>
 
@@ -1008,7 +1008,7 @@ export const Quotations: React.FC = () => {
         <div style={{ display:'flex', gap:6, flexWrap: 'wrap' }}>
           {STATUS_TABS.map(t=>(
             <button key={t.key} type="button" onClick={()=>handleFilterChange(t.key)}
-              style={{ padding:'7px 16px', fontSize:12.5, fontWeight:700, border:'1px solid var(--border)', borderRadius:20, cursor:'pointer', transition:'all 0.15s ease', background:filter===t.key?'hsl(var(--primary))':'var(--white)', color:filter===t.key?'hsl(var(--primary-foreground))':'var(--ink2)', boxShadow:filter===t.key?'0 2px 8px hsl(var(--primary) / 0.25)':'none' }} data-ui-native-button="">
+              style={{ padding:"var(--action-py) var(--space-md)", fontSize:"var(--text-base)", fontWeight:700, border:'1px solid var(--border)', borderRadius:"var(--r-sm)", cursor:'pointer', transition:'all 0.15s ease', background:filter===t.key?'hsl(var(--primary))':'var(--white)', color:filter===t.key?'hsl(var(--primary-foreground))':'var(--ink2)', boxShadow:filter===t.key?'0 2px 8px hsl(var(--primary) / 0.25)':'none' }} data-ui-native-button="">
               {t.label}
             </button>
           ))}
@@ -1016,13 +1016,13 @@ export const Quotations: React.FC = () => {
         <div style={{ display:'flex', alignItems:'center', gap:8, flexWrap: 'wrap' }}>
           <div style={{ position:'relative', minWidth:220 }}>
             <Icon name="search" size={14} style={{ position:'absolute', left:10, top:'50%', transform:'translateY(-50%)', color:'var(--ink3)' } as React.CSSProperties}/>
-            <input type="search" placeholder="Search quotes, customers..." value={search} onChange={e=>handleSearchChange(e.target.value)}
-              style={{ width:'100%', paddingLeft:32, paddingRight:12, paddingTop:8, paddingBottom:8, border:'1px solid var(--border)', borderRadius: 'var(--r)', fontSize:13, outline:'none', background:'var(--white)', boxSizing:'border-box' as const }}/>
+            <input data-ui-field="input" data-field-appearance="bare" type="search" placeholder="Search quotes, customers..." value={search} onChange={e=>handleSearchChange(e.target.value)}
+              style={{ width:'100%', paddingLeft: 32, paddingRight:"var(--space-md)", paddingTop:"var(--ds-input-py)", paddingBottom:"var(--ds-input-py)", border:'1px solid var(--border)', borderRadius: 'var(--r)', fontSize:"var(--text-base)", outline:'none', background:'var(--white)', boxSizing:'border-box' as const }}/>
           </div>
-          <button type="button" onClick={exportCsv} style={{ display:'flex', alignItems:'center', gap:6, padding:'var(--ds-btn-py) 14px', borderRadius:'var(--r)', border:'1px solid var(--border)', background:'var(--white)', color:'var(--ink2)', fontSize:13, fontWeight:600, cursor:'pointer', fontFamily:'var(--font)', whiteSpace:'nowrap', minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}} data-ui-native-button="">
+          <button type="button" onClick={exportCsv} style={{ display:'flex', alignItems:'center', gap:6, padding:'var(--ds-btn-py) 14px', borderRadius:'var(--r)', border:'1px solid var(--border)', background:'var(--white)', color:'var(--ink2)', fontSize:"var(--text-base)", fontWeight:600, cursor:'pointer', fontFamily:'var(--font)', whiteSpace:'nowrap', minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}} data-ui-native-button="">
             <Icon name="download" size={13}/> Export page CSV
           </button>
-          <button type="button" onClick={()=>documentRoute.open('new')} style={{ display:'flex', alignItems:'center', gap:6, padding:'var(--ds-btn-py) 18px', borderRadius:'var(--r)', border:'none', background: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))', fontSize:13, fontWeight:700, cursor:'pointer', fontFamily:'var(--font)', whiteSpace:'nowrap', minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}} data-ui-native-button="">
+          <button type="button" onClick={()=>documentRoute.open('new')} style={{ display:'flex', alignItems:'center', gap:6, padding:'var(--ds-btn-py) 18px', borderRadius:'var(--r)', border:'none', background: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))', fontSize:"var(--text-base)", fontWeight:700, cursor:'pointer', fontFamily:'var(--font)', whiteSpace:'nowrap', minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}} data-ui-native-button="">
             <Icon name="plus" size={13}/> New quotation
           </button>
         </div>
@@ -1036,7 +1036,7 @@ export const Quotations: React.FC = () => {
                 <div style={{ marginBottom:12 }}><Icon name="fileText" size={48} color="var(--border)"/></div>
                 <div style={{ fontSize:15, fontWeight:600, color:'var(--ink)', marginBottom:6 }}>No quotations found</div>
                 <div style={{ fontSize:13, color:'var(--ink3)', marginBottom:20 }}>{search?'Try a different search term.':'Get started by creating your first quotation.'}</div>
-                {!search&&<button type="button" onClick={()=>documentRoute.open('new')} style={{ display:'inline-flex', alignItems:'center', gap:6, padding:'var(--ds-btn-py) 20px', border:'none', borderRadius: 'var(--r)', background: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))', cursor:'pointer', fontWeight:600, fontSize:13, minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}} data-ui-native-button=""><Icon name="plus" size={13}/>New quotation</button>}
+                {!search&&<button type="button" onClick={()=>documentRoute.open('new')} style={{ display:'inline-flex', alignItems:'center', gap:6, padding:'var(--ds-btn-py) 20px', border:'none', borderRadius: 'var(--r)', background: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))', cursor:'pointer', fontWeight:600, fontSize:"var(--text-base)", minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}} data-ui-native-button=""><Icon name="plus" size={13}/>New quotation</button>}
               </div>
             : <div className="rtbl-wrap" style={{ overflowX:'auto' }}>
                 <table className="rtbl" style={{ borderCollapse:'collapse', fontSize:13 }}>
@@ -1062,7 +1062,7 @@ export const Quotations: React.FC = () => {
                             {[{ title:'View',icon:'eye' as const,fn:()=>fetchDetail(q.id) },{ title:'Print',icon:'printer' as const,fn:()=>printQuote(q) },...(['DRAFT','PENDING'].includes(q.status)?[{ title:'Edit',icon:'edit' as const,fn:async()=>{await fetchDetail(q.id,true);} }]:[])].map(a=>(
                               <Tip key={a.title} label={a.title}>
                                 <button type="button" aria-label={a.title} onClick={a.fn}
-                                  style={{ background:'none', border:'none', cursor:'pointer', color:'var(--ink3)', padding:5, borderRadius:'var(--r-sm)', display:'flex' }}
+                                  style={{ background:'none', border:'none', cursor:'pointer', color:'var(--ink3)', padding:"var(--action-py) var(--space-md)", borderRadius:'var(--r-sm)', display:'flex' }}
                                   onMouseEnter={e=>(e.currentTarget.style.background='var(--hover-bg)')} onMouseLeave={e=>(e.currentTarget.style.background='none')} data-ui-native-button="">
                                   <Icon name={a.icon} size={14}/>
                                 </button>

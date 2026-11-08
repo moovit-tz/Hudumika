@@ -368,7 +368,7 @@ const TemplatePickerPanel: React.FC<TemplatePickerPanelProps> = ({ templates, se
     <div className="em-tpl-panel">
       <div className="em-tpl-search-row">
         <Icon name="search" size={14} color="var(--ink3)" />
-        <input
+        <input data-ui-field="input" data-field-appearance="bare"
           className="em-tpl-search"
           placeholder="Search templates"
           value={search}
@@ -1969,13 +1969,13 @@ export const EmailApp: React.FC = () => {
           {replySendAt !== null && (
             <div className="em-compose-row">
               <span className="em-compose-label">Send at</span>
-              <input type="datetime-local" className="em-compose-input" value={replySendAt} min={new Date(Date.now() - new Date().getTimezoneOffset() * 60000).toISOString().slice(0, 16)}
+              <input data-ui-field="input" type="datetime-local" className="em-compose-input" value={replySendAt} min={new Date(Date.now() - new Date().getTimezoneOffset() * 60000).toISOString().slice(0, 16)}
                 onChange={e => setReplySendAt(e.target.value)} />
               <Tip label="Send now instead"><button type="button" className="em-attach-chip-remove" onClick={() => setReplySendAt(null)} data-ui-native-button=""><Icon name="x" size={11} /></button></Tip>
             </div>
           )}
           <div style={{ display: 'flex', alignItems: 'center', gap: 8, position: 'relative' }}>
-            <button type="button" className="btn btn-primary" style={{ display: 'flex', alignItems: 'center', gap: 6, borderRadius: 20 }} onClick={sendReply} disabled={replyAttachments.some(a => a.uploading)} data-ui-native-button="">
+            <button type="button" className="btn btn-primary" style={{ display: 'flex', alignItems: 'center', gap: 6, borderRadius: "var(--r-sm)" }} onClick={sendReply} disabled={replyAttachments.some(a => a.uploading)} data-ui-native-button="">
               <Icon name="send" size={13} /> {replySendAt ? 'Schedule send' : 'Send'}
             </button>
             <Tip label="Schedule send for later">
@@ -2055,7 +2055,7 @@ export const EmailApp: React.FC = () => {
                       ? <Spinner size={14} />
                       : <Icon name="sparkle" size={16} />}
                 </button>
-                <input
+                <input data-ui-field="input" data-field-appearance="bare"
                   className="em-search-input"
                   aria-label="Search mail"
                   placeholder="Ask AI or search messages, senders and subjects"
@@ -2723,7 +2723,7 @@ export const EmailApp: React.FC = () => {
             </div>
             <div className="em-compose-row">
               <span className="em-compose-label">Subject</span>
-              <input className="em-compose-input" value={compose.subject} onChange={e => setCompose(p => ({ ...p, subject: e.target.value }))} />
+              <input data-ui-field="input" className="em-compose-input" value={compose.subject} onChange={e => setCompose(p => ({ ...p, subject: e.target.value }))} />
             </div>
             <DescribeMessageInput
               subject={compose.subject}
@@ -2755,7 +2755,7 @@ export const EmailApp: React.FC = () => {
             {compose.sendAt !== null && (
               <div className="em-compose-row">
                 <span className="em-compose-label">Send at</span>
-                <input type="datetime-local" className="em-compose-input" value={compose.sendAt} min={new Date(Date.now() - new Date().getTimezoneOffset() * 60000).toISOString().slice(0, 16)}
+                <input data-ui-field="input" type="datetime-local" className="em-compose-input" value={compose.sendAt} min={new Date(Date.now() - new Date().getTimezoneOffset() * 60000).toISOString().slice(0, 16)}
                   onChange={e => setCompose(p => ({ ...p, sendAt: e.target.value }))} />
                 <Tip label="Send now instead"><button type="button" className="em-attach-chip-remove" onClick={() => setCompose(p => ({ ...p, sendAt: null }))} data-ui-native-button=""><Icon name="x" size={11} /></button></Tip>
               </div>
@@ -2905,17 +2905,17 @@ export const EmailApp: React.FC = () => {
                             <div className="em-settings-form-box">
                               <div className="em-settings-field">
                                 <label className="em-field-label">Template Name</label>
-                                <input className="em-settings-input" value={templateEditing.name} placeholder="e.g. Follow-up inquiry"
+                                <input data-ui-field="input" className="em-settings-input" value={templateEditing.name} placeholder="e.g. Follow-up inquiry"
                                   onChange={e => setTemplateEditing(prev => prev ? { ...prev, name: e.target.value } : prev)} />
                               </div>
                               <div className="em-settings-field">
                                 <label className="em-field-label">Subject (optional)</label>
-                                <input className="em-settings-input" value={templateEditing.subject} placeholder="e.g. Following up on our meeting"
+                                <input data-ui-field="input" className="em-settings-input" value={templateEditing.subject} placeholder="e.g. Following up on our meeting"
                                   onChange={e => setTemplateEditing(prev => prev ? { ...prev, subject: e.target.value } : prev)} />
                               </div>
                               <div className="em-settings-field">
                                 <label className="em-field-label">Body</label>
-                                <textarea className="em-settings-textarea" value={templateEditing.body} placeholder="Write template content here…" rows={4}
+                                <textarea data-ui-field="textarea" className="em-settings-textarea" value={templateEditing.body} placeholder="Write template content here…" rows={4}
                                   onChange={e => setTemplateEditing(prev => prev ? { ...prev, body: e.target.value } : prev)} />
                               </div>
                               <div className="em-form-actions">
@@ -2962,12 +2962,12 @@ export const EmailApp: React.FC = () => {
                               </div>
                               <div className="em-settings-field">
                                 <label className="em-field-label">Subject</label>
-                                <input className="em-settings-input" value={settings.vacationSubject}
+                                <input data-ui-field="input" className="em-settings-input" value={settings.vacationSubject}
                                   onChange={e => setSettings({ ...settings, vacationSubject: e.target.value })} placeholder="Out of office" />
                               </div>
                               <div className="em-settings-field">
                                 <label className="em-field-label">Message</label>
-                                <textarea className="em-settings-textarea" rows={4} value={settings.vacationMessage}
+                                <textarea data-ui-field="textarea" className="em-settings-textarea" rows={4} value={settings.vacationMessage}
                                   onChange={e => setSettings({ ...settings, vacationMessage: e.target.value })} placeholder="I'm away and will respond when I'm back…" />
                               </div>
                               <div className="em-settings-checkbox-group">
@@ -2999,7 +2999,7 @@ export const EmailApp: React.FC = () => {
                           </div>
                           <p className="em-settings-hint">Custom labels you can apply to any message — organized with distinct colors across your inbox.</p>
                           <div className="em-settings-row">
-                            <input className="em-settings-input" value={newLabelName} onChange={e => setNewLabelName(e.target.value)}
+                            <input data-ui-field="input" className="em-settings-input" value={newLabelName} onChange={e => setNewLabelName(e.target.value)}
                               onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); createLabel(); } }}
                               placeholder="New label name" />
                             <button type="button" className="btn btn-primary btn-sm" onClick={createLabel} disabled={!newLabelName.trim()} data-ui-native-button="">
@@ -3013,7 +3013,7 @@ export const EmailApp: React.FC = () => {
                               return (
                                 <div key={l.id} className="em-label-manage-row">
                                   <Badge variant="gray" style={{ background: c.bg, color: c.fg, flexShrink: 0 }}>{l.name}</Badge>
-                                  <input className="em-settings-input" defaultValue={l.name}
+                                  <input data-ui-field="input" className="em-settings-input" defaultValue={l.name}
                                     onBlur={e => { if (e.target.value.trim() && e.target.value.trim() !== l.name) renameLabel(l.id, e.target.value); }} />
                                   <div className="em-label-actions">
                                     <Tip label={l.hidden ? 'Show in label list' : 'Hide from label list'}>
@@ -3089,12 +3089,12 @@ export const EmailApp: React.FC = () => {
                               <div className="em-settings-grid-2">
                                 <div className="em-settings-field">
                                   <label className="em-field-label">IMAP Host</label>
-                                  <input className="em-settings-input" value={settings.imapHost} onChange={e => setSettings({ ...settings, imapHost: e.target.value })} placeholder="imap.example.com" />
+                                  <input data-ui-field="input" className="em-settings-input" value={settings.imapHost} onChange={e => setSettings({ ...settings, imapHost: e.target.value })} placeholder="imap.example.com" />
                                 </div>
                                 <div className="em-settings-field">
                                   <label className="em-field-label">Port &amp; Encryption</label>
                                   <div style={{ display: 'flex', gap: 8 }}>
-                                    <input className="em-settings-input" type="number" value={settings.imapPort} onChange={e => setSettings({ ...settings, imapPort: parseInt(e.target.value, 10) || 993 })} />
+                                    <input data-ui-field="input" className="em-settings-input" type="number" value={settings.imapPort} onChange={e => setSettings({ ...settings, imapPort: parseInt(e.target.value, 10) || 993 })} />
                                     <Select value={settings.imapEncryption} onValueChange={v => setSettings({ ...settings, imapEncryption: v as any })}>
                                       <SelectTrigger className="w-28 shrink-0"><SelectValue /></SelectTrigger>
                                       <SelectContent>
@@ -3107,11 +3107,11 @@ export const EmailApp: React.FC = () => {
                                 </div>
                                 <div className="em-settings-field">
                                   <label className="em-field-label">Username</label>
-                                  <input className="em-settings-input" value={settings.imapUser} onChange={e => setSettings({ ...settings, imapUser: e.target.value })} placeholder="you@example.com" />
+                                  <input data-ui-field="input" className="em-settings-input" value={settings.imapUser} onChange={e => setSettings({ ...settings, imapUser: e.target.value })} placeholder="you@example.com" />
                                 </div>
                                 <div className="em-settings-field">
                                   <label className="em-field-label">Password</label>
-                                  <input className="em-settings-input" type="password" value={settings.imapPass} onChange={e => setSettings({ ...settings, imapPass: e.target.value })} placeholder="••••••••" />
+                                  <input data-ui-field="input" className="em-settings-input" type="password" value={settings.imapPass} onChange={e => setSettings({ ...settings, imapPass: e.target.value })} placeholder="••••••••" />
                                 </div>
                               </div>
                               <CheckboxRow
@@ -3167,7 +3167,7 @@ export const EmailApp: React.FC = () => {
                                 <div className="em-protocol-form-row">
                                   <label className="em-protocol-form-label">Email sent from name</label>
                                   <div className="em-protocol-form-content">
-                                    <input
+                                    <input data-ui-field="input"
                                       className="em-settings-input"
                                       value={settings.fromName}
                                       onChange={e => setSettings({ ...settings, fromName: e.target.value })}
@@ -3179,7 +3179,7 @@ export const EmailApp: React.FC = () => {
                                 <div className="em-protocol-form-row">
                                   <label className="em-protocol-form-label">Email sent from address</label>
                                   <div className="em-protocol-form-content">
-                                    <input
+                                    <input data-ui-field="input"
                                       className="em-settings-input"
                                       value={settings.fromEmail}
                                       onChange={e => setSettings({ ...settings, fromEmail: e.target.value })}
@@ -3196,7 +3196,7 @@ export const EmailApp: React.FC = () => {
                                 <div className="em-protocol-form-row">
                                   <label className="em-protocol-form-label">SMTP Host</label>
                                   <div className="em-protocol-form-content">
-                                    <input
+                                    <input data-ui-field="input"
                                       className="em-settings-input"
                                       value={settings.smtpHost}
                                       onChange={e => setSettings({ ...settings, smtpHost: e.target.value })}
@@ -3208,7 +3208,7 @@ export const EmailApp: React.FC = () => {
                                 <div className="em-protocol-form-row">
                                   <label className="em-protocol-form-label">SMTP Username</label>
                                   <div className="em-protocol-form-content">
-                                    <input
+                                    <input data-ui-field="input"
                                       className="em-settings-input"
                                       value={settings.smtpUser}
                                       onChange={e => setSettings({ ...settings, smtpUser: e.target.value })}
@@ -3220,7 +3220,7 @@ export const EmailApp: React.FC = () => {
                                 <div className="em-protocol-form-row">
                                   <label className="em-protocol-form-label">SMTP Password</label>
                                   <div className="em-protocol-form-content">
-                                    <input
+                                    <input data-ui-field="input"
                                       className="em-settings-input"
                                       type="password"
                                       value={settings.smtpPass}
@@ -3233,7 +3233,7 @@ export const EmailApp: React.FC = () => {
                                 <div className="em-protocol-form-row">
                                   <label className="em-protocol-form-label">SMTP Port &amp; Security</label>
                                   <div className="em-protocol-form-content" style={{ flexDirection: 'row', gap: 12 }}>
-                                    <input
+                                    <input data-ui-field="input"
                                       className="em-settings-input"
                                       type="number"
                                       value={settings.smtpPort}
@@ -3382,7 +3382,7 @@ export const EmailApp: React.FC = () => {
                               </label>
                               <div className="em-protocol-form-content">
                                 <div className="em-test-mail-input-wrap">
-                                  <input
+                                  <input data-ui-field="input"
                                     className="em-settings-input"
                                     value={sendTestMailTo}
                                     onChange={e => setSendTestMailTo(e.target.value)}
@@ -3437,7 +3437,7 @@ export const EmailApp: React.FC = () => {
                           </div>
                           <p className="em-settings-hint">Sender address, domain, or a subject keyword — matching mail is routed straight to Spam instead of Inbox. Rule-based, not an AI filter.</p>
                           <div className="em-settings-row">
-                            <input className="em-settings-input" value={blocklistInput} onChange={e => setBlocklistInput(e.target.value)}
+                            <input data-ui-field="input" className="em-settings-input" value={blocklistInput} onChange={e => setBlocklistInput(e.target.value)}
                               onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); addBlocklistEntry(); } }}
                               placeholder="spam@example.com, badomain.com, or a keyword" />
                             <button type="button" className="btn btn-primary btn-sm" onClick={addBlocklistEntry} disabled={!blocklistInput.trim()} data-ui-native-button="">
@@ -3471,7 +3471,7 @@ export const EmailApp: React.FC = () => {
                           <p className="em-settings-hint">Automatically forward every new incoming message to another address.</p>
                           <div className="em-settings-row">
                             <span className="em-compose-label">Forward to</span>
-                            <input className="em-settings-input" value={settings.forwardToEmail ?? ''} placeholder="another@address.com"
+                            <input data-ui-field="input" className="em-settings-input" value={settings.forwardToEmail ?? ''} placeholder="another@address.com"
                               onChange={e => setSettings({ ...settings, forwardToEmail: e.target.value || null })} />
                           </div>
                           {settings.forwardToEmail && (
@@ -3572,7 +3572,7 @@ export const EmailApp: React.FC = () => {
           <DialogBody>
             <label className="em-reschedule-label">
               Send at
-              <input
+              <input data-ui-field="input"
                 type="datetime-local"
                 className="em-reschedule-input"
                 value={rescheduleValue}

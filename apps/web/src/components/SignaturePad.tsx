@@ -160,7 +160,7 @@ export function SignaturePad({ onCapture, kind = 'signature' }: { onCapture: (da
       <div style={{ display: 'flex', marginBottom: 12, borderRadius: 8, overflow: 'hidden', border: '1px solid var(--border)' }}>
         {(['draw', 'type', 'upload'] as SignMode[]).map(m => (
           <button key={m} onClick={() => { setMode(m); clearCanvas(); }}
-            style={{ flex: 1, padding: '8px', border: 'none', cursor: 'pointer', fontSize: 12.5, fontWeight: 600, background: mode === m ? 'var(--teal)' : 'var(--bg)', color: mode === m ? 'hsl(var(--primary-foreground))' : 'var(--ink)', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 5 }} data-ui-native-button="">
+            style={{ flex: 1, padding: "var(--action-py) var(--space-md)", border: 'none', cursor: 'pointer', fontSize: "var(--text-base)", fontWeight: 600, background: mode === m ? 'var(--teal)' : 'var(--bg)', color: mode === m ? 'hsl(var(--primary-foreground))' : 'var(--ink)', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 5 }} data-ui-native-button="">
             <Icon name={m === 'draw' ? 'edit' : m === 'type' ? 'fileText' : 'upload'} size={13} />
             {m === 'draw' ? 'Draw' : m === 'type' ? 'Type' : 'Upload'}
           </button>
@@ -169,9 +169,9 @@ export function SignaturePad({ onCapture, kind = 'signature' }: { onCapture: (da
 
       {mode === 'type' && (
         <div style={{ display: 'flex', gap: 8, marginBottom: 10 }}>
-          <input value={typedName} onChange={e => setTypedName(e.target.value)}
+          <input data-ui-field="input" value={typedName} onChange={e => setTypedName(e.target.value)}
             placeholder={copy.typePlaceholder}
-            style={{ flex: 1, padding: '9px 12px', borderRadius: 7, border: '1px solid var(--border)', background: 'var(--bg)', color: 'var(--ink)', fontSize: 14 }} />
+            style={{ flex: 1, padding: "var(--ds-input-py) var(--space-md)", borderRadius: "var(--r-sm)", border: '1px solid var(--border)', background: 'var(--bg)', color: 'var(--ink)', fontSize: "var(--text-base)" }} />
           <Button variant="default" size="sm" onClick={renderTyped}>Preview</Button>
         </div>
       )}

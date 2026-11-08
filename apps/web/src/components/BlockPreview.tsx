@@ -106,16 +106,16 @@ export function renderInlineFormatted(text: string): React.ReactNode {
  *  the two can never drift into showing different field shapes. */
 function renderFormField(f: { key: string; label: string; type: string; required?: boolean; options?: string[] }, value: string, onChange: (v: string) => void, disabled: boolean) {
   const common = { required: f.required, disabled, value, onChange: (e: React.ChangeEvent<any>) => onChange(e.target.value) };
-  if (f.type === 'textarea') return <textarea {...common} rows={4} />;
+  if (f.type === 'textarea') return <textarea data-ui-field="textarea" {...common} rows={4} />;
   if (f.type === 'select') {
     return (
-      <select {...common}>
+      <select data-ui-field="select" {...common}>
         <option value="">Choose…</option>
         {(f.options || []).map(o => <option key={o} value={o}>{o}</option>)}
       </select>
     );
   }
-  return <input {...common} type={f.type === 'email' ? 'email' : 'text'} />;
+  return <input data-ui-field="input" {...common} type={f.type === 'email' ? 'email' : 'text'} />;
 }
 
 /** §30-31 — a form block self-fetches its own public shape by `formKey`
@@ -189,9 +189,9 @@ function FormBlockRenderer({ formKey, tenantSlug, interactive, buttonClassName }
           only ever reads/stores fields it finds in the form's own declared
           config, and "_hp" isn't a shape any admin-authored field key can
           land on by accident (keyOf() never produces a leading underscore). */}
-      <input type="text" value={values._hp || ''} onChange={e => setValues(v => ({ ...v, _hp: e.target.value }))}
+      <input data-ui-field="input" type="text" value={values._hp || ''} onChange={e => setValues(v => ({ ...v, _hp: e.target.value }))}
         tabIndex={-1} autoComplete="off" aria-hidden="true"
-        style={{ position: 'absolute', left: -9999, width: 1, height: 1, opacity: 0 }} />
+        style={{ position: 'absolute', left: -9999, width: 1, height: "var(--ctl-h)", opacity: 0 }} />
       {status === 'error' && <p className="block-preview-form-error">{errorMsg}</p>}
       <button type="submit" className={buttonClassName} disabled={status === 'submitting'} data-ui-native-button="">{status === 'submitting' ? 'Sending…' : 'Submit'}</button>
     </form>

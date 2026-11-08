@@ -20,6 +20,8 @@ import {
   createLoan,
   generateLoanSchedule,
   recordLoanRepayment,
+  reverseLoanRepayment,
+  refundLoanCredit,
   createRoom,
   listRooms,
   createReservation,
@@ -30,6 +32,17 @@ import {
   listStudents,
   createFeeStructure,
   enrollStudent,
+  createPatient,
+  listPatients,
+  createAppointment,
+  progressAppointment,
+  createEncounter,
+  signEncounter,
+  amendEncounter,
+  createOrder,
+  recordResult,
+  createPrescription,
+  amendPrescription,
 } from '../services/industry-domains.service.js';
 import type { FinanceIndustryKey } from '@hudumika/types';
 
@@ -52,12 +65,21 @@ describe('Industry Domains Service Layer (Migrations 621 & 622)', () => {
     if (tenant) {
       await withTenant(tenant.tenantId, async trx => {
         const domainTables = [
+          'health_prescription_amendments',
+          'health_prescriptions',
+          'health_results',
+          'health_orders',
+          'health_encounter_amendments',
+          'health_encounters',
+          'health_appointments',
+          'health_patients',
           'finance_student_enrollments',
           'finance_fee_structures',
           'finance_students',
           'finance_folio_charges',
           'finance_reservations',
           'finance_room_inventory',
+          'finance_loan_credits',
           'finance_loan_repayments',
           'finance_loan_schedule',
           'finance_loans',
@@ -135,7 +157,10 @@ describe('Industry Domains Service Layer (Migrations 621 & 622)', () => {
       const occupiedUnits = await listPropertyUnits(tenant.tenantId, 'occupied');
       expect(occupiedUnits.some(u => u.id === unit.id)).toBe(true);
 
-      // Attempting to lease the same unit again should be rejected
+      // Attempting to lease the same unit for an overlapping date range
+      // should be rejected — the real check is the date range against
+      // other live leases, not a coarse status flag (P0 verification:
+      // "effective-dated occupancy").
       await expect(
         createLease(tenant.tenantId, tenant.userId, work.id, {
           unit_id: unit.id,
@@ -143,7 +168,34 @@ describe('Industry Domains Service Layer (Migrations 621 & 622)', () => {
           lease_start: '2026-11-01',
           rent_amount: 1200000,
         })
-      ).rejects.toThrow('Unit is not available for lease');
+      ).rejects.toThrow('already has a lease covering that date range');
+
+      // A lease starting after the first one's lease_end does NOT overlap
+      // and must be allowed — a coarse 'occupied' status check alone would
+      // wrongly block this.
+      const secondWork = await createWork('property', 'Commercial Plaza Leasing — future tenant');
+      const futureLease = await createLease(tenant.tenantId, tenant.userId, secondWork.id, {
+        unit_id: unit.id,
+        tenant_name: 'Future Tenant',
+        lease_start: '2027-11-01',
+        rent_amount: 1600000,
+      });
+      expect(futureLease.id).toBeDefined();
+
+      // Concurrent leases on the same unit from two different work records
+      // (the real-world shape: two prospective tenants, each with their
+      // own work) must not both succeed — resource-level locking, not
+      // work-record locking, is what has to serialize this.
+      const raceWorkA = await createWork('property', 'Race A');
+      const raceWorkB = await createWork('property', 'Race B');
+      const raceUnit = await createPropertyUnit(tenant.tenantId, { name: 'Race Unit', unit_type: 'residential' });
+      const [raceA, raceB] = await Promise.allSettled([
+        createLease(tenant.tenantId, tenant.userId, raceWorkA.id, { unit_id: raceUnit.id, tenant_name: 'Racer A', lease_start: '2026-12-01', lease_end: '2027-11-30', rent_amount: 500000 }),
+        createLease(tenant.tenantId, tenant.userId, raceWorkB.id, { unit_id: raceUnit.id, tenant_name: 'Racer B', lease_start: '2026-12-01', lease_end: '2027-11-30', rent_amount: 500000 }),
+      ]);
+      const raceResults = [raceA, raceB];
+      expect(raceResults.filter(r => r.status === 'fulfilled').length).toBe(1);
+      expect(raceResults.filter(r => r.status === 'rejected').length).toBe(1);
 
       // 3. Generate rent charges
       const charge = await generateLeaseCharges(
@@ -333,7 +385,7 @@ describe('Industry Domains Service Layer (Migrations 621 & 622)', () => {
           .execute()
       );
 
-      // Claim exceeding sum insured rejected
+      // Claim exceeding sum insured rejected (P0: cumulative-exposure validation)
       await expect(
         fileClaim(tenant.tenantId, tenant.userId, policy.id, {
           claim_number: 'CLM-001',
@@ -341,7 +393,18 @@ describe('Industry Domains Service Layer (Migrations 621 & 622)', () => {
           description: 'Total vessel loss',
           claim_amount: 60000000,
         })
-      ).rejects.toThrow('Claim exceeds sum insured');
+      ).rejects.toThrow('exceeding the sum insured');
+
+      // P0: coverage-date validation — an incident outside the policy's
+      // own coverage window must be refused regardless of amount.
+      await expect(
+        fileClaim(tenant.tenantId, tenant.userId, policy.id, {
+          claim_number: 'CLM-OUT-OF-WINDOW',
+          incident_date: '2026-10-15',
+          description: 'Incident before coverage began',
+          claim_amount: 1000000,
+        })
+      ).rejects.toThrow("falls outside this policy's coverage period");
 
       // 2. File valid claim
       const claim = await fileClaim(tenant.tenantId, tenant.userId, policy.id, {
@@ -354,7 +417,20 @@ describe('Industry Domains Service Layer (Migrations 621 & 622)', () => {
       expect(claim.status).toBe('reported');
       expect(Number(claim.reserve_amount)).toBe(12000000);
 
-      // 3. Adjudicate: approve claim
+      // P0: cumulative exposure across MULTIPLE claims on the same policy —
+      // each individually under sum_insured (12M + 40M = 52M > 50M sum
+      // insured) must still be refused jointly.
+      await expect(
+        fileClaim(tenant.tenantId, tenant.userId, policy.id, {
+          claim_number: 'CLM-002-CUMULATIVE',
+          incident_date: '2026-12-01',
+          description: 'Second incident, same policy',
+          claim_amount: 40000000,
+        })
+      ).rejects.toThrow('exceeding the sum insured');
+
+      // 3. Adjudicate: approve claim — net_payable_amount must reflect the
+      // policy's own deductible (500,000), not just the approved figure.
       const approved = await adjudicateClaim(
         tenant.tenantId,
         tenant.userId,
@@ -364,6 +440,8 @@ describe('Industry Domains Service Layer (Migrations 621 & 622)', () => {
       );
       expect(approved.status).toBe('approved');
       expect(Number(approved.approved_amount)).toBe(11500000);
+      expect(Number(approved.deductible_applied)).toBe(500000);
+      expect(Number(approved.net_payable_amount)).toBe(11000000);
       expect(approved.adjuster_id).toBe(tenant.userId);
 
       // Cannot re-adjudicate already approved claim
@@ -420,6 +498,25 @@ describe('Industry Domains Service Layer (Migrations 621 & 622)', () => {
       expect(Number(payment1.principal_part)).toBe(schedule[0].principal_due);
       expect(Number(payment1.interest_part)).toBe(schedule[0].interest_due);
 
+      // P0: durable repayment idempotency — a retried submission with the
+      // same reference and amount must replay the original repayment, not
+      // create a second real payment against the schedule.
+      const replay = await recordLoanRepayment(tenant.tenantId, tenant.userId, loan.id, {
+        amount: totalFirstMonth, payment_method: 'bank_transfer', reference: 'TXN-98765',
+      });
+      expect(replay.id).toBe(payment1.id);
+      const repaymentsAfterReplay = await withTenant(tenant.tenantId, trx =>
+        trx.selectFrom('finance_loan_repayments').select('id').where('tenant_id', '=', tenant.tenantId).where('loan_id', '=', loan.id).execute()
+      );
+      expect(repaymentsAfterReplay.length).toBe(1);
+
+      // Same reference, a DIFFERENT amount, must be refused outright — a
+      // reference collision with mismatched details is a real conflict,
+      // not a safe replay.
+      await expect(
+        recordLoanRepayment(tenant.tenantId, tenant.userId, loan.id, { amount: totalFirstMonth + 1, reference: 'TXN-98765' })
+      ).rejects.toThrow('already used for a repayment with a different amount');
+
       // Verify instalment 1 is marked paid
       const inst1 = await withTenant(tenant.tenantId, trx =>
         trx.selectFrom('finance_loan_schedule')
@@ -459,6 +556,61 @@ describe('Industry Domains Service Layer (Migrations 621 & 622)', () => {
           .executeTakeFirstOrThrow()
       );
       expect(updatedLoan.status).toBe('closed');
+    });
+
+    it('allocates an overpayment surplus to an explicit credit and supports reversal', async () => {
+      const work = await createWork('lending', 'Small Business Loan Portfolio — surplus/reversal');
+      const loan = await createLoan(tenant.tenantId, tenant.userId, work.id, {
+        loan_number: 'LN-2026-SURPLUS', product_name: 'SME Working Capital', borrower_name: 'Mwanza Hardware',
+        principal: 6000000, interest_rate: 10, interest_method: 'flat', term_months: 3,
+      });
+      const schedule = await generateLoanSchedule(tenant.tenantId, loan.id);
+      const totalOwed = schedule.reduce((s, i) => s + Number(i.principal_due) + Number(i.interest_due), 0);
+      await withTenant(tenant.tenantId, trx =>
+        trx.updateTable('finance_loans').set({ status: 'active', disbursed_at: new Date() }).where('tenant_id', '=', tenant.tenantId).where('id', '=', loan.id).execute()
+      );
+
+      // P0: surplus handling — a payment larger than everything owed must
+      // not silently vanish into the gap between the repayment's own
+      // stored amount and principal_part + interest_part.
+      const overpayAmount = totalOwed + 150000;
+      const repayment = await recordLoanRepayment(tenant.tenantId, tenant.userId, loan.id, { amount: overpayAmount, reference: 'TXN-OVERPAY' });
+      expect(Number(repayment.amount)).toBe(overpayAmount);
+      expect(Number(repayment.principal_part) + Number(repayment.interest_part)).toBeCloseTo(totalOwed, 2);
+
+      const credits = await withTenant(tenant.tenantId, trx =>
+        trx.selectFrom('finance_loan_credits').selectAll().where('tenant_id', '=', tenant.tenantId).where('loan_id', '=', loan.id).execute()
+      );
+      expect(credits.length).toBe(1);
+      expect(Number(credits[0].amount)).toBeCloseTo(150000, 2);
+      expect(credits[0].status).toBe('held');
+      expect(credits[0].source_repayment_id).toBe(repayment.id);
+
+      const loanAfterPayoff = await withTenant(tenant.tenantId, trx =>
+        trx.selectFrom('finance_loans').select('status').where('tenant_id', '=', tenant.tenantId).where('id', '=', loan.id).executeTakeFirstOrThrow()
+      );
+      expect(loanAfterPayoff.status).toBe('closed');
+
+      // The credit is a real, attributable action — refund, not a static record.
+      const refunded = await refundLoanCredit(tenant.tenantId, tenant.userId, credits[0].id, 'MOBILE-REFUND-001');
+      expect(refunded.status).toBe('refunded');
+      await expect(refundLoanCredit(tenant.tenantId, tenant.userId, credits[0].id)).rejects.toThrow('already been refunded');
+
+      // P0: reversal — a bounced payment or correction unwinds exactly
+      // what this repayment applied and re-opens the loan it had closed.
+      const reversed = await reverseLoanRepayment(tenant.tenantId, tenant.userId, repayment.id, 'Payment reversed — bank reported insufficient funds.');
+      expect(reversed.reversed_at).not.toBeNull();
+      await expect(reverseLoanRepayment(tenant.tenantId, tenant.userId, repayment.id, 'Second attempt')).rejects.toThrow('already been reversed');
+
+      const loanAfterReversal = await withTenant(tenant.tenantId, trx =>
+        trx.selectFrom('finance_loans').select('status').where('tenant_id', '=', tenant.tenantId).where('id', '=', loan.id).executeTakeFirstOrThrow()
+      );
+      expect(loanAfterReversal.status).toBe('active');
+
+      const scheduleAfterReversal = await withTenant(tenant.tenantId, trx =>
+        trx.selectFrom('finance_loan_schedule').selectAll().where('tenant_id', '=', tenant.tenantId).where('loan_id', '=', loan.id).execute()
+      );
+      expect(scheduleAfterReversal.every(i => Number(i.principal_paid) === 0 && Number(i.interest_paid) === 0 && i.status === 'pending')).toBe(true);
     });
   });
 
@@ -505,6 +657,19 @@ describe('Industry Domains Service Layer (Migrations 621 & 622)', () => {
           rate_per_night: 350000,
         })
       ).rejects.toThrow('Room is already booked for those dates');
+
+      // 3b. Concurrent bookings of the same room from two different work
+      // records must not both succeed — resource-level locking on the
+      // room, not just the work record, is required (P0 verification).
+      const raceWork = await createWork('hospitality', 'Safari Lodge Bookings — race');
+      const raceRoom = await createRoom(tenant.tenantId, { room_number: 'Race-Room', room_type: 'single', rate_per_night: 200000, capacity: 2, amenities: [] });
+      const [raceA, raceB] = await Promise.allSettled([
+        createReservation(tenant.tenantId, tenant.userId, work.id, { room_id: raceRoom.id, guest_name: 'Racer A', check_in: '2026-12-01', check_out: '2026-12-05', rate_per_night: 200000 }),
+        createReservation(tenant.tenantId, tenant.userId, raceWork.id, { room_id: raceRoom.id, guest_name: 'Racer B', check_in: '2026-12-01', check_out: '2026-12-05', rate_per_night: 200000 }),
+      ]);
+      const raceResults = [raceA, raceB];
+      expect(raceResults.filter(r => r.status === 'fulfilled').length).toBe(1);
+      expect(raceResults.filter(r => r.status === 'rejected').length).toBe(1);
 
       // 4. Check in guest -> room becomes occupied
       const checkedIn = await checkInGuest(tenant.tenantId, res1.id);
@@ -581,6 +746,110 @@ describe('Industry Domains Service Layer (Migrations 621 & 622)', () => {
       expect(Number(enrollment.scholarship_pct)).toBe(25);
       expect(Number(enrollment.amount_due)).toBe(1650000);
       expect(enrollment.status).toBe('enrolled');
+    });
+  });
+
+  // ═════════════════════════════════════════════════════════════
+  // 7. HEALTHCARE
+  // ═════════════════════════════════════════════════════════════
+  describe('Healthcare Domain', () => {
+    it('registers a patient, flags duplicates, books/signs/amends a visit and tracks orders/prescriptions', async () => {
+      const work = await createWork('healthcare', 'Clinic Visits');
+
+      // 1. Register a patient
+      const { patient, possible_duplicates: noDupesYet } = await createPatient(tenant.tenantId, {
+        first_name: 'Amani', last_name: 'Mwinyi', date_of_birth: '1990-05-14', phone: '+255700111222',
+      });
+      expect(patient.id).toBeDefined();
+      expect(patient.mrn).toMatch(/^MRN-/);
+      expect(noDupesYet.length).toBe(0);
+
+      // Same name + DOB registered again must be flagged, not silently
+      // merged or blocked — a registrar decides, not this function.
+      const { possible_duplicates: dupes } = await createPatient(tenant.tenantId, {
+        first_name: 'amani', last_name: 'MWINYI', date_of_birth: '1990-05-14', phone: '+255700333444',
+      });
+      expect(dupes.length).toBe(1);
+      expect(dupes[0].id).toBe(patient.id);
+
+      const found = await listPatients(tenant.tenantId, 'Mwinyi');
+      expect(found.some(p => p.id === patient.id)).toBe(true);
+
+      // 2. Book an appointment with a provider
+      const appt = await createAppointment(tenant.tenantId, tenant.userId, work.id, {
+        patient_id: patient.id, provider_id: tenant.userId, scheduled_at: '2026-12-01T09:00:00Z', duration_minutes: 30,
+      });
+      expect(appt.status).toBe('scheduled');
+
+      // An overlapping booking for the SAME provider must be refused.
+      await expect(createAppointment(tenant.tenantId, tenant.userId, work.id, {
+        patient_id: patient.id, provider_id: tenant.userId, scheduled_at: '2026-12-01T09:15:00Z', duration_minutes: 30,
+      })).rejects.toThrow('already has an appointment overlapping');
+
+      // Concurrent bookings for the same provider at the same time must
+      // not both succeed (P0-shape verification, same resource-lock
+      // pattern as the property/hospitality fixes above).
+      const raceWork = await createWork('healthcare', 'Clinic Visits — race');
+      const [raceA, raceB] = await Promise.allSettled([
+        createAppointment(tenant.tenantId, tenant.userId, work.id, { patient_id: patient.id, provider_id: tenant.userId, scheduled_at: '2026-12-02T10:00:00Z', duration_minutes: 20 }),
+        createAppointment(tenant.tenantId, tenant.userId, raceWork.id, { patient_id: patient.id, provider_id: tenant.userId, scheduled_at: '2026-12-02T10:00:00Z', duration_minutes: 20 }),
+      ]);
+      const raceResults = [raceA, raceB];
+      expect(raceResults.filter(r => r.status === 'fulfilled').length).toBe(1);
+      expect(raceResults.filter(r => r.status === 'rejected').length).toBe(1);
+
+      const checkedIn = await progressAppointment(tenant.tenantId, appt.id, 'checked_in');
+      expect(checkedIn.status).toBe('checked_in');
+
+      // 3. Open an encounter, sign it, then amend it — the amendment must
+      // preserve what was there before, not overwrite it silently.
+      const encounter = await createEncounter(tenant.tenantId, tenant.userId, work.id, {
+        patient_id: patient.id, appointment_id: appt.id, provider_id: tenant.userId,
+        chief_complaint: 'Persistent cough', notes: 'Advised rest and fluids.',
+      });
+      expect(encounter.status).toBe('open');
+
+      const signed = await signEncounter(tenant.tenantId, tenant.userId, encounter.id);
+      expect(signed.status).toBe('signed');
+      expect(signed.signed_by).toBe(tenant.userId);
+
+      const amended = await amendEncounter(tenant.tenantId, tenant.userId, encounter.id, {
+        notes: 'Advised rest, fluids, and a follow-up in 5 days.', reason: 'Clarified follow-up timing after review.',
+      });
+      expect(amended.status).toBe('amended');
+      const amendments = await withTenant(tenant.tenantId, trx =>
+        trx.selectFrom('health_encounter_amendments').selectAll().where('tenant_id', '=', tenant.tenantId).where('encounter_id', '=', encounter.id).execute()
+      );
+      expect(amendments.length).toBe(1);
+      expect(amendments[0].previous_notes).toBe('Advised rest and fluids.');
+
+      // 4. Order a lab test and record its result.
+      const order = await createOrder(tenant.tenantId, tenant.userId, encounter.id, {
+        order_type: 'lab', description: 'Full blood count',
+      });
+      expect(order.status).toBe('ordered');
+      const result = await recordResult(tenant.tenantId, tenant.userId, order.id, { result_text: 'WBC within normal range.' });
+      expect(result.id).toBeDefined();
+      const orderAfter = await withTenant(tenant.tenantId, trx =>
+        trx.selectFrom('health_orders').select('status').where('tenant_id', '=', tenant.tenantId).where('id', '=', order.id).executeTakeFirstOrThrow()
+      );
+      expect(orderAfter.status).toBe('completed');
+
+      // 5. Prescribe, then amend the dosage, keeping the prior dosage as
+      // a real audit row.
+      const rx = await createPrescription(tenant.tenantId, tenant.userId, encounter.id, {
+        patient_id: patient.id, medication_name: 'Amoxicillin', dosage: '500mg', frequency: 'Twice daily', duration: '7 days',
+      });
+      expect(rx.status).toBe('active');
+      const rxAmended = await amendPrescription(tenant.tenantId, tenant.userId, rx.id, {
+        dosage: '250mg', reason: 'Reduced dose after reviewing patient weight.',
+      });
+      expect(rxAmended.dosage).toBe('250mg');
+      const rxAmendments = await withTenant(tenant.tenantId, trx =>
+        trx.selectFrom('health_prescription_amendments').selectAll().where('tenant_id', '=', tenant.tenantId).where('prescription_id', '=', rx.id).execute()
+      );
+      expect(rxAmendments.length).toBe(1);
+      expect(rxAmendments[0].previous_dosage).toBe('500mg');
     });
   });
 });

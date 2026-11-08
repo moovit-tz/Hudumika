@@ -138,7 +138,7 @@ export function WorkforcePlanning() {
         subtitle="Approved headcount, who's actually in the seat, and who's already in motion to fill it — three separate numbers, on purpose."
         actions={
           <Select value={String(year)} onValueChange={v => setYear(Number(v))}>
-            <SelectTrigger style={{ width: 110, height: 36 }}><SelectValue /></SelectTrigger>
+            <SelectTrigger style={{ width: 110, height: "var(--ctl-h)" }}><SelectValue /></SelectTrigger>
             <SelectContent>{YEARS.map(y => <SelectItem key={y} value={String(y)}>{y}</SelectItem>)}</SelectContent>
           </Select>
         }

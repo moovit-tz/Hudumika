@@ -675,7 +675,7 @@ export function SignInbox({ view }: { view: ViewKey }) {
                         handleResetFilters();
                         close();
                       }}
-                      style={{ fontSize: 12 }}
+                      style={{ fontSize: "var(--text-base)" }}
                     >
                       Reset
                     </Button>
@@ -683,7 +683,7 @@ export function SignInbox({ view }: { view: ViewKey }) {
                       type="button"
                       size="sm"
                       onClick={() => close()}
-                      style={{ fontSize: 12, fontWeight: 600 }}
+                      style={{ fontSize: "var(--text-base)", fontWeight: 600 }}
                     >
                       Done
                     </Button>
@@ -927,10 +927,10 @@ export function ShareEnvelopeModal({ env, onClose }: { env: EnvelopeWithRecipien
                 Public Verification &amp; View Link
               </label>
               <div style={{ display: 'flex', gap: 8 }}>
-                <input
+                <input data-ui-field="input"
                   readOnly
                   value={verifyUrl}
-                  style={{ flex: 1, padding: '8px 12px', borderRadius: 'var(--r-sm)', border: '1px solid var(--border)', background: 'var(--bg)', color: 'var(--ink)', fontSize: 12.5, fontFamily: 'monospace' }}
+                  style={{ flex: 1, padding: "var(--ds-input-py) var(--space-md)", borderRadius: 'var(--r-sm)', border: '1px solid var(--border)', background: 'var(--bg)', color: 'var(--ink)', fontSize: "var(--text-base)", fontFamily: "var(--font)" }}
                 />
                 <Button variant="default" size="sm" onClick={() => copy(verifyUrl, 'verify')} style={{ fontWeight: 600, whiteSpace: 'nowrap' }}>
                   <Icon name={copiedKey === 'verify' ? 'check' : 'copy'} size={13} />
@@ -950,10 +950,10 @@ export function ShareEnvelopeModal({ env, onClose }: { env: EnvelopeWithRecipien
                 Direct PDF Download Link
               </label>
               <div style={{ display: 'flex', gap: 8 }}>
-                <input
+                <input data-ui-field="input"
                   readOnly
                   value={downloadUrl}
-                  style={{ flex: 1, padding: '8px 12px', borderRadius: 'var(--r-sm)', border: '1px solid var(--border)', background: 'var(--bg)', color: 'var(--ink)', fontSize: 12.5, fontFamily: 'monospace' }}
+                  style={{ flex: 1, padding: "var(--ds-input-py) var(--space-md)", borderRadius: 'var(--r-sm)', border: '1px solid var(--border)', background: 'var(--bg)', color: 'var(--ink)', fontSize: "var(--text-base)", fontFamily: "var(--font)" }}
                 />
                 <Button variant="outline" size="sm" onClick={() => copy(downloadUrl, 'download')} style={{ whiteSpace: 'nowrap' }}>
                   <Icon name={copiedKey === 'download' ? 'check' : 'copy'} size={13} />
@@ -1072,19 +1072,19 @@ function BillEnvelopeModal({ env, onClose, onBilled }: { env: EnvelopeWithRecipi
           </p>
           <div>
             <label style={{ fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--ink3)', display: 'block', marginBottom: 6 }}>Description</label>
-            <input value={description} onChange={e => setDescription(e.target.value)}
-              style={{ width: '100%', padding: '8px 12px', borderRadius: 'var(--r-sm)', border: '1px solid var(--border)', background: 'var(--bg)', color: 'var(--ink)', fontSize: 13, boxSizing: 'border-box' }} />
+            <input data-ui-field="input" value={description} onChange={e => setDescription(e.target.value)}
+              style={{ width: '100%', padding: "var(--ds-input-py) var(--space-md)", borderRadius: 'var(--r-sm)', border: '1px solid var(--border)', background: 'var(--bg)', color: 'var(--ink)', fontSize: "var(--text-base)", boxSizing: 'border-box' }} />
           </div>
           <div style={{ display: 'flex', gap: 10 }}>
             <div style={{ flex: 1 }}>
               <label style={{ fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--ink3)', display: 'block', marginBottom: 6 }}>Amount</label>
-              <input type="number" min="0" step="0.01" value={amount} onChange={e => setAmount(e.target.value)} placeholder="0.00"
-                style={{ width: '100%', padding: '8px 12px', borderRadius: 'var(--r-sm)', border: '1px solid var(--border)', background: 'var(--bg)', color: 'var(--ink)', fontSize: 13, boxSizing: 'border-box' }} />
+              <input data-ui-field="input" type="number" min="0" step="0.01" value={amount} onChange={e => setAmount(e.target.value)} placeholder="0.00"
+                style={{ width: '100%', padding: "var(--ds-input-py) var(--space-md)", borderRadius: 'var(--r-sm)', border: '1px solid var(--border)', background: 'var(--bg)', color: 'var(--ink)', fontSize: "var(--text-base)", boxSizing: 'border-box' }} />
             </div>
             <div style={{ width: 100 }}>
               <label style={{ fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--ink3)', display: 'block', marginBottom: 6 }}>Currency</label>
-              <input value={currency} onChange={e => setCurrency(e.target.value.toUpperCase())} maxLength={3}
-                style={{ width: '100%', padding: '8px 12px', borderRadius: 'var(--r-sm)', border: '1px solid var(--border)', background: 'var(--bg)', color: 'var(--ink)', fontSize: 13, boxSizing: 'border-box' }} />
+              <input data-ui-field="input" value={currency} onChange={e => setCurrency(e.target.value.toUpperCase())} maxLength={3}
+                style={{ width: '100%', padding: "var(--ds-input-py) var(--space-md)", borderRadius: 'var(--r-sm)', border: '1px solid var(--border)', background: 'var(--bg)', color: 'var(--ink)', fontSize: "var(--text-base)", boxSizing: 'border-box' }} />
             </div>
           </div>
           <Button variant="default" onClick={submit} disabled={saving} style={{ background: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))', fontWeight: 700 }}>
@@ -1496,15 +1496,15 @@ export function SignEnvelopeDetail() {
             </div>
 
             {previewIsPdf && previewNumPages > 1 && (
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8, background: 'var(--bg)', borderRadius: 'var(--badge-radius)', padding: '3px 10px', flexShrink: 0 }}>
-                <Button variant="outline" size="icon" aria-label="Previous page" onClick={() => setPreviewPage(p => Math.max(1, p - 1))} disabled={previewPage <= 1}>
-                  <Icon name="chevronLeft" size={14} color="var(--ink)" />
+              <div className="sign-preview-pagination" role="group" aria-label="Document pages">
+                <Button variant="ghost" size="icon" aria-label="Previous page" onClick={() => setPreviewPage(p => Math.max(1, p - 1))} disabled={previewPage <= 1}>
+                  <Icon name="chevronLeft" size={14} />
                 </Button>
-                <span style={{ fontSize: 12, color: 'var(--ink)', fontWeight: 600, whiteSpace: 'nowrap', fontFamily: 'var(--font)' }}>
+                <span className="sign-preview-page-count" aria-live="polite" aria-atomic="true">
                   {previewPage} / {previewNumPages}
                 </span>
-                <Button variant="outline" size="icon" aria-label="Next page" onClick={() => setPreviewPage(p => Math.min(previewNumPages, p + 1))} disabled={previewPage >= previewNumPages}>
-                  <Icon name="chevronRight" size={14} color="var(--ink)" />
+                <Button variant="ghost" size="icon" aria-label="Next page" onClick={() => setPreviewPage(p => Math.min(previewNumPages, p + 1))} disabled={previewPage >= previewNumPages}>
+                  <Icon name="chevronRight" size={14} />
                 </Button>
               </div>
             )}

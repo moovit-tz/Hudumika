@@ -586,7 +586,7 @@ export function ClockInPage() {
 
         <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap', minWidth: 0 }}>
           <Select value={dateRangeFilter} onValueChange={setDateRangeFilter}>
-            <SelectTrigger style={{ minHeight: 32, fontSize: 13, width: 'auto' }}><SelectValue /></SelectTrigger>
+            <SelectTrigger style={{ minHeight: "var(--ctl-h)", fontSize: "var(--text-base)", width: 'auto' }}><SelectValue /></SelectTrigger>
             <SelectContent>
               <SelectItem value="7days">Last 7 days</SelectItem>
               <SelectItem value="14days">Last 14 days</SelectItem>
@@ -608,10 +608,10 @@ export function ClockInPage() {
           title={`Timesheet reviews (${approvals.length})`}
           action={<div className="flex flex-wrap items-center gap-2">
             <Select value={queueStatus} onValueChange={setQueueStatus}><SelectTrigger aria-label="Timesheet review status"><SelectValue /></SelectTrigger><SelectContent><SelectItem value="SUBMITTED">Awaiting review</SelectItem><SelectItem value="APPROVED">Approved</SelectItem></SelectContent></Select>
-            <button
+            <button data-ui-native-button=""
               type="button"
               onClick={() => setMyReportsOnly(v => !v)}
-              style={{ fontSize: 12, fontWeight: 600, color: myReportsOnly ? 'hsl(var(--primary))' : 'var(--ink3)', border: '1px solid', borderColor: myReportsOnly ? 'hsl(var(--primary))' : 'var(--border)', borderRadius: 'var(--r-sm)', padding: '3px 10px', background: myReportsOnly ? 'var(--teal-l)' : 'transparent', cursor: 'pointer' }}
+              style={{ fontSize: "var(--text-base)", fontWeight: 600, color: myReportsOnly ? 'hsl(var(--primary))' : 'var(--ink3)', border: '1px solid', borderColor: myReportsOnly ? 'hsl(var(--primary))' : 'var(--border)', borderRadius: 'var(--r-sm)', padding: "var(--action-py) var(--space-md)", background: myReportsOnly ? 'var(--teal-l)' : 'transparent', cursor: 'pointer' }}
             >
               {myReportsOnly ? 'My direct reports' : 'Permitted team'}
             </button></div>

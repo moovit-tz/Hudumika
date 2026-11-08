@@ -283,9 +283,9 @@ export const SupportKB: React.FC = () => {
             <div style={{ display: 'flex', alignItems: 'center', gap: 10, flex: 1, minWidth: 260 }}>
               <div style={{ position: 'relative', flex: 1 }}>
                 <Icon name="search" size={14} style={{ position: 'absolute', left: 10, top: 10, color: 'var(--ink3)' }} />
-                <input
+                <input data-ui-field="input"
                   className="input-field"
-                  style={{ paddingLeft: 30, fontSize: 12.5 }}
+                  style={{ paddingLeft: 30, fontSize: "var(--text-base)" }}
                   placeholder="Search articles by title, category or content..."
                   value={search}
                   onChange={e => setSearch(e.target.value)}
@@ -322,7 +322,7 @@ export const SupportKB: React.FC = () => {
                 type="button"
                 onClick={() => setViewMode('table')}
                 style={{
-                  padding: '4px 10px',
+                  padding: "var(--action-py) var(--space-md)",
                   borderRadius: 'var(--r)',
                   border: 'none',
                   background: viewMode === 'table' ? 'var(--white)' : 'transparent',
@@ -332,7 +332,7 @@ export const SupportKB: React.FC = () => {
                   display: 'flex',
                   alignItems: 'center',
                   gap: 4,
-                  fontSize: 12,
+                  fontSize: "var(--text-base)",
                   boxShadow: viewMode === 'table' ? 'var(--elev)' : 'none'
                 }}
                data-ui-native-button="">
@@ -342,7 +342,7 @@ export const SupportKB: React.FC = () => {
                 type="button"
                 onClick={() => setViewMode('cards')}
                 style={{
-                  padding: '4px 10px',
+                  padding: "var(--action-py) var(--space-md)",
                   borderRadius: 'var(--r)',
                   border: 'none',
                   background: viewMode === 'cards' ? 'var(--white)' : 'transparent',
@@ -352,7 +352,7 @@ export const SupportKB: React.FC = () => {
                   display: 'flex',
                   alignItems: 'center',
                   gap: 4,
-                  fontSize: 12,
+                  fontSize: "var(--text-base)",
                   boxShadow: viewMode === 'cards' ? 'var(--elev)' : 'none'
                 }}
                data-ui-native-button="">
@@ -510,7 +510,7 @@ export const SupportKB: React.FC = () => {
               <DialogTitle style={{ fontSize: 16 }}>
                 {editingArticleId ? 'Edit Article' : 'Publish New Knowledge Article'}
               </DialogTitle>
-              <Button variant="ghost" size="sm" onClick={() => setShowArticleModal(false)} style={{ padding: 4 }}>
+              <Button variant="ghost" size="sm" onClick={() => setShowArticleModal(false)} style={{ padding: "var(--ds-btn-py-sm) var(--space-md)" }}>
                 <Icon name="x" size={16} />
               </Button>
             </DialogHeader>
@@ -518,7 +518,7 @@ export const SupportKB: React.FC = () => {
             <div style={{ padding: 20, display: 'flex', flexDirection: 'column', gap: 14 }}>
               <div>
                 <label style={{ fontSize: 11.5, fontWeight: 700, color: 'var(--ink2)', display: 'block', marginBottom: 4 }}>ARTICLE TITLE</label>
-                <input
+                <input data-ui-field="input"
                   value={title}
                   onChange={e => setTitle(e.target.value)}
                   placeholder="e.g. How to Submit Port Customs Declarations"
@@ -550,7 +550,7 @@ export const SupportKB: React.FC = () => {
 
               <div>
                 <label style={{ fontSize: 11.5, fontWeight: 700, color: 'var(--ink2)', display: 'block', marginBottom: 4 }}>ARTICLE BODY CONTENT</label>
-                <textarea
+                <textarea data-ui-field="textarea"
                   value={content}
                   onChange={e => setContent(e.target.value)}
                   placeholder="Write clear, step-by-step instructions for customers or agents..."
@@ -577,7 +577,7 @@ export const SupportKB: React.FC = () => {
           <DialogContent hideClose className="w-full max-w-110 p-0 gap-0 overflow-hidden">
             <DialogHeader style={{ padding: '16px 20px', borderBottom: '1px solid var(--border)', flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', background: 'var(--bg)', textAlign: 'left' }}>
               <DialogTitle style={{ fontSize: 16 }}>Create Topic Category</DialogTitle>
-              <Button variant="ghost" size="sm" onClick={() => setShowCategoryModal(false)} style={{ padding: 4 }}>
+              <Button variant="ghost" size="sm" onClick={() => setShowCategoryModal(false)} style={{ padding: "var(--ds-btn-py-sm) var(--space-md)" }}>
                 <Icon name="x" size={16} />
               </Button>
             </DialogHeader>
@@ -585,7 +585,7 @@ export const SupportKB: React.FC = () => {
             <div style={{ padding: 20, display: 'flex', flexDirection: 'column', gap: 14 }}>
               <div>
                 <label style={{ fontSize: 11.5, fontWeight: 700, color: 'var(--ink2)', display: 'block', marginBottom: 4 }}>CATEGORY NAME</label>
-                <input
+                <input data-ui-field="input"
                   value={catName}
                   onChange={e => setCatName(e.target.value)}
                   placeholder="e.g. Customs & Declarations"
@@ -595,7 +595,7 @@ export const SupportKB: React.FC = () => {
 
               <div>
                 <label style={{ fontSize: 11.5, fontWeight: 700, color: 'var(--ink2)', display: 'block', marginBottom: 4 }}>DESCRIPTION</label>
-                <input
+                <input data-ui-field="input"
                   value={catDesc}
                   onChange={e => setCatDesc(e.target.value)}
                   placeholder="e.g. Help docs for TRA clearance, manifests and HS codes"
@@ -623,7 +623,7 @@ export const SupportKB: React.FC = () => {
                 <Badge variant="brand">{previewArticle.category_name || 'General'}</Badge>
                 <Badge variant={previewArticle.status === 'Published' ? 'success' : 'gray'}>{previewArticle.status || 'Draft'}</Badge>
               </div>
-              <Button variant="ghost" size="sm" onClick={() => setPreviewArticle(null)} style={{ padding: 4 }}>
+              <Button variant="ghost" size="sm" onClick={() => setPreviewArticle(null)} style={{ padding: "var(--ds-btn-py-sm) var(--space-md)" }}>
                 <Icon name="x" size={16} />
               </Button>
             </div>

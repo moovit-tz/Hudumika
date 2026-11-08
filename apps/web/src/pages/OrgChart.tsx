@@ -189,8 +189,8 @@ function OrgPersonNode({ id, data, selected }: NodeProps<FlowNode>) {
               background: 'var(--white)',
               border: '1px solid var(--border)',
               borderRadius: 'var(--r-sm)',
-              padding: '2px 6px',
-              fontSize: 10,
+              padding: "var(--action-py) var(--space-md)",
+              fontSize: "var(--text-xs)",
               fontWeight: 700,
               color: 'var(--teal)',
               cursor: 'pointer',
@@ -365,7 +365,7 @@ function Sidebar({ node, allNodes, staffList, onClose, onSave, onDelete, saving 
           <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
             {palette.map(c => (
               <button key={c} type="button" aria-label={`Use ${c} accent color`} onClick={() => setForm(f => ({ ...f, color: c }))}
-                style={{ width: 26, height: 26, borderRadius: '50%', background: c, border: form.color === c ? '3px solid var(--ink)' : '3px solid transparent', cursor: 'pointer', transition: 'border-color 0.15s' }}  data-ui-native-button=""/>
+                style={{ width: "var(--ctl-h-xs)", height: "var(--ctl-h-xs)", borderRadius: '50%', background: c, border: form.color === c ? '3px solid var(--ink)' : '3px solid transparent', cursor: 'pointer', transition: 'border-color 0.15s' }}  data-ui-native-button=""/>
             ))}
           </div>
         </div>
@@ -648,7 +648,7 @@ export const OrgChart: React.FC = () => {
           <span style={{ fontSize: 12.5, color: 'var(--red)', flex: 1 }}>{error}</span>
           <Tip label="Dismiss">
           <button type="button" aria-label="Dismiss" onClick={() => setError(null)}
-            style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--red)', padding: 2 }} data-ui-native-button="">
+            style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--red)', padding: "var(--action-py) var(--space-md)" }} data-ui-native-button="">
             <Icon name="x" size={14} color="var(--red)" />
           </button>
           </Tip>
@@ -715,7 +715,7 @@ export const OrgChart: React.FC = () => {
 
               <div style={{ marginBottom: 8 }}>
                 <Select value={filterDept || '__all__'} onValueChange={v => setFilterDept(v === '__all__' ? '' : v)}>
-                  <SelectTrigger style={{ minHeight: 30, fontSize: 12 }}><SelectValue placeholder="All Departments" /></SelectTrigger>
+                  <SelectTrigger style={{ minHeight: "var(--ctl-h)", fontSize: "var(--text-base)" }}><SelectValue placeholder="All Departments" /></SelectTrigger>
                   <SelectContent>
                     <SelectItem value="__all__">All Departments</SelectItem>
                     {Object.keys(DEPT_COLORS).map(d => (
@@ -806,7 +806,7 @@ export const OrgChart: React.FC = () => {
               <div style={{ display: 'flex', gap: 8 }}>
                 {palette.map(c => (
                   <button key={c} type="button" aria-label={`Use ${c} accent color`} onClick={() => setAddForm(f => ({ ...f, color: c }))}
-                    style={{ width: 26, height: 26, borderRadius: '50%', background: c, border: addForm.color === c ? '3px solid var(--ink)' : '3px solid transparent', cursor: 'pointer' }}  data-ui-native-button=""/>
+                    style={{ width: "var(--ctl-h-xs)", height: "var(--ctl-h-xs)", borderRadius: '50%', background: c, border: addForm.color === c ? '3px solid var(--ink)' : '3px solid transparent', cursor: 'pointer' }}  data-ui-native-button=""/>
                 ))}
               </div>
             </div>

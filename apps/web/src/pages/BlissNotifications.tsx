@@ -337,14 +337,14 @@ export function BlissNotifications() {
         <div className="bnc-control-bottom">
           <div className="bnc-search-field">
             <Icon name="search" size={14} className="bnc-search-icon" />
-            <input
+            <input data-ui-field="input" data-field-appearance="bare"
               className="bnc-search-input"
               placeholder="Search notifications by title, content, or category…"
               value={search}
               onChange={e => setSearch(e.target.value)}
             />
             {search && (
-              <button
+              <button data-ui-native-button=""
                 type="button"
                 className="bnc-search-clear-btn"
                 onClick={() => setSearch('')}
@@ -479,7 +479,7 @@ export function BlissNotifications() {
                         )}
 
                         <Tip label={isUnread ? 'Mark as read' : 'Mark as unread'}>
-                          <button
+                          <button data-ui-native-button=""
                             type="button"
                             className="bnc-item-action-icon-btn"
                             onClick={e => toggleItemRead(n, e)}
@@ -601,7 +601,7 @@ export function BlissNotifications() {
                               variant="ghost"
                               size="sm"
                               onClick={() => toggleItemRead(selected)}
-                              style={{ height: 26, fontSize: 11 }}
+                              style={{ height: "var(--ctl-h)", fontSize: "var(--text-xs)" }}
                             >
                               Mark as {selected.read ? 'Unread' : 'Read'}
                             </Button>

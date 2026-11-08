@@ -198,7 +198,7 @@ export function CMSAddToReleaseModal({
                     Select Release Bundle
                   </label>
                   <Select value={selectedReleaseId} onValueChange={setSelectedReleaseId}>
-                    <SelectTrigger className="input-field" style={{ fontSize: 13 }}>
+                    <SelectTrigger className="input-field" style={{ fontSize: "var(--text-base)" }}>
                       <SelectValue placeholder="Choose release…" />
                     </SelectTrigger>
                     <SelectContent>
@@ -216,25 +216,25 @@ export function CMSAddToReleaseModal({
                     <label style={{ display: 'block', fontSize: 11.5, fontWeight: 700, color: 'var(--ink3)', textTransform: 'uppercase', marginBottom: 6 }}>
                       New Release Name <span style={{ color: 'var(--red)' }}>*</span>
                     </label>
-                    <input
+                    <input data-ui-field="input"
                       type="text"
                       value={newReleaseName}
                       onChange={e => setNewReleaseName(e.target.value)}
                       placeholder="e.g. Q4 Marketing Launch, Product v2.0 Release"
                       className="input-field"
-                      style={{ fontSize: 13 }}
+                      style={{ fontSize: "var(--text-base)" }}
                     />
                   </div>
                   <div>
                     <label style={{ display: 'block', fontSize: 11.5, fontWeight: 700, color: 'var(--ink3)', textTransform: 'uppercase', marginBottom: 6 }}>
                       Target Launch Date (Optional)
                     </label>
-                    <input
+                    <input data-ui-field="input"
                       type="datetime-local"
                       value={newReleaseDate}
                       onChange={e => setNewReleaseDate(e.target.value)}
                       className="input-field"
-                      style={{ fontSize: 12.5 }}
+                      style={{ fontSize: "var(--text-base)" }}
                     />
                   </div>
                 </>
@@ -245,7 +245,7 @@ export function CMSAddToReleaseModal({
                   Target Publish Status
                 </label>
                 <Select value={targetStatus} onValueChange={setTargetStatus}>
-                  <SelectTrigger className="input-field" style={{ fontSize: 13 }}>
+                  <SelectTrigger className="input-field" style={{ fontSize: "var(--text-base)" }}>
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>

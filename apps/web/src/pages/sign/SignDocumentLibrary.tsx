@@ -287,7 +287,7 @@ export function SignDocumentLibrary({ importing = false }: { importing?: boolean
 
   const thumbnail = (item: LibraryItem) =>
     item.definition ? (
-      <button
+      <button data-ui-native-button=""
         type="button"
         className="sign-library-thumbnail-button"
         onClick={() => setPreviewItem(item)}
@@ -513,7 +513,7 @@ export function SignDocumentLibrary({ importing = false }: { importing?: boolean
                   {thumbnail(item)}
                   <div className="sign-library-item-top"><span className="sign-library-category" title={item.category}>{item.category}</span>{origin(item)}</div>
                   <h2>
-                    <button
+                    <button data-ui-native-button=""
                       type="button"
                       className="sign-library-title-button"
                       onClick={() => setPreviewItem(item)}
@@ -556,7 +556,7 @@ export function SignDocumentLibrary({ importing = false }: { importing?: boolean
                         <div className="sign-library-row-title">
                           {thumbnail(item)}
                           <div>
-                            <h2><button type="button" className="sign-library-title-button" onClick={() => setPreviewItem(item)}>{item.name}</button></h2>
+                            <h2><button data-ui-native-button="" type="button" className="sign-library-title-button" onClick={() => setPreviewItem(item)}>{item.name}</button></h2>
                             <p>{TYPES.find(option => option.value === item.type)?.label || item.type}</p>
                           </div>
                         </div>
@@ -620,7 +620,7 @@ export function SignDocumentLibrary({ importing = false }: { importing?: boolean
               <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
                 <div className="lawdepot-lang-switcher" role="radiogroup" aria-label="Preview language">
                   {(['en', 'sw', 'zh'] as const).map(l => (
-                    <button
+                    <button data-ui-native-button=""
                       key={l}
                       type="button"
                       className={`lawdepot-lang-btn ${previewLang === l ? 'active' : ''}`}

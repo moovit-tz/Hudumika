@@ -372,7 +372,7 @@ function AddWebsiteModal({ onClose, onCreated }: { onClose: () => void; onCreate
             <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
               <div className="onsite-form-group">
                 <label>Name *</label>
-                <input
+                <input data-ui-field="input"
                   type="text"
                   className="onsite-input"
                   placeholder="My Store Front"
@@ -410,7 +410,7 @@ function AddWebsiteModal({ onClose, onCreated }: { onClose: () => void; onCreate
               </div>
               <div className="onsite-form-group">
                 <label>URL</label>
-                <input
+                <input data-ui-field="input"
                   type="text"
                   className="onsite-input"
                   placeholder="https://example.com"

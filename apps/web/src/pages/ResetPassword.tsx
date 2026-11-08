@@ -105,7 +105,7 @@ export const ResetPassword: React.FC = () => {
           <form onSubmit={handleSubmit} noValidate className="auth-form">
             <AuthField label="New password" error={fieldErr.password}>
               <div className="auth-input-wrap">
-                <input
+                <input data-ui-field="input"
                   type={showPass ? 'text' : 'password'}
                   className={`auth-input auth-input-icon-r${fieldErr.password ? ' auth-input-err' : ''}`}
                   placeholder="Min. 8 characters"
@@ -134,7 +134,7 @@ export const ResetPassword: React.FC = () => {
 
             <AuthField label="Confirm new password" error={fieldErr.confirm}>
               <div className="auth-input-wrap">
-                <input
+                <input data-ui-field="input"
                   type={showConf ? 'text' : 'password'}
                   className={`auth-input auth-input-icon-r${fieldErr.confirm ? ' auth-input-err' : ''}`}
                   placeholder="Re-enter new password"

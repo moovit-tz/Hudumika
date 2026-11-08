@@ -112,7 +112,7 @@ export const BlissCustomerCRM: React.FC = () => {
       <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '320px 1fr', gap: 20 }}>
         <SectionCard padded={false} title="Customer Directory">
           <div style={{ padding: '12px 14px', borderBottom: '1px solid var(--border)' }}>
-            <input className="input-field" placeholder="Search customers..." value={search} onChange={e => setSearch(e.target.value)} />
+            <input data-ui-field="input" className="input-field" placeholder="Search customers..." value={search} onChange={e => setSearch(e.target.value)} />
           </div>
           <div style={{ maxHeight: 600, overflowY: 'auto' }}>
             {loading && <SectionLoading />}

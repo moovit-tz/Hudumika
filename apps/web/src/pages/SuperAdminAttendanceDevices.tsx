@@ -101,7 +101,7 @@ export function SuperAdminAttendanceDevices() {
       <div style={{ display: 'flex', gap: 10, marginBottom: 16, flexWrap: 'wrap' }}>
         <div style={{ position: 'relative', flex: '1 1 260px', maxWidth: 340 }}>
           <Icon name="search" size={14} style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', color: 'var(--ink3)' } as React.CSSProperties} />
-          <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search device, tenant, serial…" className="input-field" style={{ width: '100%', paddingLeft: 34 }} />
+          <input data-ui-field="input" value={search} onChange={e => setSearch(e.target.value)} placeholder="Search device, tenant, serial…" className="input-field" style={{ width: '100%', paddingLeft: 34 }} />
         </div>
         <Select value={statusFilter} onValueChange={setStatusFilter}>
           <SelectTrigger className="input-field" style={{ width: 190 }}><SelectValue /></SelectTrigger>

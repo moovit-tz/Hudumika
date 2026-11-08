@@ -206,7 +206,7 @@ export function TasksTab({ job, isMobile, shipmentId, isLive, onRefresh }: { job
           {(['all', ...statuses] as const).map(status => {
             const active = filterStatus === status;
             return (
-              <button key={status} type="button" className={`stf-pill${active ? ' stf-active' : ''}`} aria-pressed={active} onClick={() => setFilterStatus(status)}>
+              <button data-ui-native-button="" key={status} type="button" className={`stf-pill${active ? ' stf-active' : ''}`} aria-pressed={active} onClick={() => setFilterStatus(status)}>
                 <span className="stf-label">{FILTER_LABELS[status]}</span>
                 <span className="stf-count">{counts[status]}</span>
               </button>
@@ -228,7 +228,7 @@ export function TasksTab({ job, isMobile, shipmentId, isLive, onRefresh }: { job
               <label style={{ fontSize: 11, fontWeight: 600, color: 'var(--ink3)', display: 'block', marginBottom: 3 }}>Task Title</label>
               {newTitleCustom ? (
                 <div style={{ display: 'flex', gap: 6 }}>
-                  <input value={newTitle} onChange={e => setNewTitle(e.target.value)} className="input-field" placeholder="New task name…" required autoFocus style={{ flex: 1 }} />
+                  <input data-ui-field="input" value={newTitle} onChange={e => setNewTitle(e.target.value)} className="input-field" placeholder="New task name…" required autoFocus style={{ flex: 1 }} />
                   <button type="button" onClick={() => { setNewTitleCustom(false); setNewTitle(''); }} title="Choose from list instead" className="btn btn-secondary btn-sm" data-ui-native-button="">
                     <Icon name="x" size={13} />
                   </button>
@@ -357,7 +357,7 @@ export function TasksTab({ job, isMobile, shipmentId, isLive, onRefresh }: { job
                           </Select>
                         </div>
                         {task.status !== 'complete' && (
-                          <Button variant="outline" size="xs" onClick={() => setTaskStatus(task, 'complete')} disabled={savingStatus === task.id} title="Mark complete" style={{ borderColor: 'var(--green)', color: 'var(--green)', paddingInline: 6 }}>
+                          <Button variant="outline" size="xs" onClick={() => setTaskStatus(task, 'complete')} disabled={savingStatus === task.id} title="Mark complete" style={{ borderColor: 'var(--green)', color: 'var(--green)', paddingInline: "var(--space-md)" }}>
                             <Icon name="check" size={12} />
                           </Button>
                         )}
@@ -456,7 +456,7 @@ export function TimesheetsTab({ job, isMobile, shipmentId, isLive, onRefresh }: 
             <span> · Billable: <span style={{ fontWeight: 700, color: 'var(--teal)' }}>{Object.entries(billableByCurrency).map(([cur, amt]) => fmtServiceRate(amt, cur)).join(' + ')}</span></span>
           )}
         </div>
-        <button type="button" onClick={() => setShowLog(true)} style={{ display: 'flex', alignItems: 'center', gap: 6, padding: 'var(--ds-btn-py) 16px', background: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))', border: 'none', borderRadius: 'var(--r)', fontSize: 13, fontWeight: 700, cursor: 'pointer', minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}} data-ui-native-button="">
+        <button type="button" onClick={() => setShowLog(true)} style={{ display: 'flex', alignItems: 'center', gap: 6, padding: 'var(--ds-btn-py) 16px', background: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))', border: 'none', borderRadius: 'var(--r)', fontSize: "var(--text-base)", fontWeight: 700, cursor: 'pointer', minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}} data-ui-native-button="">
           <Icon name="clock" size={14} /> Log Time
         </button>
       </div>
@@ -490,7 +490,7 @@ export function TimesheetsTab({ job, isMobile, shipmentId, isLive, onRefresh }: 
             </div>
             <div>
               <label style={{ fontSize: 11, fontWeight: 600, color: 'var(--ink3)', display: 'block', marginBottom: 3 }}>Hours</label>
-              <input type="number" step="0.25" min="0.25" value={logHours} onChange={e => setLogHours(e.target.value)} className="input-field" placeholder="1.5" required style={{ width: '100%', fontFamily: 'var(--font)' }} />
+              <input data-ui-field="input" type="number" step="0.25" min="0.25" value={logHours} onChange={e => setLogHours(e.target.value)} className="input-field" placeholder="1.5" required style={{ width: '100%', fontFamily: 'var(--font)' }} />
             </div>
             <div>
               <label style={{ fontSize: 11, fontWeight: 600, color: 'var(--ink3)', display: 'block', marginBottom: 3 }}>Date</label>
@@ -506,7 +506,7 @@ export function TimesheetsTab({ job, isMobile, shipmentId, isLive, onRefresh }: 
           </div>
           <div style={{ marginBottom: 10 }}>
             <label style={{ fontSize: 11, fontWeight: 600, color: 'var(--ink3)', display: 'block', marginBottom: 3 }}>Note (optional)</label>
-            <input value={logNote} onChange={e => setLogNote(e.target.value)} className="input-field" placeholder="What was worked on…" style={{ width: '100%' }} />
+            <input data-ui-field="input" value={logNote} onChange={e => setLogNote(e.target.value)} className="input-field" placeholder="What was worked on…" style={{ width: '100%' }} />
           </div>
           <div style={{ display: 'flex', gap: 8 }}>
             <button type="submit" className="btn btn-primary btn-sm" disabled={logSaving} data-ui-native-button="">{logSaving ? 'Saving…' : 'Save Entry'}</button>

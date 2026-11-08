@@ -155,7 +155,7 @@ export const BlissTelephony: React.FC = () => {
             <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
               <div>
                 <label style={{ fontSize: 12, fontWeight: 700 }}>TURN URL(s)</label>
-                <input
+                <input data-ui-field="input"
                   className="input-field" style={{ marginTop: 4, fontFamily: 'var(--font)' }}
                   value={turnUrls} onChange={e => setTurnUrls(e.target.value)}
                   placeholder="turn:turn.example.com:3478, turns:turn.example.com:5349"
@@ -163,11 +163,11 @@ export const BlissTelephony: React.FC = () => {
               </div>
               <div>
                 <label style={{ fontSize: 12, fontWeight: 700 }}>Username</label>
-                <input className="input-field" style={{ marginTop: 4 }} value={turnUsername} onChange={e => setTurnUsername(e.target.value)} />
+                <input data-ui-field="input" className="input-field" style={{ marginTop: 4 }} value={turnUsername} onChange={e => setTurnUsername(e.target.value)} />
               </div>
               <div>
                 <label style={{ fontSize: 12, fontWeight: 700 }}>Credential</label>
-                <input
+                <input data-ui-field="input"
                   type="password" className="input-field" style={{ marginTop: 4 }}
                   value={turnCredential} onChange={e => setTurnCredential(e.target.value)}
                   placeholder={credentialConfigured ? '•••••••• (leave blank to keep current)' : 'Not set'}

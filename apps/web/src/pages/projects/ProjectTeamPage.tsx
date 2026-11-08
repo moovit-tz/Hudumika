@@ -198,7 +198,7 @@ export function ProjectTeamPage() {
               variant={view === 'cards' ? 'default' : 'outline'}
               size="sm"
               onClick={() => setView('cards')}
-              style={{ height: 32, fontSize: 12 }}
+              style={{ height: "var(--ctl-h)", fontSize: "var(--text-base)" }}
             >
               <Icon name="grid" size={12} style={{ marginRight: 6 }} /> Cards
             </Button>
@@ -206,7 +206,7 @@ export function ProjectTeamPage() {
               variant={view === 'table' ? 'default' : 'outline'}
               size="sm"
               onClick={() => setView('table')}
-              style={{ height: 32, fontSize: 12 }}
+              style={{ height: "var(--ctl-h)", fontSize: "var(--text-base)" }}
             >
               <Icon name="list" size={12} style={{ marginRight: 6 }} /> Table
             </Button>
@@ -318,7 +318,7 @@ export function ProjectTeamPage() {
                       <Button
                         variant="outline"
                         size="sm"
-                        style={{ height: 28, fontSize: 11 }}
+                        style={{ height: "var(--ctl-h)", fontSize: "var(--text-xs)" }}
                         onClick={() => navigate(`/projects/${member.projects[0].id}`)}
                       >
                         Manage Project Team
@@ -381,7 +381,7 @@ export function ProjectTeamPage() {
                           <Button
                             variant="ghost"
                             size="sm"
-                            style={{ height: 28, fontSize: 11 }}
+                            style={{ height: "var(--ctl-h)", fontSize: "var(--text-xs)" }}
                             onClick={() => navigate(`/projects/${member.projects[0].id}`)}
                           >
                             Open Project

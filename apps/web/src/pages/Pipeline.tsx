@@ -212,7 +212,7 @@ function DealModal({ deal, onClose, onSaved }: { deal: Deal | null; onClose: () 
 
           <label style={{ display: 'flex', flexDirection: 'column', gap: 5 }}>
             <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--ink2)', textTransform: 'uppercase', letterSpacing: '.4px' }}>Deal name</span>
-            <input className="input-field" value={name} onChange={e => setName(e.target.value)} placeholder="e.g. Msomi Logistics — annual clearing contract" autoFocus />
+            <input data-ui-field="input" className="input-field" value={name} onChange={e => setName(e.target.value)} placeholder="e.g. Msomi Logistics — annual clearing contract" autoFocus />
           </label>
 
           <label style={{ display: 'flex', flexDirection: 'column', gap: 5 }}>
@@ -223,12 +223,12 @@ function DealModal({ deal, onClose, onSaved }: { deal: Deal | null; onClose: () 
           <div style={{ display: 'flex', gap: 10 }}>
             <label style={{ display: 'flex', flexDirection: 'column', gap: 5, flex: 2 }}>
               <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--ink2)', textTransform: 'uppercase', letterSpacing: '.4px' }}>Value</span>
-              <input className="input-field" type="number" min={0} value={value} onChange={e => setValue(e.target.value)} />
+              <input data-ui-field="input" className="input-field" type="number" min={0} value={value} onChange={e => setValue(e.target.value)} />
             </label>
             <label style={{ display: 'flex', flexDirection: 'column', gap: 5, flex: 1 }}>
               <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--ink2)', textTransform: 'uppercase', letterSpacing: '.4px' }}>Currency</span>
               <Select value={currency} onValueChange={setCurrency}>
-                <SelectTrigger className="input-field" style={{ height: 36, padding: '0 8px' }}><SelectValue /></SelectTrigger>
+                <SelectTrigger className="input-field" style={{ height: "var(--ctl-h)", padding: '0 8px' }}><SelectValue /></SelectTrigger>
                 <SelectContent>
                   {['TZS', 'USD', 'KES', 'UGX'].map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}
                 </SelectContent>
@@ -278,7 +278,7 @@ function DealModal({ deal, onClose, onSaved }: { deal: Deal | null; onClose: () 
               </div>
               {quotationId && (
                 <button type="button" onClick={() => { setQuotationId(null); setLinkedQuotation(null); }}
-                  style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink3)', fontSize: 18, lineHeight: 1, padding: '0 4px' }}
+                  style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink3)', fontSize: "var(--text-base)", lineHeight: 1, padding: '0 4px' }}
                   title="Unlink quotation" data-ui-native-button="">×</button>
               )}
             </div>
@@ -327,7 +327,7 @@ function DealModal({ deal, onClose, onSaved }: { deal: Deal | null; onClose: () 
                 </div>
               )}
               <div style={{ display: 'flex', gap: 6 }}>
-                <input className="input-field" placeholder="Add a task…" value={newTaskTitle}
+                <input data-ui-field="input" className="input-field" placeholder="Add a task…" value={newTaskTitle}
                   onChange={e => setNewTaskTitle(e.target.value)}
                   onKeyDown={async e => {
                     if (e.key === 'Enter' && newTaskTitle.trim()) {
@@ -342,7 +342,7 @@ function DealModal({ deal, onClose, onSaved }: { deal: Deal | null; onClose: () 
                   }}
                   style={{ flex: 1 }}
                 />
-                <input type="date" className="input-field" value={newTaskDue} onChange={e => setNewTaskDue(e.target.value)} style={{ width: 130 }} />
+                <input data-ui-field="input" type="date" className="input-field" value={newTaskDue} onChange={e => setNewTaskDue(e.target.value)} style={{ width: 130 }} />
                 <button type="button" className="btn btn-secondary btn-sm" disabled={!newTaskTitle.trim() || addingTask}
                   onClick={async () => {
                     if (!newTaskTitle.trim()) return;
@@ -479,7 +479,7 @@ function DealTable({ deals, stages, onOpen, onMoveStage }: {
             </SelectContent>
           </Select>
           <button type="button" onClick={() => setSelected(new Set())}
-            style={{ marginLeft: 'auto', background: 'none', border: 'none', cursor: 'pointer', fontSize: 12.5, color: 'var(--ink3)', fontFamily: 'var(--font)' }} data-ui-native-button="">
+            style={{ marginLeft: 'auto', background: 'none', border: 'none', cursor: 'pointer', fontSize: "var(--text-base)", color: 'var(--ink3)', fontFamily: 'var(--font)' }} data-ui-native-button="">
             Clear
           </button>
         </div>
@@ -558,7 +558,7 @@ function DealTable({ deals, stages, onOpen, onMoveStage }: {
                   <td style={{ padding: '9px 12px', borderBottom: '1px solid var(--border)' }} onClick={e => e.stopPropagation()}>
                     <Tip label="Open deal">
                       <button type="button" onClick={() => onOpen(d)}
-                        style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '4px 6px', borderRadius: 'var(--r-sm)', color: 'var(--ink3)', lineHeight: 1 }} data-ui-native-button="">
+                        style={{ background: 'none', border: 'none', cursor: 'pointer', padding: "var(--action-py) var(--space-md)", borderRadius: 'var(--r-sm)', color: 'var(--ink3)', lineHeight: 1 }} data-ui-native-button="">
                         <Icon name="externalLink" size={13} />
                       </button>
                     </Tip>
@@ -685,13 +685,13 @@ export function Pipeline() {
             <div style={{ display: 'flex', border: '1px solid var(--border)', borderRadius: 'var(--r)', overflow: 'hidden', background: 'var(--surface)' }}>
               <Tip label="Kanban board">
                 <button type="button" onClick={() => setBoardView('kanban')}
-                  style={{ padding: '6px 10px', background: boardView === 'kanban' ? 'hsl(var(--primary))' : 'none', color: boardView === 'kanban' ? 'hsl(var(--primary-foreground))' : 'var(--ink3)', border: 'none', cursor: 'pointer', lineHeight: 1, transition: 'background 0.12s' }} data-ui-native-button="">
+                  style={{ padding: "var(--action-py) var(--space-md)", background: boardView === 'kanban' ? 'hsl(var(--primary))' : 'none', color: boardView === 'kanban' ? 'hsl(var(--primary-foreground))' : 'var(--ink3)', border: 'none', cursor: 'pointer', lineHeight: 1, transition: 'background 0.12s' }} data-ui-native-button="">
                   <Icon name="columns" size={14} />
                 </button>
               </Tip>
               <Tip label="List view">
                 <button type="button" onClick={() => setBoardView('list')}
-                  style={{ padding: '6px 10px', background: boardView === 'list' ? 'hsl(var(--primary))' : 'none', color: boardView === 'list' ? 'hsl(var(--primary-foreground))' : 'var(--ink3)', border: 'none', borderLeft: '1px solid var(--border)', cursor: 'pointer', lineHeight: 1, transition: 'background 0.12s' }} data-ui-native-button="">
+                  style={{ padding: "var(--action-py) var(--space-md)", background: boardView === 'list' ? 'hsl(var(--primary))' : 'none', color: boardView === 'list' ? 'hsl(var(--primary-foreground))' : 'var(--ink3)', border: 'none', borderLeft: '1px solid var(--border)', cursor: 'pointer', lineHeight: 1, transition: 'background 0.12s' }} data-ui-native-button="">
                   <Icon name="list" size={14} />
                 </button>
               </Tip>
@@ -733,8 +733,8 @@ export function Pipeline() {
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
             <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--ink3)', textTransform: 'uppercase', letterSpacing: '.05em' }}>Quota attainment — {quotaPeriod}</div>
             <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
-              <input type="month" value={quotaPeriod} onChange={e => setQuotaPeriod(e.target.value)}
-                style={{ fontSize: 12, border: '1px solid var(--border)', borderRadius: 'var(--r)', padding: '3px 8px', background: 'var(--bg)', color: 'var(--ink)', fontFamily: 'var(--font)' }} />
+              <input data-ui-field="input" type="month" value={quotaPeriod} onChange={e => setQuotaPeriod(e.target.value)}
+                style={{ fontSize: "var(--text-base)", border: '1px solid var(--border)', borderRadius: 'var(--r)', padding: "var(--ds-input-py) var(--space-md)", background: 'var(--bg)', color: 'var(--ink)', fontFamily: 'var(--font)' }} />
             </div>
           </div>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
@@ -769,7 +769,7 @@ export function Pipeline() {
           {[null, ...savedViews].map(v => (
             <button key={v?.id ?? '__all__'} type="button"
               onClick={() => setActiveView(v?.id ?? null)}
-              style={{ padding: '5px 12px', borderRadius: 'var(--r)', border: '1px solid var(--border)', background: activeView === (v?.id ?? null) ? 'hsl(var(--primary))' : 'var(--white)', color: activeView === (v?.id ?? null) ? 'hsl(var(--primary-foreground))' : 'var(--ink)', fontSize: 12.5, fontWeight: 600, cursor: 'pointer', fontFamily: 'var(--font)', lineHeight: 1.25 }} data-ui-native-button="">
+              style={{ padding: "var(--action-py) var(--space-md)", borderRadius: 'var(--r)', border: '1px solid var(--border)', background: activeView === (v?.id ?? null) ? 'hsl(var(--primary))' : 'var(--white)', color: activeView === (v?.id ?? null) ? 'hsl(var(--primary-foreground))' : 'var(--ink)', fontSize: "var(--text-base)", fontWeight: 600, cursor: 'pointer', fontFamily: 'var(--font)', lineHeight: 1.25 }} data-ui-native-button="">
               {v ? `${v.name} (${v.count})` : 'All deals'}
             </button>
           ))}

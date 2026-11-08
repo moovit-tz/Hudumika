@@ -209,7 +209,7 @@ export function LawDepotTemplateModal({
           <aside className="lawdepot-modal-sidebar" aria-label="Document categories">
             <div className="lawdepot-sidebar-section">
               <div className="lawdepot-sidebar-label">DISCOVER</div>
-              <button
+              <button data-ui-native-button=""
                 type="button"
                 className={`lawdepot-sidebar-nav-btn ${selectedCategory === 'all' ? 'active' : ''}`}
                 onClick={() => setSelectedCategory('all')}
@@ -221,7 +221,7 @@ export function LawDepotTemplateModal({
                 </Badge>
               </button>
 
-              <button
+              <button data-ui-native-button=""
                 type="button"
                 className={`lawdepot-sidebar-nav-btn ${selectedCategory === 'popular' ? 'active' : ''}`}
                 onClick={() => setSelectedCategory('popular')}
@@ -233,7 +233,7 @@ export function LawDepotTemplateModal({
                 </Badge>
               </button>
 
-              <button
+              <button data-ui-native-button=""
                 type="button"
                 className={`lawdepot-sidebar-nav-btn ${selectedCategory === 'company' ? 'active' : ''}`}
                 onClick={() => setSelectedCategory('company')}
@@ -256,7 +256,7 @@ export function LawDepotTemplateModal({
                   const count = LAWDEPOT_TEMPLATES.filter(t => t.category === cat.name).length;
                   const isActive = selectedCategory === cat.name;
                   return (
-                    <button
+                    <button data-ui-native-button=""
                       key={cat.id}
                       type="button"
                       className={`lawdepot-sidebar-cat-btn ${isActive ? 'active' : ''}`}
@@ -351,7 +351,7 @@ export function LawDepotTemplateModal({
                     return (
                       <div key={item.id} className="lawdepot-template-card">
                         {/* Authentic Legal Parchment Preview Banner */}
-                        <button
+                        <button data-ui-native-button=""
                           type="button"
                           className="lawdepot-card-thumbnail-btn"
                           onClick={() => setPreviewItem(item)}
@@ -378,7 +378,7 @@ export function LawDepotTemplateModal({
                           </div>
 
                           <h4 className="lawdepot-card-title">
-                            <button
+                            <button data-ui-native-button=""
                               type="button"
                               className="lawdepot-card-title-btn"
                               onClick={() => setPreviewItem(item)}
@@ -461,7 +461,7 @@ export function LawDepotTemplateModal({
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                   <div className="lawdepot-lang-switcher" role="radiogroup" aria-label="Preview language">
                     {(['en', 'sw', 'zh'] as const).map(l => (
-                      <button
+                      <button data-ui-native-button=""
                         key={l}
                         type="button"
                         className={`lawdepot-lang-btn ${previewLang === l ? 'active' : ''}`}

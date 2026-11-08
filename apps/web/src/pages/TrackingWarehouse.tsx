@@ -284,7 +284,7 @@ export const TrackingWarehouse: React.FC = () => {
                       <Badge variant={l.active ? 'success' : 'gray'}>{l.active ? 'ACTIVE' : 'INACTIVE'}</Badge>
                     </td>
                     <td style={{ padding: '10px 14px', textAlign: 'right' }}>
-                      <Button type="button" onClick={() => { void removeLocation(l.id).catch(reportError); }} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink3)', padding: 4 }} data-ui-native-button=""><Icon name="close" size={14} /></Button>
+                      <Button type="button" onClick={() => { void removeLocation(l.id).catch(reportError); }} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink3)', padding: "var(--action-py) var(--space-md)" }} data-ui-native-button=""><Icon name="close" size={14} /></Button>
                     </td>
                   </tr>
                 ))}
@@ -325,9 +325,9 @@ export const TrackingWarehouse: React.FC = () => {
                         <Badge variant="gray">{a.status.replace('_', ' ')}</Badge>
                       </td>
                       <td style={{ padding: '10px 14px', textAlign: 'right', whiteSpace: 'nowrap' }}>
-                        {a.status === 'SCHEDULED' && <Button type="button" onClick={() => { void setAppointmentStatus(a.id, 'check-in').catch(reportError); }} style={{ fontSize: 11, fontWeight: 600, color: 'var(--teal)', background: 'none', border: 'none', cursor: 'pointer', marginRight: 8 }} data-ui-native-button="">Check in</Button>}
-                        {a.status === 'CHECKED_IN' && <Button type="button" onClick={() => { void setAppointmentStatus(a.id, 'complete').catch(reportError); }} style={{ fontSize: 11, fontWeight: 600, color: 'var(--green)', background: 'none', border: 'none', cursor: 'pointer', marginRight: 8 }} data-ui-native-button="">Complete</Button>}
-                        {(a.status === 'SCHEDULED' || a.status === 'CHECKED_IN') && <Button type="button" onClick={() => { void setAppointmentStatus(a.id, 'cancel').catch(reportError); }} style={{ fontSize: 11, fontWeight: 600, color: 'var(--red)', background: 'none', border: 'none', cursor: 'pointer' }} data-ui-native-button="">Cancel</Button>}
+                        {a.status === 'SCHEDULED' && <Button type="button" onClick={() => { void setAppointmentStatus(a.id, 'check-in').catch(reportError); }} style={{ fontSize: "var(--text-xs)", fontWeight: 600, color: 'var(--teal)', background: 'none', border: 'none', cursor: 'pointer', marginRight: 8 }} data-ui-native-button="">Check in</Button>}
+                        {a.status === 'CHECKED_IN' && <Button type="button" onClick={() => { void setAppointmentStatus(a.id, 'complete').catch(reportError); }} style={{ fontSize: "var(--text-xs)", fontWeight: 600, color: 'var(--green)', background: 'none', border: 'none', cursor: 'pointer', marginRight: 8 }} data-ui-native-button="">Complete</Button>}
+                        {(a.status === 'SCHEDULED' || a.status === 'CHECKED_IN') && <Button type="button" onClick={() => { void setAppointmentStatus(a.id, 'cancel').catch(reportError); }} style={{ fontSize: "var(--text-xs)", fontWeight: 600, color: 'var(--red)', background: 'none', border: 'none', cursor: 'pointer' }} data-ui-native-button="">Cancel</Button>}
                       </td>
                     </tr>
                   );

@@ -146,7 +146,7 @@ export function ShareModal({ item, onClose, onSave }: { item: CloudFile; onClose
           {/* ── People ── */}
           <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--ink3)', letterSpacing: '0.06em', textTransform: 'uppercase', marginBottom: 8 }}>People with access</div>
           <div style={{ display: 'flex', gap: 8 }}>
-            <input
+            <input data-ui-field="input"
               value={q} onChange={e => setQ(e.target.value)} placeholder="Search colleagues or customers…" aria-label="Search people"
               className="input-field" style={{ flex: 1 }} disabled={saving}
             />
@@ -166,7 +166,7 @@ export function ShareModal({ item, onClose, onSave }: { item: CloudFile; onClose
                 : results.length === 0 ? <div style={{ padding: 10, fontSize: 12.5, color: 'var(--ink3)' }}>No matching colleagues or customers. Only people in this workspace can be added.</div>
                 : results.map(r => (
                   <button key={`${r.type}:${r.id}`} type="button" onClick={() => add(r.type, r.id, r.label)}
-                    style={{ display: 'flex', alignItems: 'center', gap: 8, width: '100%', padding: '8px 10px', border: 'none', background: 'none', textAlign: 'left', cursor: 'pointer', borderBottom: '1px solid var(--border)' }} data-ui-native-button="">
+                    style={{ display: 'flex', alignItems: 'center', gap: 8, width: '100%', padding: "var(--action-py) var(--space-md)", border: 'none', background: 'none', textAlign: 'left', cursor: 'pointer', borderBottom: '1px solid var(--border)' }} data-ui-native-button="">
                     <PersonAvatar name={r.label} size={24} />
                     <span style={{ flex: 1, fontSize: 13 }}>{r.label}</span>
                     {r.sub && <span style={{ fontSize: 12, color: 'var(--ink3)' }}>{r.sub}</span>}
@@ -209,7 +209,7 @@ export function ShareModal({ item, onClose, onSave }: { item: CloudFile; onClose
             ) : linkUrl ? (
               <>
                 <div style={{ fontSize: 12.5, color: 'var(--ink3)', marginBottom: 8 }}>Anyone with this link can download the file — no sign-in needed.</div>
-                <input readOnly value={linkUrl} onFocus={e => e.currentTarget.select()} className="input-field" style={{ width: '100%', fontSize: 12.5 }} aria-label="Public link" />
+                <input data-ui-field="input" readOnly value={linkUrl} onFocus={e => e.currentTarget.select()} className="input-field" style={{ width: '100%', fontSize: "var(--text-base)" }} aria-label="Public link" />
                 <div style={{ display: 'flex', gap: 8, marginTop: 8, flexWrap: 'wrap' }}>
                   <Button size="sm" variant="secondary" onClick={copy} disabled={linkBusy !== null}>{copied ? 'Copied' : 'Copy link'}</Button>
                   <Button size="sm" variant="outline" onClick={() => linkAction('rotate')} disabled={linkBusy !== null}>{linkBusy === 'rotate' ? <><ButtonSpinner /> Replacing…</> : 'Replace link'}</Button>
@@ -231,7 +231,7 @@ export function ShareModal({ item, onClose, onSave }: { item: CloudFile; onClose
               <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--ink3)', letterSpacing: '0.06em', textTransform: 'uppercase', marginBottom: 6 }}>Invite someone outside this workspace</div>
               <div style={{ fontSize: 12.5, color: 'var(--ink3)', marginBottom: 8 }}>Sends a private, view-only link by email. It expires in 7 days and can be revoked any time.</div>
               <div style={{ display: 'flex', gap: 8 }}>
-                <input
+                <input data-ui-field="input"
                   value={inviteEmail} onChange={e => setInviteEmail(e.target.value)} placeholder="name@example.com" type="email"
                   onKeyDown={e => { if (e.key === 'Enter') void sendInvite(); }}
                   className="input-field" style={{ flex: 1 }} disabled={inviteBusy} aria-label="Email to invite"

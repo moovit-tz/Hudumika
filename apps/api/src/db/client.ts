@@ -5959,6 +5959,7 @@ export interface Database {
     claim_number: string; incident_date: string; reported_date: Generated<string>;
     description: string; claim_amount: number;
     approved_amount: number | null; reserve_amount: Generated<number>;
+    deductible_applied: Generated<number>; net_payable_amount: number | null;
     status: Generated<'reported' | 'investigating' | 'approved' | 'denied' | 'settled' | 'closed'>;
     adjuster_id: string | null; settlement_date: string | null; denial_reason: string | null;
     created_at: Generated<Date>; updated_at: Generated<Date>;
@@ -5988,6 +5989,13 @@ export interface Database {
     amount: number; principal_part: Generated<number>; interest_part: Generated<number>;
     penalty_part: Generated<number>; payment_date: Generated<string>; payment_method: string | null;
     reference: string | null; received_by: string | null; created_at: Generated<Date>;
+    reversed_at: Date | null; reversed_by: string | null; reversal_reason: string | null;
+  };
+  finance_loan_credits: {
+    id: Generated<string>; tenant_id: string; loan_id: string; source_repayment_id: string;
+    amount: number; status: Generated<'held' | 'refunded'>;
+    refunded_by: string | null; refunded_at: Date | null; refund_reference: string | null;
+    created_at: Generated<Date>;
   };
   finance_room_inventory: {
     id: Generated<string>; tenant_id: string; room_number: string;
@@ -6037,6 +6045,81 @@ export interface Database {
     amount_paid: Generated<number>; balance: Generated<number>;
     status: Generated<'enrolled' | 'completed' | 'withdrawn' | 'deferred'>;
     created_at: Generated<Date>; updated_at: Generated<Date>;
+  };
+  health_patients: {
+    id: Generated<string>; tenant_id: string; mrn: string;
+    first_name: string; last_name: string; date_of_birth: string | null;
+    gender: 'male' | 'female' | 'other' | null;
+    phone: string | null; email: string | null; address: string | null; national_id: string | null;
+    customer_id: string | null; notes: string | null;
+    created_at: Generated<Date>; updated_at: Generated<Date>;
+  };
+  health_appointments: {
+    id: Generated<string>; tenant_id: string; work_id: string;
+    patient_id: string; provider_id: string; scheduled_at: Date;
+    duration_minutes: Generated<number>;
+    status: Generated<'scheduled' | 'checked_in' | 'completed' | 'cancelled' | 'no_show'>;
+    reason: string | null; created_by: string | null;
+    created_at: Generated<Date>; updated_at: Generated<Date>;
+  };
+  health_encounters: {
+    id: Generated<string>; tenant_id: string; work_id: string;
+    patient_id: string; appointment_id: string | null; provider_id: string;
+    encounter_date: Generated<Date>; chief_complaint: string | null; notes: string | null;
+    status: Generated<'open' | 'signed' | 'amended'>;
+    signed_by: string | null; signed_at: Date | null; created_by: string | null;
+    created_at: Generated<Date>; updated_at: Generated<Date>;
+  };
+  health_encounter_amendments: {
+    id: Generated<string>; tenant_id: string; encounter_id: string;
+    amended_by: string | null; amended_at: Generated<Date>;
+    previous_notes: string | null; previous_chief_complaint: string | null; reason: string;
+  };
+  health_orders: {
+    id: Generated<string>; tenant_id: string; encounter_id: string;
+    order_type: 'lab' | 'imaging' | 'referral' | 'procedure' | 'other';
+    description: string; ordered_by: string | null; ordered_at: Generated<Date>;
+    status: Generated<'ordered' | 'in_progress' | 'completed' | 'cancelled'>;
+  };
+  health_results: {
+    id: Generated<string>; tenant_id: string; order_id: string;
+    result_text: string; status: Generated<'preliminary' | 'final' | 'amended'>;
+    recorded_by: string | null; recorded_at: Generated<Date>;
+  };
+  health_prescriptions: {
+    id: Generated<string>; tenant_id: string; encounter_id: string; patient_id: string;
+    medication_name: string; dosage: string; frequency: string; duration: string | null;
+    status: Generated<'active' | 'dispensed' | 'cancelled'>;
+    prescribed_by: string | null; prescribed_at: Generated<Date>;
+  };
+  health_prescription_amendments: {
+    id: Generated<string>; tenant_id: string; prescription_id: string;
+    amended_by: string | null; amended_at: Generated<Date>;
+    previous_dosage: string | null; previous_frequency: string | null; reason: string;
+  };
+  pharmacy_medications: {
+    id: Generated<string>; tenant_id: string; item_id: string; name: string; strength: string;
+    form: 'tablet' | 'capsule' | 'syrup' | 'injection' | 'cream' | 'drops' | 'inhaler' | 'other';
+    pack_size: string | null; controlled: Generated<boolean>; active: Generated<boolean>; created_at: Generated<Date>;
+  };
+  pharmacy_prescriptions: {
+    id: Generated<string>; tenant_id: string; work_id: string; medication_id: string;
+    patient_name: string; patient_contact: string | null; prescriber_name: string; prescriber_license: string | null;
+    dosage: string; quantity_prescribed: number;
+    status: Generated<'pending' | 'approved' | 'dispensed' | 'rejected' | 'returned'>;
+    approved_by: string | null; approved_at: Date | null; rejection_reason: string | null;
+    created_by: string | null; created_at: Generated<Date>; updated_at: Generated<Date>;
+  };
+  pharmacy_dispensations: {
+    id: Generated<string>; tenant_id: string; prescription_id: string; item_id: string; batch_no: string;
+    quantity: number; substituted_item_id: string | null; substitution_reason: string | null;
+    dispensed_by: string | null; dispensed_at: Generated<Date>; movement_id: string | null;
+    returned_at: Date | null; returned_by: string | null; return_movement_id: string | null;
+  };
+  pharmacy_batch_holds: {
+    id: Generated<string>; tenant_id: string; item_id: string; batch_no: string;
+    status: Generated<'active' | 'released'>; reason: string;
+    held_by: string | null; held_at: Generated<Date>; released_by: string | null; released_at: Date | null;
   };
   finance_industry_work: FinanceIndustryWorkTable;
   finance_tax_preparations: {

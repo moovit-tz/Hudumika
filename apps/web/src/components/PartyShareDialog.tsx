@@ -106,7 +106,7 @@ export function PartyShareDialog({ open, onOpenChange, partyId, name }: {
                 Currently visible to: <Badge variant="gray">{({ TENANT: 'Everyone in the workspace', TEAM: 'Owner’s team', DEPARTMENT: 'Owner’s department', PRIVATE: 'Only the owner', EXPLICIT_SHARE: 'Specific people' } as Record<string, string>)[visibility] ?? visibility}</Badge>
                 {visibility === 'TENANT' && ' — sharing below only matters once you restrict the contact (edit it and change “Who can see this contact”).'}
               </div>
-              <input
+              <input data-ui-field="input"
                 value={q} onChange={e => setQ(e.target.value)} placeholder="Add a person, team or department…"
                 className="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm"
               />
@@ -114,7 +114,7 @@ export function PartyShareDialog({ open, onOpenChange, partyId, name }: {
                 <div style={{ border: '1px solid var(--border)', borderRadius: 'var(--r)', marginTop: 6, maxHeight: 180, overflowY: 'auto' }}>
                   {results.length === 0 ? <div style={{ padding: 10, fontSize: 12, color: 'var(--ink3)' }}>No matches.</div> : results.map(r => (
                     <button key={`${r.type}:${r.id}`} type="button" onClick={() => add(r.type, r.id, r.label)}
-                      style={{ display: 'flex', alignItems: 'center', gap: 8, width: '100%', padding: '8px 10px', border: 'none', background: 'none', textAlign: 'left', cursor: 'pointer', borderBottom: '1px solid var(--border)' }} data-ui-native-button="">
+                      style={{ display: 'flex', alignItems: 'center', gap: 8, width: '100%', padding: "var(--action-py) var(--space-md)", border: 'none', background: 'none', textAlign: 'left', cursor: 'pointer', borderBottom: '1px solid var(--border)' }} data-ui-native-button="">
                       <Badge variant="gray">{TYPE_LABEL[r.type]}</Badge>
                       <span style={{ flex: 1, fontSize: 13 }}>{r.label}</span>
                       {r.sub && <span style={{ fontSize: 12, color: 'var(--ink3)' }}>{r.sub}</span>}

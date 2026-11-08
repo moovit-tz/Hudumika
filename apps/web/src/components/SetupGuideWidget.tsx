@@ -124,7 +124,7 @@ export function SetupGuideWidget() {
           type="button"
           onClick={handleDismiss}
           title="Hide this guide"
-          style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink3)', display: 'flex', alignItems: 'center', gap: 4, fontSize: 12, fontWeight: 600, padding: 4 }}
+          style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink3)', display: 'flex', alignItems: 'center', gap: 4, fontSize: "var(--text-base)", fontWeight: 600, padding: "var(--action-py) var(--space-md)" }}
          data-ui-native-button="">
           <Icon name="x" size={14} /> Hide
         </button>

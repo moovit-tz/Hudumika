@@ -67,7 +67,7 @@ function ActionsMenu({ onView, onEdit, onSuspend, onDelete }: { onView: () => vo
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <Button variant="outline" size="sm" style={{ padding: '0 7px', height: 30 }} aria-label="Row actions">
+        <Button variant="outline" size="sm" style={{ padding: '0 7px', height: "var(--ctl-h)" }} aria-label="Row actions">
           <Icon name="moreHorizontal" size={14} />
         </Button>
       </DropdownMenuTrigger>
@@ -349,7 +349,7 @@ export const CustomerDirectoryPage: React.FC = () => {
                 </SelectContent>
               </Select>
               <Button size="sm" variant={bulkAction && selectedIds.length > 0 ? 'default' : 'outline'}
-                onClick={handleBulkApply} disabled={!bulkAction || selectedIds.length === 0} style={{ height: 34 }}>
+                onClick={handleBulkApply} disabled={!bulkAction || selectedIds.length === 0} style={{ height: "var(--ctl-h)" }}>
                 Apply
               </Button>
             </div>
@@ -357,7 +357,7 @@ export const CustomerDirectoryPage: React.FC = () => {
             {selectedIds.length > 0 && (
               <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6, background: 'var(--teal-l)', border: '1px solid var(--teal-m, var(--border))', borderRadius: 'var(--r-sm)', padding: '3px 8px', fontSize: 12, fontWeight: 600, color: 'var(--teal)' }}>
                 <span>{selectedIds.length} selected</span>
-                <Button variant="ghost" size="xs" onClick={() => setSelectedIds([])} style={{ padding: 0, minHeight: 'auto', color: 'var(--teal)', fontSize: 14, lineHeight: 1 }}>×</Button>
+                <Button variant="ghost" size="xs" onClick={() => setSelectedIds([])} style={{ padding: 0, minHeight: 'auto', color: 'var(--teal)', fontSize: "var(--text-base)", lineHeight: 1 }}>×</Button>
               </div>
             )}
 
@@ -391,7 +391,7 @@ export const CustomerDirectoryPage: React.FC = () => {
               {[{ mode: 'table', icon: 'list' }, { mode: 'grid', icon: 'grid' }].map(v => (
                 <Tip key={v.mode} label={`${v.mode.charAt(0).toUpperCase() + v.mode.slice(1)} View`} side="bottom">
                   <Button variant="ghost" size="xs" onClick={() => setViewMode(v.mode as 'table' | 'grid')}
-                    style={{ borderRadius: 0, background: viewMode === v.mode ? 'hsl(var(--card))' : 'transparent', color: viewMode === v.mode ? 'var(--teal)' : 'var(--ink3)', boxShadow: viewMode === v.mode ? 'var(--elev-sm)' : 'none' }}>
+                    style={{ borderRadius: "var(--r-sm)", background: viewMode === v.mode ? 'hsl(var(--card))' : 'transparent', color: viewMode === v.mode ? 'var(--teal)' : 'var(--ink3)', boxShadow: viewMode === v.mode ? 'var(--elev-sm)' : 'none' }}>
                     <Icon name={v.icon as IconName} size={15} />
                   </Button>
                 </Tip>
@@ -402,7 +402,7 @@ export const CustomerDirectoryPage: React.FC = () => {
             <Tip label="Column visibility" side="bottom">
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                  <Button variant="outline" size="sm" style={{ padding: '0 8px', height: 34 }}>
+                  <Button variant="outline" size="sm" style={{ padding: '0 8px', height: "var(--ctl-h)" }}>
                     <Icon name="settings" size={14} style={{ color: 'var(--ink3)' }} />
                   </Button>
                 </DropdownMenuTrigger>
@@ -646,7 +646,7 @@ export const CustomerDirectoryPage: React.FC = () => {
                           </Tip>
                         )}
                       </div>
-                      <Button size="sm" variant="outline" onClick={e => { e.stopPropagation(); navigate(`/crm/customers/${c.id}`); }} style={{ height: 30, fontSize: 12 }}>
+                      <Button size="sm" variant="outline" onClick={e => { e.stopPropagation(); navigate(`/crm/customers/${c.id}`); }} style={{ height: "var(--ctl-h)", fontSize: "var(--text-base)" }}>
                         Profile
                       </Button>
                     </div>
@@ -674,11 +674,11 @@ export const CustomerDirectoryPage: React.FC = () => {
               <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: 16 }}>
                 <div style={{ gridColumn: isMobile ? 'span 1' : 'span 2' }}>
                   <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: 'var(--ink)', marginBottom: 6 }}>Company / Legal Name *</label>
-                  <input type="text" required value={createForm.name} onChange={e => setCreateForm(p => ({ ...p, name: e.target.value }))} placeholder="e.g. Acme Industrial Supplies Ltd" style={{ width: '100%', padding: '8px 12px', border: '1px solid var(--border)', borderRadius: 'var(--r-sm)', fontSize: 13, background: 'hsl(var(--card))', color: 'var(--ink)' }} />
+                  <input data-ui-field="input" type="text" required value={createForm.name} onChange={e => setCreateForm(p => ({ ...p, name: e.target.value }))} placeholder="e.g. Acme Industrial Supplies Ltd" style={{ width: '100%', padding: "var(--ds-input-py) var(--space-md)", border: '1px solid var(--border)', borderRadius: 'var(--r-sm)', fontSize: "var(--text-base)", background: 'hsl(var(--card))', color: 'var(--ink)' }} />
                 </div>
                 <div>
                   <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: 'var(--ink)', marginBottom: 6 }}>Reference Code</label>
-                  <input type="text" value={(createForm as any).ref_code || ''} onChange={e => setCreateForm(p => ({ ...p, ref_code: e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 20) }))} placeholder="e.g. ALK (auto-generated if blank)" style={{ width: '100%', padding: '8px 12px', border: '1px solid var(--border)', borderRadius: 'var(--r-sm)', fontSize: 13, background: 'hsl(var(--card))', color: 'var(--ink)', textTransform: 'uppercase', fontFamily: 'monospace' }} />
+                  <input data-ui-field="input" type="text" value={(createForm as any).ref_code || ''} onChange={e => setCreateForm(p => ({ ...p, ref_code: e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 20) }))} placeholder="e.g. ALK (auto-generated if blank)" style={{ width: '100%', padding: "var(--ds-input-py) var(--space-md)", border: '1px solid var(--border)', borderRadius: 'var(--r-sm)', fontSize: "var(--text-base)", background: 'hsl(var(--card))', color: 'var(--ink)', textTransform: 'uppercase', fontFamily: "var(--font)" }} />
                   <span style={{ fontSize: 11, color: 'var(--ink3)', marginTop: 2, display: 'block' }}>Used in invoice numbers. Auto-generated from company name if left blank.</span>
                 </div>
                 <div>
@@ -695,23 +695,23 @@ export const CustomerDirectoryPage: React.FC = () => {
                 </div>
                 <div>
                   <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: 'var(--ink)', marginBottom: 6 }}>Primary Contact Person</label>
-                  <input type="text" value={createForm.contact_name} onChange={e => setCreateForm(p => ({ ...p, contact_name: e.target.value }))} placeholder="e.g. John Doe (Director)" style={{ width: '100%', padding: '8px 12px', border: '1px solid var(--border)', borderRadius: 'var(--r-sm)', fontSize: 13, background: 'hsl(var(--card))', color: 'var(--ink)' }} />
+                  <input data-ui-field="input" type="text" value={createForm.contact_name} onChange={e => setCreateForm(p => ({ ...p, contact_name: e.target.value }))} placeholder="e.g. John Doe (Director)" style={{ width: '100%', padding: "var(--ds-input-py) var(--space-md)", border: '1px solid var(--border)', borderRadius: 'var(--r-sm)', fontSize: "var(--text-base)", background: 'hsl(var(--card))', color: 'var(--ink)' }} />
                 </div>
                 <div>
                   <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: 'var(--ink)', marginBottom: 6 }}>Official Email Address</label>
-                  <input type="email" value={createForm.email} onChange={e => setCreateForm(p => ({ ...p, email: e.target.value }))} placeholder="accounts@company.co.tz" style={{ width: '100%', padding: '8px 12px', border: '1px solid var(--border)', borderRadius: 'var(--r-sm)', fontSize: 13, background: 'hsl(var(--card))', color: 'var(--ink)' }} />
+                  <input data-ui-field="input" type="email" value={createForm.email} onChange={e => setCreateForm(p => ({ ...p, email: e.target.value }))} placeholder="accounts@company.co.tz" style={{ width: '100%', padding: "var(--ds-input-py) var(--space-md)", border: '1px solid var(--border)', borderRadius: 'var(--r-sm)', fontSize: "var(--text-base)", background: 'hsl(var(--card))', color: 'var(--ink)' }} />
                 </div>
                 <div>
                   <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: 'var(--ink)', marginBottom: 6 }}>WhatsApp / Phone Number</label>
-                  <input type="text" value={createForm.phone_wa} onChange={e => setCreateForm(p => ({ ...p, phone_wa: e.target.value }))} placeholder="+255 712 345 678" style={{ width: '100%', padding: '8px 12px', border: '1px solid var(--border)', borderRadius: 'var(--r-sm)', fontSize: 13, background: 'hsl(var(--card))', color: 'var(--ink)' }} />
+                  <input data-ui-field="input" type="text" value={createForm.phone_wa} onChange={e => setCreateForm(p => ({ ...p, phone_wa: e.target.value }))} placeholder="+255 712 345 678" style={{ width: '100%', padding: "var(--ds-input-py) var(--space-md)", border: '1px solid var(--border)', borderRadius: 'var(--r-sm)', fontSize: "var(--text-base)", background: 'hsl(var(--card))', color: 'var(--ink)' }} />
                 </div>
                 <div>
                   <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: 'var(--ink)', marginBottom: 6 }}>Taxpayer ID (TIN Number)</label>
-                  <input type="text" value={createForm.tax_id} onChange={e => setCreateForm(p => ({ ...p, tax_id: e.target.value }))} placeholder="e.g. 123-456-789" style={{ width: '100%', padding: '8px 12px', border: '1px solid var(--border)', borderRadius: 'var(--r-sm)', fontSize: 13, background: 'hsl(var(--card))', color: 'var(--ink)' }} />
+                  <input data-ui-field="input" type="text" value={createForm.tax_id} onChange={e => setCreateForm(p => ({ ...p, tax_id: e.target.value }))} placeholder="e.g. 123-456-789" style={{ width: '100%', padding: "var(--ds-input-py) var(--space-md)", border: '1px solid var(--border)', borderRadius: 'var(--r-sm)', fontSize: "var(--text-base)", background: 'hsl(var(--card))', color: 'var(--ink)' }} />
                 </div>
                 <div>
                   <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: 'var(--ink)', marginBottom: 6 }}>VAT Registration Number</label>
-                  <input type="text" value={createForm.vat_number} onChange={e => setCreateForm(p => ({ ...p, vat_number: e.target.value }))} placeholder="e.g. 40-001234-V" style={{ width: '100%', padding: '8px 12px', border: '1px solid var(--border)', borderRadius: 'var(--r-sm)', fontSize: 13, background: 'hsl(var(--card))', color: 'var(--ink)' }} />
+                  <input data-ui-field="input" type="text" value={createForm.vat_number} onChange={e => setCreateForm(p => ({ ...p, vat_number: e.target.value }))} placeholder="e.g. 40-001234-V" style={{ width: '100%', padding: "var(--ds-input-py) var(--space-md)", border: '1px solid var(--border)', borderRadius: 'var(--r-sm)', fontSize: "var(--text-base)", background: 'hsl(var(--card))', color: 'var(--ink)' }} />
                 </div>
                 <div>
                   <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: 'var(--ink)', marginBottom: 6 }}>Preferred Port / ICD</label>
@@ -742,7 +742,7 @@ export const CustomerDirectoryPage: React.FC = () => {
                 </div>
                 <div style={{ gridColumn: isMobile ? 'span 1' : 'span 2' }}>
                   <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: 'var(--ink)', marginBottom: 6 }}>Physical Address & Location</label>
-                  <input type="text" value={createForm.address} onChange={e => setCreateForm(p => ({ ...p, address: e.target.value }))} placeholder="e.g. Plot 45, Nyerere Road, Industrial Area, Dar es Salaam" style={{ width: '100%', padding: '8px 12px', border: '1px solid var(--border)', borderRadius: 'var(--r-sm)', fontSize: 13, background: 'hsl(var(--card))', color: 'var(--ink)' }} />
+                  <input data-ui-field="input" type="text" value={createForm.address} onChange={e => setCreateForm(p => ({ ...p, address: e.target.value }))} placeholder="e.g. Plot 45, Nyerere Road, Industrial Area, Dar es Salaam" style={{ width: '100%', padding: "var(--ds-input-py) var(--space-md)", border: '1px solid var(--border)', borderRadius: 'var(--r-sm)', fontSize: "var(--text-base)", background: 'hsl(var(--card))', color: 'var(--ink)' }} />
                 </div>
               </div>
             </DialogBody>

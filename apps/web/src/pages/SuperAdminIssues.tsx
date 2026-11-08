@@ -191,8 +191,8 @@ export const SuperAdminIssues: React.FC = () => {
           <div className="sai-tools">
             <div style={{ position: 'relative' }}>
               <Icon name="search" size={15} color="var(--ink3)" style={{ position: 'absolute', left: 13, top: '50%', transform: 'translateY(-50%)' }} />
-              <input className="input-field" placeholder="Search subject, reference or tenant…" value={q}
-                onChange={e => setQ(e.target.value)} style={{ width: '100%', boxSizing: 'border-box', paddingLeft: 38, fontSize: 13 }} />
+              <input data-ui-field="input" className="input-field" placeholder="Search subject, reference or tenant…" value={q}
+                onChange={e => setQ(e.target.value)} style={{ width: '100%', boxSizing: 'border-box', paddingLeft: 38, fontSize: "var(--text-base)" }} />
             </div>
             <Select value={kind} onValueChange={setKind}>
               <SelectTrigger><SelectValue /></SelectTrigger>
@@ -308,7 +308,7 @@ export const SuperAdminIssues: React.FC = () => {
                   </div>
                 ) : (
                   <button type="button" className="btn btn-secondary" disabled={sendingToLens}
-                    style={{ fontSize: 13, gap: 6 }} onClick={sendToLens} data-ui-native-button="">
+                    style={{ fontSize: "var(--text-base)", gap: 6 }} onClick={sendToLens} data-ui-native-button="">
                     <Icon name="externalLink" size={13} />
                     {sendingToLens ? 'Sending…' : 'Send to Lens'}
                   </button>
@@ -366,11 +366,11 @@ export const SuperAdminIssues: React.FC = () => {
                 <label style={{ display: 'block', fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '.4px', color: 'var(--ink3)', marginBottom: 6 }}>
                   Reply to the tenant
                 </label>
-                <textarea className="input-field" rows={3} value={reply} onChange={e => setReply(e.target.value)}
+                <textarea data-ui-field="textarea" className="input-field" rows={3} value={reply} onChange={e => setReply(e.target.value)}
                   placeholder="They see this in their own Report an issue page."
-                  style={{ width: '100%', boxSizing: 'border-box', fontSize: 13, resize: 'vertical' }} />
+                  style={{ width: '100%', boxSizing: 'border-box', fontSize: "var(--text-base)", resize: 'vertical' }} />
                 <button type="button" className="btn btn-secondary" disabled={saving || !reply.trim()}
-                  style={{ marginTop: 8, fontSize: 13 }} onClick={sendReply} data-ui-native-button="">
+                  style={{ marginTop: 8, fontSize: "var(--text-base)" }} onClick={sendReply} data-ui-native-button="">
                   {saving ? 'Sending…' : 'Send reply'}
                 </button>
               </div>
@@ -379,11 +379,11 @@ export const SuperAdminIssues: React.FC = () => {
                 <label style={{ display: 'block', fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '.4px', color: 'var(--ink3)', marginBottom: 6 }}>
                   Outcome
                 </label>
-                <textarea className="input-field" rows={2} value={resolution} onChange={e => setResolution(e.target.value)}
+                <textarea data-ui-field="textarea" className="input-field" rows={2} value={resolution} onChange={e => setResolution(e.target.value)}
                   placeholder="What was actually done. Shown to the tenant beside the status — 'Resolved' on its own is not an answer."
-                  style={{ width: '100%', boxSizing: 'border-box', fontSize: 13, resize: 'vertical' }} />
+                  style={{ width: '100%', boxSizing: 'border-box', fontSize: "var(--text-base)", resize: 'vertical' }} />
                 <button type="button" className="btn btn-primary" disabled={saving}
-                  style={{ marginTop: 8, fontSize: 13 }} onClick={() => patch({ resolution })} data-ui-native-button="">
+                  style={{ marginTop: 8, fontSize: "var(--text-base)" }} onClick={() => patch({ resolution })} data-ui-native-button="">
                   Save outcome
                 </button>
               </div>

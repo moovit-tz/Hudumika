@@ -1,6 +1,7 @@
 @import "tailwindcss";
 @import "tw-animate-css";
 @import "./components/ui/ds-tabs.css";
+@import "./components/ui/control-contract.css";
 
 /* This app's dark mode is toggled via [data-theme="dark"] on the root
    element (see AppHeader.tsx/AppSidebar.tsx), not Tailwind v4's default

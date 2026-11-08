@@ -117,8 +117,8 @@ export const LiveChatWidget: React.FC = () => {
           position: 'fixed',
           bottom: 24,
           right: 24,
-          width: 60,
-          height: 60,
+          width: "var(--ctl-h)",
+          height: "var(--ctl-h)",
           borderRadius: '50%',
           background: 'hsl(var(--primary))',
           border: 'none',
@@ -204,20 +204,20 @@ export const LiveChatWidget: React.FC = () => {
           {/* Input */}
           <div style={{ padding: 16, background: 'var(--white)', borderTop: '1px solid var(--border)' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 8, background: 'var(--bg)', borderRadius: 24, padding: '6px 6px 6px 16px' }}>
-              <input
+              <input data-field-appearance="bare" data-ui-field="input"
                 type="text"
                 value={input}
                 onChange={e => setInput(e.target.value)}
                 onKeyDown={e => e.key === 'Enter' && handleSend()}
                 placeholder="Type your message..."
                 disabled={sending}
-                style={{ flex: 1, border: 'none', background: 'transparent', outline: 'none', fontSize: 14, fontFamily: 'var(--font)' }}
+                style={{ flex: 1, border: 'none', background: 'transparent', outline: 'none', fontSize: "var(--text-base)", fontFamily: 'var(--font)' }}
               />
               <button
                 onClick={handleSend}
                 disabled={!input.trim() || sending}
                 style={{
-                  width: 36, height: 36, borderRadius: '50%', background: input.trim() && !sending ? 'hsl(var(--primary))' : 'var(--border)',
+                  width: "var(--ctl-h)", height: "var(--ctl-h)", borderRadius: '50%', background: input.trim() && !sending ? 'hsl(var(--primary))' : 'var(--border)',
                   border: 'none', color: 'hsl(var(--primary-foreground))', display: 'flex', alignItems: 'center', justifyContent: 'center',
                   cursor: input.trim() && !sending ? 'pointer' : 'not-allowed', transition: 'background 0.2s'
                 }}

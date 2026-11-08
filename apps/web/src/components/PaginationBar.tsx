@@ -178,7 +178,7 @@ export function PaginationBar({
             onSubmit={e => { e.preventDefault(); commitJump(); }}
           >
             <span className="pagination-bar-jump-label">Go to</span>
-            <input
+            <input data-ui-field="input"
               ref={jumpRef}
               type="number"
               min={1}

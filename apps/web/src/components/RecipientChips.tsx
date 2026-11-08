@@ -132,7 +132,7 @@ export function RecipientChips({ label, value, onChange, placeholder }: {
               </button>
             </span>
           ))}
-          <input
+          <input data-ui-field="input"
             className="rcp-input"
             value={draft}
             onChange={e => setDraft(e.target.value)}

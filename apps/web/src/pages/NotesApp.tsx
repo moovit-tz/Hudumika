@@ -436,7 +436,7 @@ export const NotesApp: React.FC<{ filter: NotesFilterId }> = ({ filter: activeFi
               ) : (
                 <div className="notes-composer-expanded">
                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                    <input
+                    <input data-ui-field="input"
                       type="text"
                       className="notes-input-title"
                       placeholder="Title"
@@ -455,7 +455,7 @@ export const NotesApp: React.FC<{ filter: NotesFilterId }> = ({ filter: activeFi
                   </div>
 
                   {!isChecklistMode ? (
-                    <textarea
+                    <textarea data-ui-field="textarea"
                       className="notes-input-body"
                       placeholder="Take a note..."
                       value={content}
@@ -469,7 +469,7 @@ export const NotesApp: React.FC<{ filter: NotesFilterId }> = ({ filter: activeFi
                             checked={item.completed}
                             onCheckedChange={() => toggleComposerChecklist(item.id)}
                           />
-                          <input
+                          <input data-ui-field="input"
                             type="text"
                             className={item.completed ? 'completed' : ''}
                             value={item.text}
@@ -489,7 +489,7 @@ export const NotesApp: React.FC<{ filter: NotesFilterId }> = ({ filter: activeFi
                       ))}
                       <div className="notes-checklist-item-row" style={{ marginTop: 4 }}>
                         <Icon name="plus" size={16} color="var(--ink3)" />
-                        <input
+                        <input data-ui-field="input"
                           type="text"
                           placeholder="List item"
                           onKeyDown={e => {
@@ -510,7 +510,7 @@ export const NotesApp: React.FC<{ filter: NotesFilterId }> = ({ filter: activeFi
                       <img src={drawing} alt="Sketch" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                       <button
                         type="button"
-                        style={{ position: 'absolute', top: 4, right: 4, background: 'rgba(0,0,0,0.6)', color: '#fff', border: 'none', borderRadius: '50%', width: 20, height: 20, cursor: 'pointer' }}
+                        style={{ position: 'absolute', top: 4, right: 4, background: 'rgba(0,0,0,0.6)', color: '#fff', border: 'none', borderRadius: '50%', width: "var(--ctl-h-xs)", height: "var(--ctl-h-xs)", cursor: 'pointer' }}
                         onClick={() => setDrawing(null)}
                        data-ui-native-button="">
                         ×
@@ -525,7 +525,7 @@ export const NotesApp: React.FC<{ filter: NotesFilterId }> = ({ filter: activeFi
                           <NoteImage src={img} alt="Attachment" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                           <button
                             type="button"
-                            style={{ position: 'absolute', top: 2, right: 2, background: 'rgba(0,0,0,0.6)', color: '#fff', border: 'none', borderRadius: '50%', width: 18, height: 18, cursor: 'pointer', fontSize: 12 }}
+                            style={{ position: 'absolute', top: 2, right: 2, background: 'rgba(0,0,0,0.6)', color: '#fff', border: 'none', borderRadius: '50%', width: "var(--ctl-h-xs)", height: "var(--ctl-h-xs)", cursor: 'pointer', fontSize: "var(--text-base)" }}
                             onClick={() => setImages(prev => prev.filter((_, i) => i !== idx))}
                            data-ui-native-button="">
                             ×
@@ -766,7 +766,7 @@ export const NotesApp: React.FC<{ filter: NotesFilterId }> = ({ filter: activeFi
         <div className="notes-drawing-modal" onClick={() => { flushAllPendingSaves(); setEditingNote(null); setShowSharePanel(false); setShowHistoryPanel(false); setShowMeetingPanel(false); }}>
           <div className={`notes-drawing-card keep-color-${editingNote.color}`} onClick={e => e.stopPropagation()}>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-              <input
+              <input data-ui-field="input"
                 type="text"
                 className="notes-input-title"
                 value={editingNote.title}
@@ -790,7 +790,7 @@ export const NotesApp: React.FC<{ filter: NotesFilterId }> = ({ filter: activeFi
                       <>
                         <Icon name="alertCircle" size={12} /> Not saved
                         <button type="button" onClick={() => flushAllPendingSaves()}
-                          style={{ background: 'none', border: 'none', color: 'inherit', textDecoration: 'underline', cursor: 'pointer', padding: 0, fontSize: 11.5 }} data-ui-native-button="">
+                          style={{ background: 'none', border: 'none', color: 'inherit', textDecoration: 'underline', cursor: 'pointer', padding: 0, fontSize: "var(--text-base)" }} data-ui-native-button="">
                           Retry
                         </button>
                       </>
@@ -843,7 +843,7 @@ export const NotesApp: React.FC<{ filter: NotesFilterId }> = ({ filter: activeFi
               </div>
             </div>
 
-            <textarea
+            <textarea data-ui-field="textarea"
               className="notes-input-body"
               style={{ minHeight: 140 }}
               value={editingNote.content}
@@ -869,7 +869,7 @@ export const NotesApp: React.FC<{ filter: NotesFilterId }> = ({ filter: activeFi
                         updateNote(editingNote.id, { checklist: updated });
                       }}
                     />
-                    <input
+                    <input data-ui-field="input"
                       type="text"
                       className={item.completed ? 'completed' : ''}
                       value={item.text}
@@ -1330,7 +1330,7 @@ const CategoryPicker: React.FC<{
           <button
             type="button"
             className="notes-icon-btn"
-            style={{ width: '100%', borderRadius: 'var(--r-sm)', justifyContent: 'flex-start', gap: 8, padding: '6px 8px', fontSize: 13, color: !value.subjectType ? 'var(--ink)' : 'var(--ink3)', fontWeight: !value.subjectType ? 700 : 500 }}
+            style={{ width: '100%', borderRadius: 'var(--r-sm)', justifyContent: 'flex-start', gap: 8, padding: "var(--action-py) var(--space-md)", fontSize: "var(--text-base)", color: !value.subjectType ? 'var(--ink)' : 'var(--ink3)', fontWeight: !value.subjectType ? 700 : 500 }}
             onClick={() => { onChange({ subjectType: null, subjectId: null }); onOpenChange(false); }}
            data-ui-native-button="">
             <Icon name="minusCircle" size={15} /> None
@@ -1340,7 +1340,7 @@ const CategoryPicker: React.FC<{
               key={c.id}
               type="button"
               className="notes-icon-btn"
-              style={{ width: '100%', borderRadius: 'var(--r-sm)', justifyContent: 'flex-start', gap: 8, padding: '6px 8px', fontSize: 13, color: value.subjectType === c.id ? 'var(--ink)' : 'var(--ink3)', fontWeight: value.subjectType === c.id ? 700 : 500 }}
+              style={{ width: '100%', borderRadius: 'var(--r-sm)', justifyContent: 'flex-start', gap: 8, padding: "var(--action-py) var(--space-md)", fontSize: "var(--text-base)", color: value.subjectType === c.id ? 'var(--ink)' : 'var(--ink3)', fontWeight: value.subjectType === c.id ? 700 : 500 }}
               onClick={() => {
                 // Switching category always clears any previously-picked
                 // record — an invoice id means nothing once the category
@@ -1564,7 +1564,7 @@ const SharePanel: React.FC<{
             onClick={() => setVisibility(v)}
             style={{
               flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4,
-              padding: '8px 6px', borderRadius: 'var(--r)', cursor: 'pointer',
+              padding: "var(--action-py) var(--space-md)", borderRadius: 'var(--r)', cursor: 'pointer',
               border: `1px solid ${visibility === v ? 'var(--teal)' : 'var(--border)'}`,
               background: visibility === v ? 'color-mix(in srgb, var(--teal) 10%, transparent)' : 'transparent',
               color: visibility === v ? 'var(--teal)' : 'var(--ink2)',
@@ -1589,7 +1589,7 @@ const SharePanel: React.FC<{
           <div style={{ marginBottom: 8 }}>
             <Popover open={query.trim().length > 0} onOpenChange={o => { if (!o) setQuery(''); }}>
               <PopoverAnchor asChild>
-                <input
+                <input data-ui-field="input"
                   type="text"
                   className="input-field"
                   placeholder="Add a person by name or email…"
@@ -1605,7 +1605,7 @@ const SharePanel: React.FC<{
                     key={p.id}
                     type="button"
                     onClick={() => addPerson(p)}
-                    style={{ display: 'flex', alignItems: 'center', gap: 8, width: '100%', padding: '6px 10px', background: 'none', border: 'none', cursor: 'pointer', textAlign: 'left' }}
+                    style={{ display: 'flex', alignItems: 'center', gap: 8, width: '100%', padding: "var(--action-py) var(--space-md)", background: 'none', border: 'none', cursor: 'pointer', textAlign: 'left' }}
                    data-ui-native-button="">
                     <PersonAvatar userId={p.id} name={p.name} size={20} />
                     <div style={{ display: 'flex', flexDirection: 'column' }}>
@@ -1632,7 +1632,7 @@ const SharePanel: React.FC<{
                     {p ? <PersonAvatar userId={p.id} name={p.name} size={22} /> : <div style={{ width: 22, height: 22, borderRadius: '50%', background: 'var(--bg)' }} />}
                     <span style={{ flex: 1, fontSize: 13, color: 'var(--ink)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{p?.name ?? s.userId}</span>
                     <Select value={s.permission} onValueChange={v => setPermission(s.userId, v as 'view' | 'edit')}>
-                      <SelectTrigger style={{ width: 'auto', minHeight: 26, fontSize: 12 }}><SelectValue /></SelectTrigger>
+                      <SelectTrigger style={{ width: 'auto', minHeight: "var(--ctl-h)", fontSize: "var(--text-base)" }}><SelectValue /></SelectTrigger>
                       <SelectContent>
                         <SelectItem value="edit">Can edit</SelectItem>
                         <SelectItem value="view">Can view</SelectItem>

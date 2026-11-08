@@ -166,7 +166,7 @@ export const FinanceTaxReport: React.FC = () => {
         actions={
           <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
             <Select value={period} onValueChange={setPeriod}>
-              <SelectTrigger aria-label="Period" style={{ width: 'auto', minHeight: 'var(--ctl-h-sm)', padding: '0 10px', fontSize: 12, fontWeight: 600 }}><SelectValue /></SelectTrigger>
+              <SelectTrigger aria-label="Period" style={{ width: 'auto', minHeight: 'var(--ctl-h-sm)', padding: '0 10px', fontSize: "var(--text-base)", fontWeight: 600 }}><SelectValue /></SelectTrigger>
               <SelectContent>{PERIODS.map(p => <SelectItem key={p} value={p}>{p}</SelectItem>)}</SelectContent>
             </Select>
             <Button type="button" variant="outline" size="sm" onClick={exportCsv} disabled={!data}>

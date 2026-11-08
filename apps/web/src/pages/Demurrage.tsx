@@ -300,7 +300,7 @@ export const Demurrage: React.FC = () => {
                 <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(3, 1fr)', gap: 12 }}>
                   <label style={label}>
                     Container Number *
-                    <input value={cForm.container_number} onChange={e => setCForm(f => ({ ...f, container_number: e.target.value.toUpperCase() }))} placeholder="MSKU1234567"
+                    <input data-ui-field="input" value={cForm.container_number} onChange={e => setCForm(f => ({ ...f, container_number: e.target.value.toUpperCase() }))} placeholder="MSKU1234567"
                       style={{ ...fieldInput, fontFamily: 'var(--font)' }} />
                   </label>
                   <label style={label}>
@@ -340,7 +340,7 @@ export const Demurrage: React.FC = () => {
                   </label>
                   <label style={label}>
                     Free Days
-                    <input type="number" min={0} value={cForm.free_days} onChange={e => setCForm(f => ({ ...f, free_days: Number(e.target.value) }))}
+                    <input data-ui-field="input" type="number" min={0} value={cForm.free_days} onChange={e => setCForm(f => ({ ...f, free_days: Number(e.target.value) }))}
                       style={fieldInput} />
                   </label>
                 </div>
@@ -418,7 +418,7 @@ export const Demurrage: React.FC = () => {
                               <button
                                 type="button"
                                 onClick={() => openRecharge(c)}
-                                style={{ display: 'flex', alignItems: 'center', gap: 4, padding: 'var(--ds-btn-py-xs) 10px', fontSize: 11, fontWeight: 700, color: 'var(--gold)', background: 'var(--gold-l)', border: '1px solid var(--gold-l)', borderRadius: 'var(--r)', cursor: 'pointer', whiteSpace: 'nowrap', minHeight: 'var(--ctl-h-xs)', boxSizing: 'border-box', lineHeight: 1.25}}
+                                style={{ display: 'flex', alignItems: 'center', gap: 4, padding: 'var(--ds-btn-py-xs) 10px', fontSize: "var(--text-xs)", fontWeight: 700, color: 'var(--gold)', background: 'var(--gold-l)', border: '1px solid var(--gold-l)', borderRadius: 'var(--r)', cursor: 'pointer', whiteSpace: 'nowrap', minHeight: 'var(--ctl-h-xs)', boxSizing: 'border-box', lineHeight: 1.25}}
                                data-ui-native-button="">
                                 <Icon name="receipt" size={11} /> Recharge
                               </button>
@@ -427,7 +427,7 @@ export const Demurrage: React.FC = () => {
                               <button
                                 type="button"
                                 onClick={() => { setReturnModal(c.id); setReturnDate(new Date().toISOString().split('T')[0]); }}
-                                style={{ display: 'flex', alignItems: 'center', gap: 4, padding: 'var(--ds-btn-py-xs) 10px', fontSize: 11, fontWeight: 700, color: 'var(--teal)', background: 'var(--teal-l)', border: '1px solid var(--teal-l)', borderRadius: 'var(--r)', cursor: 'pointer', whiteSpace: 'nowrap', minHeight: 'var(--ctl-h-xs)', boxSizing: 'border-box', lineHeight: 1.25}}
+                                style={{ display: 'flex', alignItems: 'center', gap: 4, padding: 'var(--ds-btn-py-xs) 10px', fontSize: "var(--text-xs)", fontWeight: 700, color: 'var(--teal)', background: 'var(--teal-l)', border: '1px solid var(--teal-l)', borderRadius: 'var(--r)', cursor: 'pointer', whiteSpace: 'nowrap', minHeight: 'var(--ctl-h-xs)', boxSizing: 'border-box', lineHeight: 1.25}}
                                data-ui-native-button="">
                                 <Icon name="checkCircle" size={11} /> Returned
                               </button>

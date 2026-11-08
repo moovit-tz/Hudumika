@@ -58,6 +58,8 @@ export function Combobox({
     <Popover open={open} onOpenChange={setOpen}>
       <PopoverTrigger asChild>
         <button
+          data-ui-field="combobox"
+    data-field-appearance={/\bborder-(?:0|none)\b/.test(triggerClassName ?? '') ? 'bare' : undefined}
           type="button"
           // Select's trigger carries data-slot="select-trigger", which is how
           // pages resize the control to their own scale. This one carried

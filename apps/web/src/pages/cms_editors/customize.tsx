@@ -50,17 +50,17 @@ export function CustomizeView({ settings, onSave }: { settings: CmsSiteSettings 
           </div>
         </div>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-          <FL label="Site Title"><input value={form.siteTitle} onChange={e => set('siteTitle', e.target.value)} className="input-field" placeholder="Your company name" /></FL>
-          <FL label="Tagline"><input value={form.tagline} onChange={e => set('tagline', e.target.value)} className="input-field" placeholder="A short description" /></FL>
+          <FL label="Site Title"><input data-ui-field="input" value={form.siteTitle} onChange={e => set('siteTitle', e.target.value)} className="input-field" placeholder="Your company name" /></FL>
+          <FL label="Tagline"><input data-ui-field="input" value={form.tagline} onChange={e => set('tagline', e.target.value)} className="input-field" placeholder="A short description" /></FL>
           <FL label="Logo">
             <div style={{ display: 'flex', gap: 8 }}>
-              <input value={form.logoUrl} onChange={e => set('logoUrl', e.target.value)} className="input-field" placeholder="https://…" style={{ flex: 1 }} />
+              <input data-ui-field="input" value={form.logoUrl} onChange={e => set('logoUrl', e.target.value)} className="input-field" placeholder="https://…" style={{ flex: 1 }} />
               <button type="button" className="btn btn-secondary btn-sm" onClick={() => pickInto('logoUrl')} data-ui-native-button="">Choose from library</button>
             </div>
           </FL>
           <FL label="Favicon">
             <div style={{ display: 'flex', gap: 8 }}>
-              <input value={form.faviconUrl} onChange={e => set('faviconUrl', e.target.value)} className="input-field" placeholder="https://…" style={{ flex: 1 }} />
+              <input data-ui-field="input" value={form.faviconUrl} onChange={e => set('faviconUrl', e.target.value)} className="input-field" placeholder="https://…" style={{ flex: 1 }} />
               <button type="button" className="btn btn-secondary btn-sm" onClick={() => pickInto('faviconUrl')} data-ui-native-button="">Choose from library</button>
             </div>
           </FL>

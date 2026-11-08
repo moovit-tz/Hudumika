@@ -168,13 +168,13 @@ export function CMSTranslationModal({
                   display: 'flex',
                   alignItems: 'center',
                   gap: 8,
-                  padding: '10px 12px',
-                  borderRadius: 8,
+                  padding: "var(--action-py) var(--space-md)",
+                  borderRadius: "var(--r-sm)",
                   border: targetLocale === l.code ? '2px solid var(--teal)' : '1px solid var(--border)',
                   background: targetLocale === l.code ? 'var(--teal-l)' : 'var(--bg)',
                   color: targetLocale === l.code ? 'var(--teal)' : 'var(--text)',
                   fontWeight: targetLocale === l.code ? 600 : 500,
-                  fontSize: 13,
+                  fontSize: "var(--text-base)",
                   cursor: 'pointer',
                   textAlign: 'left',
                 }}
@@ -189,7 +189,7 @@ export function CMSTranslationModal({
         <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 10 }}>
           <button
             onClick={onClose}
-            style={{ padding: '8px 14px', borderRadius: 8, border: '1px solid var(--border)', background: 'transparent', color: 'var(--text)', fontSize: 13, cursor: 'pointer' }}
+            style={{ padding: "var(--action-py) var(--space-md)", borderRadius: "var(--r-sm)", border: '1px solid var(--border)', background: 'transparent', color: 'var(--text)', fontSize: "var(--text-base)", cursor: 'pointer' }}
            data-ui-native-button="">
             Cancel
           </button>
@@ -200,12 +200,12 @@ export function CMSTranslationModal({
               display: 'inline-flex',
               alignItems: 'center',
               gap: 8,
-              padding: '8px 18px',
-              borderRadius: 8,
+              padding: "var(--action-py) var(--space-md)",
+              borderRadius: "var(--r-sm)",
               border: 'none',
               background: 'var(--teal)',
               color: '#fff',
-              fontSize: 13,
+              fontSize: "var(--text-base)",
               fontWeight: 600,
               cursor: 'pointer',
               opacity: translating ? 0.7 : 1,

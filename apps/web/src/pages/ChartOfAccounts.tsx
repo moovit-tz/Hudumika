@@ -355,11 +355,11 @@ export const ChartOfAccounts: React.FC = () => {
         <div className="card" style={{ maxWidth: 560, display: 'flex', flexDirection: 'column', gap: 14 }}>
               <div>
                 <label style={{ fontSize: 11, fontWeight: 700, color: 'var(--ink3)', textTransform: 'uppercase', letterSpacing: '0.05em', display: 'block', marginBottom: 5 }}>Code</label>
-                <input className="input-field" style={{ width: '100%' }} placeholder="e.g. 1150" value={fCode} onChange={e => setFCode(e.target.value)} disabled={!!editing} />
+                <input data-ui-field="input" className="input-field" style={{ width: '100%' }} placeholder="e.g. 1150" value={fCode} onChange={e => setFCode(e.target.value)} disabled={!!editing} />
               </div>
               <div>
                 <label style={{ fontSize: 11, fontWeight: 700, color: 'var(--ink3)', textTransform: 'uppercase', letterSpacing: '0.05em', display: 'block', marginBottom: 5 }}>Name</label>
-                <input className="input-field" style={{ width: '100%' }} placeholder="Account name" value={fName} onChange={e => setFName(e.target.value)} />
+                <input data-ui-field="input" className="input-field" style={{ width: '100%' }} placeholder="Account name" value={fName} onChange={e => setFName(e.target.value)} />
               </div>
               <div>
                 <label style={{ fontSize: 11, fontWeight: 700, color: 'var(--ink3)', textTransform: 'uppercase', letterSpacing: '0.05em', display: 'block', marginBottom: 5 }}>Type</label>
@@ -380,7 +380,7 @@ export const ChartOfAccounts: React.FC = () => {
               </div>
               <div>
                 <label style={{ fontSize: 11, fontWeight: 700, color: 'var(--ink3)', textTransform: 'uppercase', letterSpacing: '0.05em', display: 'block', marginBottom: 5 }}>Description</label>
-                <input className="input-field" style={{ width: '100%' }} placeholder="Optional" value={fDescription} onChange={e => setFDescription(e.target.value)} />
+                <input data-ui-field="input" className="input-field" style={{ width: '100%' }} placeholder="Optional" value={fDescription} onChange={e => setFDescription(e.target.value)} />
               </div>
         </div>
       </FormPage>
@@ -400,7 +400,7 @@ export const ChartOfAccounts: React.FC = () => {
 
       <MetricsRow cards={[
         {
-          title: 'TOTAL ACCOUNTS', value: String(coaStats?.total ?? flat.length),
+          emphasis: 'primary', title: 'TOTAL ACCOUNTS', value: String(coaStats?.total ?? flat.length),
           sub1Label: 'ACTIVE', sub1Value: String(coaStats?.active ?? flat.filter(a => a.is_active).length),
           sub2Label: 'TOP LEVEL', sub2Value: String(coaStats?.topLevel ?? coaTree.length), barHighlight: 'var(--teal)',
           loading: !coaStats,
@@ -440,7 +440,7 @@ export const ChartOfAccounts: React.FC = () => {
         <Tip label={canManageAccounts ? 'Create account' : 'Requires Advanced Accounting'}>
           <span>
             <button type="button" onClick={openNewAccountForm} disabled={!canManageAccounts}
-              style={{ padding: 'var(--ds-btn-py) 16px', background: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))', border: 'none', borderRadius: 'var(--r)', fontSize: 13, fontWeight: 700, cursor: canManageAccounts ? 'pointer' : 'not-allowed', opacity: canManageAccounts ? 1 : 0.5, display: 'flex', alignItems: 'center', gap: 7, fontFamily: 'var(--font)', whiteSpace: 'nowrap', minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25 }} data-ui-native-button="">
+              style={{ padding: 'var(--ds-btn-py) 16px', background: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))', border: 'none', borderRadius: 'var(--r)', fontSize: "var(--text-base)", fontWeight: 700, cursor: canManageAccounts ? 'pointer' : 'not-allowed', opacity: canManageAccounts ? 1 : 0.5, display: 'flex', alignItems: 'center', gap: 7, fontFamily: 'var(--font)', whiteSpace: 'nowrap', minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25 }} data-ui-native-button="">
               <Icon name="plus" size={14} color="hsl(var(--primary-foreground))" /> New Account
             </button>
           </span>
@@ -465,17 +465,17 @@ export const ChartOfAccounts: React.FC = () => {
 
           <div style={{ position: 'relative', width: isMobile ? '100%' : 260 }}>
             <Icon name="search" size={14} color="var(--ink3)" style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)' } as React.CSSProperties} />
-            <input
+            <input data-ui-field="input"
               type="text"
               value={search}
               onChange={e => setSearch(e.target.value)}
               placeholder="Search by code or name…"
               style={{
                 width: '100%',
-                padding: '8px 12px 8px 32px',
+                padding: "var(--ds-input-py) var(--space-md)",
                 border: '1px solid var(--border)',
                 borderRadius: 'var(--r, 6px)',
-                fontSize: 13,
+                fontSize: "var(--text-base)",
                 fontFamily: 'var(--font)',
                 background: 'var(--white)',
                 color: 'var(--ink)',
@@ -584,7 +584,7 @@ export const ChartOfAccounts: React.FC = () => {
               <span style={{ fontSize: 14, fontWeight: 700, color: 'var(--ink)' }}>{selected.name}</span>
             </div>
             <button type="button" onClick={() => setSelected(null)}
-              style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink3)', padding: 4 }} data-ui-native-button="">
+              style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink3)', padding: "var(--action-py) var(--space-md)" }} data-ui-native-button="">
               <Icon name="x" size={14} />
             </button>
           </div>

@@ -221,7 +221,7 @@ export const CheckInWidget: React.FC = () => {
                 : checkedIn ? `Currently: ${entry?.task_name || 'No task'}` : 'Select a task to begin your session'}
             </div>
             <button type="button" title="Close" onClick={() => setOpen(false)}
-              style={{ position: 'absolute', top: 18, right: 20, background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink3)', padding: 4, borderRadius: '50%', transition: 'background 0.2s' }} data-ui-native-button="">
+              style={{ position: 'absolute', top: 18, right: 20, background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink3)', padding: "var(--action-py) var(--space-md)", borderRadius: '50%', transition: 'background 0.2s' }} data-ui-native-button="">
               <Icon name="x" size={18} />
             </button>
           </div>
@@ -242,12 +242,12 @@ export const CheckInWidget: React.FC = () => {
           <div style={{ padding: '0 24px 12px' }}>
             <div style={{ position: 'relative' }}>
               <Icon name="search" size={14} color="var(--ink3)" style={{ position: 'absolute', left: 11, top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none' }} />
-              <input
+              <input data-ui-field="input"
                 type="text"
                 value={search}
                 onChange={e => setSearch(e.target.value)}
                 placeholder={checkInMode === 'shipment' ? 'Search shipments…' : 'Search tasks…'}
-                style={{ width: '100%', boxSizing: 'border-box', padding: '8px 12px 8px 32px', borderRadius: 'var(--r)', border: '1px solid var(--border)', background: 'var(--bg)', color: 'var(--ink)', fontFamily: 'var(--font)', fontSize: 13, outline: 'none' }}
+                style={{ width: '100%', boxSizing: 'border-box', padding: "var(--ds-input-py) var(--space-md)", borderRadius: 'var(--r)', border: '1px solid var(--border)', background: 'var(--bg)', color: 'var(--ink)', fontFamily: 'var(--font)', fontSize: "var(--text-base)", outline: 'none' }}
               />
             </div>
           </div>
@@ -327,22 +327,22 @@ export const CheckInWidget: React.FC = () => {
             {checkedIn ? (
               <>
                 <button type="button" onClick={checkout} disabled={saving}
-                  style={{ background: 'none', border: 'none', padding: 'var(--ds-btn-py) 16px', fontSize: 13, fontWeight: 600, color: 'var(--ink2)', cursor: saving ? 'default' : 'pointer', opacity: saving ? 0.6 : 1, minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}} data-ui-native-button="">
+                  style={{ background: 'none', border: 'none', padding: 'var(--ds-btn-py) 16px', fontSize: "var(--text-base)", fontWeight: 600, color: 'var(--ink2)', cursor: saving ? 'default' : 'pointer', opacity: saving ? 0.6 : 1, minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}} data-ui-native-button="">
                   Check Out
                 </button>
                 <button type="button" disabled={!selTask || saving} onClick={switchTask}
-                  style={{ background: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))', border: 'none', padding: 'var(--ds-btn-py) 20px', borderRadius: 'var(--r)', fontSize: 13, fontWeight: 600, cursor: (!selTask || saving) ? 'default' : 'pointer', opacity: (!selTask || saving) ? 0.6 : 1, transition: 'opacity 0.2s', minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}} data-ui-native-button="">
+                  style={{ background: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))', border: 'none', padding: 'var(--ds-btn-py) 20px', borderRadius: 'var(--r)', fontSize: "var(--text-base)", fontWeight: 600, cursor: (!selTask || saving) ? 'default' : 'pointer', opacity: (!selTask || saving) ? 0.6 : 1, transition: 'opacity 0.2s', minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}} data-ui-native-button="">
                   {saving ? 'Switching…' : 'Switch Task'}
                 </button>
               </>
             ) : (
               <>
                 <button type="button" onClick={() => setOpen(false)}
-                  style={{ background: 'none', border: 'none', padding: 'var(--ds-btn-py) 16px', fontSize: 13, fontWeight: 600, color: 'var(--ink2)', cursor: 'pointer', minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}} data-ui-native-button="">
+                  style={{ background: 'none', border: 'none', padding: 'var(--ds-btn-py) 16px', fontSize: "var(--text-base)", fontWeight: 600, color: 'var(--ink2)', cursor: 'pointer', minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}} data-ui-native-button="">
                   Cancel
                 </button>
                 <button type="button" disabled={saving || (!selShipment && checkInMode === 'shipment') || (!selTask && checkInMode === 'task')} onClick={startTask}
-                  style={{ background: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))', border: 'none', padding: 'var(--ds-btn-py) 20px', borderRadius: 'var(--r)', fontSize: 13, fontWeight: 600, cursor: saving || (!selShipment && checkInMode === 'shipment') || (!selTask && checkInMode === 'task') ? 'default' : 'pointer', opacity: saving || (!selShipment && checkInMode === 'shipment') || (!selTask && checkInMode === 'task') ? 0.6 : 1, transition: 'opacity 0.2s', minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}} data-ui-native-button="">
+                  style={{ background: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))', border: 'none', padding: 'var(--ds-btn-py) 20px', borderRadius: 'var(--r)', fontSize: "var(--text-base)", fontWeight: 600, cursor: saving || (!selShipment && checkInMode === 'shipment') || (!selTask && checkInMode === 'task') ? 'default' : 'pointer', opacity: saving || (!selShipment && checkInMode === 'shipment') || (!selTask && checkInMode === 'task') ? 0.6 : 1, transition: 'opacity 0.2s', minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}} data-ui-native-button="">
                   {saving ? 'Starting…' : 'Check In'}
                 </button>
               </>

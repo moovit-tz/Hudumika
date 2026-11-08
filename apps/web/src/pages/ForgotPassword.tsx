@@ -76,7 +76,7 @@ export const ForgotPassword: React.FC = () => {
 
           <form onSubmit={handleSubmit} noValidate className="auth-form">
             <AuthField label="Email address" error={fieldErr.email}>
-              <input
+              <input data-ui-field="input"
                 type="email"
                 className={`auth-input${fieldErr.email ? ' auth-input-err' : ''}`}
                 placeholder="you@company.com"

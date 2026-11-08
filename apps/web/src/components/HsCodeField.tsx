@@ -59,7 +59,7 @@ export function HsCodeField({ value, onChange, onPick, placeholder, required }: 
   return (
     <div style={{ position: 'relative' }}>
       <div style={{ position: 'relative' }}>
-        <input
+        <input data-ui-field="input"
           className="input-field"
           value={value}
           onChange={e => onChangeText(e.target.value)}
@@ -67,7 +67,7 @@ export function HsCodeField({ value, onChange, onPick, placeholder, required }: 
           onBlur={() => setTimeout(() => setFocused(false), 150)} // lets a click on a result register first
           placeholder={placeholder ?? 'e.g. 8471.30 or laptop'}
           required={required}
-          style={{ width: '100%', boxSizing: 'border-box', height: 38, fontSize: 13, paddingLeft: 32 }}
+          style={{ width: '100%', boxSizing: 'border-box', height: "var(--ctl-h)", fontSize: "var(--text-base)", paddingLeft: 32 }}
         />
         <Icon name="search" size={14} color="var(--ink3)" style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)' }} />
       </div>

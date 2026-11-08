@@ -151,7 +151,7 @@ export const SystemUpdate: React.FC = () => {
         <div style={{ display:'flex', alignItems:'center', gap:10 }}>
           <button
             onClick={() => window.location.reload()}
-            style={{ display:'flex', alignItems:'center', gap:6, padding:'var(--ds-btn-py) 14px', borderRadius: 'var(--r)', border:'1px solid var(--border)', background:'var(--white)', color:'var(--ink2)', fontSize:12, fontWeight:600, cursor:'pointer', minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}}
+            style={{ display:'flex', alignItems:'center', gap:6, padding:'var(--ds-btn-py) 14px', borderRadius: 'var(--r)', border:'1px solid var(--border)', background:'var(--white)', color:'var(--ink2)', fontSize:"var(--text-base)", fontWeight:600, cursor:'pointer', minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}}
            data-ui-native-button="">
             <Icon name="refresh" size={13} /> Check for Updates
           </button>
@@ -159,7 +159,7 @@ export const SystemUpdate: React.FC = () => {
             <button
               onClick={() => setShowConfirm(true)}
               disabled={updating}
-              style={{ display:'flex', alignItems:'center', gap:6, padding:'var(--ds-btn-py) 16px', borderRadius: 'var(--r)', border:'none', background: updating ? 'var(--ink3)' : 'hsl(var(--primary))', color: updating ? 'var(--white)' : 'hsl(var(--primary-foreground))', fontSize:12, fontWeight:700, cursor: updating ? 'not-allowed' : 'pointer', minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}}
+              style={{ display:'flex', alignItems:'center', gap:6, padding:'var(--ds-btn-py) 16px', borderRadius: 'var(--r)', border:'none', background: updating ? 'var(--ink3)' : 'hsl(var(--primary))', color: updating ? 'var(--white)' : 'hsl(var(--primary-foreground))', fontSize:"var(--text-base)", fontWeight:700, cursor: updating ? 'not-allowed' : 'pointer', minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}}
              data-ui-native-button="">
               <Icon name="upload" size={13} />
               {updating ? 'Updating…' : `Update to v${LATEST_VERSION}`}
@@ -362,13 +362,13 @@ export const SystemUpdate: React.FC = () => {
             <div style={{ display:'flex', gap:10, justifyContent:'flex-end' }}>
               <button
                 onClick={() => setShowConfirm(false)}
-                style={{ padding:'var(--ds-btn-py) 18px', borderRadius: 'var(--r)', border:'1px solid var(--border)', background:'var(--white)', color:'var(--ink2)', fontSize:13, fontWeight:600, cursor:'pointer', minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}}
+                style={{ padding:'var(--ds-btn-py) 18px', borderRadius: 'var(--r)', border:'1px solid var(--border)', background:'var(--white)', color:'var(--ink2)', fontSize:"var(--text-base)", fontWeight:600, cursor:'pointer', minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}}
                data-ui-native-button="">
                 Cancel
               </button>
               <button
                 onClick={startUpdate}
-                style={{ padding:'var(--ds-btn-py) 20px', borderRadius: 'var(--r)', border:'none', background: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))', fontSize:13, fontWeight:700, cursor:'pointer', minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}}
+                style={{ padding:'var(--ds-btn-py) 20px', borderRadius: 'var(--r)', border:'none', background: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))', fontSize:"var(--text-base)", fontWeight:700, cursor:'pointer', minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}}
                data-ui-native-button="">
                 Update Now
               </button>

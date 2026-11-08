@@ -353,7 +353,7 @@ export function SignPublicPage() {
           </a>
           )}
           <Button variant="outline" onClick={() => window.close()}
-            style={{ width: '100%', height: 38, fontSize: 13, fontWeight: 600 }}>
+            style={{ width: '100%', height: "var(--action-h)", fontSize: "var(--text-base)", fontWeight: 600 }}>
             Close Window
           </Button>
         </div>
@@ -435,23 +435,23 @@ export function SignPublicPage() {
               <p style={{ fontSize: 12.5, color: 'var(--sign-green)', textAlign: 'center', margin: '0 0 14px' }}>
                 Code sent via {otpChannel === 'whatsapp' ? 'WhatsApp' : 'SMS'} to {otpSentTo}
               </p>
-              <input
+              <input data-ui-field="input"
                 value={otpCode}
                 onChange={e => setOtpCode(e.target.value.replace(/\D/g, '').slice(0, 6))}
                 onKeyDown={e => { if (e.key === 'Enter') handleVerifyOtp(); }}
                 placeholder="6-digit code"
                 inputMode="numeric"
-                style={{ width: '100%', padding: '11px', borderRadius: 'var(--r)', border: '1.5px solid var(--border)', background: 'var(--bg)', color: 'var(--ink)', fontSize: 18, letterSpacing: '0.3em', textAlign: 'center', boxSizing: 'border-box', marginBottom: 12 }}
+                style={{ width: '100%', padding: "var(--ds-input-py) var(--space-md)", borderRadius: 'var(--r)', border: '1.5px solid var(--border)', background: 'var(--bg)', color: 'var(--ink)', fontSize: "var(--text-base)", letterSpacing: '0.3em', textAlign: 'center', boxSizing: 'border-box', marginBottom: 12 }}
               />
               <Button variant="default" onClick={handleVerifyOtp} disabled={otpVerifying || otpCode.length !== 6}
                 style={{ width: '100%', marginBottom: 10, ...(otpCode.length === 6 ? { background: accent, color: accentFg } : {}) }}>
                 {otpVerifying ? 'Verifying…' : 'Verify code'}
               </Button>
               <div style={{ display: 'flex', gap: 8 }}>
-                <Button variant="ghost" onClick={() => handleRequestOtp('sms')} disabled={otpRequesting} style={{ flex: 1, fontSize: 12.5 }}>
+                <Button variant="ghost" onClick={() => handleRequestOtp('sms')} disabled={otpRequesting} style={{ flex: 1, fontSize: "var(--text-base)" }}>
                   Resend via SMS
                 </Button>
-                <Button variant="ghost" onClick={() => handleRequestOtp('whatsapp')} disabled={otpRequesting} style={{ flex: 1, fontSize: 12.5 }}>
+                <Button variant="ghost" onClick={() => handleRequestOtp('whatsapp')} disabled={otpRequesting} style={{ flex: 1, fontSize: "var(--text-base)" }}>
                   Resend via WhatsApp
                 </Button>
               </div>
@@ -509,7 +509,7 @@ export function SignPublicPage() {
           </div>
 
           <Button variant="outline" size="sm" onClick={handleDecline} disabled={declining}
-            style={{ borderColor: 'var(--sign-red-l)', color: 'var(--sign-red)', height: 38, fontSize: 13, padding: '0 16px', fontWeight: 600 }}>
+            style={{ borderColor: 'var(--sign-red-l)', color: 'var(--sign-red)', height: "var(--ctl-h)", fontSize: "var(--text-base)", padding: '0 16px', fontWeight: 600 }}>
             {declining ? 'Declining…' : 'Decline'}
           </Button>
         </div>
@@ -579,14 +579,14 @@ export function SignPublicPage() {
                 {isPdf && pdfNumPages > 1 && (
                   <div style={{ display: 'flex', alignItems: 'center', gap: 8, background: '#1e293b', borderRadius: 'var(--badge-radius)', padding: '3px 10px', flexShrink: 0 }}>
                     <button onClick={() => setCurrentPdfPage(p => Math.max(1, p - 1))} disabled={currentPdfPage <= 1}
-                      style={{ background: 'none', border: 'none', cursor: currentPdfPage <= 1 ? 'default' : 'pointer', opacity: currentPdfPage <= 1 ? 0.3 : 1, display: 'flex', padding: 2 }} data-ui-native-button="">
+                      style={{ background: 'none', border: 'none', cursor: currentPdfPage <= 1 ? 'default' : 'pointer', opacity: currentPdfPage <= 1 ? 0.3 : 1, display: 'flex', padding: "var(--action-py) var(--space-md)" }} data-ui-native-button="">
                       <Icon name="chevronLeft" size={14} color="#f8fafc" />
                     </button>
                     <span style={{ fontSize: 12, color: '#f8fafc', fontWeight: 600, whiteSpace: 'nowrap', fontFamily: 'var(--font)' }}>
                       {currentPdfPage} / {pdfNumPages}
                     </span>
                     <button onClick={() => setCurrentPdfPage(p => Math.min(pdfNumPages, p + 1))} disabled={currentPdfPage >= pdfNumPages}
-                      style={{ background: 'none', border: 'none', cursor: currentPdfPage >= pdfNumPages ? 'default' : 'pointer', opacity: currentPdfPage >= pdfNumPages ? 0.4 : 1, display: 'flex', padding: 2 }} data-ui-native-button="">
+                      style={{ background: 'none', border: 'none', cursor: currentPdfPage >= pdfNumPages ? 'default' : 'pointer', opacity: currentPdfPage >= pdfNumPages ? 0.4 : 1, display: 'flex', padding: "var(--action-py) var(--space-md)" }} data-ui-native-button="">
                       <Icon name="chevronRight" size={14} color="#f8fafc" />
                     </button>
                   </div>
@@ -746,9 +746,9 @@ export function SignPublicPage() {
                           if (f.page) setCurrentPdfPage(f.page);
                         }}
                         style={{
-                          width: 30, height: 30, borderRadius: 'var(--r-sm)', border: 'none', cursor: 'pointer',
+                          width: "var(--ctl-h)", height: "var(--ctl-h)", borderRadius: 'var(--r-sm)', border: 'none', cursor: 'pointer',
                           background: isDone ? 'var(--green)' : i === currentField ? accent : 'var(--border)',
-                          display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12,
+                          display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: "var(--text-base)",
                           color: isDone || i === currentField ? '#fff' : 'var(--ink2)', fontWeight: 700
                         }}
                        data-ui-native-button="">
@@ -774,7 +774,7 @@ export function SignPublicPage() {
                       <Icon name="checkCircle" size={12} color="var(--green)" /> Pre-filled from your profile signature
                     </div>
                   )}
-                  <Button variant="outline" size="sm" onClick={() => setSignature(null)} style={{ fontSize: 12, height: 30 }}>Change Signature</Button>
+                  <Button variant="outline" size="sm" onClick={() => setSignature(null)} style={{ fontSize: "var(--text-base)", height: "var(--ctl-h)" }}>Change Signature</Button>
                 </div>
               ) : (
                 <SignaturePad onCapture={setSignature} />
@@ -810,9 +810,9 @@ export function SignPublicPage() {
                     triggerClassName="w-full"
                   />
                 ) : (
-                  <input value={fieldValues[field.id] ?? ''} placeholder={field.placeholder ?? ''}
+                  <input data-ui-field="input" value={fieldValues[field.id] ?? ''} placeholder={field.placeholder ?? ''}
                     onChange={e => setFieldValues(prev => ({ ...prev, [field.id]: e.target.value }))}
-                    style={{ width: '100%', padding: '8px 10px', borderRadius: 'var(--r)', border: '1px solid var(--border)', background: 'var(--bg)', color: 'var(--ink)', fontSize: 13, boxSizing: 'border-box', outline: 'none' }} />
+                    style={{ width: '100%', padding: "var(--ds-input-py) var(--space-md)", borderRadius: 'var(--r)', border: '1px solid var(--border)', background: 'var(--bg)', color: 'var(--ink)', fontSize: "var(--text-base)", boxSizing: 'border-box', outline: 'none' }} />
                 )}
               </div>
             ))}
@@ -844,11 +844,11 @@ export function SignPublicPage() {
           )}
 
           <div className="sign-public-sidebar-footer">
-            <Button variant="outline" onClick={handleDecline} disabled={declining} style={{ flex: 1, height: 38, fontSize: 13 }}>
+            <Button variant="outline" onClick={handleDecline} disabled={declining} style={{ flex: 1, height: "var(--action-h)", fontSize: "var(--text-base)" }}>
               Decline
             </Button>
             <Button type="button" onClick={handleSubmit} disabled={!signature || submitting}
-              style={{ flex: 2, height: 38, fontSize: 13, fontWeight: 700, background: signature ? accent : 'var(--border)', color: signature ? accentFg : 'var(--ink3)', border: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}>
+              style={{ flex: 2, height: "var(--action-h)", fontSize: "var(--text-base)", fontWeight: 700, background: signature ? accent : 'var(--border)', color: signature ? accentFg : 'var(--ink3)', border: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}>
               <Icon name="checkCircle" size={15} color={signature ? accentFg : 'var(--ink3)'} />
               {submitting ? 'Submitting…' : 'Sign & Submit'}
             </Button>

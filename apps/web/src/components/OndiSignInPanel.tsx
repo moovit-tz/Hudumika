@@ -412,7 +412,7 @@ export function OndiSignInPanel({ intent = 'login', onSignupTicket }: OndiSignIn
       {mode === 'phone' && (
         <form onSubmit={otpSent ? submitOtp : (e) => { e.preventDefault(); sendCode(); }} noValidate className="login-form">
           <div className="login-field">
-            <input
+            <input data-ui-field="input"
               type="tel"
               placeholder="Phone number"
               value={phone}
@@ -425,7 +425,7 @@ export function OndiSignInPanel({ intent = 'login', onSignupTicket }: OndiSignIn
 
           {otpSent && (
             <div className="login-field">
-              <input
+              <input data-ui-field="input"
                 type="text"
                 inputMode="numeric"
                 placeholder="6-digit code"
@@ -464,7 +464,7 @@ export function OndiSignInPanel({ intent = 'login', onSignupTicket }: OndiSignIn
         totpStep === 'credentials' ? (
           <form onSubmit={submitTotpCredentials} noValidate className="login-form">
             <div className="login-field">
-              <input
+              <input data-ui-field="input"
                 type="email"
                 placeholder="Email"
                 value={email}
@@ -477,7 +477,7 @@ export function OndiSignInPanel({ intent = 'login', onSignupTicket }: OndiSignIn
             </div>
             <div className="login-field">
               <div className="login-field-pw">
-                <input
+                <input data-ui-field="input"
                   type={showTotpPassword ? 'text' : 'password'}
                   placeholder="Password"
                   value={totpPassword}
@@ -500,7 +500,7 @@ export function OndiSignInPanel({ intent = 'login', onSignupTicket }: OndiSignIn
         ) : (
           <form onSubmit={submitTotp} noValidate className="login-form">
             <div className="login-field">
-              <input
+              <input data-ui-field="input"
                 type="text"
                 inputMode="numeric"
                 placeholder="6-digit authenticator code"
@@ -532,7 +532,7 @@ export function OndiSignInPanel({ intent = 'login', onSignupTicket }: OndiSignIn
       {mode === 'passkey' && (
         <form onSubmit={submitPasskey} noValidate className="login-form">
           <div className="login-field">
-            <input
+            <input data-ui-field="input"
               type="email"
               placeholder="Email"
               value={passkeyEmail}
@@ -566,7 +566,7 @@ export function OndiSignInPanel({ intent = 'login', onSignupTicket }: OndiSignIn
         ) : (
           <form onSubmit={sendMagicLink} noValidate className="login-form">
             <div className="login-field">
-              <input
+              <input data-ui-field="input"
                 type="email"
                 placeholder="Email"
                 value={magicEmail}
@@ -589,7 +589,7 @@ export function OndiSignInPanel({ intent = 'login', onSignupTicket }: OndiSignIn
             <label className="reg-label" style={{ marginBottom: 4, display: 'block' }}>
               Work or organization email
             </label>
-            <input
+            <input data-ui-field="input"
               type="email"
               placeholder="you@yourcompany.com"
               value={ssoEmail}

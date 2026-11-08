@@ -140,13 +140,13 @@ export function CMSApprovals() {
                 display: 'inline-flex',
                 alignItems: 'center',
                 gap: 6,
-                padding: '6px 14px',
-                borderRadius: 8,
+                padding: "var(--action-py) var(--space-md)",
+                borderRadius: "var(--r-sm)",
                 border: 'none',
                 background: filterTab === tab.id ? 'var(--teal)' : 'transparent',
                 color: filterTab === tab.id ? '#fff' : 'var(--text-secondary)',
                 fontWeight: 600,
-                fontSize: 13,
+                fontSize: "var(--text-base)",
                 cursor: 'pointer',
               }}
              data-ds-selected={filterTab === tab.id as any} data-ui-native-button="" aria-pressed={filterTab === tab.id as any}>
@@ -246,13 +246,13 @@ export function CMSApprovals() {
                           display: 'inline-flex',
                           alignItems: 'center',
                           gap: 6,
-                          padding: '7px 14px',
-                          borderRadius: 8,
+                          padding: "var(--action-py) var(--space-md)",
+                          borderRadius: "var(--r-sm)",
                           background: 'var(--green)',
                           color: 'hsl(var(--green-foreground))',
                           border: 'none',
                           fontWeight: 600,
-                          fontSize: 12,
+                          fontSize: "var(--text-base)",
                           cursor: 'pointer',
                         }}
                        data-ui-native-button="">
@@ -265,13 +265,13 @@ export function CMSApprovals() {
                           display: 'inline-flex',
                           alignItems: 'center',
                           gap: 6,
-                          padding: '7px 12px',
-                          borderRadius: 8,
+                          padding: "var(--action-py) var(--space-md)",
+                          borderRadius: "var(--r-sm)",
                           background: 'var(--surface)',
                           color: 'var(--red)',
                           border: '1px solid color-mix(in srgb, var(--red) 30%, var(--border))',
                           fontWeight: 600,
-                          fontSize: 12,
+                          fontSize: "var(--text-base)",
                           cursor: 'pointer',
                         }}
                        data-ui-native-button="">
@@ -285,12 +285,12 @@ export function CMSApprovals() {
                     <button
                       onClick={() => handleCancel(app)}
                       style={{
-                        padding: '7px 12px',
-                        borderRadius: 8,
+                        padding: "var(--action-py) var(--space-md)",
+                        borderRadius: "var(--r-sm)",
                         background: 'transparent',
                         color: 'var(--text-muted)',
                         border: '1px solid var(--border)',
-                        fontSize: 12,
+                        fontSize: "var(--text-base)",
                         cursor: 'pointer',
                       }}
                      data-ui-native-button="">
@@ -331,19 +331,19 @@ export function CMSApprovals() {
             <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: 'var(--text)', marginBottom: 6 }}>
               {decisionModal.decision === 'approved' ? 'Approval Note (Optional)' : 'Change Request / Reason *'}
             </label>
-            <textarea
+            <textarea data-ui-field="textarea"
               value={decisionModal.note}
               onChange={e => setDecisionModal(d => ({ ...d, note: e.target.value }))}
               placeholder={decisionModal.decision === 'approved' ? 'e.g. Looks great, verified compliance!' : 'e.g. Please update the pricing table and add alt tags to images.'}
               rows={4}
               style={{
                 width: '100%',
-                padding: '8px 12px',
-                borderRadius: 8,
+                padding: "var(--ds-input-py) var(--space-md)",
+                borderRadius: "var(--r-sm)",
                 border: '1px solid var(--border)',
                 background: 'var(--bg)',
                 color: 'var(--text)',
-                fontSize: 13,
+                fontSize: "var(--text-base)",
                 resize: 'vertical',
                 boxSizing: 'border-box',
               }}
@@ -352,7 +352,7 @@ export function CMSApprovals() {
             <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 10, marginTop: 20 }}>
               <button
                 onClick={() => setDecisionModal(d => ({ ...d, open: false }))}
-                style={{ padding: '8px 14px', borderRadius: 8, border: '1px solid var(--border)', background: 'transparent', color: 'var(--text)', fontSize: 13, cursor: 'pointer' }}
+                style={{ padding: "var(--action-py) var(--space-md)", borderRadius: "var(--r-sm)", border: '1px solid var(--border)', background: 'transparent', color: 'var(--text)', fontSize: "var(--text-base)", cursor: 'pointer' }}
                data-ui-native-button="">
                 Cancel
               </button>
@@ -360,12 +360,12 @@ export function CMSApprovals() {
                 onClick={handleDecisionSubmit}
                 disabled={decisionModal.submitting}
                 style={{
-                  padding: '8px 18px',
-                  borderRadius: 8,
+                  padding: "var(--action-py) var(--space-md)",
+                  borderRadius: "var(--r-sm)",
                   border: 'none',
                   background: decisionModal.decision === 'approved' ? 'var(--green)' : 'var(--red)',
                   color: `hsl(var(--${decisionModal.decision === 'approved' ? 'green' : 'red'}-foreground))`,
-                  fontSize: 13,
+                  fontSize: "var(--text-base)",
                   fontWeight: 600,
                   cursor: 'pointer',
                 }}

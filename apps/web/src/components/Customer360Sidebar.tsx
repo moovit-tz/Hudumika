@@ -208,7 +208,7 @@ export function Customer360Sidebar({
             <span style={{ fontSize: 13, fontWeight: 800, color: 'var(--ink)', letterSpacing: '-0.01em' }}>Contact Profile Details</span>
           </div>
           {onClose && (
-            <button type="button" onClick={onClose} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink3)', padding: 4 }} title="Close details" data-ui-native-button="">
+            <button type="button" onClick={onClose} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink3)', padding: "var(--action-py) var(--space-md)" }} title="Close details" data-ui-native-button="">
               <Icon name="x" size={16} />
             </button>
           )}
@@ -243,9 +243,9 @@ export function Customer360Sidebar({
             type="button"
             onClick={() => setIsMuted(!isMuted)}
             style={{
-              display: 'inline-flex', alignItems: 'center', gap: 6, padding: '6px 14px', borderRadius: 'var(--r)',
+              display: 'inline-flex', alignItems: 'center', gap: 6, padding: "var(--action-py) var(--space-md)", borderRadius: 'var(--r)',
               border: '1px solid var(--border)', background: isMuted ? 'var(--red-l)' : 'var(--white)',
-              color: isMuted ? 'var(--red)' : 'var(--ink2)', fontSize: 12, fontWeight: 700, cursor: 'pointer',
+              color: isMuted ? 'var(--red)' : 'var(--ink2)', fontSize: "var(--text-base)", fontWeight: 700, cursor: 'pointer',
               transition: 'all 0.15s'
             }} data-ui-native-button="">
             <Icon name="bell" size={13} />
@@ -255,7 +255,7 @@ export function Customer360Sidebar({
             type="button"
             onClick={() => navigator.clipboard.writeText(customer_phone || customer_email || '')}
             style={{
-              display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: 32, height: 32,
+              display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: "var(--ctl-h)", height: "var(--ctl-h)",
               borderRadius: 'var(--r)', border: '1px solid var(--border)', background: 'var(--white)',
               color: 'var(--ink2)', cursor: 'pointer'
             }}
@@ -301,12 +301,12 @@ export function Customer360Sidebar({
               <label style={{ display: 'block', fontSize: 11, fontWeight: 800, color: 'var(--ink2)', textTransform: 'uppercase', letterSpacing: '0.04em', marginBottom: 6 }}>
                 Assigned Team Router
               </label>
-              <select
+              <select data-ui-field="select"
                 value={teamRouter}
                 onChange={e => setTeamRouter(e.target.value)}
                 style={{
-                  width: '100%', padding: '8px 12px', borderRadius: 'var(--r)', border: '1px solid var(--border)',
-                  background: 'var(--white)', color: 'var(--ink)', fontSize: 12.5, fontWeight: 600, outline: 'none'
+                  width: '100%', padding: "var(--ds-input-py) var(--space-md)", borderRadius: 'var(--r)', border: '1px solid var(--border)',
+                  background: 'var(--white)', color: 'var(--ink)', fontSize: "var(--text-base)", fontWeight: 600, outline: 'none'
                 }}>
                 <option value="Customer Success & Support">Customer Success & Support</option>
                 <option value="Technical Operations">Technical Operations</option>
@@ -326,32 +326,32 @@ export function Customer360Sidebar({
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
                   <div>
                     <label style={{ display: 'block', fontSize: 11, fontWeight: 700, color: 'var(--ink3)', marginBottom: 4 }}>First Name</label>
-                    <input className="input-field" value={firstName} onChange={e => setFirstName(e.target.value)} placeholder="First name" />
+                    <input data-ui-field="input" className="input-field" value={firstName} onChange={e => setFirstName(e.target.value)} placeholder="First name" />
                   </div>
                   <div>
                     <label style={{ display: 'block', fontSize: 11, fontWeight: 700, color: 'var(--ink3)', marginBottom: 4 }}>Last Name</label>
-                    <input className="input-field" value={lastName} onChange={e => setLastName(e.target.value)} placeholder="Last name" />
+                    <input data-ui-field="input" className="input-field" value={lastName} onChange={e => setLastName(e.target.value)} placeholder="Last name" />
                   </div>
                 </div>
 
                 <div>
                   <label style={{ display: 'block', fontSize: 11, fontWeight: 700, color: 'var(--ink3)', marginBottom: 4 }}>Email Address</label>
-                  <input className="input-field" value={email} onChange={e => setEmail(e.target.value)} placeholder="email@company.com" />
+                  <input data-ui-field="input" className="input-field" value={email} onChange={e => setEmail(e.target.value)} placeholder="email@company.com" />
                 </div>
 
                 <div>
                   <label style={{ display: 'block', fontSize: 11, fontWeight: 700, color: 'var(--ink3)', marginBottom: 4 }}>Phone Number</label>
-                  <input className="input-field" value={phone} onChange={e => setPhone(e.target.value)} placeholder="+255..." />
+                  <input data-ui-field="input" className="input-field" value={phone} onChange={e => setPhone(e.target.value)} placeholder="+255..." />
                 </div>
 
                 <div>
                   <label style={{ display: 'block', fontSize: 11, fontWeight: 700, color: 'var(--ink3)', marginBottom: 4 }}>Lifecycle Stage</label>
-                  <select
+                  <select data-ui-field="select"
                     value={lifecycleStage}
                     onChange={e => setLifecycleStage(e.target.value)}
                     style={{
-                      width: '100%', padding: '8px 12px', borderRadius: 'var(--r)', border: '1px solid var(--border)',
-                      background: 'var(--white)', color: 'var(--ink)', fontSize: 12.5, fontWeight: 600, outline: 'none'
+                      width: '100%', padding: "var(--ds-input-py) var(--space-md)", borderRadius: 'var(--r)', border: '1px solid var(--border)',
+                      background: 'var(--white)', color: 'var(--ink)', fontSize: "var(--text-base)", fontWeight: 600, outline: 'none'
                     }}>
                     <option value="Customer">Customer</option>
                     <option value="Lead">Lead</option>
@@ -366,8 +366,8 @@ export function Customer360Sidebar({
                   onClick={handleSaveProperties}
                   disabled={savingProps}
                   style={{
-                    marginTop: 6, padding: '9px 16px', background: 'var(--ink)', color: 'var(--white)',
-                    border: 'none', borderRadius: 'var(--r)', fontSize: 12.5, fontWeight: 800, cursor: 'pointer',
+                    marginTop: 6, padding: "var(--action-py) var(--space-md)", background: 'var(--ink)', color: 'var(--white)',
+                    border: 'none', borderRadius: 'var(--r)', fontSize: "var(--text-base)", fontWeight: 800, cursor: 'pointer',
                     display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, transition: 'all 0.15s'
                   }} data-ui-native-button="">
                   {savingProps ? 'Saving…' : savedToast ? '✓ Properties Saved!' : '✓ Save Properties'}
@@ -394,13 +394,13 @@ export function Customer360Sidebar({
                   </span>
                 ))}
               </div>
-              <input
+              <input data-ui-field="input"
                 className="input-field"
                 value={newTagInput}
                 onChange={e => setNewTagInput(e.target.value)}
                 onKeyDown={handleAddTag}
                 placeholder="+ Type tag name and hit Enter…"
-                style={{ fontSize: 11.5 }}
+                style={{ fontSize: "var(--text-base)" }}
               />
             </div>
 
@@ -537,14 +537,14 @@ export function Customer360Sidebar({
                     <button
                       type="button"
                       onClick={() => onUseAiReply(aiSuggestion)}
-                      style={{ flex: 1, padding: 'var(--ds-btn-py) 12px', background: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))', border: 'none', borderRadius: 'var(--r)', fontSize: 12, fontWeight: 700, cursor: 'pointer', fontFamily: 'var(--font)', minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}} data-ui-native-button="">
+                      style={{ flex: 1, padding: 'var(--ds-btn-py) 12px', background: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))', border: 'none', borderRadius: 'var(--r)', fontSize: "var(--text-base)", fontWeight: 700, cursor: 'pointer', fontFamily: 'var(--font)', minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}} data-ui-native-button="">
                       ✓ Use This Reply
                     </button>
                   )}
                   <button
                     type="button"
                     onClick={fetchAI}
-                    style={{ padding: 'var(--ds-btn-py) 12px', background: 'var(--white)', color: 'var(--ink2)', border: '1px solid var(--border)', borderRadius: 'var(--r)', fontSize: 12, fontWeight: 600, cursor: 'pointer', fontFamily: 'var(--font)', minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}} data-ui-native-button="">
+                    style={{ padding: 'var(--ds-btn-py) 12px', background: 'var(--white)', color: 'var(--ink2)', border: '1px solid var(--border)', borderRadius: 'var(--r)', fontSize: "var(--text-base)", fontWeight: 600, cursor: 'pointer', fontFamily: 'var(--font)', minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}} data-ui-native-button="">
                     ↺ Regenerate
                   </button>
                 </div>
@@ -554,7 +554,7 @@ export function Customer360Sidebar({
                 <div style={{ marginBottom: 10, display: 'flex', justifyContent: 'center' }}><Icon name="sparkle" size={36} color="var(--teal)" strokeWidth={1.25} /></div>
                 <div style={{ fontSize: 12, color: 'var(--ink3)', marginBottom: 16 }}>Draft a reply based on this conversation</div>
                 <button type="button" onClick={fetchAI}
-                  style={{ padding: 'var(--ds-btn-py) 20px', background: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))', border: 'none', borderRadius: 'var(--r)', fontSize: 13, fontWeight: 700, cursor: 'pointer', fontFamily: 'var(--font)', minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}} data-ui-native-button="">
+                  style={{ padding: 'var(--ds-btn-py) 20px', background: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))', border: 'none', borderRadius: 'var(--r)', fontSize: "var(--text-base)", fontWeight: 700, cursor: 'pointer', fontFamily: 'var(--font)', minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}} data-ui-native-button="">
                   Generate Suggestion
                 </button>
               </div>

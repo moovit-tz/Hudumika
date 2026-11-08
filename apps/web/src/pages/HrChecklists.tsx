@@ -198,7 +198,7 @@ function Templates() {
         {(['onboarding', 'offboarding'] as ChecklistType[]).map(t => (
           <button key={t} type="button" onClick={() => setType(t)}
             style={{
-              padding: '6px 14px', borderRadius: 20, border: '1px solid var(--border)', cursor: 'pointer', fontSize: 12.5, fontWeight: 600,
+              padding: "var(--action-py) var(--space-md)", borderRadius: "var(--r-sm)", border: '1px solid var(--border)', cursor: 'pointer', fontSize: "var(--text-base)", fontWeight: 600,
               background: type === t ? 'hsl(var(--primary))' : 'var(--white)', color: type === t ? 'hsl(var(--primary-foreground))' : 'var(--ink2)',
             }} data-ui-native-button="">
             {t === 'onboarding' ? 'Onboarding' : 'Offboarding'}

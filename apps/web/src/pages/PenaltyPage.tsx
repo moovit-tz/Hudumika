@@ -183,7 +183,7 @@ export const PenaltyPage: React.FC = () => {
           step === 3 ? (
             <button type="button" className="btn btn-primary"
               disabled={!result || aiPending} onClick={runAi}
-              style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 13 }} data-ui-native-button="">
+              style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: "var(--text-base)" }} data-ui-native-button="">
               <Icon name="zap" size={14} />
               {aiPending ? 'Analysing…' : 'AI Analysis'}
             </button>
@@ -242,7 +242,7 @@ export const PenaltyPage: React.FC = () => {
               type="button"
               className="btn btn-primary"
               onClick={() => setStep(2)}
-              style={{ display: 'inline-flex', alignItems: 'center', gap: 8, padding: 'var(--ds-btn-py) 28px', borderRadius: 'var(--r)', fontSize: 14, minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}}
+              style={{ display: 'inline-flex', alignItems: 'center', gap: 8, padding: 'var(--ds-btn-py) 28px', borderRadius: 'var(--r)', fontSize: "var(--text-base)", minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}}
              data-ui-native-button="">
               <span>Continue</span>
               <span style={{ fontSize: 15 }}>→</span>
@@ -272,7 +272,7 @@ export const PenaltyPage: React.FC = () => {
                 Declared CIF (USD)
                 <span style={{ fontWeight: 400, textTransform: 'none', letterSpacing: 0, marginLeft: 6, color: 'var(--ink3)', fontSize: 10.5 }}>— as submitted to customs</span>
               </label>
-              <input className="input-field" type="number" min="0" placeholder="e.g. 10000" value={declared} onChange={e => setDeclared(e.target.value)} />
+              <input data-ui-field="input" className="input-field" type="number" min="0" placeholder="e.g. 10000" value={declared} onChange={e => setDeclared(e.target.value)} />
             </div>
 
             {/* Actual CIF — under_declaration / misclassification only */}
@@ -282,7 +282,7 @@ export const PenaltyPage: React.FC = () => {
                   Actual CIF (USD)
                   <span style={{ fontWeight: 400, textTransform: 'none', letterSpacing: 0, marginLeft: 6, color: 'var(--ink3)', fontSize: 10.5 }}>— true value on inspection</span>
                 </label>
-                <input className="input-field" type="number" min="0" placeholder="e.g. 18000" value={actual} onChange={e => setActual(e.target.value)} />
+                <input data-ui-field="input" className="input-field" type="number" min="0" placeholder="e.g. 18000" value={actual} onChange={e => setActual(e.target.value)} />
               </div>
             )}
 
@@ -291,7 +291,7 @@ export const PenaltyPage: React.FC = () => {
               <label style={{ fontSize: 11, fontWeight: 700, color: 'var(--ink3)', textTransform: 'uppercase', letterSpacing: '.5px', display: 'block', marginBottom: 5 }}>
                 HS Code (optional)
               </label>
-              <input className="input-field" placeholder="e.g. 8471" value={hs} onChange={e => setHs(e.target.value)} />
+              <input data-ui-field="input" className="input-field" placeholder="e.g. 8471" value={hs} onChange={e => setHs(e.target.value)} />
             </div>
 
             {/* Months Overdue — late_payment only */}
@@ -301,7 +301,7 @@ export const PenaltyPage: React.FC = () => {
                   Months Overdue
                   <span style={{ fontWeight: 400, textTransform: 'none', letterSpacing: 0, marginLeft: 6, color: 'var(--ink3)', fontSize: 10.5 }}>— for late payment interest</span>
                 </label>
-                <input className="input-field" type="number" min="0" placeholder="e.g. 3" value={months} onChange={e => setMonths(e.target.value)} />
+                <input data-ui-field="input" className="input-field" type="number" min="0" placeholder="e.g. 3" value={months} onChange={e => setMonths(e.target.value)} />
               </div>
             )}
 
@@ -323,7 +323,7 @@ export const PenaltyPage: React.FC = () => {
 
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 8 }}>
             <button type="button" onClick={() => setStep(1)}
-              style={{ padding: 'var(--ds-btn-py) 24px', borderRadius: 'var(--r)', border: '1px solid var(--border)', background: 'var(--white)', color: 'var(--ink2)', fontWeight: 600, fontSize: 13, cursor: 'pointer', minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}} data-ui-native-button="">
+              style={{ padding: 'var(--ds-btn-py) 24px', borderRadius: 'var(--r)', border: '1px solid var(--border)', background: 'var(--white)', color: 'var(--ink2)', fontWeight: 600, fontSize: "var(--text-base)", cursor: 'pointer', minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}} data-ui-native-button="">
               ← Back
             </button>
             <button
@@ -337,7 +337,7 @@ export const PenaltyPage: React.FC = () => {
                 setSummary('');
                 setStep(3);
               }}
-              style={{ display: 'inline-flex', alignItems: 'center', gap: 8, padding: 'var(--ds-btn-py) 28px', borderRadius: 'var(--r)', fontSize: 14, minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}}
+              style={{ display: 'inline-flex', alignItems: 'center', gap: 8, padding: 'var(--ds-btn-py) 28px', borderRadius: 'var(--r)', fontSize: "var(--text-base)", minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}}
              data-ui-native-button="">
               <span>Calculate Penalty</span>
               <span style={{ fontSize: 15 }}>→</span>
@@ -359,7 +359,7 @@ export const PenaltyPage: React.FC = () => {
                   className="btn btn-primary"
                   onClick={calculate}
                   disabled={calcLoading}
-                  style={{ display: 'flex', alignItems: 'center', gap: 8, padding: 'var(--ds-btn-py) 36px', borderRadius: 'var(--r)', fontSize: 14, minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}}
+                  style={{ display: 'flex', alignItems: 'center', gap: 8, padding: 'var(--ds-btn-py) 36px', borderRadius: 'var(--r)', fontSize: "var(--text-base)", minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}}
                  data-ui-native-button="">
                   <Icon name="alertCircle" size={15} color="hsl(var(--primary-foreground))" />
                   <span>{calcLoading ? 'Calculating…' : 'Estimate Penalty'}</span>
@@ -400,7 +400,7 @@ export const PenaltyPage: React.FC = () => {
           {summary && (
             <SectionCard
               title="AI analysis"
-              action={<button type="button" onClick={() => setSummary('')} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink3)', fontSize: 18, lineHeight: 1, padding: 0 }} data-ui-native-button="">×</button>}
+              action={<button type="button" onClick={() => setSummary('')} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink3)', fontSize: "var(--text-base)", lineHeight: 1, padding: 0 }} data-ui-native-button="">×</button>}
             >
               <div style={{ fontSize: 13.5, color: 'var(--ink)', lineHeight: 1.8, whiteSpace: 'pre-wrap' }}>{summary}</div>
             </SectionCard>
@@ -418,11 +418,11 @@ export const PenaltyPage: React.FC = () => {
           {/* Bottom nav */}
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
             <button type="button" onClick={() => setStep(2)}
-              style={{ padding: 'var(--ds-btn-py) 24px', borderRadius: 'var(--r)', border: '1px solid var(--border)', background: 'var(--white)', color: 'var(--ink2)', fontWeight: 600, fontSize: 13, cursor: 'pointer', minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}} data-ui-native-button="">
+              style={{ padding: 'var(--ds-btn-py) 24px', borderRadius: 'var(--r)', border: '1px solid var(--border)', background: 'var(--white)', color: 'var(--ink2)', fontWeight: 600, fontSize: "var(--text-base)", cursor: 'pointer', minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}} data-ui-native-button="">
               ← Back
             </button>
             <button type="button" onClick={resetAll}
-              style={{ padding: 'var(--ds-btn-py) 24px', borderRadius: 'var(--r)', border: '1px solid var(--teal-m)', background: 'var(--teal-l)', color: 'var(--teal)', fontWeight: 600, fontSize: 13, cursor: 'pointer', minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}} data-ui-native-button="">
+              style={{ padding: 'var(--ds-btn-py) 24px', borderRadius: 'var(--r)', border: '1px solid var(--teal-m)', background: 'var(--teal-l)', color: 'var(--teal)', fontWeight: 600, fontSize: "var(--text-base)", cursor: 'pointer', minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}} data-ui-native-button="">
               Start New Assessment
             </button>
           </div>

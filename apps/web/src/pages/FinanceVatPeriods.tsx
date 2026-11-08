@@ -181,7 +181,7 @@ export function FinanceVatPeriods() {
 
       <MetricsRow cards={[
         {
-          title: 'Total Periods', value: String(vatStats?.total ?? periods.length), icon: 'calendar',
+          emphasis: 'primary', title: 'Total Periods', value: String(vatStats?.total ?? periods.length), icon: 'calendar',
           sub1Label: 'OPEN', sub1Value: String(vatStats?.open ?? periods.filter(p => p.status === 'open').length),
           sub2Label: 'FILED', sub2Value: String(vatStats?.filed ?? periods.filter(p => p.status === 'closed').length), barHighlight: 'var(--teal)', loading: !vatStats,
         },

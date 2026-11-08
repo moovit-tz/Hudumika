@@ -727,7 +727,7 @@ export const PurchaseOrders: React.FC = () => {
               sub2Label: 'RECEIVED', sub2Value: String(poStats.receivedCount), barHighlight: 'var(--teal)', loading: !poServerStats,
             },
             {
-              title: 'TOTAL VALUE', value: fmt(poStats.totalValue, 'USD'),
+              emphasis: 'primary', title: 'TOTAL VALUE', value: fmt(poStats.totalValue, 'USD'),
               sub1Label: 'RECEIVED', sub1Value: fmt(poStats.receivedValue, 'USD'),
               sub2Label: 'PENDING', sub2Value: fmt(poStats.pendingValue, 'USD'), barHighlight: 'var(--blue)', loading: !poServerStats,
             },
@@ -770,7 +770,7 @@ export const PurchaseOrders: React.FC = () => {
                     <button
                       onClick={() => setIsCardView(false)}
                       style={{
-                        padding: 6,
+                        padding: "var(--action-py) var(--space-md)",
                         border: 'none',
                         background: !isCardView ? 'hsl(var(--primary))' : 'transparent',
                         color: !isCardView ? 'hsl(var(--primary-foreground))' : 'var(--ink3)',
@@ -787,7 +787,7 @@ export const PurchaseOrders: React.FC = () => {
                     <button
                       onClick={() => setIsCardView(true)}
                       style={{
-                        padding: 6,
+                        padding: "var(--action-py) var(--space-md)",
                         border: 'none',
                         background: isCardView ? 'hsl(var(--primary))' : 'transparent',
                         color: isCardView ? 'hsl(var(--primary-foreground))' : 'var(--ink3)',
@@ -827,7 +827,7 @@ export const PurchaseOrders: React.FC = () => {
                       background: showFiltersPanel || filterStatus || filterVendor ? 'var(--teal-l)' : 'var(--white)',
                       borderColor: showFiltersPanel || filterStatus || filterVendor ? 'var(--teal)' : 'var(--border)',
                       color: showFiltersPanel || filterStatus || filterVendor ? 'var(--teal)' : 'var(--ink2)',
-                      fontSize: 12,
+                      fontSize: "var(--text-base)",
                       fontWeight: 600,
                       cursor: 'pointer', minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}}
                    data-ui-native-button="">
@@ -837,7 +837,7 @@ export const PurchaseOrders: React.FC = () => {
                   </button>
 
                   {!readOnly && <button type="button" onClick={handleCreateInit}
-                    style={{ padding: 'var(--ds-btn-py) 16px', background: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))', border: 'none', borderRadius: 'var(--r)', fontSize: 13, fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 7, fontFamily: 'var(--font)', whiteSpace: 'nowrap', minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25 }} data-ui-native-button="">
+                    style={{ padding: 'var(--ds-btn-py) 16px', background: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))', border: 'none', borderRadius: 'var(--r)', fontSize: "var(--text-base)", fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 7, fontFamily: 'var(--font)', whiteSpace: 'nowrap', minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25 }} data-ui-native-button="">
                     <Icon name="plus" size={14} color="hsl(var(--primary-foreground))" /> New purchase order
                   </button>}
                 </div>
@@ -885,7 +885,7 @@ export const PurchaseOrders: React.FC = () => {
                         border: '1px solid var(--border)',
                         background: 'transparent',
                         color: 'var(--ink3)',
-                        fontSize: 12,
+                        fontSize: "var(--text-base)",
                         fontWeight: 600,
                         cursor: 'pointer', minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}}
                      data-ui-native-button="">
@@ -917,7 +917,7 @@ export const PurchaseOrders: React.FC = () => {
                     border: '1px solid var(--border)',
                     background: 'var(--white)',
                     color: 'var(--ink2)',
-                    fontSize: 13,
+                    fontSize: "var(--text-base)",
                     fontWeight: 600,
                     cursor: 'pointer', minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}}
                  data-ui-native-button="">
@@ -1007,8 +1007,8 @@ export const PurchaseOrders: React.FC = () => {
                           onClick={() => handleDownloadPDF(po.id)}
                           disabled={downloading === po.po_number}
                           style={{
-                            width: 28,
-                            height: 28,
+                            width: "var(--ctl-h-xs)",
+                            height: "var(--ctl-h-xs)",
                             borderRadius: 'var(--r)',
                             border: '1px solid var(--border)',
                             background: 'var(--white)',
@@ -1045,8 +1045,8 @@ export const PurchaseOrders: React.FC = () => {
                             <button
                               onClick={() => handleDuplicatePO(po.id)}
                               style={{
-                                width: 28,
-                                height: 28,
+                                width: "var(--ctl-h-xs)",
+                                height: "var(--ctl-h-xs)",
                                 borderRadius: 'var(--r)',
                                 border: '1px solid var(--border)',
                                 background: 'var(--white)',
@@ -1063,8 +1063,8 @@ export const PurchaseOrders: React.FC = () => {
                             <button
                               onClick={() => handleEditInit(po.id)}
                               style={{
-                                width: 28,
-                                height: 28,
+                                width: "var(--ctl-h-xs)",
+                                height: "var(--ctl-h-xs)",
                                 borderRadius: 'var(--r)',
                                 border: '1px solid var(--border)',
                                 background: 'var(--white)',
@@ -1081,8 +1081,8 @@ export const PurchaseOrders: React.FC = () => {
                             <button
                               onClick={() => handleDeletePO(po.id)}
                               style={{
-                                width: 28,
-                                height: 28,
+                                width: "var(--ctl-h-xs)",
+                                height: "var(--ctl-h-xs)",
                                 borderRadius: 'var(--r)',
                                 border: '1px solid var(--border)',
                                 background: 'var(--white)',
@@ -1245,8 +1245,8 @@ export const PurchaseOrders: React.FC = () => {
                                   onClick={() => handleDownloadPDF(po.id)}
                                   disabled={downloading === po.po_number}
                                   style={{
-                                    width: 26,
-                                    height: 26,
+                                    width: "var(--ctl-h-xs)",
+                                    height: "var(--ctl-h-xs)",
                                     borderRadius: 'var(--r)',
                                     border: '1px solid var(--border)',
                                     background: 'var(--white)',
@@ -1285,8 +1285,8 @@ export const PurchaseOrders: React.FC = () => {
                                     <button
                                       onClick={() => handleDuplicatePO(po.id)}
                                       style={{
-                                        width: 26,
-                                        height: 26,
+                                        width: "var(--ctl-h-xs)",
+                                        height: "var(--ctl-h-xs)",
                                         borderRadius: 'var(--r)',
                                         border: '1px solid var(--border)',
                                         background: 'var(--white)',
@@ -1304,8 +1304,8 @@ export const PurchaseOrders: React.FC = () => {
                                     <button
                                       onClick={() => handleEditInit(po.id)}
                                       style={{
-                                        width: 26,
-                                        height: 26,
+                                        width: "var(--ctl-h-xs)",
+                                        height: "var(--ctl-h-xs)",
                                         borderRadius: 'var(--r)',
                                         border: '1px solid var(--border)',
                                         background: 'var(--white)',
@@ -1323,8 +1323,8 @@ export const PurchaseOrders: React.FC = () => {
                                     <button
                                       onClick={() => handleDeletePO(po.id)}
                                       style={{
-                                        width: 26,
-                                        height: 26,
+                                        width: "var(--ctl-h-xs)",
+                                        height: "var(--ctl-h-xs)",
                                         borderRadius: 'var(--r)',
                                         border: '1px solid var(--border)',
                                         background: 'var(--white)',
@@ -1368,7 +1368,7 @@ export const PurchaseOrders: React.FC = () => {
                     border: '1px solid var(--border)',
                     background: 'var(--white)',
                     color: currentPage === 1 ? 'var(--ink3)' : 'var(--ink)',
-                    fontSize: 13,
+                    fontSize: "var(--text-base)",
                     fontWeight: 600,
                     cursor: currentPage === 1 ? 'not-allowed' : 'pointer', minHeight: 'var(--ctl-h-sm)', boxSizing: 'border-box', lineHeight: 1.25}}
                  data-ui-native-button="">
@@ -1379,13 +1379,13 @@ export const PurchaseOrders: React.FC = () => {
                     key={pageNum}
                     onClick={() => setCurrentPage(pageNum)}
                     style={{
-                      width: 32,
-                      height: 32,
+                      width: "var(--ctl-h)",
+                      height: "var(--ctl-h)",
                       borderRadius: 'var(--r)',
                       border: 'none',
                       background: currentPage === pageNum ? 'hsl(var(--primary))' : 'transparent',
                       color: currentPage === pageNum ? 'hsl(var(--primary-foreground))' : 'var(--ink2)',
-                      fontSize: 13,
+                      fontSize: "var(--text-base)",
                       fontWeight: 600,
                       cursor: 'pointer'
                     }}
@@ -1402,7 +1402,7 @@ export const PurchaseOrders: React.FC = () => {
                     border: '1px solid var(--border)',
                     background: 'var(--white)',
                     color: currentPage === totalPages || totalPages === 0 ? 'var(--ink3)' : 'var(--ink)',
-                    fontSize: 13,
+                    fontSize: "var(--text-base)",
                     fontWeight: 600,
                     cursor: currentPage === totalPages || totalPages === 0 ? 'not-allowed' : 'pointer', minHeight: 'var(--ctl-h-sm)', boxSizing: 'border-box', lineHeight: 1.25}}
                  data-ui-native-button="">
@@ -1561,7 +1561,7 @@ export const PurchaseOrders: React.FC = () => {
                         border: 'none',
                         background: 'hsl(var(--primary))',
                         color: 'hsl(var(--primary-foreground))',
-                        fontSize: 13,
+                        fontSize: "var(--text-base)",
                         fontWeight: 600,
                         cursor: 'pointer', minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}}
                      data-ui-native-button="">
@@ -1738,21 +1738,21 @@ export const PurchaseOrders: React.FC = () => {
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: 16 }}>
                 <div>
                   <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: 'var(--ink2)', marginBottom: 6 }}>Payment Terms</label>
-                  <input
+                  <input data-ui-field="input"
                     type="text"
                     placeholder="e.g., Net 30, COD"
                     value={formPaymentTerms}
                     onChange={e => setFormPaymentTerms(e.target.value)}
-                    style={{ width: '100%', padding: '9px 12px', borderRadius: 'var(--r)', border: '1px solid var(--border)', background: 'var(--bg)', color: 'var(--ink)', fontSize: 13, outline: 'none' }}
+                    style={{ width: '100%', padding: "var(--ds-input-py) var(--space-md)", borderRadius: 'var(--r)', border: '1px solid var(--border)', background: 'var(--bg)', color: 'var(--ink)', fontSize: "var(--text-base)", outline: 'none' }}
                   />
                 </div>
                 <div>
                   <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: 'var(--ink2)', marginBottom: 6 }}>Notes</label>
-                  <textarea
+                  <textarea data-ui-field="textarea"
                     placeholder="Additional notes..."
                     value={formNotes}
                     onChange={e => setFormNotes(e.target.value)}
-                    style={{ width: '100%', height: 42, padding: '9px 12px', borderRadius: 'var(--r)', border: '1px solid var(--border)', background: 'var(--bg)', color: 'var(--ink)', fontSize: 13, outline: 'none', resize: 'vertical', fontFamily: 'inherit' }}
+                    style={{ width: '100%', height: 42, padding: "var(--ds-input-py) var(--space-md)", borderRadius: 'var(--r)', border: '1px solid var(--border)', background: 'var(--bg)', color: 'var(--ink)', fontSize: "var(--text-base)", outline: 'none', resize: 'vertical', fontFamily: "var(--font)" }}
                   />
                 </div>
               </div>
@@ -1775,7 +1775,7 @@ export const PurchaseOrders: React.FC = () => {
                     border: 'none',
                     background: 'hsl(var(--primary))',
                     color: 'hsl(var(--primary-foreground))',
-                    fontSize: 12,
+                    fontSize: "var(--text-base)",
                     fontWeight: 600,
                     cursor: 'pointer', minHeight: 'var(--ctl-h-sm)', boxSizing: 'border-box', lineHeight: 1.25}}
                  data-ui-native-button="">
@@ -1832,13 +1832,13 @@ export const PurchaseOrders: React.FC = () => {
 
                           {/* Quantity */}
                           <td style={{ padding: '12px 12px', textAlign: 'center' }}>
-                            <input
+                            <input data-ui-field="input"
                               type="number"
                               min={1}
                               required
                               value={item.qty}
                               onChange={e => handleFormItemChange(idx, 'qty', parseInt(e.target.value, 10) || 1)}
-                              style={{ width: '100%', padding: '7px 6px', borderRadius: 'var(--r-sm)', border: '1px solid var(--border)', background: 'var(--bg)', color: 'var(--ink)', fontSize: 13, outline: 'none', textAlign: 'center' }}
+                              style={{ width: '100%', padding: "var(--ds-input-py) var(--space-md)", borderRadius: 'var(--r-sm)', border: '1px solid var(--border)', background: 'var(--bg)', color: 'var(--ink)', fontSize: "var(--text-base)", outline: 'none', textAlign: 'center' }}
                             />
                           </td>
 
@@ -1846,14 +1846,14 @@ export const PurchaseOrders: React.FC = () => {
                           <td style={{ padding: '12px 12px', textAlign: 'right' }}>
                             <div style={{ display: 'flex', alignItems: 'center', background: 'var(--bg)', border: '1px solid var(--border)', borderRadius: 'var(--r-sm)', padding: '0 8px' }}>
                               <span style={{ fontSize: 12, color: 'var(--ink3)' }}>$</span>
-                              <input
+                              <input data-field-appearance="bare" data-ui-field="input"
                                 type="number"
                                 min={0}
                                 step="any"
                                 required
                                 value={item.unitPrice}
                                 onChange={e => handleFormItemChange(idx, 'unitPrice', parseFloat(e.target.value) || 0)}
-                                style={{ width: '100%', padding: '7px 0 7px 4px', border: 'none', background: 'transparent', color: 'var(--ink)', fontSize: 13, outline: 'none', textAlign: 'right' }}
+                                style={{ width: '100%', padding: "var(--ds-input-py) var(--space-md)", border: 'none', background: 'transparent', color: 'var(--ink)', fontSize: "var(--text-base)", outline: 'none', textAlign: 'right' }}
                               />
                             </div>
                           </td>
@@ -1861,13 +1861,13 @@ export const PurchaseOrders: React.FC = () => {
                           {/* Discount % */}
                           <td style={{ padding: '12px 12px', textAlign: 'right' }}>
                             <div style={{ display: 'flex', alignItems: 'center', background: 'var(--bg)', border: '1px solid var(--border)', borderRadius: 'var(--r-sm)', padding: '0 8px' }}>
-                              <input
+                              <input data-field-appearance="bare" data-ui-field="input"
                                 type="number"
                                 min={0}
                                 max={100}
                                 value={item.discountPct}
                                 onChange={e => handleFormItemChange(idx, 'discountPct', parseFloat(e.target.value) || 0)}
-                                style={{ width: '100%', padding: '7px 4px 7px 0', border: 'none', background: 'transparent', color: 'var(--ink)', fontSize: 13, outline: 'none', textAlign: 'right' }}
+                                style={{ width: '100%', padding: "var(--ds-input-py) var(--space-md)", border: 'none', background: 'transparent', color: 'var(--ink)', fontSize: "var(--text-base)", outline: 'none', textAlign: 'right' }}
                               />
                               <span style={{ fontSize: 12, color: 'var(--ink3)' }}>%</span>
                             </div>
@@ -1897,7 +1897,7 @@ export const PurchaseOrders: React.FC = () => {
                                 display: 'flex',
                                 alignItems: 'center',
                                 justifyContent: 'center',
-                                padding: 6,
+                                padding: "var(--action-py) var(--space-md)",
                                 borderRadius: 'var(--r)'
                               }}
                               title="Remove item"

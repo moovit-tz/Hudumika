@@ -19,8 +19,8 @@ import { Tip } from '../components/ui/tooltip.js';
 function InlineEditActions({ saving, onSave, onCancel }: { saving: boolean; onSave: () => void; onCancel: () => void }) {
   return (
     <>
-      <Tip label="Save"><button type="button" aria-label="Save" onClick={onSave} disabled={saving} style={{ background: 'none', border: 'none', cursor: saving ? 'wait' : 'pointer', color: 'var(--green)', padding: 4 }} data-ui-native-button=""><Icon name="check" size={15} /></button></Tip>
-      <Tip label="Cancel"><button type="button" aria-label="Cancel" onClick={onCancel} disabled={saving} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink3)', padding: 4 }} data-ui-native-button=""><Icon name="x" size={15} /></button></Tip>
+      <Tip label="Save"><button type="button" aria-label="Save" onClick={onSave} disabled={saving} style={{ background: 'none', border: 'none', cursor: saving ? 'wait' : 'pointer', color: 'var(--green)', padding: "var(--action-py) var(--space-md)" }} data-ui-native-button=""><Icon name="check" size={15} /></button></Tip>
+      <Tip label="Cancel"><button type="button" aria-label="Cancel" onClick={onCancel} disabled={saving} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink3)', padding: "var(--action-py) var(--space-md)" }} data-ui-native-button=""><Icon name="x" size={15} /></button></Tip>
     </>
   );
 }
@@ -346,12 +346,12 @@ export const CustomsReference: React.FC = () => {
                       {isEditing ? (
                         <>
                           <td style={td}>
-                            <input style={editInput} value={draft.name ?? ''} onChange={e => setField('name', e.target.value)} placeholder="Operator name" />
-                            <input style={{ ...editInput, marginTop: 4 }} value={draft.address ?? ''} onChange={e => setField('address', e.target.value)} placeholder="Address" />
+                            <input data-ui-field="input" style={editInput} value={draft.name ?? ''} onChange={e => setField('name', e.target.value)} placeholder="Operator name" />
+                            <input data-ui-field="input" style={{ ...editInput, marginTop: 4 }} value={draft.address ?? ''} onChange={e => setField('address', e.target.value)} placeholder="Address" />
                           </td>
-                          <td style={td}><input style={editInput} value={draft.operator_type ?? ''} onChange={e => setField('operator_type', e.target.value)} placeholder="Type" /></td>
-                          <td style={td}><input style={editInput} value={draft.region ?? ''} onChange={e => setField('region', e.target.value)} placeholder="Region" /></td>
-                          <td style={td}><input style={editInput} value={draft.license_no ?? ''} onChange={e => setField('license_no', e.target.value)} placeholder="Licence no." /></td>
+                          <td style={td}><input data-ui-field="input" style={editInput} value={draft.operator_type ?? ''} onChange={e => setField('operator_type', e.target.value)} placeholder="Type" /></td>
+                          <td style={td}><input data-ui-field="input" style={editInput} value={draft.region ?? ''} onChange={e => setField('region', e.target.value)} placeholder="Region" /></td>
+                          <td style={td}><input data-ui-field="input" style={editInput} value={draft.license_no ?? ''} onChange={e => setField('license_no', e.target.value)} placeholder="Licence no." /></td>
                           <td style={td}>
                             <DatePicker
                               date={draft.license_exp ? new Date(draft.license_exp) : undefined}
@@ -360,8 +360,8 @@ export const CustomsReference: React.FC = () => {
                             />
                           </td>
                           <td style={td}>
-                            <input style={editInput} value={draft.email ?? ''} onChange={e => setField('email', e.target.value)} placeholder="Email" />
-                            <input style={{ ...editInput, marginTop: 4 }} value={draft.tel ?? ''} onChange={e => setField('tel', e.target.value)} placeholder="Phone" />
+                            <input data-ui-field="input" style={editInput} value={draft.email ?? ''} onChange={e => setField('email', e.target.value)} placeholder="Email" />
+                            <input data-ui-field="input" style={{ ...editInput, marginTop: 4 }} value={draft.tel ?? ''} onChange={e => setField('tel', e.target.value)} placeholder="Phone" />
                           </td>
                           <td style={{ ...td, whiteSpace: 'nowrap' }}>
                             <InlineEditActions saving={saving} onSave={saveEdit} onCancel={cancelEdit} />
@@ -375,7 +375,7 @@ export const CustomsReference: React.FC = () => {
                           <td style={{ ...td, fontFamily: 'var(--font)', fontSize: 12 }}>{o.license_no ?? '—'}</td>
                           <td style={td}>{fmtDate(o.license_exp)}</td>
                           <td style={{ ...td, fontSize: 12 }}>{o.email ?? '—'}{o.tel ? <div style={{ color: 'var(--ink3)' }}>{o.tel}</div> : null}</td>
-                          {canEdit && <td style={td}><button type="button" onClick={() => startEdit(o)} title="Edit" style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink3)', padding: 4 }} data-ui-native-button=""><Icon name="edit" size={14} /></button></td>}
+                          {canEdit && <td style={td}><button type="button" onClick={() => startEdit(o)} title="Edit" style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink3)', padding: "var(--action-py) var(--space-md)" }} data-ui-native-button=""><Icon name="edit" size={14} /></button></td>}
                         </>
                       )}
                     </tr>
@@ -399,13 +399,13 @@ export const CustomsReference: React.FC = () => {
                     <tr key={a.id}>
                       {isEditing ? (
                         <>
-                          <td style={td}><input style={editInput} value={draft.license_no ?? ''} onChange={e => setField('license_no', e.target.value)} placeholder="Licence no." /></td>
+                          <td style={td}><input data-ui-field="input" style={editInput} value={draft.license_no ?? ''} onChange={e => setField('license_no', e.target.value)} placeholder="Licence no." /></td>
                           <td style={td}>
-                            <input style={editInput} value={draft.name ?? ''} onChange={e => setField('name', e.target.value)} placeholder="Agent name" />
-                            <input style={{ ...editInput, marginTop: 4 }} value={draft.tel ?? ''} onChange={e => setField('tel', e.target.value)} placeholder="Phone" />
+                            <input data-ui-field="input" style={editInput} value={draft.name ?? ''} onChange={e => setField('name', e.target.value)} placeholder="Agent name" />
+                            <input data-ui-field="input" style={{ ...editInput, marginTop: 4 }} value={draft.tel ?? ''} onChange={e => setField('tel', e.target.value)} placeholder="Phone" />
                           </td>
-                          <td style={td}><input style={editInput} value={draft.region ?? ''} onChange={e => setField('region', e.target.value)} placeholder="Region" /></td>
-                          <td style={td}><input style={editInput} value={draft.email ?? ''} onChange={e => setField('email', e.target.value)} placeholder="Email" /></td>
+                          <td style={td}><input data-ui-field="input" style={editInput} value={draft.region ?? ''} onChange={e => setField('region', e.target.value)} placeholder="Region" /></td>
+                          <td style={td}><input data-ui-field="input" style={editInput} value={draft.email ?? ''} onChange={e => setField('email', e.target.value)} placeholder="Email" /></td>
                           <td style={{ ...td, whiteSpace: 'nowrap' }}>
                             <InlineEditActions saving={saving} onSave={saveEdit} onCancel={cancelEdit} />
                           </td>
@@ -416,7 +416,7 @@ export const CustomsReference: React.FC = () => {
                           <td style={{ ...td, fontWeight: 600 }}>{a.name}</td>
                           <td style={td}>{a.region ?? '—'}</td>
                           <td style={{ ...td, fontSize: 12 }}>{a.email ?? '—'}</td>
-                          {canEdit && <td style={td}><button type="button" onClick={() => startEdit(a)} title="Edit" style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink3)', padding: 4 }} data-ui-native-button=""><Icon name="edit" size={14} /></button></td>}
+                          {canEdit && <td style={td}><button type="button" onClick={() => startEdit(a)} title="Edit" style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink3)', padding: "var(--action-py) var(--space-md)" }} data-ui-native-button=""><Icon name="edit" size={14} /></button></td>}
                         </>
                       )}
                     </tr>
@@ -441,10 +441,10 @@ export const CustomsReference: React.FC = () => {
                     <tr key={x.id}>
                       {isEditing ? (
                         <>
-                          <td style={td}><input style={editInput} value={draft.category ?? ''} onChange={e => setField('category', e.target.value)} placeholder="Category" /></td>
-                          <td style={td}><input style={editInput} value={draft.item_description ?? ''} onChange={e => setField('item_description', e.target.value)} placeholder="Product" /></td>
+                          <td style={td}><input data-ui-field="input" style={editInput} value={draft.category ?? ''} onChange={e => setField('category', e.target.value)} placeholder="Category" /></td>
+                          <td style={td}><input data-ui-field="input" style={editInput} value={draft.item_description ?? ''} onChange={e => setField('item_description', e.target.value)} placeholder="Product" /></td>
                           {(['tz_rate', 'ke_rate', 'ug_rate', 'rw_rate', 'bi_rate'] as const).map(k => (
-                            <td key={k} style={td}><input style={{ ...editInput, width: 70, fontFamily: 'var(--font)' }} value={draft[k] ?? ''} onChange={e => setField(k, e.target.value)} /></td>
+                            <td key={k} style={td}><input data-ui-field="input" style={{ ...editInput, width: 70, fontFamily: 'var(--font)' }} value={draft[k] ?? ''} onChange={e => setField(k, e.target.value)} /></td>
                           ))}
                           <td style={{ ...td, whiteSpace: 'nowrap' }}>
                             <InlineEditActions saving={saving} onSave={saveEdit} onCancel={cancelEdit} />
@@ -457,7 +457,7 @@ export const CustomsReference: React.FC = () => {
                           {[x.tz_rate, x.ke_rate, x.ug_rate, x.rw_rate, x.bi_rate].map((r, i) => (
                             <td key={i} style={{ ...td, fontFamily: 'var(--font)', fontSize: 12, whiteSpace: 'nowrap', color: r ? 'var(--ink)' : 'var(--ink3)' }}>{r ?? '—'}</td>
                           ))}
-                          {canEdit && <td style={td}><button type="button" onClick={() => startEdit(x)} title="Edit" style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink3)', padding: 4 }} data-ui-native-button=""><Icon name="edit" size={14} /></button></td>}
+                          {canEdit && <td style={td}><button type="button" onClick={() => startEdit(x)} title="Edit" style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink3)', padding: "var(--action-py) var(--space-md)" }} data-ui-native-button=""><Icon name="edit" size={14} /></button></td>}
                         </>
                       )}
                     </tr>
@@ -482,18 +482,18 @@ export const CustomsReference: React.FC = () => {
                     <tr key={t.id}>
                       {isEditing ? (
                         <>
-                          <td style={td}><input style={{ ...editInput, width: 90 }} value={draft.authority ?? ''} onChange={e => setField('authority', e.target.value)} placeholder="Authority" /></td>
-                          <td style={td}><input style={{ ...editInput, width: 90 }} value={draft.clause_ref ?? ''} onChange={e => setField('clause_ref', e.target.value)} placeholder="Clause" /></td>
+                          <td style={td}><input data-ui-field="input" style={{ ...editInput, width: 90 }} value={draft.authority ?? ''} onChange={e => setField('authority', e.target.value)} placeholder="Authority" /></td>
+                          <td style={td}><input data-ui-field="input" style={{ ...editInput, width: 90 }} value={draft.clause_ref ?? ''} onChange={e => setField('clause_ref', e.target.value)} placeholder="Clause" /></td>
                           <td style={td}>
-                            <input style={editInput} value={draft.item_name ?? ''} onChange={e => setField('item_name', e.target.value)} placeholder="Item name" />
-                            <input style={{ ...editInput, marginTop: 4 }} value={draft.category ?? ''} onChange={e => setField('category', e.target.value)} placeholder="Category" />
-                            <input style={{ ...editInput, marginTop: 4 }} value={draft.subcategory ?? ''} onChange={e => setField('subcategory', e.target.value)} placeholder="Subcategory" />
+                            <input data-ui-field="input" style={editInput} value={draft.item_name ?? ''} onChange={e => setField('item_name', e.target.value)} placeholder="Item name" />
+                            <input data-ui-field="input" style={{ ...editInput, marginTop: 4 }} value={draft.category ?? ''} onChange={e => setField('category', e.target.value)} placeholder="Category" />
+                            <input data-ui-field="input" style={{ ...editInput, marginTop: 4 }} value={draft.subcategory ?? ''} onChange={e => setField('subcategory', e.target.value)} placeholder="Subcategory" />
                           </td>
-                          <td style={td}><input style={{ ...editInput, width: 100 }} value={draft.unit ?? ''} onChange={e => setField('unit', e.target.value)} placeholder="Unit" /></td>
-                          <td style={td}><input style={{ ...editInput, width: 80 }} value={draft.container_size ?? ''} onChange={e => setField('container_size', e.target.value)} placeholder="Size" /></td>
+                          <td style={td}><input data-ui-field="input" style={{ ...editInput, width: 100 }} value={draft.unit ?? ''} onChange={e => setField('unit', e.target.value)} placeholder="Unit" /></td>
+                          <td style={td}><input data-ui-field="input" style={{ ...editInput, width: 80 }} value={draft.container_size ?? ''} onChange={e => setField('container_size', e.target.value)} placeholder="Size" /></td>
                           <td style={td}>
-                            <input style={{ ...editInput, width: 90, fontFamily: 'var(--font)' }} value={draft.rate_amount ?? ''} onChange={e => setField('rate_amount', e.target.value)} placeholder="Rate" />
-                            <input style={{ ...editInput, marginTop: 4, width: 90 }} value={draft.rate_currency ?? ''} onChange={e => setField('rate_currency', e.target.value)} placeholder="Currency" />
+                            <input data-ui-field="input" style={{ ...editInput, width: 90, fontFamily: 'var(--font)' }} value={draft.rate_amount ?? ''} onChange={e => setField('rate_amount', e.target.value)} placeholder="Rate" />
+                            <input data-ui-field="input" style={{ ...editInput, marginTop: 4, width: 90 }} value={draft.rate_currency ?? ''} onChange={e => setField('rate_currency', e.target.value)} placeholder="Currency" />
                           </td>
                           <td style={{ ...td, whiteSpace: 'nowrap' }}>
                             <InlineEditActions saving={saving} onSave={saveEdit} onCancel={cancelEdit} />
@@ -513,7 +513,7 @@ export const CustomsReference: React.FC = () => {
                             {fmtRate(t)}
                             {t.min_charge != null && <div style={{ fontSize: 10.5, color: 'var(--ink3)', fontWeight: 400 }}>min {t.rate_currency} {Number(t.min_charge).toLocaleString('en-US')}</div>}
                           </td>
-                          {canEdit && <td style={td}><button type="button" onClick={() => startEdit(t)} title="Edit" style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink3)', padding: 4 }} data-ui-native-button=""><Icon name="edit" size={14} /></button></td>}
+                          {canEdit && <td style={td}><button type="button" onClick={() => startEdit(t)} title="Edit" style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink3)', padding: "var(--action-py) var(--space-md)" }} data-ui-native-button=""><Icon name="edit" size={14} /></button></td>}
                         </>
                       )}
                     </tr>

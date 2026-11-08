@@ -24,7 +24,7 @@ export function RenameModal({ item, onClose, onRename }: { item: CloudFile; onCl
       <DialogContent size="sm">
         <DialogHeader><DialogTitle>Rename {item.type === 'folder' ? 'folder' : 'file'}</DialogTitle></DialogHeader>
         <DialogBody>
-          <input
+          <input data-ui-field="input"
             autoFocus value={value} onChange={e => setValue(e.target.value)} disabled={busy}
             onKeyDown={e => { if (e.key === 'Enter') void confirm(); }}
             className="input-field" style={{ width: '100%' }} aria-label="Name"

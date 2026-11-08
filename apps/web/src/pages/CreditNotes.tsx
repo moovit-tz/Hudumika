@@ -291,7 +291,7 @@ export function CreditNotes() {
               <Input className="text-right" type="number" value={l.rate} onChange={e => updateLine(i, { rate: e.target.value })} placeholder="0.00" />
               <Input className="text-right" type="number" value={l.qty} onChange={e => updateLine(i, { qty: e.target.value })} />
               <Input className="text-right" type="number" value={l.tax_pct} onChange={e => updateLine(i, { tax_pct: e.target.value })} />
-              <button type="button" onClick={() => removeLine(i)} disabled={lines.length <= 1} style={{ background: 'none', border: 'none', cursor: lines.length > 1 ? 'pointer' : 'not-allowed', opacity: lines.length > 1 ? 1 : 0.3, padding: 4 }} data-ui-native-button="">
+              <button type="button" onClick={() => removeLine(i)} disabled={lines.length <= 1} style={{ background: 'none', border: 'none', cursor: lines.length > 1 ? 'pointer' : 'not-allowed', opacity: lines.length > 1 ? 1 : 0.3, padding: "var(--action-py) var(--space-md)" }} data-ui-native-button="">
                 <Icon name="trash" size={14} color="var(--red)" />
               </button>
             </div>
@@ -341,7 +341,7 @@ export function CreditNotes() {
           sub2Label: 'POSTED', sub2Value: String(cnStats.postedCount), barHighlight: 'var(--teal)', loading: !stats,
         },
         {
-          title: 'TOTAL CREDITED', value: fmt(convertedCredited),
+          emphasis: 'primary', title: 'TOTAL CREDITED', value: fmt(convertedCredited),
           invertTrend: true,
           sub1Label: 'POSTED', sub1Value: String(cnStats.postedCount),
           sub2Label: 'VOIDED', sub2Value: String(cnStats.voidCount), barHighlight: 'var(--red)', loading: !stats,

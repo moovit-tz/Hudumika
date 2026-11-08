@@ -169,7 +169,7 @@ function StatusModal({
         {status === 'REJECTED' && (
           <div style={{ marginBottom: 14 }}>
             <label style={{ fontSize: 12, fontWeight: 600, color: 'var(--ink3)', display: 'block', marginBottom: 4 }}>Rejection Reason</label>
-            <textarea value={reason} onChange={e => setReason(e.target.value)} rows={3} placeholder="Enter rejection reason…" style={{ width: '100%', padding: '7px 10px', borderRadius: 'var(--r-sm)', border: '1px solid var(--border)', fontSize: 13, resize: 'vertical', boxSizing: 'border-box' }} />
+            <textarea data-ui-field="textarea" value={reason} onChange={e => setReason(e.target.value)} rows={3} placeholder="Enter rejection reason…" style={{ width: '100%', padding: "var(--ds-input-py) var(--space-md)", borderRadius: 'var(--r-sm)', border: '1px solid var(--border)', fontSize: "var(--text-base)", resize: 'vertical', boxSizing: 'border-box' }} />
           </div>
         )}
         {err && <div style={{ color: 'var(--red)', fontSize: 12, marginBottom: 10 }}>{err}</div>}
@@ -238,22 +238,22 @@ function DetailPanel({
 
         {/* Action buttons */}
         <div style={{ padding: '12px 20px', borderBottom: '1px solid var(--border)', display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-          <button type="button" className="btn btn-secondary" style={{ fontSize: 12, padding: 'var(--ds-btn-py-sm) 12px', display: 'flex', alignItems: 'center', gap: 5, minHeight: 'var(--ctl-h-sm)', boxSizing: 'border-box', lineHeight: 1.25}}
+          <button type="button" className="btn btn-secondary" style={{ fontSize: "var(--text-base)", padding: 'var(--ds-btn-py-sm) 12px', display: 'flex', alignItems: 'center', gap: 5, minHeight: 'var(--ctl-h-sm)', boxSizing: 'border-box', lineHeight: 1.25}}
             onClick={() => onEdit(quote)} data-ui-native-button="">
             <Icon name="edit" size={13} /> Edit
           </button>
-          <button type="button" className="btn btn-secondary" style={{ fontSize: 12, padding: 'var(--ds-btn-py-sm) 12px', display: 'flex', alignItems: 'center', gap: 5, minHeight: 'var(--ctl-h-sm)', boxSizing: 'border-box', lineHeight: 1.25}}
+          <button type="button" className="btn btn-secondary" style={{ fontSize: "var(--text-base)", padding: 'var(--ds-btn-py-sm) 12px', display: 'flex', alignItems: 'center', gap: 5, minHeight: 'var(--ctl-h-sm)', boxSizing: 'border-box', lineHeight: 1.25}}
             onClick={() => onStatusChange(quote)} data-ui-native-button="">
             <Icon name="refresh" size={13} /> Status
           </button>
           {quote.status === 'APPROVED' && (
-            <button type="button" className="btn btn-primary" style={{ fontSize: 12, padding: 'var(--ds-btn-py-sm) 12px', display: 'flex', alignItems: 'center', gap: 5, minHeight: 'var(--ctl-h-sm)', boxSizing: 'border-box', lineHeight: 1.25}}
+            <button type="button" className="btn btn-primary" style={{ fontSize: "var(--text-base)", padding: 'var(--ds-btn-py-sm) 12px', display: 'flex', alignItems: 'center', gap: 5, minHeight: 'var(--ctl-h-sm)', boxSizing: 'border-box', lineHeight: 1.25}}
               onClick={() => onConvert(quote)} data-ui-native-button="">
               <Icon name="arrowRight" size={13} /> Convert to Shipment
             </button>
           )}
           {canDelete && (
-            <button type="button" className="btn btn-secondary" style={{ fontSize: 12, padding: 'var(--ds-btn-py-sm) 12px', display: 'flex', alignItems: 'center', gap: 5, color: 'var(--red)', borderColor: 'var(--red)', minHeight: 'var(--ctl-h-sm)', boxSizing: 'border-box', lineHeight: 1.25}}
+            <button type="button" className="btn btn-secondary" style={{ fontSize: "var(--text-base)", padding: 'var(--ds-btn-py-sm) 12px', display: 'flex', alignItems: 'center', gap: 5, color: 'var(--red)', borderColor: 'var(--red)', minHeight: 'var(--ctl-h-sm)', boxSizing: 'border-box', lineHeight: 1.25}}
               onClick={() => onDelete(quote)} data-ui-native-button="">
               <Icon name="trash2" size={13} /> Delete
             </button>
@@ -522,7 +522,7 @@ function QuoteModal({
           {/* Row 1: Title */}
           <div style={{ marginBottom: 16 }}>
             <label style={labelStyle}>Title *</label>
-            <input value={form.title} onChange={e => setField('title', e.target.value)} style={inputStyle} placeholder="e.g. Sea Freight Quote – Mombasa to Dar" />
+            <input data-ui-field="input" value={form.title} onChange={e => setField('title', e.target.value)} style={inputStyle} placeholder="e.g. Sea Freight Quote – Mombasa to Dar" />
           </div>
 
           {/* Row 2: Customer + Shipment Type */}
@@ -573,39 +573,39 @@ function QuoteModal({
           <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: 14, marginBottom: 16 }}>
             <div>
               <label style={labelStyle}>Origin Port</label>
-              <input value={form.origin_port} onChange={e => setField('origin_port', e.target.value)} style={inputStyle} placeholder="e.g. Mombasa" />
+              <input data-ui-field="input" value={form.origin_port} onChange={e => setField('origin_port', e.target.value)} style={inputStyle} placeholder="e.g. Mombasa" />
             </div>
             <div>
               <label style={labelStyle}>Origin City</label>
-              <input value={form.origin_city} onChange={e => setField('origin_city', e.target.value)} style={inputStyle} placeholder="e.g. Mombasa" />
+              <input data-ui-field="input" value={form.origin_city} onChange={e => setField('origin_city', e.target.value)} style={inputStyle} placeholder="e.g. Mombasa" />
             </div>
             <div>
               <label style={labelStyle}>Destination Port</label>
-              <input value={form.destination_port} onChange={e => setField('destination_port', e.target.value)} style={inputStyle} placeholder="e.g. Dar es Salaam" />
+              <input data-ui-field="input" value={form.destination_port} onChange={e => setField('destination_port', e.target.value)} style={inputStyle} placeholder="e.g. Dar es Salaam" />
             </div>
             <div>
               <label style={labelStyle}>Destination City</label>
-              <input value={form.destination_city} onChange={e => setField('destination_city', e.target.value)} style={inputStyle} placeholder="e.g. Dar es Salaam" />
+              <input data-ui-field="input" value={form.destination_city} onChange={e => setField('destination_city', e.target.value)} style={inputStyle} placeholder="e.g. Dar es Salaam" />
             </div>
           </div>
 
           {/* Row 5: Goods Description */}
           <div style={{ marginBottom: 16 }}>
             <label style={labelStyle}>Goods Description</label>
-            <textarea value={form.goods_description} onChange={e => setField('goods_description', e.target.value)} rows={2} style={{ ...inputStyle, resize: 'vertical' }} placeholder="Brief description of goods…" />
+            <textarea data-ui-field="textarea" value={form.goods_description} onChange={e => setField('goods_description', e.target.value)} rows={2} style={{ ...inputStyle, resize: 'vertical' }} placeholder="Brief description of goods…" />
           </div>
 
           {/* Row 6: Notes */}
           <div style={{ marginBottom: 20 }}>
             <label style={labelStyle}>Notes</label>
-            <textarea value={form.notes} onChange={e => setField('notes', e.target.value)} rows={2} style={{ ...inputStyle, resize: 'vertical' }} placeholder="Internal notes or client instructions…" />
+            <textarea data-ui-field="textarea" value={form.notes} onChange={e => setField('notes', e.target.value)} rows={2} style={{ ...inputStyle, resize: 'vertical' }} placeholder="Internal notes or client instructions…" />
           </div>
 
           {/* Line items */}
           <div style={{ marginBottom: 20 }}>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
               <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--ink3)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>Line Items</div>
-              <button type="button" className="btn btn-secondary" style={{ fontSize: 11, padding: 'var(--ds-btn-py-xs) 10px', display: 'flex', alignItems: 'center', gap: 5, minHeight: 'var(--ctl-h-xs)', boxSizing: 'border-box', lineHeight: 1.25}} onClick={addLine} data-ui-native-button="">
+              <button type="button" className="btn btn-secondary" style={{ fontSize: "var(--text-xs)", padding: 'var(--ds-btn-py-xs) 10px', display: 'flex', alignItems: 'center', gap: 5, minHeight: 'var(--ctl-h-xs)', boxSizing: 'border-box', lineHeight: 1.25}} onClick={addLine} data-ui-native-button="">
                 <Icon name="plus" size={12} /> Add Line
               </button>
             </div>
@@ -624,28 +624,28 @@ function QuoteModal({
                     return (
                       <tr key={idx} style={{ borderBottom: '1px solid var(--border)' }}>
                         <td style={{ padding: '4px 6px', minWidth: 160 }}>
-                          <input value={line.description} onChange={e => setLine(idx, 'description', e.target.value)}
-                            style={{ ...inputStyle, padding: '4px 6px', fontSize: 12 }} placeholder="Description" />
+                          <input data-ui-field="input" value={line.description} onChange={e => setLine(idx, 'description', e.target.value)}
+                            style={{ ...inputStyle, padding: "var(--ds-input-py) var(--space-md)", fontSize: "var(--text-base)" }} placeholder="Description" />
                         </td>
                         <td style={{ padding: '4px 6px', minWidth: 110 }}>
                           <Select value={line.category} onValueChange={v => setLine(idx, 'category', v)}>
-                            <SelectTrigger aria-label="Category" style={{ ...inputStyle, height: 'auto', padding: '4px 6px', fontSize: 12 }}><SelectValue /></SelectTrigger>
+                            <SelectTrigger aria-label="Category" style={{ ...inputStyle, height: 'auto', padding: "var(--ds-input-py) var(--space-md)", fontSize: "var(--text-base)" }}><SelectValue /></SelectTrigger>
                             <SelectContent>
                               {CATEGORIES.map(cat => <SelectItem key={cat} value={cat}>{cat}</SelectItem>)}
                             </SelectContent>
                           </Select>
                         </td>
                         <td style={{ padding: '4px 6px', minWidth: 60 }}>
-                          <input type="number" min={1} aria-label="Quantity" value={line.quantity} onChange={e => setLine(idx, 'quantity', Number(e.target.value))}
-                            style={{ ...inputStyle, padding: '4px 6px', fontSize: 12, width: 60 }} />
+                          <input data-ui-field="input" type="number" min={1} aria-label="Quantity" value={line.quantity} onChange={e => setLine(idx, 'quantity', Number(e.target.value))}
+                            style={{ ...inputStyle, padding: "var(--ds-input-py) var(--space-md)", fontSize: "var(--text-base)", width: 60 }} />
                         </td>
                         <td style={{ padding: '4px 6px', minWidth: 100 }}>
-                          <input type="number" min={0} step="0.01" aria-label="Unit Price" value={line.unit_price} onChange={e => setLine(idx, 'unit_price', Number(e.target.value))}
-                            style={{ ...inputStyle, padding: '4px 6px', fontSize: 12, width: 100 }} />
+                          <input data-ui-field="input" type="number" min={0} step="0.01" aria-label="Unit Price" value={line.unit_price} onChange={e => setLine(idx, 'unit_price', Number(e.target.value))}
+                            style={{ ...inputStyle, padding: "var(--ds-input-py) var(--space-md)", fontSize: "var(--text-base)", width: 100 }} />
                         </td>
                         <td style={{ padding: '4px 6px', minWidth: 130 }}>
                           <Select value={line.tax_code_id ?? ''} onValueChange={v => setTaxCode(idx, v)}>
-                            <SelectTrigger aria-label="Tax treatment" style={{ ...inputStyle, height: 'auto', padding: '4px 6px', fontSize: 12, minWidth: 130 }}>
+                            <SelectTrigger aria-label="Tax treatment" style={{ ...inputStyle, height: 'auto', padding: "var(--ds-input-py) var(--space-md)", fontSize: "var(--text-base)", minWidth: 130 }}>
                               <SelectValue placeholder="Not classified" />
                             </SelectTrigger>
                             <SelectContent>
@@ -661,7 +661,7 @@ function QuoteModal({
                         <td style={{ padding: '4px 4px' }}>
                           {lines.length > 1 && (
                             <Tip label="Remove line">
-                              <button type="button" aria-label={`Remove line ${idx + 1}`} onClick={() => removeLine(idx)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--red)', padding: 2 }} data-ui-native-button="">
+                              <button type="button" aria-label={`Remove line ${idx + 1}`} onClick={() => removeLine(idx)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--red)', padding: "var(--action-py) var(--space-md)" }} data-ui-native-button="">
                                 <Icon name="x" size={14} />
                               </button>
                             </Tip>

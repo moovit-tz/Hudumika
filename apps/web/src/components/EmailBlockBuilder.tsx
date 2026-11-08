@@ -1090,7 +1090,7 @@ export function EmailBlockBuilder({ blocks, onChange, varGroups = [], accentColo
         </div>
         <div className="ebb-palette-search">
           <Icon name="search" size={13} className="ebb-palette-search-icon" />
-          <input
+          <input data-ui-field="input" data-field-appearance="bare"
             type="text"
             value={search}
             onChange={e => setSearch(e.target.value)}

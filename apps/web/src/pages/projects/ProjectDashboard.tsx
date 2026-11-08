@@ -566,12 +566,12 @@ export const ProjectDashboard: React.FC = () => {
                   value={search}
                   onChange={e => setSearch(e.target.value)}
                   placeholder="Filter projects…"
-                  style={{ paddingLeft: 30, height: 'var(--project-control-height)', minHeight: 'var(--project-control-height)', paddingBlock: 0, fontSize: 13 }}
+                  style={{ paddingLeft: 30, height: 'var(--project-control-height)', minHeight: 'var(--project-control-height)', paddingBlock: 0, fontSize: "var(--text-base)" }}
                 />
                 {search && (
-                  <button
+                  <button data-ui-native-button=""
                     onClick={() => setSearch('')}
-                    style={{ position: 'absolute', right: 8, top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', color: 'var(--ink3)', cursor: 'pointer', padding: 2 }}
+                    style={{ position: 'absolute', right: 8, top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', color: 'var(--ink3)', cursor: 'pointer', padding: "var(--action-py) var(--space-md)" }}
                   >
                     <Icon name="close" size={12} />
                   </button>
@@ -580,7 +580,7 @@ export const ProjectDashboard: React.FC = () => {
 
               {/* Health Filter */}
               <Select value={healthFilter} onValueChange={setHealthFilter}>
-                <SelectTrigger style={{ height: 'var(--project-control-height)', minHeight: 'var(--project-control-height)', paddingBlock: 0, width: 120, fontSize: 13 }}>
+                <SelectTrigger style={{ height: 'var(--project-control-height)', minHeight: 'var(--project-control-height)', paddingBlock: 0, width: 120, fontSize: "var(--text-base)" }}>
                   <SelectValue placeholder="Health" />
                 </SelectTrigger>
                 <SelectContent>
@@ -593,7 +593,7 @@ export const ProjectDashboard: React.FC = () => {
 
               {/* Sort By */}
               <Select value={sortBy} onValueChange={setSortBy}>
-                <SelectTrigger style={{ height: 'var(--project-control-height)', minHeight: 'var(--project-control-height)', paddingBlock: 0, width: 130, fontSize: 13 }}>
+                <SelectTrigger style={{ height: 'var(--project-control-height)', minHeight: 'var(--project-control-height)', paddingBlock: 0, width: 130, fontSize: "var(--text-base)" }}>
                   <SelectValue placeholder="Sort" />
                 </SelectTrigger>
                 <SelectContent>
@@ -917,10 +917,10 @@ export const ProjectDashboard: React.FC = () => {
             collapsible
             action={
               atRisk.length > 0 ? (
-                <button
+                <button data-ui-native-button=""
                   type="button"
                   onClick={() => { setStatusTab('at_risk'); setHealthFilter('all'); }}
-                  style={{ background: 'none', border: 'none', fontSize: 11.5, color: 'var(--teal)', fontWeight: 700, cursor: 'pointer' }}
+                  style={{ background: 'none', border: 'none', fontSize: "var(--text-base)", color: 'var(--teal)', fontWeight: 700, cursor: 'pointer' }}
                 >
                   View All &rarr;
                 </button>
@@ -1218,10 +1218,10 @@ export const ProjectDashboard: React.FC = () => {
             </DialogBody>
 
             <DialogFooter style={{ padding: '16px 24px', borderTop: '1px solid var(--border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <button
+              <button data-ui-native-button=""
                 type="button"
                 onClick={() => { setCreateOpen(false); navigate('/projects/new'); }}
-                style={{ background: 'none', border: 'none', fontSize: 12, color: 'var(--teal)', fontWeight: 600, cursor: 'pointer', padding: 0 }}
+                style={{ background: 'none', border: 'none', fontSize: "var(--text-base)", color: 'var(--teal)', fontWeight: 600, cursor: 'pointer', padding: 0 }}
               >
                 Advanced Setup Wizard &rarr;
               </button>

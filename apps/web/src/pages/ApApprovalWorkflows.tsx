@@ -159,7 +159,7 @@ export function ApApprovalWorkflows() {
       {!readOnly && <div style={{ padding: '0 0 16px', display: 'flex', justifyContent: 'flex-end' }}>
         <button type="button"
           onClick={openNew}
-          style={{ padding: 'var(--ds-btn-py) 16px', background: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))', border: 'none', borderRadius: 'var(--r)', fontSize: 13, fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 7, fontFamily: 'var(--font)', whiteSpace: 'nowrap', minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25 }} data-ui-native-button="">
+          style={{ padding: 'var(--ds-btn-py) 16px', background: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))', border: 'none', borderRadius: 'var(--r)', fontSize: "var(--text-base)", fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 7, fontFamily: 'var(--font)', whiteSpace: 'nowrap', minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25 }} data-ui-native-button="">
           <Icon name="plus" size={14} color="hsl(var(--primary-foreground))" /> New Workflow
         </button>
       </div>}
@@ -210,9 +210,9 @@ export function ApApprovalWorkflows() {
                     </td>
                     <td style={{ padding: '9px 12px', textAlign: 'right' }}>
                       {!readOnly && <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end' }}>
-                        <button type="button" onClick={() => openEdit(w)} style={{ fontSize: 12, color: 'var(--teal)', background: 'none', border: 'none', cursor: 'pointer', fontWeight: 600 }} data-ui-native-button="">Edit</button>
-                        <button type="button" onClick={() => toggleActive(w)} style={{ fontSize: 12, color: 'var(--ink2)', background: 'none', border: 'none', cursor: 'pointer', fontWeight: 600 }} data-ui-native-button="">{w.active ? 'Deactivate' : 'Activate'}</button>
-                        <button type="button" onClick={() => remove(w)} style={{ fontSize: 12, color: 'var(--red)', background: 'none', border: 'none', cursor: 'pointer', fontWeight: 600 }} data-ui-native-button="">Delete</button>
+                        <button type="button" onClick={() => openEdit(w)} style={{ fontSize: "var(--text-base)", color: 'var(--teal)', background: 'none', border: 'none', cursor: 'pointer', fontWeight: 600 }} data-ui-native-button="">Edit</button>
+                        <button type="button" onClick={() => toggleActive(w)} style={{ fontSize: "var(--text-base)", color: 'var(--ink2)', background: 'none', border: 'none', cursor: 'pointer', fontWeight: 600 }} data-ui-native-button="">{w.active ? 'Deactivate' : 'Activate'}</button>
+                        <button type="button" onClick={() => remove(w)} style={{ fontSize: "var(--text-base)", color: 'var(--red)', background: 'none', border: 'none', cursor: 'pointer', fontWeight: 600 }} data-ui-native-button="">Delete</button>
                       </div>}
                     </td>
                   </tr>
@@ -229,12 +229,12 @@ export function ApApprovalWorkflows() {
 
           <div style={{ marginBottom: 14 }}>
             <label style={lbl}>Name</label>
-            <input style={inp} value={name} onChange={e => setName(e.target.value)} placeholder="e.g. High-value bills" />
+            <input data-ui-field="input" style={inp} value={name} onChange={e => setName(e.target.value)} placeholder="e.g. High-value bills" />
           </div>
 
           <div style={{ marginBottom: 14 }}>
             <label style={lbl}>Applies to bills of at least</label>
-            <input type="number" min={0} step="any" style={inp} value={minAmount} onChange={e => setMinAmount(e.target.value)} placeholder="0.00" />
+            <input data-ui-field="input" type="number" min={0} step="any" style={inp} value={minAmount} onChange={e => setMinAmount(e.target.value)} placeholder="0.00" />
           </div>
 
           <div style={{ marginBottom: 14 }}>

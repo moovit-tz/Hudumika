@@ -73,10 +73,10 @@ export const NotificationsSection: React.FC = () => {
       </Card>
       <Card title="Alert Thresholds" desc="When to trigger proactive alerts for time-sensitive events">
         <Field label="Demurrage Alert Lead Time" hint="Days before container free time ends to trigger demurrage alert">
-          <input type="number" min={1} max={30} className="input-field s-num-sm" value={demurrageDays} onChange={e => setDemurrageDays(Number(e.target.value))} />
+          <input data-ui-field="input" type="number" min={1} max={30} className="input-field s-num-sm" value={demurrageDays} onChange={e => setDemurrageDays(Number(e.target.value))} />
         </Field>
         <Field label="SLA Breach Reminder" hint="Hours before SLA deadline to send reminder to assigned officer">
-          <input type="number" min={1} max={168} className="input-field s-num-sm" value={slaHours} onChange={e => setSlaHours(Number(e.target.value))} />
+          <input data-ui-field="input" type="number" min={1} max={168} className="input-field s-num-sm" value={slaHours} onChange={e => setSlaHours(Number(e.target.value))} />
         </Field>
       </Card>
       <SaveRow saving={saving} saved={saved} onSave={handleSave} />
@@ -113,7 +113,7 @@ export const FreightSection: React.FC = () => {
     <>
       <Card title="Container & Demurrage" desc="Default thresholds for demurrage and risk calculation">
         <Field label="Default Container Free Time" hint="Days before demurrage charges begin">
-          <input type="number" min={1} max={60} className="input-field s-num-sm" value={freeTime} onChange={e => setFreeTime(Number(e.target.value))} />
+          <input data-ui-field="input" type="number" min={1} max={60} className="input-field s-num-sm" value={freeTime} onChange={e => setFreeTime(Number(e.target.value))} />
         </Field>
         <ToggleRow label="Auto Risk Flagging" hint="Automatically flag shipments that breach demurrage or SLA thresholds" value={autoRisk} onChange={setAutoRisk} />
       </Card>
@@ -344,7 +344,7 @@ export const ApiKeysSection: React.FC = () => {
                 <div style={{ fontSize: 15, fontWeight: 700, marginBottom: 14 }}>New API Key</div>
                 <div style={{ marginBottom: 12 }}>
                   <label style={{ fontSize: 12, fontWeight: 600, color: 'var(--ink2)', display: 'block', marginBottom: 5 }}>Name</label>
-                  <input value={newName} onChange={e => setNewName(e.target.value)} placeholder="e.g. Warehouse integration" className="input-field" style={{ width: '100%' }} />
+                  <input data-ui-field="input" value={newName} onChange={e => setNewName(e.target.value)} placeholder="e.g. Warehouse integration" className="input-field" style={{ width: '100%' }} />
                 </div>
                 <div style={{ marginBottom: 18 }}>
                   <label style={{ fontSize: 12, fontWeight: 600, color: 'var(--ink2)', display: 'block', marginBottom: 5 }}>Scopes</label>

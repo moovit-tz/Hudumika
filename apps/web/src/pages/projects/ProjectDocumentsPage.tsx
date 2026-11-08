@@ -185,7 +185,7 @@ export const ProjectDocumentsPage: React.FC = () => {
               variant={view === 'grid' ? 'default' : 'outline'}
               size="sm"
               onClick={() => setView('grid')}
-              style={{ height: 32, fontSize: 12 }}
+              style={{ height: "var(--ctl-h)", fontSize: "var(--text-base)" }}
             >
               <Icon name="grid" size={12} style={{ marginRight: 6 }} /> Grid
             </Button>
@@ -193,7 +193,7 @@ export const ProjectDocumentsPage: React.FC = () => {
               variant={view === 'table' ? 'default' : 'outline'}
               size="sm"
               onClick={() => setView('table')}
-              style={{ height: 32, fontSize: 12 }}
+              style={{ height: "var(--ctl-h)", fontSize: "var(--text-base)" }}
             >
               <Icon name="list" size={12} style={{ marginRight: 6 }} /> Table
             </Button>
@@ -342,7 +342,7 @@ export const ProjectDocumentsPage: React.FC = () => {
                         <Button
                           variant="ghost"
                           size="sm"
-                          style={{ height: 28, fontSize: 11 }}
+                          style={{ height: "var(--ctl-h)", fontSize: "var(--text-xs)" }}
                           onClick={e => {
                             e.stopPropagation();
                             navigate(`/projects/${d.project_id}/files`);

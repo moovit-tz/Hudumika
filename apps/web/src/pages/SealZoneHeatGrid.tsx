@@ -155,7 +155,7 @@ export function SealZoneHeatGrid() {
               <div className="seal-heat-toolbar">
                 <div className="seal-mode-group">
                   {data.zones.map(z => (
-                    <button
+                    <button data-ui-native-button=""
                       key={z.id}
                       type="button"
                       className={`seal-mode-btn${activeZoneId === z.id ? ' active' : ''}`}

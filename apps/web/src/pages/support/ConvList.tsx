@@ -295,7 +295,7 @@ export function ConvList({ tickets, selected, onSelect, onNew, groups, views, on
         <div style={{ padding: '8px 12px', borderBottom: '1px solid var(--border)', background: 'var(--bg)' }}>
           <div className="spt-bedesk-search-input-wrap">
             <Icon name="search" size={13} color="var(--ink3)" />
-            <input
+            <input data-ui-field="input"
               value={searchQuery}
               onChange={e => setSearchQuery(e.target.value)}
               placeholder="Search conversations…"
@@ -345,7 +345,7 @@ export function ConvList({ tickets, selected, onSelect, onNew, groups, views, on
             <>
               {newViewOpen && (
                 <div className="spt-nav-new-form">
-                  <input className="input-field" placeholder="View name" value={newViewName} onChange={e => setNewViewName(e.target.value)} />
+                  <input data-ui-field="input" className="input-field" placeholder="View name" value={newViewName} onChange={e => setNewViewName(e.target.value)} />
                   <Select value={newViewCategory} onValueChange={setNewViewCategory}>
                     <SelectTrigger aria-label="View category" className="input-field"><SelectValue /></SelectTrigger>
                     <SelectContent>
@@ -398,7 +398,7 @@ export function ConvList({ tickets, selected, onSelect, onNew, groups, views, on
             <>
               {newGroupOpen && (
                 <div className="spt-nav-new-form">
-                  <input className="input-field" placeholder="Group name" value={newGroupName} onChange={e => setNewGroupName(e.target.value)} />
+                  <input data-ui-field="input" className="input-field" placeholder="Group name" value={newGroupName} onChange={e => setNewGroupName(e.target.value)} />
                   <div className="spt-nav-new-actions">
                     <button type="button" className="btn btn-secondary btn-sm" onClick={() => setNewGroupOpen(false)} data-ui-native-button="">Cancel</button>
                     <button type="button" className="btn btn-primary btn-sm" disabled={!newGroupName.trim()} onClick={() => {
@@ -558,7 +558,7 @@ export function ConvList({ tickets, selected, onSelect, onNew, groups, views, on
           {groups.map(g => <SelectItem key={g.id} value={g.id}>{g.name}</SelectItem>)}
         </SelectContent>
       </Select>
-      <button type="button" onClick={() => setSelectedIds(new Set())} style={{ marginLeft: 'auto', background: 'none', border: 'none', color: 'var(--teal)', fontSize: 12, fontWeight: 700, cursor: 'pointer' }} data-ui-native-button="">
+      <button type="button" onClick={() => setSelectedIds(new Set())} style={{ marginLeft: 'auto', background: 'none', border: 'none', color: 'var(--teal)', fontSize: "var(--text-base)", fontWeight: 700, cursor: 'pointer' }} data-ui-native-button="">
         Clear selection
       </button>
     </div>
@@ -671,7 +671,7 @@ export function ConvList({ tickets, selected, onSelect, onNew, groups, views, on
                   <DropdownMenu>
                     <Tip label="Show/hide columns">
                       <DropdownMenuTrigger asChild>
-                        <button type="button" aria-label="Show or hide columns" onClick={e => e.stopPropagation()} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink3)', padding: 4, display: 'flex' }} data-ui-native-button="">
+                        <button type="button" aria-label="Show or hide columns" onClick={e => e.stopPropagation()} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink3)', padding: "var(--action-py) var(--space-md)", display: 'flex' }} data-ui-native-button="">
                           <Icon name="settings" size={13} />
                         </button>
                       </DropdownMenuTrigger>

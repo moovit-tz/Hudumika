@@ -308,12 +308,12 @@ function RouteReferenceTable({ routes, onChanged }: { routes: TransitRoute[]; on
   }
 
   const cellIn = (field: keyof TransitRoute, type: 'text' | 'number' = 'text') => (
-    <input
+    <input data-ui-field="input"
       className="input-field"
       type={type}
       value={(draft[field] as any) ?? ''}
       onChange={e => setDraft(d => ({ ...d, [field]: e.target.value }))}
-      style={{ width: '100%', boxSizing: 'border-box', height: 30, fontSize: 12 }}
+      style={{ width: '100%', boxSizing: 'border-box', height: "var(--ctl-h)", fontSize: "var(--text-base)" }}
     />
   );
 

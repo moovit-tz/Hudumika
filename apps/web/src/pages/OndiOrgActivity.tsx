@@ -132,10 +132,10 @@ export const OndiOrgActivity: React.FC = () => {
               color: '#fff',
               border: 'none',
               borderRadius: 'var(--r)',
-              padding: '10px 18px',
+              padding: "var(--action-py) var(--space-md)",
               fontFamily: 'var(--font)',
               fontWeight: 700,
-              fontSize: 13,
+              fontSize: "var(--text-base)",
               cursor: 'pointer',
               opacity: exporting ? 0.6 : 1,
               boxShadow: '0 2px 8px var(--teal-m)'
@@ -238,7 +238,7 @@ export const OndiOrgActivity: React.FC = () => {
 
           <div className="ondi-search-input">
             <Icon name="search" size={15} />
-            <input
+            <input data-ui-field="input"
               type="text"
               value={filter}
               onChange={e => setFilter(e.target.value)}

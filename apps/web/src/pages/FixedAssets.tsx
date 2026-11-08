@@ -87,7 +87,7 @@ function NewAssetForm({ onSave, onClose, fmt }: { onSave: (data: any) => Promise
             <div style={sec}>Asset Information</div>
             <div style={{ marginBottom: 16 }}>
               <label style={lbl}>Asset Name *</label>
-              <input
+              <input data-ui-field="input"
                 style={inp}
                 value={name}
                 onChange={e => setName(e.target.value)}
@@ -125,7 +125,7 @@ function NewAssetForm({ onSave, onClose, fmt }: { onSave: (data: any) => Promise
             <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: 16, marginBottom: 16 }}>
               <div>
                 <label style={lbl}>Acquisition Cost *</label>
-                <input
+                <input data-ui-field="input"
                   type="number"
                   min={0}
                   step="any"
@@ -137,7 +137,7 @@ function NewAssetForm({ onSave, onClose, fmt }: { onSave: (data: any) => Promise
               </div>
               <div>
                 <label style={lbl}>Salvage / Residual Value</label>
-                <input
+                <input data-ui-field="input"
                   type="number"
                   min={0}
                   step="any"
@@ -151,7 +151,7 @@ function NewAssetForm({ onSave, onClose, fmt }: { onSave: (data: any) => Promise
             <div>
               <label style={lbl}>Useful Life (Months) *</label>
               <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
-                <input
+                <input data-ui-field="input"
                   type="number"
                   min={1}
                   style={{ ...inp, maxWidth: 160 }}
@@ -333,7 +333,7 @@ export function FixedAssets() {
           sub2Label: 'ASSETS', sub2Value: String(faStats?.total ?? assets.length), barHighlight: 'var(--gold)',
         },
         {
-          title: 'Net Book Value', value: fmt(totalNBV), loading: !faStats,
+          emphasis: 'primary', title: 'Net Book Value', value: fmt(totalNBV), loading: !faStats,
           sub1Label: 'ACTIVE', sub1Value: String(activeCount),
           sub2Label: 'TOTAL', sub2Value: String(faStats?.total ?? assets.length), barHighlight: 'var(--green)',
         },
@@ -343,7 +343,7 @@ export function FixedAssets() {
         <div style={{ padding: '16px 0', display: 'flex', justifyContent: 'flex-end' }}>
           <button type="button"
             onClick={() => setShowForm(true)}
-            style={{ padding: 'var(--ds-btn-py) 16px', background: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))', border: 'none', borderRadius: 'var(--r)', fontSize: 13, fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 7, fontFamily: 'var(--font)', whiteSpace: 'nowrap', minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25 }} data-ui-native-button="">
+            style={{ padding: 'var(--ds-btn-py) 16px', background: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))', border: 'none', borderRadius: 'var(--r)', fontSize: "var(--text-base)", fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 7, fontFamily: 'var(--font)', whiteSpace: 'nowrap', minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25 }} data-ui-native-button="">
             <Icon name="plus" size={14} color="hsl(var(--primary-foreground))" /> New Asset
           </button>
         </div>
@@ -420,7 +420,7 @@ export function FixedAssets() {
               <DialogTitle style={{ fontWeight: 800, fontSize: 15, marginBottom: 6 }}>Dispose "{disposing.name}"</DialogTitle>
               <div style={{ fontSize: 12.5, color: 'var(--ink3)', marginBottom: 16 }}>Net book value: {fmt(disposing.net_book_value)}. This posts the disposal to the ledger, including any gain or loss.</div>
               <label style={lbl}>Disposal Proceeds</label>
-              <input type="number" min={0} style={inp} value={disposalProceeds} onChange={e => setDisposalProceeds(parseFloat(e.target.value) || 0)} />
+              <input data-ui-field="input" type="number" min={0} style={inp} value={disposalProceeds} onChange={e => setDisposalProceeds(parseFloat(e.target.value) || 0)} />
               <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end', marginTop: 18 }}>
                 <button type="button" className="btn btn-secondary btn-sm" onClick={() => setDisposing(null)} data-ui-native-button="">Cancel</button>
                 <button type="button" className="btn btn-primary btn-sm" onClick={handleDispose} data-ui-native-button="">Confirm Disposal</button>

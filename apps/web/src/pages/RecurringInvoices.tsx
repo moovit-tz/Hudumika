@@ -306,7 +306,7 @@ export function RecurringInvoices() {
             sub2Label: 'PAUSED', sub2Value: String(pausedCount), barHighlight: 'var(--teal)',
           },
           {
-            title: 'Monthly Recurring', value: fmt(totalMonthly), loading: !riStats,
+            emphasis: 'primary', title: 'Monthly Recurring', value: fmt(totalMonthly), loading: !riStats,
             sub1Label: 'ALL ACTIVE', sub1Value: String(activeCount), barHighlight: 'var(--blue)',
           },
           {

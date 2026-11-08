@@ -226,7 +226,7 @@ function ExpenseDetailPanel({ expense, onClose, onChanged, shipments, customers,
               ) : (
                 <div>
                   <button type="button" onClick={verifyEfdReceipt} disabled={efdChecking}
-                    style={{ padding: 'var(--ds-btn-py-xs) 10px', borderRadius: 'var(--r)', border: '1px solid var(--border)', background: 'var(--bg)', color: 'var(--ink2)', fontSize: 12, fontWeight: 700, cursor: efdChecking ? 'default' : 'pointer', minHeight: 'var(--ctl-h-xs)', boxSizing: 'border-box', lineHeight: 1.25}} data-ui-native-button="">
+                    style={{ padding: 'var(--ds-btn-py-xs) 10px', borderRadius: 'var(--r)', border: '1px solid var(--border)', background: 'var(--bg)', color: 'var(--ink2)', fontSize: "var(--text-base)", fontWeight: 700, cursor: efdChecking ? 'default' : 'pointer', minHeight: 'var(--ctl-h-xs)', boxSizing: 'border-box', lineHeight: 1.25}} data-ui-native-button="">
                     {efdChecking ? 'Checking with TRA…' : 'Verify with TRA'}
                   </button>
                   {expense.efd_error && <div style={{ fontSize: 11, color: 'var(--red)', marginTop: 4 }}>{expense.efd_error}</div>}
@@ -293,24 +293,24 @@ function ExpenseDetailPanel({ expense, onClose, onChanged, shipments, customers,
                   </span>
                   <input type="file" accept="image/*" style={{ display: 'none' }} onChange={handleReceiptFile} disabled={uploadingReceipt} />
                 </label>
-                <textarea
+                <textarea data-ui-field="textarea"
                   value={retireNote}
                   onChange={e => setRetireNote(e.target.value)}
                   placeholder="Note (e.g. shortfall reason, receipts count)"
                   rows={2}
-                  style={{ width: '100%', boxSizing: 'border-box', fontSize: 12.5, fontFamily: 'var(--font)', padding: '8px 10px', border: '1px solid var(--border)', borderRadius: 'var(--r)', resize: 'vertical', marginBottom: 10, background: 'var(--white)', color: 'var(--ink)' }}
+                  style={{ width: '100%', boxSizing: 'border-box', fontSize: "var(--text-base)", fontFamily: 'var(--font)', padding: "var(--ds-input-py) var(--space-md)", border: '1px solid var(--border)', borderRadius: 'var(--r)', resize: 'vertical', marginBottom: 10, background: 'var(--white)', color: 'var(--ink)' }}
                 />
                 <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
                   <button type="button" disabled={retiring} onClick={() => markRetired('retired')}
-                    style={{ padding: 'var(--ds-btn-py-sm) 12px', borderRadius: 'var(--r)', border: 'none', background: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))', fontSize: 12, fontWeight: 700, cursor: retiring ? 'wait' : 'pointer', minHeight: 'var(--ctl-h-sm)', boxSizing: 'border-box', lineHeight: 1.25 }} data-ui-native-button="">
+                    style={{ padding: 'var(--ds-btn-py-sm) 12px', borderRadius: 'var(--r)', border: 'none', background: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))', fontSize: "var(--text-base)", fontWeight: 700, cursor: retiring ? 'wait' : 'pointer', minHeight: 'var(--ctl-h-sm)', boxSizing: 'border-box', lineHeight: 1.25 }} data-ui-native-button="">
                     Mark retired
                   </button>
                   <button type="button" disabled={retiring} onClick={() => markRetired('short')}
-                    style={{ padding: 'var(--ds-btn-py-sm) 12px', borderRadius: 'var(--r)', border: '1px solid var(--border)', background: 'var(--white)', color: 'var(--ink2)', fontSize: 12, fontWeight: 700, cursor: retiring ? 'wait' : 'pointer', minHeight: 'var(--ctl-h-sm)', boxSizing: 'border-box', lineHeight: 1.25 }} data-ui-native-button="">
+                    style={{ padding: 'var(--ds-btn-py-sm) 12px', borderRadius: 'var(--r)', border: '1px solid var(--border)', background: 'var(--white)', color: 'var(--ink2)', fontSize: "var(--text-base)", fontWeight: 700, cursor: retiring ? 'wait' : 'pointer', minHeight: 'var(--ctl-h-sm)', boxSizing: 'border-box', lineHeight: 1.25 }} data-ui-native-button="">
                     Mark short
                   </button>
                   <button type="button" disabled={retiring} onClick={() => markRetired('written_off')}
-                    style={{ padding: 'var(--ds-btn-py-sm) 12px', borderRadius: 'var(--r)', border: '1px solid var(--border)', background: 'var(--white)', color: 'var(--ink2)', fontSize: 12, fontWeight: 700, cursor: retiring ? 'wait' : 'pointer', minHeight: 'var(--ctl-h-sm)', boxSizing: 'border-box', lineHeight: 1.25 }} data-ui-native-button="">
+                    style={{ padding: 'var(--ds-btn-py-sm) 12px', borderRadius: 'var(--r)', border: '1px solid var(--border)', background: 'var(--white)', color: 'var(--ink2)', fontSize: "var(--text-base)", fontWeight: 700, cursor: retiring ? 'wait' : 'pointer', minHeight: 'var(--ctl-h-sm)', boxSizing: 'border-box', lineHeight: 1.25 }} data-ui-native-button="">
                     Write off
                   </button>
                 </div>
@@ -553,7 +553,7 @@ export const Expenses: React.FC = () => {
             sub2Label: 'THIS WEEK', sub2Value: fmt(expStats?.revThisWeek ?? revThisWeek, 'TZS'), barHighlight: 'var(--green)', loading: !expStats,
           },
           {
-            title: 'NET MARGIN',
+            emphasis: 'primary', title: 'NET MARGIN',
             value: fmt(expStats?.netMargin ?? (totalRev - totalExp), 'TZS'),
             sub1Label: 'MARGIN %', sub1Value: expStats ? `${expStats.marginPct}%` : (!totalRev ? '—' : `${Math.round(((totalRev - totalExp) / totalRev) * 100)}%`),
             sub2Label: 'ALL ITEMS', sub2Value: String(expStats?.total ?? items.length), barHighlight: 'var(--blue)', loading: !expStats,
@@ -686,10 +686,10 @@ export const Expenses: React.FC = () => {
                 disabled={currentPage === 1}
                 onClick={() => setPage(p => Math.max(1, p - 1))}
                 style={{
-                  display: 'flex', alignItems: 'center', gap: 6, padding: '5px 12px',
+                  display: 'flex', alignItems: 'center', gap: 6, padding: "var(--action-py) var(--space-md)",
                   border: '1px solid var(--border)', borderRadius: 'var(--r-sm)',
                   background: 'var(--white)', color: currentPage === 1 ? 'var(--ink3)' : 'var(--ink)',
-                  fontSize: 12, fontWeight: 600, cursor: currentPage === 1 ? 'not-allowed' : 'pointer',
+                  fontSize: "var(--text-base)", fontWeight: 600, cursor: currentPage === 1 ? 'not-allowed' : 'pointer',
                   opacity: currentPage === 1 ? 0.5 : 1
                 }}
                data-ui-native-button="">
@@ -703,10 +703,10 @@ export const Expenses: React.FC = () => {
                 disabled={currentPage === pageCount}
                 onClick={() => setPage(p => Math.min(pageCount, p + 1))}
                 style={{
-                  display: 'flex', alignItems: 'center', gap: 6, padding: '5px 12px',
+                  display: 'flex', alignItems: 'center', gap: 6, padding: "var(--action-py) var(--space-md)",
                   border: '1px solid var(--border)', borderRadius: 'var(--r-sm)',
                   background: 'var(--white)', color: currentPage === pageCount ? 'var(--ink3)' : 'var(--ink)',
-                  fontSize: 12, fontWeight: 600, cursor: currentPage === pageCount ? 'not-allowed' : 'pointer',
+                  fontSize: "var(--text-base)", fontWeight: 600, cursor: currentPage === pageCount ? 'not-allowed' : 'pointer',
                   opacity: currentPage === pageCount ? 0.5 : 1
                 }}
                data-ui-native-button="">
@@ -743,14 +743,14 @@ export const Expenses: React.FC = () => {
               <div>
                 <label style={{ display: 'block', fontSize: 11.5, fontWeight: 600, color: 'var(--ink2)', marginBottom: 4 }}>Paste CSV Data</label>
                 <div style={{ fontSize: 11, color: 'var(--ink3)', marginBottom: 8 }}>Format: <code style={{ background: 'var(--bg)', padding: '2px 4px', borderRadius: 'var(--r-sm)'}}>Name, Amount, Date, Category, PaymentMode</code></div>
-                <textarea
+                <textarea data-ui-field="textarea"
                   className="input-field"
                   rows={8}
                   placeholder={"Port Charges, 250000, 2026-06-14, PORT_CHARGES, Bank Transfer\nLunch, 15000, 2026-06-14, MISCELLANEOUS, Cash"}
                   required
                   value={bulkCsv}
                   onChange={e => setBulkCsv(e.target.value)}
-                  style={{ resize: 'none', fontFamily: 'monospace', fontSize: 12 }}
+                  style={{ resize: 'none', fontFamily: "var(--font)", fontSize: "var(--text-base)" }}
                 ></textarea>
               </div>
 

@@ -609,7 +609,7 @@ export function CrmPipelineStages() {
 
                     {/* Stage Title Inline Input */}
                     <div className="min-w-0 flex-1 flex flex-col md:flex-row md:items-center gap-2">
-                      <input
+                      <input data-ui-field="input"
                         defaultValue={s.label}
                         key={s.id + s.label}
                         onBlur={(e) => {

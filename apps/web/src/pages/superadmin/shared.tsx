@@ -364,7 +364,7 @@ export function ActBtn({ icon, color, title, onClick }: { icon:IconName; color?:
   return (
     <Tip label={title}>
       <button onClick={e=>{e.stopPropagation();onClick();}}
-        style={{ background:'none', border:'none', borderRadius:'var(--r)', padding:5, cursor:'pointer', color:color||'var(--ink3)', display:'inline-flex', alignItems:'center', transition:'background .1s' }}
+        style={{ background:'none', border:'none', borderRadius:'var(--r)', padding:"var(--action-py) var(--space-md)", cursor:'pointer', color:color||'var(--ink3)', display:'inline-flex', alignItems:'center', transition:'background .1s' }}
         onMouseEnter={e => { (e.currentTarget as HTMLButtonElement).style.background = color ? `color-mix(in srgb, ${color} 12%, var(--hover-bg))` : 'var(--hover-bg)'; }}
         onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.background = 'none'; }} data-ui-native-button="">
         <Icon name={icon} size={14} color={color||'var(--ink3)'} />

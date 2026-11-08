@@ -374,7 +374,7 @@ export const ProjectTimeline: React.FC = () => {
                             {p.start_date ? `Starts: ${p.start_date}` : p.target_date ? `Due: ${p.target_date}` : 'No dates set'}
                           </div>
                         </div>
-                        <Button variant="outline" size="sm" style={{ height: 26, fontSize: 11, padding: '0 8px' }}>
+                        <Button variant="outline" size="sm" style={{ height: "var(--ctl-h)", fontSize: "var(--text-xs)", padding: '0 8px' }}>
                           Set Dates
                         </Button>
                       </div>

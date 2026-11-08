@@ -287,7 +287,7 @@ export function WorkflowEditor() {
         >
           <Icon name="arrowLeft" size={14} /> {returnTo ? 'Back' : 'Workflows'}
         </Button>
-        <input
+        <input data-ui-field="input"
           aria-label="Workflow name"
           value={workflow.name}
           onChange={e => patchWorkflow(w => ({ ...w, name: e.target.value }))}

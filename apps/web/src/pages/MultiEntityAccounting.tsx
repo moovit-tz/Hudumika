@@ -154,7 +154,7 @@ export function MultiEntityAccounting() {
 
       <MetricsRow cards={[
         {
-          title: 'Total Entities', value: String(meStats.total),
+          emphasis: 'primary', title: 'Total Entities', value: String(meStats.total),
           sub1Label: 'ACTIVE', sub1Value: String(meStats.activeCount),
           sub2Label: 'INACTIVE', sub2Value: String(meStats.total - meStats.activeCount), barHighlight: 'var(--teal)',
           loading: !serverStats,

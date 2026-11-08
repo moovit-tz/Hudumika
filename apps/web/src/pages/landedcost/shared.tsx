@@ -215,7 +215,7 @@ export function RowRate({ label, value, onChange, placeholder }: {
   return (
     <div>
       <label style={{ fontSize: 9.5, fontWeight: 700, color: active ? 'var(--gold)' : 'var(--ink3)', textTransform: 'uppercase' }}>{label}</label>
-      <input
+      <input data-ui-field="input"
         className="input-field"
         type="number"
         min="0"
@@ -223,7 +223,7 @@ export function RowRate({ label, value, onChange, placeholder }: {
         value={value}
         placeholder={placeholder ?? 'auto'}
         onChange={e => onChange(e.target.value)}
-        style={{ width: '100%', boxSizing: 'border-box', fontSize: 12.5, borderColor: active ? 'var(--gold)' : undefined }}
+        style={{ width: '100%', boxSizing: 'border-box', fontSize: "var(--text-base)", borderColor: active ? 'var(--gold)' : undefined }}
       />
     </div>
   );
@@ -311,7 +311,7 @@ export function Seg({ active, onClick, label, icon, fullWidth, grow }: { active:
         border: `1.5px solid ${active ? 'var(--teal)' : 'var(--border)'}`,
         background: active ? 'var(--teal-l)' : 'var(--card-bg, var(--white))',
         color: active ? 'var(--teal)' : 'var(--ink2)',
-        fontWeight: active ? 700 : 500, fontSize: 13, cursor: 'pointer',
+        fontWeight: active ? 700 : 500, fontSize: "var(--text-base)", cursor: 'pointer',
         transition: 'all .15s ease', whiteSpace: 'nowrap', display: 'inline-flex', alignItems: 'center', gap: 10, minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}} data-ui-native-button="">
       {icon && <Icon name={icon as IconName} size={15} color={active ? 'var(--teal)' : 'var(--ink3)'} />}
       {label}
@@ -753,11 +753,11 @@ export function FormattedLandedCostBreakdown({
                   <div style={{ fontSize: 12.5, fontWeight: 600, color: 'var(--ink)' }}>{e.item.item_name}</div>
                   <div style={{ fontSize: 11, color: 'var(--ink3)' }}>{[e.item.clause_ref, e.item.category].filter(Boolean).join(' · ')} — {e.item.rate_currency} {Number(e.item.rate_amount).toLocaleString('en-US')}{e.item.unit ? ` / ${e.item.unit}` : ''}</div>
                 </div>
-                <input type="number" min={1} value={e.qty} onChange={ev => onSetExtraQty(e.key, parseInt(ev.target.value, 10) || 1)}
-                  style={{ width: 56, height: 30, textAlign: 'center', borderRadius: 'var(--r)', border: '1px solid var(--border)', background: 'var(--white)', color: 'var(--ink)', fontSize: 12.5 }} />
+                <input data-ui-field="input" type="number" min={1} value={e.qty} onChange={ev => onSetExtraQty(e.key, parseInt(ev.target.value, 10) || 1)}
+                  style={{ width: 56, height: "var(--ctl-h)", textAlign: 'center', borderRadius: 'var(--r)', border: '1px solid var(--border)', background: 'var(--white)', color: 'var(--ink)', fontSize: "var(--text-base)" }} />
                 <div style={{ fontSize: 12.5, fontWeight: 700, color: 'var(--ink)', minWidth: 90, textAlign: 'right' }}>TZS {fmt(extraLineTzs(e))}</div>
                 <button type="button" onClick={() => onRemoveExtra(e.key)} title="Remove"
-                  style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink3)', padding: 4 }} data-ui-native-button=""><Icon name="x" size={14} /></button>
+                  style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink3)', padding: "var(--action-py) var(--space-md)" }} data-ui-native-button=""><Icon name="x" size={14} /></button>
               </div>
             ))}
             <Image1TotalStrip label="Total Additional Charges" value={`TZS ${fmt(extraTotalTzs)}`} />

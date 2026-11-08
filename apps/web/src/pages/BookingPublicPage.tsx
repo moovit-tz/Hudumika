@@ -129,14 +129,14 @@ export function BookingPublicPage() {
                   type="button"
                   onClick={() => setSelectedDate(d => new Date(d.getTime() - 86400000))}
                   disabled={formatISODate(selectedDate) <= formatISODate(new Date())}
-                  style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 6, display: 'flex', color: 'var(--ink3)', opacity: formatISODate(selectedDate) <= formatISODate(new Date()) ? 0.3 : 1 }}
+                  style={{ background: 'none', border: 'none', cursor: 'pointer', padding: "var(--action-py) var(--space-md)", display: 'flex', color: 'var(--ink3)', opacity: formatISODate(selectedDate) <= formatISODate(new Date()) ? 0.3 : 1 }}
                  data-ui-native-button="">
                   <Icon name="chevronLeft" size={18} />
                 </button>
                 <div style={{ fontSize: 15, fontWeight: 700, color: 'var(--ink)' }}>
                   {selectedDate.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' })}
                 </div>
-                <button type="button" onClick={() => setSelectedDate(d => new Date(d.getTime() + 86400000))} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 6, display: 'flex', color: 'var(--ink3)' }} data-ui-native-button="">
+                <button type="button" onClick={() => setSelectedDate(d => new Date(d.getTime() + 86400000))} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: "var(--action-py) var(--space-md)", display: 'flex', color: 'var(--ink3)' }} data-ui-native-button="">
                   <Icon name="chevronRight" size={18} />
                 </button>
               </div>
@@ -162,7 +162,7 @@ export function BookingPublicPage() {
                           <button
                             key={s} type="button" onClick={() => setSelectedSlot(s)}
                             style={{
-                              padding: '10px 8px', borderRadius: 'var(--r)', fontSize: 13, fontWeight: 600, cursor: 'pointer',
+                              padding: "var(--action-py) var(--space-md)", borderRadius: 'var(--r)', fontSize: "var(--text-base)", fontWeight: 600, cursor: 'pointer',
                               border: `1px solid ${sel ? 'hsl(var(--primary))' : 'var(--border)'}`,
                               background: sel ? 'hsl(var(--primary))' : 'var(--white)', color: sel ? 'hsl(var(--primary-foreground))' : 'var(--ink)',
                               transition: 'all 0.15s ease', boxShadow: sel ? '0 2px 8px var(--teal-m)' : 'none',
@@ -183,15 +183,15 @@ export function BookingPublicPage() {
                     <Icon name="checkCircle" size={15} color="var(--teal)" />
                     <span>{new Date(selectedSlot).toLocaleString('en-US', { weekday: 'short', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })}</span>
                   </div>
-                  <input value={name} onChange={e => setName(e.target.value)} placeholder="Your full name" style={{ padding: '10px 12px', border: '1px solid var(--border)', borderRadius: 'var(--r)', fontSize: 13.5 }} />
-                  <input value={email} onChange={e => setEmail(e.target.value)} type="email" placeholder="Your email address" style={{ padding: '10px 12px', border: '1px solid var(--border)', borderRadius: 'var(--r)', fontSize: 13.5 }} />
-                  <textarea value={notes} onChange={e => setNotes(e.target.value)} placeholder="Share anything that will help prepare for our meeting (optional)" rows={2} style={{ padding: '10px 12px', border: '1px solid var(--border)', borderRadius: 'var(--r)', fontSize: 13.5, resize: 'none' }} />
+                  <input data-ui-field="input" value={name} onChange={e => setName(e.target.value)} placeholder="Your full name" style={{ padding: "var(--ds-input-py) var(--space-md)", border: '1px solid var(--border)', borderRadius: 'var(--r)', fontSize: "var(--text-base)" }} />
+                  <input data-ui-field="input" value={email} onChange={e => setEmail(e.target.value)} type="email" placeholder="Your email address" style={{ padding: "var(--ds-input-py) var(--space-md)", border: '1px solid var(--border)', borderRadius: 'var(--r)', fontSize: "var(--text-base)" }} />
+                  <textarea data-ui-field="textarea" value={notes} onChange={e => setNotes(e.target.value)} placeholder="Share anything that will help prepare for our meeting (optional)" rows={2} style={{ padding: "var(--ds-input-py) var(--space-md)", border: '1px solid var(--border)', borderRadius: 'var(--r)', fontSize: "var(--text-base)", resize: 'none' }} />
                   {error && <div style={{ fontSize: 12.5, color: 'var(--red)' }}>{error}</div>}
                   <button
                     type="button" onClick={handleBook} disabled={submitting || !name.trim() || !email.trim()}
                     style={{
-                      padding: '12px 20px', border: 'none', borderRadius: 'var(--r)', cursor: submitting ? 'default' : 'pointer',
-                      fontWeight: 700, fontSize: 14, background: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))',
+                      padding: "var(--action-py) var(--space-md)", border: 'none', borderRadius: 'var(--r)', cursor: submitting ? 'default' : 'pointer',
+                      fontWeight: 700, fontSize: "var(--text-base)", background: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))',
                       opacity: (submitting || !name.trim() || !email.trim()) ? 0.6 : 1, transition: 'all 0.15s ease',
                       boxShadow: '0 2px 8px var(--teal-m)',
                     }}

@@ -77,7 +77,7 @@ export const FinanceAgedPayables: React.FC = () => {
 
         <MetricsRow cards={[
           {
-            title: 'Total Payable', value: fmtFull(totals.total), icon: 'dollarSign',
+            emphasis: 'primary', title: 'Total Payable', value: fmtFull(totals.total), icon: 'dollarSign',
             sub1Label: 'CURRENT', sub1Value: fmtFull(totals.current),
             sub2Label: 'OVERDUE', sub2Value: fmtFull(overdue), barHighlight: 'var(--blue)',
           },

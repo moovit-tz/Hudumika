@@ -3,6 +3,7 @@ import { z } from 'zod';
 import { withTenant } from '../db/client.js';
 import { sql } from 'kysely';
 import { requireEntitlement } from '../middleware/entitlement.js';
+import { executeRightsRequestAction } from '../services/dsr.service.js';
 
 const ASSESSMENT_TYPES = ['dpia', 'pia', 'tia', 'lia'] as const;
 const ASSESSMENT_STATUSES = ['draft', 'in_progress', 'review', 'approved', 'rejected'] as const;
@@ -27,7 +28,28 @@ const ASSESSMENT_TRANSITIONS: Record<string, string[]> = {
 };
 
 export async function ngaoCrudRoutes(fastify: FastifyInstance) {
+  // Same gap as ngao.routes.ts's own copy of this comment: this file is
+  // registered on its own `server.register(...)` call in index.ts, so a
+  // `fastify.authenticate` hook added anywhere else never reaches it —
+  // without this, `requireEntitlement('ngao')` below always sees an unset
+  // `request.user` and every route in this file (DPIA assessments,
+  // incidents, vendors, rights-requests — all of it) 401s unconditionally
+  // for every tenant. Found live while verifying the Privacy P0 fix below.
+  fastify.addHook('preHandler', fastify.authenticate);
   fastify.addHook('preHandler', requireEntitlement('ngao'));
+
+  // Every `throw { statusCode, message }` in this file (DPIA "not found"/
+  // "cannot edit", incident transitions, rights-request transitions) relied
+  // on being caught as a real HTTP status — but this file never had its own
+  // setErrorHandler, and index.ts's global one only reads `.statusCode` off
+  // an actual `Error` instance, not a plain object literal. Every one of
+  // those checks was silently returning HTTP 200 with an error-shaped JSON
+  // body instead of the real 404/422. Found live while testing the Privacy
+  // P0 concurrency fix on /rights-requests/:id/respond.
+  fastify.setErrorHandler((error: any, _request, reply) => {
+    const status = error && typeof error === 'object' && typeof error.statusCode === 'number' ? error.statusCode : 500;
+    return reply.status(status).send({ error: status < 500 ? (error.message ?? 'Request failed.') : 'Unable to process the request.' });
+  });
 
   // ═══════════════════════════════════════════════════════════════════
   //  DPIA / Privacy Impact Assessments
@@ -330,27 +352,66 @@ export async function ngaoCrudRoutes(fastify: FastifyInstance) {
     });
   });
 
-  fastify.patch('/rights-requests/:id/respond', async (request) => {
+  fastify.patch('/rights-requests/:id/respond', async (request, reply) => {
     const { id } = request.params as { id: string };
     const schema = z.object({
       status: z.enum(['IN_PROGRESS', 'COMPLETED', 'REJECTED']),
       response_notes: z.string().optional(),
     });
     const body = schema.parse(request.body);
+
     return withTenant(request.user.tenant_id, async (trx) => {
+      // forUpdate() — this transaction may execute a real export/erasure
+      // below, so a second concurrent /respond on the same request must
+      // block here, not read a stale status and double-execute.
       const current = await trx.selectFrom('privacy_rights_requests')
-        .where('id', '=', id)
-        .where('tenant_id', '=', request.user.tenant_id)
-        .select(['status'])
-        .executeTakeFirst();
+        .where('id', '=', id).where('tenant_id', '=', request.user.tenant_id)
+        .select(['status', 'request_type', 'subject_email', 'audit_log'])
+        .forUpdate().executeTakeFirst();
       if (!current) throw { statusCode: 404, message: 'Rights request not found' };
       if (current.status === 'COMPLETED' || current.status === 'EXPIRED') {
         throw { statusCode: 422, message: `Cannot update a ${current.status} request` };
       }
 
+      const auditLog = Array.isArray(current.audit_log) ? current.audit_log : [];
+
+      // Privacy P0: a status flip was never proof that the export/erasure/
+      // correction actually happened. Resolve the subject against a real
+      // customer record and, when found, perform the real action — the
+      // same shape as data_subject_requests' own real execution above, just
+      // against a free-text-identified subject instead of a platform user.
+      if (body.status === 'COMPLETED') {
+        const result = await executeRightsRequestAction(trx, request.user.tenant_id, current.request_type as any, current.subject_email);
+        if (result.matched) {
+          auditLog.push({
+            at: new Date().toISOString(), actor_id: request.user.sub, action: result.action,
+            customer_id: result.customerId, download_key: result.downloadKey ?? null,
+            erased_fields: result.erasedFields ?? null,
+          });
+        } else {
+          // No automatic action was possible (no matching customer, or a
+          // request type — CORRECTION/OBJECTION — the system can't execute
+          // on its own). Completing it anyway is still allowed, since not
+          // every legitimate subject has a record in this system, or every
+          // correction can be automated — but it now REQUIRES the operator
+          // to actually describe what was done, instead of an optional note
+          // that could be left blank. That's the real line between
+          // "tracked" and "executed": this system cannot prove the
+          // execution itself, so it demands the human say what happened
+          // instead of silently accepting a bare status change.
+          if (!body.response_notes || !body.response_notes.trim()) {
+            return reply.status(422).send({
+              error: 'No matching customer record was found to execute this automatically. Describe what action was actually taken (response_notes) before marking this request completed.',
+            });
+          }
+          auditLog.push({ at: new Date().toISOString(), actor_id: request.user.sub, action: 'manual_execution_described', notes: body.response_notes.trim() });
+        }
+      } else {
+        auditLog.push({ at: new Date().toISOString(), actor_id: request.user.sub, action: `status_changed_to_${body.status.toLowerCase()}` });
+      }
+
       const updates: Record<string, unknown> = {
-        status: body.status,
-        updated_at: new Date(),
+        status: body.status, updated_at: new Date(), audit_log: JSON.stringify(auditLog),
       };
       if (body.response_notes) updates.response_notes = body.response_notes;
       if (body.status === 'COMPLETED' || body.status === 'REJECTED') {

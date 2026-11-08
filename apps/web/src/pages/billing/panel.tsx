@@ -669,7 +669,7 @@ export function InvoiceDetailPanel({ inv, onClose, onEdit, onCopy, onDelete, onR
       ) : tab === 'notes' ? (
         <div className="inv-tab-panel">
           <div className="inv-tab-compose">
-            <textarea
+            <textarea data-ui-field="textarea"
               className="inv-tab-textarea"
               placeholder="Write a note…"
               value={newNote}
@@ -700,9 +700,9 @@ export function InvoiceDetailPanel({ inv, onClose, onEdit, onCopy, onDelete, onR
         <div className="inv-tab-panel">
           {showTaskForm ? (
             <div className="inv-task-form">
-              <input className="inv-tab-input" placeholder="Task description…" value={newTaskDesc} onChange={e => setNewTaskDesc(e.target.value)} />
+              <input data-ui-field="input" className="inv-tab-input" placeholder="Task description…" value={newTaskDesc} onChange={e => setNewTaskDesc(e.target.value)} />
               <div className="inv-task-form-row">
-                <input className="inv-tab-input" placeholder="Assignee" value={newTaskAssignee} onChange={e => setNewTaskAssignee(e.target.value)} />
+                <input data-ui-field="input" className="inv-tab-input" placeholder="Assignee" value={newTaskAssignee} onChange={e => setNewTaskAssignee(e.target.value)} />
                 <DatePicker date={parseDateOnly(newTaskDue)} onChange={d => setNewTaskDue(toDateOnlyString(d))} />
               </div>
               <div className="inv-tab-compose-foot">
@@ -741,7 +741,7 @@ export function InvoiceDetailPanel({ inv, onClose, onEdit, onCopy, onDelete, onR
             <div className="inv-task-form">
               <div className="inv-task-form-row">
                 <DatePicker date={parseDateOnly(newRemDate)} onChange={d => setNewRemDate(toDateOnlyString(d))} />
-                <input className="inv-tab-input" placeholder="Reminder message…" value={newRemMsg} onChange={e => setNewRemMsg(e.target.value)} />
+                <input data-ui-field="input" className="inv-tab-input" placeholder="Reminder message…" value={newRemMsg} onChange={e => setNewRemMsg(e.target.value)} />
               </div>
               <div className="inv-tab-compose-foot">
                 <button type="button" className="inv-tab-cancel" onClick={() => setShowRemForm(false)} data-ui-native-button="">Cancel</button>

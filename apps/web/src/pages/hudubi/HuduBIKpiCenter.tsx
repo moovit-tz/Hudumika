@@ -258,7 +258,7 @@ export function HuduBIKpiCenter() {
           <div className="flex-1 flex flex-wrap gap-2 items-center">
             <div className="relative min-w-[240px] flex-1">
               <Icon name="search" size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
-              <input
+              <input data-ui-field="input"
                 type="text"
                 value={search}
                 onChange={e => setSearch(e.target.value)}
@@ -503,7 +503,7 @@ export function HuduBIKpiCenter() {
                   <label className="block text-xs font-semibold text-foreground uppercase tracking-wider mb-1">
                     Target Goal Value <span className="text-destructive">*</span>
                   </label>
-                  <input
+                  <input data-ui-field="input"
                     type="number"
                     step="any"
                     required
@@ -521,7 +521,7 @@ export function HuduBIKpiCenter() {
                   <label className="block text-xs font-semibold text-foreground uppercase tracking-wider mb-1">
                     Warning Threshold (Optional)
                   </label>
-                  <input
+                  <input data-ui-field="input"
                     type="number"
                     step="any"
                     value={warningThreshold}
@@ -552,7 +552,7 @@ export function HuduBIKpiCenter() {
                 <label className="block text-xs font-semibold text-foreground uppercase tracking-wider mb-1">
                   Strategic Notes / Description
                 </label>
-                <textarea
+                <textarea data-ui-field="textarea"
                   rows={2}
                   value={notes}
                   onChange={e => setNotes(e.target.value)}

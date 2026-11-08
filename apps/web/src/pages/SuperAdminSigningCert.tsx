@@ -161,13 +161,13 @@ export function SuperAdminSigningCert() {
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, maxWidth: 560, marginBottom: 10 }}>
           <div>
             <label style={{ display: 'block', fontSize: 11.5, fontWeight: 600, color: 'var(--ink3)', marginBottom: 4 }}>Label</label>
-            <input value={label} onChange={e => setLabel(e.target.value)} placeholder="e.g. DigiCert OV 2026"
-              style={{ width: '100%', padding: '8px 10px', borderRadius: 'var(--r)', border: '1px solid var(--border)', background: 'var(--bg)', color: 'var(--ink)', fontSize: 13, boxSizing: 'border-box' }} />
+            <input data-ui-field="input" value={label} onChange={e => setLabel(e.target.value)} placeholder="e.g. DigiCert OV 2026"
+              style={{ width: '100%', padding: "var(--ds-input-py) var(--space-md)", borderRadius: 'var(--r)', border: '1px solid var(--border)', background: 'var(--bg)', color: 'var(--ink)', fontSize: "var(--text-base)", boxSizing: 'border-box' }} />
           </div>
           <div>
             <label style={{ display: 'block', fontSize: 11.5, fontWeight: 600, color: 'var(--ink3)', marginBottom: 4 }}>Certificate password</label>
-            <input type="password" value={password} onChange={e => setPassword(e.target.value)} placeholder="Password on the .p12/.pfx file"
-              style={{ width: '100%', padding: '8px 10px', borderRadius: 'var(--r)', border: '1px solid var(--border)', background: 'var(--bg)', color: 'var(--ink)', fontSize: 13, boxSizing: 'border-box' }} />
+            <input data-ui-field="input" type="password" value={password} onChange={e => setPassword(e.target.value)} placeholder="Password on the .p12/.pfx file"
+              style={{ width: '100%', padding: "var(--ds-input-py) var(--space-md)", borderRadius: 'var(--r)', border: '1px solid var(--border)', background: 'var(--bg)', color: 'var(--ink)', fontSize: "var(--text-base)", boxSizing: 'border-box' }} />
           </div>
         </div>
         <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>

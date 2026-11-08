@@ -723,7 +723,7 @@ export function Contacts() {
                 onClick={closeContact}
                 style={{
                   display: 'flex', alignItems: 'center', gap: 8, border: 'none', background: 'none',
-                  color: 'var(--cts-accent)', fontWeight: 600, fontSize: 14, cursor: 'pointer', padding: 0
+                  color: 'var(--cts-accent)', fontWeight: 600, fontSize: "var(--text-base)", cursor: 'pointer', padding: 0
                 }}
                data-ui-native-button="">
                 <Icon name="arrowLeft" size={16} color="var(--cts-accent)" />
@@ -905,7 +905,7 @@ export function Contacts() {
                           border: 'none', background: 'none', cursor: 'pointer',
                           borderBottom: active ? '3px solid var(--cts-accent)' : '3px solid transparent',
                           color: active ? 'var(--cts-accent)' : 'var(--ink2)',
-                          fontWeight: 600, fontSize: 14, transition: 'all 0.15s', minHeight: 'var(--ctl-h-lg)', boxSizing: 'border-box', lineHeight: 1.25}}
+                          fontWeight: 600, fontSize: "var(--text-base)", transition: 'all 0.15s', minHeight: 'var(--ctl-h-lg)', boxSizing: 'border-box', lineHeight: 1.25}}
                        data-ds-selected={activeTab === tab.key as any} data-ui-native-button="" aria-pressed={activeTab === tab.key as any}>
                         <Icon name={tab.icon} size={15} color={active ? 'var(--cts-accent)' : 'var(--ink2)'} />
                         {tab.label}
@@ -1323,7 +1323,7 @@ export function Contacts() {
                   {/* Bulk Label Trigger */}
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>
-                      <button type="button" style={{ display: 'flex', alignItems: 'center', gap: 6, padding: 'var(--ds-btn-py-sm) 12px', borderRadius: 'var(--r-sm)', border: '1px solid var(--border)', fontSize: 13, cursor: 'pointer', background: 'var(--white)', color: 'var(--ink)', minHeight: 'var(--ctl-h-sm)', boxSizing: 'border-box', lineHeight: 1.25}} data-ui-native-button="">
+                      <button type="button" style={{ display: 'flex', alignItems: 'center', gap: 6, padding: 'var(--ds-btn-py-sm) 12px', borderRadius: 'var(--r-sm)', border: '1px solid var(--border)', fontSize: "var(--text-base)", cursor: 'pointer', background: 'var(--white)', color: 'var(--ink)', minHeight: 'var(--ctl-h-sm)', boxSizing: 'border-box', lineHeight: 1.25}} data-ui-native-button="">
                         Apply Label…
                       </button>
                     </DropdownMenuTrigger>
@@ -1337,7 +1337,7 @@ export function Contacts() {
                   {/* Export selection */}
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>
-                      <button type="button" style={{ display: 'flex', alignItems: 'center', gap: 6, padding: 'var(--ds-btn-py-sm) 12px', borderRadius: 'var(--r-sm)', border: '1px solid var(--border)', fontSize: 13, cursor: 'pointer', background: 'var(--white)', color: 'var(--ink)', minHeight: 'var(--ctl-h-sm)', boxSizing: 'border-box', lineHeight: 1.25}} data-ui-native-button="">
+                      <button type="button" style={{ display: 'flex', alignItems: 'center', gap: 6, padding: 'var(--ds-btn-py-sm) 12px', borderRadius: 'var(--r-sm)', border: '1px solid var(--border)', fontSize: "var(--text-base)", cursor: 'pointer', background: 'var(--white)', color: 'var(--ink)', minHeight: 'var(--ctl-h-sm)', boxSizing: 'border-box', lineHeight: 1.25}} data-ui-native-button="">
                         Export…
                       </button>
                     </DropdownMenuTrigger>
@@ -1456,7 +1456,7 @@ export function Contacts() {
                                         <button
                                           type="button"
                                           onClick={() => handleToggleFavorite(contact)}
-                                          style={{ border: 'none', background: 'none', cursor: 'pointer', padding: 4 }}
+                                          style={{ border: 'none', background: 'none', cursor: 'pointer', padding: "var(--action-py) var(--space-md)" }}
                                          data-ui-native-button="">
                                           <Icon
                                             name="star"
@@ -1470,7 +1470,7 @@ export function Contacts() {
                                         <button
                                           type="button"
                                           onClick={() => openContactModal(contact)}
-                                          style={{ border: 'none', background: 'none', cursor: 'pointer', padding: 4 }}
+                                          style={{ border: 'none', background: 'none', cursor: 'pointer', padding: "var(--action-py) var(--space-md)" }}
                                          data-ui-native-button="">
                                           <Icon name="edit" size={18} color="var(--ink2)" />
                                         </button>
@@ -1480,7 +1480,7 @@ export function Contacts() {
                                         <button
                                           type="button"
                                           onClick={() => handleDeleteContact(contact.id, false)}
-                                          style={{ border: 'none', background: 'none', cursor: 'pointer', padding: 4 }}
+                                          style={{ border: 'none', background: 'none', cursor: 'pointer', padding: "var(--action-py) var(--space-md)" }}
                                          data-ui-native-button="">
                                           <Icon name="trash" size={18} color="var(--ink2)" />
                                         </button>
@@ -1493,7 +1493,7 @@ export function Contacts() {
                                         <button
                                           type="button"
                                           onClick={() => handleRestoreContact(contact.id)}
-                                          style={{ border: 'none', background: 'none', cursor: 'pointer', padding: 4 }}
+                                          style={{ border: 'none', background: 'none', cursor: 'pointer', padding: "var(--action-py) var(--space-md)" }}
                                          data-ui-native-button="">
                                           <Icon name="refresh2" size={18} color="var(--cts-accent)" />
                                         </button>
@@ -1503,7 +1503,7 @@ export function Contacts() {
                                         <button
                                           type="button"
                                           onClick={() => handleDeleteContact(contact.id, true)}
-                                          style={{ border: 'none', background: 'none', cursor: 'pointer', padding: 4 }}
+                                          style={{ border: 'none', background: 'none', cursor: 'pointer', padding: "var(--action-py) var(--space-md)" }}
                                          data-ui-native-button="">
                                           <Icon name="trash" size={18} color="var(--red)" />
                                         </button>
@@ -1621,7 +1621,7 @@ export function Contacts() {
                         border: 'none', background: 'none', cursor: 'pointer',
                         borderBottom: on ? '2.5px solid var(--cts-accent)' : '2.5px solid transparent',
                         color: on ? 'var(--cts-accent)' : 'var(--ink2)',
-                        fontWeight: 600, fontSize: 13, marginBottom: -1, minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}}
+                        fontWeight: 600, fontSize: "var(--text-base)", marginBottom: -1, minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}}
                      data-ui-native-button="">
                       <Icon name={step.icon} size={14} color={on ? 'var(--cts-accent)' : 'var(--ink2)'} />
                       {step.label}
@@ -1690,7 +1690,7 @@ export function Contacts() {
                     type="button"
                     onClick={() => setShowAvatarSelector(o => !o)}
                     style={{
-                      background: 'none', border: 'none', color: 'var(--cts-accent)', fontSize: 12,
+                      background: 'none', border: 'none', color: 'var(--cts-accent)', fontSize: "var(--text-base)",
                       fontWeight: 600, cursor: 'pointer', marginTop: 8
                     }}
                    data-ui-native-button="">
@@ -1709,8 +1709,8 @@ export function Contacts() {
                           onClick={() => fileInputRef.current?.click()}
                           style={{
                             width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
-                            padding: '8px', borderRadius: 'var(--r)', border: '1px solid var(--border)', background: 'var(--bg)',
-                            fontSize: 13, fontWeight: 600, color: 'var(--ink)', cursor: 'pointer'
+                            padding: "var(--action-py) var(--space-md)", borderRadius: 'var(--r)', border: '1px solid var(--border)', background: 'var(--bg)',
+                            fontSize: "var(--text-base)", fontWeight: 600, color: 'var(--ink)', cursor: 'pointer'
                           }}
                          data-ui-native-button="">
                           <Icon name="upload" size={14} color="var(--ink2)" />
@@ -1730,7 +1730,7 @@ export function Contacts() {
                             onClick={() => { setFormAvatarUrl(null); setShowAvatarSelector(false); }}
                             style={{
                               width: '100%', border: 'none', background: 'none', color: 'var(--red)',
-                              fontSize: 12, fontWeight: 600, cursor: 'pointer', padding: 'var(--ds-btn-py-sm) 0 0', minHeight: 'var(--ctl-h-sm)', boxSizing: 'border-box', lineHeight: 1.25}}
+                              fontSize: "var(--text-base)", fontWeight: 600, cursor: 'pointer', padding: 'var(--ds-btn-py-sm) 0 0', minHeight: 'var(--ctl-h-sm)', boxSizing: 'border-box', lineHeight: 1.25}}
                            data-ui-native-button="">
                             Remove Photo
                           </button>
@@ -1746,11 +1746,11 @@ export function Contacts() {
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, marginBottom: 16 }}>
               <div>
                 <label style={{ display: 'block', fontSize: 11, fontWeight: 700, color: 'var(--ink2)', marginBottom: 4 }}>First name</label>
-                <input className="input-field" required value={formFirstName} onChange={e => setFormFirstName(e.target.value)} />
+                <input data-ui-field="input" className="input-field" required value={formFirstName} onChange={e => setFormFirstName(e.target.value)} />
               </div>
               <div>
                 <label style={{ display: 'block', fontSize: 11, fontWeight: 700, color: 'var(--ink2)', marginBottom: 4 }}>Last name</label>
-                <input className="input-field" value={formLastName} onChange={e => setFormLastName(e.target.value)} />
+                <input data-ui-field="input" className="input-field" value={formLastName} onChange={e => setFormLastName(e.target.value)} />
               </div>
             </div>
 
@@ -1784,11 +1784,11 @@ export function Contacts() {
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, marginBottom: 8 }}>
               <div>
                 <label style={{ display: 'block', fontSize: 11, fontWeight: 700, color: 'var(--ink2)', marginBottom: 4 }}>Email</label>
-                <input className="input-field" type="email" value={formEmail} onChange={e => setFormEmail(e.target.value)} />
+                <input data-ui-field="input" className="input-field" type="email" value={formEmail} onChange={e => setFormEmail(e.target.value)} />
               </div>
               <div>
                 <label style={{ display: 'block', fontSize: 11, fontWeight: 700, color: 'var(--ink2)', marginBottom: 4 }}>Phone</label>
-                <input className="input-field" value={formPhone} onChange={e => setFormPhone(e.target.value)} />
+                <input data-ui-field="input" className="input-field" value={formPhone} onChange={e => setFormPhone(e.target.value)} />
               </div>
             </div>
 
@@ -1798,20 +1798,20 @@ export function Contacts() {
                 {formExtraEmails.map((row, i) => (
                   <div key={i} style={{ display: 'flex', gap: 6, marginBottom: 6 }}>
                     <Select value={row.label} onValueChange={v => setFormExtraEmails(prev => prev.map((r, j) => j === i ? { ...r, label: v as EmailRow['label'] } : r))}>
-                      <SelectTrigger className="input-field" style={{ height: 36, padding: '0 8px', width: 92, flexShrink: 0 }}><SelectValue /></SelectTrigger>
+                      <SelectTrigger className="input-field" style={{ height: "var(--ctl-h)", padding: '0 8px', width: 92, flexShrink: 0 }}><SelectValue /></SelectTrigger>
                       <SelectContent>
                         <SelectItem value="work">Work</SelectItem>
                         <SelectItem value="personal">Personal</SelectItem>
                         <SelectItem value="other">Other</SelectItem>
                       </SelectContent>
                     </Select>
-                    <input className="input-field" type="email" placeholder="Additional email" value={row.email} onChange={e => setFormExtraEmails(prev => prev.map((r, j) => j === i ? { ...r, email: e.target.value } : r))} />
-                    <button type="button" onClick={() => setFormExtraEmails(prev => prev.filter((_, j) => j !== i))} style={{ border: 'none', background: 'none', cursor: 'pointer', padding: 4, flexShrink: 0 }} data-ui-native-button="">
+                    <input data-ui-field="input" className="input-field" type="email" placeholder="Additional email" value={row.email} onChange={e => setFormExtraEmails(prev => prev.map((r, j) => j === i ? { ...r, email: e.target.value } : r))} />
+                    <button type="button" onClick={() => setFormExtraEmails(prev => prev.filter((_, j) => j !== i))} style={{ border: 'none', background: 'none', cursor: 'pointer', padding: "var(--action-py) var(--space-md)", flexShrink: 0 }} data-ui-native-button="">
                       <Icon name="x" size={14} color="var(--ink3)" />
                     </button>
                   </div>
                 ))}
-                <button type="button" onClick={() => setFormExtraEmails(prev => [...prev, emptyEmailRow()])} style={{ border: 'none', background: 'none', color: 'var(--cts-accent)', fontSize: 12, fontWeight: 600, cursor: 'pointer', padding: 0 }} data-ui-native-button="">
+                <button type="button" onClick={() => setFormExtraEmails(prev => [...prev, emptyEmailRow()])} style={{ border: 'none', background: 'none', color: 'var(--cts-accent)', fontSize: "var(--text-base)", fontWeight: 600, cursor: 'pointer', padding: 0 }} data-ui-native-button="">
                   + Add another email
                 </button>
               </div>
@@ -1819,7 +1819,7 @@ export function Contacts() {
                 {formExtraPhones.map((row, i) => (
                   <div key={i} style={{ display: 'flex', gap: 6, marginBottom: 6 }}>
                     <Select value={row.label} onValueChange={v => setFormExtraPhones(prev => prev.map((r, j) => j === i ? { ...r, label: v as PhoneRow['label'] } : r))}>
-                      <SelectTrigger className="input-field" style={{ height: 36, padding: '0 8px', width: 92, flexShrink: 0 }}><SelectValue /></SelectTrigger>
+                      <SelectTrigger className="input-field" style={{ height: "var(--ctl-h)", padding: '0 8px', width: 92, flexShrink: 0 }}><SelectValue /></SelectTrigger>
                       <SelectContent>
                         <SelectItem value="work">Work</SelectItem>
                         <SelectItem value="mobile">Mobile</SelectItem>
@@ -1827,13 +1827,13 @@ export function Contacts() {
                         <SelectItem value="other">Other</SelectItem>
                       </SelectContent>
                     </Select>
-                    <input className="input-field" placeholder="Additional phone" value={row.phone} onChange={e => setFormExtraPhones(prev => prev.map((r, j) => j === i ? { ...r, phone: e.target.value } : r))} />
-                    <button type="button" onClick={() => setFormExtraPhones(prev => prev.filter((_, j) => j !== i))} style={{ border: 'none', background: 'none', cursor: 'pointer', padding: 4, flexShrink: 0 }} data-ui-native-button="">
+                    <input data-ui-field="input" className="input-field" placeholder="Additional phone" value={row.phone} onChange={e => setFormExtraPhones(prev => prev.map((r, j) => j === i ? { ...r, phone: e.target.value } : r))} />
+                    <button type="button" onClick={() => setFormExtraPhones(prev => prev.filter((_, j) => j !== i))} style={{ border: 'none', background: 'none', cursor: 'pointer', padding: "var(--action-py) var(--space-md)", flexShrink: 0 }} data-ui-native-button="">
                       <Icon name="x" size={14} color="var(--ink3)" />
                     </button>
                   </div>
                 ))}
-                <button type="button" onClick={() => setFormExtraPhones(prev => [...prev, emptyPhoneRow()])} style={{ border: 'none', background: 'none', color: 'var(--cts-accent)', fontSize: 12, fontWeight: 600, cursor: 'pointer', padding: 0 }} data-ui-native-button="">
+                <button type="button" onClick={() => setFormExtraPhones(prev => [...prev, emptyPhoneRow()])} style={{ border: 'none', background: 'none', color: 'var(--cts-accent)', fontSize: "var(--text-base)", fontWeight: 600, cursor: 'pointer', padding: 0 }} data-ui-native-button="">
                   + Add another phone
                 </button>
               </div>
@@ -1842,7 +1842,7 @@ export function Contacts() {
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, marginBottom: 16 }}>
               <div>
                 <label style={{ display: 'block', fontSize: 11, fontWeight: 700, color: 'var(--ink2)', marginBottom: 4 }}>Location</label>
-                <input className="input-field" placeholder="e.g. New York, US" value={formLocation} onChange={e => setFormLocation(e.target.value)} />
+                <input data-ui-field="input" className="input-field" placeholder="e.g. New York, US" value={formLocation} onChange={e => setFormLocation(e.target.value)} />
               </div>
               <div>
                 <label style={{ display: 'block', fontSize: 11, fontWeight: 700, color: 'var(--ink2)', marginBottom: 4 }}>Birthday</label>
@@ -1856,26 +1856,26 @@ export function Contacts() {
             </h4>
             <div style={{ marginBottom: 12 }}>
               <label style={{ display: 'block', fontSize: 11, fontWeight: 700, color: 'var(--ink2)', marginBottom: 4 }}>Street</label>
-              <input className="input-field" value={formAddrStreet} onChange={e => setFormAddrStreet(e.target.value)} />
+              <input data-ui-field="input" className="input-field" value={formAddrStreet} onChange={e => setFormAddrStreet(e.target.value)} />
             </div>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, marginBottom: 12 }}>
               <div>
                 <label style={{ display: 'block', fontSize: 11, fontWeight: 700, color: 'var(--ink2)', marginBottom: 4 }}>City</label>
-                <input className="input-field" value={formAddrCity} onChange={e => setFormAddrCity(e.target.value)} />
+                <input data-ui-field="input" className="input-field" value={formAddrCity} onChange={e => setFormAddrCity(e.target.value)} />
               </div>
               <div>
                 <label style={{ display: 'block', fontSize: 11, fontWeight: 700, color: 'var(--ink2)', marginBottom: 4 }}>State / Region</label>
-                <input className="input-field" value={formAddrState} onChange={e => setFormAddrState(e.target.value)} />
+                <input data-ui-field="input" className="input-field" value={formAddrState} onChange={e => setFormAddrState(e.target.value)} />
               </div>
             </div>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, marginBottom: 16 }}>
               <div>
                 <label style={{ display: 'block', fontSize: 11, fontWeight: 700, color: 'var(--ink2)', marginBottom: 4 }}>Postal Code</label>
-                <input className="input-field" value={formAddrPostalCode} onChange={e => setFormAddrPostalCode(e.target.value)} />
+                <input data-ui-field="input" className="input-field" value={formAddrPostalCode} onChange={e => setFormAddrPostalCode(e.target.value)} />
               </div>
               <div>
                 <label style={{ display: 'block', fontSize: 11, fontWeight: 700, color: 'var(--ink2)', marginBottom: 4 }}>Country</label>
-                <input className="input-field" value={formAddrCountry} onChange={e => setFormAddrCountry(e.target.value)} />
+                <input data-ui-field="input" className="input-field" value={formAddrCountry} onChange={e => setFormAddrCountry(e.target.value)} />
               </div>
             </div>
             </>)}
@@ -1888,7 +1888,7 @@ export function Contacts() {
                 <Popover open={companyPickerOpen && filteredCompanies.length > 0} onOpenChange={setCompanyPickerOpen}>
                   <PopoverAnchor asChild>
                     <div style={{ position: 'relative' }}>
-                      <input
+                      <input data-ui-field="input"
                         className="input-field"
                         style={{ paddingRight: formCompanyId || formCompany ? 30 : undefined }}
                         value={formCompany}
@@ -1901,7 +1901,7 @@ export function Contacts() {
                           type="button"
                           title={formCompanyId ? 'Unlink company' : 'Clear'}
                           onClick={handleClearCompany}
-                          style={{ position: 'absolute', right: 6, top: '50%', transform: 'translateY(-50%)', border: 'none', background: 'none', cursor: 'pointer', color: 'var(--ink3)', padding: 4, display: 'flex' }}
+                          style={{ position: 'absolute', right: 6, top: '50%', transform: 'translateY(-50%)', border: 'none', background: 'none', cursor: 'pointer', color: 'var(--ink3)', padding: "var(--action-py) var(--space-md)", display: 'flex' }}
                          data-ui-native-button="">
                           <Icon name="x" size={13} />
                         </button>
@@ -1932,18 +1932,18 @@ export function Contacts() {
               </div>
               <div>
                 <label style={{ display: 'block', fontSize: 11, fontWeight: 700, color: 'var(--ink2)', marginBottom: 4 }}>Job title</label>
-                <input className="input-field" value={formJobTitle} onChange={e => setFormJobTitle(e.target.value)} />
+                <input data-ui-field="input" className="input-field" value={formJobTitle} onChange={e => setFormJobTitle(e.target.value)} />
               </div>
             </div>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, marginBottom: 16 }}>
               <div>
                 <label style={{ display: 'block', fontSize: 11, fontWeight: 700, color: 'var(--ink2)', marginBottom: 4 }}>Industry</label>
-                <input className="input-field" placeholder="e.g. Software" value={formIndustry} onChange={e => setFormIndustry(e.target.value)} />
+                <input data-ui-field="input" className="input-field" placeholder="e.g. Software" value={formIndustry} onChange={e => setFormIndustry(e.target.value)} />
               </div>
               <div>
                 <label style={{ display: 'block', fontSize: 11, fontWeight: 700, color: 'var(--ink2)', marginBottom: 4 }}>Company Size</label>
                 <Select value={formCompanySize || '__none__'} onValueChange={v => setFormCompanySize(v === '__none__' ? '' : v)}>
-                  <SelectTrigger className="input-field" style={{ height: 36, padding: '0 8px' }}><SelectValue placeholder="Select size..." /></SelectTrigger>
+                  <SelectTrigger className="input-field" style={{ height: "var(--ctl-h)", padding: '0 8px' }}><SelectValue placeholder="Select size..." /></SelectTrigger>
                   <SelectContent>
                     <SelectItem value="__none__">Select size...</SelectItem>
                     <SelectItem value="1-10 employees">1-10 employees</SelectItem>
@@ -1956,7 +1956,7 @@ export function Contacts() {
             </div>
             <div style={{ marginBottom: 16 }}>
               <label style={{ display: 'block', fontSize: 11, fontWeight: 700, color: 'var(--ink2)', marginBottom: 4 }}>Website</label>
-              <input className="input-field" placeholder="e.g. https://www.google.com" value={formWebsite} onChange={e => setFormWebsite(e.target.value)} />
+              <input data-ui-field="input" className="input-field" placeholder="e.g. https://www.google.com" value={formWebsite} onChange={e => setFormWebsite(e.target.value)} />
             </div>
 
             {/* Form Section: Account Management */}
@@ -2015,7 +2015,7 @@ export function Contacts() {
                           );
                         }}
                         style={{
-                          fontSize: 12, padding: 'var(--ds-btn-py-xs) 12px', borderRadius: 16, cursor: 'pointer',
+                          fontSize: "var(--text-base)", padding: 'var(--ds-btn-py-xs) 12px', borderRadius: "var(--r-sm)", cursor: 'pointer',
                           border: `1px solid ${selected ? 'var(--cts-accent)' : 'var(--border)'}`,
                           background: selected ? 'var(--cts-accent-bg)' : 'var(--white)',
                           color: selected ? 'var(--cts-accent)' : 'var(--ink)',
@@ -2032,12 +2032,12 @@ export function Contacts() {
 
               {/* Inline Label Creator */}
               <div style={{ display: 'flex', gap: 8 }}>
-                <input
+                <input data-ui-field="input"
                   value={inlineNewLabel}
                   onChange={e => setInlineNewLabel(e.target.value)}
                   placeholder="Type new label name..."
                   style={{
-                    flex: 1, height: 32, fontSize: 12.5, border: '1px solid var(--border)',
+                    flex: 1, height: "var(--ctl-h)", fontSize: "var(--text-base)", border: '1px solid var(--border)',
                     borderRadius: 'var(--r-sm)', padding: '0 10px', outline: 'none'
                   }}
                   onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); handleCreateLabelInline(); } }}
@@ -2047,7 +2047,7 @@ export function Contacts() {
                   onClick={handleCreateLabelInline}
                   style={{
                     padding: '0 12px', minHeight: 'var(--ctl-h-sm)', borderRadius: 'var(--r)', border: 'none',
-                    background: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))', fontSize: 12, fontWeight: 600,
+                    background: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))', fontSize: "var(--text-base)", fontWeight: 600,
                     cursor: 'pointer', display: 'flex', alignItems: 'center', justifyItems: 'center', boxSizing: 'border-box'
                   }}
                  data-ui-native-button="">
@@ -2058,7 +2058,7 @@ export function Contacts() {
 
             <div style={{ marginBottom: 4 }}>
               <label style={{ display: 'block', fontSize: 11, fontWeight: 700, color: 'var(--ink2)', marginBottom: 4 }}>Notes</label>
-              <textarea className="input-field" rows={3} value={formNotes} onChange={e => setFormNotes(e.target.value)} />
+              <textarea data-ui-field="textarea" className="input-field" rows={3} value={formNotes} onChange={e => setFormNotes(e.target.value)} />
             </div>
             </>)}
             </DialogBody>

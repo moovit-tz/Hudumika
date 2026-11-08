@@ -341,9 +341,9 @@ export function SmsCompose() {
                   onClick={() => setMode(tab.id as any)}
                   style={{
                     flex: 1,
-                    padding: '10px 14px',
+                    padding: "var(--action-py) var(--space-md)",
                     borderRadius: 'var(--r)',
-                    fontSize: 13,
+                    fontSize: "var(--text-base)",
                     fontWeight: 600,
                     cursor: 'pointer',
                     display: 'flex',
@@ -404,7 +404,7 @@ export function SmsCompose() {
                         <button
                           type="button"
                           onClick={() => removeNumber(n.phone)}
-                          style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink3)', display: 'flex', padding: 2 }}
+                          style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink3)', display: 'flex', padding: "var(--action-py) var(--space-md)" }}
                          data-ui-native-button="">
                           <Icon name="x" size={11} />
                         </button>
@@ -525,9 +525,9 @@ export function SmsCompose() {
                   style={{
                     background: 'var(--bg)',
                     border: '1px solid var(--border)',
-                    borderRadius: 4,
-                    padding: '2px 7px',
-                    fontSize: 11.5,
+                    borderRadius: "var(--r-sm)",
+                    padding: "var(--action-py) var(--space-md)",
+                    fontSize: "var(--text-base)",
                     color: 'var(--ink)',
                     cursor: 'pointer',
                   }}
@@ -543,7 +543,7 @@ export function SmsCompose() {
               placeholder="Type your message here or use variables like {name}, {amount}…"
               rows={5}
               maxLength={1600}
-              style={{ fontSize: 13.5, lineHeight: 1.5 }}
+              style={{ fontSize: "var(--text-base)", lineHeight: 1.5 }}
             />
 
             {/* Segment & Encoding Bar */}
@@ -565,7 +565,7 @@ export function SmsCompose() {
                     background: 'none',
                     border: 'none',
                     color: 'var(--teal)',
-                    fontSize: 12,
+                    fontSize: "var(--text-base)",
                     fontWeight: 600,
                     cursor: 'pointer',
                     textDecoration: 'underline',

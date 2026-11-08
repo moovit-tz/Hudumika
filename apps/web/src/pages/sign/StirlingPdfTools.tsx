@@ -328,12 +328,12 @@ export function StirlingPdfTools({ documentSrc, fileName, onExport, onClose, emb
                   and point the platform at its endpoint below.
                 </div>
                 <div style={{ display: 'flex', gap: 8, width: '100%', marginTop: 8 }}>
-                  <input
+                  <input data-ui-field="input"
                     type="url"
                     placeholder="http://localhost:8080"
                     value={urlDraft}
                     onChange={e => setUrlDraft(e.target.value)}
-                    style={{ flex: 1, padding: '8px 12px', borderRadius: 'var(--r-sm)', border: '1px solid var(--border)', background: 'var(--bg)', fontSize: 13 }}
+                    style={{ flex: 1, padding: "var(--ds-input-py) var(--space-md)", borderRadius: 'var(--r-sm)', border: '1px solid var(--border)', background: 'var(--bg)', fontSize: "var(--text-base)" }}
                   />
                   <Button variant="default" onClick={saveBaseUrl} disabled={savingUrl}>
                     {savingUrl ? 'Saving…' : 'Save Endpoint'}
@@ -404,7 +404,7 @@ export function StirlingPdfTools({ documentSrc, fileName, onExport, onClose, emb
                     {(['x', 'y', 'width', 'height'] as const).map(f => (
                       <div key={f}>
                         <label style={labelStyle}>{f[0].toUpperCase() + f.slice(1)} (pt)</label>
-                        <input type="number" value={cropBox[f]} onChange={e => setCropBox(p => ({ ...p, [f]: e.target.value }))} style={inputStyle} />
+                        <input data-ui-field="input" type="number" value={cropBox[f]} onChange={e => setCropBox(p => ({ ...p, [f]: e.target.value }))} style={inputStyle} />
                       </div>
                     ))}
                   </div>
@@ -413,14 +413,14 @@ export function StirlingPdfTools({ documentSrc, fileName, onExport, onClose, emb
                 {active.key === 'delete-pages' && (
                   <div>
                     <label style={labelStyle}>Pages to delete (e.g. 2,4-6)</label>
-                    <input type="text" placeholder="2,4-6" value={deletePages} onChange={e => setDeletePages(e.target.value)} style={inputStyle} />
+                    <input data-ui-field="input" type="text" placeholder="2,4-6" value={deletePages} onChange={e => setDeletePages(e.target.value)} style={inputStyle} />
                   </div>
                 )}
 
                 {active.key === 'reorder' && (
                   <div>
                     <label style={labelStyle}>New page order (comma-separated, every page once — e.g. 3,1,2,4)</label>
-                    <input type="text" placeholder="3,1,2,4" value={reorderPages} onChange={e => setReorderPages(e.target.value)} style={inputStyle} />
+                    <input data-ui-field="input" type="text" placeholder="3,1,2,4" value={reorderPages} onChange={e => setReorderPages(e.target.value)} style={inputStyle} />
                   </div>
                 )}
 
@@ -452,10 +452,10 @@ export function StirlingPdfTools({ documentSrc, fileName, onExport, onClose, emb
                   <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
                     {bookmarks.map((b, i) => (
                       <div key={i} style={{ display: 'flex', gap: 8 }}>
-                        <input type="text" placeholder="Bookmark title" value={b.title}
+                        <input data-ui-field="input" type="text" placeholder="Bookmark title" value={b.title}
                           onChange={e => setBookmarks(prev => prev.map((x, idx) => idx === i ? { ...x, title: e.target.value } : x))}
                           style={{ ...inputStyle, flex: 1 }} />
-                        <input type="number" placeholder="Page #" value={b.pageNumber} min={1}
+                        <input data-ui-field="input" type="number" placeholder="Page #" value={b.pageNumber} min={1}
                           onChange={e => setBookmarks(prev => prev.map((x, idx) => idx === i ? { ...x, pageNumber: e.target.value } : x))}
                           style={{ ...inputStyle, width: 90 }} />
                         <Button variant="outline" size="icon" onClick={() => setBookmarks(prev => prev.length > 1 ? prev.filter((_, idx) => idx !== i) : prev)} disabled={bookmarks.length <= 1}>
@@ -473,11 +473,11 @@ export function StirlingPdfTools({ documentSrc, fileName, onExport, onClose, emb
                   <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
                     <div>
                       <label style={labelStyle}>Starting number</label>
-                      <input type="number" value={pageNumStart} min={1} onChange={e => setPageNumStart(e.target.value)} style={inputStyle} />
+                      <input data-ui-field="input" type="number" value={pageNumStart} min={1} onChange={e => setPageNumStart(e.target.value)} style={inputStyle} />
                     </div>
                     <div>
                       <label style={labelStyle}>Format ({'{n}'} = number, {'{total}'} = page count)</label>
-                      <input type="text" value={pageNumText} onChange={e => setPageNumText(e.target.value)} style={inputStyle} />
+                      <input data-ui-field="input" type="text" value={pageNumText} onChange={e => setPageNumText(e.target.value)} style={inputStyle} />
                     </div>
                   </div>
                 )}
@@ -485,22 +485,22 @@ export function StirlingPdfTools({ documentSrc, fileName, onExport, onClose, emb
                 {active.key === 'watermark' && (
                   <div>
                     <label style={labelStyle}>Watermark Text</label>
-                    <input type="text" placeholder="CONFIDENTIAL / DRAFT" value={watermarkText} onChange={e => setWatermarkText(e.target.value)} style={inputStyle} />
+                    <input data-ui-field="input" type="text" placeholder="CONFIDENTIAL / DRAFT" value={watermarkText} onChange={e => setWatermarkText(e.target.value)} style={inputStyle} />
                   </div>
                 )}
 
                 {active.key === 'redact' && (
                   <div>
                     <label style={labelStyle}>Comma-separated search terms to redact</label>
-                    <input type="text" placeholder="TIN, NIDA, Secret" value={redactTerms} onChange={e => setRedactTerms(e.target.value)} style={inputStyle} />
+                    <input data-ui-field="input" type="text" placeholder="TIN, NIDA, Secret" value={redactTerms} onChange={e => setRedactTerms(e.target.value)} style={inputStyle} />
                   </div>
                 )}
 
                 {active.key === 'metadata' && (
                   <div style={{ display: 'grid', gridTemplateColumns: embedded ? '1fr' : '1fr 1fr 1fr', gap: 10 }}>
-                    <div><label style={labelStyle}>Title</label><input type="text" value={metaTitle} onChange={e => setMetaTitle(e.target.value)} style={inputStyle} /></div>
-                    <div><label style={labelStyle}>Author</label><input type="text" value={metaAuthor} onChange={e => setMetaAuthor(e.target.value)} style={inputStyle} /></div>
-                    <div><label style={labelStyle}>Subject</label><input type="text" value={metaSubject} onChange={e => setMetaSubject(e.target.value)} style={inputStyle} /></div>
+                    <div><label style={labelStyle}>Title</label><input data-ui-field="input" type="text" value={metaTitle} onChange={e => setMetaTitle(e.target.value)} style={inputStyle} /></div>
+                    <div><label style={labelStyle}>Author</label><input data-ui-field="input" type="text" value={metaAuthor} onChange={e => setMetaAuthor(e.target.value)} style={inputStyle} /></div>
+                    <div><label style={labelStyle}>Subject</label><input data-ui-field="input" type="text" value={metaSubject} onChange={e => setMetaSubject(e.target.value)} style={inputStyle} /></div>
                   </div>
                 )}
 
@@ -518,35 +518,35 @@ export function StirlingPdfTools({ documentSrc, fileName, onExport, onClose, emb
                 {active.key === 'protect' && (
                   <div>
                     <label style={labelStyle}>Password to open the document</label>
-                    <input type="password" value={protectPassword} onChange={e => setProtectPassword(e.target.value)} style={inputStyle} />
+                    <input data-ui-field="input" type="password" value={protectPassword} onChange={e => setProtectPassword(e.target.value)} style={inputStyle} />
                   </div>
                 )}
 
                 {active.key === 'unlock' && (
                   <div>
                     <label style={labelStyle}>The document’s current password</label>
-                    <input type="password" value={unlockPassword} onChange={e => setUnlockPassword(e.target.value)} style={inputStyle} />
+                    <input data-ui-field="input" type="password" value={unlockPassword} onChange={e => setUnlockPassword(e.target.value)} style={inputStyle} />
                   </div>
                 )}
 
                 {active.key === 'split-pages' && (
                   <div>
                     <label style={labelStyle}>Split after these pages (e.g. 3,7)</label>
-                    <input type="text" placeholder="3,7" value={splitAfterPages} onChange={e => setSplitAfterPages(e.target.value)} style={inputStyle} />
+                    <input data-ui-field="input" type="text" placeholder="3,7" value={splitAfterPages} onChange={e => setSplitAfterPages(e.target.value)} style={inputStyle} />
                   </div>
                 )}
 
                 {active.key === 'split-chapters' && (
                   <div style={{ maxWidth: 200 }}>
                     <label style={labelStyle}>Bookmark depth to split on</label>
-                    <input type="number" min={1} value={splitBookmarkLevel} onChange={e => setSplitBookmarkLevel(e.target.value)} style={inputStyle} />
+                    <input data-ui-field="input" type="number" min={1} value={splitBookmarkLevel} onChange={e => setSplitBookmarkLevel(e.target.value)} style={inputStyle} />
                   </div>
                 )}
 
                 {active.key === 'split-size' && (
                   <div style={{ maxWidth: 200 }}>
                     <label style={labelStyle}>Target size per part</label>
-                    <input type="text" placeholder="10MB" value={splitSize} onChange={e => setSplitSize(e.target.value)} style={inputStyle} />
+                    <input data-ui-field="input" type="text" placeholder="10MB" value={splitSize} onChange={e => setSplitSize(e.target.value)} style={inputStyle} />
                   </div>
                 )}
 

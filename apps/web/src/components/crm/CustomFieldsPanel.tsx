@@ -68,15 +68,15 @@ export function CustomFieldsPanel({ entityType, subjectId, heading }: { entityTy
               <input type="checkbox" checked={v === 'true'} onChange={e => set(f.id, e.target.checked ? 'true' : 'false')} style={{ width: 16, height: 16 }} />
             ) : f.type === 'select' ? (
               <Select value={v || NONE} onValueChange={val => set(f.id, val === NONE ? null : val)}>
-                <SelectTrigger className="input-field" style={{ height: 34 }}><SelectValue placeholder="—" /></SelectTrigger>
+                <SelectTrigger className="input-field" style={{ height: "var(--ctl-h)" }}><SelectValue placeholder="—" /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value={NONE}>—</SelectItem>
                   {f.options.map(o => <SelectItem key={o} value={o}>{o}</SelectItem>)}
                 </SelectContent>
               </Select>
             ) : (
-              <input
-                className="input-field" style={{ height: 34 }}
+              <input data-ui-field="input"
+                className="input-field" style={{ height: "var(--ctl-h)" }}
                 type={f.type === 'number' ? 'number' : f.type === 'date' ? 'date' : 'text'}
                 value={v} onChange={e => set(f.id, e.target.value || null)}
               />

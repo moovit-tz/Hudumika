@@ -58,7 +58,7 @@ export const OrgLogin: React.FC = () => {
 
         <form onSubmit={handleSubmit} noValidate className="login-form">
           <div className="login-field">
-            <input
+            <input data-ui-field="input"
               type="email"
               placeholder="Email address"
               value={email}
@@ -71,7 +71,7 @@ export const OrgLogin: React.FC = () => {
 
           <div className="login-field">
             <div className="login-field-pw">
-              <input
+              <input data-ui-field="input"
                 type={showPass ? 'text' : 'password'}
                 placeholder="Password"
                 value={password}

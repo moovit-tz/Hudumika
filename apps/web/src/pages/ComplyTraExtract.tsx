@@ -209,7 +209,7 @@ export function ComplyTraExtract() {
                     value={tin}
                     onChange={e => setTin(e.target.value)}
                     disabled={status !== 'idle'}
-                    style={{ width: '100%', padding: '10px 14px', border: '1px solid var(--border)', borderRadius: 'var(--r)' }}
+                    style={{ width: '100%', padding: "var(--ds-input-py) var(--space-md)", border: '1px solid var(--border)', borderRadius: 'var(--r)' }}
                   />
                 </div>
 

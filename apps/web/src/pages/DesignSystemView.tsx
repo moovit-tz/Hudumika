@@ -317,7 +317,7 @@ export function DesignSystemView() {
       </div>
       <div className="ds-sidebar-search">
         <Icon name="search" size={13} className="ds-sidebar-search-icon" />
-        <input
+        <input data-ui-field="input" data-field-appearance="bare"
           type="text"
           className="ds-sidebar-search-input"
           placeholder="Search sections…"
@@ -1169,7 +1169,7 @@ export function DesignSystemView() {
 
               <div className="ds-form-group-card" style={{ marginTop: 16 }}>
                 <span className="ds-field-label">Easing Curve (CSS timing-function)</span>
-                <input
+                <input data-ui-field="input"
                   type="text"
                   className="input-field ds-easing-input"
                   value={tokens.motion.ease}

@@ -135,10 +135,10 @@ export function TotpEnrollCard() {
               </div>
 
               <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--ink)', marginTop: 4 }}>2. Enter the 6-digit code it shows</span>
-              <input
+              <input data-ui-field="input"
                 type="text" value={verifyCode}
                 onChange={(e) => setVerifyCode(e.target.value.replace(/\D/g, '').slice(0, 6))}
-                placeholder="000000" style={{ ...inputStyle, fontFamily: 'var(--font)', fontSize: 16, letterSpacing: '0.2em', textAlign: 'center', width: 160 }}
+                placeholder="000000" style={{ ...inputStyle, fontFamily: 'var(--font)', fontSize: "var(--text-base)", letterSpacing: '0.2em', textAlign: 'center', width: 160 }}
               />
 
               <div style={{ display: 'flex', gap: 8, marginTop: 4 }}>
@@ -154,7 +154,7 @@ export function TotpEnrollCard() {
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
               <span style={{ fontSize: 12.5, fontWeight: 700, color: 'var(--ink)' }}>Backup codes — save these somewhere safe</span>
               <button type="button" onClick={() => { navigator.clipboard.writeText(backupCodes.join('\n')); showAlert('Backup codes copied.', { variant: 'success' }); }}
-                style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--teal)', fontSize: 12, fontWeight: 600, display: 'flex', alignItems: 'center', gap: 4 }} data-ui-native-button="">
+                style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--teal)', fontSize: "var(--text-base)", fontWeight: 600, display: 'flex', alignItems: 'center', gap: 4 }} data-ui-native-button="">
                 <Icon name="copy" size={12} /> Copy all
               </button>
             </div>
@@ -177,7 +177,7 @@ export function TotpEnrollCard() {
               </div>
             ) : (
               <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap', padding: 12, background: 'var(--bg)', borderRadius: 8, border: '1px solid var(--border)' }}>
-                <input
+                <input data-ui-field="input"
                   type="text" value={disableCode}
                   onChange={(e) => setDisableCode(e.target.value.replace(/\D/g, '').slice(0, 6))}
                   placeholder="Enter 6-digit code" style={{ ...inputStyle, width: 160, fontFamily: 'var(--font)', letterSpacing: '0.1em' }}

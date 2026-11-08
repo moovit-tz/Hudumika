@@ -291,7 +291,7 @@ export function VersionHistoryPanel({ envelopeId, onRestore, onClose }: {
           ) : versions.map(v => (
             <button key={v.id} type="button" onClick={() => setSelectedId(v.id)}
               style={{
-                textAlign: 'left', padding: '10px 12px', borderRadius: 'var(--r)', border: `1px solid ${v.id === selectedId ? 'var(--teal)' : 'var(--border)'}`,
+                textAlign: 'left', padding: "var(--action-py) var(--space-md)", borderRadius: 'var(--r)', border: `1px solid ${v.id === selectedId ? 'var(--teal)' : 'var(--border)'}`,
                 background: v.id === selectedId ? 'var(--teal-l)' : 'var(--card-bg)', cursor: 'pointer', display: 'flex', flexDirection: 'column', gap: 4,
               }} data-ui-native-button="">
               <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>

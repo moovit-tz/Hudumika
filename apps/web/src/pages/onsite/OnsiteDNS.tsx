@@ -363,7 +363,7 @@ export function OnsiteDNS() {
                 </div>
                 <div className="onsite-form-group">
                   <label>Name * (@ for root)</label>
-                  <input
+                  <input data-ui-field="input"
                     type="text"
                     className="onsite-input"
                     placeholder="@ or subdomain"
@@ -376,7 +376,7 @@ export function OnsiteDNS() {
 
               <div className="onsite-form-group">
                 <label>Value / Target *</label>
-                <input
+                <input data-ui-field="input"
                   type="text"
                   className="onsite-input"
                   placeholder="e.g. 192.0.2.1 or mail.example.com"
@@ -389,7 +389,7 @@ export function OnsiteDNS() {
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
                 <div className="onsite-form-group">
                   <label>TTL (seconds)</label>
-                  <input
+                  <input data-ui-field="input"
                     type="number"
                     className="onsite-input"
                     value={ttl}
@@ -399,7 +399,7 @@ export function OnsiteDNS() {
                 {type === 'MX' && (
                   <div className="onsite-form-group">
                     <label>Priority</label>
-                    <input
+                    <input data-ui-field="input"
                       type="number"
                       className="onsite-input"
                       placeholder="10"
@@ -485,7 +485,7 @@ export function OnsiteDNS() {
             Paste a BIND zone file. Nothing is written until you apply it, and
             records already present are left alone rather than duplicated.
           </p>
-          <textarea
+          <textarea data-ui-field="textarea"
             value={importText}
             onChange={e => { setImportText(e.target.value); setImportPlan(null); }}
             rows={10}
@@ -549,7 +549,7 @@ export function OnsiteDNS() {
           {templates.find(t => t.id === templateId)?.inputs?.map((i: any) => (
             <div key={i.key} style={{ marginTop: '0.75rem' }}>
               <label className="seal-field-label">{i.label}</label>
-              <input className="input-field" placeholder={i.placeholder}
+              <input data-ui-field="input" className="input-field" placeholder={i.placeholder}
                 value={templateVars[i.key] ?? ''}
                 onChange={e => { setTemplateVars(v => ({ ...v, [i.key]: e.target.value })); setTemplatePreview(null); }} />
             </div>

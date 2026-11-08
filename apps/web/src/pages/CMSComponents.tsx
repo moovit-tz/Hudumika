@@ -72,11 +72,11 @@ export function CMSComponentsList() {
             <div style={{ fontWeight: 700, fontSize: 14, color: 'var(--ink)', marginBottom: 14 }}>New component</div>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
               <FL label="Name">
-                <input className="input-field" value={form.name} placeholder="e.g. CTA banner"
+                <input data-ui-field="input" className="input-field" value={form.name} placeholder="e.g. CTA banner"
                   onChange={e => setForm(f => ({ ...f, name: e.target.value, key: f.key || autoKey(e.target.value) }))} />
               </FL>
               <FL label="Key (used internally, can't change later)">
-                <input className="input-field" style={{ fontFamily: 'var(--font)' }} value={form.key} placeholder="cta-banner" onChange={e => setForm(f => ({ ...f, key: autoKey(e.target.value) }))} />
+                <input data-ui-field="input" className="input-field" style={{ fontFamily: 'var(--font)' }} value={form.key} placeholder="cta-banner" onChange={e => setForm(f => ({ ...f, key: autoKey(e.target.value) }))} />
               </FL>
               <div style={{ display: 'flex', gap: 8 }}>
                 <button className="btn btn-primary btn-sm" disabled={saving} onClick={handleCreate} data-ui-native-button="">{saving ? 'Creating…' : 'Create component'}</button>
@@ -207,7 +207,7 @@ export function CMSComponentDetail() {
         </div>
 
         <div style={{ marginTop: 24, paddingTop: 18, borderTop: '1px solid var(--border)' }}>
-          <button onClick={handleDelete} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 12.5, color: 'var(--red)' }} data-ui-native-button="">Delete this component</button>
+          <button onClick={handleDelete} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: "var(--text-base)", color: 'var(--red)' }} data-ui-native-button="">Delete this component</button>
         </div>
       </div>
     </div>

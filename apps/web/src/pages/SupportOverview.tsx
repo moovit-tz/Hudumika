@@ -915,7 +915,7 @@ export const SupportOverview: React.FC = () => {
                 ].map(tab => {
                   const isActive = statusFilter === tab.key;
                   return (
-                    <button
+                    <button data-ui-native-button=""
                       key={tab.key}
                       type="button"
                       onClick={() => setStatusFilter(tab.key)}

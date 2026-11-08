@@ -120,7 +120,7 @@ export function MentionInput({ value, onChange, users, placeholder, disabled, on
 
   return (
     <div style={{ position: 'relative' }}>
-      <textarea
+      <textarea data-ui-field="textarea"
         ref={textareaRef}
         value={value}
         onChange={handleChange}
@@ -132,9 +132,9 @@ export function MentionInput({ value, onChange, users, placeholder, disabled, on
           width: '100%',
           boxSizing: 'border-box',
           resize: 'vertical',
-          padding: '9px 11px',
-          fontSize: 13,
-          borderRadius: 7,
+          padding: "var(--ds-input-py) var(--space-md)",
+          fontSize: "var(--text-base)",
+          borderRadius: "var(--r-sm)",
           border: '1px solid var(--border)',
           fontFamily: 'var(--font)',
           lineHeight: 1.55,

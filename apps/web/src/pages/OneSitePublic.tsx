@@ -97,14 +97,14 @@ function CommentSection({ tenantSlug, postSlug }: { tenantSlug: string; postSlug
         <form className="onesite-pub-comment-form" onSubmit={submit}>
           <h3>Leave a comment</h3>
           {error && <div className="onesite-pub-comment-error">{error}</div>}
-          <input placeholder="Name" value={form.author} onChange={e => setForm(f => ({ ...f, author: e.target.value }))} required />
-          <input type="email" placeholder="Email (optional, never shown publicly)" value={form.email} onChange={e => setForm(f => ({ ...f, email: e.target.value }))} />
-          <textarea placeholder="Your comment" rows={4} value={form.content} onChange={e => setForm(f => ({ ...f, content: e.target.value }))} required />
+          <input data-ui-field="input" placeholder="Name" value={form.author} onChange={e => setForm(f => ({ ...f, author: e.target.value }))} required />
+          <input data-ui-field="input" type="email" placeholder="Email (optional, never shown publicly)" value={form.email} onChange={e => setForm(f => ({ ...f, email: e.target.value }))} />
+          <textarea data-ui-field="textarea" placeholder="Your comment" rows={4} value={form.content} onChange={e => setForm(f => ({ ...f, content: e.target.value }))} required />
           {/* Honeypot: invisible and unreachable by tab/keyboard for a real
               visitor, so only an automated filler ever populates it. */}
-          <input type="text" name="website" tabIndex={-1} autoComplete="off" aria-hidden="true"
+          <input data-ui-field="input" type="text" name="website" tabIndex={-1} autoComplete="off" aria-hidden="true"
             value={form.website} onChange={e => setForm(f => ({ ...f, website: e.target.value }))}
-            style={{ position: 'absolute', left: '-9999px', width: 1, height: 1, opacity: 0 }} />
+            style={{ position: 'absolute', left: '-9999px', width: 1, height: "var(--ctl-h)", opacity: 0 }} />
           <button type="submit" disabled={submitting} data-ui-native-button="">{submitting ? 'Posting…' : 'Post comment'}</button>
         </form>
       )}
@@ -150,7 +150,7 @@ function SearchBox({ tenantSlug, initialQuery }: { tenantSlug: string; initialQu
   const [q, setQ] = useState(initialQuery);
   return (
     <form className="onesite-pub-search" onSubmit={e => { e.preventDefault(); if (q.trim()) window.location.href = `/site/${tenantSlug}/search?q=${encodeURIComponent(q.trim())}`; }}>
-      <input value={q} onChange={e => setQ(e.target.value)} placeholder="Search…" aria-label="Search this site" />
+      <input data-ui-field="input" value={q} onChange={e => setQ(e.target.value)} placeholder="Search…" aria-label="Search this site" />
       <button type="submit" aria-label="Search" data-ui-native-button="">
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="11" cy="11" r="7" /><path d="M21 21l-4.3-4.3" /></svg>
       </button>

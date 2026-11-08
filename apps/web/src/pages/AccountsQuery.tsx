@@ -255,11 +255,11 @@ export function AccountsQuery() {
                     type="button"
                     onClick={() => setStatus(s)}
                     style={{
-                      padding: 'var(--ds-btn-py-xs) 12px', borderRadius: 20,
+                      padding: 'var(--ds-btn-py-xs) 12px', borderRadius: "var(--r-sm)",
                       border: `1.5px solid ${status === s ? 'var(--teal)' : 'var(--border)'}`,
                       background: status === s ? 'hsl(var(--primary))' : 'var(--white)',
                       color: status === s ? 'hsl(var(--primary-foreground))' : 'var(--ink)',
-                      fontSize: 12, fontWeight: 600, cursor: 'pointer',
+                      fontSize: "var(--text-base)", fontWeight: 600, cursor: 'pointer',
                       fontFamily: 'var(--font)', minHeight: 'var(--ctl-h-xs)', boxSizing: 'border-box', lineHeight: 1.25}}
                    data-ui-native-button="">
                     {s}
@@ -279,15 +279,15 @@ export function AccountsQuery() {
                 <span style={{ position: 'absolute', left: 9, top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none' }}>
                   <Icon name="search" size={13} color="var(--ink3)" />
                 </span>
-                <input
+                <input data-ui-field="input"
                   type="text"
                   placeholder="Filter by customer ID..."
                   value={customerFilter}
                   onChange={e => setCustomerFilter(e.target.value)}
                   style={{
-                    width: '100%', boxSizing: 'border-box', padding: '7px 10px 7px 28px',
+                    width: '100%', boxSizing: 'border-box', padding: "var(--ds-input-py) var(--space-md)",
                     border: '1.5px solid var(--border)', borderRadius: 'var(--r)',
-                    fontSize: 13, fontFamily: 'var(--font)', color: 'var(--ink)',
+                    fontSize: "var(--text-base)", fontFamily: 'var(--font)', color: 'var(--ink)',
                     background: 'var(--bg)',
                   }}
                 />
@@ -302,7 +302,7 @@ export function AccountsQuery() {
           type="button"
           onClick={runReport}
           disabled={loading}
-          style={{ width: '100%', padding: 'var(--ds-btn-py-lg) 0', fontSize: 14, fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, minHeight: 'var(--ctl-h-lg)', boxSizing: 'border-box', lineHeight: 1.25}}
+          style={{ width: '100%', padding: 'var(--ds-btn-py-lg) 0', fontSize: "var(--text-base)", fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, minHeight: 'var(--ctl-h-lg)', boxSizing: 'border-box', lineHeight: 1.25}}
          data-ui-native-button="">
           <Icon name="refresh" size={15} color="#fff" />
           {loading ? 'Running…' : 'Run Report'}
@@ -363,7 +363,7 @@ export function AccountsQuery() {
                 className="btn btn-secondary"
                 type="button"
                 onClick={() => exportCSV(result.report_type, result.data)}
-                style={{ display: 'flex', alignItems: 'center', gap: 7, fontSize: 13 }}
+                style={{ display: 'flex', alignItems: 'center', gap: 7, fontSize: "var(--text-base)" }}
                data-ui-native-button="">
                 <Icon name="download" size={14} color="var(--teal)" />
                 Export CSV

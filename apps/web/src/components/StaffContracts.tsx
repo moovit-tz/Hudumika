@@ -92,7 +92,7 @@ export function StaffContracts({ userId, canEdit }: { userId: string; canEdit: b
         <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--ink)' }}>Contracts</div>
         {canEdit && (
           <button type="button" onClick={() => setAdding(a => !a)}
-            style={{ background: 'none', border: 'none', color: 'var(--teal)', fontSize: 12, fontWeight: 600, cursor: 'pointer' }} data-ui-native-button="">
+            style={{ background: 'none', border: 'none', color: 'var(--teal)', fontSize: "var(--text-base)", fontWeight: 600, cursor: 'pointer' }} data-ui-native-button="">
             {adding ? 'Cancel' : 'Add'}
           </button>
         )}
@@ -111,7 +111,7 @@ export function StaffContracts({ userId, canEdit }: { userId: string; canEdit: b
           </div>
           <div>
             <label style={{ fontSize: 11, color: 'var(--ink3)', display: 'block', marginBottom: 4 }}>Reference</label>
-            <input style={inp} value={form.reference} onChange={e => setForm((f: any) => ({ ...f, reference: e.target.value }))} />
+            <input data-ui-field="input" style={inp} value={form.reference} onChange={e => setForm((f: any) => ({ ...f, reference: e.target.value }))} />
           </div>
           <div>
             <label style={{ fontSize: 11, color: 'var(--ink3)', display: 'block', marginBottom: 4 }}>Starts</label>
@@ -210,7 +210,7 @@ export function StaffEmergencyContacts({ userId, canEdit }: { userId: string; ca
         <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--ink)' }}>Emergency contacts</div>
         {canEdit && (
           <button type="button" onClick={() => setAdding(a => !a)}
-            style={{ background: 'none', border: 'none', color: 'var(--teal)', fontSize: 12, fontWeight: 600, cursor: 'pointer' }} data-ui-native-button="">
+            style={{ background: 'none', border: 'none', color: 'var(--teal)', fontSize: "var(--text-base)", fontWeight: 600, cursor: 'pointer' }} data-ui-native-button="">
             {adding ? 'Cancel' : 'Add'}
           </button>
         )}
@@ -220,15 +220,15 @@ export function StaffEmergencyContacts({ userId, canEdit }: { userId: string; ca
         <div style={{ padding: '14px 20px', borderBottom: '1px solid var(--border)', background: 'var(--bg)', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
           <div>
             <label style={{ fontSize: 11, color: 'var(--ink3)', display: 'block', marginBottom: 4 }}>Name</label>
-            <input style={inp} value={form.name} onChange={e => setForm((f: any) => ({ ...f, name: e.target.value }))} />
+            <input data-ui-field="input" style={inp} value={form.name} onChange={e => setForm((f: any) => ({ ...f, name: e.target.value }))} />
           </div>
           <div>
             <label style={{ fontSize: 11, color: 'var(--ink3)', display: 'block', marginBottom: 4 }}>Relationship</label>
-            <input style={inp} value={form.relationship} onChange={e => setForm((f: any) => ({ ...f, relationship: e.target.value }))} />
+            <input data-ui-field="input" style={inp} value={form.relationship} onChange={e => setForm((f: any) => ({ ...f, relationship: e.target.value }))} />
           </div>
           <div>
             <label style={{ fontSize: 11, color: 'var(--ink3)', display: 'block', marginBottom: 4 }}>Phone</label>
-            <input style={inp} value={form.phone} onChange={e => setForm((f: any) => ({ ...f, phone: e.target.value }))} placeholder="07XX XXX XXX" />
+            <input data-ui-field="input" style={inp} value={form.phone} onChange={e => setForm((f: any) => ({ ...f, phone: e.target.value }))} placeholder="07XX XXX XXX" />
           </div>
           <div style={{ display: 'flex', alignItems: 'flex-end' }}>
             <label style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 12.5, color: 'var(--ink2)' }}>

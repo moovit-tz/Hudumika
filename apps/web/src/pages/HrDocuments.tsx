@@ -386,7 +386,7 @@ export function HrDocuments() {
               variant="outline"
               size="sm"
               onClick={() => setActiveTab('generator')}
-              style={{ height: 38, fontSize: 13, display: 'flex', alignItems: 'center', gap: 6 }}
+              style={{ height: "var(--ctl-h)", fontSize: "var(--text-base)", display: 'flex', alignItems: 'center', gap: 6 }}
             >
               <Icon name="edit" size={14} color="var(--teal)" />
               Generate HR Letter
@@ -394,7 +394,7 @@ export function HrDocuments() {
             <Button
               size="sm"
               onClick={() => setShowUploadModal(true)}
-              style={{ height: 38, fontSize: 13, display: 'flex', alignItems: 'center', gap: 6 }}
+              style={{ height: "var(--ctl-h)", fontSize: "var(--text-base)", display: 'flex', alignItems: 'center', gap: 6 }}
             >
               <Icon name="plus" size={14} />
               Upload Document
@@ -538,7 +538,7 @@ export function HrDocuments() {
                       <td style={{ padding: '10px 14px', fontWeight: 700, color: 'var(--red)' }}>{String(item.expiry_date).slice(0, 10)}</td>
                       <td style={{ padding: '10px 14px' }}><Badge variant="error">EXPIRED ({item.days_overdue}d ago)</Badge></td>
                       <td style={{ padding: '10px 14px' }}>
-                        <Button size="sm" style={{ height: 28, fontSize: 11, background: 'var(--red)', color: 'hsl(var(--red-foreground))', border: 'none' }} onClick={() => setShowUploadModal(true)}>
+                        <Button size="sm" style={{ height: "var(--ctl-h)", fontSize: "var(--text-xs)", background: 'var(--red)', color: 'hsl(var(--red-foreground))', border: 'none' }} onClick={() => setShowUploadModal(true)}>
                           Request Renewal
                         </Button>
                       </td>
@@ -556,7 +556,7 @@ export function HrDocuments() {
                         </Badge>
                       </td>
                       <td style={{ padding: '10px 14px' }}>
-                        <Button variant="outline" size="sm" style={{ height: 28, fontSize: 11 }} onClick={() => setShowUploadModal(true)}>
+                        <Button variant="outline" size="sm" style={{ height: "var(--ctl-h)", fontSize: "var(--text-xs)" }} onClick={() => setShowUploadModal(true)}>
                           Upload Renewal
                         </Button>
                       </td>
@@ -597,7 +597,7 @@ export function HrDocuments() {
                   <div style={{ fontSize: 12, color: 'var(--ink3)', marginBottom: 12 }}>
                     Category: <strong>{t.template_category ?? t.type}</strong>
                   </div>
-                  <Button size="sm" variant={selectedTemplate?.id === t.id ? 'default' : 'outline'} style={{ width: '100%', height: 32, fontSize: 12 }}>
+                  <Button size="sm" variant={selectedTemplate?.id === t.id ? 'default' : 'outline'} style={{ width: '100%', height: "var(--ctl-h)", fontSize: "var(--text-base)" }}>
                     {selectedTemplate?.id === t.id ? 'Currently Editing' : 'Use Template'}
                   </Button>
                 </div>
@@ -671,7 +671,7 @@ export function HrDocuments() {
                 <Button
                   onClick={handleGenerateLetter}
                   disabled={generating}
-                  style={{ height: 38, fontSize: 13, fontWeight: 700 }}
+                  style={{ height: "var(--action-h)", fontSize: "var(--text-base)", fontWeight: 700 }}
                 >
                   <Icon name="checkCircle" size={15} />
                   {generating ? 'Generating Letter…' : 'Issue & File HR Document'}
@@ -799,12 +799,12 @@ export function HrDocuments() {
 
               <div>
                 <label style={{ fontSize: 12, fontWeight: 700, display: 'block', marginBottom: 4 }}>Review Feedback / Verification Notes</label>
-                <textarea
+                <textarea data-ui-field="textarea"
                   value={reviewNotes}
                   onChange={e => setReviewNotes(e.target.value)}
                   placeholder="e.g. Document verified against National Identification database."
                   rows={3}
-                  style={{ width: '100%', padding: '8px 10px', borderRadius: 'var(--r-sm)', border: '1px solid var(--border)', fontSize: 12.5, outline: 'none' }}
+                  style={{ width: '100%', padding: "var(--ds-input-py) var(--space-md)", borderRadius: 'var(--r-sm)', border: '1px solid var(--border)', fontSize: "var(--text-base)", outline: 'none' }}
                 />
               </div>
 

@@ -98,14 +98,14 @@ export const BlissReportExportModal: React.FC<BlissReportExportModalProps> = ({
                       flexDirection: 'column',
                       alignItems: 'center',
                       gap: 6,
-                      padding: '12px 6px',
+                      padding: "var(--action-py) var(--space-md)",
                       borderRadius: 'var(--r, 8px)',
                       border: format === f.id ? '2px solid var(--teal)' : '1px solid var(--border)',
                       background: format === f.id ? 'var(--teal-l)' : 'var(--white)',
                       color: format === f.id ? 'var(--teal)' : 'var(--ink)',
                       cursor: 'pointer',
                       fontWeight: 600,
-                      fontSize: 12,
+                      fontSize: "var(--text-base)",
                       transition: 'all 0.15s ease',
                     }}
                    data-ui-native-button="">

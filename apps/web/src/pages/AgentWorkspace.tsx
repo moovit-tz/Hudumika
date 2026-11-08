@@ -258,8 +258,8 @@ export function AgentWorkspace() {
             type="button"
             onClick={() => setViewMode('stage')}
             style={{
-              display: 'flex', alignItems: 'center', gap: 6, padding: '5px 12px', borderRadius: 6, border: 'none', cursor: 'pointer',
-              fontSize: 12, fontWeight: 700, background: viewMode === 'stage' ? 'hsl(var(--primary))' : 'transparent', color: viewMode === 'stage' ? 'hsl(var(--primary-foreground))' : 'var(--ink3)',
+              display: 'flex', alignItems: 'center', gap: 6, padding: "var(--action-py) var(--space-md)", borderRadius: "var(--r-sm)", border: 'none', cursor: 'pointer',
+              fontSize: "var(--text-base)", fontWeight: 700, background: viewMode === 'stage' ? 'hsl(var(--primary))' : 'transparent', color: viewMode === 'stage' ? 'hsl(var(--primary-foreground))' : 'var(--ink3)',
               transition: 'all 0.15s ease',
             }}
            data-ui-native-button="">
@@ -270,8 +270,8 @@ export function AgentWorkspace() {
             type="button"
             onClick={() => setViewMode('console')}
             style={{
-              display: 'flex', alignItems: 'center', gap: 6, padding: '5px 12px', borderRadius: 6, border: 'none', cursor: 'pointer',
-              fontSize: 12, fontWeight: 700, background: viewMode === 'console' ? 'var(--nav-header-bg)' : 'transparent', color: viewMode === 'console' ? 'var(--ink)' : 'var(--ink3)',
+              display: 'flex', alignItems: 'center', gap: 6, padding: "var(--action-py) var(--space-md)", borderRadius: "var(--r-sm)", border: 'none', cursor: 'pointer',
+              fontSize: "var(--text-base)", fontWeight: 700, background: viewMode === 'console' ? 'var(--nav-header-bg)' : 'transparent', color: viewMode === 'console' ? 'var(--ink)' : 'var(--ink3)',
               transition: 'all 0.15s ease',
             }}
            data-ui-native-button="">

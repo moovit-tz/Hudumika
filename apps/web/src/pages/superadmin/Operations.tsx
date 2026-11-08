@@ -143,7 +143,7 @@ export function DomainsView() {
         <div className="card" style={{ padding:16, marginBottom:16, display:'flex', gap:10, flexWrap:'wrap', alignItems:'flex-end' }}>
           <div style={{ flex:'1 1 240px' }}>
             <div style={{ fontSize:11, fontWeight:700, textTransform:'uppercase', color:'var(--ink3)', marginBottom:4 }}>Hostname</div>
-            <input className="input-field" value={newHost} onChange={e=>setNewHost(e.target.value)} placeholder="clearance.example.com" />
+            <input data-ui-field="input" className="input-field" value={newHost} onChange={e=>setNewHost(e.target.value)} placeholder="clearance.example.com" />
           </div>
           <div style={{ flex:'1 1 200px' }}>
             <div style={{ fontSize:11, fontWeight:700, textTransform:'uppercase', color:'var(--ink3)', marginBottom:4 }}>Company</div>
@@ -235,7 +235,7 @@ export function DomainsView() {
               </TD>
               <TD>
                 <div style={{ display:'flex', gap:6, alignItems:'center' }}>
-                  <button type="button" className="btn" style={{ fontSize:11, padding:'var(--ds-btn-py-xs) 9px', minHeight: 'var(--ctl-h-xs)', boxSizing: 'border-box', lineHeight: 1.25}}
+                  <button type="button" className="btn" style={{ fontSize:"var(--text-xs)", padding:'var(--ds-btn-py-xs) 9px', minHeight: 'var(--ctl-h-xs)', boxSizing: 'border-box', lineHeight: 1.25}}
                     disabled={busy==='chk'+d.id}
                     onClick={()=>act('chk'+d.id, ()=>apiFetch(`/v1/superadmin/domains/${d.id}/check`, { method:'POST', body:'{}' }))} data-ui-native-button="">
                     {busy==='chk'+d.id ? 'Checking…' : 'Check'}
@@ -756,7 +756,7 @@ export function ActivityView() {
                 type="button"
                 onClick={() => { setTab(t.value); setVisCount(15); }}
                 style={{
-                  padding:'5px 14px', borderRadius:20, fontSize:12.5, fontWeight:600, cursor:'pointer',
+                  padding:"var(--action-py) var(--space-md)", borderRadius:"var(--r-sm)", fontSize:"var(--text-base)", fontWeight:600, cursor:'pointer',
                   border:'1px solid var(--border)',
                   background: tab === t.value ? 'hsl(var(--primary))' : 'var(--white)',
                   color:      tab === t.value ? 'hsl(var(--primary-foreground))' : 'var(--ink2)',
@@ -841,7 +841,7 @@ export function ActivityView() {
                   <button
                     type="button"
                     onClick={() => showAlert('Restore functionality is coming soon.')}
-                    style={{ display:'inline-flex', alignItems:'center', gap:6, fontSize:12, fontWeight:600, color:'var(--ink2)', background:'none', border:'1px solid var(--border)', borderRadius:'var(--r-sm)', padding:'5px 12px', cursor:'pointer' }}
+                    style={{ display:'inline-flex', alignItems:'center', gap:6, fontSize:"var(--text-base)", fontWeight:600, color:'var(--ink2)', background:'none', border:'1px solid var(--border)', borderRadius:'var(--r-sm)', padding:"var(--action-py) var(--space-md)", cursor:'pointer' }}
                    data-ui-native-button="">
                     <Icon name="refresh" size={12} />
                     {isDeletion && a.target_name ? `Restore ${a.target_name.split(' ')[0]}` : 'Restore Previous Value'}
@@ -856,7 +856,7 @@ export function ActivityView() {
             <button
               type="button"
               onClick={() => setVisCount(c => c + 15)}
-              style={{ width:'100%', textAlign:'center', padding:'13px 0', marginTop:14, background:'var(--white)', border:'1px solid var(--border)', borderRadius:'var(--r)', fontSize:13, fontWeight:600, color:'var(--ink2)', cursor:'pointer' }}
+              style={{ width:'100%', textAlign:'center', padding:"var(--action-py) var(--space-md)", marginTop:14, background:'var(--white)', border:'1px solid var(--border)', borderRadius:'var(--r)', fontSize:"var(--text-base)", fontWeight:600, color:'var(--ink2)', cursor:'pointer' }}
              data-ui-native-button="">
               Load Older Changes ({filtered.length - visible.length} remaining)
             </button>
@@ -917,7 +917,7 @@ export function ActivityView() {
               <button
                 type="button"
                 onClick={() => showAlert('Access policy review coming soon.')}
-                style={{ padding:'6px 14px', borderRadius:'var(--r-sm)', border:'1px solid var(--border)', background:'var(--white)', fontSize:12.5, fontWeight:600, color:'var(--ink)', cursor:'pointer' }}
+                style={{ padding:"var(--action-py) var(--space-md)", borderRadius:'var(--r-sm)', border:'1px solid var(--border)', background:'var(--white)', fontSize:"var(--text-base)", fontWeight:600, color:'var(--ink)', cursor:'pointer' }}
                data-ui-native-button="">
                 Review Access Policy
               </button>

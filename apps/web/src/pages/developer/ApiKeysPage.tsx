@@ -214,7 +214,7 @@ export const ApiKeysPage: React.FC = () => {
             <div className="api-key-input-row">
               <span className="api-key-label">API Key</span>
               <div className="api-key-field-wrap">
-                <input
+                <input data-ui-field="input"
                   type="text"
                   readOnly
                   value={publicApiKey}
@@ -367,7 +367,7 @@ export const ApiKeysPage: React.FC = () => {
                           type="button"
                           title="Edit Settings"
                           onClick={() => showAlert(`Managing configuration for ${item.name}`)}
-                          style={{ background: 'none', border: 'none', color: 'var(--ink3)', cursor: 'pointer', padding: 4 }}
+                          style={{ background: 'none', border: 'none', color: 'var(--ink3)', cursor: 'pointer', padding: "var(--action-py) var(--space-md)" }}
                          data-ui-native-button="">
                           <Icon name="edit" size={13} />
                         </button>
@@ -392,7 +392,7 @@ export const ApiKeysPage: React.FC = () => {
             <div className="api-webhook-form">
               <div className="api-webhook-field-row">
                 <label className="api-webhook-label">Webhook URL</label>
-                <input
+                <input data-ui-field="input"
                   type="text"
                   placeholder="Enter URL e.g. https://api.client.com/webhook"
                   value={webhookUrl}
@@ -403,7 +403,7 @@ export const ApiKeysPage: React.FC = () => {
 
               <div className="api-webhook-field-row">
                 <label className="api-webhook-label">Webhook Name</label>
-                <input
+                <input data-ui-field="input"
                   type="text"
                   value={webhookName}
                   onChange={(e) => setWebhookName(e.target.value)}
@@ -602,7 +602,7 @@ export const ApiKeysPage: React.FC = () => {
             <form onSubmit={handleAddIntegration} className="space-y-4 text-xs">
               <div>
                 <label className="font-bold text-[var(--ink2)] block mb-1">Integration Name *</label>
-                <input
+                <input data-ui-field="input"
                   type="text"
                   required
                   placeholder="e.g. ERP Connector, CRM Sync Service"

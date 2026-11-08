@@ -177,7 +177,7 @@ export const TrackingDocuments: React.FC = () => {
                     {st && <Badge variant={st.variant}>{st.label}</Badge>}
                   </td>
                   <td style={{ padding: '10px 14px', textAlign: 'right' }}>{d.file_url && <Button variant="ghost" size="icon" aria-label="View document" title="View document" onClick={() => { if (d.file_url?.startsWith('/v1/files/')) void apiViewBlob(d.file_url).catch(reportError); else if (d.file_url && /^https?:\/\//i.test(d.file_url)) window.open(d.file_url, '_blank', 'noopener,noreferrer'); }}><Icon name="fileText" size={16} /></Button>}{d.comply_certificate_id && <Button variant="ghost" asChild><a href="/complyos/vault">ComplyOS</a></Button>}
-                    <Button type="button" onClick={() => { void remove(d.id).catch(reportError); }} title="Remove" aria-label="Remove" style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink3)', padding: 4 }} data-ui-native-button="">
+                    <Button type="button" onClick={() => { void remove(d.id).catch(reportError); }} title="Remove" aria-label="Remove" style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink3)', padding: "var(--action-py) var(--space-md)" }} data-ui-native-button="">
                       <Icon name="close" size={14} />
                     </Button>
                   </td>

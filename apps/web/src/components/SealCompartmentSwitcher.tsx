@@ -128,7 +128,7 @@ export function SealCompartmentSwitcher({ collapsed }: Props) {
               type="button"
               style={{
                 background: isOpen ? 'var(--teal-l)' : 'none', border: 'none', borderRadius: 'var(--r)',
-                cursor: 'pointer', padding: 6, display: 'flex', alignItems: 'center', justifyContent: 'center',
+                cursor: 'pointer', padding: "var(--action-py) var(--space-md)", display: 'flex', alignItems: 'center', justifyContent: 'center',
               }}
               title="Warehouse Selection Menu"
              data-ui-native-button="">
@@ -162,7 +162,7 @@ export function SealCompartmentSwitcher({ collapsed }: Props) {
           <button
             type="button"
             style={{
-              width: '100%', height: 42, padding: '0 12px', fontSize: 13, fontWeight: 600,
+              width: '100%', height: "var(--action-h)", padding: '0 12px', fontSize: "var(--text-base)", fontWeight: 600,
               background: 'var(--white)', border: isOpen ? '1.5px solid var(--seal)' : '1px solid var(--border)',
               borderRadius: 'var(--r)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', cursor: 'pointer',
             }}

@@ -876,7 +876,7 @@ export const Tracker: React.FC = () => {
               <div style={{ position: 'absolute', left: 14, top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none', zIndex: 1 }}>
                 <Icon name={trackType === 'AWB' ? 'compass' : trackType === 'CONTAINER' ? 'container' : 'anchor'} size={18} color="var(--ink3)" />
               </div>
-              <input
+              <input data-ui-field="input"
                 type="text"
                 value={inputNumber}
                 onChange={e => handleInput(e.target.value)}
@@ -887,9 +887,9 @@ export const Tracker: React.FC = () => {
                 aria-label={`Track by ${trackType === 'AWB' ? 'air waybill' : trackType === 'CONTAINER' ? 'container number' : 'bill of lading'}`}
                 className="tr-input"
                 style={{
-                  width: '100%', height: 50, paddingLeft: 46, paddingRight: 14,
+                  width: '100%', height: "var(--ctl-h)", paddingLeft: 46, paddingRight: "var(--space-md)",
                   border: '1.5px solid var(--border)', borderRadius: 'var(--r)',
-                  fontFamily: 'var(--font)', fontSize: 15, fontWeight: 700,
+                  fontFamily: 'var(--font)', fontSize: "var(--text-base)", fontWeight: 700,
                   background: 'var(--bg)', color: 'var(--ink)',
                   boxSizing: 'border-box', outline: 'none',
                 }}
@@ -1082,7 +1082,7 @@ export const Tracker: React.FC = () => {
                 <button
                   type="button"
                   onClick={() => { setResult(null); setContainerModel(null); setError(null); setSavedId(null); setInputNumber(''); }}
-                  style={{ height: 28, padding: '0 10px', borderRadius: 'var(--r)', border: '1px solid rgba(255,255,255,.15)', background: 'rgba(255,255,255,.06)', color: 'rgba(255,255,255,.7)', fontSize: 10, fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 5, letterSpacing: '.04em', textTransform: 'uppercase' }}
+                  style={{ height: "var(--action-h)", padding: '0 10px', borderRadius: 'var(--r)', border: '1px solid rgba(255,255,255,.15)', background: 'rgba(255,255,255,.06)', color: 'rgba(255,255,255,.7)', fontSize: "var(--text-xs)", fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 5, letterSpacing: '.04em', textTransform: 'uppercase' }}
                   onMouseEnter={e => (e.currentTarget.style.background = 'rgba(255,255,255,.12)')}
                   onMouseLeave={e => (e.currentTarget.style.background = 'rgba(255,255,255,.06)')}
                  data-ui-native-button="">

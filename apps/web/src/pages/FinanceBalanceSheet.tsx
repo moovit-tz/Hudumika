@@ -173,7 +173,7 @@ export const FinanceBalanceSheet: React.FC = () => {
 
         <MetricsRow cards={[
           {
-            title: 'Total Assets', value: fmt(totalAssets), icon: 'layers',
+            emphasis: 'primary', title: 'Total Assets', value: fmt(totalAssets), icon: 'layers',
             sub1Label: 'CURRENT', sub1Value: fmt(currentAssets),
             sub2Label: 'NON-CURRENT', sub2Value: fmt(nonCurrentAssets), barHighlight: 'var(--teal)',
           },

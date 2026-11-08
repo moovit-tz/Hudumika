@@ -321,7 +321,7 @@ export const ProjectCreateModal: React.FC<Props> = ({
             <Icon name="wand" size={13} color="var(--teal)" /> Quick Blueprint:
           </span>
           {PROJECT_BLUEPRINTS.map(bp => (
-            <button
+            <button data-ui-native-button=""
               key={bp.id}
               type="button"
               className={`pcp-blueprint-pill${activeBlueprint === bp.id ? ' is-active' : ''}`}
@@ -693,7 +693,7 @@ export const ProjectCreateModal: React.FC<Props> = ({
                 {QUICK_TAGS.map(qt => {
                   const active = parsedTags.some(t => t.toLowerCase() === qt.toLowerCase());
                   return (
-                    <button
+                    <button data-ui-native-button=""
                       key={qt}
                       type="button"
                       className={`pcp-tag-btn${active ? ' is-selected' : ''}`}

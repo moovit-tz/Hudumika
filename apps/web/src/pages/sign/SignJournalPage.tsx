@@ -281,7 +281,7 @@ export function SignJournalPage() {
                                   {entry.anchor_hash.slice(0, 10)}…{entry.anchor_hash.slice(-6)}
                                 </code>
                                 <button type="button" onClick={() => copyToClipboard(entry.anchor_hash!, entry.event_id)}
-                                  style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink3)', padding: 2 }} title="Copy SHA-256 Hash" data-ui-native-button="">
+                                  style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink3)', padding: "var(--action-py) var(--space-md)" }} title="Copy SHA-256 Hash" data-ui-native-button="">
                                   <Icon name={copiedHash === entry.event_id ? 'check' : 'copy'} size={13} style={{ color: copiedHash === entry.event_id ? 'var(--green)' : undefined }} />
                                 </button>
                               </div>
@@ -297,7 +297,7 @@ export function SignJournalPage() {
                           <td style={{ textAlign: 'right', whiteSpace: 'nowrap' }}>
                             {entry.event_type !== 'journal_correction' && (
                               <Button variant="ghost" size="default" onClick={() => { setSelectedEvent(entry); setCorrectionNote(''); }}
-                                style={{ fontSize: 12, height: 28, gap: 4 }}>
+                                style={{ fontSize: "var(--text-base)", height: "var(--action-h)", gap: 4 }}>
                                 <Icon name="edit" size={12} /> Add Correction
                               </Button>
                             )}

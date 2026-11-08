@@ -81,17 +81,17 @@ function OfficerMentionInput({
             <>
               <PersonAvatar userId={value.id} name={value.name} size={22} />
               <span style={{ fontSize: 13, color: 'var(--ink)', flex: 1, fontWeight: 600 }}>{value.name}</span>
-              <button type="button" onClick={clear} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink3)', fontSize: 15, padding: '0 2px', lineHeight: 1, flexShrink: 0 }} data-ui-native-button="">×</button>
+              <button type="button" onClick={clear} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink3)', fontSize: "var(--text-base)", padding: '0 2px', lineHeight: 1, flexShrink: 0 }} data-ui-native-button="">×</button>
             </>
           ) : (
-            <input
+            <input data-field-appearance="bare" data-ui-field="input"
               ref={inputRef}
               type="text"
               placeholder="Type @ to search staff…"
               value={query}
               onChange={e => { setQuery(e.target.value); setOpen(true); }}
               onFocus={() => setOpen(true)}
-              style={{ border: 'none', outline: 'none', fontSize: 13, color: 'var(--ink)', background: 'transparent', flex: 1, fontFamily: 'var(--font)', padding: 0 }}
+              style={{ border: 'none', outline: 'none', fontSize: "var(--text-base)", color: 'var(--ink)', background: 'transparent', flex: 1, fontFamily: 'var(--font)', padding: 0 }}
             />
           )}
         </div>
@@ -675,7 +675,7 @@ export const CommandCenter: React.FC = () => {
     );
 
     return clickable ? (
-      <button
+      <button data-ui-native-button=""
         key={cell.key}
         type="button"
         className={cls}
@@ -693,7 +693,7 @@ export const CommandCenter: React.FC = () => {
   const fld = (label: string, value: string, onChange: (v: string) => void, rest?: any) => (
     <div className="cc-fld">
       <label>{label}</label>
-      <input type="text" className="input-field" value={value} onChange={(e) => onChange(e.target.value)} {...rest} />
+      <input data-ui-field="input" type="text" className="input-field" value={value} onChange={(e) => onChange(e.target.value)} {...rest} />
     </div>
   );
 
@@ -721,7 +721,7 @@ export const CommandCenter: React.FC = () => {
                 type="button"
                 onClick={() => setExpanded(!expanded)}
                 title={expanded ? 'Collapse summary' : 'Expand summary'}
-                style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 4, display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--ink3)' }}
+                style={{ background: 'none', border: 'none', cursor: 'pointer', padding: "var(--action-py) var(--space-md)", display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--ink3)' }}
                data-ui-native-button="">
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                   {expanded ? <polyline points="6 9 12 15 18 9"></polyline> : <polyline points="18 15 12 9 6 15"></polyline>}
@@ -852,7 +852,7 @@ export const CommandCenter: React.FC = () => {
                       isn't in the current view. */}
                   <div className="cc-search" role="search">
                     <Icon name="search" size={13} />
-                    <input
+                    <input data-ui-field="input"
                       type="text"
                       value={searchQuery}
                       onChange={(e) => setSearchQuery(e.target.value)}
@@ -1030,7 +1030,7 @@ export const CommandCenter: React.FC = () => {
             {!loading && hasMore && pagination && (
               <div style={{ padding: '8px 16px', margin: '8px 0', background: 'var(--gold-l, #fffbeb)', border: '1px solid var(--gold, #f59e0b)', borderRadius: 'var(--r-sm, 6px)', fontSize: '12px', color: 'var(--ink)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '12px' }}>
                 <span>Showing {groupedShipments.reduce((sum: number, g: any) => sum + (g.shipment_count || g.shipments?.length || 0), 0)} of {pagination.total} matching shipments.</span>
-                <button onClick={loadMore} disabled={loadingMore} style={{ padding: '4px 12px', fontSize: '12px', borderRadius: 'var(--r-sm, 6px)', border: '1px solid var(--gold, #f59e0b)', background: 'var(--white, #fff)', cursor: loadingMore ? 'wait' : 'pointer', whiteSpace: 'nowrap' }}>
+                <button data-ui-native-button="" onClick={loadMore} disabled={loadingMore} style={{ padding: "var(--action-py) var(--space-md)", fontSize: "var(--text-base)", borderRadius: 'var(--r-sm, 6px)', border: '1px solid var(--gold, #f59e0b)', background: 'var(--white, #fff)', cursor: loadingMore ? 'wait' : 'pointer', whiteSpace: 'nowrap' }}>
                   {loadingMore ? 'Loading…' : 'Load more'}
                 </button>
               </div>

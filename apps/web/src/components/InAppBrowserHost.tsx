@@ -142,7 +142,7 @@ export function InAppBrowserHost() {
             <span style={{ flex: 1, minWidth: 0, fontWeight: 500 }}>
               Viewing inside Hudumika. External portals (like WP-Admin or Webmail) may block in-app frames.
             </span>
-            <button type="button" onClick={openNative} style={{ ...iconBtn, width: 'auto', height: 'var(--ctl-h-xs)', padding: '0 10px', fontSize: 11.5, fontWeight: 600 }} data-ui-native-button="">
+            <button type="button" onClick={openNative} style={{ ...iconBtn, width: 'auto', height: 'var(--ctl-h-xs)', padding: '0 10px', fontSize: "var(--text-base)", fontWeight: 600 }} data-ui-native-button="">
               Open in new tab ↗
             </button>
           </div>

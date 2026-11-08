@@ -147,21 +147,21 @@ export function SealReceiveLot() {
           </div>
           <div className="seal-field-row">
             <label className="seal-field-label">Batch / lot reference (optional)</label>
-            <input className="input-field" value={batch} onChange={e=>setBatch(e.target.value)} />
+            <input data-ui-field="input" className="input-field" value={batch} onChange={e=>setBatch(e.target.value)} />
           </div>
           <div className="seal-field-row">
             <label className="seal-field-label">Description</label>
-            <input type="text" className="input-field" value={description} onChange={e => setDescription(e.target.value)} placeholder="e.g. Steel Reinforcement Bars (Rebar), 12mm" />
+            <input data-ui-field="input" type="text" className="input-field" value={description} onChange={e => setDescription(e.target.value)} placeholder="e.g. Steel Reinforcement Bars (Rebar), 12mm" />
           </div>
 
           <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: 14 }}>
             <div className="seal-field-row">
               <label className="seal-field-label">HS Code</label>
-              <input type="text" className="input-field" value={hsCode} onChange={e => setHsCode(e.target.value)} placeholder="e.g. 7214.20" />
+              <input data-ui-field="input" type="text" className="input-field" value={hsCode} onChange={e => setHsCode(e.target.value)} placeholder="e.g. 7214.20" />
             </div>
             <div className="seal-field-row">
               <label className="seal-field-label">Country of Origin</label>
-              <input type="text" className="input-field" value={countryOfOrigin} onChange={e => setCountryOfOrigin(e.target.value)} placeholder="e.g. CN" maxLength={2} />
+              <input data-ui-field="input" type="text" className="input-field" value={countryOfOrigin} onChange={e => setCountryOfOrigin(e.target.value)} placeholder="e.g. CN" maxLength={2} />
             </div>
           </div>
 
@@ -178,7 +178,7 @@ export function SealReceiveLot() {
           {customsStatus === 'FOREIGN_DUTY_SUSPENDED' && (
             <div className="seal-field-row">
               <label className="seal-field-label">Warehousing Entry Reference</label>
-              <input type="text" className="input-field" value={entryReference} onChange={e => setEntryReference(e.target.value)} placeholder="e.g. WH-2026-000412" />
+              <input data-ui-field="input" type="text" className="input-field" value={entryReference} onChange={e => setEntryReference(e.target.value)} placeholder="e.g. WH-2026-000412" />
             </div>
           )}
 
@@ -195,40 +195,40 @@ export function SealReceiveLot() {
           {isSortingCentre && (
             <div className="seal-field-row">
               <label className="seal-field-label" title="Where this parcel is headed next — a city, hub code, or route reference">Destination</label>
-              <input type="text" className="input-field" value={destinationLabel} onChange={e => setDestinationLabel(e.target.value)} placeholder="e.g. Arusha Hub / Route 12" />
+              <input data-ui-field="input" type="text" className="input-field" value={destinationLabel} onChange={e => setDestinationLabel(e.target.value)} placeholder="e.g. Arusha Hub / Route 12" />
             </div>
           )}
 
           <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '2fr 1fr', gap: 14 }}>
             <div className="seal-field-row">
               <label className="seal-field-label">Quantity</label>
-              <input type="number" min="0" step="any" className="input-field" value={qty} onChange={e => setQty(e.target.value)} placeholder="0" />
+              <input data-ui-field="input" type="number" min="0" step="any" className="input-field" value={qty} onChange={e => setQty(e.target.value)} placeholder="0" />
             </div>
             <div className="seal-field-row">
               <label className="seal-field-label">UOM</label>
-              <input type="text" className="input-field" value={uom} onChange={e => setUom(e.target.value)} placeholder="PCS" />
+              <input data-ui-field="input" type="text" className="input-field" value={uom} onChange={e => setUom(e.target.value)} placeholder="PCS" />
             </div>
           </div>
 
           <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: 14 }}>
             <div className="seal-field-row">
               <label className="seal-field-label" title="Used to bill storage per-CBM if this compartment's billing method is set that way">Volume (CBM, optional)</label>
-              <input type="number" min="0" step="any" className="input-field" value={volumeCbm} onChange={e => setVolumeCbm(e.target.value)} placeholder="0.00" />
+              <input data-ui-field="input" type="number" min="0" step="any" className="input-field" value={volumeCbm} onChange={e => setVolumeCbm(e.target.value)} placeholder="0.00" />
             </div>
             <div className="seal-field-row">
               <label className="seal-field-label">Gross Weight (kg, optional)</label>
-              <input type="number" min="0" step="any" className="input-field" value={grossWeightKg} onChange={e => setGrossWeightKg(e.target.value)} placeholder="0.00" />
+              <input data-ui-field="input" type="number" min="0" step="any" className="input-field" value={grossWeightKg} onChange={e => setGrossWeightKg(e.target.value)} placeholder="0.00" />
             </div>
           </div>
 
           <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '2fr 1fr', gap: 14 }}>
             <div className="seal-field-row">
               <label className="seal-field-label">Customs Value (optional)</label>
-              <input type="number" min="0" step="any" className="input-field" value={customsValue} onChange={e => setCustomsValue(e.target.value)} placeholder="0.00" />
+              <input data-ui-field="input" type="number" min="0" step="any" className="input-field" value={customsValue} onChange={e => setCustomsValue(e.target.value)} placeholder="0.00" />
             </div>
             <div className="seal-field-row">
               <label className="seal-field-label">Currency</label>
-              <input type="text" className="input-field" value={currency} onChange={e => setCurrency(e.target.value.toUpperCase())} maxLength={3} />
+              <input data-ui-field="input" type="text" className="input-field" value={currency} onChange={e => setCurrency(e.target.value.toUpperCase())} maxLength={3} />
             </div>
           </div>
 
@@ -236,11 +236,11 @@ export function SealReceiveLot() {
             <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: 14 }}>
               <div className="seal-field-row">
                 <label className="seal-field-label" title="Manual estimate — the duty engine is a future increment">Duty at Risk (optional, manual)</label>
-                <input type="number" min="0" step="any" className="input-field" value={dutyAtRisk} onChange={e => setDutyAtRisk(e.target.value)} placeholder="0.00" />
+                <input data-ui-field="input" type="number" min="0" step="any" className="input-field" value={dutyAtRisk} onChange={e => setDutyAtRisk(e.target.value)} placeholder="0.00" />
               </div>
               <div className="seal-field-row">
                 <label className="seal-field-label" title="Manual estimate — the duty engine is a future increment">Tax at Risk (optional, manual)</label>
-                <input type="number" min="0" step="any" className="input-field" value={taxAtRisk} onChange={e => setTaxAtRisk(e.target.value)} placeholder="0.00" />
+                <input data-ui-field="input" type="number" min="0" step="any" className="input-field" value={taxAtRisk} onChange={e => setTaxAtRisk(e.target.value)} placeholder="0.00" />
               </div>
             </div>
           )}
@@ -248,7 +248,7 @@ export function SealReceiveLot() {
           {customsStatus === 'FOREIGN_DUTY_SUSPENDED' && (dutyAtRisk || taxAtRisk) && (
             <div className="seal-field-row">
               <label className="seal-field-label">Bond Override Reason (only used if headroom is exceeded)</label>
-              <input type="text" className="input-field" value={bondOverrideReason} onChange={e => setBondOverrideReason(e.target.value)} placeholder="Leave blank unless you intend to override a headroom block" />
+              <input data-ui-field="input" type="text" className="input-field" value={bondOverrideReason} onChange={e => setBondOverrideReason(e.target.value)} placeholder="Leave blank unless you intend to override a headroom block" />
             </div>
           )}
 
@@ -274,11 +274,11 @@ export function SealReceiveLot() {
               <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: 14 }}>
                 <div className="seal-field-row">
                   <label className="seal-field-label">UN Number</label>
-                  <input type="text" className="input-field" value={unNumber} onChange={e => setUnNumber(e.target.value)} placeholder="e.g. UN1993" />
+                  <input data-ui-field="input" type="text" className="input-field" value={unNumber} onChange={e => setUnNumber(e.target.value)} placeholder="e.g. UN1993" />
                 </div>
                 <div className="seal-field-row">
                   <label className="seal-field-label">IMDG Class</label>
-                  <input type="text" className="input-field" value={imdgClass} onChange={e => setImdgClass(e.target.value)} placeholder="e.g. 3" title="Placement checks segregation against other DG lots already at the chosen location" />
+                  <input data-ui-field="input" type="text" className="input-field" value={imdgClass} onChange={e => setImdgClass(e.target.value)} placeholder="e.g. 3" title="Placement checks segregation against other DG lots already at the chosen location" />
                 </div>
               </div>
             )}
@@ -289,7 +289,7 @@ export function SealReceiveLot() {
             {requiresReefer && (
               <div className="seal-field-row" style={{ maxWidth: 200 }}>
                 <label className="seal-field-label">Setpoint (°C)</label>
-                <input type="number" step="any" className="input-field" value={reeferSetpointC} onChange={e => setReeferSetpointC(e.target.value)} placeholder="-18" />
+                <input data-ui-field="input" type="number" step="any" className="input-field" value={reeferSetpointC} onChange={e => setReeferSetpointC(e.target.value)} placeholder="-18" />
               </div>
             )}
           </div>

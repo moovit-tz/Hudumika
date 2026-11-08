@@ -359,3 +359,34 @@
   [data-finops] .mc-sub-label { font-size:9px; }
   [data-finops] .mc-sub-value { white-space:normal; font-size:11px; overflow-wrap:anywhere; }
 }
+/* FinOps-only premium emphasis. Other apps retain their existing metric styles. */
+[data-finops] :is(.mc-card[data-emphasis="primary"]:not([aria-busy="true"]):not(:has(.mc-error)), [data-finops-accent]) {
+  --fin-metric-fg: hsl(var(--primary-foreground));
+  --foreground: var(--primary-foreground);
+  --muted-foreground: var(--primary-foreground);
+  --card-foreground: var(--primary-foreground);
+  --color-foreground: var(--fin-metric-fg);
+  --color-muted-foreground: var(--fin-metric-fg);
+  --color-card-foreground: var(--fin-metric-fg);
+  --card-bg: hsl(var(--primary));
+  --ink: var(--fin-metric-fg);
+  --ink2: var(--fin-metric-fg);
+  --ink3: var(--fin-metric-fg);
+  --teal: var(--fin-metric-fg);
+  --teal-l: color-mix(in srgb, var(--fin-metric-fg) 12%, transparent);
+  --border: color-mix(in srgb, var(--fin-metric-fg) 20%, transparent);
+  --card-sunken: color-mix(in srgb, var(--fin-metric-fg) 16%, transparent);
+  background: hsl(var(--primary));
+  color: var(--fin-metric-fg);
+  border-color: var(--border) !important;
+  box-shadow: var(--elev-sm);
+}
+[data-finops] .mc-card[data-emphasis="primary"] .icon-chip.is-primary {
+  background: var(--teal-l); color: var(--fin-metric-fg);
+}
+[data-finops] .mc-card[data-emphasis="primary"] .mc-progress-track { background: var(--card-sunken); }
+[data-finops] .mc-card[data-emphasis="primary"] .mc-trend {
+  background: var(--white);
+}
+[data-finops] :is(.mc-card[data-emphasis="primary"], [data-finops-accent]):focus-visible { outline: 2px solid hsl(var(--primary)); outline-offset: var(--space-xs); }
+[data-finops] .mc-card .mc-value { font-size: clamp(20px, 2vw, 28px); min-width: 0; white-space: normal; overflow-wrap: anywhere; }

@@ -185,7 +185,7 @@ export const CarrierSelect: React.FC<CarrierSelectProps> = ({
                 color="var(--ink3)"
                 className="absolute left-2.5 top-1/2 -translate-y-1/2 pointer-events-none"
               />
-              <input
+              <input data-ui-field="input"
                 type="text"
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}

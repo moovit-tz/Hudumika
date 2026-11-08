@@ -106,8 +106,8 @@ export function CMSNavigation() {
         <div className="card" style={{ padding: '18px 20px', marginBottom: 18, display: 'flex', flexDirection: 'column', gap: 12 }}>
           <div style={{ fontWeight: 700, fontSize: 14, color: 'var(--ink)' }}>Add a menu item</div>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))', gap: 10 }}>
-            <input className="input-field" placeholder="Label — e.g. About" value={form.label} onChange={e => setForm(f => ({ ...f, label: e.target.value }))} />
-            <input className="input-field" placeholder="Target — e.g. /about, https://…" value={form.target} onChange={e => setForm(f => ({ ...f, target: e.target.value }))} />
+            <input data-ui-field="input" className="input-field" placeholder="Label — e.g. About" value={form.label} onChange={e => setForm(f => ({ ...f, label: e.target.value }))} />
+            <input data-ui-field="input" className="input-field" placeholder="Target — e.g. /about, https://…" value={form.target} onChange={e => setForm(f => ({ ...f, target: e.target.value }))} />
           </div>
           <Select value={form.parent_id} onValueChange={v => setForm(f => ({ ...f, parent_id: v }))}>
             <SelectTrigger className="input-field"><SelectValue placeholder="Top-level item" /></SelectTrigger>

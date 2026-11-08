@@ -82,12 +82,12 @@ export function StepGoal({ draft, update, onNext }: StepProps) {
 
         {/* Search input with icon and clear button */}
         <div style={{ position: 'relative', marginBottom: 14 }}>
-          <input
+          <input data-ui-field="input"
             className="input-field"
             value={query}
             onChange={e => setQuery(e.target.value)}
             placeholder="e.g. coal, cashewnuts, coffee, business licence, port clearance, medical devices…"
-            style={{ width: '100%', boxSizing: 'border-box', height: 46, paddingLeft: 40, paddingRight: query ? 36 : 14, fontSize: 14 }}
+            style={{ width: '100%', boxSizing: 'border-box', height: "var(--ctl-h)", paddingLeft: 40, paddingRight: query ? 36 : 14, fontSize: "var(--text-base)" }}
             autoFocus
           />
           <Icon name="search" size={16} color="var(--ink3)" style={{ position: 'absolute', left: 14, top: '50%', transform: 'translateY(-50%)' }} />
@@ -95,7 +95,7 @@ export function StepGoal({ draft, update, onNext }: StepProps) {
             <button
               type="button"
               onClick={() => setQuery('')}
-              style={{ position: 'absolute', right: 12, top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink3)', padding: 4, display: 'flex', alignItems: 'center' }}
+              style={{ position: 'absolute', right: 12, top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink3)', padding: "var(--action-py) var(--space-md)", display: 'flex', alignItems: 'center' }}
              data-ui-native-button="">
               <Icon name="close" size={14} color="var(--ink3)" />
             </button>
@@ -116,8 +116,8 @@ export function StepGoal({ draft, update, onNext }: StepProps) {
                 onClick={() => update({ kind: tab.value === 'ALL' ? null : tab.value })}
                 style={{
                   padding: 'var(--ds-btn-py-sm) 14px',
-                  borderRadius: 20,
-                  fontSize: 13,
+                  borderRadius: "var(--r-sm)",
+                  fontSize: "var(--text-base)",
                   fontWeight: isActive ? 700 : 500,
                   cursor: 'pointer',
                   border: `1.5px solid ${isActive ? 'var(--teal)' : 'var(--border)'}`,
@@ -214,7 +214,7 @@ export function StepGoal({ draft, update, onNext }: StepProps) {
                   border: '1px solid var(--border)',
                   background: 'var(--card-bg, var(--white))',
                   color: currentPage === 1 ? 'var(--ink3)' : 'var(--ink)',
-                  fontSize: 13,
+                  fontSize: "var(--text-base)",
                   fontWeight: 600,
                   cursor: currentPage === 1 ? 'default' : 'pointer',
                   display: 'flex',
@@ -238,13 +238,13 @@ export function StepGoal({ draft, update, onNext }: StepProps) {
                     type="button"
                     onClick={() => setPage(pNum)}
                     style={{
-                      width: 30,
-                      height: 30,
+                      width: "var(--ctl-h)",
+                      height: "var(--ctl-h)",
                       borderRadius: 'var(--r)',
                       border: `1px solid ${isSelected ? 'var(--teal)' : 'var(--border)'}`,
                       background: isSelected ? 'var(--teal)' : 'var(--card-bg, var(--white))',
                       color: isSelected ? '#ffffff' : 'var(--ink)',
-                      fontSize: 12,
+                      fontSize: "var(--text-base)",
                       fontWeight: isSelected ? 700 : 500,
                       cursor: 'pointer'
                     }}
@@ -264,7 +264,7 @@ export function StepGoal({ draft, update, onNext }: StepProps) {
                   border: '1px solid var(--border)',
                   background: 'var(--card-bg, var(--white))',
                   color: currentPage >= totalPages ? 'var(--ink3)' : 'var(--ink)',
-                  fontSize: 13,
+                  fontSize: "var(--text-base)",
                   fontWeight: 600,
                   cursor: currentPage >= totalPages ? 'default' : 'pointer',
                   display: 'flex',

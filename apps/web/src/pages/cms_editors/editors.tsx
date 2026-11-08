@@ -133,7 +133,7 @@ export function PostEditor({
       {/* Top action header */}
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 20px', borderBottom: '1px solid var(--border)', background: 'var(--white)', flexShrink: 0, flexWrap: 'wrap', rowGap: 8 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
-          <button onClick={onCancel} style={{ display: 'flex', alignItems: 'center', gap: 6, background: 'none', border: 'none', cursor: 'pointer', fontSize: 13, color: 'var(--ink3)', fontFamily: 'var(--font)' }} data-ui-native-button="">
+          <button onClick={onCancel} style={{ display: 'flex', alignItems: 'center', gap: 6, background: 'none', border: 'none', cursor: 'pointer', fontSize: "var(--text-base)", color: 'var(--ink3)', fontFamily: 'var(--font)' }} data-ui-native-button="">
             <Icon name="arrowLeft" size={14} /> Back to Posts
           </button>
           {form.id && autosaveState !== 'idle' && (
@@ -145,9 +145,9 @@ export function PostEditor({
         </div>
         <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
           {form.status === 'scheduled' && (
-            <input type="datetime-local" value={toLocalInput(form.publish_at ?? null)}
+            <input data-ui-field="input" type="datetime-local" value={toLocalInput(form.publish_at ?? null)}
               onChange={e => set('publish_at', e.target.value ? new Date(e.target.value).toISOString() : null)}
-              className="input-field" style={{ fontSize: 12 }} />
+              className="input-field" style={{ fontSize: "var(--text-base)" }} />
           )}
           {form.id && (
             <>
@@ -235,9 +235,9 @@ export function PostEditor({
       {/* Editor & Sidebar layout */}
       <div style={{ flex: 1, display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 280px', overflow: isMobile ? 'auto' : 'hidden' }}>
         <div style={{ padding: '24px 28px', overflowY: isMobile ? 'visible' : 'auto', display: 'flex', flexDirection: 'column', gap: 14 }}>
-          <input value={form.title || ''} onChange={e => set('title', e.target.value)} placeholder="Add title"
-            style={{ fontSize: 26, fontWeight: 700, border: 'none', borderBottom: '2px solid var(--border)', padding: '6px 0', outline: 'none', background: 'transparent', fontFamily: 'var(--font)', color: 'var(--ink)', width: '100%' }} />
-          <FL label="Slug (leave blank to auto-generate)"><input value={form.slug || ''} onChange={e => set('slug', e.target.value)} placeholder="auto" className="input-field" style={{ fontFamily: 'var(--font)', fontSize: 12.5 }} /></FL>
+          <input data-field-appearance="bare" data-ui-field="input" value={form.title || ''} onChange={e => set('title', e.target.value)} placeholder="Add title"
+            style={{ fontSize: "var(--text-base)", fontWeight: 700, border: 'none', borderBottom: '2px solid var(--border)', padding: "var(--ds-input-py) var(--space-md)", outline: 'none', background: 'transparent', fontFamily: 'var(--font)', color: 'var(--ink)', width: '100%' }} />
+          <FL label="Slug (leave blank to auto-generate)"><input data-ui-field="input" value={form.slug || ''} onChange={e => set('slug', e.target.value)} placeholder="auto" className="input-field" style={{ fontFamily: 'var(--font)', fontSize: "var(--text-base)" }} /></FL>
           <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
             <Tabs value={contentView} onValueChange={v => setContentView(v as 'edit' | 'preview')} variant="segmented">
               <TabsList>
@@ -256,7 +256,7 @@ export function PostEditor({
         <div style={{ borderLeft: isMobile ? 'none' : '1px solid var(--border)', borderTop: isMobile ? '1px solid var(--border)' : 'none', overflowY: isMobile ? 'visible' : 'auto', background: 'var(--bg)', padding: '16px 14px', display: 'flex', flexDirection: 'column', gap: 14 }}>
           <FL label="Status & Workflow">
             <Select value={form.status} onValueChange={v => set('status', v)}>
-              <SelectTrigger className="input-field" style={{ fontSize: 12 }}><SelectValue /></SelectTrigger>
+              <SelectTrigger className="input-field" style={{ fontSize: "var(--text-base)" }}><SelectValue /></SelectTrigger>
               <SelectContent>
                 {workflowStates.length > 0 ? (
                   workflowStates.map(ws => (
@@ -281,7 +281,7 @@ export function PostEditor({
           {sites.length > 1 && (
             <FL label="Site Channel">
               <Select value={form.site_id || 'all'} onValueChange={v => set('site_id', v === 'all' ? null : v)}>
-                <SelectTrigger className="input-field" style={{ fontSize: 12 }}><SelectValue placeholder="All Sites" /></SelectTrigger>
+                <SelectTrigger className="input-field" style={{ fontSize: "var(--text-base)" }}><SelectValue placeholder="All Sites" /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">All Sites (Global)</SelectItem>
                   {sites.map(s => (
@@ -294,7 +294,7 @@ export function PostEditor({
 
           <FL label="Language / Locale">
             <Select value={form.locale || 'en'} onValueChange={v => set('locale', v)}>
-              <SelectTrigger className="input-field" style={{ fontSize: 12 }}><SelectValue /></SelectTrigger>
+              <SelectTrigger className="input-field" style={{ fontSize: "var(--text-base)" }}><SelectValue /></SelectTrigger>
               <SelectContent>
                 {SUPPORTED_LOCALES.map(l => (
                   <SelectItem key={l.code} value={l.code}>{l.flag} {l.name}</SelectItem>
@@ -303,11 +303,11 @@ export function PostEditor({
             </Select>
           </FL>
 
-          <FL label="Author"><input value={form.author || ''} onChange={e => set('author', e.target.value)} className="input-field" style={{ fontSize: 12 }} /></FL>
-          <FL label="Category"><input value={form.category || ''} onChange={e => set('category', e.target.value)} placeholder="e.g. Updates" className="input-field" style={{ fontSize: 12 }} /></FL>
+          <FL label="Author"><input data-ui-field="input" value={form.author || ''} onChange={e => set('author', e.target.value)} className="input-field" style={{ fontSize: "var(--text-base)" }} /></FL>
+          <FL label="Category"><input data-ui-field="input" value={form.category || ''} onChange={e => set('category', e.target.value)} placeholder="e.g. Updates" className="input-field" style={{ fontSize: "var(--text-base)" }} /></FL>
           <FL label="Tags">
             <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
-              <input value={form.tags || ''} onChange={e => set('tags', e.target.value)} placeholder="comma, separated" className="input-field" style={{ fontSize: 12, flex: 1 }} />
+              <input data-ui-field="input" value={form.tags || ''} onChange={e => set('tags', e.target.value)} placeholder="comma, separated" className="input-field" style={{ fontSize: "var(--text-base)", flex: 1 }} />
               <button type="button" className="btn btn-secondary btn-sm" disabled={!form.content?.trim() || aiTagsLoading} onClick={handleAiTags} style={{ flexShrink: 0, display: 'inline-flex', alignItems: 'center', gap: 4 }} data-ui-native-button="">
                 <Icon name="sparkle" size={12} /> {aiTagsLoading ? 'Thinking…' : 'Suggest'}
               </button>
@@ -317,14 +317,14 @@ export function PostEditor({
           <div style={{ borderTop: '1px solid var(--border)', paddingTop: 14, display: 'flex', flexDirection: 'column', gap: 14 }}>
             <div style={{ fontSize: 11.5, fontWeight: 700, color: 'var(--ink2)', textTransform: 'uppercase', letterSpacing: '.04em' }}>SEO &amp; sharing</div>
             <FL label="SEO description">
-              <textarea value={form.seo_description || ''} onChange={e => set('seo_description', e.target.value)} placeholder="Shown in search results and social previews…" rows={2} maxLength={500}
-                className="input-field" style={{ fontSize: 12, lineHeight: 1.5, resize: 'vertical', width: '100%', boxSizing: 'border-box' }} />
+              <textarea data-ui-field="textarea" value={form.seo_description || ''} onChange={e => set('seo_description', e.target.value)} placeholder="Shown in search results and social previews…" rows={2} maxLength={500}
+                className="input-field" style={{ fontSize: "var(--text-base)", lineHeight: 1.5, resize: 'vertical', width: '100%', boxSizing: 'border-box' }} />
               <button type="button" className="btn btn-secondary btn-sm" disabled={!form.content?.trim() || aiSeoLoading} onClick={handleAiSeo} style={{ marginTop: 6, display: 'inline-flex', alignItems: 'center', gap: 4 }} data-ui-native-button="">
                 <Icon name="sparkle" size={12} /> {aiSeoLoading ? 'Generating…' : 'Generate with AI'}
               </button>
             </FL>
-            <FL label="Canonical URL (optional)"><input value={form.canonical_url || ''} onChange={e => set('canonical_url', e.target.value)} placeholder="https://…" className="input-field" style={{ fontSize: 12 }} /></FL>
-            <FL label="Social share image (optional)"><input value={form.og_image || ''} onChange={e => set('og_image', e.target.value)} placeholder="https://…" className="input-field" style={{ fontSize: 12 }} /></FL>
+            <FL label="Canonical URL (optional)"><input data-ui-field="input" value={form.canonical_url || ''} onChange={e => set('canonical_url', e.target.value)} placeholder="https://…" className="input-field" style={{ fontSize: "var(--text-base)" }} /></FL>
+            <FL label="Social share image (optional)"><input data-ui-field="input" value={form.og_image || ''} onChange={e => set('og_image', e.target.value)} placeholder="https://…" className="input-field" style={{ fontSize: "var(--text-base)" }} /></FL>
             <CheckboxRow title="Hide from search engines" description="Adds a noindex tag — the post stays live but won't appear in search results."
               checked={!!form.noindex} onCheckedChange={setNoindex} />
           </div>
@@ -435,7 +435,7 @@ export function PageEditor({
       {/* Top action header */}
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 20px', borderBottom: '1px solid var(--border)', background: 'var(--white)', flexShrink: 0, flexWrap: 'wrap', rowGap: 8 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
-          <button onClick={onCancel} style={{ display: 'flex', alignItems: 'center', gap: 6, background: 'none', border: 'none', cursor: 'pointer', fontSize: 13, color: 'var(--ink3)', fontFamily: 'var(--font)' }} data-ui-native-button="">
+          <button onClick={onCancel} style={{ display: 'flex', alignItems: 'center', gap: 6, background: 'none', border: 'none', cursor: 'pointer', fontSize: "var(--text-base)", color: 'var(--ink3)', fontFamily: 'var(--font)' }} data-ui-native-button="">
             <Icon name="arrowLeft" size={14} /> Back to Pages
           </button>
           {form.id && autosaveState !== 'idle' && (
@@ -447,9 +447,9 @@ export function PageEditor({
         </div>
         <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
           {form.status === 'scheduled' && (
-            <input type="datetime-local" value={toLocalInput(form.publish_at ?? null)}
+            <input data-ui-field="input" type="datetime-local" value={toLocalInput(form.publish_at ?? null)}
               onChange={e => set('publish_at', e.target.value ? new Date(e.target.value).toISOString() : null)}
-              className="input-field" style={{ fontSize: 12 }} />
+              className="input-field" style={{ fontSize: "var(--text-base)" }} />
           )}
           {form.id && (
             <>
@@ -537,12 +537,12 @@ export function PageEditor({
       {/* Editor & Sidebar layout */}
       <div style={{ flex: 1, display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 280px', overflow: isMobile ? 'auto' : 'hidden' }}>
         <div style={{ padding: '24px 28px', display: 'flex', flexDirection: 'column', gap: 14, overflowY: isMobile ? 'visible' : 'auto' }}>
-          <input value={form.title || ''} onChange={e => set('title', e.target.value)} placeholder="Page Title"
-            style={{ fontSize: 24, fontWeight: 700, border: 'none', borderBottom: '2px solid var(--border)', padding: '6px 0', outline: 'none', background: 'transparent', fontFamily: 'var(--font)', color: 'var(--ink)', width: '100%' }} />
-          <FL label="Slug"><input value={form.slug || ''} onChange={e => set('slug', e.target.value)} placeholder="/page-slug" className="input-field" style={{ fontFamily: 'var(--font)', fontSize: 13 }} /></FL>
+          <input data-field-appearance="bare" data-ui-field="input" value={form.title || ''} onChange={e => set('title', e.target.value)} placeholder="Page Title"
+            style={{ fontSize: "var(--text-base)", fontWeight: 700, border: 'none', borderBottom: '2px solid var(--border)', padding: "var(--ds-input-py) var(--space-md)", outline: 'none', background: 'transparent', fontFamily: 'var(--font)', color: 'var(--ink)', width: '100%' }} />
+          <FL label="Slug"><input data-ui-field="input" value={form.slug || ''} onChange={e => set('slug', e.target.value)} placeholder="/page-slug" className="input-field" style={{ fontFamily: 'var(--font)', fontSize: "var(--text-base)" }} /></FL>
           <FL label="Template">
             <Select value={form.template || 'standard'} onValueChange={v => set('template', v)}>
-              <SelectTrigger className="input-field" style={{ fontSize: 13 }}><SelectValue /></SelectTrigger>
+              <SelectTrigger className="input-field" style={{ fontSize: "var(--text-base)" }}><SelectValue /></SelectTrigger>
               <SelectContent>
                 <SelectItem value="standard">Standard — header &amp; nav, normal width</SelectItem>
                 <SelectItem value="full-width">Full width — header &amp; nav, edge-to-edge content</SelectItem>
@@ -551,15 +551,15 @@ export function PageEditor({
             </Select>
           </FL>
           <FL label="SEO description">
-            <textarea value={form.seo_description || ''} onChange={e => set('seo_description', e.target.value)} placeholder="Shown in search results and social previews for this page…" rows={2} maxLength={500}
-              style={{ width: '100%', border: '1px solid var(--border)', borderRadius: 'var(--r)', padding: '8px 11px', fontSize: 13, lineHeight: 1.5, resize: 'vertical', fontFamily: 'var(--font)', color: 'var(--ink)', outline: 'none', boxSizing: 'border-box', background: 'var(--white)' }} />
+            <textarea data-ui-field="textarea" value={form.seo_description || ''} onChange={e => set('seo_description', e.target.value)} placeholder="Shown in search results and social previews for this page…" rows={2} maxLength={500}
+              style={{ width: '100%', border: '1px solid var(--border)', borderRadius: 'var(--r)', padding: "var(--ds-input-py) var(--space-md)", fontSize: "var(--text-base)", lineHeight: 1.5, resize: 'vertical', fontFamily: 'var(--font)', color: 'var(--ink)', outline: 'none', boxSizing: 'border-box', background: 'var(--white)' }} />
             <button type="button" className="btn btn-secondary btn-sm" disabled={!form.content?.trim() || aiSeoLoading} onClick={handleAiSeo} style={{ marginTop: 6, display: 'inline-flex', alignItems: 'center', gap: 4 }} data-ui-native-button="">
               <Icon name="sparkle" size={12} /> {aiSeoLoading ? 'Generating…' : 'Generate with AI'}
             </button>
           </FL>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 14 }}>
-            <FL label="Canonical URL (optional)"><input value={form.canonical_url || ''} onChange={e => set('canonical_url', e.target.value)} placeholder="https://…" className="input-field" style={{ fontSize: 13 }} /></FL>
-            <FL label="Social share image (optional)"><input value={form.og_image || ''} onChange={e => set('og_image', e.target.value)} placeholder="https://…" className="input-field" style={{ fontSize: 13 }} /></FL>
+            <FL label="Canonical URL (optional)"><input data-ui-field="input" value={form.canonical_url || ''} onChange={e => set('canonical_url', e.target.value)} placeholder="https://…" className="input-field" style={{ fontSize: "var(--text-base)" }} /></FL>
+            <FL label="Social share image (optional)"><input data-ui-field="input" value={form.og_image || ''} onChange={e => set('og_image', e.target.value)} placeholder="https://…" className="input-field" style={{ fontSize: "var(--text-base)" }} /></FL>
           </div>
           <CheckboxRow title="Hide from search engines" description="Adds a noindex tag — the page stays live but won't appear in search results."
             checked={!!form.noindex} onCheckedChange={setNoindex} />
@@ -581,7 +581,7 @@ export function PageEditor({
         <div style={{ borderLeft: isMobile ? 'none' : '1px solid var(--border)', borderTop: isMobile ? '1px solid var(--border)' : 'none', overflowY: isMobile ? 'visible' : 'auto', background: 'var(--bg)', padding: '16px 14px', display: 'flex', flexDirection: 'column', gap: 14 }}>
           <FL label="Status & Workflow">
             <Select value={form.status} onValueChange={v => set('status', v)}>
-              <SelectTrigger className="input-field" style={{ fontSize: 12 }}><SelectValue /></SelectTrigger>
+              <SelectTrigger className="input-field" style={{ fontSize: "var(--text-base)" }}><SelectValue /></SelectTrigger>
               <SelectContent>
                 {workflowStates.length > 0 ? (
                   workflowStates.map(ws => (
@@ -606,7 +606,7 @@ export function PageEditor({
           {sites.length > 1 && (
             <FL label="Site Channel">
               <Select value={form.site_id || 'all'} onValueChange={v => set('site_id', v === 'all' ? null : v)}>
-                <SelectTrigger className="input-field" style={{ fontSize: 12 }}><SelectValue placeholder="All Sites" /></SelectTrigger>
+                <SelectTrigger className="input-field" style={{ fontSize: "var(--text-base)" }}><SelectValue placeholder="All Sites" /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">All Sites (Global)</SelectItem>
                   {sites.map(s => (
@@ -619,7 +619,7 @@ export function PageEditor({
 
           <FL label="Language / Locale">
             <Select value={form.locale || 'en'} onValueChange={v => set('locale', v)}>
-              <SelectTrigger className="input-field" style={{ fontSize: 12 }}><SelectValue /></SelectTrigger>
+              <SelectTrigger className="input-field" style={{ fontSize: "var(--text-base)" }}><SelectValue /></SelectTrigger>
               <SelectContent>
                 {SUPPORTED_LOCALES.map(l => (
                   <SelectItem key={l.code} value={l.code}>{l.flag} {l.name}</SelectItem>

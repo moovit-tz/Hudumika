@@ -368,7 +368,7 @@ function RightPanel({wf, step, allSteps, customers, onUpdateStep, onDeleteStep, 
               <div key={cond.id} className="wfb-cond-card">
                 <div className="wfb-cond-row">
                   <Select value={cond.field} onValueChange={v=>{const f=SHIPMENT_FIELDS.find(x=>x.value===v);updCond(cond.id,{field:v,label:f?.label??v});}}>
-                    <SelectTrigger className="h-11 text-sm" style={{fontSize:13.5,flex:1}}>
+                    <SelectTrigger className="h-11 text-sm" style={{fontSize:"var(--text-base)",flex:1}}>
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
@@ -378,7 +378,7 @@ function RightPanel({wf, step, allSteps, customers, onUpdateStep, onDeleteStep, 
                   <button className="wf-icon-btn danger" style={{flexShrink:0,width:'var(--ctl-h-xs)',height:'var(--ctl-h-xs)'}} onClick={()=>delCond(cond.id)} data-ui-native-button=""><Icon name="trash" size={11}/></button>
                 </div>
                 <Select value={cond.operator} onValueChange={v=>updCond(cond.id,{operator:v as FieldCondition['operator']})}>
-                  <SelectTrigger className="h-11 text-sm" style={{fontSize:13.5}}>
+                  <SelectTrigger className="h-11 text-sm" style={{fontSize:"var(--text-base)"}}>
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
@@ -413,7 +413,7 @@ function RightPanel({wf, step, allSteps, customers, onUpdateStep, onDeleteStep, 
                 <div className="wfb-comm-card-body">
                   <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:5}}>
                     <Select value={comm.channel} onValueChange={v=>updComm(comm.id,{channel:v as AutoComm['channel']})}>
-                      <SelectTrigger className="h-11 text-sm" style={{fontSize:13.5}}>
+                      <SelectTrigger className="h-11 text-sm" style={{fontSize:"var(--text-base)"}}>
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
@@ -421,7 +421,7 @@ function RightPanel({wf, step, allSteps, customers, onUpdateStep, onDeleteStep, 
                       </SelectContent>
                     </Select>
                     <Select value={comm.recipient} onValueChange={v=>updComm(comm.id,{recipient:v as AutoComm['recipient']})}>
-                      <SelectTrigger className="h-11 text-sm" style={{fontSize:13.5}}>
+                      <SelectTrigger className="h-11 text-sm" style={{fontSize:"var(--text-base)"}}>
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
@@ -627,7 +627,7 @@ export function ClearanceWorkflowBuilder() {
           <Icon name="arrowLeft" size={13}/> Workflows
         </Button>
         <span className="wfb-topbar-sep">/</span>
-        <input
+        <input data-ui-field="input"
           className="wfb-topbar-name"
           value={wf.name}
           onChange={e=>updateWf({name:e.target.value})}
@@ -783,7 +783,7 @@ export function ClearanceWorkflowBuilder() {
             <div className="wfb-zoom-divider"/>
             <Tip label="Reset to 100%"><button type="button" className="wfb-zoom-btn" onClick={()=>setZoom(1)} aria-label="Reset zoom to 100%" data-ui-native-button=""><Icon name="maximize" size={13}/></button></Tip>
             <div className="wfb-zoom-divider"/>
-            <Tip label="Workflow settings"><button type="button" className="wfb-zoom-btn" style={{gap:5,fontSize:12,fontWeight:700,color:'var(--teal)',width:'auto',padding:'0 6px'}} onClick={()=>{setSelectedId(null); setPanel(true);}} data-ui-native-button="">
+            <Tip label="Workflow settings"><button type="button" className="wfb-zoom-btn" style={{gap:5,fontSize:"var(--text-base)",fontWeight:700,color:'var(--teal)',width:'auto',padding:'0 6px'}} onClick={()=>{setSelectedId(null); setPanel(true);}} data-ui-native-button="">
               <Icon name="settings" size={12} color="var(--teal)"/>Settings
             </button></Tip>
           </div>

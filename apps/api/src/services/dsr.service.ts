@@ -16,7 +16,8 @@
  */
 
 import crypto from 'crypto';
-import { withTenant } from '../db/client.js';
+import type { Transaction } from 'kysely';
+import { withTenant, type Database } from '../db/client.js';
 import { PII_FIELDS } from '../lib/pii-field-registry.js';
 import { objectStore } from '../integrations/object-storage.js';
 
@@ -254,6 +255,85 @@ export async function rejectDsr(
       notes: reason,
     } as any).execute();
   });
+}
+
+// ── Ngao privacy_rights_requests — resolve-and-execute ──────────────────────────
+//
+// Privacy P0: "separate request tracking from actual export/delete/correct
+// execution. Updating a response status is not proof of downstream
+// execution." Confirmed true of ngao-crud.routes.ts's own
+// `/rights-requests/:id/respond`: marking a request COMPLETED only ever set
+// a status column and an optional free-text note — no export, erasure or
+// correction ever actually ran, unlike the real execution above for
+// `data_subject_requests` (an employee's own GDPR request against their own
+// account). `privacy_rights_requests` instead identifies its subject by a
+// free-text name/email/phone — there is no `requester_id` FK, because these
+// requests can come from anyone, not just a platform user — so "execute it"
+// here means: try to resolve that email against a real `customers` row in
+// this tenant, and if one exists, perform the real action against it.
+export interface RightsRequestExecutionResult {
+  matched: boolean;
+  action: 'exported' | 'erased' | 'no_automatic_action';
+  customerId?: string;
+  downloadKey?: string;
+  erasedFields?: string[];
+}
+
+export async function executeRightsRequestAction(
+  trx: Transaction<Database>,
+  tenantId: string,
+  requestType: 'ACCESS' | 'CORRECTION' | 'ERASURE' | 'OBJECTION' | 'PORTABILITY',
+  subjectEmail: string,
+): Promise<RightsRequestExecutionResult> {
+  // OBJECTION is an acknowledgment of a processing objection, not an
+  // export/delete/correct action — nothing to execute automatically.
+  // CORRECTION has no automatic path either: the system has no way to know
+  // what the correction should be, so it always needs a human to actually
+  // make the edit (e.g. via the Customers page) and describe it.
+  if (requestType === 'OBJECTION' || requestType === 'CORRECTION') {
+    return { matched: false, action: 'no_automatic_action' };
+  }
+
+  // forUpdate() — the caller holds this same tenant's privacy_rights_
+  // requests row locked already, but the customer row itself is the
+  // thing this function actually mutates, so lock it too before deciding
+  // what to do with it.
+  const customer = await trx.selectFrom('customers').selectAll()
+    .where('tenant_id', '=', tenantId)
+    .where('email', 'ilike', subjectEmail.trim())
+    .forUpdate().executeTakeFirst();
+  if (!customer) return { matched: false, action: 'no_automatic_action' };
+
+  if (requestType === 'ACCESS' || requestType === 'PORTABILITY') {
+    const exportJson = JSON.stringify({
+      generated_at: new Date().toISOString(),
+      subject_email: subjectEmail,
+      request_type: requestType,
+      data: sanitiseForExport(customer, []),
+    }, null, 2);
+    const downloadKey = `rights-requests-exports/${tenantId}/${customer.id}/${crypto.randomUUID()}.json`;
+    try {
+      await objectStore.put(downloadKey, Buffer.from(exportJson, 'utf-8'));
+    } catch {
+      // Non-fatal: the admin reviewing this request can export manually
+      // from the Customers page; the attempt is still recorded as evidence.
+    }
+    return { matched: true, action: 'exported', customerId: customer.id, downloadKey };
+  }
+
+  // ERASURE: anonymise the customer's own direct-contact fields. tax_id is
+  // retained — same legal-retention reasoning processErasureRequest() above
+  // already applies to users.tax_id — and every other business record
+  // (invoices, shipments, POS sales) referencing this customer_id is left
+  // alone; this is the customer's own contact identity, not their
+  // transaction history, which real accounting/audit rules require kept.
+  const erasedFields = ['name', 'contact_name', 'email', 'phone', 'phone_wa', 'phone_wechat'];
+  await trx.updateTable('customers').set({
+    name: `Erased subject (rights request, ${new Date().toISOString().slice(0, 10)})`,
+    contact_name: null, email: null, phone: null, phone_wa: null, phone_wechat: null,
+    active: false, updated_at: new Date(),
+  }).where('tenant_id', '=', tenantId).where('id', '=', customer.id).execute();
+  return { matched: true, action: 'erased', customerId: customer.id, erasedFields };
 }
 
 // ── Helpers ────────────────────────────────────────────────────────────────────

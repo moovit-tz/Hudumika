@@ -108,7 +108,7 @@ function MicroInteractionsDemo() {
       </div>
       {/* Focus ring */}
       <div className="flex flex-col gap-1">
-        <input className="px-3 py-2 rounded-lg border border-border bg-card text-sm transition-all focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary" placeholder="Click to see focus ring…" />
+        <input data-ui-field="input" className="px-3 py-2 rounded-lg border border-border bg-card text-sm transition-all focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary" placeholder="Click to see focus ring…" />
         <span className="text-xs text-muted-foreground font-medium">Focus Ring</span>
       </div>
       {/* Button press */}

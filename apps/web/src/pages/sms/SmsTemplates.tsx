@@ -180,9 +180,9 @@ export function SmsTemplates() {
                           style={{
                             background: 'var(--bg)',
                             border: '1px solid var(--border)',
-                            borderRadius: 4,
-                            padding: '2px 6px',
-                            fontSize: 11,
+                            borderRadius: "var(--r-sm)",
+                            padding: "var(--action-py) var(--space-md)",
+                            fontSize: "var(--text-xs)",
                             color: 'var(--teal)',
                             cursor: 'pointer',
                             fontWeight: 600,

@@ -45,7 +45,7 @@ function apiLeaveToRow(l: any): LeaveRow {
 function FlagToggle({ label, on, onChange }: { label: string; on: boolean; onChange: (v: boolean) => void }) {
   return (
     <button type="button" onClick={() => onChange(!on)}
-      style={{ display:'inline-flex', alignItems:'center', gap:6, padding:'5px 10px', fontSize:11.5, fontWeight:600, border:'1px solid var(--border)', borderRadius:'var(--r-sm)', cursor:'pointer', fontFamily:'var(--font)',
+      style={{ display:'inline-flex', alignItems:'center', gap:6, padding:"var(--action-py) var(--space-md)", fontSize:"var(--text-base)", fontWeight:600, border:'1px solid var(--border)', borderRadius:'var(--r-sm)', cursor:'pointer', fontFamily:'var(--font)',
         background: on ? 'var(--teal-l)' : 'var(--bg)', color: on ? 'var(--teal)' : 'var(--ink3)' }} data-ui-native-button="">
       <span style={{ width:14, height:14, borderRadius:'50%', display:'inline-flex', alignItems:'center', justifyContent:'center', background: on ? 'hsl(var(--primary))' : 'var(--ink3)', color: on ? 'hsl(var(--primary-foreground))' : '#fff' }}>
         <Icon name={on ? 'check' : 'x'} size={9} strokeWidth={3} />
@@ -95,13 +95,13 @@ function LeaveTypeCard({ t, onSaved }: { t: any; onSaved: () => void }) {
         {t.applies_to && t.applies_to !== 'ALL' && <span style={{ fontSize:10, fontWeight:700, padding:'2px 7px', borderRadius: 'var(--r)', background:'var(--purple-l)', color:'var(--purple)' }}>{t.applies_to}</span>}
       </div>
 
-      <div><label style={ltLabel}>Name</label><input style={ltInput} value={name} onChange={e => setName(e.target.value)} /></div>
+      <div><label style={ltLabel}>Name</label><input data-ui-field="input" style={ltInput} value={name} onChange={e => setName(e.target.value)} /></div>
 
       <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:10 }}>
-        <div><label style={ltLabel}>Days entitled</label><input style={ltInput} type="number" min="0" step="0.5" value={days} onChange={e => setDays(e.target.value)} /></div>
-        <div><label style={ltLabel}>Cycle (months)</label><input style={ltInput} type="number" min="1" max="120" value={cycle} onChange={e => setCycle(e.target.value)} /></div>
+        <div><label style={ltLabel}>Days entitled</label><input data-ui-field="input" style={ltInput} type="number" min="0" step="0.5" value={days} onChange={e => setDays(e.target.value)} /></div>
+        <div><label style={ltLabel}>Cycle (months)</label><input data-ui-field="input" style={ltInput} type="number" min="1" max="120" value={cycle} onChange={e => setCycle(e.target.value)} /></div>
       </div>
-      <div><label style={ltLabel}>Carry-forward max (days)</label><input style={ltInput} type="number" min="0" step="0.5" value={carry} onChange={e => setCarry(e.target.value)} /></div>
+      <div><label style={ltLabel}>Carry-forward max (days)</label><input data-ui-field="input" style={ltInput} type="number" min="0" step="0.5" value={carry} onChange={e => setCarry(e.target.value)} /></div>
 
       <div style={{ display:'flex', gap:8, flexWrap:'wrap' }}>
         <FlagToggle label="Paid" on={paid} onChange={setPaid} />
@@ -285,7 +285,7 @@ export function LeavesPage() {
         <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
           <Button
             onClick={() => setShowNew(v => !v)}
-            style={{ height: 38, background: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))', fontWeight: 700, borderRadius: 'var(--r)', padding: '0 16px', fontSize: 13, border: 'none', display: 'flex', alignItems: 'center', gap: 6, boxShadow: '0 2px 6px hsl(var(--primary) / 0.3)' }}
+            style={{ height: "var(--action-h)", background: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))', fontWeight: 700, borderRadius: 'var(--r)', padding: '0 16px', fontSize: "var(--text-base)", border: 'none', display: 'flex', alignItems: 'center', gap: 6, boxShadow: '0 2px 6px hsl(var(--primary) / 0.3)' }}
           >
             <Icon name="plus" size={15} /> Add Leave
           </Button>
@@ -316,7 +316,7 @@ export function LeavesPage() {
             </div>
             <div style={{ flex: 1, minWidth: 180 }}>
               <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: 'var(--ink2)', marginBottom: 4 }}>Reason (optional)</label>
-              <input value={formReason} onChange={e => setFormReason(e.target.value)} maxLength={2000} placeholder="e.g. Family event" style={{ width: '100%', padding: '7px 10px', border: '1px solid var(--border)', borderRadius: 'var(--r)', fontFamily: 'var(--font)', fontSize: 13, boxSizing: 'border-box' as const }} />
+              <input data-ui-field="input" value={formReason} onChange={e => setFormReason(e.target.value)} maxLength={2000} placeholder="e.g. Family event" style={{ width: '100%', padding: "var(--ds-input-py) var(--space-md)", border: '1px solid var(--border)', borderRadius: 'var(--r)', fontFamily: 'var(--font)', fontSize: "var(--text-base)", boxSizing: 'border-box' as const }} />
             </div>
             <PrimaryBtn label={formBusy ? 'Submitting…' : 'Submit request'} type="submit" />
             <ActionBtn label="Cancel" onClick={() => { setShowNew(false); setFormError(null); }} />
@@ -356,21 +356,21 @@ export function LeavesPage() {
           <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
             <div style={{ position: 'relative', width: 220 }}>
               <Icon name="search" size={14} color="var(--ink3)" style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)' }} />
-              <input
+              <input data-ui-field="input"
                 type="text"
                 placeholder="Search..."
                 value={search}
                 onChange={e => setSearch(e.target.value)}
-                style={{ width: '100%', height: 34, paddingLeft: 30, paddingRight: 10, borderRadius: 'var(--r)', border: '1px solid var(--border)', fontSize: 12.5, outline: 'none', background: 'var(--card-sunken)', color: 'var(--ink)' }}
+                style={{ width: '100%', height: "var(--ctl-h)", paddingLeft: 30, paddingRight: "var(--space-md)", borderRadius: 'var(--r)', border: '1px solid var(--border)', fontSize: "var(--text-base)", outline: 'none', background: 'var(--card-sunken)', color: 'var(--ink)' }}
               />
             </div>
 
-            <Button variant="outline" size="sm" onClick={downloadLeavesCsv} style={{ height: 34, fontSize: 12, borderRadius: 'var(--r)', borderColor: 'var(--border)' }}>
+            <Button variant="outline" size="sm" onClick={downloadLeavesCsv} style={{ height: "var(--ctl-h)", fontSize: "var(--text-base)", borderRadius: 'var(--r)', borderColor: 'var(--border)' }}>
               Download Report
             </Button>
 
             <Select value={summaryYear} onValueChange={(y: string) => { setSummaryYear(y); loadSummary(y); }}>
-              <SelectTrigger style={{ height: 34, borderRadius: 'var(--r-sm)', fontSize: 12, fontWeight: 600 }}><SelectValue /></SelectTrigger>
+              <SelectTrigger style={{ height: "var(--ctl-h)", borderRadius: 'var(--r-sm)', fontSize: "var(--text-base)", fontWeight: 600 }}><SelectValue /></SelectTrigger>
               <SelectContent>
                 {[0, 1, 2].map(back => {
                   const y = String(new Date().getFullYear() - back);
@@ -438,8 +438,8 @@ export function LeavesPage() {
                       <td style={{ padding: '12px 16px', textAlign: 'right' }}>
                         {l.status === 'PENDING' ? (
                           <div style={{ display: 'flex', gap: 6, justifyContent: 'flex-end' }}>
-                            <Button size="sm" onClick={() => handleStatus(l.id, 'APPROVED')} style={{ height: 26, fontSize: 11, padding: '0 8px' }}>Approve</Button>
-                            <Button size="sm" variant="destructive" onClick={() => handleStatus(l.id, 'REJECTED')} style={{ height: 26, fontSize: 11, padding: '0 8px' }}>Reject</Button>
+                            <Button size="sm" onClick={() => handleStatus(l.id, 'APPROVED')} style={{ height: "var(--ctl-h)", fontSize: "var(--text-xs)", padding: '0 8px' }}>Approve</Button>
+                            <Button size="sm" variant="destructive" onClick={() => handleStatus(l.id, 'REJECTED')} style={{ height: "var(--ctl-h)", fontSize: "var(--text-xs)", padding: '0 8px' }}>Reject</Button>
                           </div>
                         ) : (
                           <Icon name="moreHorizontal" size={18} color="var(--ink3)" style={{ cursor: 'pointer' }} />
@@ -602,7 +602,7 @@ export function AttendancePage() {
         <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
           <Button
             onClick={() => { setBulkEmpIds([]); setShowBulk(true); }}
-            style={{ height: 38, background: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))', fontWeight: 700, borderRadius: 'var(--r)', padding: '0 16px', fontSize: 13, border: 'none', display: 'flex', alignItems: 'center', gap: 6, boxShadow: '0 2px 6px hsl(var(--primary) / 0.3)' }}
+            style={{ height: "var(--action-h)", background: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))', fontWeight: 700, borderRadius: 'var(--r)', padding: '0 16px', fontSize: "var(--text-base)", border: 'none', display: 'flex', alignItems: 'center', gap: 6, boxShadow: '0 2px 6px hsl(var(--primary) / 0.3)' }}
           >
             <Icon name="plus" size={15} /> Add Employee
           </Button>
@@ -615,7 +615,7 @@ export function AttendancePage() {
         <div style={{ background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 'var(--r-lg)', padding: 20, boxShadow: '0 1px 3px rgba(0,0,0,0.03)', display: 'flex', flexDirection: 'column', gap: 16 }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
             <span style={{ fontSize: 16, fontWeight: 700, color: 'var(--ink)' }}>Attendance rate — {date.toLocaleDateString('en-GB', { month: 'long', year: 'numeric' })}</span>
-            <Button variant="outline" size="sm" onClick={downloadAttendanceCsv} style={{ height: 32, fontSize: 12, borderRadius: 'var(--r)', borderColor: 'var(--border)' }}>
+            <Button variant="outline" size="sm" onClick={downloadAttendanceCsv} style={{ height: "var(--ctl-h)", fontSize: "var(--text-base)", borderRadius: 'var(--r)', borderColor: 'var(--border)' }}>
               Download report
             </Button>
           </div>
@@ -685,21 +685,21 @@ export function AttendancePage() {
           <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
             <div style={{ position: 'relative', width: 220 }}>
               <Icon name="search" size={14} color="var(--ink3)" style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)' }} />
-              <input
+              <input data-ui-field="input"
                 type="text"
                 placeholder="Search..."
                 value={search}
                 onChange={e => setSearch(e.target.value)}
-                style={{ width: '100%', height: 34, paddingLeft: 30, paddingRight: 10, borderRadius: 'var(--r)', border: '1px solid var(--border)', fontSize: 12.5, outline: 'none', background: 'var(--card-sunken)', color: 'var(--ink)' }}
+                style={{ width: '100%', height: "var(--ctl-h)", paddingLeft: 30, paddingRight: "var(--space-md)", borderRadius: 'var(--r)', border: '1px solid var(--border)', fontSize: "var(--text-base)", outline: 'none', background: 'var(--card-sunken)', color: 'var(--ink)' }}
               />
             </div>
 
-            <Button variant="outline" size="sm" style={{ height: 34, fontSize: 12, borderRadius: 'var(--r)', borderColor: 'var(--border)' }}>
+            <Button variant="outline" size="sm" style={{ height: "var(--ctl-h)", fontSize: "var(--text-base)", borderRadius: 'var(--r)', borderColor: 'var(--border)' }}>
               Download Report
             </Button>
 
             <Select defaultValue="2026">
-              <SelectTrigger style={{ height: 34, borderRadius: 'var(--r-sm)', fontSize: 12, fontWeight: 600 }}><SelectValue /></SelectTrigger>
+              <SelectTrigger style={{ height: "var(--ctl-h)", borderRadius: 'var(--r-sm)', fontSize: "var(--text-base)", fontWeight: 600 }}><SelectValue /></SelectTrigger>
               <SelectContent>
                 <SelectItem value="2026">2026</SelectItem>
                 <SelectItem value="2025">2025</SelectItem>
@@ -900,11 +900,11 @@ export function AttendancePage() {
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(180px, 1fr))', gap: 12, marginBottom: 24 }}>
                   <div>
                     <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: 'var(--ink2)', marginBottom: 6 }}>Clock In</label>
-                    <input type="time" name="clockIn" className="input-field" defaultValue="08:00" />
+                    <input data-ui-field="input" type="time" name="clockIn" className="input-field" defaultValue="08:00" />
                   </div>
                   <div>
                     <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: 'var(--ink2)', marginBottom: 6 }}>Clock Out</label>
-                    <input type="time" name="clockOut" className="input-field" defaultValue="17:00" />
+                    <input data-ui-field="input" type="time" name="clockOut" className="input-field" defaultValue="17:00" />
                   </div>
                 </div>
 

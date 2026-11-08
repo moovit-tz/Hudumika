@@ -119,10 +119,10 @@ function AlertsMiniSection({ metricKey, canManage }: { metricKey: string; canMan
           {!r.enabled && <Badge variant="gray">Disabled</Badge>}
           {canManage && (
             <div style={{ marginLeft: 'auto', display: 'flex', gap: 6 }}>
-              <button type="button" onClick={() => toggle(r.id, !r.enabled)} style={{ fontSize: 11, color: 'var(--teal-d)', background: 'none', border: 'none', cursor: 'pointer', padding: 0 }} data-ui-native-button="">
+              <button type="button" onClick={() => toggle(r.id, !r.enabled)} style={{ fontSize: "var(--text-xs)", color: 'var(--teal-d)', background: 'none', border: 'none', cursor: 'pointer', padding: 0 }} data-ui-native-button="">
                 {r.enabled ? 'Disable' : 'Enable'}
               </button>
-              <button type="button" onClick={() => remove(r.id)} style={{ fontSize: 11, color: 'var(--red)', background: 'none', border: 'none', cursor: 'pointer', padding: 0 }} data-ui-native-button="">
+              <button type="button" onClick={() => remove(r.id)} style={{ fontSize: "var(--text-xs)", color: 'var(--red)', background: 'none', border: 'none', cursor: 'pointer', padding: 0 }} data-ui-native-button="">
                 Delete
               </button>
             </div>
@@ -145,7 +145,7 @@ function AlertsMiniSection({ metricKey, canManage }: { metricKey: string; canMan
             <Button type="button" variant="ghost" size="sm" onClick={() => setCreating(false)}>Cancel</Button>
           </div>
         ) : (
-          <button type="button" onClick={() => setCreating(true)} style={{ fontSize: 11.5, color: 'var(--teal-d)', fontWeight: 700, background: 'none', border: 'none', cursor: 'pointer', padding: 0, marginTop: 4 }} data-ui-native-button="">
+          <button type="button" onClick={() => setCreating(true)} style={{ fontSize: "var(--text-base)", color: 'var(--teal-d)', fontWeight: 700, background: 'none', border: 'none', cursor: 'pointer', padding: 0, marginTop: 4 }} data-ui-native-button="">
             + Add alert
           </button>
         )
@@ -254,7 +254,7 @@ export function HuduBIMetricExplorer() {
       />
 
       <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>
-        <input
+        <input data-ui-field="input"
           className="input-field"
           placeholder="Search metrics…"
           value={search}
@@ -266,7 +266,7 @@ export function HuduBIMetricExplorer() {
           onClick={() => setAppFilter('all')}
           className="btn-sm"
           style={{
-            padding: '6px 12px', borderRadius: 'var(--r-sm)', fontSize: 12, fontWeight: 700, cursor: 'pointer',
+            padding: "var(--action-py) var(--space-md)", borderRadius: 'var(--r-sm)', fontSize: "var(--text-base)", fontWeight: 700, cursor: 'pointer',
             border: '1px solid var(--border)',
             background: appFilter === 'all' ? 'var(--teal)' : 'transparent',
             color: appFilter === 'all' ? 'hsl(var(--primary-foreground))' : 'var(--ink2)',
@@ -280,7 +280,7 @@ export function HuduBIMetricExplorer() {
             type="button"
             onClick={() => setAppFilter(a)}
             style={{
-              padding: '6px 12px', borderRadius: 'var(--r-sm)', fontSize: 12, fontWeight: 700, cursor: 'pointer',
+              padding: "var(--action-py) var(--space-md)", borderRadius: 'var(--r-sm)', fontSize: "var(--text-base)", fontWeight: 700, cursor: 'pointer',
               border: '1px solid var(--border)',
               background: appFilter === a ? 'var(--teal)' : 'transparent',
               color: appFilter === a ? 'hsl(var(--primary-foreground))' : 'var(--ink2)',

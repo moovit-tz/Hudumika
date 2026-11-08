@@ -290,7 +290,7 @@ export function CrmChainPartners() {
           <div className="flex flex-wrap items-center gap-3 border-b border-border px-4 py-3">
             <div className="relative min-w-55 max-w-90 flex-1">
               <Icon name="search" size={14} className="pointer-events-none absolute left-2.5 top-1/2 -translate-y-1/2 text-muted-foreground" />
-              <input
+              <input data-ui-field="input"
                 type="text"
                 className="input-field pl-8 pr-8 w-full"
                 value={search}
@@ -989,7 +989,7 @@ function PartnerDetailPageView({
               <div className="partner-form-grid">
                 <div className="partner-form-grid-full">
                   <label className="seal-field-label">Company / Partner Name <span className="text-(--red)">*</span></label>
-                  <input
+                  <input data-ui-field="input"
                     type="text"
                     className="input-field"
                     value={editName}
@@ -999,7 +999,7 @@ function PartnerDetailPageView({
                 </div>
                 <div>
                   <label className="seal-field-label">Contact Person</label>
-                  <input
+                  <input data-ui-field="input"
                     type="text"
                     className="input-field"
                     value={editContactName}
@@ -1009,7 +1009,7 @@ function PartnerDetailPageView({
                 </div>
                 <div>
                   <label className="seal-field-label">Phone Number</label>
-                  <input
+                  <input data-ui-field="input"
                     type="text"
                     className="input-field"
                     value={editPhone}
@@ -1019,7 +1019,7 @@ function PartnerDetailPageView({
                 </div>
                 <div>
                   <label className="seal-field-label">Email Address</label>
-                  <input
+                  <input data-ui-field="input"
                     type="email"
                     className="input-field"
                     value={editEmail}
@@ -1029,7 +1029,7 @@ function PartnerDetailPageView({
                 </div>
                 <div>
                   <label className="seal-field-label">Website</label>
-                  <input
+                  <input data-ui-field="input"
                     type="text"
                     className="input-field"
                     value={editWebsite}
@@ -1039,7 +1039,7 @@ function PartnerDetailPageView({
                 </div>
                 <div className="partner-form-grid-full">
                   <label className="seal-field-label">Physical Address</label>
-                  <input
+                  <input data-ui-field="input"
                     type="text"
                     className="input-field"
                     value={editAddress}
@@ -1049,7 +1049,7 @@ function PartnerDetailPageView({
                 </div>
                 <div>
                   <label className="seal-field-label">City</label>
-                  <input
+                  <input data-ui-field="input"
                     type="text"
                     className="input-field"
                     value={editCity}
@@ -1059,7 +1059,7 @@ function PartnerDetailPageView({
                 </div>
                 <div>
                   <label className="seal-field-label">Country</label>
-                  <input
+                  <input data-ui-field="input"
                     type="text"
                     className="input-field"
                     value={editCountry}
@@ -1069,7 +1069,7 @@ function PartnerDetailPageView({
                 </div>
                 <div>
                   <label className="seal-field-label">Tax ID / TIN</label>
-                  <input
+                  <input data-ui-field="input"
                     type="text"
                     className="input-field"
                     value={editTaxId}
@@ -1079,7 +1079,7 @@ function PartnerDetailPageView({
                 </div>
                 <div>
                   <label className="seal-field-label">Registry / BRELA Number</label>
-                  <input
+                  <input data-ui-field="input"
                     type="text"
                     className="input-field"
                     value={editRegistryNumber}
@@ -1089,7 +1089,7 @@ function PartnerDetailPageView({
                 </div>
                 <div className="partner-form-grid-full">
                   <label className="seal-field-label">Operational Notes</label>
-                  <textarea
+                  <textarea data-ui-field="textarea"
                     className="input-field"
                     rows={3}
                     value={editNotes}
@@ -1214,7 +1214,7 @@ function NewPartnerPageView({ onBack, onCreated }: NewPartnerPageProps) {
               <label className="seal-field-label">
                 Partner / Organization Name <span className="text-(--red)">*</span>
               </label>
-              <input
+              <input data-ui-field="input"
                 type="text"
                 className="input-field"
                 value={name}
@@ -1245,7 +1245,7 @@ function NewPartnerPageView({ onBack, onCreated }: NewPartnerPageProps) {
           <div className="partner-form-grid">
             <div>
               <label className="seal-field-label">Contact Person</label>
-              <input
+              <input data-ui-field="input"
                 type="text"
                 className="input-field"
                 value={contactName}
@@ -1255,7 +1255,7 @@ function NewPartnerPageView({ onBack, onCreated }: NewPartnerPageProps) {
             </div>
             <div>
               <label className="seal-field-label">Phone Number</label>
-              <input
+              <input data-ui-field="input"
                 type="text"
                 className="input-field"
                 value={phone}
@@ -1265,7 +1265,7 @@ function NewPartnerPageView({ onBack, onCreated }: NewPartnerPageProps) {
             </div>
             <div>
               <label className="seal-field-label">Email Address</label>
-              <input
+              <input data-ui-field="input"
                 type="email"
                 className="input-field"
                 value={email}
@@ -1275,7 +1275,7 @@ function NewPartnerPageView({ onBack, onCreated }: NewPartnerPageProps) {
             </div>
             <div>
               <label className="seal-field-label">Website URL</label>
-              <input
+              <input data-ui-field="input"
                 type="text"
                 className="input-field"
                 value={website}
@@ -1291,7 +1291,7 @@ function NewPartnerPageView({ onBack, onCreated }: NewPartnerPageProps) {
           <div className="partner-form-grid">
             <div className="partner-form-grid-full">
               <label className="seal-field-label">Physical Address</label>
-              <input
+              <input data-ui-field="input"
                 type="text"
                 className="input-field"
                 value={address}
@@ -1301,7 +1301,7 @@ function NewPartnerPageView({ onBack, onCreated }: NewPartnerPageProps) {
             </div>
             <div>
               <label className="seal-field-label">City</label>
-              <input
+              <input data-ui-field="input"
                 type="text"
                 className="input-field"
                 value={city}
@@ -1311,7 +1311,7 @@ function NewPartnerPageView({ onBack, onCreated }: NewPartnerPageProps) {
             </div>
             <div>
               <label className="seal-field-label">Country</label>
-              <input
+              <input data-ui-field="input"
                 type="text"
                 className="input-field"
                 value={country}
@@ -1321,7 +1321,7 @@ function NewPartnerPageView({ onBack, onCreated }: NewPartnerPageProps) {
             </div>
             <div>
               <label className="seal-field-label">Tax ID / TIN</label>
-              <input
+              <input data-ui-field="input"
                 type="text"
                 className="input-field"
                 value={taxId}
@@ -1331,7 +1331,7 @@ function NewPartnerPageView({ onBack, onCreated }: NewPartnerPageProps) {
             </div>
             <div>
               <label className="seal-field-label">Registry / BRELA Number</label>
-              <input
+              <input data-ui-field="input"
                 type="text"
                 className="input-field"
                 value={registryNumber}
@@ -1347,7 +1347,7 @@ function NewPartnerPageView({ onBack, onCreated }: NewPartnerPageProps) {
           <div className="partner-form-grid">
             <div className="partner-form-grid-full">
               <label className="seal-field-label">Internal Remarks</label>
-              <textarea
+              <textarea data-ui-field="textarea"
                 className="input-field"
                 rows={3}
                 value={notes}

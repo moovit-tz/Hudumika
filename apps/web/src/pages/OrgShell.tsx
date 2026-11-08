@@ -395,7 +395,7 @@ export const OrgShell: React.FC = () => {
         <div style={{ padding: '14px 20px', borderBottom: '1px solid var(--border)', background: 'var(--white)' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 6 }}>
             <button type="button" onClick={() => setSelectedTicket(null)}
-              style={{ background: 'none', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 4, color: 'var(--teal)', fontWeight: 600, fontSize: 14, fontFamily: 'var(--font)', padding: 0 }} data-ui-native-button="">
+              style={{ background: 'none', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 4, color: 'var(--teal)', fontWeight: 600, fontSize: "var(--text-base)", fontFamily: 'var(--font)', padding: 0 }} data-ui-native-button="">
               <Icon name="chevronLeft" size={18} /> Back
             </button>
             <span style={{ fontSize: 12, color: 'var(--ink3)', fontFamily: 'var(--font)' }}>{selectedTicket.ref}</span>
@@ -428,14 +428,14 @@ export const OrgShell: React.FC = () => {
 
         {canReply && (
           <div style={{ borderTop: '1px solid var(--border)', background: 'var(--white)', padding: '12px 20px', display: 'flex', gap: 10, alignItems: 'flex-end', maxWidth: 720, width: '100%', margin: '0 auto', boxSizing: 'border-box' }}>
-            <textarea placeholder="Type your message…" value={reply} disabled={sendingReply}
+            <textarea data-ui-field="textarea" placeholder="Type your message…" value={reply} disabled={sendingReply}
               onChange={e => setReply(e.target.value)}
               onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); submitReply(); } }}
               rows={2}
-              style={{ flex: 1, resize: 'none', border: '1.5px solid var(--border)', borderRadius: 'var(--r)', padding: '10px 12px', fontSize: 14, fontFamily: 'var(--font)', color: 'var(--ink)', background: 'var(--bg)', outline: 'none', lineHeight: 1.5 }}
+              style={{ flex: 1, resize: 'none', border: '1.5px solid var(--border)', borderRadius: 'var(--r)', padding: "var(--ds-input-py) var(--space-md)", fontSize: "var(--text-base)", fontFamily: 'var(--font)', color: 'var(--ink)', background: 'var(--bg)', outline: 'none', lineHeight: 1.5 }}
             />
             <button type="button" onClick={submitReply} disabled={!reply.trim() || sendingReply}
-              style={{ background: reply.trim() && !sendingReply ? 'hsl(var(--primary))' : 'var(--border)', color: reply.trim() && !sendingReply ? 'hsl(var(--primary-foreground))' : 'var(--ink3)', border: 'none', borderRadius: 'var(--r)', width: 44, height: 44, cursor: reply.trim() && !sendingReply ? 'pointer' : 'default', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }} data-ui-native-button="">
+              style={{ background: reply.trim() && !sendingReply ? 'hsl(var(--primary))' : 'var(--border)', color: reply.trim() && !sendingReply ? 'hsl(var(--primary-foreground))' : 'var(--ink3)', border: 'none', borderRadius: 'var(--r)', width: "var(--ctl-h)", height: "var(--ctl-h)", cursor: reply.trim() && !sendingReply ? 'pointer' : 'default', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }} data-ui-native-button="">
               <Icon name="send" size={18} color="#fff" />
             </button>
           </div>
@@ -461,7 +461,7 @@ export const OrgShell: React.FC = () => {
           </div>
         </div>
         <button type="button" onClick={orgLogout}
-          style={{ background: 'none', border: 'none', color: 'rgba(255,255,255,0.8)', cursor: 'pointer', fontSize: 13.5, fontFamily: 'var(--font)' }} data-ui-native-button="">
+          style={{ background: 'none', border: 'none', color: 'rgba(255,255,255,0.8)', cursor: 'pointer', fontSize: "var(--text-base)", fontFamily: 'var(--font)' }} data-ui-native-button="">
           Sign out
         </button>
       </div>
@@ -506,7 +506,7 @@ export const OrgShell: React.FC = () => {
                   Agents handling your business ({agents.length})
                 </div>
                 <button type="button" onClick={() => setShowLinkAgent(true)}
-                  style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '6px 12px', borderRadius: 'var(--r)', border: '1px solid var(--border)', background: 'var(--white)', color: 'var(--ink2)', fontSize: 12, fontWeight: 700, cursor: 'pointer', fontFamily: 'var(--font)' }} data-ui-native-button="">
+                  style={{ display: 'flex', alignItems: 'center', gap: 6, padding: "var(--action-py) var(--space-md)", borderRadius: 'var(--r)', border: '1px solid var(--border)', background: 'var(--white)', color: 'var(--ink2)', fontSize: "var(--text-base)", fontWeight: 700, cursor: 'pointer', fontFamily: 'var(--font)' }} data-ui-native-button="">
                   <Icon name="link" size={13} /> Link an Agent
                 </button>
               </div>
@@ -545,7 +545,7 @@ export const OrgShell: React.FC = () => {
                 <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
                   {['ALL', ...tenantNames].map(t => (
                     <button key={t} type="button" onClick={() => setFilterTenant(t as any)}
-                      style={{ padding: '5px 12px', borderRadius: 20, fontSize: 12, fontWeight: 600, cursor: 'pointer', fontFamily: 'var(--font)', border: `1.5px solid ${filterTenant === t ? 'hsl(var(--primary))' : 'var(--border)'}`, background: filterTenant === t ? 'hsl(var(--primary))' : 'var(--white)', color: filterTenant === t ? 'hsl(var(--primary-foreground))' : 'var(--ink2)' }} data-ui-native-button="">
+                      style={{ padding: "var(--action-py) var(--space-md)", borderRadius: "var(--r-sm)", fontSize: "var(--text-base)", fontWeight: 600, cursor: 'pointer', fontFamily: 'var(--font)', border: `1.5px solid ${filterTenant === t ? 'hsl(var(--primary))' : 'var(--border)'}`, background: filterTenant === t ? 'hsl(var(--primary))' : 'var(--white)', color: filterTenant === t ? 'hsl(var(--primary-foreground))' : 'var(--ink2)' }} data-ui-native-button="">
                       {t === 'ALL' ? 'All agents' : t}
                     </button>
                   ))}
@@ -643,12 +643,12 @@ export const OrgShell: React.FC = () => {
                         </span>
                         {d.can_manage_sharing && (
                           <Tip label="Manage sharing"><button type="button" aria-label="Manage sharing" onClick={() => setShareDoc(d)}
-                            style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: 32, height: 32, background: 'var(--bg)', border: 'none', borderRadius: 'var(--r)', color: 'var(--ink2)', cursor: 'pointer', flexShrink: 0 }} data-ui-native-button="">
+                            style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: "var(--ctl-h)", height: "var(--ctl-h)", background: 'var(--bg)', border: 'none', borderRadius: 'var(--r)', color: 'var(--ink2)', cursor: 'pointer', flexShrink: 0 }} data-ui-native-button="">
                             <Icon name="users" size={15} />
                           </button></Tip>
                         )}
                         <Tip label="Download"><button type="button" aria-label="Download" onClick={() => downloadDoc(d)}
-                          style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: 32, height: 32, background: 'var(--bg)', border: 'none', borderRadius: 'var(--r)', color: 'var(--teal)', cursor: 'pointer', flexShrink: 0 }} data-ui-native-button="">
+                          style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: "var(--ctl-h)", height: "var(--ctl-h)", background: 'var(--bg)', border: 'none', borderRadius: 'var(--r)', color: 'var(--teal)', cursor: 'pointer', flexShrink: 0 }} data-ui-native-button="">
                           <Icon name="download" size={15} />
                         </button></Tip>
                       </div>
@@ -685,7 +685,7 @@ export const OrgShell: React.FC = () => {
                         </span>
                         <button type="button" disabled={available <= 0}
                           onClick={() => { setDispatchLot(lot); setDispatchQty(''); setDispatchNote(''); }}
-                          style={{ padding: '7px 14px', borderRadius: 'var(--r)', border: 'none', background: available > 0 ? 'hsl(var(--primary))' : 'var(--border)', color: available > 0 ? 'hsl(var(--primary-foreground))' : 'var(--ink3)', fontSize: 12.5, fontWeight: 700, cursor: available > 0 ? 'pointer' : 'default', fontFamily: 'var(--font)', whiteSpace: 'nowrap' }} data-ui-native-button="">
+                          style={{ padding: "var(--action-py) var(--space-md)", borderRadius: 'var(--r)', border: 'none', background: available > 0 ? 'hsl(var(--primary))' : 'var(--border)', color: available > 0 ? 'hsl(var(--primary-foreground))' : 'var(--ink3)', fontSize: "var(--text-base)", fontWeight: 700, cursor: available > 0 ? 'pointer' : 'default', fontFamily: 'var(--font)', whiteSpace: 'nowrap' }} data-ui-native-button="">
                           Request Dispatch
                         </button>
                       </div>
@@ -726,7 +726,7 @@ export const OrgShell: React.FC = () => {
               <>
                 <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 12 }}>
                   <button type="button" onClick={() => setShowNewTicket(true)}
-                    style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '8px 16px', borderRadius: 'var(--r)', border: 'none', background: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))', fontSize: 13, fontWeight: 700, cursor: 'pointer', fontFamily: 'var(--font)' }} data-ui-native-button="">
+                    style={{ display: 'flex', alignItems: 'center', gap: 6, padding: "var(--action-py) var(--space-md)", borderRadius: 'var(--r)', border: 'none', background: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))', fontSize: "var(--text-base)", fontWeight: 700, cursor: 'pointer', fontFamily: 'var(--font)' }} data-ui-native-button="">
                     <Icon name="plus" size={14} /> New Ticket
                   </button>
                 </div>
@@ -741,7 +741,7 @@ export const OrgShell: React.FC = () => {
                       const st = TICKET_STATUS_STYLE[t.status] ?? TICKET_STATUS_STYLE.OPEN;
                       return (
                         <button key={t.id} type="button" onClick={() => openTicket(t)}
-                          style={{ display: 'flex', alignItems: 'center', gap: 14, padding: '13px 16px', borderBottom: i < filteredTickets.length - 1 ? '1px solid var(--border)' : 'none', flexWrap: 'wrap', width: '100%', textAlign: 'left', background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'var(--font)' }} data-ui-native-button="">
+                          style={{ display: 'flex', alignItems: 'center', gap: 14, padding: "var(--action-py) var(--space-md)", borderBottom: i < filteredTickets.length - 1 ? '1px solid var(--border)' : 'none', flexWrap: 'wrap', width: '100%', textAlign: 'left', background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'var(--font)' }} data-ui-native-button="">
                           <div style={{ flex: '1 1 220px', minWidth: 0 }}>
                             <div style={{ fontSize: 13.5, fontWeight: 700, color: 'var(--ink)' }}>{t.subject}</div>
                             <div style={{ fontSize: 12, color: 'var(--ink3)', marginTop: 1, fontFamily: 'var(--font)' }}>{t.ref}</div>
@@ -778,12 +778,12 @@ export const OrgShell: React.FC = () => {
             <p style={{ fontSize: 13, color: 'var(--ink2)', marginTop: 0, marginBottom: 16, lineHeight: 1.5 }}>
               Ask your clearing agent for a claim code — they can send one from your customer profile on their side. Enter it below to link your organization.
             </p>
-            <input type="text" value={claimCode} onChange={e => setClaimCode(e.target.value)}
+            <input data-ui-field="input" type="text" value={claimCode} onChange={e => setClaimCode(e.target.value)}
               placeholder="Paste your claim code…" autoFocus
               onKeyDown={e => { if (e.key === 'Enter') submitClaimCode(); }}
-              style={{ width: '100%', border: '1.5px solid var(--border)', borderRadius: 'var(--r)', padding: '10px 12px', fontSize: 14, fontFamily: 'var(--font)', background: 'var(--bg)', boxSizing: 'border-box', marginBottom: 14 }} />
+              style={{ width: '100%', border: '1.5px solid var(--border)', borderRadius: 'var(--r)', padding: "var(--ds-input-py) var(--space-md)", fontSize: "var(--text-base)", fontFamily: 'var(--font)', background: 'var(--bg)', boxSizing: 'border-box', marginBottom: 14 }} />
             <button type="button" onClick={submitClaimCode} disabled={!claimCode.trim() || claimingCode}
-              style={{ width: '100%', padding: '12px', borderRadius: 'var(--r)', border: 'none', background: claimCode.trim() && !claimingCode ? 'hsl(var(--primary))' : 'var(--border)', color: claimCode.trim() && !claimingCode ? 'hsl(var(--primary-foreground))' : 'var(--ink3)', fontSize: 14, fontWeight: 700, cursor: claimCode.trim() && !claimingCode ? 'pointer' : 'default' }} data-ui-native-button="">
+              style={{ width: '100%', padding: "var(--action-py) var(--space-md)", borderRadius: 'var(--r)', border: 'none', background: claimCode.trim() && !claimingCode ? 'hsl(var(--primary))' : 'var(--border)', color: claimCode.trim() && !claimingCode ? 'hsl(var(--primary-foreground))' : 'var(--ink3)', fontSize: "var(--text-base)", fontWeight: 700, cursor: claimCode.trim() && !claimingCode ? 'pointer' : 'default' }} data-ui-native-button="">
               {claimingCode ? 'Linking…' : 'Link Agent'}
             </button>
         </DialogContent>
@@ -807,19 +807,19 @@ export const OrgShell: React.FC = () => {
             <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
               <div>
                 <label style={{ fontSize: 12, fontWeight: 600, color: 'var(--ink2)', display: 'block', marginBottom: 6 }}>Quantity ({dispatchLot.uom})</label>
-                <input type="number" min={0} max={Number(dispatchLot.qty_on_hand)} value={dispatchQty} onChange={e => setDispatchQty(e.target.value)}
+                <input data-ui-field="input" type="number" min={0} max={Number(dispatchLot.qty_on_hand)} value={dispatchQty} onChange={e => setDispatchQty(e.target.value)}
                   placeholder="0" autoFocus
-                  style={{ width: '100%', border: '1.5px solid var(--border)', borderRadius: 'var(--r)', padding: '10px 12px', fontSize: 14, fontFamily: 'var(--font)', background: 'var(--bg)', boxSizing: 'border-box' }} />
+                  style={{ width: '100%', border: '1.5px solid var(--border)', borderRadius: 'var(--r)', padding: "var(--ds-input-py) var(--space-md)", fontSize: "var(--text-base)", fontFamily: 'var(--font)', background: 'var(--bg)', boxSizing: 'border-box' }} />
               </div>
               <div>
                 <label style={{ fontSize: 12, fontWeight: 600, color: 'var(--ink2)', display: 'block', marginBottom: 6 }}>Note (optional)</label>
-                <textarea value={dispatchNote} onChange={e => setDispatchNote(e.target.value)} rows={3}
+                <textarea data-ui-field="textarea" value={dispatchNote} onChange={e => setDispatchNote(e.target.value)} rows={3}
                   placeholder="Delivery instructions, destination, etc."
-                  style={{ width: '100%', resize: 'none', border: '1.5px solid var(--border)', borderRadius: 'var(--r)', padding: '10px 12px', fontSize: 14, fontFamily: 'var(--font)', background: 'var(--bg)', boxSizing: 'border-box', lineHeight: 1.5 }} />
+                  style={{ width: '100%', resize: 'none', border: '1.5px solid var(--border)', borderRadius: 'var(--r)', padding: "var(--ds-input-py) var(--space-md)", fontSize: "var(--text-base)", fontFamily: 'var(--font)', background: 'var(--bg)', boxSizing: 'border-box', lineHeight: 1.5 }} />
               </div>
               <button type="button" onClick={submitDispatchRequest}
                 disabled={!dispatchQty || Number(dispatchQty) <= 0 || Number(dispatchQty) > Number(dispatchLot.qty_on_hand) || submittingDispatch}
-                style={{ padding: '12px', borderRadius: 'var(--r)', border: 'none', background: dispatchQty && Number(dispatchQty) > 0 && Number(dispatchQty) <= Number(dispatchLot.qty_on_hand) && !submittingDispatch ? 'hsl(var(--primary))' : 'var(--border)', color: dispatchQty && Number(dispatchQty) > 0 && Number(dispatchQty) <= Number(dispatchLot.qty_on_hand) && !submittingDispatch ? 'hsl(var(--primary-foreground))' : 'var(--ink3)', fontSize: 14, fontWeight: 700, cursor: dispatchQty && Number(dispatchQty) > 0 && !submittingDispatch ? 'pointer' : 'default' }} data-ui-native-button="">
+                style={{ padding: "var(--action-py) var(--space-md)", borderRadius: 'var(--r)', border: 'none', background: dispatchQty && Number(dispatchQty) > 0 && Number(dispatchQty) <= Number(dispatchLot.qty_on_hand) && !submittingDispatch ? 'hsl(var(--primary))' : 'var(--border)', color: dispatchQty && Number(dispatchQty) > 0 && Number(dispatchQty) <= Number(dispatchLot.qty_on_hand) && !submittingDispatch ? 'hsl(var(--primary-foreground))' : 'var(--ink3)', fontSize: "var(--text-base)", fontWeight: 700, cursor: dispatchQty && Number(dispatchQty) > 0 && !submittingDispatch ? 'pointer' : 'default' }} data-ui-native-button="">
                 {submittingDispatch ? 'Sending…' : 'Send Request'}
               </button>
             </div>
@@ -856,7 +856,7 @@ export const OrgShell: React.FC = () => {
                       {s.role}
                     </span>
                     <Tip label="Remove access"><span><button type="button" aria-label="Remove access" disabled={shareBusy} onClick={() => removeShare(i)}
-                      style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: 26, height: 26, background: 'none', border: 'none', borderRadius: 'var(--r-sm)', color: 'var(--red)', cursor: shareBusy ? 'default' : 'pointer', flexShrink: 0, opacity: shareBusy ? 0.5 : 1 }} data-ui-native-button="">
+                      style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: "var(--ctl-h-xs)", height: "var(--ctl-h-xs)", background: 'none', border: 'none', borderRadius: 'var(--r-sm)', color: 'var(--red)', cursor: shareBusy ? 'default' : 'pointer', flexShrink: 0, opacity: shareBusy ? 0.5 : 1 }} data-ui-native-button="">
                       <Icon name="x" size={14} />
                     </button></span></Tip>
                   </div>
@@ -889,18 +889,18 @@ export const OrgShell: React.FC = () => {
               </div>
               <div>
                 <label style={{ fontSize: 12, fontWeight: 600, color: 'var(--ink2)', display: 'block', marginBottom: 6 }}>Subject</label>
-                <input type="text" value={newTicketSubject} onChange={e => setNewTicketSubject(e.target.value)}
+                <input data-ui-field="input" type="text" value={newTicketSubject} onChange={e => setNewTicketSubject(e.target.value)}
                   placeholder="Brief description of your issue"
-                  style={{ width: '100%', border: '1.5px solid var(--border)', borderRadius: 'var(--r)', padding: '10px 12px', fontSize: 14, fontFamily: 'var(--font)', background: 'var(--bg)', boxSizing: 'border-box' }} />
+                  style={{ width: '100%', border: '1.5px solid var(--border)', borderRadius: 'var(--r)', padding: "var(--ds-input-py) var(--space-md)", fontSize: "var(--text-base)", fontFamily: 'var(--font)', background: 'var(--bg)', boxSizing: 'border-box' }} />
               </div>
               <div>
                 <label style={{ fontSize: 12, fontWeight: 600, color: 'var(--ink2)', display: 'block', marginBottom: 6 }}>Message</label>
-                <textarea value={newTicketBody} onChange={e => setNewTicketBody(e.target.value)} rows={4}
+                <textarea data-ui-field="textarea" value={newTicketBody} onChange={e => setNewTicketBody(e.target.value)} rows={4}
                   placeholder="Provide as much detail as possible…"
-                  style={{ width: '100%', resize: 'none', border: '1.5px solid var(--border)', borderRadius: 'var(--r)', padding: '10px 12px', fontSize: 14, fontFamily: 'var(--font)', background: 'var(--bg)', boxSizing: 'border-box', lineHeight: 1.5 }} />
+                  style={{ width: '100%', resize: 'none', border: '1.5px solid var(--border)', borderRadius: 'var(--r)', padding: "var(--ds-input-py) var(--space-md)", fontSize: "var(--text-base)", fontFamily: 'var(--font)', background: 'var(--bg)', boxSizing: 'border-box', lineHeight: 1.5 }} />
               </div>
               <button type="button" onClick={submitNewTicket} disabled={!newTicketTenant || !newTicketSubject.trim() || !newTicketBody.trim() || creatingTicket}
-                style={{ padding: '12px', borderRadius: 'var(--r)', border: 'none', background: newTicketTenant && newTicketSubject.trim() && newTicketBody.trim() && !creatingTicket ? 'hsl(var(--primary))' : 'var(--border)', color: newTicketTenant && newTicketSubject.trim() && newTicketBody.trim() && !creatingTicket ? 'hsl(var(--primary-foreground))' : 'var(--ink3)', fontSize: 14, fontWeight: 700, cursor: newTicketTenant && newTicketSubject.trim() && newTicketBody.trim() && !creatingTicket ? 'pointer' : 'default' }} data-ui-native-button="">
+                style={{ padding: "var(--action-py) var(--space-md)", borderRadius: 'var(--r)', border: 'none', background: newTicketTenant && newTicketSubject.trim() && newTicketBody.trim() && !creatingTicket ? 'hsl(var(--primary))' : 'var(--border)', color: newTicketTenant && newTicketSubject.trim() && newTicketBody.trim() && !creatingTicket ? 'hsl(var(--primary-foreground))' : 'var(--ink3)', fontSize: "var(--text-base)", fontWeight: 700, cursor: newTicketTenant && newTicketSubject.trim() && newTicketBody.trim() && !creatingTicket ? 'pointer' : 'default' }} data-ui-native-button="">
                 {creatingTicket ? 'Submitting…' : 'Submit Ticket'}
               </button>
             </div>

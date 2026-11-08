@@ -319,7 +319,7 @@ export function BankReconciliation() {
         </div>
 
         <div className="bank-rec-hero-stats">
-          <div className="bank-rec-stat-tile">
+          <div className="bank-rec-stat-tile" data-finops-accent="">
             <span>Reconciled Feeds</span>
             <strong>
               {brStats.reconciledCount} / {brStats.total}
@@ -357,7 +357,7 @@ export function BankReconciliation() {
                 placeholder="Search feeds…"
                 value={feedSearch}
                 onChange={e => setFeedSearch(e.target.value)}
-                style={{ height: 32, fontSize: 12 }}
+                style={{ height: "var(--ctl-h)", fontSize: "var(--text-base)" }}
               />
             </div>
           )}
@@ -502,27 +502,27 @@ export function BankReconciliation() {
                     placeholder="Search transaction lines…"
                     value={lineSearch}
                     onChange={e => setLineSearch(e.target.value)}
-                    style={{ height: 34, fontSize: 12.5 }}
+                    style={{ height: "var(--ctl-h)", fontSize: "var(--text-base)" }}
                   />
                 </div>
 
                 <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
                   <div className="bank-rec-filter-pills">
-                    <button
+                    <button data-ui-native-button=""
                       type="button"
                       className={`bank-rec-filter-pill${lineFilter === 'all' ? ' bank-rec-filter-pill--active' : ''}`}
                       onClick={() => setLineFilter('all')}
                     >
                       All ({detail.lines.length})
                     </button>
-                    <button
+                    <button data-ui-native-button=""
                       type="button"
                       className={`bank-rec-filter-pill${lineFilter === 'unmatched' ? ' bank-rec-filter-pill--active' : ''}`}
                       onClick={() => setLineFilter('unmatched')}
                     >
                       Unmatched ({unmatchedLines.length})
                     </button>
-                    <button
+                    <button data-ui-native-button=""
                       type="button"
                       className={`bank-rec-filter-pill${lineFilter === 'matched' ? ' bank-rec-filter-pill--active' : ''}`}
                       onClick={() => setLineFilter('matched')}
@@ -754,7 +754,7 @@ export function BankReconciliation() {
                       const isExact = Math.abs(c.amount - pendingLine.amount) < 0.01;
                       const diff = c.amount - pendingLine.amount;
                       return (
-                        <button
+                        <button data-ui-native-button=""
                           key={c.id}
                           type="button"
                           onClick={() => handleMatch(pendingLine.id, c.id)}

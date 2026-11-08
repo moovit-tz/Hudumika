@@ -142,7 +142,7 @@ export function OnsiteAgencyDirectoryProfile() {
           <form onSubmit={handleSubmit} className="onsite-card" style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
             <div className="onsite-form-group">
               <label>Headline *</label>
-              <input
+              <input data-ui-field="input"
                 className="onsite-input"
                 value={form.headline}
                 maxLength={200}
@@ -153,7 +153,7 @@ export function OnsiteAgencyDirectoryProfile() {
             </div>
             <div className="onsite-form-group">
               <label>Description *</label>
-              <textarea
+              <textarea data-ui-field="textarea"
                 className="onsite-textarea"
                 rows={4}
                 value={form.description}
@@ -176,7 +176,7 @@ export function OnsiteAgencyDirectoryProfile() {
               </div>
               <div className="onsite-form-group">
                 <label>Region</label>
-                <input
+                <input data-ui-field="input"
                   className="onsite-input"
                   value={form.region}
                   maxLength={100}
@@ -187,7 +187,7 @@ export function OnsiteAgencyDirectoryProfile() {
             </div>
             <div className="onsite-form-group">
               <label>Service tags (comma-separated)</label>
-              <input
+              <input data-ui-field="input"
                 className="onsite-input"
                 value={form.service_tags}
                 placeholder="WordPress, Ecommerce, Migrations"
@@ -196,7 +196,7 @@ export function OnsiteAgencyDirectoryProfile() {
             </div>
             <div className="onsite-form-group">
               <label>Languages (comma-separated)</label>
-              <input
+              <input data-ui-field="input"
                 className="onsite-input"
                 value={form.languages}
                 placeholder="English, Swahili"
@@ -205,7 +205,7 @@ export function OnsiteAgencyDirectoryProfile() {
             </div>
             <div className="onsite-form-group">
               <label>Portfolio links (comma-separated URLs)</label>
-              <input
+              <input data-ui-field="input"
                 className="onsite-input"
                 value={form.portfolio_links}
                 placeholder="https://example.com/case-study"

@@ -567,7 +567,7 @@ export const OndiSecuritySettings: React.FC<{ embedded?: boolean }> = ({ embedde
               <div className="oss-card-body">
                 <div className="oss-form-row">
                   <label className="oss-form-label">Current Password</label>
-                  <input
+                  <input data-ui-field="input"
                     type="password"
                     value={currentPw}
                     onChange={(e) => setCurrentPw(e.target.value)}
@@ -578,7 +578,7 @@ export const OndiSecuritySettings: React.FC<{ embedded?: boolean }> = ({ embedde
 
                 <div className="oss-form-row">
                   <label className="oss-form-label">New Password</label>
-                  <input
+                  <input data-ui-field="input"
                     type="password"
                     value={newPw}
                     onChange={(e) => setNewPw(e.target.value)}
@@ -589,7 +589,7 @@ export const OndiSecuritySettings: React.FC<{ embedded?: boolean }> = ({ embedde
 
                 <div className="oss-form-row">
                   <label className="oss-form-label">Confirm New Password</label>
-                  <input
+                  <input data-ui-field="input"
                     type="password"
                     value={confirmPw}
                     onChange={(e) => setConfirmPw(e.target.value)}
@@ -639,7 +639,7 @@ export const OndiSecuritySettings: React.FC<{ embedded?: boolean }> = ({ embedde
 
                 <div className="oss-form-row">
                   <label className="oss-form-label">New Email Address</label>
-                  <input
+                  <input data-ui-field="input"
                     type="email"
                     value={newEmail}
                     onChange={(e) => setNewEmail(e.target.value)}
@@ -650,7 +650,7 @@ export const OndiSecuritySettings: React.FC<{ embedded?: boolean }> = ({ embedde
 
                 <div className="oss-form-row">
                   <label className="oss-form-label">Current Password</label>
-                  <input
+                  <input data-ui-field="input"
                     type="password"
                     value={currentPwForEmail}
                     onChange={(e) => setCurrentPwForEmail(e.target.value)}
@@ -737,13 +737,13 @@ export const OndiSecuritySettings: React.FC<{ embedded?: boolean }> = ({ embedde
                       <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--ink)', marginTop: 4 }}>
                         2. Enter 6-digit authenticator code
                       </span>
-                      <input
+                      <input data-ui-field="input"
                         type="text"
                         value={verifyCode}
                         onChange={(e) => setVerifyCode(e.target.value.replace(/\D/g, '').slice(0, 6))}
                         placeholder="000000"
                         className="oss-input"
-                        style={{ fontFamily: 'var(--font)', fontSize: 16, letterSpacing: '0.2em', textAlign: 'center', width: 180 }}
+                        style={{ fontFamily: 'var(--font)', fontSize: "var(--text-base)", letterSpacing: '0.2em', textAlign: 'center', width: 180 }}
                       />
 
                       <div className="oss-btn-row">
@@ -771,7 +771,7 @@ export const OndiSecuritySettings: React.FC<{ embedded?: boolean }> = ({ embedde
                           navigator.clipboard.writeText(backupCodes.join('\n'));
                           showAlert('Backup codes copied.', { variant: 'success' });
                         }}
-                        style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--teal)', fontSize: 12, fontWeight: 600, display: 'flex', alignItems: 'center', gap: 4 }}
+                        style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--teal)', fontSize: "var(--text-base)", fontWeight: 600, display: 'flex', alignItems: 'center', gap: 4 }}
                        data-ui-native-button="">
                         <Icon name="copy" size={12} />
                         <span>Copy All</span>
@@ -801,7 +801,7 @@ export const OndiSecuritySettings: React.FC<{ embedded?: boolean }> = ({ embedde
                       </div>
                     ) : (
                       <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap', padding: 12, background: 'var(--bg)', borderRadius: 'var(--r)', border: '1px solid var(--border)' }}>
-                        <input
+                        <input data-ui-field="input"
                           type="text"
                           value={disableCode}
                           onChange={(e) => setDisableCode(e.target.value.replace(/\D/g, '').slice(0, 6))}
@@ -864,7 +864,7 @@ export const OndiSecuritySettings: React.FC<{ embedded?: boolean }> = ({ embedde
                             </div>
                           </div>
                         </div>
-                        <Button variant="outline" size="sm" onClick={() => removePasskey(p.id)} style={{ color: 'var(--red)', fontSize: 12, height: 28, padding: '0 10px' }}>
+                        <Button variant="outline" size="sm" onClick={() => removePasskey(p.id)} style={{ color: 'var(--red)', fontSize: "var(--text-base)", height: "var(--ctl-h)", padding: '0 10px' }}>
                           Remove
                         </Button>
                       </div>
@@ -918,7 +918,7 @@ export const OndiSecuritySettings: React.FC<{ embedded?: boolean }> = ({ embedde
                       A verified phone number is used for SMS sign-in codes and account recovery.
                     </p>
                     <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
-                      <input
+                      <input data-ui-field="input"
                         type="tel"
                         value={phoneNumber}
                         onChange={(e) => setPhoneNumber(e.target.value)}
@@ -939,13 +939,13 @@ export const OndiSecuritySettings: React.FC<{ embedded?: boolean }> = ({ embedde
                       Enter the 6-digit code sent to {phoneNumber}
                     </span>
                     <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
-                      <input
+                      <input data-ui-field="input"
                         type="text"
                         value={phoneVerifyCode}
                         onChange={(e) => setPhoneVerifyCode(e.target.value.replace(/\D/g, '').slice(0, 6))}
                         placeholder="000000"
                         className="oss-input"
-                        style={{ fontFamily: 'var(--font)', fontSize: 16, letterSpacing: '0.2em', textAlign: 'center', width: 160 }}
+                        style={{ fontFamily: 'var(--font)', fontSize: "var(--text-base)", letterSpacing: '0.2em', textAlign: 'center', width: 160 }}
                       />
                       <Button variant="default" size="sm" onClick={verifyPhoneOtp} disabled={phoneBusy || phoneVerifyCode.length < 6}>
                         Verify Code
@@ -958,7 +958,7 @@ export const OndiSecuritySettings: React.FC<{ embedded?: boolean }> = ({ embedde
                       type="button"
                       onClick={sendPhoneCode}
                       disabled={phoneBusy}
-                      style={{ background: 'none', border: 'none', color: 'var(--teal)', fontSize: 12, fontWeight: 600, cursor: 'pointer', padding: 0, alignSelf: 'flex-start' }}
+                      style={{ background: 'none', border: 'none', color: 'var(--teal)', fontSize: "var(--text-base)", fontWeight: 600, cursor: 'pointer', padding: 0, alignSelf: 'flex-start' }}
                      data-ui-native-button="">
                       Resend code
                     </button>
@@ -1123,7 +1123,7 @@ export const OndiSecuritySettings: React.FC<{ embedded?: boolean }> = ({ embedde
                             <button
                               type="button"
                               onClick={() => copyRecoveryLink(r.token)}
-                              style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--teal)', padding: 0, display: 'flex', alignItems: 'center', gap: 4, fontSize: 11.5, fontWeight: 600 }}
+                              style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--teal)', padding: 0, display: 'flex', alignItems: 'center', gap: 4, fontSize: "var(--text-base)", fontWeight: 600 }}
                              data-ui-native-button="">
                               <Icon name="copy" size={12} /> Copy link
                             </button>
@@ -1159,7 +1159,7 @@ export const OndiSecuritySettings: React.FC<{ embedded?: boolean }> = ({ embedde
                         <button
                           type="button"
                           onClick={() => removeRecoveryContact(c.id)}
-                          style={{ background: 'none', border: 'none', color: 'var(--red)', fontSize: 12, fontWeight: 600, cursor: 'pointer' }}
+                          style={{ background: 'none', border: 'none', color: 'var(--red)', fontSize: "var(--text-base)", fontWeight: 600, cursor: 'pointer' }}
                          data-ui-native-button="">
                           Remove
                         </button>

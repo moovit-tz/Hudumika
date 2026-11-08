@@ -424,20 +424,20 @@ export function SealConsignments() {
         {/* View Switcher: Card View vs Table View */}
         <div style={{ display: 'inline-flex', background: 'var(--bg)', padding: 3, borderRadius: 'var(--r-sm)', border: '1px solid var(--border)' }}>
           <Tip label="Card View" side="bottom">
-            <button
+            <button data-ui-native-button=""
               type="button"
               onClick={() => handleViewChange('grid')}
               style={{
                 display: 'flex',
                 alignItems: 'center',
                 gap: 5,
-                padding: '5px 10px',
+                padding: "var(--action-py) var(--space-md)",
                 borderRadius: 'calc(var(--r-sm) - 2px)',
                 background: viewMode === 'grid' ? 'var(--card-bg, #ffffff)' : 'transparent',
                 color: viewMode === 'grid' ? 'var(--seal, var(--teal))' : 'var(--ink3)',
                 boxShadow: viewMode === 'grid' ? '0 1px 3px rgba(0,0,0,0.08)' : 'none',
                 border: 'none',
-                fontSize: 12,
+                fontSize: "var(--text-base)",
                 fontWeight: 600,
                 cursor: 'pointer',
               }}
@@ -447,20 +447,20 @@ export function SealConsignments() {
             </button>
           </Tip>
           <Tip label="Table View" side="bottom">
-            <button
+            <button data-ui-native-button=""
               type="button"
               onClick={() => handleViewChange('table')}
               style={{
                 display: 'flex',
                 alignItems: 'center',
                 gap: 5,
-                padding: '5px 10px',
+                padding: "var(--action-py) var(--space-md)",
                 borderRadius: 'calc(var(--r-sm) - 2px)',
                 background: viewMode === 'table' ? 'var(--card-bg, #ffffff)' : 'transparent',
                 color: viewMode === 'table' ? 'var(--seal, var(--teal))' : 'var(--ink3)',
                 boxShadow: viewMode === 'table' ? '0 1px 3px rgba(0,0,0,0.08)' : 'none',
                 border: 'none',
-                fontSize: 12,
+                fontSize: "var(--text-base)",
                 fontWeight: 600,
                 cursor: 'pointer',
               }}
@@ -478,18 +478,18 @@ export function SealConsignments() {
         <div className="seal-toolbar-left">
           <div style={{ position: 'relative', width: '100%' }}>
             <Icon name="search" size={14} color="var(--ink3)" style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none' }} />
-            <input
+            <input data-ui-field="input"
               className="input-field"
               value={search}
               onChange={e => setSearch(e.target.value)}
               placeholder="Search by doc number, client name, cargo, or warehouse bay…"
-              style={{ width: '100%', boxSizing: 'border-box', paddingLeft: 34, paddingRight: search ? 30 : 12, height: 36, fontSize: 13 }}
+              style={{ width: '100%', boxSizing: 'border-box', paddingLeft: 34, paddingRight: search ? 30 : 12, height: "var(--ctl-h)", fontSize: "var(--text-base)" }}
             />
             {search && (
-              <button
+              <button data-ui-native-button=""
                 type="button"
                 onClick={() => setSearch('')}
-                style={{ position: 'absolute', right: 8, top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink3)', padding: 4 }}
+                style={{ position: 'absolute', right: 8, top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink3)', padding: "var(--action-py) var(--space-md)" }}
                 aria-label="Clear search"
               >
                 ✕
@@ -502,7 +502,7 @@ export function SealConsignments() {
         <div className="seal-toolbar-right">
           {/* Doc Type Selector */}
           <Select value={docTypeFilter} onValueChange={setDocTypeFilter}>
-            <SelectTrigger style={{ height: 36, minWidth: 120 }}>
+            <SelectTrigger style={{ height: "var(--ctl-h)", minWidth: 120 }}>
               <SelectValue placeholder="Doc Type" />
             </SelectTrigger>
             <SelectContent>
@@ -516,7 +516,7 @@ export function SealConsignments() {
           {/* Warehouse Compartment Selector */}
           {compartments.length > 1 && (
             <Select value={compartmentFilter} onValueChange={setCompartmentFilter}>
-              <SelectTrigger style={{ height: 36, minWidth: 160 }}>
+              <SelectTrigger style={{ height: "var(--ctl-h)", minWidth: 160 }}>
                 <SelectValue placeholder="Warehouse Bay" />
               </SelectTrigger>
               <SelectContent>
@@ -530,7 +530,7 @@ export function SealConsignments() {
 
           {/* Sort Selector */}
           <Select value={sortBy} onValueChange={v => setSortBy(v as SortOption)}>
-            <SelectTrigger style={{ height: 36, minWidth: 160 }}>
+            <SelectTrigger style={{ height: "var(--ctl-h)", minWidth: 160 }}>
               <SelectValue placeholder="Sort By" />
             </SelectTrigger>
             <SelectContent>
@@ -788,7 +788,7 @@ export function SealConsignments() {
                   </span>
                 )}
               </div>
-              <button
+              <button data-ui-native-button=""
                 type="button"
                 onClick={() => void loadData(true)}
                 style={{
@@ -799,7 +799,7 @@ export function SealConsignments() {
                   border: 'none',
                   color: 'var(--ink2)',
                   cursor: 'pointer',
-                  fontSize: 12,
+                  fontSize: "var(--text-base)",
                   fontWeight: 600,
                 }}
               >

@@ -96,14 +96,14 @@ function AISearchModal({ onClose }: { onClose: () => void }) {
           }}>
             <Icon name="sparkle" size={16} color="#fff" strokeWidth={1.8} />
           </div>
-          <input
+          <input data-field-appearance="bare" data-ui-field="input"
             ref={inputRef}
             value={query}
             onChange={e => setQuery(e.target.value)}
             placeholder="Search shipments, customers, invoices, staff, drivers, vehicles…"
             style={{
               flex: 1, border: 'none', outline: 'none', background: 'transparent',
-              fontSize: 15, fontFamily: 'var(--font)', color: 'var(--ink)',
+              fontSize: "var(--text-base)", fontFamily: 'var(--font)', color: 'var(--ink)',
             }}
             onKeyDown={e => {
               if (e.key !== 'Enter' || !query.trim()) return;
@@ -113,8 +113,8 @@ function AISearchModal({ onClose }: { onClose: () => void }) {
             }}
           />
           {query && (
-            <button type="button" title="Clear" onClick={() => setQuery('')}
-              style={{ border: 'none', background: 'none', cursor: 'pointer', color: 'var(--ink3)', padding: 4 }}>
+            <button data-ui-native-button="" type="button" title="Clear" onClick={() => setQuery('')}
+              style={{ border: 'none', background: 'none', cursor: 'pointer', color: 'var(--ink3)', padding: "var(--action-py) var(--space-md)" }}>
               <Icon name="x" size={14} />
             </button>
           )}
@@ -131,9 +131,9 @@ function AISearchModal({ onClose }: { onClose: () => void }) {
             <div style={{ padding: '12px 18px 8px', display: 'flex', flexWrap: 'wrap', gap: 8 }}>
               <span style={{ fontSize: 10, fontWeight: 700, color: 'var(--ink3)', letterSpacing: '0.07em', textTransform: 'uppercase', alignSelf: 'center', marginRight: 4 }}>Try</span>
               {QUICK_CHIPS.map(c => (
-                <button key={c.q} type="button" onClick={() => handleChip(c.q)}
+                <button data-ui-native-button="" key={c.q} type="button" onClick={() => handleChip(c.q)}
                   style={{
-                    fontSize: 12, padding: 'var(--ds-btn-py-sm) 11px', borderRadius: 20, cursor: 'pointer',
+                    fontSize: "var(--text-base)", padding: 'var(--ds-btn-py-sm) 11px', borderRadius: "var(--r-sm)", cursor: 'pointer',
                     border: '1px solid var(--border)', background: 'var(--bg)', color: 'var(--ink2)',
                     fontFamily: 'var(--font)', minHeight: 'var(--ctl-h-sm)', boxSizing: 'border-box', lineHeight: 1.25}}>
                   {c.label}
@@ -147,12 +147,12 @@ function AISearchModal({ onClose }: { onClose: () => void }) {
                 Quick Navigation
               </div>
               {SUGGESTIONS.map(s => (
-                <button key={s.path} type="button" onClick={() => handleSuggestion(s.path)}
+                <button data-ui-native-button="" key={s.path} type="button" onClick={() => handleSuggestion(s.path)}
                   style={{
                     display: 'flex', alignItems: 'center', gap: 12,
                     width: '100%', padding: 'var(--ds-btn-py) 18px', border: 'none',
                     background: 'none', cursor: 'pointer', fontFamily: 'var(--font)',
-                    color: 'var(--ink)', fontSize: 14, textAlign: 'left', minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}}
+                    color: 'var(--ink)', fontSize: "var(--text-base)", textAlign: 'left', minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}}
                   onMouseEnter={e => (e.currentTarget.style.background = 'var(--hover-bg)')}
                   onMouseLeave={e => (e.currentTarget.style.background = '')}>
                   <div style={{
@@ -181,12 +181,12 @@ function AISearchModal({ onClose }: { onClose: () => void }) {
                   {CATEGORY_LABELS[cat]?.label || cat}
                 </div>
                 {hits.map(h => (
-                  <button key={h.id} type="button" onClick={() => handleHit(h.path)}
+                  <button data-ui-native-button="" key={h.id} type="button" onClick={() => handleHit(h.path)}
                     style={{
                       display: 'flex', alignItems: 'center', gap: 12,
                       width: '100%', padding: 'var(--ds-btn-py) 18px', border: 'none',
                       background: 'none', cursor: 'pointer', fontFamily: 'var(--font)',
-                      color: 'var(--ink)', fontSize: 14, textAlign: 'left', minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}}
+                      color: 'var(--ink)', fontSize: "var(--text-base)", textAlign: 'left', minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}}
                     onMouseEnter={e => (e.currentTarget.style.background = 'var(--hover-bg)')}
                     onMouseLeave={e => (e.currentTarget.style.background = '')}>
                     <div style={{
@@ -206,12 +206,12 @@ function AISearchModal({ onClose }: { onClose: () => void }) {
 
             {/* Extend outside the app */}
             <div style={{ borderTop: '1px solid var(--border)', padding: '4px 0' }}>
-              <button type="button" onClick={searchWeb}
+              <button data-ui-native-button="" type="button" onClick={searchWeb}
                 style={{
                   display: 'flex', alignItems: 'center', gap: 12,
                   width: '100%', padding: 'var(--ds-btn-py) 18px', border: 'none',
                   background: 'none', cursor: 'pointer', fontFamily: 'var(--font)',
-                  color: 'var(--ink2)', fontSize: 13, textAlign: 'left', minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}}
+                  color: 'var(--ink2)', fontSize: "var(--text-base)", textAlign: 'left', minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}}
                 onMouseEnter={e => (e.currentTarget.style.background = 'var(--hover-bg)')}
                 onMouseLeave={e => (e.currentTarget.style.background = '')}>
                 <div style={{
@@ -288,7 +288,7 @@ function ClockInModal({ onClose, onConfirm }: {
               {step === 1 ? 'Select the shipment you are working on' : 'Select up to 3 steps to work on'}
             </div>
           </div>
-          <button type="button" title="Close" onClick={onClose} style={{ background: 'rgba(255,255,255,.2)', border: 'none', borderRadius: 'var(--r)', cursor: 'pointer', padding: 6, display: 'flex' }}>
+          <button data-ui-native-button="" type="button" title="Close" onClick={onClose} style={{ background: 'rgba(255,255,255,.2)', border: 'none', borderRadius: 'var(--r)', cursor: 'pointer', padding: "var(--action-py) var(--space-md)", display: 'flex' }}>
             <Icon name="x" size={16} color="#fff" />
           </button>
         </div>
@@ -311,9 +311,9 @@ function ClockInModal({ onClose, onConfirm }: {
             <>
               <div style={{ position: 'relative', marginBottom: 12 }}>
                 <Icon name="search" size={13} color="var(--ink3)" style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)' }} />
-                <input value={jobSearch} onChange={e => setJobSearch(e.target.value)}
+                <input data-ui-field="input" value={jobSearch} onChange={e => setJobSearch(e.target.value)}
                   placeholder="Search by BL, shipment title or customer…"
-                  style={{ width: '100%', padding: '8px 10px 8px 32px', border: '1px solid var(--border)', borderRadius: 'var(--r)', fontFamily: 'var(--font)', fontSize: 13, background: 'var(--white)', color: 'var(--ink)', boxSizing: 'border-box' as const }} />
+                  style={{ width: '100%', padding: "var(--ds-input-py) var(--space-md)", border: '1px solid var(--border)', borderRadius: 'var(--r)', fontFamily: 'var(--font)', fontSize: "var(--text-base)", background: 'var(--white)', color: 'var(--ink)', boxSizing: 'border-box' as const }} />
               </div>
               <div style={{ display: 'flex', flexDirection: 'column', gap: 6, maxHeight: 280, overflowY: 'auto' }}>
                 {filtered.length === 0 && <div style={{ textAlign: 'center', padding: '24px 0', color: 'var(--ink3)', fontSize: 13 }}>No active shipments found.</div>}
@@ -321,7 +321,7 @@ function ClockInModal({ onClose, onConfirm }: {
                   const stageLabel = STAGES.find(s => s.id === j.stage)?.label || j.stage;
                   const selected = selectedJobId === j.id;
                   return (
-                    <button key={j.id} type="button" onClick={() => setSelectedJobId(j.id)}
+                    <button data-ui-native-button="" key={j.id} type="button" onClick={() => setSelectedJobId(j.id)}
                       style={{ display: 'flex', alignItems: 'center', gap: 12, padding: 'var(--ds-btn-py-lg) 14px', borderRadius: 'var(--r)', border: `1.5px solid ${selected ? 'var(--teal)' : 'var(--border)'}`, background: selected ? 'var(--teal-l)' : 'var(--white)', cursor: 'pointer', textAlign: 'left', fontFamily: 'var(--font)', transition: 'all .12s', minHeight: 'var(--ctl-h-lg)', boxSizing: 'border-box', lineHeight: 1.25}}>
                       <div style={{ width: 40, height: 40, borderRadius: 'var(--r)', background: selected ? 'var(--teal)' : 'var(--bg)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
                         <Icon name="ship" size={18} color={selected ? '#fff' : 'var(--ink3)'} />
@@ -339,8 +339,8 @@ function ClockInModal({ onClose, onConfirm }: {
                 })}
               </div>
               <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: 16 }}>
-                <button type="button" disabled={!selectedJobId} onClick={() => setStep(2)}
-                  style={{ padding: 'var(--ds-btn-py) 20px', background: selectedJobId ? 'hsl(var(--primary))' : 'var(--border)', color: selectedJobId ? 'hsl(var(--primary-foreground))' : 'var(--ink3)', border: 'none', borderRadius: 'var(--r)', fontSize: 13, fontWeight: 700, cursor: selectedJobId ? 'pointer' : 'default', display: 'flex', alignItems: 'center', gap: 7, minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}}>
+                <button data-ui-native-button="" type="button" disabled={!selectedJobId} onClick={() => setStep(2)}
+                  style={{ padding: 'var(--ds-btn-py) 20px', background: selectedJobId ? 'hsl(var(--primary))' : 'var(--border)', color: selectedJobId ? 'hsl(var(--primary-foreground))' : 'var(--ink3)', border: 'none', borderRadius: 'var(--r)', fontSize: "var(--text-base)", fontWeight: 700, cursor: selectedJobId ? 'pointer' : 'default', display: 'flex', alignItems: 'center', gap: 7, minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}}>
                   Next <Icon name="arrowRight" size={14} color={selectedJobId ? '#fff' : 'var(--ink3)'} />
                 </button>
               </div>
@@ -361,7 +361,7 @@ function ClockInModal({ onClose, onConfirm }: {
                   const on = selectedSteps.includes(s.id);
                   const disabled = !on && selectedSteps.length >= 3;
                   return (
-                    <button key={s.id} type="button" onClick={() => !disabled && toggleStep(s.id)}
+                    <button data-ui-native-button="" key={s.id} type="button" onClick={() => !disabled && toggleStep(s.id)}
                       style={{ padding: 'var(--ds-btn-py) 12px', borderRadius: 'var(--r)', border: `1.5px solid ${on ? 'var(--teal)' : 'var(--border)'}`, background: on ? 'var(--teal-l)' : disabled ? 'var(--bg)' : 'var(--white)', cursor: disabled ? 'not-allowed' : 'pointer', textAlign: 'left', fontFamily: 'var(--font)', transition: 'all .12s', display: 'flex', alignItems: 'center', gap: 8, minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}}>
                       <div style={{ width: 16, height: 16, borderRadius: 4, border: `2px solid ${on ? 'var(--teal)' : 'var(--border)'}`, background: on ? 'var(--teal)' : 'transparent', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                         {on && <Icon name="check" size={10} color="#fff" />}
@@ -377,10 +377,10 @@ function ClockInModal({ onClose, onConfirm }: {
                 </div>
               )}
               <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
-                <button type="button" onClick={() => setStep(1)}
-                  style={{ padding: 'var(--ds-btn-py) 16px', border: '1px solid var(--border)', borderRadius: 'var(--r)', background: 'var(--white)', color: 'var(--ink)', fontSize: 13, cursor: 'pointer', minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}}>Back</button>
-                <button type="button" disabled={selectedSteps.length === 0} onClick={handleConfirm}
-                  style={{ padding: 'var(--ds-btn-py) 20px', background: selectedSteps.length > 0 ? 'var(--teal)' : 'var(--border)', color: selectedSteps.length > 0 ? '#fff' : 'var(--ink3)', border: 'none', borderRadius: 'var(--r)', fontSize: 13, fontWeight: 700, cursor: selectedSteps.length > 0 ? 'pointer' : 'default', display: 'flex', alignItems: 'center', gap: 7, minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}}>
+                <button data-ui-native-button="" type="button" onClick={() => setStep(1)}
+                  style={{ padding: 'var(--ds-btn-py) 16px', border: '1px solid var(--border)', borderRadius: 'var(--r)', background: 'var(--white)', color: 'var(--ink)', fontSize: "var(--text-base)", cursor: 'pointer', minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}}>Back</button>
+                <button data-ui-native-button="" type="button" disabled={selectedSteps.length === 0} onClick={handleConfirm}
+                  style={{ padding: 'var(--ds-btn-py) 20px', background: selectedSteps.length > 0 ? 'var(--teal)' : 'var(--border)', color: selectedSteps.length > 0 ? '#fff' : 'var(--ink3)', border: 'none', borderRadius: 'var(--r)', fontSize: "var(--text-base)", fontWeight: 700, cursor: selectedSteps.length > 0 ? 'pointer' : 'default', display: 'flex', alignItems: 'center', gap: 7, minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}}>
                   <Icon name="clock" size={14} color={selectedSteps.length > 0 ? '#fff' : 'var(--ink3)'} /> Clock In
                 </button>
               </div>
@@ -538,7 +538,7 @@ export const TopBar: React.FC<TopBarProps> = ({ navCollapsed, onToggleNav, onMob
 
       {/* ── Left: toggle + brand ── */}
       <div className="top-bar-left">
-        <button
+        <button data-ui-native-button=""
           onClick={onToggleNav}
           className="top-bar-icon-btn"
           title="Toggle navigation"
@@ -570,13 +570,13 @@ export const TopBar: React.FC<TopBarProps> = ({ navCollapsed, onToggleNav, onMob
 
       {/* ── Center: Search trigger ── */}
       <div style={{ flex: 1, display: 'flex', justifyContent: 'center', padding: '0 16px' }}>
-        <button
+        <button data-ui-native-button=""
           type="button"
           title="Search (⌘K)"
           onClick={openAI}
           className="top-bar-search-trigger"
           style={{
-            position: 'relative', width: '100%', maxWidth: 380, height: 36,
+            position: 'relative', width: '100%', maxWidth: 380, height: "var(--action-h)",
             display: 'flex', alignItems: 'center', gap: 8,
             border: '1px solid var(--border)', borderRadius: 'var(--r)',
             background: 'var(--bg)', cursor: 'pointer', padding: '0 10px 0 12px',
@@ -601,7 +601,7 @@ export const TopBar: React.FC<TopBarProps> = ({ navCollapsed, onToggleNav, onMob
       <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
 
         {/* Expand / collapse layout */}
-        <button style={ibStyle(isExpanded)} title={isExpanded ? 'Collapse layout' : 'Expand layout'}
+        <button data-ui-native-button="" style={ibStyle(isExpanded)} title={isExpanded ? 'Collapse layout' : 'Expand layout'}
           onClick={onToggleExpand}
           onMouseEnter={e => (e.currentTarget.style.background = isExpanded ? 'var(--teal-l)' : 'var(--hover-bg)')}
           onMouseLeave={e => (e.currentTarget.style.background = isExpanded ? 'var(--teal-l)' : 'transparent')}>
@@ -609,7 +609,7 @@ export const TopBar: React.FC<TopBarProps> = ({ navCollapsed, onToggleNav, onMob
         </button>
 
         {/* Dark / Light mode */}
-        <button style={ibStyle()} title={isDark ? 'Light mode' : 'Dark mode'}
+        <button data-ui-native-button="" style={ibStyle()} title={isDark ? 'Light mode' : 'Dark mode'}
           onClick={onToggleTheme}
           onMouseEnter={e => (e.currentTarget.style.background = 'var(--hover-bg)')}
           onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}>
@@ -617,7 +617,7 @@ export const TopBar: React.FC<TopBarProps> = ({ navCollapsed, onToggleNav, onMob
         </button>
 
         {/* Settings — purple */}
-        <button style={{ ...ibStyle(), background: 'var(--purple-l)' }} title="Settings"
+        <button data-ui-native-button="" style={{ ...ibStyle(), background: 'var(--purple-l)' }} title="Settings"
           onClick={() => navigate('/settings')}
           onMouseEnter={e => (e.currentTarget.style.background = 'var(--purple-l)')}
           onMouseLeave={e => (e.currentTarget.style.background = 'var(--purple-l)')}>
@@ -628,7 +628,7 @@ export const TopBar: React.FC<TopBarProps> = ({ navCollapsed, onToggleNav, onMob
         {isCheckedIn && currentEntry ? (
           <DropdownMenu open={clockOpen} onOpenChange={setClockOpen}>
             <DropdownMenuTrigger asChild>
-              <button
+              <button data-ui-native-button=""
                 type="button"
                 title="Session active — click to manage"
                 style={{ ...ibStyle(true), position: 'relative' }}
@@ -653,15 +653,15 @@ export const TopBar: React.FC<TopBarProps> = ({ navCollapsed, onToggleNav, onMob
                 )}
               </div>
               <div style={{ padding: 12, display: 'flex', flexDirection: 'column', gap: 6 }}>
-                <button type="button" onClick={() => { setClockOpen(false); triggerOpen(); }}
-                  style={{ width: '100%', padding: '8px', borderRadius: 'var(--r)', border: '1px solid var(--border)', background: 'var(--bg)', color: 'var(--ink)', fontWeight: 600, fontSize: 12, fontFamily: 'var(--font)', cursor: 'pointer' }}>
+                <button data-ui-native-button="" type="button" onClick={() => { setClockOpen(false); triggerOpen(); }}
+                  style={{ width: '100%', padding: "var(--action-py) var(--space-md)", borderRadius: 'var(--r)', border: '1px solid var(--border)', background: 'var(--bg)', color: 'var(--ink)', fontWeight: 600, fontSize: "var(--text-base)", fontFamily: 'var(--font)', cursor: 'pointer' }}>
                   Switch Task
                 </button>
               </div>
             </DropdownMenuContent>
           </DropdownMenu>
         ) : (
-          <button
+          <button data-ui-native-button=""
             type="button"
             title="Clock In"
             onClick={() => triggerOpen()}
@@ -679,7 +679,7 @@ export const TopBar: React.FC<TopBarProps> = ({ navCollapsed, onToggleNav, onMob
         {/* Notifications */}
         <DropdownMenu open={notifOpen} onOpenChange={(o) => { setNotifOpen(o); if (o) loadNotifs(); }}>
           <DropdownMenuTrigger asChild>
-            <button
+            <button data-ui-native-button=""
               style={{ ...ibStyle(), position: 'relative' }}
               title="Notifications"
             >
@@ -707,7 +707,7 @@ export const TopBar: React.FC<TopBarProps> = ({ navCollapsed, onToggleNav, onMob
                 {(['all', 'messages', 'alerts'] as const).map(tab => {
                   const labels = { all: `All (${notifs.length})`, messages: 'Messages', alerts: 'Alerts' };
                   return (
-                    <button key={tab} type="button" onClick={() => setNotifTab(tab)}
+                    <button data-ui-native-button="" key={tab} type="button" onClick={() => setNotifTab(tab)}
                       className="notif-tab-btn" data-active={notifTab === tab}>
                       {labels[tab]}
                     </button>
@@ -758,7 +758,7 @@ export const TopBar: React.FC<TopBarProps> = ({ navCollapsed, onToggleNav, onMob
 
             {/* Footer */}
             <div className="notif-footer">
-              <button type="button" className="notif-footer-btn" onClick={markAllRead}>
+              <button data-ui-native-button="" type="button" className="notif-footer-btn" onClick={markAllRead}>
                 Mark all as read
               </button>
             </div>
@@ -772,7 +772,7 @@ export const TopBar: React.FC<TopBarProps> = ({ navCollapsed, onToggleNav, onMob
         <div style={{ position: 'relative' }}>
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <button
+              <button data-ui-native-button=""
                 style={{
                   background: 'none',
                   border: 'none', cursor: 'pointer', borderRadius: 'var(--r)',

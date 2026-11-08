@@ -228,7 +228,7 @@ export function ShipmentDetail() {
               {isOverdue && <span style={{ display: 'inline-flex', alignItems: 'center', gap: 3, fontSize: 12, fontWeight: 700, color: 'var(--red)' }}><Icon name="alertTriangle" size={11} /> Overdue</span>}
               {job.hasDangerousGoods && (
                 <button type="button" onClick={() => setTab('overview')} title="Carries a dangerous-goods declaration — see the Overview tab"
-                  style={{ display: 'inline-flex', alignItems: 'center', gap: 3, fontSize: 10.5, padding: '2px 7px', background: 'var(--gold-l)', color: 'var(--gold)', borderRadius: 'var(--r-sm)', fontWeight: 700, border: 'none', cursor: 'pointer' }} data-ui-native-button="">
+                  style={{ display: 'inline-flex', alignItems: 'center', gap: 3, fontSize: "var(--text-xs)", padding: "var(--action-py) var(--space-md)", background: 'var(--gold-l)', color: 'var(--gold)', borderRadius: 'var(--r-sm)', fontWeight: 700, border: 'none', cursor: 'pointer' }} data-ui-native-button="">
                   <Icon name="alertTriangle" size={11} color="var(--gold)" /> DG
                 </button>
               )}

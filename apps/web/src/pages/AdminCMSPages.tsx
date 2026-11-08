@@ -115,7 +115,7 @@ export function AdminCMSPages() {
         <div style={{ marginBottom: 20 }}>
         <SectionCard title="Create New Page">
           <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', marginBottom: 12 }}>
-            <input
+            <input data-ui-field="input"
               type="text"
               placeholder="Page title (e.g. Terms of Service)"
               value={newTitle}
@@ -123,7 +123,7 @@ export function AdminCMSPages() {
               className="input-field"
               style={{ flex: 1, minWidth: 200 }}
             />
-            <input
+            <input data-ui-field="input"
               type="text"
               placeholder="URL slug (e.g. terms)"
               value={newSlug}
@@ -164,7 +164,7 @@ export function AdminCMSPages() {
         >
           <div style={{ marginBottom: 16 }}>
             <label style={{ display: 'block', fontSize: 12, fontWeight: 700, marginBottom: 4, color: 'var(--ink2)' }}>Page Title</label>
-            <input
+            <input data-ui-field="input"
               type="text"
               value={editing.title}
               onChange={e => setEditing({ ...editing, title: e.target.value })}
@@ -175,7 +175,7 @@ export function AdminCMSPages() {
 
           <div style={{ marginBottom: 16 }}>
             <label style={{ display: 'block', fontSize: 12, fontWeight: 700, marginBottom: 4, color: 'var(--ink2)' }}>SEO Meta Description</label>
-            <input
+            <input data-ui-field="input"
               type="text"
               value={editing.seo_description ?? ''}
               onChange={e => setEditing({ ...editing, seo_description: e.target.value })}

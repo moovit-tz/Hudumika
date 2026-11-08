@@ -926,7 +926,7 @@ export const ProjectsApp: React.FC<ProjectsAppProps> = ({ initialMode = 'command
                         background: 'var(--white)',
                         border: '1px solid var(--border)',
                         borderRadius: 'var(--r-lg)',
-                        padding: 20,
+                        padding: "var(--action-py) var(--space-md)",
                         cursor: 'pointer',
                         display: 'flex',
                         flexDirection: 'column',
@@ -1280,7 +1280,7 @@ export const ProjectsApp: React.FC<ProjectsAppProps> = ({ initialMode = 'command
 
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                  <button
+                  <button data-ui-native-button=""
                     type="button"
                     style={{
                       display: 'inline-flex', alignItems: 'center', gap: 5,

@@ -69,7 +69,7 @@ export function AgencyDirectory() {
       <div className="ad-filters">
         <div className="ad-filter-search">
           <Icon name="search" size={16} />
-          <input
+          <input data-ui-field="input"
             type="text"
             placeholder="Search agencies…"
             value={q}
@@ -213,13 +213,13 @@ function InquiryModal({ profile, onClose }: { profile: OnsiteAgencyProfile; onCl
         ) : (
           <form onSubmit={handleSubmit} className="ad-modal-form">
             <label>Your name
-              <input type="text" value={name} onChange={e => setName(e.target.value)} required />
+              <input data-ui-field="input" type="text" value={name} onChange={e => setName(e.target.value)} required />
             </label>
             <label>Your email
-              <input type="email" value={email} onChange={e => setEmail(e.target.value)} required />
+              <input data-ui-field="input" type="email" value={email} onChange={e => setEmail(e.target.value)} required />
             </label>
             <label>What do you need help with?
-              <textarea rows={4} value={message} onChange={e => setMessage(e.target.value)} required />
+              <textarea data-ui-field="textarea" rows={4} value={message} onChange={e => setMessage(e.target.value)} required />
             </label>
             <button type="submit" className="ad-btn-contact" disabled={!canSubmit} data-ui-native-button="">
               {submitting ? 'Sending…' : 'Send message'}

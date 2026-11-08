@@ -186,25 +186,25 @@ export const RateCardPage: React.FC = () => {
                   <tr key={key}>
                     <td style={td}>
                       {isEditing && !row.code
-                        ? <input style={editInput} value={draft.charge_name} onChange={e => setDraft(d => ({ ...d, charge_name: e.target.value }))} />
+                        ? <input data-ui-field="input" style={editInput} value={draft.charge_name} onChange={e => setDraft(d => ({ ...d, charge_name: e.target.value }))} />
                         : <span style={{ fontWeight: 600, color: 'var(--ink)' }}>{row.charge_name}</span>}
                     </td>
                     <td style={td}>
                       {isEditing && !row.code
-                        ? <input style={editInput} value={draft.unit} onChange={e => setDraft(d => ({ ...d, unit: e.target.value }))} />
+                        ? <input data-ui-field="input" style={editInput} value={draft.unit} onChange={e => setDraft(d => ({ ...d, unit: e.target.value }))} />
                         : <span style={{ color: 'var(--ink3)' }}>{row.unit || '—'}</span>}
                     </td>
                     <td style={td}>
                       {isEditing ? (
                         <div style={{ display: 'flex', gap: 6 }}>
                           <Select value={draft.rate_currency} onValueChange={v => setDraft(d => ({ ...d, rate_currency: v }))}>
-                            <SelectTrigger style={{ width: 78, height: 30, minHeight: 30, fontSize: 12.5, flex: 'none' }}><SelectValue /></SelectTrigger>
+                            <SelectTrigger style={{ width: 78, height: "var(--ctl-h)", minHeight: "var(--ctl-h)", fontSize: "var(--text-base)", flex: 'none' }}><SelectValue /></SelectTrigger>
                             <SelectContent>
                               <SelectItem value="USD">USD</SelectItem>
                               <SelectItem value="TZS">TZS</SelectItem>
                             </SelectContent>
                           </Select>
-                          <input style={editInput} type="number" min="0" step="0.01" value={draft.rate_amount} onChange={e => setDraft(d => ({ ...d, rate_amount: e.target.value }))} />
+                          <input data-ui-field="input" style={editInput} type="number" min="0" step="0.01" value={draft.rate_amount} onChange={e => setDraft(d => ({ ...d, rate_amount: e.target.value }))} />
                         </div>
                       ) : (
                         Number(row.rate_amount) > 0
@@ -217,7 +217,7 @@ export const RateCardPage: React.FC = () => {
                         which is correct for every per-container FCL row. */}
                     <td style={td}>
                       {isEditing ? (
-                        <input style={editInput} type="number" min="0" step="0.01" placeholder="None"
+                        <input data-ui-field="input" style={editInput} type="number" min="0" step="0.01" placeholder="None"
                           value={draft.min_charge} onChange={e => setDraft(d => ({ ...d, min_charge: e.target.value }))} />
                       ) : (
                         row.min_charge != null && Number(row.min_charge) > 0
@@ -227,7 +227,7 @@ export const RateCardPage: React.FC = () => {
                     </td>
                     <td style={td}>
                       {isEditing
-                        ? <input style={editInput} placeholder="Optional note" value={draft.notes} onChange={e => setDraft(d => ({ ...d, notes: e.target.value }))} />
+                        ? <input data-ui-field="input" style={editInput} placeholder="Optional note" value={draft.notes} onChange={e => setDraft(d => ({ ...d, notes: e.target.value }))} />
                         : <span style={{ color: 'var(--ink3)', fontSize: 12 }}>{row.notes || '—'}</span>}
                     </td>
                     {canEdit && (
@@ -291,7 +291,7 @@ export const RateCardPage: React.FC = () => {
           <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
             <span style={{ fontSize: 11.5, fontWeight: 700, color: 'var(--ink3)', textTransform: 'uppercase', letterSpacing: '.03em' }}>Rates for</span>
             <Select value={icdOperatorId ?? '__generic__'} onValueChange={v => setIcdOperatorId(v === '__generic__' ? null : v)}>
-              <SelectTrigger style={{ width: 260, height: 34, fontSize: 13 }}><SelectValue /></SelectTrigger>
+              <SelectTrigger style={{ width: 260, height: "var(--ctl-h)", fontSize: "var(--text-base)" }}><SelectValue /></SelectTrigger>
               <SelectContent>
                 <SelectItem value="__generic__">Generic default</SelectItem>
                 {operators.map(o => <SelectItem key={o.id} value={o.id}>{o.name}</SelectItem>)}
@@ -302,10 +302,10 @@ export const RateCardPage: React.FC = () => {
                 <div style={{ width: 260 }}>
                   <EntityPicker value={operatorPicker} onChange={item => item && selectOperator(item)} search={searchIcdOperators} placeholder="Search ICD operators…" />
                 </div>
-                <button type="button" onClick={() => setAddingOperator(false)} style={{ background: 'none', border: '1px solid var(--border)', borderRadius: 'var(--r)', padding: 'var(--ds-btn-py) 12px', fontSize: 13, fontWeight: 600, color: 'var(--ink3)', cursor: 'pointer', minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}} data-ui-native-button="">Cancel</button>
+                <button type="button" onClick={() => setAddingOperator(false)} style={{ background: 'none', border: '1px solid var(--border)', borderRadius: 'var(--r)', padding: 'var(--ds-btn-py) 12px', fontSize: "var(--text-base)", fontWeight: 600, color: 'var(--ink3)', cursor: 'pointer', minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}} data-ui-native-button="">Cancel</button>
               </div>
             ) : (
-              <button type="button" onClick={() => setAddingOperator(true)} style={{ display: 'flex', alignItems: 'center', gap: 6, background: 'none', border: '1px dashed var(--border)', borderRadius: 'var(--r)', padding: 'var(--ds-btn-py) 12px', fontSize: 13, fontWeight: 700, color: 'var(--teal)', cursor: 'pointer', minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}} data-ui-native-button="">
+              <button type="button" onClick={() => setAddingOperator(true)} style={{ display: 'flex', alignItems: 'center', gap: 6, background: 'none', border: '1px dashed var(--border)', borderRadius: 'var(--r)', padding: 'var(--ds-btn-py) 12px', fontSize: "var(--text-base)", fontWeight: 700, color: 'var(--teal)', cursor: 'pointer', minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}} data-ui-native-button="">
                 <Icon name="plusCircle" size={13} /> Link an ICD operator
               </button>
             ))}
@@ -346,28 +346,28 @@ export const RateCardPage: React.FC = () => {
                   addingExtra ? (
                     <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center', padding: 12, border: '1px dashed var(--border)', borderRadius: 'var(--r)' }}>
                       <Select value={extraDraft.category} onValueChange={v => setExtraDraft(d => ({ ...d, category: v as any }))}>
-                        <SelectTrigger style={{ width: 118, height: 30, minHeight: 30, fontSize: 12.5 }}><SelectValue /></SelectTrigger>
+                        <SelectTrigger style={{ width: 118, height: "var(--ctl-h)", minHeight: "var(--ctl-h)", fontSize: "var(--text-base)" }}><SelectValue /></SelectTrigger>
                         <SelectContent>
                           <SelectItem value="OTHER">Other</SelectItem>
                           <SelectItem value="ICD">ICD</SelectItem>
                           <SelectItem value="AGENCY">Agency</SelectItem>
                         </SelectContent>
                       </Select>
-                      <input style={{ ...editInput, width: 180 }} placeholder="Charge name" value={extraDraft.charge_name} onChange={e => setExtraDraft(d => ({ ...d, charge_name: e.target.value }))} />
-                      <input style={{ ...editInput, width: 120 }} placeholder="Unit" value={extraDraft.unit} onChange={e => setExtraDraft(d => ({ ...d, unit: e.target.value }))} />
+                      <input data-ui-field="input" style={{ ...editInput, width: 180 }} placeholder="Charge name" value={extraDraft.charge_name} onChange={e => setExtraDraft(d => ({ ...d, charge_name: e.target.value }))} />
+                      <input data-ui-field="input" style={{ ...editInput, width: 120 }} placeholder="Unit" value={extraDraft.unit} onChange={e => setExtraDraft(d => ({ ...d, unit: e.target.value }))} />
                       <Select value={extraDraft.rate_currency} onValueChange={v => setExtraDraft(d => ({ ...d, rate_currency: v }))}>
-                        <SelectTrigger style={{ width: 78, height: 30, minHeight: 30, fontSize: 12.5 }}><SelectValue /></SelectTrigger>
+                        <SelectTrigger style={{ width: 78, height: "var(--ctl-h)", minHeight: "var(--ctl-h)", fontSize: "var(--text-base)" }}><SelectValue /></SelectTrigger>
                         <SelectContent>
                           <SelectItem value="USD">USD</SelectItem>
                           <SelectItem value="TZS">TZS</SelectItem>
                         </SelectContent>
                       </Select>
-                      <input style={{ ...editInput, width: 100 }} type="number" min="0" step="0.01" placeholder="Rate" value={extraDraft.rate_amount} onChange={e => setExtraDraft(d => ({ ...d, rate_amount: e.target.value }))} />
-                      <button type="button" disabled={saving} onClick={addExtra} style={{ background: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))', border: 'none', borderRadius: 'var(--r)', padding: 'var(--ds-btn-py) 14px', fontSize: 13, fontWeight: 700, cursor: 'pointer', minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}} data-ui-native-button="">Add</button>
-                      <button type="button" onClick={() => setAddingExtra(false)} style={{ background: 'none', border: '1px solid var(--border)', borderRadius: 'var(--r)', padding: 'var(--ds-btn-py) 14px', fontSize: 13, fontWeight: 600, color: 'var(--ink3)', cursor: 'pointer', minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}} data-ui-native-button="">Cancel</button>
+                      <input data-ui-field="input" style={{ ...editInput, width: 100 }} type="number" min="0" step="0.01" placeholder="Rate" value={extraDraft.rate_amount} onChange={e => setExtraDraft(d => ({ ...d, rate_amount: e.target.value }))} />
+                      <button type="button" disabled={saving} onClick={addExtra} style={{ background: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))', border: 'none', borderRadius: 'var(--r)', padding: 'var(--ds-btn-py) 14px', fontSize: "var(--text-base)", fontWeight: 700, cursor: 'pointer', minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}} data-ui-native-button="">Add</button>
+                      <button type="button" onClick={() => setAddingExtra(false)} style={{ background: 'none', border: '1px solid var(--border)', borderRadius: 'var(--r)', padding: 'var(--ds-btn-py) 14px', fontSize: "var(--text-base)", fontWeight: 600, color: 'var(--ink3)', cursor: 'pointer', minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}} data-ui-native-button="">Cancel</button>
                     </div>
                   ) : (
-                    <button type="button" onClick={() => setAddingExtra(true)} style={{ display: 'flex', alignItems: 'center', gap: 6, background: 'none', border: '1px dashed var(--border)', borderRadius: 'var(--r)', padding: 'var(--ds-btn-py) 16px', fontSize: 13, fontWeight: 700, color: 'var(--teal)', cursor: 'pointer', minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}} data-ui-native-button="">
+                    <button type="button" onClick={() => setAddingExtra(true)} style={{ display: 'flex', alignItems: 'center', gap: 6, background: 'none', border: '1px dashed var(--border)', borderRadius: 'var(--r)', padding: 'var(--ds-btn-py) 16px', fontSize: "var(--text-base)", fontWeight: 700, color: 'var(--teal)', cursor: 'pointer', minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}} data-ui-native-button="">
                       <Icon name="plusCircle" size={14} /> Add charge to this card
                     </button>
                   )

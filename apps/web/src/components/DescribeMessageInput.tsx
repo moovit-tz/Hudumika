@@ -41,7 +41,7 @@ export function DescribeMessageInput({ subject, replyContext, onGenerated }: {
     <div className="dmi-wrap">
       <div className="dmi-row">
         <Icon name={busy ? 'refresh' : 'sparkle'} size={15} color="var(--teal)" />
-        <input
+        <input data-ui-field="input"
           value={instruction}
           onChange={e => { setInstruction(e.target.value); if (error) setError(null); }}
           onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); generate(); } }}

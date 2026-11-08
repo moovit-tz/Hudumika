@@ -355,22 +355,22 @@ function TaxCodeForm({ code, onClose, onSaved }: {
         </F>
 
         <F label="Code *" hint="Short handle shown on documents, e.g. STD.">
-          <input style={inp} value={form.code}
+          <input data-ui-field="input" style={inp} value={form.code}
             onChange={e => set('code', e.target.value.toUpperCase())} placeholder="STD" />
         </F>
         <F label="Name *">
-          <input style={inp} value={form.name}
+          <input data-ui-field="input" style={inp} value={form.name}
             onChange={e => set('name', e.target.value)} placeholder="Standard rate (18%)" />
         </F>
 
         <F label="Rate (%)"
            hint={zeroKind ? `${TAX_CODE_KIND_LABEL[form.kind]} always charges 0%.` : undefined}>
-          <input style={{ ...inp, opacity: zeroKind ? 0.55 : 1 }} type="number" min={0} max={99} step="0.001"
+          <input data-ui-field="input" style={{ ...inp, opacity: zeroKind ? 0.55 : 1 }} type="number" min={0} max={99} step="0.001"
             disabled={zeroKind} value={form.rate}
             onChange={e => set('rate', Number(e.target.value))} />
         </F>
         <F label="Jurisdiction" hint="ISO 3166-1 alpha-2, e.g. TZ, KE, GB.">
-          <input style={inp} maxLength={2} value={form.jurisdiction}
+          <input data-ui-field="input" style={inp} maxLength={2} value={form.jurisdiction}
             onChange={e => set('jurisdiction', e.target.value.toUpperCase())} placeholder="TZ" />
         </F>
 
@@ -443,7 +443,7 @@ function TaxCodeForm({ code, onClose, onSaved }: {
             the next person re-derives it or copies the neighbouring line. */}
         <F label="When to use this" col2
            hint="Which of your supplies belong here, and why. Shown to anyone choosing this treatment later.">
-          <textarea
+          <textarea data-ui-field="textarea"
             value={form.guidance ?? ''}
             onChange={e => set('guidance', e.target.value || null)}
             placeholder="e.g. International freight where we hold the export documentation. Confirmed with our accountant, March 2026."
@@ -604,7 +604,7 @@ export function FinanceTaxCodes() {
 
       <MetricsRow cards={[
         {
-          title: 'TOTAL TAX CODES', value: String(tcStats?.total ?? codes.length),
+          emphasis: 'primary', title: 'TOTAL TAX CODES', value: String(tcStats?.total ?? codes.length),
           sub1Label: 'ACTIVE', sub1Value: String(tcStats?.active ?? codes.filter(c => c.status === 'active').length),
           sub2Label: 'DEFAULT', sub2Value: String(tcStats?.defaults ?? codes.filter(c => c.isDefault).length), barHighlight: 'var(--teal)',
           loading: !tcStats,

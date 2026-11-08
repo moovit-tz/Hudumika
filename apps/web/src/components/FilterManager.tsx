@@ -125,10 +125,10 @@ export function FilterManager({ labelDefs, pendingCriteria, onConsumePending }: 
       {adding ? (
         <div className="em-settings-row" style={{ flexDirection: 'column', alignItems: 'stretch', gap: 8, marginTop: 10 }}>
           <div className="em-settings-section-hdr" style={{ marginBottom: 0 }}>When a message matches…</div>
-          <div className="em-settings-row"><span className="em-compose-label">From</span><input className="em-compose-input em-settings-input" value={criteria.from ?? ''} onChange={e => setCriteria({ ...criteria, from: e.target.value || undefined })} /></div>
-          <div className="em-settings-row"><span className="em-compose-label">To</span><input className="em-compose-input em-settings-input" value={criteria.to ?? ''} onChange={e => setCriteria({ ...criteria, to: e.target.value || undefined })} /></div>
-          <div className="em-settings-row"><span className="em-compose-label">Subject</span><input className="em-compose-input em-settings-input" value={criteria.subject ?? ''} onChange={e => setCriteria({ ...criteria, subject: e.target.value || undefined })} /></div>
-          <div className="em-settings-row"><span className="em-compose-label">Has the words</span><input className="em-compose-input em-settings-input" value={criteria.hasWords ?? ''} onChange={e => setCriteria({ ...criteria, hasWords: e.target.value || undefined })} /></div>
+          <div className="em-settings-row"><span className="em-compose-label">From</span><input data-ui-field="input" className="em-compose-input em-settings-input" value={criteria.from ?? ''} onChange={e => setCriteria({ ...criteria, from: e.target.value || undefined })} /></div>
+          <div className="em-settings-row"><span className="em-compose-label">To</span><input data-ui-field="input" className="em-compose-input em-settings-input" value={criteria.to ?? ''} onChange={e => setCriteria({ ...criteria, to: e.target.value || undefined })} /></div>
+          <div className="em-settings-row"><span className="em-compose-label">Subject</span><input data-ui-field="input" className="em-compose-input em-settings-input" value={criteria.subject ?? ''} onChange={e => setCriteria({ ...criteria, subject: e.target.value || undefined })} /></div>
+          <div className="em-settings-row"><span className="em-compose-label">Has the words</span><input data-ui-field="input" className="em-compose-input em-settings-input" value={criteria.hasWords ?? ''} onChange={e => setCriteria({ ...criteria, hasWords: e.target.value || undefined })} /></div>
           <label className="em-compose-receipt-row">
             <input type="checkbox" checked={!!criteria.hasAttachment} onChange={e => setCriteria({ ...criteria, hasAttachment: e.target.checked || undefined })} />
             Has attachment
@@ -145,7 +145,7 @@ export function FilterManager({ labelDefs, pendingCriteria, onConsumePending }: 
               Apply the label:
             </label>
             {actions.label !== undefined && (
-              <select className="em-compose-input em-settings-input" value={actions.label} onChange={e => setActions({ ...actions, label: e.target.value })}>
+              <select data-ui-field="select" className="em-compose-input em-settings-input" value={actions.label} onChange={e => setActions({ ...actions, label: e.target.value })}>
                 {labelDefs.map(l => <option key={l.name} value={l.name}>{l.name}</option>)}
               </select>
             )}

@@ -70,7 +70,7 @@ export function GerejiJobCards() {
                       <td style={{ padding: '8px 12px' }}>
                         <DropdownMenu>
                           <DropdownMenuTrigger asChild>
-                            <button type="button" style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 4, color: 'var(--ink3)' }}><Icon name="moreHorizontal" size={16} /></button>
+                            <button data-ui-native-button="" type="button" style={{ background: 'none', border: 'none', cursor: 'pointer', padding: "var(--action-py) var(--space-md)", color: 'var(--ink3)' }}><Icon name="moreHorizontal" size={16} /></button>
                           </DropdownMenuTrigger>
                           <DropdownMenuContent>
                             <DropdownMenuItem onClick={() => navigate('/finops/journal')}><Icon name="invoice" size={14} /> View costs in FinOps</DropdownMenuItem>

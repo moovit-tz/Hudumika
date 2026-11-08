@@ -157,13 +157,13 @@ export function CMSCollaborationDrawer({
             key={tab.id}
             onClick={() => setFilterResolved(tab.id as any)}
             style={{
-              padding: '4px 10px',
-              borderRadius: 6,
+              padding: "var(--action-py) var(--space-md)",
+              borderRadius: "var(--r-sm)",
               border: 'none',
               background: filterResolved === tab.id ? 'var(--surface)' : 'transparent',
               color: filterResolved === tab.id ? 'var(--teal)' : 'var(--text-muted)',
               fontWeight: 600,
-              fontSize: 12,
+              fontSize: "var(--text-base)",
               cursor: 'pointer',
             }}
            data-ui-native-button="">
@@ -228,7 +228,7 @@ export function CMSCollaborationDrawer({
                     display: 'flex',
                     alignItems: 'center',
                     gap: 4,
-                    fontSize: 11,
+                    fontSize: "var(--text-xs)",
                     color: c.resolved ? '#059669' : 'var(--text-muted)',
                     background: 'transparent',
                     border: 'none',
@@ -257,7 +257,7 @@ export function CMSCollaborationDrawer({
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: 8, paddingTop: 6, borderTop: '1px solid var(--border)' }}>
                 <button
                   onClick={() => setReplyingTo(replyingTo === c.id ? null : c.id)}
-                  style={{ fontSize: 11, color: 'var(--teal)', background: 'transparent', border: 'none', fontWeight: 600, cursor: 'pointer', padding: 0 }}
+                  style={{ fontSize: "var(--text-xs)", color: 'var(--teal)', background: 'transparent', border: 'none', fontWeight: 600, cursor: 'pointer', padding: 0 }}
                  data-ui-native-button="">
                   {replyingTo === c.id ? 'Cancel Reply' : 'Reply'}
                 </button>
@@ -265,7 +265,7 @@ export function CMSCollaborationDrawer({
                 {c.author_id === user?.id && (
                   <button
                     onClick={() => handleDelete(c.id)}
-                    style={{ background: 'transparent', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', padding: 2 }}
+                    style={{ background: 'transparent', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', padding: "var(--action-py) var(--space-md)" }}
                     title="Delete"
                    data-ui-native-button="">
                     <Icon name="trash" size={12} />
@@ -293,18 +293,18 @@ export function CMSCollaborationDrawer({
               {/* Inline Reply Input */}
               {replyingTo === c.id && (
                 <div style={{ marginTop: 8, display: 'flex', gap: 6 }}>
-                  <input
+                  <input data-ui-field="input"
                     type="text"
                     value={replyText}
                     onChange={e => setReplyText(e.target.value)}
                     placeholder="Write a reply..."
-                    style={{ flex: 1, padding: '6px 10px', borderRadius: 6, border: '1px solid var(--border)', background: 'var(--surface)', color: 'var(--text)', fontSize: 12 }}
+                    style={{ flex: 1, padding: "var(--ds-input-py) var(--space-md)", borderRadius: "var(--r-sm)", border: '1px solid var(--border)', background: 'var(--surface)', color: 'var(--text)', fontSize: "var(--text-base)" }}
                     onKeyDown={e => { if (e.key === 'Enter') handlePostComment(c.id); }}
                   />
                   <button
                     onClick={() => handlePostComment(c.id)}
                     disabled={submitting || !replyText.trim()}
-                    style={{ padding: '6px 10px', borderRadius: 6, border: 'none', background: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))', fontSize: 12, fontWeight: 600, cursor: 'pointer' }}
+                    style={{ padding: "var(--action-py) var(--space-md)", borderRadius: "var(--r-sm)", border: 'none', background: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))', fontSize: "var(--text-base)", fontWeight: 600, cursor: 'pointer' }}
                    data-ui-native-button="">
                     Send
                   </button>
@@ -324,19 +324,19 @@ export function CMSCollaborationDrawer({
           </div>
         )}
         <div style={{ display: 'flex', gap: 8 }}>
-          <textarea
+          <textarea data-ui-field="textarea"
             value={newComment}
             onChange={e => setNewComment(e.target.value)}
             placeholder="Add an internal comment or review note..."
             rows={2}
             style={{
               flex: 1,
-              padding: '8px 12px',
-              borderRadius: 8,
+              padding: "var(--ds-input-py) var(--space-md)",
+              borderRadius: "var(--r-sm)",
               border: '1px solid var(--border)',
               background: 'var(--bg)',
               color: 'var(--text)',
-              fontSize: 13,
+              fontSize: "var(--text-base)",
               resize: 'none',
               boxSizing: 'border-box',
             }}
@@ -350,13 +350,13 @@ export function CMSCollaborationDrawer({
             onClick={() => handlePostComment()}
             disabled={submitting || !newComment.trim()}
             style={{
-              padding: '8px 14px',
-              borderRadius: 8,
+              padding: "var(--action-py) var(--space-md)",
+              borderRadius: "var(--r-sm)",
               border: 'none',
               background: 'var(--teal)',
               color: '#fff',
               fontWeight: 600,
-              fontSize: 13,
+              fontSize: "var(--text-base)",
               cursor: 'pointer',
               opacity: !newComment.trim() ? 0.6 : 1,
             }}

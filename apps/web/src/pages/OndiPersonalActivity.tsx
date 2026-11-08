@@ -626,7 +626,7 @@ export const OndiPersonalActivity: React.FC = () => {
             <div className="opa-search-icon">
               <Icon name="search" size={14} />
             </div>
-            <input
+            <input data-ui-field="input" data-field-appearance="bare"
               type="text"
               className="opa-search-input"
               placeholder="Search by event, IP, OS, browser..."
@@ -997,7 +997,7 @@ export const OndiPersonalActivity: React.FC = () => {
                           background: 'none',
                           border: 'none',
                           color: 'var(--ink3)',
-                          fontSize: 11.5,
+                          fontSize: "var(--text-base)",
                           cursor: 'pointer',
                           display: 'flex',
                           alignItems: 'center',

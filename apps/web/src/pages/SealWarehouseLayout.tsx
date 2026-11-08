@@ -293,11 +293,11 @@ export function SealWarehouseLayout() {
                 <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', alignItems: 'flex-end' }}>
                   <div className="seal-field-row" style={{ width: 140 }}>
                     <label className="seal-field-label">Zone Code</label>
-                    <input type="text" className="input-field" value={newZoneCode} onChange={e => setNewZoneCode(e.target.value)} placeholder="Z-BULK-A" />
+                    <input data-ui-field="input" type="text" className="input-field" value={newZoneCode} onChange={e => setNewZoneCode(e.target.value)} placeholder="Z-BULK-A" />
                   </div>
                   <div className="seal-field-row" style={{ flex: 1, minWidth: 180 }}>
                     <label className="seal-field-label">Zone Name</label>
-                    <input type="text" className="input-field" value={newZoneName} onChange={e => setNewZoneName(e.target.value)} placeholder="Bulk Storage Rack A" />
+                    <input data-ui-field="input" type="text" className="input-field" value={newZoneName} onChange={e => setNewZoneName(e.target.value)} placeholder="Bulk Storage Rack A" />
                   </div>
                   <div className="seal-field-row" style={{ width: 160 }}>
                     <label className="seal-field-label">Zone Type</label>
@@ -322,7 +322,7 @@ export function SealWarehouseLayout() {
                   </div>
                   <div className="seal-field-row">
                     <label className="seal-field-label">Rack Code</label>
-                    <input type="text" className="input-field" value={newLocCode} onChange={e => setNewLocCode(e.target.value)} placeholder="BLK-C1" required />
+                    <input data-ui-field="input" type="text" className="input-field" value={newLocCode} onChange={e => setNewLocCode(e.target.value)} placeholder="BLK-C1" required />
                   </div>
                   <div className="seal-field-row">
                     <label className="seal-field-label">Location Type</label>
@@ -335,35 +335,35 @@ export function SealWarehouseLayout() {
                     <label className="seal-field-label" title="0 = Ground Floor, 1 = Mezzanine 1, 2 = Mezzanine 2, …">
                       Floor Level
                     </label>
-                    <input type="number" min="0" className="input-field" value={newLocFloor} onChange={e => setNewLocFloor(Number(e.target.value) || 0)} />
+                    <input data-ui-field="input" type="number" min="0" className="input-field" value={newLocFloor} onChange={e => setNewLocFloor(Number(e.target.value) || 0)} />
                   </div>
                   <div className="seal-field-row">
                     <label className="seal-field-label">Grid Row</label>
-                    <input type="number" min="1" className="input-field" value={newLocRow} onChange={e => setNewLocRow(e.target.value)} placeholder="1" />
+                    <input data-ui-field="input" type="number" min="1" className="input-field" value={newLocRow} onChange={e => setNewLocRow(e.target.value)} placeholder="1" />
                   </div>
                   <div className="seal-field-row">
                     <label className="seal-field-label">Grid Col</label>
-                    <input type="number" min="1" className="input-field" value={newLocCol} onChange={e => setNewLocCol(e.target.value)} placeholder="1" />
+                    <input data-ui-field="input" type="number" min="1" className="input-field" value={newLocCol} onChange={e => setNewLocCol(e.target.value)} placeholder="1" />
                   </div>
                   <div className="seal-field-row">
                     <label className="seal-field-label">Stack Tiers</label>
-                    <input type="number" min="1" className="input-field" value={newLocTiers} onChange={e => setNewLocTiers(e.target.value)} />
+                    <input data-ui-field="input" type="number" min="1" className="input-field" value={newLocTiers} onChange={e => setNewLocTiers(e.target.value)} />
                   </div>
                   <div className="seal-field-row">
                     <label className="seal-field-label">Capacity / Tier</label>
-                    <input type="number" min="1" className="input-field" value={newLocCapacity} onChange={e => setNewLocCapacity(e.target.value)} />
+                    <input data-ui-field="input" type="number" min="1" className="input-field" value={newLocCapacity} onChange={e => setNewLocCapacity(e.target.value)} />
                   </div>
                   <div className="seal-field-row">
                     <label className="seal-field-label">Length (m)</label>
-                    <input type="number" min="0" step="any" className="input-field" value={newLocLength} onChange={e => setNewLocLength(e.target.value)} />
+                    <input data-ui-field="input" type="number" min="0" step="any" className="input-field" value={newLocLength} onChange={e => setNewLocLength(e.target.value)} />
                   </div>
                   <div className="seal-field-row">
                     <label className="seal-field-label">Width (m)</label>
-                    <input type="number" min="0" step="any" className="input-field" value={newLocWidth} onChange={e => setNewLocWidth(e.target.value)} />
+                    <input data-ui-field="input" type="number" min="0" step="any" className="input-field" value={newLocWidth} onChange={e => setNewLocWidth(e.target.value)} />
                   </div>
                   <div className="seal-field-row">
                     <label className="seal-field-label">Height (m)</label>
-                    <input type="number" min="0" step="any" className="input-field" value={newLocHeight} onChange={e => setNewLocHeight(e.target.value)} />
+                    <input data-ui-field="input" type="number" min="0" step="any" className="input-field" value={newLocHeight} onChange={e => setNewLocHeight(e.target.value)} />
                   </div>
                 </div>
                 <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 10 }}>
@@ -542,20 +542,20 @@ export function SealWarehouseLayout() {
                     {!editingLoc && (
                       <>
                         <Tip label="Edit rack">
-                          <button type="button" aria-label="Edit rack" onClick={startEditLoc} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 4, color: 'var(--ink3)' }} data-ui-native-button="">
+                          <button type="button" aria-label="Edit rack" onClick={startEditLoc} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: "var(--action-py) var(--space-md)", color: 'var(--ink3)' }} data-ui-native-button="">
                             <Icon name="edit" size={15} />
                           </button>
                         </Tip>
                         <Tip label="Delete rack">
                           <span>
-                            <button type="button" aria-label="Delete rack" onClick={handleDeleteLoc} disabled={deletingLoc} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 4, color: 'var(--red)' }} data-ui-native-button="">
+                            <button type="button" aria-label="Delete rack" onClick={handleDeleteLoc} disabled={deletingLoc} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: "var(--action-py) var(--space-md)", color: 'var(--red)' }} data-ui-native-button="">
                               <Icon name="trash" size={15} />
                             </button>
                           </span>
                         </Tip>
                       </>
                     )}
-                    <button type="button" onClick={() => { setSelectedLoc(null); setEditingLoc(false); }} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 4 }} data-ui-native-button="">
+                    <button type="button" onClick={() => { setSelectedLoc(null); setEditingLoc(false); }} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: "var(--action-py) var(--space-md)" }} data-ui-native-button="">
                       <Icon name="close" size={16} />
                     </button>
                   </div>
@@ -566,36 +566,36 @@ export function SealWarehouseLayout() {
                     <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
                       <div className="seal-field-row">
                         <label className="seal-field-label" title="0 = Ground Floor, 1 = Mezzanine 1, 2 = Mezzanine 2, …">Floor Level</label>
-                        <input type="number" min="0" className="input-field" value={editFloor} onChange={e => setEditFloor(Number(e.target.value) || 0)} />
+                        <input data-ui-field="input" type="number" min="0" className="input-field" value={editFloor} onChange={e => setEditFloor(Number(e.target.value) || 0)} />
                       </div>
                       <div className="seal-field-row">
                         <label className="seal-field-label">Stack Tiers</label>
-                        <input type="number" min="1" className="input-field" value={editTiers} onChange={e => setEditTiers(e.target.value)} />
+                        <input data-ui-field="input" type="number" min="1" className="input-field" value={editTiers} onChange={e => setEditTiers(e.target.value)} />
                       </div>
                       <div className="seal-field-row">
                         <label className="seal-field-label">Grid Row</label>
-                        <input type="number" min="1" className="input-field" value={editRow} onChange={e => setEditRow(e.target.value)} />
+                        <input data-ui-field="input" type="number" min="1" className="input-field" value={editRow} onChange={e => setEditRow(e.target.value)} />
                       </div>
                       <div className="seal-field-row">
                         <label className="seal-field-label">Grid Col</label>
-                        <input type="number" min="1" className="input-field" value={editCol} onChange={e => setEditCol(e.target.value)} />
+                        <input data-ui-field="input" type="number" min="1" className="input-field" value={editCol} onChange={e => setEditCol(e.target.value)} />
                       </div>
                       <div className="seal-field-row">
                         <label className="seal-field-label">Capacity / Tier</label>
-                        <input type="number" min="1" className="input-field" value={editCapacity} onChange={e => setEditCapacity(e.target.value)} />
+                        <input data-ui-field="input" type="number" min="1" className="input-field" value={editCapacity} onChange={e => setEditCapacity(e.target.value)} />
                       </div>
                       <div />
                       <div className="seal-field-row">
                         <label className="seal-field-label">Length (m)</label>
-                        <input type="number" min="0" step="any" className="input-field" value={editLength} onChange={e => setEditLength(e.target.value)} />
+                        <input data-ui-field="input" type="number" min="0" step="any" className="input-field" value={editLength} onChange={e => setEditLength(e.target.value)} />
                       </div>
                       <div className="seal-field-row">
                         <label className="seal-field-label">Width (m)</label>
-                        <input type="number" min="0" step="any" className="input-field" value={editWidth} onChange={e => setEditWidth(e.target.value)} />
+                        <input data-ui-field="input" type="number" min="0" step="any" className="input-field" value={editWidth} onChange={e => setEditWidth(e.target.value)} />
                       </div>
                       <div className="seal-field-row">
                         <label className="seal-field-label">Height (m)</label>
-                        <input type="number" min="0" step="any" className="input-field" value={editHeight} onChange={e => setEditHeight(e.target.value)} />
+                        <input data-ui-field="input" type="number" min="0" step="any" className="input-field" value={editHeight} onChange={e => setEditHeight(e.target.value)} />
                       </div>
                     </div>
                     <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 10 }}>

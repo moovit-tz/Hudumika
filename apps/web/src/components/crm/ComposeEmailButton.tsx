@@ -51,10 +51,10 @@ export function ComposeEmailButton({ subjectType, subjectId, onSent, children }:
             </DialogTitle>
           </DialogHeader>
           <DialogBody style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-            <input
+            <input data-ui-field="input"
               className="input-field" placeholder="Subject" value={subject} onChange={e => setSubject(e.target.value)} autoFocus
             />
-            <textarea
+            <textarea data-ui-field="textarea"
               className="input-field" placeholder="Write your message…" value={body} onChange={e => setBody(e.target.value)}
               rows={8} style={{ resize: 'vertical', minHeight: 140 }}
             />

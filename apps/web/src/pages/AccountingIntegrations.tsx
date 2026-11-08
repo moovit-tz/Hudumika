@@ -318,11 +318,11 @@ export function AccountingIntegrations() {
             <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 20, flexWrap: 'wrap' }}>
               <div style={{ position: 'relative', flex: '1 1 260px', maxWidth: 380 }}>
                 <Icon name="search" size={14} color="var(--ink3)" style={{ position: 'absolute', left: 11, top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none' }} />
-                <input
+                <input data-ui-field="input"
                   value={marketplaceSearch}
                   onChange={e => setMarketplaceSearch(e.target.value)}
                   placeholder="Search integrations…"
-                  style={{ width: '100%', paddingLeft: 34, paddingRight: 10, paddingTop: 10, paddingBottom: 10, borderRadius: 'var(--r)', border: '1px solid var(--border)', background: 'var(--white)', color: 'var(--ink)', fontSize: 13.5, fontFamily: 'var(--font)', outline: 'none', boxSizing: 'border-box' }}
+                  style={{ width: '100%', paddingLeft: 34, paddingRight: "var(--space-md)", paddingTop: "var(--ds-input-py)", paddingBottom: "var(--ds-input-py)", borderRadius: 'var(--r)', border: '1px solid var(--border)', background: 'var(--white)', color: 'var(--ink)', fontSize: "var(--text-base)", fontFamily: 'var(--font)', outline: 'none', boxSizing: 'border-box' }}
                 />
               </div>
               <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>

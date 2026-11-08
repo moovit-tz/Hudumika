@@ -45,8 +45,8 @@ export const CompanyCard: React.FC<CompanyCardProps> = ({ company, onEdit, onDel
             background: 'rgba(255,255,255,0.12)',
             color: '#fff',
             border: 'none',
-            padding: '6px',
-            borderRadius: '4px',
+            padding: "var(--action-py) var(--space-md)",
+            borderRadius: "var(--r-sm)",
             cursor: 'pointer',
           }}
          data-ui-native-button="">
@@ -59,8 +59,8 @@ export const CompanyCard: React.FC<CompanyCardProps> = ({ company, onEdit, onDel
             background: 'rgba(255,0,0,0.2)',
             color: '#fff',
             border: 'none',
-            padding: '6px',
-            borderRadius: '4px',
+            padding: "var(--action-py) var(--space-md)",
+            borderRadius: "var(--r-sm)",
             cursor: 'pointer',
           }}
          data-ui-native-button="">

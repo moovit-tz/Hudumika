@@ -293,7 +293,7 @@ export const TrackingLiveMap: React.FC = () => {
           <div className="trk-sidebar-title">Live map</div>
           <div className="trk-search-box">
             <Icon name="search" size={14} />
-            <input 
+            <input data-ui-field="input"
               type="text" 
               placeholder="Search vehicles by name or plate..." 
               value={search}

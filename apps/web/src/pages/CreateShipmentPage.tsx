@@ -116,21 +116,21 @@ function OfficerMentionInput({
               <button
                 type="button"
                 onClick={clear}
-                style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink3)', fontSize: 16, padding: '0 4px', lineHeight: 1 }}
+                style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink3)', fontSize: "var(--text-base)", padding: '0 4px', lineHeight: 1 }}
                 data-ui-native-button=""
               >
                 ×
               </button>
             </>
           ) : (
-            <input
+            <input data-field-appearance="bare" data-ui-field="input"
               ref={inputRef}
               type="text"
               placeholder="Type @ to search staff…"
               value={query}
               onChange={e => { setQuery(e.target.value); setOpen(true); }}
               onFocus={() => setOpen(true)}
-              style={{ border: 'none', outline: 'none', fontSize: 13, color: 'var(--ink)', background: 'transparent', flex: 1, fontFamily: 'var(--font)', padding: 0 }}
+              style={{ border: 'none', outline: 'none', fontSize: "var(--text-base)", color: 'var(--ink)', background: 'transparent', flex: 1, fontFamily: 'var(--font)', padding: 0 }}
             />
           )}
         </div>
@@ -545,7 +545,7 @@ export function CreateShipmentPage() {
   const fld = (lbl: string, val: string, set: (v: string) => void, props: any = {}) => (
     <div style={{ flex: 1, minWidth: 0 }}>
       <label className="shipment-form-label">{lbl}</label>
-      <input type="text" className="shipment-form-input" value={val} onChange={e => set(e.target.value)} {...props} />
+      <input data-ui-field="input" type="text" className="shipment-form-input" value={val} onChange={e => set(e.target.value)} {...props} />
     </div>
   );
 
@@ -736,7 +736,7 @@ export function CreateShipmentPage() {
                     <div style={{ fontSize: 13, color: 'var(--ink2)', lineHeight: 1.55 }}>
                       <div>{excelReport.text}</div>
                       <div style={{ marginTop: 12 }}>
-                        <button className="btn btn-primary" style={{ fontSize: 13 }} onClick={() => setCurrentStep(3)} data-ui-native-button="">
+                        <button className="btn btn-primary" style={{ fontSize: "var(--text-base)" }} onClick={() => setCurrentStep(3)} data-ui-native-button="">
                           {excelReport.ok ? 'Review Extracted Fields' : 'Fill Form by Hand'}
                         </button>
                       </div>
@@ -803,7 +803,7 @@ export function CreateShipmentPage() {
 
                   <div style={{ marginBottom: 4 }}>
                     <label className="shipment-form-label">Goods Description *</label>
-                    <input
+                    <input data-ui-field="input"
                       type="text"
                       className="shipment-form-input"
                       placeholder="e.g. 500 MT of Medical Supplies, Industrial Equipment, etc."
@@ -907,7 +907,7 @@ export function CreateShipmentPage() {
                     <div className="shipment-route-col">
                       <label className="shipment-form-label">Origin Port / Place of Receipt *</label>
                       <div style={{ position: 'relative' }}>
-                        <input
+                        <input data-ui-field="input"
                           type="text"
                           className="shipment-form-input"
                           style={{ paddingLeft: 34 }}
@@ -930,7 +930,7 @@ export function CreateShipmentPage() {
                     <div className="shipment-route-col">
                       <label className="shipment-form-label">Destination Port / Port of Discharge *</label>
                       <div style={{ position: 'relative' }}>
-                        <input
+                        <input data-ui-field="input"
                           type="text"
                           className="shipment-form-input"
                           style={{ paddingLeft: 34 }}
@@ -1161,7 +1161,7 @@ export function CreateShipmentPage() {
                       <button
                         type="button"
                         onClick={() => setCurrentStep(3)}
-                        style={{ background: 'none', border: 'none', padding: 0, color: 'var(--shipment-accent, var(--teal))', fontWeight: 600, cursor: 'pointer', fontSize: 12 }}
+                        style={{ background: 'none', border: 'none', padding: 0, color: 'var(--shipment-accent, var(--teal))', fontWeight: 600, cursor: 'pointer', fontSize: "var(--text-base)" }}
                         data-ui-native-button=""
                       >
                         Go back to edit

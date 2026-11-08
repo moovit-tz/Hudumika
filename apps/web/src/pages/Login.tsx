@@ -204,7 +204,7 @@ export const Login: React.FC = () => {
             <>
               <div className="login-field">
                 <label className="login-label" htmlFor="login-totp">Authenticator code</label>
-                <input
+                <input data-ui-field="input"
                   id="login-totp"
                   type="text"
                   inputMode="numeric"

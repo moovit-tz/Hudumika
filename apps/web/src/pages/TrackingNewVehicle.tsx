@@ -129,10 +129,10 @@ export const TrackingNewVehicle: React.FC = () => {
         backTo="/tracking/vehicles"
         backLabel="Vehicles"
         actions={<div style={{ display: 'flex', gap: 12 }}>
-          <button type="button" style={{ padding: 'var(--ds-btn-py) 16px', borderRadius: 'var(--r)', border: '1px solid var(--border)', background: 'var(--white)', color: 'var(--ink)', fontWeight: 600, fontSize: 13, cursor: 'pointer', minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}} data-ui-native-button="">
+          <button type="button" style={{ padding: 'var(--ds-btn-py) 16px', borderRadius: 'var(--r)', border: '1px solid var(--border)', background: 'var(--white)', color: 'var(--ink)', fontWeight: 600, fontSize: "var(--text-base)", cursor: 'pointer', minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}} data-ui-native-button="">
             + Multiple Vehicles
           </button>
-          <button type="button" onClick={handleSave} disabled={saving} style={{ padding: 'var(--ds-btn-py) 20px', borderRadius: 'var(--r)', border: 'none', background: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))', fontWeight: 600, fontSize: 13, cursor: 'pointer', opacity: saving ? 0.7 : 1, minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}} data-ui-native-button="">
+          <button type="button" onClick={handleSave} disabled={saving} style={{ padding: 'var(--ds-btn-py) 20px', borderRadius: 'var(--r)', border: 'none', background: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))', fontWeight: 600, fontSize: "var(--text-base)", cursor: 'pointer', opacity: saving ? 0.7 : 1, minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}} data-ui-native-button="">
             {saving ? 'Saving...' : 'Save Vehicle'}
           </button>
         </div>}
@@ -147,7 +147,7 @@ export const TrackingNewVehicle: React.FC = () => {
                 display: 'flex', alignItems: 'center', gap: 12, padding: 'var(--ds-btn-py) 14px', borderRadius: 'var(--r)', border: 'none', cursor: 'pointer',
                 background: activeSection === sec ? 'var(--teal-l)' : 'transparent',
                 color: activeSection === sec ? 'var(--teal)' : 'var(--ink2)',
-                fontWeight: activeSection === sec ? 700 : 500, fontSize: 13, textAlign: 'left', minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}} data-ui-native-button="">
+                fontWeight: activeSection === sec ? 700 : 500, fontSize: "var(--text-base)", textAlign: 'left', minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}} data-ui-native-button="">
               <Icon name={sec === 'Details' ? 'fileText' : sec === 'Maintenance' ? 'tool' : sec === 'Lifecycle' ? 'refresh' : sec === 'Financial' ? 'dollarSign' : sec === 'Specifications' ? 'settings' : 'sliders'} size={16} />
               {sec}
             </button>
@@ -164,7 +164,7 @@ export const TrackingNewVehicle: React.FC = () => {
                 <div>
                   <div style={{ fontSize: 18, fontWeight: 700, color: 'var(--ink)', marginBottom: 16 }}>Add with a VIN</div>
                   <label style={labelStyle}>VIN/SN</label>
-                  <input style={inputStyle} placeholder="Vehicle Identification Number or Serial Number" value={form.vin} onChange={e => handleChange('vin', e.target.value)} />
+                  <input data-ui-field="input" style={inputStyle} placeholder="Vehicle Identification Number or Serial Number" value={form.vin} onChange={e => handleChange('vin', e.target.value)} />
                 </div>
                 <div style={{ borderTop: '1px solid var(--border)', paddingTop: 24 }}>
                   <div style={{ fontSize: 18, fontWeight: 700, color: 'var(--ink)', marginBottom: 6 }}>Identification</div>
@@ -172,12 +172,12 @@ export const TrackingNewVehicle: React.FC = () => {
                   
                   <div style={{ marginBottom: 16 }}>
                     <label style={labelStyle}>Asset name <span style={{color: 'var(--red)'}}>*</span></label>
-                    <input style={inputStyle} placeholder="Enter a nickname to distinguish this vehicle in fleet" value={form.name} onChange={e => handleChange('name', e.target.value)} />
+                    <input data-ui-field="input" style={inputStyle} placeholder="Enter a nickname to distinguish this vehicle in fleet" value={form.name} onChange={e => handleChange('name', e.target.value)} />
                   </div>
 
                   <div style={{ marginBottom: 16 }}>
                     <label style={labelStyle}>Tracker / device ID <span style={{color: 'var(--red)'}}>*</span></label>
-                    <input style={inputStyle} placeholder="GPS, telematics or asset-tracker ID" value={form.device_id} onChange={e => handleChange('device_id', e.target.value)} />
+                    <input data-ui-field="input" style={inputStyle} placeholder="GPS, telematics or asset-tracker ID" value={form.device_id} onChange={e => handleChange('device_id', e.target.value)} />
                   </div>
 
                   <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, marginBottom: 16 }}>
@@ -222,7 +222,7 @@ export const TrackingNewVehicle: React.FC = () => {
                     </div>
                     <div>
                       <label style={labelStyle}>License Plate</label>
-                      <input style={inputStyle} placeholder="Plate Number" value={form.plate_number} onChange={e => handleChange('plate_number', e.target.value)} />
+                      <input data-ui-field="input" style={inputStyle} placeholder="Plate Number" value={form.plate_number} onChange={e => handleChange('plate_number', e.target.value)} />
                     </div>
                   </div>
                 </div>
@@ -240,7 +240,7 @@ export const TrackingNewVehicle: React.FC = () => {
                     </div>
                     <div>
                       <label style={labelStyle}>In-Service Odometer</label>
-                      <input type="number" style={inputStyle} placeholder="Enter Number" value={form.in_service_odometer} onChange={e => handleChange('in_service_odometer', e.target.value)} />
+                      <input data-ui-field="input" type="number" style={inputStyle} placeholder="Enter Number" value={form.in_service_odometer} onChange={e => handleChange('in_service_odometer', e.target.value)} />
                     </div>
                   </div>
                 </div>
@@ -249,17 +249,17 @@ export const TrackingNewVehicle: React.FC = () => {
                   <div style={{ fontSize: 18, fontWeight: 700, color: 'var(--ink)', marginBottom: 16 }}>Vehicle Life Estimates</div>
                   <div style={{ marginBottom: 16 }}>
                     <label style={labelStyle}>Estimated Service Life in Months</label>
-                    <input type="number" style={inputStyle} placeholder="Enter Number" value={form.est_life_months} onChange={e => handleChange('est_life_months', e.target.value)} />
+                    <input data-ui-field="input" type="number" style={inputStyle} placeholder="Enter Number" value={form.est_life_months} onChange={e => handleChange('est_life_months', e.target.value)} />
                   </div>
                   <div style={{ marginBottom: 16 }}>
                     <label style={labelStyle}>Estimated Service Life in Meter</label>
-                    <input type="number" style={inputStyle} placeholder="Enter Number" value={form.est_life_meter} onChange={e => handleChange('est_life_meter', e.target.value)} />
+                    <input data-ui-field="input" type="number" style={inputStyle} placeholder="Enter Number" value={form.est_life_meter} onChange={e => handleChange('est_life_meter', e.target.value)} />
                   </div>
                   <div>
                     <label style={labelStyle}>Estimated Resale Value</label>
                     <div style={{ position: 'relative' }}>
                       <span style={{ position: 'absolute', left: 14, top: 10, color: 'var(--ink3)' }}>$</span>
-                      <input type="number" style={{...inputStyle, paddingLeft: 28}} placeholder="Enter Amount" value={form.est_resale_value} onChange={e => handleChange('est_resale_value', e.target.value)} />
+                      <input data-ui-field="input" type="number" style={{...inputStyle, paddingLeft: 28}} placeholder="Enter Amount" value={form.est_resale_value} onChange={e => handleChange('est_resale_value', e.target.value)} />
                     </div>
                   </div>
                 </div>
@@ -273,7 +273,7 @@ export const TrackingNewVehicle: React.FC = () => {
                     </div>
                     <div>
                       <label style={labelStyle}>Out-of-Service Odometer</label>
-                      <input type="number" style={inputStyle} placeholder="Enter Number" value={form.out_of_service_odometer} onChange={e => handleChange('out_of_service_odometer', e.target.value)} />
+                      <input data-ui-field="input" type="number" style={inputStyle} placeholder="Enter Number" value={form.out_of_service_odometer} onChange={e => handleChange('out_of_service_odometer', e.target.value)} />
                     </div>
                   </div>
                 </div>
@@ -285,7 +285,7 @@ export const TrackingNewVehicle: React.FC = () => {
                 <div style={{ fontSize: 18, fontWeight: 700, color: 'var(--ink)', marginBottom: 16 }}>Purchase Details</div>
                 <div>
                   <label style={labelStyle}>Purchase Vendor</label>
-                  <input style={inputStyle} placeholder="Select vendor" value={form.purchase_vendor} onChange={e => handleChange('purchase_vendor', e.target.value)} />
+                  <input data-ui-field="input" style={inputStyle} placeholder="Select vendor" value={form.purchase_vendor} onChange={e => handleChange('purchase_vendor', e.target.value)} />
                 </div>
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
                   <div>
@@ -296,17 +296,17 @@ export const TrackingNewVehicle: React.FC = () => {
                     <label style={labelStyle}>Purchase Price</label>
                     <div style={{ position: 'relative' }}>
                       <span style={{ position: 'absolute', left: 14, top: 10, color: 'var(--ink3)' }}>$</span>
-                      <input type="number" style={{...inputStyle, paddingLeft: 28}} placeholder="Enter Amount" value={form.purchase_price} onChange={e => handleChange('purchase_price', e.target.value)} />
+                      <input data-ui-field="input" type="number" style={{...inputStyle, paddingLeft: 28}} placeholder="Enter Amount" value={form.purchase_price} onChange={e => handleChange('purchase_price', e.target.value)} />
                     </div>
                   </div>
                 </div>
                 <div>
                   <label style={labelStyle}>Odometer</label>
-                  <input type="number" style={inputStyle} placeholder="mi/km" value={form.initial_odometer} onChange={e => handleChange('initial_odometer', e.target.value)} />
+                  <input data-ui-field="input" type="number" style={inputStyle} placeholder="mi/km" value={form.initial_odometer} onChange={e => handleChange('initial_odometer', e.target.value)} />
                 </div>
                 <div>
                   <label style={labelStyle}>Notes</label>
-                  <textarea style={{...inputStyle, minHeight: 80}} placeholder="Type Here" value={form.lifecycle_notes || ''} onChange={e => handleChange('lifecycle_notes', e.target.value)} />
+                  <textarea data-ui-field="textarea" style={{...inputStyle, minHeight: 80}} placeholder="Type Here" value={form.lifecycle_notes || ''} onChange={e => handleChange('lifecycle_notes', e.target.value)} />
                 </div>
                 
                 <div style={{ borderTop: '1px solid var(--border)', paddingTop: 24 }}>
@@ -338,17 +338,17 @@ export const TrackingNewVehicle: React.FC = () => {
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
                   <div>
                     <label style={labelStyle}>Year</label>
-                    <input type="number" style={inputStyle} placeholder="e.g. 2022" value={form.year} onChange={e => handleChange('year', e.target.value)} />
+                    <input data-ui-field="input" type="number" style={inputStyle} placeholder="e.g. 2022" value={form.year} onChange={e => handleChange('year', e.target.value)} />
                   </div>
                   <div>
                     <label style={labelStyle}>Color</label>
-                    <input style={inputStyle} placeholder="e.g. White" value={form.color} onChange={e => handleChange('color', e.target.value)} />
+                    <input data-ui-field="input" style={inputStyle} placeholder="e.g. White" value={form.color} onChange={e => handleChange('color', e.target.value)} />
                   </div>
                 </div>
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
                   <div>
                     <label style={labelStyle}>Make{makesLoading ? ' (loading…)' : ''}</label>
-                    <input style={inputStyle} list="vehicle-make-options" placeholder="e.g. Isuzu" value={form.make}
+                    <input data-ui-field="input" style={inputStyle} list="vehicle-make-options" placeholder="e.g. Isuzu" value={form.make}
                       onChange={e => { handleChange('make', e.target.value); handleChange('model', ''); }} />
                     <datalist id="vehicle-make-options">
                       {makes.map(m => <option key={m} value={m} />)}
@@ -356,7 +356,7 @@ export const TrackingNewVehicle: React.FC = () => {
                   </div>
                   <div>
                     <label style={labelStyle}>Model</label>
-                    <input style={inputStyle} list="vehicle-model-options" placeholder="e.g. NPR" value={form.model} onChange={e => handleChange('model', e.target.value)} disabled={!form.make} />
+                    <input data-ui-field="input" style={inputStyle} list="vehicle-model-options" placeholder="e.g. NPR" value={form.model} onChange={e => handleChange('model', e.target.value)} disabled={!form.make} />
                     <datalist id="vehicle-model-options">
                       {models.map(m => <option key={m} value={m} />)}
                     </datalist>
@@ -365,7 +365,7 @@ export const TrackingNewVehicle: React.FC = () => {
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
                   <div>
                     <label style={labelStyle}>Trim</label>
-                    <input style={inputStyle} placeholder="e.g. Base" value={form.trim} onChange={e => handleChange('trim', e.target.value)} />
+                    <input data-ui-field="input" style={inputStyle} placeholder="e.g. Base" value={form.trim} onChange={e => handleChange('trim', e.target.value)} />
                   </div>
                   <div>
                     <label style={labelStyle}>Fuel Type</label>
@@ -393,14 +393,14 @@ export const TrackingNewVehicle: React.FC = () => {
             )}
 
             <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 40, paddingTop: 24, borderTop: '1px solid var(--border)' }}>
-              <button type="button" onClick={() => navigate(-1)} style={{ padding: 'var(--ds-btn-py) 24px', borderRadius: 'var(--r)', border: '1px solid var(--border)', background: 'var(--white)', color: 'var(--ink)', fontWeight: 600, fontSize: 13, cursor: 'pointer', minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}} data-ui-native-button="">
+              <button type="button" onClick={() => navigate(-1)} style={{ padding: 'var(--ds-btn-py) 24px', borderRadius: 'var(--r)', border: '1px solid var(--border)', background: 'var(--white)', color: 'var(--ink)', fontWeight: 600, fontSize: "var(--text-base)", cursor: 'pointer', minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}} data-ui-native-button="">
                 Cancel
               </button>
               <div style={{ display: 'flex', gap: 12 }}>
-                <button type="button" style={{ padding: 'var(--ds-btn-py) 24px', borderRadius: 'var(--r)', border: '1px solid var(--border)', background: 'var(--white)', color: 'var(--ink)', fontWeight: 600, fontSize: 13, cursor: 'pointer', minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}} data-ui-native-button="">
+                <button type="button" style={{ padding: 'var(--ds-btn-py) 24px', borderRadius: 'var(--r)', border: '1px solid var(--border)', background: 'var(--white)', color: 'var(--ink)', fontWeight: 600, fontSize: "var(--text-base)", cursor: 'pointer', minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}} data-ui-native-button="">
                   Save & Add Another
                 </button>
-                <button type="button" onClick={handleSave} disabled={saving} style={{ padding: 'var(--ds-btn-py) 24px', borderRadius: 'var(--r)', border: 'none', background: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))', fontWeight: 600, fontSize: 13, cursor: 'pointer', opacity: saving ? 0.7 : 1, minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}} data-ui-native-button="">
+                <button type="button" onClick={handleSave} disabled={saving} style={{ padding: 'var(--ds-btn-py) 24px', borderRadius: 'var(--r)', border: 'none', background: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))', fontWeight: 600, fontSize: "var(--text-base)", cursor: 'pointer', opacity: saving ? 0.7 : 1, minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}} data-ui-native-button="">
                   {saving ? 'Saving...' : 'Save Vehicle'}
                 </button>
               </div>

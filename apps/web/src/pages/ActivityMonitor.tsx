@@ -80,7 +80,7 @@ export function ActivityMonitorPage() {
         action={
           <button type="button" onClick={toggleConsent} disabled={!settings?.enabled} style={{
             padding: 'var(--ds-btn-py-sm) 16px', borderRadius: 'var(--r)', border: '1px solid ' + (consent ? 'var(--red)' : 'var(--teal)'),
-            background: consent ? 'var(--white)' : 'hsl(var(--primary))', color: consent ? 'var(--red)' : 'hsl(var(--primary-foreground))', fontSize: 13, fontWeight: 700,
+            background: consent ? 'var(--white)' : 'hsl(var(--primary))', color: consent ? 'var(--red)' : 'hsl(var(--primary-foreground))', fontSize: "var(--text-base)", fontWeight: 700,
             cursor: settings?.enabled ? 'pointer' : 'not-allowed', opacity: settings?.enabled ? 1 : 0.5, minHeight: 'var(--ctl-h-sm)', boxSizing: 'border-box', lineHeight: 1.25,
           }} data-ui-native-button="">{consent ? 'Opt out' : 'Opt in'}</button>
         }

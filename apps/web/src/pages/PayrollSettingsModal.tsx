@@ -130,7 +130,7 @@ export function PayrollSettingsModal({ onClose }: { onClose: () => void }) {
               The PAYE brackets and contribution schemes the payroll engine calculates against for <strong>{jurisdiction}</strong>. Changes apply to the next calculation.
             </p>
           </div>
-          <button type="button" onClick={onClose} aria-label="Close" style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink3)', padding: 2 }} data-ui-native-button="">
+          <button type="button" onClick={onClose} aria-label="Close" style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink3)', padding: "var(--action-py) var(--space-md)" }} data-ui-native-button="">
             <Icon name="x" size={18} />
           </button>
         </div>
@@ -183,12 +183,12 @@ export function PayrollSettingsModal({ onClose }: { onClose: () => void }) {
 
                         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: 10 }}>
                           <Field label="Employee %">
-                            <input type="number" step="0.0001" min={0} max={100} className="input-field"
+                            <input data-ui-field="input" type="number" step="0.0001" min={0} max={100} className="input-field"
                               value={String(value(s, 'employee_pct'))}
                               onChange={e => set(s.id, 'employee_pct', e.target.value as any)} />
                           </Field>
                           <Field label="Employer %">
-                            <input type="number" step="0.0001" min={0} max={100} className="input-field"
+                            <input data-ui-field="input" type="number" step="0.0001" min={0} max={100} className="input-field"
                               value={String(value(s, 'employer_pct'))}
                               onChange={e => set(s.id, 'employer_pct', e.target.value as any)} />
                           </Field>
@@ -203,7 +203,7 @@ export function PayrollSettingsModal({ onClose }: { onClose: () => void }) {
                             </Select>
                           </Field>
                           <Field label="Min. employees">
-                            <input type="number" step="1" min={0} className="input-field"
+                            <input data-ui-field="input" type="number" step="1" min={0} className="input-field"
                               value={String(value(s, 'min_employees'))}
                               onChange={e => set(s.id, 'min_employees', e.target.value as any)} />
                           </Field>

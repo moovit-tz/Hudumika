@@ -3,6 +3,13 @@ import { withTenant } from '../db/client.js';
 import { requireEntitlement } from '../middleware/entitlement.js';
 
 export async function ngaoRoutes(server: FastifyInstance) {
+  // This file is registered on its own `server.register(...)` call in
+  // index.ts, so a `fastify.authenticate` hook added anywhere else never
+  // reaches it — without this, `requireEntitlement('ngao')` below always
+  // sees an unset `request.user` and every route in this file 401s,
+  // unconditionally, for every tenant. Found live while verifying the
+  // Privacy P0 fix in ngao-crud.routes.ts's own copy of this same gap.
+  server.addHook('preHandler', server.authenticate);
   server.addHook('preHandler', requireEntitlement('ngao'));
 
   server.get('/assessments', async (request) => {

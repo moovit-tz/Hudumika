@@ -329,7 +329,7 @@ export function Budgets() {
                         </td>
                         {r.amounts.map((v, i) => (
                           <td key={i} style={{ padding: 3 }}>
-                            <input
+                            <input data-ui-field="input"
                               type="number"
                               value={v || ''}
                               placeholder="0"
@@ -337,10 +337,10 @@ export function Budgets() {
                               onChange={e => updateCell(r.account_code, i, parseFloat(e.target.value) || 0)}
                               style={{
                                 width: '100%',
-                                padding: '6px 8px',
+                                padding: "var(--ds-input-py) var(--space-md)",
                                 border: '1px solid var(--border)',
                                 borderRadius: 'var(--r-sm)',
-                                fontSize: 11.5,
+                                fontSize: "var(--text-base)",
                                 textAlign: 'right',
                                 outline: 'none',
                                 boxSizing: 'border-box',
@@ -358,7 +358,7 @@ export function Budgets() {
                             <button
                               type="button"
                               onClick={() => removeRow(r.account_code)}
-                              style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--red)', padding: 2 }}
+                              style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--red)', padding: "var(--action-py) var(--space-md)" }}
                               title="Remove account"
                              data-ui-native-button="">
                               <Icon name="x" size={13} />
@@ -455,16 +455,16 @@ export function Budgets() {
           <label style={{ fontSize: 12, fontWeight: 600, color: 'var(--ink2)', display: 'block', marginBottom: 5 }}>
             Budget Name
           </label>
-          <input
+          <input data-ui-field="input"
             value={newName}
             onChange={e => setNewName(e.target.value)}
             placeholder="e.g. FY2026 Operating Budget"
             style={{
               width: '100%',
-              padding: '9px 12px',
+              padding: "var(--ds-input-py) var(--space-md)",
               border: '1px solid var(--border)',
               borderRadius: 'var(--r)',
-              fontSize: 13,
+              fontSize: "var(--text-base)",
               outline: 'none',
               boxSizing: 'border-box',
               marginBottom: 14,
@@ -475,16 +475,16 @@ export function Budgets() {
           <label style={{ fontSize: 12, fontWeight: 600, color: 'var(--ink2)', display: 'block', marginBottom: 5 }}>
             Fiscal Year
           </label>
-          <input
+          <input data-ui-field="input"
             type="number"
             value={newYear}
             onChange={e => setNewYear(parseInt(e.target.value) || newYear)}
             style={{
               width: '100%',
-              padding: '9px 12px',
+              padding: "var(--ds-input-py) var(--space-md)",
               border: '1px solid var(--border)',
               borderRadius: 'var(--r)',
-              fontSize: 13,
+              fontSize: "var(--text-base)",
               outline: 'none',
               boxSizing: 'border-box',
               background: 'var(--white)',

@@ -608,19 +608,19 @@ export function MeetingCenter() {
             <Icon name="link" size={13} color="var(--teal)" /> Join Meeting with Code
           </div>
           <div style={{ display: 'flex', gap: 6 }}>
-            <input
+            <input data-ui-field="input"
               value={joinCodeInput}
               onChange={e => setJoinCodeInput(e.target.value.toUpperCase())}
               onKeyDown={e => e.key === 'Enter' && joinByCode()}
               placeholder="e.g. BLISS-901"
               style={{
                 flex: 1,
-                height: 32,
+                height: "var(--ctl-h)",
                 borderRadius: 'var(--r-sm)',
                 border: '1px solid var(--border)',
                 background: 'var(--card-sunken)',
                 padding: '0 10px',
-                fontSize: 12,
+                fontSize: "var(--text-base)",
                 fontFamily: 'var(--font)',
                 color: 'var(--ink)',
                 outline: 'none',
@@ -716,14 +716,14 @@ export function MeetingCenter() {
           {/* Search Box */}
           <div style={{ position: 'relative', width: isMobile ? '100%' : 180, flexShrink: 0, flex: isMobile ? 1 : 'none' }}>
             <Icon name="search" size={13} style={{ position: 'absolute', left: 9, top: 9, color: 'var(--ink3)' }} />
-            <input
+            <input data-ui-field="input"
               className="input-field"
               style={{
                 paddingLeft: 28,
                 paddingRight: searchMeeting ? 24 : 8,
-                fontSize: 12,
+                fontSize: "var(--text-base)",
                 width: '100%',
-                height: 32,
+                height: "var(--ctl-h)",
               }}
               placeholder="Search..."
               value={searchMeeting}
@@ -733,7 +733,7 @@ export function MeetingCenter() {
               <button
                 type="button"
                 onClick={() => { setSearchMeeting(''); setMeetingsPage(1); }}
-                style={{ position: 'absolute', right: 6, top: 7, background: 'none', border: 'none', color: 'var(--ink3)', cursor: 'pointer', padding: 2 }}
+                style={{ position: 'absolute', right: 6, top: 7, background: 'none', border: 'none', color: 'var(--ink3)', cursor: 'pointer', padding: "var(--action-py) var(--space-md)" }}
                data-ui-native-button="">
                 <Icon name="x" size={12} />
               </button>
@@ -985,7 +985,7 @@ export function MeetingCenter() {
                           {/* More Options Dropdown */}
                           <DropdownMenu>
                             <DropdownMenuTrigger asChild>
-                              <Button variant="ghost" size="icon" style={{ borderRadius: 'var(--r-sm)', width: 32, height: 32 }}>
+                              <Button variant="ghost" size="icon" style={{ borderRadius: 'var(--r-sm)', width: "var(--ctl-h)", height: "var(--ctl-h)" }}>
                                 <Icon name="moreHorizontal" size={15} />
                               </Button>
                             </DropdownMenuTrigger>
@@ -1087,7 +1087,7 @@ export function MeetingCenter() {
                                       cursor: 'pointer',
                                       padding: 0,
                                       textDecoration: 'underline',
-                                      fontSize: 12,
+                                      fontSize: "var(--text-base)",
                                     }}
                                    data-ui-native-button="">
                                     Drive ▸ Meetings ▸ {m.title}
@@ -1107,7 +1107,7 @@ export function MeetingCenter() {
                                       cursor: 'pointer',
                                       padding: 0,
                                       textDecoration: 'underline',
-                                      fontSize: 12,
+                                      fontSize: "var(--text-base)",
                                     }}
                                    data-ui-native-button="">
                                     {isCalendar ? 'External Calendar Link' : 'Connect WebRTC Room'}
@@ -1298,12 +1298,12 @@ export function MeetingCenter() {
                 onClick={() => setMeetingsPage(p)}
                 style={{
                   minWidth: 30,
-                  height: 30,
+                  height: "var(--action-h)",
                   borderRadius: 'var(--r-sm)',
                   border: p === meetingsPage ? 'none' : '1px solid var(--border)',
                   background: p === meetingsPage ? 'hsl(var(--primary))' : 'var(--card-bg, var(--white))',
                   color: p === meetingsPage ? 'hsl(var(--primary-foreground))' : 'var(--ink2)',
-                  fontSize: 12,
+                  fontSize: "var(--text-base)",
                   fontWeight: p === meetingsPage ? 800 : 600,
                   cursor: 'pointer',
                 }}
@@ -1336,7 +1336,7 @@ export function MeetingCenter() {
                 <label style={{ fontSize: 11.5, fontWeight: 700, color: 'var(--ink2)', display: 'block', marginBottom: 4 }}>
                   MEETING TITLE
                 </label>
-                <input
+                <input data-ui-field="input"
                   value={schedTitle}
                   onChange={e => setSchedTitle(e.target.value)}
                   placeholder="e.g. Customs Clearance Weekly Sync"
@@ -1355,7 +1355,7 @@ export function MeetingCenter() {
                     type="button"
                     onClick={() => setSchedKind('VIDEO')}
                     style={{
-                      padding: '10px 12px',
+                      padding: "var(--action-py) var(--space-md)",
                       borderRadius: 'var(--r)',
                       border: schedKind === 'VIDEO' ? '2px solid var(--teal)' : '1px solid var(--border)',
                       background: schedKind === 'VIDEO' ? 'var(--teal-l)' : 'var(--card-sunken)',
@@ -1380,7 +1380,7 @@ export function MeetingCenter() {
                     type="button"
                     onClick={() => setSchedKind('VOICE')}
                     style={{
-                      padding: '10px 12px',
+                      padding: "var(--action-py) var(--space-md)",
                       borderRadius: 'var(--r)',
                       border: schedKind === 'VOICE' ? '2px solid var(--teal)' : '1px solid var(--border)',
                       background: schedKind === 'VOICE' ? 'var(--teal-l)' : 'var(--card-sunken)',
@@ -1415,7 +1415,7 @@ export function MeetingCenter() {
                   <label style={{ fontSize: 11.5, fontWeight: 700, color: 'var(--ink2)', display: 'block', marginBottom: 4 }}>
                     TIME
                   </label>
-                  <input type="time" value={schedTime} onChange={e => setSchedTime(e.target.value)} className="input-field" />
+                  <input data-ui-field="input" type="time" value={schedTime} onChange={e => setSchedTime(e.target.value)} className="input-field" />
                 </div>
               </div>
 
@@ -1426,7 +1426,7 @@ export function MeetingCenter() {
                     DURATION LIMIT
                   </label>
                   <div style={{ position: 'relative' }}>
-                    <input
+                    <input data-ui-field="input"
                       type="number"
                       min={5}
                       max={480}
@@ -1450,7 +1450,7 @@ export function MeetingCenter() {
                   <label style={{ fontSize: 11.5, fontWeight: 700, color: 'var(--ink2)', display: 'block', marginBottom: 4 }}>
                     PASSCODE (OPTIONAL)
                   </label>
-                  <input
+                  <input data-ui-field="input"
                     value={schedPassword}
                     onChange={e => setSchedPassword(e.target.value)}
                     placeholder="e.g. 1234"
@@ -1609,12 +1609,12 @@ export function MeetingCenter() {
                 Session notes are synchronized with the <strong>Notes app</strong> and linked to this meeting record.
               </div>
 
-              <textarea
+              <textarea data-ui-field="textarea"
                 value={notesEditing}
                 onChange={e => setNotesEditing(e.target.value)}
                 rows={8}
                 className="input-field"
-                style={{ height: 'auto', padding: 12, fontSize: 12.5, lineHeight: 1.5 }}
+                style={{ height: 'auto', padding: "var(--ds-input-py) var(--space-md)", fontSize: "var(--text-base)", lineHeight: 1.5 }}
                 placeholder="Type or edit meeting takeaways, decisions, and notes here..."
               />
 
@@ -1662,13 +1662,13 @@ export function MeetingCenter() {
 
               {/* Add Item Input */}
               <div style={{ display: 'flex', gap: 6 }}>
-                <input
+                <input data-ui-field="input"
                   value={taskItemInput}
                   onChange={e => setTaskItemInput(e.target.value)}
                   onKeyDown={e => e.key === 'Enter' && addActionItem()}
                   placeholder="e.g. Send updated declaration report to client"
                   className="input-field"
-                  style={{ flex: 1, height: 34, fontSize: 12.5 }}
+                  style={{ flex: 1, height: "var(--ctl-h)", fontSize: "var(--text-base)" }}
                 />
                 <Button variant="outline" size="sm" onClick={addActionItem}>
                   <Icon name="plus" size={13} /> Add
@@ -1699,7 +1699,7 @@ export function MeetingCenter() {
                     <button
                       type="button"
                       onClick={() => setTaskList(prev => prev.filter(x => x.id !== t.id))}
-                      style={{ background: 'none', border: 'none', color: 'var(--ink3)', cursor: 'pointer', padding: 2 }}
+                      style={{ background: 'none', border: 'none', color: 'var(--ink3)', cursor: 'pointer', padding: "var(--action-py) var(--space-md)" }}
                      data-ui-native-button="">
                       <Icon name="x" size={12} />
                     </button>

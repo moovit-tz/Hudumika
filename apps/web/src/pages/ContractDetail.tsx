@@ -158,7 +158,7 @@ export const ContractDetail: React.FC = () => {
   return (
     <div style={{ flex: 1, overflowY: 'auto', background: 'transparent', fontFamily: 'var(--font)' }}>
       <div style={{ padding: isMobile ? '16px 16px 0' : '24px 32px 0' }}>
-        <button type="button" onClick={() => navigate('/projects/contracts')} style={{ display: 'flex', alignItems: 'center', gap: 6, background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink3)', fontSize: 12.5, fontWeight: 600, padding: 0, marginBottom: 10 }} data-ui-native-button="">
+        <button type="button" onClick={() => navigate('/projects/contracts')} style={{ display: 'flex', alignItems: 'center', gap: 6, background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink3)', fontSize: "var(--text-base)", fontWeight: 600, padding: 0, marginBottom: 10 }} data-ui-native-button="">
           <Icon name="arrowLeft" size={13} /> All contracts
         </button>
         <PageHeader
@@ -220,18 +220,18 @@ export const ContractDetail: React.FC = () => {
             </div>
             <div>
               <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--ink3)', marginBottom: 4 }}>Subject</div>
-              <input defaultValue={contract.subject} onBlur={e => e.target.value.trim() && patch({ subject: e.target.value.trim() })}
-                style={{ width: '100%', padding: 'var(--ds-input-py, 7px) 10px', border: '1px solid var(--border)', borderRadius: 'var(--r-sm)', fontSize: 13.5, color: 'var(--ink)', boxSizing: 'border-box' }} />
+              <input data-ui-field="input" defaultValue={contract.subject} onBlur={e => e.target.value.trim() && patch({ subject: e.target.value.trim() })}
+                style={{ width: '100%', padding: 'var(--ds-input-py, 7px) 10px', border: '1px solid var(--border)', borderRadius: 'var(--r-sm)', fontSize: "var(--text-base)", color: 'var(--ink)', boxSizing: 'border-box' }} />
             </div>
             <div>
               <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--ink3)', marginBottom: 4 }}>Contract Value ({contract.currency})</div>
-              <input type="number" min={0} defaultValue={contract.value ?? ''} onBlur={e => patch({ value: e.target.value ? Number(e.target.value) : null })}
-                style={{ width: '100%', padding: 'var(--ds-input-py, 7px) 10px', border: '1px solid var(--border)', borderRadius: 'var(--r-sm)', fontSize: 13.5, color: 'var(--ink)', boxSizing: 'border-box' }} />
+              <input data-ui-field="input" type="number" min={0} defaultValue={contract.value ?? ''} onBlur={e => patch({ value: e.target.value ? Number(e.target.value) : null })}
+                style={{ width: '100%', padding: 'var(--ds-input-py, 7px) 10px', border: '1px solid var(--border)', borderRadius: 'var(--r-sm)', fontSize: "var(--text-base)", color: 'var(--ink)', boxSizing: 'border-box' }} />
             </div>
             <div>
               <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--ink3)', marginBottom: 4 }}>Contract Type</div>
-              <input list="contract-types" defaultValue={contract.type ?? ''} onBlur={e => patch({ type: e.target.value || null })}
-                style={{ width: '100%', padding: 'var(--ds-input-py, 7px) 10px', border: '1px solid var(--border)', borderRadius: 'var(--r-sm)', fontSize: 13.5, color: 'var(--ink)', boxSizing: 'border-box' }} />
+              <input data-ui-field="input" list="contract-types" defaultValue={contract.type ?? ''} onBlur={e => patch({ type: e.target.value || null })}
+                style={{ width: '100%', padding: 'var(--ds-input-py, 7px) 10px', border: '1px solid var(--border)', borderRadius: 'var(--r-sm)', fontSize: "var(--text-base)", color: 'var(--ink)', boxSizing: 'border-box' }} />
               <datalist id="contract-types">{SUGGESTED_TYPES.map(t => <option key={t} value={t} />)}</datalist>
             </div>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
@@ -246,16 +246,16 @@ export const ContractDetail: React.FC = () => {
             </div>
             <div>
               <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--ink3)', marginBottom: 4 }}>Description</div>
-              <textarea defaultValue={contract.description ?? ''} onBlur={e => patch({ description: e.target.value })} rows={5}
-                style={{ width: '100%', padding: 'var(--ds-input-py, 7px) 10px', border: '1px solid var(--border)', borderRadius: 'var(--r-sm)', fontSize: 13, color: 'var(--ink)', fontFamily: 'var(--font)', resize: 'vertical', boxSizing: 'border-box' }} />
+              <textarea data-ui-field="textarea" defaultValue={contract.description ?? ''} onBlur={e => patch({ description: e.target.value })} rows={5}
+                style={{ width: '100%', padding: 'var(--ds-input-py, 7px) 10px', border: '1px solid var(--border)', borderRadius: 'var(--r-sm)', fontSize: "var(--text-base)", color: 'var(--ink)', fontFamily: 'var(--font)', resize: 'vertical', boxSizing: 'border-box' }} />
             </div>
 
             <div>
               <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--ink3)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 8 }}>Renewal History</div>
               <div style={{ display: 'flex', gap: 8, alignItems: 'center', marginBottom: 10, flexWrap: 'wrap' }}>
                 <DatePicker date={renewDate} onChange={setRenewDate} placeholder="New end date" />
-                <input value={renewNote} onChange={e => setRenewNote(e.target.value)} placeholder="Note (optional)"
-                  style={{ flex: 1, minWidth: 160, padding: 'var(--ds-input-py, 7px) 10px', border: '1px solid var(--border)', borderRadius: 'var(--r-sm)', fontSize: 12.5, color: 'var(--ink)' }} />
+                <input data-ui-field="input" value={renewNote} onChange={e => setRenewNote(e.target.value)} placeholder="Note (optional)"
+                  style={{ flex: 1, minWidth: 160, padding: 'var(--ds-input-py, 7px) 10px', border: '1px solid var(--border)', borderRadius: 'var(--r-sm)', fontSize: "var(--text-base)", color: 'var(--ink)' }} />
                 <Button size="sm" onClick={submitRenewal} disabled={!renewDate || renewing}>{renewing ? 'Renewing…' : 'Renew'}</Button>
               </div>
               {contract.renewals.length > 0 && (
@@ -282,7 +282,7 @@ export const ContractDetail: React.FC = () => {
               onBlur={e => patch({ content: e.target.value })}
               rows={20}
               placeholder="Contract body / terms…"
-              style={{ width: '100%', padding: 'var(--ds-input-py, 7px) 12px', border: '1px solid var(--border)', borderRadius: 'var(--r-sm)', fontSize: 13, color: 'var(--ink)', fontFamily: 'var(--font)', resize: 'vertical', boxSizing: 'border-box', lineHeight: 1.6 }}
+              style={{ width: '100%', padding: 'var(--ds-input-py, 7px) 12px', border: '1px solid var(--border)', borderRadius: 'var(--r-sm)', fontSize: "var(--text-base)", color: 'var(--ink)', fontFamily: 'var(--font)', resize: 'vertical', boxSizing: 'border-box', lineHeight: 1.6 }}
             />
           </SectionCard>
         )}
@@ -312,10 +312,10 @@ export const ContractDetail: React.FC = () => {
         {tab === 'comments' && (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
             <div style={{ display: 'flex', gap: 8 }}>
-              <input value={newComment} onChange={e => setNewComment(e.target.value)}
+              <input data-ui-field="input" value={newComment} onChange={e => setNewComment(e.target.value)}
                 onKeyDown={e => { if (e.key === 'Enter') postComment(); }}
                 placeholder="Add a comment…"
-                style={{ flex: 1, padding: 'var(--ds-input-py, 7px) 10px', border: '1px solid var(--border)', borderRadius: 'var(--r-sm)', fontSize: 13.5, color: 'var(--ink)' }} />
+                style={{ flex: 1, padding: 'var(--ds-input-py, 7px) 10px', border: '1px solid var(--border)', borderRadius: 'var(--r-sm)', fontSize: "var(--text-base)", color: 'var(--ink)' }} />
               <Button size="sm" onClick={postComment} disabled={!newComment.trim()}>Post</Button>
             </div>
             {comments === null ? (

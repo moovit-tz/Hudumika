@@ -43,7 +43,7 @@ function Toggle({ value, onChange }: { value: boolean; onChange: (v: boolean) =>
       type="button"
       onClick={() => onChange(!value)}
       style={{
-        width: 44, height: 24, borderRadius: 'var(--r)', border: 'none', cursor: 'pointer',
+        width: "var(--ctl-h)", height: "var(--ctl-h)", borderRadius: 'var(--r)', border: 'none', cursor: 'pointer',
         background: value ? 'var(--teal)' : 'var(--border2)', position: 'relative',
         transition: 'background 0.2s',
       }}
@@ -106,10 +106,10 @@ export const Setup: React.FC = () => {
         {tab === 'general' && (
           <>
             <Row label="Company Name" desc="Your company or brokerage trading name">
-              <input className="input-field" style={{ width: 240 }} value={config.company_name} onChange={e => setConfig(p => ({ ...p, company_name: e.target.value }))} />
+              <input data-ui-field="input" className="input-field" style={{ width: 240 }} value={config.company_name} onChange={e => setConfig(p => ({ ...p, company_name: e.target.value }))} />
             </Row>
             <Row label="Operating Country">
-              <input className="input-field" style={{ width: 160 }} value={config.country} onChange={e => setConfig(p => ({ ...p, country: e.target.value }))} />
+              <input data-ui-field="input" className="input-field" style={{ width: 160 }} value={config.country} onChange={e => setConfig(p => ({ ...p, country: e.target.value }))} />
             </Row>
             <Row label="Primary Currency">
               <Select value={config.currency} onValueChange={v => setConfig(p => ({ ...p, currency: v }))}>
@@ -123,7 +123,7 @@ export const Setup: React.FC = () => {
               </Select>
             </Row>
             <Row label="Default Container Free Time" desc="Days before demurrage charges begin">
-              <input type="number" className="input-field" style={{ width: 80 }} value={config.free_time_days} onChange={e => setConfig(p => ({ ...p, free_time_days: Number(e.target.value) }))} />
+              <input data-ui-field="input" type="number" className="input-field" style={{ width: 80 }} value={config.free_time_days} onChange={e => setConfig(p => ({ ...p, free_time_days: Number(e.target.value) }))} />
             </Row>
             <Row label="Auto Risk Flagging" desc="Automatically flag shipments that breach demurrage or SLA thresholds">
               <Toggle value={config.auto_risk_flags} onChange={v => setConfig(p => ({ ...p, auto_risk_flags: v }))} />
@@ -140,10 +140,10 @@ export const Setup: React.FC = () => {
               <Toggle value={config.email_enabled} onChange={() => toggleCfg('email_enabled')} />
             </Row>
             <Row label="Demurrage Alert Lead Time" desc="Days before free time ends to trigger alert">
-              <input type="number" className="input-field" style={{ width: 80 }} value={config.demurrage_alert_days} onChange={e => setConfig(p => ({ ...p, demurrage_alert_days: Number(e.target.value) }))} />
+              <input data-ui-field="input" type="number" className="input-field" style={{ width: 80 }} value={config.demurrage_alert_days} onChange={e => setConfig(p => ({ ...p, demurrage_alert_days: Number(e.target.value) }))} />
             </Row>
             <Row label="SLA Reminder" desc="Hours before SLA breach to send reminder">
-              <input type="number" className="input-field" style={{ width: 80 }} value={config.sla_reminder_hours} onChange={e => setConfig(p => ({ ...p, sla_reminder_hours: Number(e.target.value) }))} />
+              <input data-ui-field="input" type="number" className="input-field" style={{ width: 80 }} value={config.sla_reminder_hours} onChange={e => setConfig(p => ({ ...p, sla_reminder_hours: Number(e.target.value) }))} />
             </Row>
           </>
         )}
@@ -156,7 +156,7 @@ export const Setup: React.FC = () => {
             {STAGES.map(stage => (
               <Row key={stage} label={stage.replace(/_/g, ' ')} >
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                  <input
+                  <input data-ui-field="input"
                     type="number" min={1} max={30}
                     className="input-field"
                     style={{ width: 70 }}

@@ -1166,7 +1166,7 @@ function PipelineTab() {
                   type="button"
                   onClick={() => setSelId(o.id)}
                   style={{
-                    textAlign: 'left', display: 'flex', flexDirection: 'column', gap: 10, padding: 14,
+                    textAlign: 'left', display: 'flex', flexDirection: 'column', gap: 10, padding: "var(--action-py) var(--space-md)",
                     borderRadius: 'var(--r)', border: `1px solid ${o.id === selId ? 'var(--teal)' : 'var(--border)'}`,
                     background: o.id === selId ? 'var(--teal-l)' : 'var(--white)', cursor: 'pointer', fontFamily: 'var(--font)',
                   }}
@@ -1270,7 +1270,7 @@ function PipelineTab() {
                       <td style={{ padding: '12px 16px', fontSize: 13, color: 'var(--ink2)' }}>{a.candidate_email || '—'}</td>
                       <td style={{ padding: '12px 16px' }}>
                         <Select value={a.stage?.toUpperCase() || 'APPLIED'} onValueChange={v => setStage(a, v)}>
-                          <SelectTrigger style={{ width: 130, height: 30, fontSize: 11.5, border: 'none', background: stageInfo(a.stage).tint, color: stageInfo(a.stage).color, fontWeight: 700 }}>
+                          <SelectTrigger style={{ width: 130, height: "var(--ctl-h)", fontSize: "var(--text-base)", border: 'none', background: stageInfo(a.stage).tint, color: stageInfo(a.stage).color, fontWeight: 700 }}>
                             <SelectValue />
                           </SelectTrigger>
                           <SelectContent>

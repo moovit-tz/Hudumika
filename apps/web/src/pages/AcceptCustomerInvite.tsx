@@ -78,7 +78,7 @@ export const AcceptCustomerInvite: React.FC = () => {
 
       <form onSubmit={handleSubmit} noValidate className="auth-form">
         <AuthField label="Full name" error={fieldErr.name}>
-          <input
+          <input data-ui-field="input"
             type="text"
             className={`auth-input${fieldErr.name ? ' auth-input-err' : ''}`}
             placeholder="e.g. Amina Hassan"
@@ -91,7 +91,7 @@ export const AcceptCustomerInvite: React.FC = () => {
 
         <AuthField label="Password" error={fieldErr.password}>
           <div className="auth-input-wrap">
-            <input
+            <input data-ui-field="input"
               type={showPass ? 'text' : 'password'}
               className={`auth-input auth-input-icon-r${fieldErr.password ? ' auth-input-err' : ''}`}
               placeholder="Min. 8 characters"
@@ -106,7 +106,7 @@ export const AcceptCustomerInvite: React.FC = () => {
         </AuthField>
 
         <AuthField label="Confirm password" error={fieldErr.confirm}>
-          <input
+          <input data-ui-field="input"
             type={showPass ? 'text' : 'password'}
             className={`auth-input${fieldErr.confirm ? ' auth-input-err' : ''}`}
             placeholder="Re-enter password"

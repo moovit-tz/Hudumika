@@ -177,7 +177,7 @@ export const CustomerDocuments: React.FC = () => {
                 {linkedOrg && (
                   <Tip label="Share">
                     <button type="button" aria-label="Share" onClick={() => setShareFile(f)}
-                      style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: 32, height: 32, background: isSharedWithOrg(f) ? 'var(--teal-l)' : 'var(--bg)', border: 'none', borderRadius: 'var(--r-sm)', color: isSharedWithOrg(f) ? 'var(--teal)' : 'var(--ink3)', cursor: 'pointer', flexShrink: 0 }} data-ui-native-button="">
+                      style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: "var(--ctl-h)", height: "var(--ctl-h)", background: isSharedWithOrg(f) ? 'var(--teal-l)' : 'var(--bg)', border: 'none', borderRadius: 'var(--r-sm)', color: isSharedWithOrg(f) ? 'var(--teal)' : 'var(--ink3)', cursor: 'pointer', flexShrink: 0 }} data-ui-native-button="">
                       <Icon name="userPlus" size={15} />
                     </button>
                   </Tip>
@@ -185,13 +185,13 @@ export const CustomerDocuments: React.FC = () => {
                 <Tip label="Download">
                   <button type="button" aria-label="Download"
                     onClick={() => apiDownload(`/v1/files/${f.id}/download`, f.name).catch((err: any) => showAlert(err.message || 'Download failed'))}
-                    style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: 32, height: 32, background: 'var(--bg)', border: 'none', borderRadius: 'var(--r-sm)', color: 'var(--teal)', cursor: 'pointer', flexShrink: 0 }} data-ui-native-button="">
+                    style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: "var(--ctl-h)", height: "var(--ctl-h)", background: 'var(--bg)', border: 'none', borderRadius: 'var(--r-sm)', color: 'var(--teal)', cursor: 'pointer', flexShrink: 0 }} data-ui-native-button="">
                     <Icon name="download" size={15} />
                   </button>
                 </Tip>
                 <Tip label="Remove">
                   <button type="button" aria-label="Remove" onClick={() => handleDelete(f)}
-                    style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: 32, height: 32, background: 'var(--bg)', border: 'none', borderRadius: 'var(--r-sm)', color: 'var(--ink3)', cursor: 'pointer', flexShrink: 0 }} data-ui-native-button="">
+                    style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: "var(--ctl-h)", height: "var(--ctl-h)", background: 'var(--bg)', border: 'none', borderRadius: 'var(--r-sm)', color: 'var(--ink3)', cursor: 'pointer', flexShrink: 0 }} data-ui-native-button="">
                     <Icon name="x" size={15} />
                   </button>
                 </Tip>

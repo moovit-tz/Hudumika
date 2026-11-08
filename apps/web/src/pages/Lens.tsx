@@ -213,9 +213,9 @@ export function Lens() {
             <div style={{ display: 'flex', border: '1px solid var(--border)', borderRadius: 'var(--r-sm)', overflow: 'hidden' }}>
               {(['board', 'list'] as const).map(m => (
                 <button key={m} type="button" onClick={() => setViewMode(m)} style={{
-                  padding: '6px 12px', border: 'none', background: viewMode === m ? 'var(--teal)' : 'var(--white)',
+                  padding: "var(--action-py) var(--space-md)", border: 'none', background: viewMode === m ? 'var(--teal)' : 'var(--white)',
                   color: viewMode === m ? '#fff' : 'var(--ink3)', cursor: 'pointer', display: 'flex', alignItems: 'center',
-                  fontWeight: 600, fontSize: 12
+                  fontWeight: 600, fontSize: "var(--text-base)"
                 }} data-ui-native-button="">
                   <Icon name={m === 'board' ? 'columns' : 'list'} size={14} style={{ marginRight: 6 }} color={viewMode === m ? '#fff' : 'var(--ink3)'} />
                   {m === 'board' ? 'Board' : 'List'}
@@ -275,7 +275,7 @@ export function Lens() {
         </div>
 
         <div style={{ flex: '1 1 220px', minWidth: 200, maxWidth: 400, marginLeft: 'auto' }}>
-          <input value={q} onChange={e => setQ(e.target.value)} placeholder="Search title, body, evidence…"
+          <input data-ui-field="input" value={q} onChange={e => setQ(e.target.value)} placeholder="Search title, body, evidence…"
             style={{ ...input, width: '100%' }} />
         </div>
         </div>
@@ -341,7 +341,7 @@ export function Lens() {
                     style={{
                       display: 'block', width: '100%', textAlign: 'left', background: 'none',
                       border: 'none', borderBottom: '1px solid var(--border)', cursor: 'pointer',
-                      padding: '12px 16px', fontFamily: 'var(--font)',
+                      padding: "var(--action-py) var(--space-md)", fontFamily: 'var(--font)',
                     }} data-ui-native-button="">
                     <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap', marginBottom: 4 }}>
                       <span style={{ fontFamily: 'var(--font)', fontSize: 11.5, fontWeight: 700, color: 'var(--ink3)' }}>{it.ref}</span>
@@ -402,7 +402,7 @@ export function Lens() {
               <div style={{ fontSize: 13, color: 'var(--ink2)', marginBottom: 16, lineHeight: 1.5 }}>
                 Closing an item requires a resolution. What happened here? Was it fixed, proven false, or abandoned?
               </div>
-              <textarea
+              <textarea data-ui-field="textarea"
                 autoFocus
                 value={resolution} onChange={e => setResolution(e.target.value)}
                 placeholder="e.g. Fixed in #123"
@@ -457,7 +457,7 @@ function Compose({ areas, onClose, onSaved }: {
 
         <div style={{ gridColumn: '1 / -1' }}>
           <label style={label}>Title *</label>
-          <input style={input} value={f.title} onChange={e => setF({ ...f, title: e.target.value })}
+          <input data-ui-field="input" style={input} value={f.title} onChange={e => setF({ ...f, title: e.target.value })}
             placeholder="What is wrong, or what is missing" />
         </div>
 
@@ -499,7 +499,7 @@ function Compose({ areas, onClose, onSaved }: {
 
         <div style={{ gridColumn: '1 / -1' }}>
           <label style={label}>What it is</label>
-          <textarea style={{ ...input, minHeight: 96, resize: 'vertical' } as React.CSSProperties}
+          <textarea data-ui-field="textarea" style={{ ...input, minHeight: 96, resize: 'vertical' } as React.CSSProperties}
             value={f.body} onChange={e => setF({ ...f, body: e.target.value })}
             placeholder="What happens, where, and what it costs." />
         </div>
@@ -509,14 +509,14 @@ function Compose({ areas, onClose, onSaved }: {
             reading of the code becomes a reported fact. */}
         <div style={{ gridColumn: '1 / -1' }}>
           <label style={label}>How you know</label>
-          <textarea style={{ ...input, minHeight: 84, resize: 'vertical', fontFamily: 'var(--font)' } as React.CSSProperties}
+          <textarea data-ui-field="textarea" style={{ ...input, minHeight: 84, resize: 'vertical', fontFamily: 'var(--font)' } as React.CSSProperties}
             value={f.evidence} onChange={e => setF({ ...f, evidence: e.target.value })}
             placeholder="The command you ran, the figures that came back, the query that returned the row. Leave blank if you have not reproduced it — that is what SUSPECTED means." />
         </div>
 
         <div style={{ gridColumn: '1 / -1' }}>
           <label style={label}>Waiting on</label>
-          <input style={input} value={f.waiting_on} onChange={e => setF({ ...f, waiting_on: e.target.value })}
+          <input data-ui-field="input" style={input} value={f.waiting_on} onChange={e => setF({ ...f, waiting_on: e.target.value })}
             placeholder="A person, a decision, an authority — anything blocking it" />
         </div>
 
@@ -623,7 +623,7 @@ function Detail({ item, areas, onClose, onPatch, onNote }: {
               <div style={{ fontSize: 12.5, color: 'var(--ink2)', marginBottom: 8 }}>
                 How was it settled? An item closed without saying is the one you find a year later and cannot use.
               </div>
-              <textarea value={resolution} onChange={e => setResolution(e.target.value)} rows={3}
+              <textarea data-ui-field="textarea" value={resolution} onChange={e => setResolution(e.target.value)} rows={3}
                 style={{ ...input, resize: 'vertical' } as React.CSSProperties}
                 placeholder="e.g. Fixed in a1b2c3d; verified by re-running the period close." />
               <div style={{ display: 'flex', gap: 8, marginTop: 8 }}>
@@ -646,7 +646,7 @@ function Detail({ item, areas, onClose, onPatch, onNote }: {
           {/* Append-only, like every other trail here. */}
           <div>
             <div style={label}>History</div>
-            <textarea value={note} onChange={e => setNote(e.target.value)} rows={2}
+            <textarea data-ui-field="textarea" value={note} onChange={e => setNote(e.target.value)} rows={2}
               placeholder="Add an observation — kept forever, never overwritten."
               style={{ ...input, resize: 'vertical', marginBottom: 8 } as React.CSSProperties} />
             <button type="button" className="btn btn-secondary btn-sm" disabled={!note.trim()}

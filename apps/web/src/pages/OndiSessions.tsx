@@ -111,7 +111,7 @@ export const OndiSessions: React.FC = () => {
             )}
           </div>
           <button type="button" onClick={checkChain} disabled={checkingChain}
-            style={{ fontSize: 12.5, fontWeight: 700, color: 'var(--ink)', background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 'var(--r)', padding: '8px 16px', cursor: checkingChain ? 'default' : 'pointer', opacity: checkingChain ? 0.6 : 1 }} data-ui-native-button="">
+            style={{ fontSize: "var(--text-base)", fontWeight: 700, color: 'var(--ink)', background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 'var(--r)', padding: "var(--action-py) var(--space-md)", cursor: checkingChain ? 'default' : 'pointer', opacity: checkingChain ? 0.6 : 1 }} data-ui-native-button="">
             Re-verify Chain
           </button>
         </div>

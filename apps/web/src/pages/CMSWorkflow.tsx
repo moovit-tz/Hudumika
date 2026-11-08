@@ -181,13 +181,13 @@ export function CMSWorkflow() {
                 display: 'inline-flex',
                 alignItems: 'center',
                 gap: 6,
-                padding: '8px 14px',
-                borderRadius: 8,
+                padding: "var(--action-py) var(--space-md)",
+                borderRadius: "var(--r-sm)",
                 background: 'var(--surface)',
                 border: '1px solid var(--border)',
                 color: 'var(--text)',
                 fontWeight: 500,
-                fontSize: 13,
+                fontSize: "var(--text-base)",
                 cursor: 'pointer',
               }}
              data-ui-native-button="">
@@ -203,13 +203,13 @@ export function CMSWorkflow() {
                 display: 'inline-flex',
                 alignItems: 'center',
                 gap: 6,
-                padding: '8px 14px',
-                borderRadius: 8,
+                padding: "var(--action-py) var(--space-md)",
+                borderRadius: "var(--r-sm)",
                 background: 'var(--surface)',
                 border: '1px solid var(--border)',
                 color: 'var(--text)',
                 fontWeight: 600,
-                fontSize: 13,
+                fontSize: "var(--text-base)",
                 cursor: 'pointer',
               }}
              data-ui-native-button="">
@@ -225,13 +225,13 @@ export function CMSWorkflow() {
                 display: 'inline-flex',
                 alignItems: 'center',
                 gap: 6,
-                padding: '8px 16px',
-                borderRadius: 8,
+                padding: "var(--action-py) var(--space-md)",
+                borderRadius: "var(--r-sm)",
                 background: 'var(--teal)',
                 color: '#fff',
                 border: 'none',
                 fontWeight: 600,
-                fontSize: 13,
+                fontSize: "var(--text-base)",
                 cursor: 'pointer',
               }}
              data-ui-native-button="">
@@ -286,7 +286,7 @@ export function CMSWorkflow() {
                     {!['draft', 'published', 'trash'].includes(st.slug) && (
                       <button
                         onClick={() => handleDeleteState(st)}
-                        style={{ background: 'transparent', border: 'none', color: 'var(--red)', cursor: 'pointer', padding: 4 }}
+                        style={{ background: 'transparent', border: 'none', color: 'var(--red)', cursor: 'pointer', padding: "var(--action-py) var(--space-md)" }}
                         title="Delete state"
                        data-ui-native-button="">
                         <Icon name="trash" size={14} />
@@ -378,7 +378,7 @@ export function CMSWorkflow() {
 
                         <button
                           onClick={() => handleDeleteTransition(tr.id)}
-                          style={{ background: 'transparent', border: 'none', color: 'var(--red)', cursor: 'pointer', padding: 4 }}
+                          style={{ background: 'transparent', border: 'none', color: 'var(--red)', cursor: 'pointer', padding: "var(--action-py) var(--space-md)" }}
                           title="Remove transition"
                          data-ui-native-button="">
                           <Icon name="trash" size={14} />
@@ -412,7 +412,7 @@ export function CMSWorkflow() {
             <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
               <div>
                 <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: 'var(--text)', marginBottom: 4 }}>State Name *</label>
-                <input
+                <input data-ui-field="input"
                   type="text"
                   value={stateForm.name}
                   onChange={e => {
@@ -420,18 +420,18 @@ export function CMSWorkflow() {
                     setStateForm(f => ({ ...f, name, slug: !f.slug ? name.toLowerCase().replace(/[^a-z0-9_]+/g, '_') : f.slug }));
                   }}
                   placeholder="e.g. Legal Compliance"
-                  style={{ width: '100%', padding: '8px 12px', borderRadius: 8, border: '1px solid var(--border)', background: 'var(--bg)', color: 'var(--text)', fontSize: 13 }}
+                  style={{ width: '100%', padding: "var(--ds-input-py) var(--space-md)", borderRadius: "var(--r-sm)", border: '1px solid var(--border)', background: 'var(--bg)', color: 'var(--text)', fontSize: "var(--text-base)" }}
                 />
               </div>
 
               <div>
                 <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: 'var(--text)', marginBottom: 4 }}>Identifier (Slug) *</label>
-                <input
+                <input data-ui-field="input"
                   type="text"
                   value={stateForm.slug}
                   onChange={e => setStateForm(f => ({ ...f, slug: e.target.value.toLowerCase().replace(/[^a-z0-9_]+/g, '_') }))}
                   placeholder="e.g. legal_compliance"
-                  style={{ width: '100%', padding: '8px 12px', borderRadius: 8, border: '1px solid var(--border)', background: 'var(--bg)', color: 'var(--text)', fontSize: 13 }}
+                  style={{ width: '100%', padding: "var(--ds-input-py) var(--space-md)", borderRadius: "var(--r-sm)", border: '1px solid var(--border)', background: 'var(--bg)', color: 'var(--text)', fontSize: "var(--text-base)" }}
                 />
               </div>
 
@@ -455,14 +455,14 @@ export function CMSWorkflow() {
             <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 10, marginTop: 20 }}>
               <button
                 onClick={() => setStateModalOpen(false)}
-                style={{ padding: '8px 14px', borderRadius: 8, border: '1px solid var(--border)', background: 'transparent', color: 'var(--text)', fontSize: 13, cursor: 'pointer' }}
+                style={{ padding: "var(--action-py) var(--space-md)", borderRadius: "var(--r-sm)", border: '1px solid var(--border)', background: 'transparent', color: 'var(--text)', fontSize: "var(--text-base)", cursor: 'pointer' }}
                data-ui-native-button="">
                 Cancel
               </button>
               <button
                 onClick={handleCreateState}
                 disabled={saving}
-                style={{ padding: '8px 16px', borderRadius: 8, border: 'none', background: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))', fontSize: 13, fontWeight: 600, cursor: 'pointer' }}
+                style={{ padding: "var(--action-py) var(--space-md)", borderRadius: "var(--r-sm)", border: 'none', background: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))', fontSize: "var(--text-base)", fontWeight: 600, cursor: 'pointer' }}
                data-ui-native-button="">
                 {saving ? 'Creating...' : 'Create State'}
               </button>
@@ -515,12 +515,12 @@ export function CMSWorkflow() {
 
               <div>
                 <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: 'var(--text)', marginBottom: 4 }}>Transition Name / Action Label</label>
-                <input
+                <input data-ui-field="input"
                   type="text"
                   value={transitionForm.name}
                   onChange={e => setTransitionForm(f => ({ ...f, name: e.target.value }))}
                   placeholder="e.g. Submit for Compliance Review"
-                  style={{ width: '100%', padding: '8px 12px', borderRadius: 8, border: '1px solid var(--border)', background: 'var(--bg)', color: 'var(--text)', fontSize: 13 }}
+                  style={{ width: '100%', padding: "var(--ds-input-py) var(--space-md)", borderRadius: "var(--r-sm)", border: '1px solid var(--border)', background: 'var(--bg)', color: 'var(--text)', fontSize: "var(--text-base)" }}
                 />
               </div>
 
@@ -552,14 +552,14 @@ export function CMSWorkflow() {
             <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 10, marginTop: 20 }}>
               <button
                 onClick={() => setTransitionModalOpen(false)}
-                style={{ padding: '8px 14px', borderRadius: 8, border: '1px solid var(--border)', background: 'transparent', color: 'var(--text)', fontSize: 13, cursor: 'pointer' }}
+                style={{ padding: "var(--action-py) var(--space-md)", borderRadius: "var(--r-sm)", border: '1px solid var(--border)', background: 'transparent', color: 'var(--text)', fontSize: "var(--text-base)", cursor: 'pointer' }}
                data-ui-native-button="">
                 Cancel
               </button>
               <button
                 onClick={handleCreateTransition}
                 disabled={saving}
-                style={{ padding: '8px 16px', borderRadius: 8, border: 'none', background: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))', fontSize: 13, fontWeight: 600, cursor: 'pointer' }}
+                style={{ padding: "var(--action-py) var(--space-md)", borderRadius: "var(--r-sm)", border: 'none', background: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))', fontSize: "var(--text-base)", fontWeight: 600, cursor: 'pointer' }}
                data-ui-native-button="">
                 {saving ? 'Adding...' : 'Add Transition'}
               </button>

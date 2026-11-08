@@ -116,21 +116,21 @@ export function SealExWarehouseEntryNew() {
           </Field>
 
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
-            <Field label="HS Code"><input type="text" className="input-field" value={hsCode} onChange={e => setHsCode(e.target.value)} placeholder="e.g. 7214.20.00" /></Field>
-            <Field label="Country of Origin"><input type="text" className="input-field" value={countryOfOrigin} onChange={e => setCountryOfOrigin(e.target.value)} placeholder="e.g. CN" maxLength={2} /></Field>
+            <Field label="HS Code"><input data-ui-field="input" type="text" className="input-field" value={hsCode} onChange={e => setHsCode(e.target.value)} placeholder="e.g. 7214.20.00" /></Field>
+            <Field label="Country of Origin"><input data-ui-field="input" type="text" className="input-field" value={countryOfOrigin} onChange={e => setCountryOfOrigin(e.target.value)} placeholder="e.g. CN" maxLength={2} /></Field>
           </div>
 
           <Field label="Declaration Date"><DatePicker date={declarationDate} onChange={setDeclarationDate} /></Field>
 
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 14 }}>
-            <Field label="Invoice Value"><input type="number" min="0" step="any" className="input-field" value={invoiceValue} onChange={e => setInvoiceValue(e.target.value)} placeholder="0.00" /></Field>
-            <Field label="Freight"><input type="number" min="0" step="any" className="input-field" value={freight} onChange={e => setFreight(e.target.value)} placeholder="0.00" /></Field>
-            <Field label="Insurance"><input type="number" min="0" step="any" className="input-field" value={insurance} onChange={e => setInsurance(e.target.value)} placeholder="0.00" /></Field>
+            <Field label="Invoice Value"><input data-ui-field="input" type="number" min="0" step="any" className="input-field" value={invoiceValue} onChange={e => setInvoiceValue(e.target.value)} placeholder="0.00" /></Field>
+            <Field label="Freight"><input data-ui-field="input" type="number" min="0" step="any" className="input-field" value={freight} onChange={e => setFreight(e.target.value)} placeholder="0.00" /></Field>
+            <Field label="Insurance"><input data-ui-field="input" type="number" min="0" step="any" className="input-field" value={insurance} onChange={e => setInsurance(e.target.value)} placeholder="0.00" /></Field>
           </div>
 
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
-            <Field label="Currency"><input type="text" className="input-field" value={currency} onChange={e => setCurrency(e.target.value.toUpperCase())} maxLength={3} /></Field>
-            <Field label="FX Rate (to TZS)"><input type="number" min="0" step="any" className="input-field" value={fxRate} onChange={e => setFxRate(e.target.value)} /></Field>
+            <Field label="Currency"><input data-ui-field="input" type="text" className="input-field" value={currency} onChange={e => setCurrency(e.target.value.toUpperCase())} maxLength={3} /></Field>
+            <Field label="FX Rate (to TZS)"><input data-ui-field="input" type="number" min="0" step="any" className="input-field" value={fxRate} onChange={e => setFxRate(e.target.value)} /></Field>
           </div>
 
           <div style={{ display: 'flex', gap: 10, paddingTop: 10, borderTop: '1px solid var(--border)' }}>

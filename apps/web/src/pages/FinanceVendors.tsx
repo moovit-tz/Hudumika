@@ -109,7 +109,7 @@ function VendorForm({ vendor, onSave, onClose }: {
             </F>
           </div>
           <F label="Ref Code">
-            <Input style={{ fontFamily: 'monospace', textTransform: 'uppercase', letterSpacing: 1 }} value={form.refCode} onChange={e => set('refCode', e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, ''))} placeholder="Auto" maxLength={20} />
+            <Input style={{ fontFamily: "var(--font)", textTransform: 'uppercase', letterSpacing: 1 }} value={form.refCode} onChange={e => set('refCode', e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, ''))} placeholder="Auto" maxLength={20} />
             <span style={{ fontSize: 10.5, color: 'var(--ink3)' }}>Leave blank to auto-generate from name</span>
           </F>
           <F label="Category *">
@@ -354,7 +354,7 @@ export function FinanceVendors() {
           sub2Label: 'INACTIVE', sub2Value: String((vStats?.total ?? stats.total) - (vStats?.active ?? stats.active)), barHighlight: 'var(--teal)',
         },
         {
-          title: 'Outstanding Balance',
+          emphasis: 'primary', title: 'Outstanding Balance',
           value: fmt(stats.outstanding),
           invertTrend: true,
           sub1Label: 'PAYABLE', sub1Value: fmt(stats.payable),

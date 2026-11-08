@@ -226,7 +226,7 @@ export function GuestMeetingRoom({
     <button
       type="button" title={label} onClick={onClick} disabled={disabled}
       style={{
-        width: 48, height: 48, flexShrink: 0, borderRadius: '50%', border: 'none', cursor: disabled ? 'not-allowed' : 'pointer',
+        width: "var(--ctl-h)", height: "var(--ctl-h)", flexShrink: 0, borderRadius: '50%', border: 'none', cursor: disabled ? 'not-allowed' : 'pointer',
         background: danger ? 'var(--red)' : active ? '#3c4043' : '#fff', color: danger ? 'hsl(var(--red-foreground))' : active ? '#fff' : '#202124',
         display: 'flex', alignItems: 'center', justifyContent: 'center', opacity: disabled ? 0.4 : 1,
       }}
@@ -270,7 +270,7 @@ export function GuestMeetingRoom({
           <span style={{ fontWeight: 600 }}>{title}</span>
           <span style={{ color: '#9aa0a6', fontVariantNumeric: 'tabular-nums' }}>{fmtDur(elapsed)}</span>
         </div>
-        <Button variant="outline" onClick={copyLink} style={{ height: 32, fontSize: 12, borderColor: '#374151', color: '#d1d5db', background: 'transparent' }}>
+        <Button variant="outline" onClick={copyLink} style={{ height: "var(--action-h)", fontSize: "var(--text-base)", borderColor: '#374151', color: '#d1d5db', background: 'transparent' }}>
           <Icon name={copiedLink ? 'check' : 'link'} size={13} /> {copiedLink ? 'Copied' : 'Copy link'}
         </Button>
       </div>
@@ -318,10 +318,10 @@ export function GuestMeetingRoom({
             <div ref={chatEndRef} />
           </div>
           <div style={{ padding: 10, borderTop: '1px solid #374151', display: 'flex', gap: 6 }}>
-            <input
+            <input data-ui-field="input"
               value={chatDraft} onChange={e => setChatDraft(e.target.value)} onKeyDown={e => e.key === 'Enter' && sendChat()}
               placeholder={chatDisabled ? 'Chat is disabled by the host' : 'Send a message'} disabled={chatDisabled}
-              style={{ flex: 1, height: 34, borderRadius: 'var(--r)', border: '1px solid #374151', background: '#111827', color: '#f9fafb', fontSize: 12.5, padding: '0 10px', outline: 'none' }}
+              style={{ flex: 1, height: "var(--ctl-h)", borderRadius: 'var(--r)', border: "var(--border-width) solid var(--border)", background: '#111827', color: '#f9fafb', fontSize: "var(--text-base)", padding: '0 10px', outline: 'none' }}
             />
           </div>
         </div>
@@ -347,14 +347,14 @@ function Popover2({ onEmoji }: { onEmoji: (e: string) => void }) {
     <div style={{ position: 'relative' }}>
       <button
         type="button" title="Reactions" onClick={() => setOpen(v => !v)}
-        style={{ width: 48, height: 48, flexShrink: 0, borderRadius: '50%', border: 'none', cursor: 'pointer', background: open ? '#3c4043' : '#fff', color: open ? '#fff' : '#202124', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+        style={{ width: "var(--ctl-h)", height: "var(--ctl-h)", flexShrink: 0, borderRadius: '50%', border: 'none', cursor: 'pointer', background: open ? '#3c4043' : '#fff', color: open ? '#fff' : '#202124', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
        data-ui-native-button="">
         <Icon name="smile" size={20} />
       </button>
       {open && (
         <div style={{ position: 'absolute', bottom: 58, left: '50%', transform: 'translateX(-50%)', background: '#1f2937', border: '1px solid #374151', borderRadius: 'var(--r)', padding: 8, display: 'flex', gap: 4 }}>
           {EMOJI.map(e => (
-            <button key={e} onClick={() => { onEmoji(e); setOpen(false); }} style={{ background: 'none', border: 'none', fontSize: 20, cursor: 'pointer', padding: 4 }} data-ui-native-button="">{e}</button>
+            <button key={e} onClick={() => { onEmoji(e); setOpen(false); }} style={{ background: 'none', border: 'none', fontSize: "var(--text-base)", cursor: 'pointer', padding: "var(--action-py) var(--space-md)" }} data-ui-native-button="">{e}</button>
           ))}
         </div>
       )}

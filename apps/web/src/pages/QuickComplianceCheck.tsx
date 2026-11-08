@@ -72,7 +72,7 @@ function ComplyOSPromoCard() {
         type="button"
         onClick={() => navigate('/complyos')}
         className="btn btn-primary"
-        style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, height: 44, fontSize: 14, fontWeight: 700, marginTop: 20 }}
+        style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, height: "var(--action-h)", fontSize: "var(--text-base)", fontWeight: 700, marginTop: 20 }}
        data-ui-native-button="">
         <span>{enabled ? 'Open ComplyOS' : 'Explore ComplyOS'}</span>
         <Icon name="arrowRight" size={15} color="#fff" />
@@ -240,12 +240,12 @@ export const QuickComplianceCheck: React.FC = () => {
                 HS Code or Product
               </label>
               <div style={{ position: 'relative' }}>
-                <input
+                <input data-ui-field="input"
                   className="input-field"
                   placeholder="e.g. 1006.10 or rice"
                   value={hs}
                   onChange={e => { setHs(e.target.value); setHsSelected(null); setChecks(null); }}
-                  style={{ width: '100%', boxSizing: 'border-box', paddingLeft: 38, height: 44, fontSize: 14 }}
+                  style={{ width: '100%', boxSizing: 'border-box', paddingLeft: 38, height: "var(--ctl-h)", fontSize: "var(--text-base)" }}
                 />
                 <Icon name="search" size={15} color="var(--ink3)" style={{ position: 'absolute', left: 14, top: '50%', transform: 'translateY(-50%)' }} />
               </div>
@@ -283,7 +283,7 @@ export const QuickComplianceCheck: React.FC = () => {
                 Country of Origin
               </label>
               <Select value={origin} onValueChange={setOrigin}>
-                <SelectTrigger className="input-field" style={{ height: 44 }}>
+                <SelectTrigger className="input-field" style={{ height: "var(--ctl-h)" }}>
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -306,7 +306,7 @@ export const QuickComplianceCheck: React.FC = () => {
             )}
 
             <button type="button" onClick={runCheck} disabled={loading} className="btn btn-primary"
-              style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, height: 44, fontSize: 14, fontWeight: 700 }} data-ui-native-button="">
+              style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, height: "var(--action-h)", fontSize: "var(--text-base)", fontWeight: 700 }} data-ui-native-button="">
               <Icon name="shield" size={15} color="#fff" />
               {loading ? 'Checking…' : 'Check Compliance'}
             </button>

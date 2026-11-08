@@ -124,9 +124,9 @@ export function SmsDashboard() {
                 type="button"
                 onClick={() => setTimeframe('today')}
                 style={{
-                  padding: '4px 10px',
-                  borderRadius: 4,
-                  fontSize: 12,
+                  padding: "var(--action-py) var(--space-md)",
+                  borderRadius: "var(--r-sm)",
+                  fontSize: "var(--text-base)",
                   fontWeight: 600,
                   cursor: 'pointer',
                   border: 'none',
@@ -141,9 +141,9 @@ export function SmsDashboard() {
                 type="button"
                 onClick={() => setTimeframe('month')}
                 style={{
-                  padding: '4px 10px',
-                  borderRadius: 4,
-                  fontSize: 12,
+                  padding: "var(--action-py) var(--space-md)",
+                  borderRadius: "var(--r-sm)",
+                  fontSize: "var(--text-base)",
                   fontWeight: 600,
                   cursor: 'pointer',
                   border: 'none',

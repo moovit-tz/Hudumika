@@ -407,7 +407,7 @@ export const TrackingVendors: React.FC = () => {
           {/* View Toggle */}
           <div style={{ display: 'inline-flex', background: 'var(--bg2)', borderRadius: 'var(--r-sm)', padding: 2, border: '1px solid var(--border)' }}>
             <Tip label="Grid view">
-              <button
+              <button data-ui-native-button=""
                 type="button"
                 onClick={() => setViewMode('grid')}
                 style={{
@@ -415,7 +415,7 @@ export const TrackingVendors: React.FC = () => {
                   color: viewMode === 'grid' ? 'var(--ink)' : 'var(--ink3)',
                   border: 'none',
                   borderRadius: 'var(--r-xs, 3px)',
-                  padding: '5px 8px',
+                  padding: "var(--action-py) var(--space-md)",
                   cursor: 'pointer',
                   display: 'flex',
                   alignItems: 'center',
@@ -425,7 +425,7 @@ export const TrackingVendors: React.FC = () => {
               </button>
             </Tip>
             <Tip label="Table view">
-              <button
+              <button data-ui-native-button=""
                 type="button"
                 onClick={() => setViewMode('table')}
                 style={{
@@ -433,7 +433,7 @@ export const TrackingVendors: React.FC = () => {
                   color: viewMode === 'table' ? 'var(--ink)' : 'var(--ink3)',
                   border: 'none',
                   borderRadius: 'var(--r-xs, 3px)',
-                  padding: '5px 8px',
+                  padding: "var(--action-py) var(--space-md)",
                   cursor: 'pointer',
                   display: 'flex',
                   alignItems: 'center',
@@ -561,29 +561,29 @@ export const TrackingVendors: React.FC = () => {
                     variant="ghost"
                     size="sm"
                     asChild
-                    style={{ fontSize: 12, fontWeight: 600, color: 'var(--teal)' }}
+                    style={{ fontSize: "var(--text-base)", fontWeight: 600, color: 'var(--teal)' }}
                   >
                     <Link to={`/tracking/vendors/${v.id}`}>View Details</Link>
                   </Button>
 
                   <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                     <Tip label="Edit vendor">
-                      <button
+                      <button data-ui-native-button=""
                         type="button"
                         onClick={() => {
                           setEditingVendor(v);
                           setShowFormModal(true);
                         }}
-                        style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 5, color: 'var(--ink3)' }}
+                        style={{ background: 'none', border: 'none', cursor: 'pointer', padding: "var(--action-py) var(--space-md)", color: 'var(--ink3)' }}
                       >
                         <Icon name="edit" size={14} />
                       </button>
                     </Tip>
                     <Tip label="Delete vendor">
-                      <button
+                      <button data-ui-native-button=""
                         type="button"
                         onClick={() => remove(v)}
-                        style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 5, color: 'var(--ink3)' }}
+                        style={{ background: 'none', border: 'none', cursor: 'pointer', padding: "var(--action-py) var(--space-md)", color: 'var(--ink3)' }}
                       >
                         <Icon name="trash" size={14} />
                       </button>
@@ -658,7 +658,7 @@ export const TrackingVendors: React.FC = () => {
                           variant="ghost"
                           size="sm"
                           asChild
-                          style={{ fontSize: 12, fontWeight: 600, color: 'var(--teal)' }}
+                          style={{ fontSize: "var(--text-base)", fontWeight: 600, color: 'var(--teal)' }}
                         >
                           <Link to={`/tracking/vendors/${v.id}`}>View</Link>
                         </Button>

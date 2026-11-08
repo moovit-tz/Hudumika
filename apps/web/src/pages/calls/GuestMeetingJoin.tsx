@@ -169,18 +169,18 @@ export function GuestMeetingJoin() {
         <div style={{ fontSize: 16, fontWeight: 700, color: '#f9fafb', marginTop: 12 }}>{meeting.title}</div>
         <div style={{ fontSize: 12.5, color: '#9ca3af', marginTop: 4, marginBottom: 20 }}>Hosted by {meeting.host_name} · joining as a guest</div>
 
-        <input
+        <input data-ui-field="input"
           autoFocus value={name} onChange={e => setName(e.target.value)}
           onKeyDown={e => e.key === 'Enter' && !meeting.hasPassword && submitJoin()}
           placeholder="Your name" maxLength={80}
-          style={{ width: '100%', height: 40, borderRadius: 'var(--r)', border: '1px solid #374151', background: '#1f2937', color: '#f9fafb', fontSize: 13, padding: '0 12px', outline: 'none', boxSizing: 'border-box', marginBottom: 10 }}
+          style={{ width: '100%', height: "var(--ctl-h)", borderRadius: 'var(--r)', border: "var(--border-width) solid var(--border)", background: '#1f2937', color: '#f9fafb', fontSize: "var(--text-base)", padding: '0 12px', outline: 'none', boxSizing: 'border-box', marginBottom: 10 }}
         />
         {meeting.hasPassword && (
-          <input
+          <input data-ui-field="input"
             type="password" value={password} onChange={e => setPassword(e.target.value)}
             onKeyDown={e => e.key === 'Enter' && submitJoin()}
             placeholder="Meeting password"
-            style={{ width: '100%', height: 40, borderRadius: 'var(--r)', border: '1px solid #374151', background: '#1f2937', color: '#f9fafb', fontSize: 13, padding: '0 12px', outline: 'none', boxSizing: 'border-box' }}
+            style={{ width: '100%', height: "var(--ctl-h)", borderRadius: 'var(--r)', border: "var(--border-width) solid var(--border)", background: '#1f2937', color: '#f9fafb', fontSize: "var(--text-base)", padding: '0 12px', outline: 'none', boxSizing: 'border-box' }}
           />
         )}
         {passwordError && <div style={{ fontSize: 12, color: '#fca5a5', marginTop: 8 }}>{passwordError}</div>}

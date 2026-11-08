@@ -659,7 +659,7 @@ export function Calls() {
                           setPresenceFilter(null);
                           setRoleFilter(null);
                         }}
-                        style={{ fontSize: 12, color: 'hsl(var(--primary))', background: 'none', border: 'none', cursor: 'pointer', fontWeight: 600 }}
+                        style={{ fontSize: "var(--text-base)", color: 'hsl(var(--primary))', background: 'none', border: 'none', cursor: 'pointer', fontWeight: 600 }}
                        data-ui-native-button="">
                         Reset
                       </button>
@@ -674,9 +674,9 @@ export function Calls() {
                           type="button"
                           onClick={() => setRoleFilter(null)}
                           style={{
-                            padding: '4px 10px',
-                            borderRadius: 6,
-                            fontSize: 12,
+                            padding: "var(--action-py) var(--space-md)",
+                            borderRadius: "var(--r-sm)",
+                            fontSize: "var(--text-base)",
                             fontWeight: !roleFilter ? 700 : 500,
                             background: !roleFilter ? 'hsl(var(--primary) / 0.1)' : 'var(--bg)',
                             color: !roleFilter ? 'hsl(var(--primary))' : 'var(--ink2)',
@@ -691,9 +691,9 @@ export function Calls() {
                             type="button"
                             onClick={() => setRoleFilter(r)}
                             style={{
-                              padding: '4px 10px',
-                              borderRadius: 6,
-                              fontSize: 12,
+                              padding: "var(--action-py) var(--space-md)",
+                              borderRadius: "var(--r-sm)",
+                              fontSize: "var(--text-base)",
                               fontWeight: roleFilter === r ? 700 : 500,
                               background: roleFilter === r ? 'hsl(var(--primary) / 0.1)' : 'var(--bg)',
                               color: roleFilter === r ? 'hsl(var(--primary))' : 'var(--ink2)',
@@ -898,7 +898,7 @@ export function Calls() {
                         setHistoryKindFilter(null);
                         setHistoryStatusFilter(null);
                       }}
-                      style={{ fontSize: 12, color: 'hsl(var(--primary))', background: 'none', border: 'none', cursor: 'pointer', fontWeight: 600 }}
+                      style={{ fontSize: "var(--text-base)", color: 'hsl(var(--primary))', background: 'none', border: 'none', cursor: 'pointer', fontWeight: 600 }}
                      data-ui-native-button="">
                       Reset
                     </button>
@@ -915,9 +915,9 @@ export function Calls() {
                           type="button"
                           onClick={() => setHistoryKindFilter(m === 'ALL' ? null : m)}
                           style={{
-                            padding: '4px 10px',
-                            borderRadius: 6,
-                            fontSize: 12,
+                            padding: "var(--action-py) var(--space-md)",
+                            borderRadius: "var(--r-sm)",
+                            fontSize: "var(--text-base)",
                             fontWeight: (m === 'ALL' && !historyKindFilter) || historyKindFilter === m ? 700 : 500,
                             background:
                               (m === 'ALL' && !historyKindFilter) || historyKindFilter === m
@@ -1008,7 +1008,7 @@ export function Calls() {
                             <Button
                               variant="outline"
                               size="sm"
-                              style={{ height: 26, padding: '0 8px', fontSize: 11 }}
+                              style={{ height: "var(--ctl-h)", padding: '0 8px', fontSize: "var(--text-xs)" }}
                               onClick={() => startCall(matchedPerson, h.kind === 'VOICE' ? 'VOICE' : 'VIDEO')}
                             >
                               Redial
@@ -1087,7 +1087,7 @@ export function Calls() {
                   background: 'none',
                   border: 'none',
                   outline: 'none',
-                  fontSize: 18,
+                  fontSize: "var(--text-base)",
                   fontWeight: 700,
                   color: 'var(--ink)',
                   width: '100%',
@@ -1099,7 +1099,7 @@ export function Calls() {
                   type="button"
                   aria-label="Clear colleague search"
                   onClick={() => setDialpadNumber('')}
-                  style={{ background: 'none', border: 'none', color: 'var(--ink3)', cursor: 'pointer', padding: 4 }}
+                  style={{ background: 'none', border: 'none', color: 'var(--ink3)', cursor: 'pointer', padding: "var(--action-py) var(--space-md)" }}
                  data-ui-native-button="">
                   <Icon name="x" size={16} />
                 </button>
@@ -1130,11 +1130,11 @@ export function Calls() {
                       display: 'flex',
                       alignItems: 'center',
                       justifyContent: 'space-between',
-                      padding: '6px 10px',
+                      padding: "var(--action-py) var(--space-md)",
                       background: 'var(--card-bg, var(--white))',
                       border: '1px solid var(--border)',
                       borderRadius: 'var(--r-sm)',
-                      fontSize: 12,
+                      fontSize: "var(--text-base)",
                       cursor: 'pointer',
                       textAlign: 'left',
                     }}
@@ -1167,7 +1167,7 @@ export function Calls() {
                   type="button"
                   onClick={() => pressDialpad(k.digit)}
                   style={{
-                    height: 52,
+                    height: "var(--action-h)",
                     borderRadius: 'var(--r, 12px)',
                     border: '1px solid var(--border)',
                     background: 'var(--card-sunken)',
@@ -1290,7 +1290,7 @@ export function Calls() {
             <div style={{ display: 'flex', gap: 14, width: '100%', justifyContent: 'center' }}>
               <Button
                 variant="destructive"
-                style={{ flex: 1, borderRadius: 30, padding: '12px 20px', justifyContent: 'center' }}
+                style={{ flex: 1, borderRadius: "var(--r-sm)", padding: "var(--action-py) var(--space-md)", justifyContent: 'center' }}
                 onClick={declineCall}
               >
                 <Icon name="x" size={16} />
@@ -1300,8 +1300,8 @@ export function Calls() {
                 variant="default"
                 style={{
                   flex: 1,
-                  borderRadius: 30,
-                  padding: '12px 20px',
+                  borderRadius: "var(--r-sm)",
+                  padding: "var(--action-py) var(--space-md)",
                   background: 'var(--green)',
                   color: '#ffffff',
                   justifyContent: 'center',
@@ -1461,8 +1461,8 @@ export function Calls() {
               type="button"
               onClick={toggleMute}
               style={{
-                width: 52,
-                height: 52,
+                width: "var(--ctl-h)",
+                height: "var(--ctl-h)",
                 borderRadius: '50%',
                 border: 'none',
                 background: muted ? 'var(--red)' : 'rgba(255,255,255,0.2)',
@@ -1483,8 +1483,8 @@ export function Calls() {
                 type="button"
                 onClick={toggleCam}
                 style={{
-                  width: 52,
-                  height: 52,
+                  width: "var(--ctl-h)",
+                  height: "var(--ctl-h)",
                   borderRadius: '50%',
                   border: 'none',
                   background: camOff ? 'var(--red)' : 'rgba(255,255,255,0.2)',
@@ -1505,8 +1505,8 @@ export function Calls() {
               type="button"
               onClick={hangup}
               style={{
-                width: 56,
-                height: 56,
+                width: "var(--ctl-h)",
+                height: "var(--ctl-h)",
                 borderRadius: '50%',
                 border: 'none',
                 background: 'var(--red)',

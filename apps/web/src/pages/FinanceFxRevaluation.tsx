@@ -89,7 +89,7 @@ export function FinanceFxRevaluation() {
   return <div className="finance-fx-page">
     <PageHeader crumbs={['Finance', 'Accounts']} titlePlain="Currency" titleEm="revaluation" subtitle="Revalue open foreign-currency receivables and payables without changing their original documents." actions={!readOnly ? <div className="finance-fx-run"><DatePicker date={periodDate} onChange={setPeriodDate} disabled={running} /><Button onClick={() => void runRevaluation()} disabled={running || !periodDate}><Icon name="refresh" size={16} />{running ? 'Revaluing…' : 'Run revaluation'}</Button></div> : undefined} />
     <MetricsRow cards={[
-      { title: 'Revalued items', value: String(fxStats?.total ?? rows.length), comparisonLabel: 'Historical entries preserved', loading: !fxStats && loading },
+      { emphasis: 'primary', title: 'Revalued items', value: String(fxStats?.total ?? rows.length), comparisonLabel: 'Historical entries preserved', loading: !fxStats && loading },
       { title: 'Currencies', value: String(fxStats?.currencies ?? summary.currencies.size), comparisonLabel: [...summary.currencies].join(', ') || 'No foreign balances', loading: !fxStats && loading },
       { title: 'Total gains', value: fmt(summary.gains), comparisonLabel: 'Recognised exchange gains', barHighlight: 'var(--green)', loading },
       { title: 'Total losses', value: fmt(summary.losses), comparisonLabel: 'Recognised exchange losses', barHighlight: 'var(--red)', loading },

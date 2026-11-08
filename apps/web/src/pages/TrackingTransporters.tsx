@@ -84,7 +84,7 @@ export const TrackingTransporters: React.FC = () => {
         subtitle="Third-party haulage providers whose vehicles and trailers run in this fleet."
         actions={
           <Button type="button" onClick={() => setAdding(a => !a)}
-            style={{ display: 'inline-flex', alignItems: 'center', gap: 8, padding: 'var(--ds-btn-py) 18px', borderRadius: 'var(--r)', border: 'none', background: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))', fontWeight: 700, fontSize: 13, cursor: 'pointer', fontFamily: 'var(--font)', minHeight: 'var(--ctl-h)' }} data-ui-native-button="">
+            style={{ display: 'inline-flex', alignItems: 'center', gap: 8, padding: 'var(--ds-btn-py) 18px', borderRadius: 'var(--r)', border: 'none', background: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))', fontWeight: 700, fontSize: "var(--text-base)", cursor: 'pointer', fontFamily: 'var(--font)', minHeight: 'var(--ctl-h)' }} data-ui-native-button="">
             <Icon name={adding ? 'x' : 'plus'} size={15} /> {adding ? 'Cancel' : 'Add transporter'}
           </Button>
         }

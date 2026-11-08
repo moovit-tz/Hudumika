@@ -239,7 +239,7 @@ export const ProjectBudgetTracking: React.FC<Props> = ({
                       <Button
                         variant="ghost"
                         size="sm"
-                        style={{ height: 28, fontSize: 11, padding: '0 8px' }}
+                        style={{ height: "var(--ctl-h)", fontSize: "var(--text-xs)", padding: '0 8px' }}
                         onClick={() => navigate(`/projects/${project.id}/financials_evm`)}
                       >
                         <Icon name="trendingUp" size={12} style={{ marginRight: 4 }} /> EVM Detail

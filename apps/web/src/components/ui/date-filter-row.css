@@ -9,7 +9,7 @@
   gap: 2px;
   flex-shrink: 0;
   min-width: 0;
-  height: 30px;
+  height: var(--ctl-h);
   box-sizing: border-box;
 }
 
@@ -22,10 +22,10 @@
 
 .ds-date-presets .date-preset-pill {
   padding: 2.5px 6px;
-  font-size: 11px;
+  font-size: var(--text-base);
   font-weight: 500;
   color: var(--ink3);
-  border-radius: calc(var(--r-sm, 7px) - 3px);
+  border-radius: var(--r-sm);
   background: transparent;
   border: none;
   cursor: pointer;
@@ -63,7 +63,7 @@
 
 .ds-date-arrow {
   color: var(--ink3);
-  font-size: 11px;
+  font-size: var(--text-base);
   opacity: 0.5;
   flex-shrink: 0;
   user-select: none;
@@ -71,14 +71,14 @@
 
 /* Seamless DatePicker inside the combined container: no outer border, transparent background */
 .date-picker-seamless {
-  min-height: 24px !important;
-  height: 24px !important;
+  min-height: var(--ctl-h-xs) !important;
+  height: var(--ctl-h-xs) !important;
   padding: 0 3px !important;
-  font-size: 11px !important;
-  border-radius: calc(var(--r-sm, 7px) - 3px) !important;
+  font-size: var(--text-base) !important;
+  border-radius: var(--r-sm) !important;
   background: transparent !important;
   border: 1px solid transparent !important;
-  width: 74px !important;
+  width: calc(var(--ctl-h) * 3) !important;
   box-shadow: none !important;
   gap: 3px !important;
   color: var(--ink2) !important;
@@ -140,11 +140,11 @@
   padding: 0 8px;
   border: 1px solid var(--border);
   border-radius: var(--r-sm, 6px);
-  height: 30px;
+  height: var(--ctl-h);
   gap: 5px;
 }
 .stb-register .stb-search .stb-input {
-  font-size: 11.5px;
+  font-size: var(--text-base);
 }
 
 .stb-register .ds-date-combined,
@@ -156,9 +156,9 @@
   order: 2;
   border: 1px solid var(--border);
   border-radius: var(--r-sm, 6px);
-  height: 30px;
-  padding: 0 7px;
-  font-size: 11px;
+  height: var(--ctl-h);
+  padding: 0 var(--space-md);
+  font-size: var(--text-base);
   flex-shrink: 0;
   gap: 4px;
 }
@@ -175,10 +175,10 @@
 
 .stb-register .stb-actions button,
 .stb-register .stb-actions a {
-  height: 30px !important;
-  min-height: 30px !important;
-  font-size: 11px !important;
-  padding: 0 7px !important;
+  height: var(--ctl-h) !important;
+  min-height: var(--ctl-h) !important;
+  font-size: var(--text-base) !important;
+  padding: 0 var(--space-md) !important;
   border-radius: var(--r-sm, 6px) !important;
   display: inline-flex !important;
   align-items: center !important;
@@ -192,18 +192,18 @@
   border: 1px solid var(--border);
   border-radius: var(--r-sm, 6px);
   background: var(--bg);
-  height: 30px;
+  height: var(--ctl-h);
   box-sizing: border-box;
   gap: 1px;
 }
 .stb-register .inv-view-toggle button {
-  height: 24px !important;
-  min-height: 24px !important;
-  width: 24px !important;
-  min-width: 24px !important;
+  height: var(--ctl-h-xs) !important;
+  min-height: var(--ctl-h-xs) !important;
+  width: var(--ctl-h-xs) !important;
+  min-width: var(--ctl-h-xs) !important;
   padding: 0 !important;
-  font-size: 11px !important;
-  border-radius: calc(var(--r-sm, 6px) - 2px) !important;
+  font-size: var(--text-base) !important;
+  border-radius: var(--r-sm) !important;
   display: inline-flex !important;
   align-items: center !important;
   justify-content: center !important;
@@ -239,8 +239,17 @@
 
 .inv-list-toolbar .inv-toolbar-cta {
   flex-shrink: 0 !important;
-  height: 32px !important;
-  font-size: 12px !important;
-  padding: 0 12px !important;
+  height: var(--ctl-h) !important;
+  font-size: var(--text-base) !important;
+  padding: 0 var(--space-md) !important;
   white-space: nowrap !important;
+}
+@media (max-width: 640px) {
+ .stb.stb-register { flex-wrap: wrap; overflow: visible; }
+ .stb-register .stb-search { flex: 1 0 100%; min-width: 0; }
+ .stb-register .stb-dropdown-btn { flex: 1 1 130px; min-width: 0; }
+ .stb-register .stb-actions { flex: 1 1 100%; justify-content: flex-end; flex-wrap: wrap; }
+ .inv-list-toolbar, .inv-list-toolbar:has(.stb-register) { flex-wrap: wrap !important; overflow-x: visible !important; }
+ .ds-date-combined { max-width: 100%; height: auto; min-height: var(--ctl-h); flex-wrap: wrap; }
+ .ds-date-presets { flex-wrap: wrap; }
 }

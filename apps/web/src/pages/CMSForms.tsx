@@ -69,7 +69,7 @@ export function CMSFormsList() {
             <div style={{ fontWeight: 700, fontSize: 14, color: 'var(--ink)', marginBottom: 14 }}>New form</div>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
               <FL label="Name">
-                <input className="input-field" value={name} placeholder="e.g. Contact us" onChange={e => setName(e.target.value)} autoFocus />
+                <input data-ui-field="input" className="input-field" value={name} placeholder="e.g. Contact us" onChange={e => setName(e.target.value)} autoFocus />
               </FL>
               <div style={{ display: 'flex', gap: 8 }}>
                 <button className="btn btn-primary btn-sm" disabled={saving} onClick={handleCreate} data-ui-native-button="">{saving ? 'Creating…' : 'Create form'}</button>
@@ -238,11 +238,11 @@ export function CMSFormDetail() {
               {fields.map((f, i) => (
                 <div key={i} style={{ display: 'flex', gap: 8, alignItems: 'flex-start', paddingBottom: 12, borderBottom: i < fields.length - 1 ? '1px solid var(--border)' : 'none' }}>
                   <div style={{ flex: 2 }}>
-                    <input className="input-field" style={{ fontSize: 13 }} placeholder="Field label, e.g. Your name" value={f.label} onChange={e => updateField(i, { label: e.target.value })} />
+                    <input data-ui-field="input" className="input-field" style={{ fontSize: "var(--text-base)" }} placeholder="Field label, e.g. Your name" value={f.label} onChange={e => updateField(i, { label: e.target.value })} />
                   </div>
                   <div style={{ flex: 1 }}>
                     <Select value={f.type} onValueChange={v => updateField(i, { type: v as CmsFormFieldType, options: v === 'select' ? (f.options?.length ? f.options : ['']) : undefined })}>
-                      <SelectTrigger className="input-field" style={{ fontSize: 13 }}><SelectValue /></SelectTrigger>
+                      <SelectTrigger className="input-field" style={{ fontSize: "var(--text-base)" }}><SelectValue /></SelectTrigger>
                       <SelectContent>
                         {(Object.keys(FIELD_TYPE_LABELS) as CmsFormFieldType[]).map(t => <SelectItem key={t} value={t}>{FIELD_TYPE_LABELS[t]}</SelectItem>)}
                       </SelectContent>
@@ -251,12 +251,12 @@ export function CMSFormDetail() {
                   <label style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, flexShrink: 0, paddingTop: 8 }}>
                     <Checkbox checked={Boolean(f.required)} onCheckedChange={checked => updateField(i, { required: Boolean(checked) })} /> Required
                   </label>
-                  <button type="button" onClick={() => removeField(i)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink3)', flexShrink: 0, paddingTop: 6 }} data-ui-native-button="">
+                  <button type="button" onClick={() => removeField(i)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink3)', flexShrink: 0, paddingTop: "var(--action-py)" }} data-ui-native-button="">
                     <Icon name="x" size={14} />
                   </button>
                   {f.type === 'select' && (
                     <div style={{ flexBasis: '100%', marginTop: 4 }}>
-                      <input className="input-field" style={{ fontSize: 12 }} placeholder="Options, comma-separated"
+                      <input data-ui-field="input" className="input-field" style={{ fontSize: "var(--text-base)" }} placeholder="Options, comma-separated"
                         value={(f.options || []).join(', ')}
                         onChange={e => updateField(i, { options: e.target.value.split(',').map(s => s.trim()).filter(Boolean) })} />
                     </div>
@@ -269,15 +269,15 @@ export function CMSFormDetail() {
 
             <div className="card" style={{ padding: '20px 22px', marginTop: 14, display: 'flex', flexDirection: 'column', gap: 14 }}>
               <FL label="Success message (optional)">
-                <input className="input-field" style={{ fontSize: 13 }} placeholder="Thanks — we'll be in touch shortly." value={successMessage} onChange={e => { setSuccessMessage(e.target.value); setDirty(true); }} />
+                <input data-ui-field="input" className="input-field" style={{ fontSize: "var(--text-base)" }} placeholder="Thanks — we'll be in touch shortly." value={successMessage} onChange={e => { setSuccessMessage(e.target.value); setDirty(true); }} />
               </FL>
               <FL label="Notify email (optional)">
-                <input className="input-field" style={{ fontSize: 13 }} placeholder="sales@yourcompany.com" value={notifyEmail} onChange={e => { setNotifyEmail(e.target.value); setDirty(true); }} />
+                <input data-ui-field="input" className="input-field" style={{ fontSize: "var(--text-base)" }} placeholder="sales@yourcompany.com" value={notifyEmail} onChange={e => { setNotifyEmail(e.target.value); setDirty(true); }} />
               </FL>
             </div>
 
             <div style={{ marginTop: 24, paddingTop: 18, borderTop: '1px solid var(--border)' }}>
-              <button onClick={handleDelete} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 12.5, color: 'var(--red)' }} data-ui-native-button="">Delete this form</button>
+              <button onClick={handleDelete} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: "var(--text-base)", color: 'var(--red)' }} data-ui-native-button="">Delete this form</button>
             </div>
           </>
         ) : (

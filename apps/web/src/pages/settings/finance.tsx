@@ -118,7 +118,7 @@ export const InvoicesSection: React.FC = () => {
   return (
     <>
       <Card title="Numbering" desc="Backed by the real invoice number counter used by ClearOS/FinOps when issuing invoices.">
-        <Field label="Prefix" hint={`e.g. ${prefix}${String(Number(nextInv) || 1).padStart(Number(pad), '0')}`}><input className="input-field" value={prefix} onChange={e => setPrefix(e.target.value)} /></Field>
+        <Field label="Prefix" hint={`e.g. ${prefix}${String(Number(nextInv) || 1).padStart(Number(pad), '0')}`}><input data-ui-field="input" className="input-field" value={prefix} onChange={e => setPrefix(e.target.value)} /></Field>
         <Field label="Number Padding">
           <Select value={pad} onValueChange={setPad}>
             <SelectTrigger className="input-field"><SelectValue /></SelectTrigger>
@@ -129,7 +129,7 @@ export const InvoicesSection: React.FC = () => {
             </SelectContent>
           </Select>
         </Field>
-        <Field label="Next Invoice #" hint="Starting number for the next auto-generated invoice"><input className="input-field" type="number" placeholder="1" value={nextInv} onChange={e => setNextInv(e.target.value)} /></Field>
+        <Field label="Next Invoice #" hint="Starting number for the next auto-generated invoice"><input data-ui-field="input" className="input-field" type="number" placeholder="1" value={nextInv} onChange={e => setNextInv(e.target.value)} /></Field>
       </Card>
       <Card title="Per-Customer / Supplier References" desc="Each customer and supplier has a unique reference code. Documents for that party follow their own sequence.">
         <div style={{ padding: '12px 16px', background: 'var(--bg)', borderRadius: 'var(--r)', border: '1px solid var(--border)', fontSize: 13 }}>
@@ -196,8 +196,8 @@ export const QuotationsSection: React.FC = () => {
   return (
     <>
       <Card title="Quotation Format" desc="Numbering is backed by the real quotation counter used when converting/issuing quotes.">
-        <Field label="Quote Prefix" hint={`e.g. ${prefix}0001, or ${prefix}ALK/0001 for customer "ALK"`}><input className="input-field" value={prefix} onChange={e => setPrefix(e.target.value)} /></Field>
-        <Field label="Next Estimate #" hint="Starting number for the next auto-generated quote"><input className="input-field" type="number" placeholder="1" value={nextEst} onChange={e => setNextEst(e.target.value)} /></Field>
+        <Field label="Quote Prefix" hint={`e.g. ${prefix}0001, or ${prefix}ALK/0001 for customer "ALK"`}><input data-ui-field="input" className="input-field" value={prefix} onChange={e => setPrefix(e.target.value)} /></Field>
+        <Field label="Next Estimate #" hint="Starting number for the next auto-generated quote"><input data-ui-field="input" className="input-field" type="number" placeholder="1" value={nextEst} onChange={e => setNextEst(e.target.value)} /></Field>
       </Card>
       <SaveRow saving={saving} saved={saved} onSave={handleSave} />
     </>
@@ -234,7 +234,7 @@ export const PurchaseOrdersSection: React.FC = () => {
   return (
     <>
       <Card title="Purchase Order Settings" desc="Prefix is backed by the real PO counter used when issuing purchase orders.">
-        <Field label="PO Number Prefix" hint={`e.g. ${prefix}0001, or ${prefix}MSC/0001 for supplier "MSC"`}><input className="input-field" value={prefix} onChange={e => setPrefix(e.target.value)} /></Field>
+        <Field label="PO Number Prefix" hint={`e.g. ${prefix}0001, or ${prefix}MSC/0001 for supplier "MSC"`}><input data-ui-field="input" className="input-field" value={prefix} onChange={e => setPrefix(e.target.value)} /></Field>
       </Card>
       <SaveRow saving={saving} saved={saved} onSave={handleSave} />
     </>
@@ -583,7 +583,7 @@ export const PaymentGatewaysSection: React.FC = () => {
                                   onChange={e => setVal(gw.id, f.key, e.target.value)}
                                 />
                               ) : (
-                                <input
+                                <input data-ui-field="input"
                                   className="input-field s-fw s-fs-sm"
                                   type={f.type ?? 'text'}
                                   placeholder={f.placeholder ?? ''}

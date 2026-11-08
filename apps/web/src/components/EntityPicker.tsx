@@ -240,7 +240,7 @@ export function EntityPicker({
                 aria-label="Clear selection"
                 style={{
                   position: 'absolute', right: 7, top: '50%', transform: 'translateY(-50%)',
-                  background: 'none', border: 'none', cursor: 'pointer', padding: 4, display: 'flex',
+                  background: 'none', border: 'none', cursor: 'pointer', padding: "var(--action-py) var(--space-md)", display: 'flex',
                 }}
                 data-ui-native-button=""
               >

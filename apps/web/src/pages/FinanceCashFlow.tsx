@@ -110,7 +110,7 @@ export const FinanceCashFlow: React.FC = () => {
         actions={
           <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
             <Select value={year} onValueChange={setYear}>
-              <SelectTrigger aria-label="Year" style={{ width: 'auto', height: 34, padding: '0 10px', fontSize: 12, fontWeight: 600 }}><SelectValue /></SelectTrigger>
+              <SelectTrigger aria-label="Year" style={{ width: 'auto', height: "var(--ctl-h)", padding: '0 10px', fontSize: "var(--text-base)", fontWeight: 600 }}><SelectValue /></SelectTrigger>
               <SelectContent>
                 {YEARS.map(y => <SelectItem key={y} value={y}>{y}</SelectItem>)}
               </SelectContent>
@@ -133,7 +133,7 @@ export const FinanceCashFlow: React.FC = () => {
           { title: 'Total cash in', value: fmtM(totalIn), comparisonLabel: `${year} customer and other receipts`, barHighlight: 'var(--teal)' },
           { title: 'Total cash out', value: fmtM(totalOut), comparisonLabel: `${year} supplier and operating payments`, barHighlight: 'var(--red)' },
           { title: 'Net cash flow', value: fmtM(totalNet), comparisonLabel: 'Inflows less outflows', barHighlight: totalNet >= 0 ? 'var(--green)' : 'var(--red)' },
-          { title: 'Closing balance', value: fmtM(closing), comparisonLabel: `End of ${year}`, barHighlight: 'var(--blue)' },
+          { emphasis: 'primary', title: 'Closing balance', value: fmtM(closing), comparisonLabel: `End of ${year}`, barHighlight: 'var(--blue)' },
         ]} />
 
         {/* Cash Flow table */}

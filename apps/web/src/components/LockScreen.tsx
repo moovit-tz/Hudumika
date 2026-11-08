@@ -129,7 +129,7 @@ export function LockScreen() {
               data-bwignore=""
               data-form-type="other"
             />
-            <button
+            <button data-ui-native-button=""
               type="button"
               className="ls-eye-btn"
               onClick={() => {

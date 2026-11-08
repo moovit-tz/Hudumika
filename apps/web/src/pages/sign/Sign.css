@@ -1066,3 +1066,28 @@
   .sign-envelope-preview-toolbar { padding: 8px 12px; }
   .sign-envelope-workspace { gap: 12px; }
 }
+/* Compact document paging follows the configured density and shape. */
+.sign-preview-pagination {
+  --ctl-h: var(--ctl-h-sm);
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-xs);
+  flex-shrink: 0;
+  padding: var(--space-xs);
+  border: var(--border-width, 1px) solid var(--border);
+  border-radius: var(--r);
+  background: var(--bg);
+  color: var(--ink2);
+}
+.sign-preview-pagination [data-ui-button] {
+  width: var(--ctl-h);
+  height: var(--ctl-h);
+  min-height: var(--ctl-h);
+  padding: 0;
+  color: inherit;
+  background: transparent;
+  border-color: transparent;
+  box-shadow: none;
+}
+.sign-preview-pagination [data-ui-button]:hover:not(:disabled) { background: var(--teal-l); color: var(--teal); }
+.sign-preview-page-count { min-width: 4ch; text-align: center; font-family: var(--font); font-size: 12px; font-weight: 600; font-variant-numeric: tabular-nums; white-space: nowrap; color: var(--ink); }

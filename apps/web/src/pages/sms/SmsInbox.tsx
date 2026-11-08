@@ -281,7 +281,7 @@ export function SmsInbox() {
               value={search}
               onChange={e => setSearch(e.target.value)}
               placeholder="Search conversations…"
-              style={{ marginBottom: 8, fontSize: 13 }}
+              style={{ marginBottom: 8, fontSize: "var(--text-base)" }}
             />
             <div style={{ display: 'flex', gap: 6 }} data-ds-tabstrip="">
               {[
@@ -294,9 +294,9 @@ export function SmsInbox() {
                   onClick={() => setFilterTab(tab.id as any)}
                   style={{
                     flex: 1,
-                    padding: '5px 8px',
+                    padding: "var(--action-py) var(--space-md)",
                     borderRadius: 'var(--badge-radius)',
-                    fontSize: 11.5,
+                    fontSize: "var(--text-base)",
                     fontWeight: 600,
                     cursor: 'pointer',
                     border: `1px solid ${filterTab === tab.id ? 'var(--teal)' : 'var(--border)'}`,
@@ -531,12 +531,12 @@ export function SmsInbox() {
                     placeholder={`Reply to ${activeThread.contactName || activeThread.phone}…`}
                     rows={2}
                     maxLength={1600}
-                    style={{ flex: 1, fontSize: 13 }}
+                    style={{ flex: 1, fontSize: "var(--text-base)" }}
                   />
                   <Button
                     disabled={!replyText.trim() || sendingReply}
                     onClick={handleSendReply}
-                    style={{ height: 42, padding: '0 20px' }}
+                    style={{ height: "var(--action-h)", padding: '0 20px' }}
                   >
                     <Icon name="send" size={14} /> {sendingReply ? 'Sending…' : 'Send'}
                   </Button>

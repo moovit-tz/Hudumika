@@ -83,7 +83,7 @@ function RuleForm({ type, agents, onCancel, onSave, saving }: {
     <div className="ssg-form">
       <div className="ssg-field">
         <label>Rule name</label>
-        <input className="input-field" value={name} onChange={e => setName(e.target.value)} placeholder="e.g. Round-robin support" />
+        <input data-ui-field="input" className="input-field" value={name} onChange={e => setName(e.target.value)} placeholder="e.g. Round-robin support" />
       </div>
 
       {type === 'auto_assign' && (
@@ -118,7 +118,7 @@ function RuleForm({ type, agents, onCancel, onSave, saving }: {
         <>
           <div className="ssg-field">
             <label>Escalate when elapsed % of SLA reaches</label>
-            <input type="number" className="input-field" min={1} max={100} value={thresholdPercent} onChange={e => setThresholdPercent(Number(e.target.value) || 80)} />
+            <input data-ui-field="input" type="number" className="input-field" min={1} max={100} value={thresholdPercent} onChange={e => setThresholdPercent(Number(e.target.value) || 80)} />
           </div>
           <div className="ssg-field">
             <label>Escalate to role</label>
@@ -137,7 +137,7 @@ function RuleForm({ type, agents, onCancel, onSave, saving }: {
       {type === 'status_automation' && (
         <div className="ssg-field">
           <label>Auto-close resolved tickets after (days)</label>
-          <input type="number" className="input-field" min={1} value={autoCloseAfterDays} onChange={e => setAutoCloseAfterDays(Number(e.target.value) || 1)} />
+          <input data-ui-field="input" type="number" className="input-field" min={1} value={autoCloseAfterDays} onChange={e => setAutoCloseAfterDays(Number(e.target.value) || 1)} />
         </div>
       )}
 
@@ -172,7 +172,7 @@ function RuleForm({ type, agents, onCancel, onSave, saving }: {
         <>
           <div className="ssg-field">
             <label>Keyword</label>
-            <input className="input-field" value={keyword} onChange={e => setKeyword(e.target.value)} placeholder="e.g. #STATUS" />
+            <input data-ui-field="input" className="input-field" value={keyword} onChange={e => setKeyword(e.target.value)} placeholder="e.g. #STATUS" />
           </div>
           <div className="ssg-field">
             <label>Match type</label>
@@ -187,7 +187,7 @@ function RuleForm({ type, agents, onCancel, onSave, saving }: {
           </div>
           <div className="ssg-field">
             <label>Auto-reply text</label>
-            <textarea className="input-field" rows={3} value={replyText} onChange={e => setReplyText(e.target.value)} placeholder="Sent back to the customer via WhatsApp when this rule matches." />
+            <textarea data-ui-field="textarea" className="input-field" rows={3} value={replyText} onChange={e => setReplyText(e.target.value)} placeholder="Sent back to the customer via WhatsApp when this rule matches." />
           </div>
         </>
       )}

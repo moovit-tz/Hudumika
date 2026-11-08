@@ -177,13 +177,13 @@ export function CMSReleases() {
               display: 'inline-flex',
               alignItems: 'center',
               gap: 8,
-              padding: '8px 16px',
-              borderRadius: 8,
+              padding: "var(--action-py) var(--space-md)",
+              borderRadius: "var(--r-sm)",
               background: 'var(--teal)',
               color: '#fff',
               border: 'none',
               fontWeight: 600,
-              fontSize: 13,
+              fontSize: "var(--text-base)",
               cursor: 'pointer',
             }}
            data-ui-native-button="">
@@ -207,7 +207,7 @@ export function CMSReleases() {
               </p>
               <button
                 onClick={() => setCreateModalOpen(true)}
-                style={{ padding: '8px 16px', borderRadius: 8, background: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))', border: 'none', fontWeight: 600, fontSize: 13, cursor: 'pointer' }}
+                style={{ padding: "var(--action-py) var(--space-md)", borderRadius: "var(--r-sm)", background: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))', border: 'none', fontWeight: 600, fontSize: "var(--text-base)", cursor: 'pointer' }}
                data-ui-native-button="">
                 Create Release
               </button>
@@ -258,7 +258,7 @@ export function CMSReleases() {
                         e.stopPropagation();
                         openReleaseDetail(rel);
                       }}
-                      style={{ fontSize: 12, color: 'var(--teal)', background: 'transparent', border: 'none', fontWeight: 600, cursor: 'pointer', padding: 0 }}
+                      style={{ fontSize: "var(--text-base)", color: 'var(--teal)', background: 'transparent', border: 'none', fontWeight: 600, cursor: 'pointer', padding: 0 }}
                      data-ui-native-button="">
                       View Items &rarr;
                     </button>
@@ -274,12 +274,12 @@ export function CMSReleases() {
                           display: 'inline-flex',
                           alignItems: 'center',
                           gap: 6,
-                          padding: '6px 12px',
-                          borderRadius: 8,
+                          padding: "var(--action-py) var(--space-md)",
+                          borderRadius: "var(--r-sm)",
                           background: 'var(--teal)',
                           color: '#fff',
                           border: 'none',
-                          fontSize: 12,
+                          fontSize: "var(--text-base)",
                           fontWeight: 600,
                           cursor: 'pointer',
                         }}
@@ -332,12 +332,12 @@ export function CMSReleases() {
                       display: 'inline-flex',
                       alignItems: 'center',
                       gap: 4,
-                      padding: '4px 8px',
-                      borderRadius: 6,
+                      padding: "var(--action-py) var(--space-md)",
+                      borderRadius: "var(--r-sm)",
                       background: 'var(--teal-l)',
                       color: 'var(--teal)',
                       border: 'none',
-                      fontSize: 12,
+                      fontSize: "var(--text-base)",
                       fontWeight: 600,
                       cursor: 'pointer',
                     }}
@@ -378,7 +378,7 @@ export function CMSReleases() {
                       {selectedRelease.status !== 'published' && (
                         <button
                           onClick={() => handleRemoveItem(it.id)}
-                          style={{ background: 'transparent', border: 'none', color: 'var(--red)', cursor: 'pointer', padding: 4 }}
+                          style={{ background: 'transparent', border: 'none', color: 'var(--red)', cursor: 'pointer', padding: "var(--action-py) var(--space-md)" }}
                           title="Remove from release"
                          data-ui-native-button="">
                           <Icon name="x" size={14} />
@@ -397,13 +397,13 @@ export function CMSReleases() {
                   disabled={publishing === selectedRelease.id}
                   style={{
                     flex: 1,
-                    padding: '9px 16px',
-                    borderRadius: 8,
+                    padding: "var(--action-py) var(--space-md)",
+                    borderRadius: "var(--r-sm)",
                     background: 'var(--teal)',
                     color: '#fff',
                     border: 'none',
                     fontWeight: 600,
-                    fontSize: 13,
+                    fontSize: "var(--text-base)",
                     cursor: 'pointer',
                   }}
                  data-ui-native-button="">
@@ -413,8 +413,8 @@ export function CMSReleases() {
               <button
                 onClick={() => handleDeleteRelease(selectedRelease)}
                 style={{
-                  padding: '9px 12px',
-                  borderRadius: 8,
+                  padding: "var(--action-py) var(--space-md)",
+                  borderRadius: "var(--r-sm)",
                   background: 'var(--red-l)',
                   border: '1px solid color-mix(in srgb, var(--red) 30%, var(--border))',
                   color: 'var(--red)',
@@ -448,33 +448,33 @@ export function CMSReleases() {
             <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
               <div>
                 <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: 'var(--text)', marginBottom: 4 }}>Release Name *</label>
-                <input
+                <input data-ui-field="input"
                   type="text"
                   value={form.name}
                   onChange={e => setForm(f => ({ ...f, name: e.target.value }))}
                   placeholder="e.g. Q4 Product Launch & Black Friday"
-                  style={{ width: '100%', padding: '8px 12px', borderRadius: 8, border: '1px solid var(--border)', background: 'var(--bg)', color: 'var(--text)', fontSize: 13 }}
+                  style={{ width: '100%', padding: "var(--ds-input-py) var(--space-md)", borderRadius: "var(--r-sm)", border: '1px solid var(--border)', background: 'var(--bg)', color: 'var(--text)', fontSize: "var(--text-base)" }}
                 />
               </div>
 
               <div>
                 <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: 'var(--text)', marginBottom: 4 }}>Description</label>
-                <textarea
+                <textarea data-ui-field="textarea"
                   value={form.description}
                   onChange={e => setForm(f => ({ ...f, description: e.target.value }))}
                   placeholder="Summary of campaigns and pages contained in this bundle..."
                   rows={3}
-                  style={{ width: '100%', padding: '8px 12px', borderRadius: 8, border: '1px solid var(--border)', background: 'var(--bg)', color: 'var(--text)', fontSize: 13, resize: 'vertical' }}
+                  style={{ width: '100%', padding: "var(--ds-input-py) var(--space-md)", borderRadius: "var(--r-sm)", border: '1px solid var(--border)', background: 'var(--bg)', color: 'var(--text)', fontSize: "var(--text-base)", resize: 'vertical' }}
                 />
               </div>
 
               <div>
                 <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: 'var(--text)', marginBottom: 4 }}>Scheduled Publish Date (Optional)</label>
-                <input
+                <input data-ui-field="input"
                   type="datetime-local"
                   value={form.publish_at}
                   onChange={e => setForm(f => ({ ...f, publish_at: e.target.value }))}
-                  style={{ width: '100%', padding: '8px 12px', borderRadius: 8, border: '1px solid var(--border)', background: 'var(--bg)', color: 'var(--text)', fontSize: 13 }}
+                  style={{ width: '100%', padding: "var(--ds-input-py) var(--space-md)", borderRadius: "var(--r-sm)", border: '1px solid var(--border)', background: 'var(--bg)', color: 'var(--text)', fontSize: "var(--text-base)" }}
                 />
               </div>
             </div>
@@ -482,13 +482,13 @@ export function CMSReleases() {
             <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 10, marginTop: 20 }}>
               <button
                 onClick={() => setCreateModalOpen(false)}
-                style={{ padding: '8px 14px', borderRadius: 8, border: '1px solid var(--border)', background: 'transparent', color: 'var(--text)', fontSize: 13, cursor: 'pointer' }}
+                style={{ padding: "var(--action-py) var(--space-md)", borderRadius: "var(--r-sm)", border: '1px solid var(--border)', background: 'transparent', color: 'var(--text)', fontSize: "var(--text-base)", cursor: 'pointer' }}
                data-ui-native-button="">
                 Cancel
               </button>
               <button
                 onClick={handleCreateRelease}
-                style={{ padding: '8px 16px', borderRadius: 8, border: 'none', background: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))', fontSize: 13, fontWeight: 600, cursor: 'pointer' }}
+                style={{ padding: "var(--action-py) var(--space-md)", borderRadius: "var(--r-sm)", border: 'none', background: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))', fontSize: "var(--text-base)", fontWeight: 600, cursor: 'pointer' }}
                data-ui-native-button="">
                 Create Release
               </button>
@@ -525,13 +525,13 @@ export function CMSReleases() {
                     }}
                     style={{
                       flex: 1,
-                      padding: '8px',
-                      borderRadius: 8,
+                      padding: "var(--action-py) var(--space-md)",
+                      borderRadius: "var(--r-sm)",
                       border: itemType === 'page' ? '2px solid var(--teal)' : '1px solid var(--border)',
                       background: itemType === 'page' ? 'var(--teal-l)' : 'var(--bg)',
                       color: itemType === 'page' ? 'var(--teal)' : 'var(--text)',
                       fontWeight: 600,
-                      fontSize: 13,
+                      fontSize: "var(--text-base)",
                       cursor: 'pointer',
                     }}
                    data-ui-native-button="">
@@ -545,13 +545,13 @@ export function CMSReleases() {
                     }}
                     style={{
                       flex: 1,
-                      padding: '8px',
-                      borderRadius: 8,
+                      padding: "var(--action-py) var(--space-md)",
+                      borderRadius: "var(--r-sm)",
                       border: itemType === 'post' ? '2px solid var(--teal)' : '1px solid var(--border)',
                       background: itemType === 'post' ? 'var(--teal-l)' : 'var(--bg)',
                       color: itemType === 'post' ? 'var(--teal)' : 'var(--text)',
                       fontWeight: 600,
-                      fontSize: 13,
+                      fontSize: "var(--text-base)",
                       cursor: 'pointer',
                     }}
                    data-ui-native-button="">
@@ -580,13 +580,13 @@ export function CMSReleases() {
             <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 10, marginTop: 20 }}>
               <button
                 onClick={() => setAddItemModalOpen(false)}
-                style={{ padding: '8px 14px', borderRadius: 8, border: '1px solid var(--border)', background: 'transparent', color: 'var(--text)', fontSize: 13, cursor: 'pointer' }}
+                style={{ padding: "var(--action-py) var(--space-md)", borderRadius: "var(--r-sm)", border: '1px solid var(--border)', background: 'transparent', color: 'var(--text)', fontSize: "var(--text-base)", cursor: 'pointer' }}
                data-ui-native-button="">
                 Cancel
               </button>
               <button
                 onClick={handleAddItem}
-                style={{ padding: '8px 16px', borderRadius: 8, border: 'none', background: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))', fontSize: 13, fontWeight: 600, cursor: 'pointer' }}
+                style={{ padding: "var(--action-py) var(--space-md)", borderRadius: "var(--r-sm)", border: 'none', background: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))', fontSize: "var(--text-base)", fontWeight: 600, cursor: 'pointer' }}
                data-ui-native-button="">
                 Add to Bundle
               </button>

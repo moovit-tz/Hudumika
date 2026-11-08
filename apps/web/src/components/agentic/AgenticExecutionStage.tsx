@@ -904,7 +904,7 @@ export function AgenticExecutionStage({
           <Icon name="sparkle" size={18} />
         </div>
         <div className="r6-prompt-input-wrap">
-          <input
+          <input data-ui-field="input"
             type="text"
             className="r6-prompt-input"
             placeholder={isAiGenerating ? 'Generating autonomous execution plan...' : "Give the autonomous agent a task (e.g. 'Close trip TRP-1042 and email invoice to Kilima Trading')..."}

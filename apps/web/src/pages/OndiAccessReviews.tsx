@@ -57,7 +57,7 @@ export const OndiAccessReviews: React.FC = () => {
         subtitle="Periodically re-confirm role grants, reattest entitlement compliance, and revoke stale access."
         actions={!showNew ? (
           <button type="button" onClick={() => setShowNew(true)}
-            style={{ display: 'flex', alignItems: 'center', gap: 8, background: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))', border: 'none', borderRadius: 'var(--r)', padding: '8px 18px', fontFamily: 'var(--font)', fontWeight: 700, fontSize: 13, cursor: 'pointer', boxShadow: '0 2px 8px var(--teal-m)' }} data-ui-native-button="">
+            style={{ display: 'flex', alignItems: 'center', gap: 8, background: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))', border: 'none', borderRadius: 'var(--r)', padding: "var(--action-py) var(--space-md)", fontFamily: 'var(--font)', fontWeight: 700, fontSize: "var(--text-base)", cursor: 'pointer', boxShadow: '0 2px 8px var(--teal-m)' }} data-ui-native-button="">
             <Icon name="plus" size={15} /> New Campaign
           </button>
         ) : undefined}
@@ -106,14 +106,14 @@ export const OndiAccessReviews: React.FC = () => {
               Snapshots every role currently granted across this tenant into a review list. Approving keeps a grant intact; revoking removes it immediately.
             </div>
             <div style={{ display: 'flex', gap: 10 }}>
-              <input value={name} onChange={e => setName(e.target.value)}
-                style={{ flex: 1, padding: '9px 12px', border: '1px solid var(--border)', borderRadius: 'var(--r)', fontFamily: 'var(--font)', fontSize: 13, color: 'var(--ink)', background: 'var(--white)', boxSizing: 'border-box' }} />
+              <input data-ui-field="input" value={name} onChange={e => setName(e.target.value)}
+                style={{ flex: 1, padding: "var(--ds-input-py) var(--space-md)", border: '1px solid var(--border)', borderRadius: 'var(--r)', fontFamily: 'var(--font)', fontSize: "var(--text-base)", color: 'var(--ink)', background: 'var(--white)', boxSizing: 'border-box' }} />
               <button type="button" disabled={creating || !name.trim()} onClick={create}
-                style={{ padding: '8px 20px', borderRadius: 'var(--r)', border: 'none', background: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))', fontWeight: 700, fontSize: 13, fontFamily: 'var(--font)', cursor: 'pointer', opacity: creating ? 0.6 : 1, whiteSpace: 'nowrap', boxShadow: '0 2px 8px var(--teal-m)' }} data-ui-native-button="">
+                style={{ padding: "var(--action-py) var(--space-md)", borderRadius: 'var(--r)', border: 'none', background: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))', fontWeight: 700, fontSize: "var(--text-base)", fontFamily: 'var(--font)', cursor: 'pointer', opacity: creating ? 0.6 : 1, whiteSpace: 'nowrap', boxShadow: '0 2px 8px var(--teal-m)' }} data-ui-native-button="">
                 {creating ? 'Starting…' : 'Start Campaign'}
               </button>
               <button type="button" onClick={() => setShowNew(false)}
-                style={{ padding: '8px 18px', borderRadius: 'var(--r)', border: '1px solid var(--border)', background: 'var(--white)', color: 'var(--ink)', fontWeight: 600, fontSize: 13, fontFamily: 'var(--font)', cursor: 'pointer' }} data-ui-native-button="">
+                style={{ padding: "var(--action-py) var(--space-md)", borderRadius: 'var(--r)', border: '1px solid var(--border)', background: 'var(--white)', color: 'var(--ink)', fontWeight: 600, fontSize: "var(--text-base)", fontFamily: 'var(--font)', cursor: 'pointer' }} data-ui-native-button="">
                 Cancel
               </button>
             </div>
@@ -230,7 +230,7 @@ export const OndiAccessReviewDetail: React.FC = () => {
         subtitle={campaign?.status === 'completed' ? 'This review campaign is complete.' : 'Approve to keep a grant intact, or revoke to remove access immediately.'}
         actions={campaign?.status === 'active' ? (
           <button type="button" onClick={complete}
-            style={{ padding: '8px 18px', borderRadius: 'var(--r)', border: '1px solid var(--border)', background: 'var(--white)', color: 'var(--ink)', fontWeight: 700, fontSize: 13, cursor: 'pointer' }} data-ui-native-button="">
+            style={{ padding: "var(--action-py) var(--space-md)", borderRadius: 'var(--r)', border: '1px solid var(--border)', background: 'var(--white)', color: 'var(--ink)', fontWeight: 700, fontSize: "var(--text-base)", cursor: 'pointer' }} data-ui-native-button="">
             Complete Campaign
           </button>
         ) : undefined}
@@ -242,11 +242,11 @@ export const OndiAccessReviewDetail: React.FC = () => {
           <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--ink)' }}>{selected.size > 0 ? `${selected.size} grants selected` : `Select all ${pending.length} pending grants`}</span>
           <div style={{ flex: 1 }} />
           <button type="button" disabled={selected.size === 0 || busy} onClick={() => decideBulk('approved')}
-            style={{ fontSize: 12.5, fontWeight: 700, color: 'var(--green)', background: 'var(--green-l)', border: '1px solid var(--green)', borderRadius: 'var(--r-sm)', padding: '6px 14px', cursor: 'pointer', opacity: selected.size === 0 ? 0.5 : 1 }} data-ui-native-button="">
+            style={{ fontSize: "var(--text-base)", fontWeight: 700, color: 'var(--green)', background: 'var(--green-l)', border: '1px solid var(--green)', borderRadius: 'var(--r-sm)', padding: "var(--action-py) var(--space-md)", cursor: 'pointer', opacity: selected.size === 0 ? 0.5 : 1 }} data-ui-native-button="">
             Approve Selected
           </button>
           <button type="button" disabled={selected.size === 0 || busy} onClick={() => decideBulk('revoked')}
-            style={{ fontSize: 12.5, fontWeight: 700, color: 'var(--red)', background: 'var(--red-l)', border: '1px solid var(--red)', borderRadius: 'var(--r-sm)', padding: '6px 14px', cursor: 'pointer', opacity: selected.size === 0 ? 0.5 : 1 }} data-ui-native-button="">
+            style={{ fontSize: "var(--text-base)", fontWeight: 700, color: 'var(--red)', background: 'var(--red-l)', border: '1px solid var(--red)', borderRadius: 'var(--r-sm)', padding: "var(--action-py) var(--space-md)", cursor: 'pointer', opacity: selected.size === 0 ? 0.5 : 1 }} data-ui-native-button="">
             Revoke Selected
           </button>
         </div>
@@ -275,11 +275,11 @@ export const OndiAccessReviewDetail: React.FC = () => {
             ) : campaign?.status === 'active' ? (
               <div style={{ display: 'flex', gap: 8 }}>
                 <button type="button" onClick={() => decideOne(item.id, 'approved')}
-                  style={{ fontSize: 12.5, fontWeight: 700, color: 'var(--green)', background: 'var(--green-l)', border: '1px solid var(--green)', borderRadius: 'var(--r-sm)', padding: '6px 14px', cursor: 'pointer' }} data-ui-native-button="">
+                  style={{ fontSize: "var(--text-base)", fontWeight: 700, color: 'var(--green)', background: 'var(--green-l)', border: '1px solid var(--green)', borderRadius: 'var(--r-sm)', padding: "var(--action-py) var(--space-md)", cursor: 'pointer' }} data-ui-native-button="">
                   Approve
                 </button>
                 <button type="button" onClick={() => decideOne(item.id, 'revoked')}
-                  style={{ fontSize: 12.5, fontWeight: 700, color: 'var(--red)', background: 'var(--red-l)', border: '1px solid var(--red)', borderRadius: 'var(--r-sm)', padding: '6px 14px', cursor: 'pointer' }} data-ui-native-button="">
+                  style={{ fontSize: "var(--text-base)", fontWeight: 700, color: 'var(--red)', background: 'var(--red-l)', border: '1px solid var(--red)', borderRadius: 'var(--r-sm)', padding: "var(--action-py) var(--space-md)", cursor: 'pointer' }} data-ui-native-button="">
                   Revoke
                 </button>
               </div>

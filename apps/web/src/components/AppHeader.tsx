@@ -618,7 +618,7 @@ export function AppHeader({
             <PopoverAnchor asChild>
               <div className={`app-header-hub-search desktop-search${showPill ? ' app-header-hub-search--hidden' : ''}`}>
                 <Icon name="search" size={15} />
-                <input
+                <input data-ui-field="input" data-field-appearance="bare"
                   ref={searchInputRef}
                   type="text"
                   role="combobox"
@@ -796,7 +796,7 @@ export function AppHeader({
 
             {/* Landing style mode switcher pill (Normal ↔ Agentic) */}
             <Tip label={isAgentic ? 'Switch to Normal Workspace View' : 'Switch to Agentic View (AI workspace with Agent Flow, Automations & Controls)'} side="bottom">
-              <button
+              <button data-ui-native-button=""
                 type="button"
                 className="app-header-mode-pill"
                 onClick={() => setLandingStyle(isAgentic ? 'advanced' : 'basic')}
@@ -853,7 +853,7 @@ export function AppHeader({
             <DropdownMenu>
               <Tip label="More header actions" side="bottom">
                 <DropdownMenuTrigger asChild>
-                  <button type="button" className="app-header-icon-btn app-header-mobile-more" aria-label="More header actions"><Icon name="moreHorizontal" size={20} /></button>
+                  <button data-ui-native-button="" type="button" className="app-header-icon-btn app-header-mobile-more" aria-label="More header actions"><Icon name="moreHorizontal" size={20} /></button>
                 </DropdownMenuTrigger>
               </Tip>
               <DropdownMenuContent align="end" className="w-64 max-w-[calc(100vw-32px)]">
@@ -1025,7 +1025,7 @@ export function AppHeader({
           <div className="app-header-search-modal" onClick={e => e.stopPropagation()}>
             <div className="app-header-search-modal-inner">
               <Icon name="search" size={16} />
-              <input
+              <input data-ui-field="input" data-field-appearance="bare"
                 type="text"
                 autoFocus
                 className="app-header-search-modal-input"

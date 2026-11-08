@@ -299,12 +299,12 @@ function NoticesTab({ canManage }: { canManage: boolean }) {
         <form className="team-invite team-notice-form" onSubmit={post}>
           <div className="team-invite-field team-notice-grow">
             <label htmlFor="notice-title">Notice</label>
-            <input id="notice-title" value={title} onChange={e => setTitle(e.target.value)}
+            <input data-ui-field="input" id="notice-title" value={title} onChange={e => setTitle(e.target.value)}
               placeholder="Office closed Friday for Eid" required />
           </div>
           <div className="team-invite-field team-notice-grow">
             <label htmlFor="notice-body">Detail (optional)</label>
-            <input id="notice-body" value={body} onChange={e => setBody(e.target.value)}
+            <input data-ui-field="input" id="notice-body" value={body} onChange={e => setBody(e.target.value)}
               placeholder="Clearance desk reopens Monday at 8am" />
           </div>
           <button type="submit" className="btn btn-primary" disabled={posting} data-ui-native-button="">

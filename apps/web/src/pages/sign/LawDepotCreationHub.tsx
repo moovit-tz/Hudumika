@@ -316,7 +316,7 @@ export function LawDepotCreationHub({
 
         <div className="creation-hub-starters-grid">
           {featuredStarters.map(starter => (
-            <button
+            <button data-ui-native-button=""
               key={starter.id}
               type="button"
               className="creation-hub-starter-card"

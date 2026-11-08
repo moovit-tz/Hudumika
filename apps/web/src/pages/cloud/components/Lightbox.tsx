@@ -212,7 +212,7 @@ export function Lightbox({ item, onClose, onDownload, onShare, onStar }: {
                  data-ui-native-button="">
                   <Icon name="chevronLeft" size={14} />
                 </button>
-                <input
+                <input data-ui-field="input"
                   value={pageInput}
                   onChange={e => setPageInput(e.target.value.replace(/[^\d]/g, ''))}
                   onBlur={commitPageInput}

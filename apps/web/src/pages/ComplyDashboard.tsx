@@ -478,7 +478,7 @@ export function ComplyDashboard() {
       {/* ── 4. Perspective Switcher Tabs ──────────────────────────────── */}
       <div className="comply-perspective-switcher-wrap">
         <div className="comply-perspective-nav">
-          <button
+          <button data-ui-native-button=""
             type="button"
             className={`comply-perspective-btn ${activeView === 'queue' ? 'active' : ''}`}
             onClick={() => setActiveView('queue')}
@@ -490,7 +490,7 @@ export function ComplyDashboard() {
             )}
           </button>
 
-          <button
+          <button data-ui-native-button=""
             type="button"
             className={`comply-perspective-btn ${activeView === 'pillars' ? 'active' : ''}`}
             onClick={() => setActiveView('pillars')}
@@ -500,7 +500,7 @@ export function ComplyDashboard() {
             <span className="comply-perspective-pill-count">6 Authorities</span>
           </button>
 
-          <button
+          <button data-ui-native-button=""
             type="button"
             className={`comply-perspective-btn ${activeView === 'applications' ? 'active' : ''}`}
             onClick={() => setActiveView('applications')}
@@ -555,21 +555,21 @@ export function ComplyDashboard() {
                   {/* Filter Pills */}
                   <div className="flex items-center gap-2 flex-wrap">
                     <div className="comply-queue-segment">
-                      <button
+                      <button data-ui-native-button=""
                         type="button"
                         className={`comply-segment-tab ${deadlineFilter === 'all' ? 'active' : ''}`}
                         onClick={() => setDeadlineFilter('all')}
                       >
                         All ({data?.upcoming_deadlines?.length ?? 0})
                       </button>
-                      <button
+                      <button data-ui-native-button=""
                         type="button"
                         className={`comply-segment-tab ${deadlineFilter === 'urgent' ? 'active' : ''}`}
                         onClick={() => setDeadlineFilter('urgent')}
                       >
                         Urgent &lt;7d ({criticalItems.length})
                       </button>
-                      <button
+                      <button data-ui-native-button=""
                         type="button"
                         className={`comply-segment-tab ${deadlineFilter === 'month' ? 'active' : ''}`}
                         onClick={() => setDeadlineFilter('month')}

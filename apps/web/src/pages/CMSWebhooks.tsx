@@ -108,7 +108,7 @@ export function CMSWebhooks() {
       <div style={{ flex: 1, overflowY: 'auto', padding: '18px 24px', maxWidth: 680 }}>
         <div className="card" style={{ padding: '18px 20px', marginBottom: 18, display: 'flex', flexDirection: 'column', gap: 12 }}>
           <div style={{ fontWeight: 700, fontSize: 14, color: 'var(--ink)' }}>Add a webhook</div>
-          <input className="input-field" placeholder="https://example.com/hooks/hudumika" value={form.url}
+          <input data-ui-field="input" className="input-field" placeholder="https://example.com/hooks/hudumika" value={form.url}
             onChange={e => setForm(f => ({ ...f, url: e.target.value }))} />
           <div>
             <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--ink2)', marginBottom: 4 }}>Send on</div>

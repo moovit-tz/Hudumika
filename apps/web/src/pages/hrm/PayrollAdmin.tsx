@@ -32,7 +32,7 @@ function DesigForm({ depts, initial, onCancel, onSubmit }: {
       }} style={{ padding: 16, display: 'flex', gap: 12, alignItems: 'flex-end', flexWrap: 'wrap' }}>
         <div style={{ flex: 1, minWidth: 180 }}>
           <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: 'var(--ink2)', marginBottom: 4 }}>Title</label>
-          <input name="title" required defaultValue={initial?.title} placeholder="e.g. Senior Officer" style={{ width: '100%', padding: '7px 10px', border: '1px solid var(--border)', borderRadius: 'var(--r)', fontFamily: 'var(--font)', fontSize: 13, boxSizing: 'border-box' as const }} />
+          <input data-ui-field="input" name="title" required defaultValue={initial?.title} placeholder="e.g. Senior Officer" style={{ width: '100%', padding: "var(--ds-input-py) var(--space-md)", border: '1px solid var(--border)', borderRadius: 'var(--r)', fontFamily: 'var(--font)', fontSize: "var(--text-base)", boxSizing: 'border-box' as const }} />
         </div>
         <div>
           <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: 'var(--ink2)', marginBottom: 4 }}>Department</label>
@@ -338,14 +338,14 @@ export function PayrollPage() {
           <Button
             variant="secondary"
             onClick={() => setShowSettings(true)}
-            style={{ height: 38, borderRadius: 'var(--r)', padding: '0 14px', fontSize: 13, display: 'flex', alignItems: 'center', gap: 6 }}
+            style={{ height: "var(--action-h)", borderRadius: 'var(--r)', padding: '0 14px', fontSize: "var(--text-base)", display: 'flex', alignItems: 'center', gap: 6 }}
           >
             <Icon name="sliders" size={15} /> Statutory rates
           </Button>
           <Button
             onClick={createRun}
             disabled={busy === 'create'}
-            style={{ height: 38, background: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))', fontWeight: 700, borderRadius: 'var(--r)', padding: '0 16px', fontSize: 13, border: 'none', display: 'flex', alignItems: 'center', gap: 6, boxShadow: '0 2px 6px hsl(var(--primary) / 0.3)' }}
+            style={{ height: "var(--action-h)", background: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))', fontWeight: 700, borderRadius: 'var(--r)', padding: '0 16px', fontSize: "var(--text-base)", border: 'none', display: 'flex', alignItems: 'center', gap: 6, boxShadow: '0 2px 6px hsl(var(--primary) / 0.3)' }}
           >
             <Icon name="plus" size={15} /> Add Payroll
           </Button>
@@ -368,7 +368,7 @@ export function PayrollPage() {
                 <span style={{ fontSize: 16, fontWeight: 700, color: 'var(--ink)' }}>{run.name}</span>
                 {runs.length > 1 && (
                   <Select value={selId ?? ''} onValueChange={setSelId}>
-                    <SelectTrigger aria-label="Payroll run" style={{ height: 30, width: 190, fontSize: 12 }}><SelectValue /></SelectTrigger>
+                    <SelectTrigger aria-label="Payroll run" style={{ height: "var(--ctl-h)", width: 190, fontSize: "var(--text-base)" }}><SelectValue /></SelectTrigger>
                     <SelectContent>
                       {runs.map(r => <SelectItem key={r.id} value={r.id}>{MONTH_ABBR[r.period_month - 1]} {r.period_year} · {String(r.status).toLowerCase()}</SelectItem>)}
                     </SelectContent>
@@ -422,7 +422,7 @@ export function PayrollPage() {
             <span style={{ fontSize: 16, fontWeight: 700, color: 'var(--ink)' }}>Payroll Summary</span>
             {availableYears.length > 0 && (
               <Select value={String(effectiveYear)} onValueChange={v => setPayrollYear(Number(v))}>
-                <SelectTrigger style={{ height: 30, borderRadius: 'var(--r-sm)', fontSize: 11.5 }}><SelectValue /></SelectTrigger>
+                <SelectTrigger style={{ height: "var(--ctl-h)", borderRadius: 'var(--r-sm)', fontSize: "var(--text-base)" }}><SelectValue /></SelectTrigger>
                 <SelectContent>
                   {availableYears.map(y => <SelectItem key={y} value={String(y)}>{y}</SelectItem>)}
                 </SelectContent>
@@ -483,7 +483,7 @@ export function PayrollPage() {
             </div>
           </div>
 
-          <Button variant="outline" size="sm" onClick={downloadPayslipsCsv} disabled={filteredSlips.length === 0} style={{ height: 32, fontSize: 12, borderRadius: 'var(--r)', borderColor: 'var(--border)', width: '100%' }}>
+          <Button variant="outline" size="sm" onClick={downloadPayslipsCsv} disabled={filteredSlips.length === 0} style={{ height: "var(--ctl-h)", fontSize: "var(--text-base)", borderRadius: 'var(--r)', borderColor: 'var(--border)', width: '100%' }}>
             Download Report
           </Button>
         </div>
@@ -498,16 +498,16 @@ export function PayrollPage() {
           <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
             <div style={{ position: 'relative', width: 220 }}>
               <Icon name="search" size={14} color="var(--ink3)" style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)' }} />
-              <input
+              <input data-ui-field="input"
                 type="text"
                 placeholder="Search..."
                 value={search}
                 onChange={e => setSearch(e.target.value)}
-                style={{ width: '100%', height: 34, paddingLeft: 30, paddingRight: 10, borderRadius: 'var(--r)', border: '1px solid var(--border)', fontSize: 12.5, outline: 'none', background: 'var(--card-sunken)', color: 'var(--ink)' }}
+                style={{ width: '100%', height: "var(--ctl-h)", paddingLeft: 30, paddingRight: "var(--space-md)", borderRadius: 'var(--r)', border: '1px solid var(--border)', fontSize: "var(--text-base)", outline: 'none', background: 'var(--card-sunken)', color: 'var(--ink)' }}
               />
             </div>
 
-            <Button variant="outline" size="sm" onClick={downloadPayslipsCsv} disabled={filteredSlips.length === 0} style={{ height: 34, fontSize: 12, borderRadius: 'var(--r)', borderColor: 'var(--border)' }}>
+            <Button variant="outline" size="sm" onClick={downloadPayslipsCsv} disabled={filteredSlips.length === 0} style={{ height: "var(--ctl-h)", fontSize: "var(--text-base)", borderRadius: 'var(--r)', borderColor: 'var(--border)' }}>
               Download Report
             </Button>
           </div>
@@ -558,7 +558,7 @@ export function PayrollPage() {
                       <td style={{ padding: '12px 16px', textAlign: 'right' }}>
                         <DropdownMenu>
                           <DropdownMenuTrigger asChild>
-                            <button type="button" style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 4 }} data-ui-native-button="">
+                            <button type="button" style={{ background: 'none', border: 'none', cursor: 'pointer', padding: "var(--action-py) var(--space-md)" }} data-ui-native-button="">
                               <Icon name="moreHorizontal" size={18} color="var(--ink3)" />
                             </button>
                           </DropdownMenuTrigger>
@@ -652,7 +652,7 @@ function PayslipDetailModal({ slip, runName, onClose }: { slip: Payslip; runName
             <div style={{ fontSize:12.5, color:'var(--ink3)' }}>{runName}{slip.email ? ` · ${slip.email}` : ''}</div>
           </div>
           <Tip label="Close">
-            <button type="button" onClick={onClose} aria-label="Close" style={{ background:'none', border:'none', cursor:'pointer', color:'var(--ink3)', padding:4 }} data-ui-native-button=""><Icon name="x" size={18} /></button>
+            <button type="button" onClick={onClose} aria-label="Close" style={{ background:'none', border:'none', cursor:'pointer', color:'var(--ink3)', padding:"var(--action-py) var(--space-md)" }} data-ui-native-button=""><Icon name="x" size={18} /></button>
           </Tip>
         </div>
         <div>{/* body */}
@@ -744,7 +744,7 @@ function PayComponentsModal({ onClose }: { onClose: () => void }) {
             <div style={{ fontSize:12.5, color:'var(--ink3)' }}>Set the salary components a payroll run reads to calculate pay.</div>
           </div>
           <Tip label="Close">
-            <button type="button" onClick={onClose} aria-label="Close" style={{ background:'none', border:'none', cursor:'pointer', color:'var(--ink3)', padding:4 }} data-ui-native-button=""><Icon name="x" size={18} /></button>
+            <button type="button" onClick={onClose} aria-label="Close" style={{ background:'none', border:'none', cursor:'pointer', color:'var(--ink3)', padding:"var(--action-py) var(--space-md)" }} data-ui-native-button=""><Icon name="x" size={18} /></button>
           </Tip>
         </div>
 
@@ -796,7 +796,7 @@ function PayComponentsModal({ onClose }: { onClose: () => void }) {
                   </Select>
                 </div>
                 <div style={{ flex:'0 1 160px' }}>
-                  <input style={ltInput} type="number" min="0" step="1000" placeholder="Amount (TZS)" value={amount} onChange={e => setAmount(e.target.value)} />
+                  <input data-ui-field="input" style={ltInput} type="number" min="0" step="1000" placeholder="Amount (TZS)" value={amount} onChange={e => setAmount(e.target.value)} />
                 </div>
                 <Button size="sm" disabled={saving} onClick={add}>
                   {saving ? 'Adding…' : 'Add'}
@@ -915,7 +915,7 @@ export function AnnouncementsPage() {
             <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
               <div style={{ flex: 1, minWidth: 200 }}>
                 <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: 'var(--ink2)', marginBottom: 4 }}>Title</label>
-                <input name="title" required placeholder="e.g. Office closed for public holiday" style={{ width: '100%', padding: '7px 10px', border: '1px solid var(--border)', borderRadius: 'var(--r)', fontFamily: 'var(--font)', fontSize: 13, boxSizing: 'border-box' as const }} />
+                <input data-ui-field="input" name="title" required placeholder="e.g. Office closed for public holiday" style={{ width: '100%', padding: "var(--ds-input-py) var(--space-md)", border: '1px solid var(--border)', borderRadius: 'var(--r)', fontFamily: 'var(--font)', fontSize: "var(--text-base)", boxSizing: 'border-box' as const }} />
               </div>
               <div>
                 <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: 'var(--ink2)', marginBottom: 4 }}>Category</label>
@@ -942,7 +942,7 @@ export function AnnouncementsPage() {
             </div>
             <div>
               <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: 'var(--ink2)', marginBottom: 4 }}>Message</label>
-              <textarea name="body" required rows={4} placeholder="Write the announcement..." style={{ width: '100%', padding: '8px 10px', border: '1px solid var(--border)', borderRadius: 'var(--r)', fontFamily: 'var(--font)', fontSize: 13, boxSizing: 'border-box' as const, resize: 'vertical' }} />
+              <textarea data-ui-field="textarea" name="body" required rows={4} placeholder="Write the announcement..." style={{ width: '100%', padding: "var(--ds-input-py) var(--space-md)", border: '1px solid var(--border)', borderRadius: 'var(--r)', fontFamily: 'var(--font)', fontSize: "var(--text-base)", boxSizing: 'border-box' as const, resize: 'vertical' }} />
             </div>
             <div style={{ display: 'flex', gap: 8 }}>
               <PrimaryBtn label="Post" icon="send" type="submit" />

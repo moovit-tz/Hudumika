@@ -258,11 +258,11 @@ export const OndiRoles: React.FC = () => {
                 </SelectContent>
               </Select>
               <button type="button" onClick={submitAccessRequest} disabled={!requestRoleId || requesting}
-                style={{ padding: '8px 20px', borderRadius: 'var(--r)', border: 'none', background: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))', fontWeight: 700, cursor: 'pointer', fontSize: 13, opacity: (!requestRoleId || requesting) ? 0.6 : 1, display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 2px 8px var(--teal-m)' }} data-ui-native-button="">
+                style={{ padding: "var(--action-py) var(--space-md)", borderRadius: 'var(--r)', border: 'none', background: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))', fontWeight: 700, cursor: 'pointer', fontSize: "var(--text-base)", opacity: (!requestRoleId || requesting) ? 0.6 : 1, display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 2px 8px var(--teal-m)' }} data-ui-native-button="">
                 {requesting ? 'Sending…' : 'Request'}
               </button>
             </div>
-            <input value={requestReason} onChange={e => setRequestReason(e.target.value)} placeholder="Why do you need this access? (optional)" style={inputStyle} />
+            <input data-ui-field="input" value={requestReason} onChange={e => setRequestReason(e.target.value)} placeholder="Why do you need this access? (optional)" style={inputStyle} />
 
             <label style={{ display: 'flex', alignItems: 'center', gap: 10, fontSize: 12.5, color: 'var(--ink2)', cursor: 'pointer', background: 'var(--bg)', padding: '10px 12px', borderRadius: 'var(--r)', border: '1px solid var(--border)' }}>
               <Checkbox checked={breakGlass} onCheckedChange={() => setBreakGlass(v => !v)} />
@@ -272,7 +272,7 @@ export const OndiRoles: React.FC = () => {
               <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 12, color: 'var(--ink3)', paddingLeft: 4 }}>
                 Expires after:
                 <Select value={breakGlassHours} onValueChange={setBreakGlassHours}>
-                  <SelectTrigger style={{ height: 32, fontSize: 12 }}><SelectValue /></SelectTrigger>
+                  <SelectTrigger style={{ height: "var(--ctl-h)", fontSize: "var(--text-base)" }}><SelectValue /></SelectTrigger>
                   <SelectContent>
                     <SelectItem value="1">1 hour</SelectItem>
                     <SelectItem value="4">4 hours</SelectItem>
@@ -310,10 +310,10 @@ export const OndiRoles: React.FC = () => {
           <SectionCard title="Create New Role">
             <form onSubmit={e => { e.preventDefault(); createRole(); }} style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
               <div>
-                <input required value={newRoleName} onChange={e => setNewRoleName(e.target.value)} placeholder="Role name, e.g. Compliance Officer" style={{ ...inputStyle, width: '100%' }} />
+                <input data-ui-field="input" required value={newRoleName} onChange={e => setNewRoleName(e.target.value)} placeholder="Role name, e.g. Compliance Officer" style={{ ...inputStyle, width: '100%' }} />
               </div>
               <div>
-                <input value={newRoleDesc} onChange={e => setNewRoleDesc(e.target.value)} placeholder="Short description" style={{ ...inputStyle, width: '100%' }} />
+                <input data-ui-field="input" value={newRoleDesc} onChange={e => setNewRoleDesc(e.target.value)} placeholder="Short description" style={{ ...inputStyle, width: '100%' }} />
               </div>
               <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginTop: 4 }}>
                 <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--ink3)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>Assign Permissions</div>
@@ -357,11 +357,11 @@ export const OndiRoles: React.FC = () => {
                   </div>
                   <div style={{ display: 'flex', gap: 8 }}>
                     <button type="button" onClick={() => decide(r.id, false)}
-                      style={{ fontSize: 12, fontWeight: 700, borderRadius: 'var(--r-sm)', padding: '6px 14px', border: '1px solid var(--red)', background: 'var(--red-l)', color: 'var(--red)', cursor: 'pointer' }} data-ui-native-button="">
+                      style={{ fontSize: "var(--text-base)", fontWeight: 700, borderRadius: 'var(--r-sm)', padding: "var(--action-py) var(--space-md)", border: '1px solid var(--red)', background: 'var(--red-l)', color: 'var(--red)', cursor: 'pointer' }} data-ui-native-button="">
                       Deny
                     </button>
                     <button type="button" onClick={() => decide(r.id, true)} disabled={r.my_decision === 'approve'}
-                      style={{ fontSize: 12, fontWeight: 700, borderRadius: 'var(--r-sm)', padding: '6px 14px', border: 'none', background: 'var(--green-l)', color: 'var(--green)', cursor: r.my_decision === 'approve' ? 'default' : 'pointer', opacity: r.my_decision === 'approve' ? 0.5 : 1 }} data-ui-native-button="">
+                      style={{ fontSize: "var(--text-base)", fontWeight: 700, borderRadius: 'var(--r-sm)', padding: "var(--action-py) var(--space-md)", border: 'none', background: 'var(--green-l)', color: 'var(--green)', cursor: r.my_decision === 'approve' ? 'default' : 'pointer', opacity: r.my_decision === 'approve' ? 0.5 : 1 }} data-ui-native-button="">
                       {r.my_decision === 'approve' ? 'Approved' : 'Approve'}
                     </button>
                   </div>
@@ -386,7 +386,7 @@ export const OndiRoles: React.FC = () => {
                     {r.description && <div className="ondi-entity-sub">{r.description}</div>}
                   </div>
                   <button type="button" onClick={() => deleteRole(r.id, r.name)} title="Delete Role"
-                    style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--red)', padding: 4 }} data-ui-native-button="">
+                    style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--red)', padding: "var(--action-py) var(--space-md)" }} data-ui-native-button="">
                     <Icon name="trash" size={15} />
                   </button>
                 </div>
@@ -432,7 +432,7 @@ export const OndiRoles: React.FC = () => {
                 {/* Add member select box */}
                 <div style={{ borderTop: '1px solid var(--border)', paddingTop: 12, marginTop: 'auto', display: 'flex', flexDirection: 'column', gap: 8 }}>
                   <Select value={pendingExpiry[r.id] || '__never__'} onValueChange={v => setPendingExpiry(prev => ({ ...prev, [r.id]: v === '__never__' ? '' : v }))}>
-                    <SelectTrigger style={{ width: '100%', height: 32, fontSize: 12 }}><SelectValue /></SelectTrigger>
+                    <SelectTrigger style={{ width: '100%', height: "var(--ctl-h)", fontSize: "var(--text-base)" }}><SelectValue /></SelectTrigger>
                     <SelectContent>
                       <SelectItem value="__never__">Grant Duration: Permanent</SelectItem>
                       <SelectItem value="24" disabled={!governanceEntitled}>Expires in 24 hours{!governanceEntitled ? ' (add-on required)' : ''}</SelectItem>

@@ -51,6 +51,7 @@ const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
         className={cn(buttonVariants({ variant, size, className }))}
         style={{ paddingBlock: padBlock, borderWidth: 'var(--border-width, 1px)', ...style }}
         data-ui-button=""
+        data-variant={variant ?? 'default'}
         data-size={size ?? "default"}
         ref={ref}
         {...props}

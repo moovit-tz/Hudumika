@@ -1,4 +1,4 @@
-import type { Transaction } from 'kysely';
+import { sql, type Transaction } from 'kysely';
 import { withTenant, type Database } from '../db/client.js';
 import { getIndustryWork, IndustryWorkError } from './finance-industry-work.service.js';
 
@@ -37,10 +37,32 @@ export async function createLease(tenantId: string, actorId: string, workId: str
   return withTenant(tenantId, async trx => {
     const work = await getIndustryWork(trx, tenantId, workId, true);
     if (work.industry !== 'property') throw new IndustryWorkError('Leases require a property industry work.');
+    // forUpdate() on the unit itself — the actual shared resource — not
+    // just the work record above. Two concurrent createLease() calls
+    // against the same unit come from two *different* work records (two
+    // prospective tenants, each starting their own work), so locking only
+    // the work row never serializes them against each other; it's the
+    // unit row that has to be the serialization point.
     const unit = await trx.selectFrom('finance_property_units').select(['id', 'status'])
-      .where('tenant_id', '=', tenantId).where('id', '=', input.unit_id).executeTakeFirst();
+      .where('tenant_id', '=', tenantId).where('id', '=', input.unit_id).forUpdate().executeTakeFirst();
     if (!unit) throw new IndustryWorkError('Property unit not found.', 404);
-    if (unit.status !== 'vacant' && unit.status !== 'reserved') throw new IndustryWorkError('Unit is not available for lease.');
+    // Effective-dated occupancy, not a coarse status flag: a unit's
+    // `status` only ever gets set to 'occupied' below and nothing in this
+    // codebase ever reverts it, so a status check alone would permanently
+    // block a perfectly legitimate future lease starting after an earlier
+    // one's lease_end. The real availability question is whether this
+    // lease's own date range overlaps any other still-live lease on the
+    // same unit — checked fresh under the unit lock just taken above, so
+    // it reflects every committed lease, including one a concurrent
+    // request just inserted.
+    const overlapping = await trx.selectFrom('finance_leases')
+      .select('id')
+      .where('tenant_id', '=', tenantId).where('unit_id', '=', input.unit_id)
+      .where('status', 'in', ['draft', 'active'])
+      .where('lease_start', '<=', input.lease_end ?? '9999-12-31')
+      .where(eb => eb.or([eb('lease_end', 'is', null), eb('lease_end', '>=', input.lease_start)]))
+      .executeTakeFirst();
+    if (overlapping) throw new IndustryWorkError('This unit already has a lease covering that date range.', 409);
     const lease = await trx.insertInto('finance_leases').values({
       tenant_id: tenantId, work_id: workId, unit_id: input.unit_id,
       tenant_name: input.tenant_name, lease_start: input.lease_start,
@@ -287,11 +309,36 @@ export async function fileClaim(tenantId: string, actorId: string, policyId: str
   claim_number: string; incident_date: string; description: string; claim_amount: number;
 }) {
   return withTenant(tenantId, async trx => {
+    // forUpdate() — cumulative-exposure validation below reads every other
+    // claim on this policy, so a second concurrent fileClaim() against the
+    // same policy must block here, not both read the same pre-claim total
+    // and both pass a check that's only individually, not jointly, true.
     const policy = await trx.selectFrom('finance_insurance_policies').selectAll()
-      .where('tenant_id', '=', tenantId).where('id', '=', policyId).executeTakeFirst();
+      .where('tenant_id', '=', tenantId).where('id', '=', policyId).forUpdate().executeTakeFirst();
     if (!policy) throw new IndustryWorkError('Policy not found.', 404);
     if (policy.status !== 'active') throw new IndustryWorkError('Claims can only be filed against active policies.');
-    if (input.claim_amount > Number(policy.sum_insured)) throw new IndustryWorkError('Claim exceeds sum insured.');
+
+    // Coverage-date validation: an incident outside the policy's own
+    // coverage window is not a covered loss, regardless of amount.
+    if (input.incident_date < policy.coverage_start || input.incident_date > policy.coverage_end) {
+      throw new IndustryWorkError(`Incident date ${input.incident_date} falls outside this policy's coverage period (${policy.coverage_start} to ${policy.coverage_end}).`, 409);
+    }
+
+    // Cumulative-exposure validation: every non-denied claim already
+    // filed against this policy counts toward the sum insured, not just
+    // this one — two claims each individually under sum_insured can still
+    // jointly exceed it.
+    const existing = await trx.selectFrom('finance_insurance_claims')
+      .select(sql<string>`coalesce(sum(claim_amount), 0)`.as('total'))
+      .where('tenant_id', '=', tenantId).where('policy_id', '=', policyId).where('status', '!=', 'denied')
+      .executeTakeFirst();
+    const cumulativeExposure = Number(existing?.total ?? 0) + input.claim_amount;
+    if (cumulativeExposure > Number(policy.sum_insured)) {
+      throw new IndustryWorkError(
+        `This claim would bring cumulative exposure on this policy to ${cumulativeExposure}, exceeding the sum insured of ${policy.sum_insured}.`, 409,
+      );
+    }
+
     return trx.insertInto('finance_insurance_claims').values({
       tenant_id: tenantId, policy_id: policyId,
       claim_number: input.claim_number, incident_date: input.incident_date,
@@ -311,8 +358,17 @@ export async function adjudicateClaim(tenantId: string, actorId: string, claimId
     if (decision === 'approved') {
       if (!approvedAmount || approvedAmount <= 0) throw new IndustryWorkError('Approved amount required.');
       if (approvedAmount > Number(claim.claim_amount)) throw new IndustryWorkError('Approved exceeds claimed.');
+      // Deductible validation: approved_amount is what the adjuster found
+      // the loss to be worth; net_payable_amount — what the policy
+      // actually pays out — is that figure minus the policy's own
+      // deductible, never negative.
+      const policy = await trx.selectFrom('finance_insurance_policies').select('deductible')
+        .where('tenant_id', '=', tenantId).where('id', '=', claim.policy_id).executeTakeFirstOrThrow();
+      const deductibleApplied = Math.min(Number(policy.deductible), approvedAmount);
+      const netPayable = Math.round((approvedAmount - deductibleApplied) * 100) / 100;
       return trx.updateTable('finance_insurance_claims').set({
         status: 'approved', approved_amount: approvedAmount,
+        deductible_applied: deductibleApplied, net_payable_amount: netPayable,
         adjuster_id: actorId, updated_at: new Date(),
       }).where('tenant_id', '=', tenantId).where('id', '=', claimId)
         .returningAll().executeTakeFirstOrThrow();
@@ -425,6 +481,22 @@ export async function recordLoanRepayment(tenantId: string, actorId: string, loa
     if (!['active', 'arrears', 'disbursed'].includes(loan.status)) throw new IndustryWorkError('Loan is not active.');
     if (input.amount <= 0) throw new IndustryWorkError('Payment must be positive.');
 
+    // Idempotency: a retried submission carrying the same reference for
+    // this loan replays the original repayment rather than recording a
+    // second real payment — the loan row is already locked above, so
+    // this read-then-decide is safe against a concurrent retry too.
+    if (input.reference) {
+      const prior = await trx.selectFrom('finance_loan_repayments').selectAll()
+        .where('tenant_id', '=', tenantId).where('loan_id', '=', loanId).where('reference', '=', input.reference)
+        .executeTakeFirst();
+      if (prior) {
+        if (Number(prior.amount) !== input.amount) {
+          throw new IndustryWorkError('This reference was already used for a repayment with a different amount.', 409);
+        }
+        return prior;
+      }
+    }
+
     const schedule = await trx.selectFrom('finance_loan_schedule').selectAll()
       .where('tenant_id', '=', tenantId).where('loan_id', '=', loanId)
       .where('status', 'in', ['pending', 'partial', 'overdue'])
@@ -463,6 +535,19 @@ export async function recordLoanRepayment(tenantId: string, actorId: string, loa
       reference: input.reference ?? null, received_by: actorId,
     }).returningAll().executeTakeFirstOrThrow();
 
+    // Surplus handling: the schedule is now fully paid off but `remaining`
+    // of what was actually received is still unallocated — this is real
+    // money that belongs to the borrower, not a rounding artifact to
+    // silently drop. It becomes an explicit, held credit against this
+    // loan rather than vanishing into the gap between the repayment's own
+    // stored `amount` and `principal_part + interest_part`.
+    const surplus = Math.round(remaining * 100) / 100;
+    if (surplus > 0.01) {
+      await trx.insertInto('finance_loan_credits').values({
+        tenant_id: tenantId, loan_id: loanId, source_repayment_id: repayment.id, amount: surplus,
+      }).execute();
+    }
+
     const unpaid = await trx.selectFrom('finance_loan_schedule').select('id')
       .where('tenant_id', '=', tenantId).where('loan_id', '=', loanId)
       .where('status', 'in', ['pending', 'partial', 'overdue']).executeTakeFirst();
@@ -472,6 +557,73 @@ export async function recordLoanRepayment(tenantId: string, actorId: string, loa
     }
 
     return repayment;
+  });
+}
+
+/**
+ * Reverses a repayment — a bounced payment or a data-entry correction.
+ * The repayment row is never deleted (same reasoning GLService.voidEntry()
+ * already applies to journal entries): it's marked reversed, and every
+ * instalment it paid down is rolled back by exactly the amounts this
+ * specific repayment applied, re-opening the loan if it had auto-closed.
+ */
+export async function reverseLoanRepayment(tenantId: string, actorId: string, repaymentId: string, reason: string) {
+  return withTenant(tenantId, async trx => {
+    const repayment = await trx.selectFrom('finance_loan_repayments').selectAll()
+      .where('tenant_id', '=', tenantId).where('id', '=', repaymentId).forUpdate().executeTakeFirst();
+    if (!repayment) throw new IndustryWorkError('Repayment not found.', 404);
+    if (repayment.reversed_at) throw new IndustryWorkError('This repayment has already been reversed.', 409);
+
+    const loan = await trx.selectFrom('finance_loans').selectAll()
+      .where('tenant_id', '=', tenantId).where('id', '=', repayment.loan_id).forUpdate().executeTakeFirstOrThrow();
+
+    // Unwind oldest-instalment-first, mirroring the forward allocation
+    // order recordLoanRepayment() itself used (interest before principal
+    // on each instalment, instalments in order) — undoing exactly what
+    // was applied, not guessing a different allocation.
+    let principalToUnwind = Number(repayment.principal_part);
+    let interestToUnwind = Number(repayment.interest_part);
+    const touchedInstalments = await trx.selectFrom('finance_loan_schedule').selectAll()
+      .where('tenant_id', '=', tenantId).where('loan_id', '=', repayment.loan_id)
+      .where(eb => eb.or([eb('principal_paid', '>', 0), eb('interest_paid', '>', 0)]))
+      .orderBy('instalment_no', 'desc').execute();
+    for (const inst of touchedInstalments) {
+      if (principalToUnwind <= 0 && interestToUnwind <= 0) break;
+      const principalReversal = Math.min(Number(inst.principal_paid), principalToUnwind);
+      const interestReversal = Math.min(Number(inst.interest_paid), interestToUnwind);
+      if (principalReversal <= 0 && interestReversal <= 0) continue;
+      principalToUnwind -= principalReversal;
+      interestToUnwind -= interestReversal;
+      const newPrincipalPaid = Number(inst.principal_paid) - principalReversal;
+      const newInterestPaid = Number(inst.interest_paid) - interestReversal;
+      await trx.updateTable('finance_loan_schedule').set({
+        principal_paid: newPrincipalPaid, interest_paid: newInterestPaid,
+        status: (newPrincipalPaid > 0 || newInterestPaid > 0) ? 'partial' : 'pending',
+        paid_at: null,
+      }).where('tenant_id', '=', tenantId).where('id', '=', inst.id).execute();
+    }
+
+    const updated = await trx.updateTable('finance_loan_repayments').set({
+      reversed_at: new Date(), reversed_by: actorId, reversal_reason: reason,
+    }).where('tenant_id', '=', tenantId).where('id', '=', repaymentId).returningAll().executeTakeFirstOrThrow();
+
+    if (loan.status === 'closed') {
+      await trx.updateTable('finance_loans').set({ status: 'active', updated_at: new Date() })
+        .where('tenant_id', '=', tenantId).where('id', '=', loan.id).execute();
+    }
+
+    return updated;
+  });
+}
+
+export async function refundLoanCredit(tenantId: string, actorId: string, creditId: string, refundReference?: string) {
+  return withTenant(tenantId, async trx => {
+    const credit = await trx.selectFrom('finance_loan_credits').select(['id', 'status']).where('tenant_id', '=', tenantId).where('id', '=', creditId).forUpdate().executeTakeFirst();
+    if (!credit) throw new IndustryWorkError('Loan credit not found.', 404);
+    if (credit.status !== 'held') throw new IndustryWorkError('This credit has already been refunded.', 409);
+    return trx.updateTable('finance_loan_credits').set({
+      status: 'refunded', refunded_by: actorId, refunded_at: new Date(), refund_reference: refundReference ?? null,
+    }).where('tenant_id', '=', tenantId).where('id', '=', creditId).returningAll().executeTakeFirstOrThrow();
   });
 }
 
@@ -509,8 +661,16 @@ export async function createReservation(tenantId: string, actorId: string, workI
   return withTenant(tenantId, async trx => {
     const work = await getIndustryWork(trx, tenantId, workId, true);
     if (work.industry !== 'hospitality') throw new IndustryWorkError('Reservations require a hospitality work.');
+    // forUpdate() on the room itself — the shared resource — not just the
+    // work record above. Two concurrent createReservation() calls for the
+    // same room come from two different work records (two different
+    // guests/bookings, each its own work), so the overlap query below
+    // must run serialized against any other in-flight booking for this
+    // room, not just read a snapshot both requests could see as empty at
+    // the same time (P0 verification: "authoritative resource protection
+    // is required").
     const room = await trx.selectFrom('finance_room_inventory').select(['id', 'status'])
-      .where('tenant_id', '=', tenantId).where('id', '=', input.room_id).executeTakeFirst();
+      .where('tenant_id', '=', tenantId).where('id', '=', input.room_id).forUpdate().executeTakeFirst();
     if (!room) throw new IndustryWorkError('Room not found.', 404);
     if (room.status !== 'available') throw new IndustryWorkError('Room is not available.');
     if (new Date(input.check_out) <= new Date(input.check_in)) throw new IndustryWorkError('Check-out must be after check-in.');
@@ -648,5 +808,204 @@ export async function enrollStudent(tenantId: string, actorId: string, workId: s
       fee_structure_id: input.fee_structure_id, scholarship_pct: scholarshipPct,
       amount_due: Math.round(amountDue * 100) / 100,
     }).returningAll().executeTakeFirstOrThrow();
+  });
+}
+
+// ═════════════════════════════════════════════════════════════
+// HEALTHCARE — both administrative/billing and clinical scope,
+// per the business's own decision. Billing rides the existing shared
+// finance_industry_work engine unmodified (same customer_id link every
+// other industry here already uses) — nothing new needed there. What's
+// new is patient identity/deduplication/booking (the unconditional P1)
+// and a deliberately unvalidated clinical record structure (encounters/
+// orders/results/prescriptions) — "unvalidated" meaning no invented
+// medical correctness rules, not meaning no audit trail: every signed
+// encounter and every prescription keeps its own amendment history.
+// ═════════════════════════════════════════════════════════════
+
+export async function createPatient(tenantId: string, input: {
+  first_name: string; last_name: string; date_of_birth?: string;
+  gender?: 'male' | 'female' | 'other'; phone?: string; email?: string;
+  address?: string; national_id?: string; customer_id?: string; notes?: string;
+}) {
+  return withTenant(tenantId, async trx => {
+    // Deduplication is a prompt, not a block or a silent merge: names and
+    // birthdates legitimately collide, and a registrar — not this
+    // function — is the one who can actually tell two same-named patients
+    // apart.
+    const possibleDuplicates = input.date_of_birth
+      ? await trx.selectFrom('health_patients').select(['id', 'first_name', 'last_name', 'date_of_birth', 'phone'])
+          .where('tenant_id', '=', tenantId)
+          .where(sql<boolean>`lower(first_name) = lower(${input.first_name})`)
+          .where(sql<boolean>`lower(last_name) = lower(${input.last_name})`)
+          .where('date_of_birth', '=', input.date_of_birth)
+          .execute()
+      : [];
+    const mrn = `MRN-${Date.now().toString(36).toUpperCase()}`;
+    const patient = await trx.insertInto('health_patients').values({
+      tenant_id: tenantId, mrn,
+      first_name: input.first_name, last_name: input.last_name,
+      date_of_birth: input.date_of_birth ?? null, gender: input.gender ?? null,
+      phone: input.phone ?? null, email: input.email ?? null, address: input.address ?? null,
+      national_id: input.national_id ?? null, customer_id: input.customer_id ?? null, notes: input.notes ?? null,
+    }).returningAll().executeTakeFirstOrThrow();
+    return { patient, possible_duplicates: possibleDuplicates };
+  });
+}
+
+export async function listPatients(tenantId: string, search = '') {
+  return withTenant(tenantId, async trx => {
+    let q = trx.selectFrom('health_patients').selectAll().where('tenant_id', '=', tenantId);
+    if (search) {
+      const esc = search.replace(/[\\%_]/g, '\\$&');
+      q = q.where(eb => eb.or([eb('first_name', 'ilike', `%${esc}%`), eb('last_name', 'ilike', `%${esc}%`), eb('mrn', 'ilike', `%${esc}%`)]));
+    }
+    return q.orderBy('last_name').orderBy('first_name').execute();
+  });
+}
+
+export async function createAppointment(tenantId: string, actorId: string, workId: string, input: {
+  patient_id: string; provider_id: string; scheduled_at: string; duration_minutes?: number; reason?: string;
+}) {
+  return withTenant(tenantId, async trx => {
+    const work = await getIndustryWork(trx, tenantId, workId, true);
+    if (work.industry !== 'healthcare') throw new IndustryWorkError('Appointments require a healthcare industry work.');
+    const patient = await trx.selectFrom('health_patients').select('id').where('tenant_id', '=', tenantId).where('id', '=', input.patient_id).executeTakeFirst();
+    if (!patient) throw new IndustryWorkError('Patient not found.', 404);
+    // forUpdate() on the provider — the actual contended resource, the
+    // same shape as createLease()'s unit lock and createReservation()'s
+    // room lock above: two concurrent bookings for the same provider must
+    // serialize here, not both pass an overlap check read before either
+    // commits.
+    const provider = await trx.selectFrom('users').select('id').where('id', '=', input.provider_id).forUpdate().executeTakeFirst();
+    if (!provider) throw new IndustryWorkError('Provider not found.', 404);
+    const durationMinutes = input.duration_minutes ?? 30;
+    const start = new Date(input.scheduled_at);
+    const end = new Date(start.getTime() + durationMinutes * 60_000);
+    const overlapping = await trx.selectFrom('health_appointments')
+      .select('id')
+      .where('tenant_id', '=', tenantId).where('provider_id', '=', input.provider_id)
+      .where('status', 'in', ['scheduled', 'checked_in'])
+      .where('scheduled_at', '<', end)
+      .where(sql<Date>`scheduled_at + (duration_minutes || ' minutes')::interval`, '>', start)
+      .executeTakeFirst();
+    if (overlapping) throw new IndustryWorkError('This provider already has an appointment overlapping that time.', 409);
+    return trx.insertInto('health_appointments').values({
+      tenant_id: tenantId, work_id: workId, patient_id: input.patient_id, provider_id: input.provider_id,
+      scheduled_at: start, duration_minutes: durationMinutes, reason: input.reason ?? null, created_by: actorId,
+    }).returningAll().executeTakeFirstOrThrow();
+  });
+}
+
+export async function progressAppointment(tenantId: string, appointmentId: string, status: 'checked_in' | 'completed' | 'cancelled' | 'no_show') {
+  return withTenant(tenantId, async trx => {
+    const appt = await trx.selectFrom('health_appointments').select(['id', 'status']).where('tenant_id', '=', tenantId).where('id', '=', appointmentId).forUpdate().executeTakeFirst();
+    if (!appt) throw new IndustryWorkError('Appointment not found.', 404);
+    if (['completed', 'cancelled', 'no_show'].includes(appt.status)) throw new IndustryWorkError(`Cannot change a ${appt.status} appointment.`);
+    return trx.updateTable('health_appointments').set({ status, updated_at: new Date() })
+      .where('tenant_id', '=', tenantId).where('id', '=', appointmentId).returningAll().executeTakeFirstOrThrow();
+  });
+}
+
+export async function createEncounter(tenantId: string, actorId: string, workId: string, input: {
+  patient_id: string; appointment_id?: string; provider_id: string; chief_complaint?: string; notes?: string;
+}) {
+  return withTenant(tenantId, async trx => {
+    const work = await getIndustryWork(trx, tenantId, workId, true);
+    if (work.industry !== 'healthcare') throw new IndustryWorkError('Encounters require a healthcare industry work.');
+    const patient = await trx.selectFrom('health_patients').select('id').where('tenant_id', '=', tenantId).where('id', '=', input.patient_id).executeTakeFirst();
+    if (!patient) throw new IndustryWorkError('Patient not found.', 404);
+    return trx.insertInto('health_encounters').values({
+      tenant_id: tenantId, work_id: workId, patient_id: input.patient_id,
+      appointment_id: input.appointment_id ?? null, provider_id: input.provider_id,
+      chief_complaint: input.chief_complaint ?? null, notes: input.notes ?? null, created_by: actorId,
+    }).returningAll().executeTakeFirstOrThrow();
+  });
+}
+
+export async function signEncounter(tenantId: string, actorId: string, encounterId: string) {
+  return withTenant(tenantId, async trx => {
+    const enc = await trx.selectFrom('health_encounters').select(['id', 'status']).where('tenant_id', '=', tenantId).where('id', '=', encounterId).forUpdate().executeTakeFirst();
+    if (!enc) throw new IndustryWorkError('Encounter not found.', 404);
+    if (enc.status !== 'open') throw new IndustryWorkError('Only an open encounter can be signed.');
+    return trx.updateTable('health_encounters').set({ status: 'signed', signed_by: actorId, signed_at: new Date(), updated_at: new Date() })
+      .where('tenant_id', '=', tenantId).where('id', '=', encounterId).returningAll().executeTakeFirstOrThrow();
+  });
+}
+
+/** Amending an open encounter is a plain edit (nothing has been attested
+ *  to yet); amending a signed one preserves what it said before the edit
+ *  as a real audit row — the edit never just overwrites the record. */
+export async function amendEncounter(tenantId: string, actorId: string, encounterId: string, input: { notes?: string; chief_complaint?: string; reason: string }) {
+  return withTenant(tenantId, async trx => {
+    const enc = await trx.selectFrom('health_encounters').selectAll().where('tenant_id', '=', tenantId).where('id', '=', encounterId).forUpdate().executeTakeFirst();
+    if (!enc) throw new IndustryWorkError('Encounter not found.', 404);
+    if (enc.status !== 'open') {
+      await trx.insertInto('health_encounter_amendments').values({
+        tenant_id: tenantId, encounter_id: encounterId, amended_by: actorId,
+        previous_notes: enc.notes, previous_chief_complaint: enc.chief_complaint, reason: input.reason,
+      }).execute();
+    }
+    return trx.updateTable('health_encounters').set({
+      notes: input.notes ?? enc.notes, chief_complaint: input.chief_complaint ?? enc.chief_complaint,
+      status: enc.status === 'open' ? 'open' : 'amended', updated_at: new Date(),
+    }).where('tenant_id', '=', tenantId).where('id', '=', encounterId).returningAll().executeTakeFirstOrThrow();
+  });
+}
+
+export async function createOrder(tenantId: string, actorId: string, encounterId: string, input: {
+  order_type: 'lab' | 'imaging' | 'referral' | 'procedure' | 'other'; description: string;
+}) {
+  return withTenant(tenantId, async trx => {
+    const enc = await trx.selectFrom('health_encounters').select('id').where('tenant_id', '=', tenantId).where('id', '=', encounterId).executeTakeFirst();
+    if (!enc) throw new IndustryWorkError('Encounter not found.', 404);
+    return trx.insertInto('health_orders').values({
+      tenant_id: tenantId, encounter_id: encounterId, order_type: input.order_type,
+      description: input.description, ordered_by: actorId,
+    }).returningAll().executeTakeFirstOrThrow();
+  });
+}
+
+export async function recordResult(tenantId: string, actorId: string, orderId: string, input: { result_text: string; status?: 'preliminary' | 'final' }) {
+  return withTenant(tenantId, async trx => {
+    const order = await trx.selectFrom('health_orders').select(['id', 'status']).where('tenant_id', '=', tenantId).where('id', '=', orderId).forUpdate().executeTakeFirst();
+    if (!order) throw new IndustryWorkError('Order not found.', 404);
+    const result = await trx.insertInto('health_results').values({
+      tenant_id: tenantId, order_id: orderId, result_text: input.result_text,
+      status: input.status ?? 'preliminary', recorded_by: actorId,
+    }).returningAll().executeTakeFirstOrThrow();
+    if (order.status !== 'completed') {
+      await trx.updateTable('health_orders').set({ status: 'completed' }).where('tenant_id', '=', tenantId).where('id', '=', orderId).execute();
+    }
+    return result;
+  });
+}
+
+export async function createPrescription(tenantId: string, actorId: string, encounterId: string, input: {
+  patient_id: string; medication_name: string; dosage: string; frequency: string; duration?: string;
+}) {
+  return withTenant(tenantId, async trx => {
+    const enc = await trx.selectFrom('health_encounters').select('id').where('tenant_id', '=', tenantId).where('id', '=', encounterId).executeTakeFirst();
+    if (!enc) throw new IndustryWorkError('Encounter not found.', 404);
+    return trx.insertInto('health_prescriptions').values({
+      tenant_id: tenantId, encounter_id: encounterId, patient_id: input.patient_id,
+      medication_name: input.medication_name, dosage: input.dosage, frequency: input.frequency,
+      duration: input.duration ?? null, prescribed_by: actorId,
+    }).returningAll().executeTakeFirstOrThrow();
+  });
+}
+
+export async function amendPrescription(tenantId: string, actorId: string, prescriptionId: string, input: { dosage?: string; frequency?: string; reason: string }) {
+  return withTenant(tenantId, async trx => {
+    const rx = await trx.selectFrom('health_prescriptions').selectAll().where('tenant_id', '=', tenantId).where('id', '=', prescriptionId).forUpdate().executeTakeFirst();
+    if (!rx) throw new IndustryWorkError('Prescription not found.', 404);
+    if (rx.status !== 'active') throw new IndustryWorkError('Only an active prescription can be amended.');
+    await trx.insertInto('health_prescription_amendments').values({
+      tenant_id: tenantId, prescription_id: prescriptionId, amended_by: actorId,
+      previous_dosage: rx.dosage, previous_frequency: rx.frequency, reason: input.reason,
+    }).execute();
+    return trx.updateTable('health_prescriptions').set({
+      dosage: input.dosage ?? rx.dosage, frequency: input.frequency ?? rx.frequency,
+    }).where('tenant_id', '=', tenantId).where('id', '=', prescriptionId).returningAll().executeTakeFirstOrThrow();
   });
 }

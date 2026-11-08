@@ -201,13 +201,13 @@ export const ProjectDirectory: React.FC = () => {
                 value={search}
                 onChange={e => setSearch(e.target.value)}
                 placeholder="Search directory…"
-                style={{ paddingLeft: 30, height: 34, fontSize: 12.5 }}
+                style={{ paddingLeft: 30, height: "var(--ctl-h)", fontSize: "var(--text-base)" }}
               />
               {search && (
-                <button
+                <button data-ui-native-button=""
                   type="button"
                   onClick={() => setSearch('')}
-                  style={{ position: 'absolute', right: 8, top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', color: 'var(--ink3)', cursor: 'pointer', padding: 2 }}
+                  style={{ position: 'absolute', right: 8, top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', color: 'var(--ink3)', cursor: 'pointer', padding: "var(--action-py) var(--space-md)" }}
                 >
                   <Icon name="close" size={12} />
                 </button>
@@ -216,7 +216,7 @@ export const ProjectDirectory: React.FC = () => {
 
             {/* Health Filter */}
             <Select value={healthFilter} onValueChange={setHealthFilter}>
-              <SelectTrigger style={{ height: 34, width: 120, fontSize: 12 }}>
+              <SelectTrigger style={{ height: "var(--ctl-h)", width: 120, fontSize: "var(--text-base)" }}>
                 <SelectValue placeholder="Health" />
               </SelectTrigger>
               <SelectContent>
@@ -229,7 +229,7 @@ export const ProjectDirectory: React.FC = () => {
 
             {/* Industry Filter */}
             <Select value={industryFilter} onValueChange={setIndustryFilter}>
-              <SelectTrigger style={{ height: 34, width: 130, fontSize: 12 }}>
+              <SelectTrigger style={{ height: "var(--ctl-h)", width: 130, fontSize: "var(--text-base)" }}>
                 <SelectValue placeholder="Industry" />
               </SelectTrigger>
               <SelectContent>
@@ -244,11 +244,11 @@ export const ProjectDirectory: React.FC = () => {
 
             {/* View Mode Toggle */}
             <div style={{ display: 'flex', border: '1px solid var(--border)', borderRadius: 'var(--r)', overflow: 'hidden' }}>
-              <button
+              <button data-ui-native-button=""
                 type="button"
                 onClick={() => setViewMode('grid')}
                 style={{
-                  padding: '6px 10px',
+                  padding: "var(--action-py) var(--space-md)",
                   background: viewMode === 'grid' ? 'var(--teal-l)' : 'var(--white)',
                   color: viewMode === 'grid' ? 'var(--teal)' : 'var(--ink3)',
                   border: 'none',
@@ -260,11 +260,11 @@ export const ProjectDirectory: React.FC = () => {
               >
                 <Icon name="grid" size={13} />
               </button>
-              <button
+              <button data-ui-native-button=""
                 type="button"
                 onClick={() => setViewMode('rows')}
                 style={{
-                  padding: '6px 10px',
+                  padding: "var(--action-py) var(--space-md)",
                   background: viewMode === 'rows' ? 'var(--teal-l)' : 'var(--white)',
                   color: viewMode === 'rows' ? 'var(--teal)' : 'var(--ink3)',
                   border: 'none',
@@ -368,7 +368,7 @@ export const ProjectDirectory: React.FC = () => {
                       <div style={{ display: 'flex', gap: 4, flexShrink: 0, alignItems: 'center' }}>
                         <Badge variant={hb.variant}>{hb.label}</Badge>
                         <Badge variant={sm.variant}>{sm.label}</Badge>
-                        <button
+                        <button data-ui-native-button=""
                           type="button"
                           title={bookmarks.has(p.id) ? 'Remove bookmark' : 'Bookmark project'}
                           onClick={e => toggleBookmark(p.id, e)}
@@ -376,7 +376,7 @@ export const ProjectDirectory: React.FC = () => {
                             background: 'none',
                             border: 'none',
                             cursor: 'pointer',
-                            padding: 2,
+                            padding: "var(--action-py) var(--space-md)",
                             display: 'flex',
                             alignItems: 'center',
                             color: bookmarks.has(p.id) ? 'var(--teal)' : 'var(--ink3)',
@@ -464,7 +464,7 @@ export const ProjectDirectory: React.FC = () => {
                       onMouseLeave={e => (e.currentTarget.style.background = '')}
                     >
                       <td style={{ padding: '12px 6px 12px 14px', width: 28 }}>
-                        <button
+                        <button data-ui-native-button=""
                           type="button"
                           title={bookmarks.has(p.id) ? 'Remove bookmark' : 'Bookmark project'}
                           onClick={e => toggleBookmark(p.id, e)}
@@ -472,7 +472,7 @@ export const ProjectDirectory: React.FC = () => {
                             background: 'none',
                             border: 'none',
                             cursor: 'pointer',
-                            padding: 2,
+                            padding: "var(--action-py) var(--space-md)",
                             display: 'flex',
                             alignItems: 'center',
                             color: bookmarks.has(p.id) ? 'var(--teal)' : 'var(--ink3)',
@@ -555,7 +555,7 @@ export const ProjectDirectory: React.FC = () => {
                 Next
               </Button>
               <Select value={String(pageSize)} onValueChange={value => setPageSize(Number(value))}>
-                <SelectTrigger style={{ height: 32, width: 110, fontSize: 12 }}>
+                <SelectTrigger style={{ height: "var(--ctl-h)", width: 110, fontSize: "var(--text-base)" }}>
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>

@@ -1,0 +1,2406 @@
+{
+  "pages": [
+    {
+      "page": "AccountingDeliveries",
+      "shared_metrics": false,
+      "selected_metric": null,
+      "has_metrics": false
+    },
+    {
+      "page": "AccountingIntegrations",
+      "shared_metrics": false,
+      "selected_metric": null,
+      "has_metrics": false
+    },
+    {
+      "page": "AccountsQuery",
+      "shared_metrics": false,
+      "selected_metric": null,
+      "has_metrics": false
+    },
+    {
+      "page": "ApApprovalWorkflows",
+      "shared_metrics": false,
+      "selected_metric": null,
+      "has_metrics": false
+    },
+    {
+      "page": "BankReconciliation",
+      "shared_metrics": false,
+      "selected_metric": null,
+      "has_metrics": true
+    },
+    {
+      "page": "Billing",
+      "shared_metrics": true,
+      "selected_metric": "'Total Invoices'",
+      "has_metrics": true
+    },
+    {
+      "page": "Bills",
+      "shared_metrics": true,
+      "selected_metric": "'TOTAL BILLS'",
+      "has_metrics": true
+    },
+    {
+      "page": "Budgets",
+      "shared_metrics": false,
+      "selected_metric": null,
+      "has_metrics": false
+    },
+    {
+      "page": "ChartOfAccounts",
+      "shared_metrics": true,
+      "selected_metric": "'TOTAL ACCOUNTS'",
+      "has_metrics": true
+    },
+    {
+      "page": "CreditNotes",
+      "shared_metrics": true,
+      "selected_metric": "TOTAL CREDITED",
+      "has_metrics": true
+    },
+    {
+      "page": "DeliveryDocumentsPage",
+      "shared_metrics": true,
+      "selected_metric": "'TOTAL DOCUMENTS'",
+      "has_metrics": true
+    },
+    {
+      "page": "Expenses",
+      "shared_metrics": true,
+      "selected_metric": "NET MARGIN",
+      "has_metrics": true
+    },
+    {
+      "page": "FinanceAgedPayables",
+      "shared_metrics": true,
+      "selected_metric": "'Total Payable'",
+      "has_metrics": true
+    },
+    {
+      "page": "FinanceAgedReceivables",
+      "shared_metrics": true,
+      "selected_metric": "'Total Outstanding'",
+      "has_metrics": true
+    },
+    {
+      "page": "FinanceBalanceSheet",
+      "shared_metrics": true,
+      "selected_metric": "'Total Assets'",
+      "has_metrics": true
+    },
+    {
+      "page": "FinanceCashFlow",
+      "shared_metrics": true,
+      "selected_metric": "Closing balance",
+      "has_metrics": true
+    },
+    {
+      "page": "FinanceCloseReview",
+      "shared_metrics": false,
+      "selected_metric": null,
+      "has_metrics": false
+    },
+    {
+      "page": "FinanceDashboard",
+      "shared_metrics": false,
+      "selected_metric": null,
+      "has_metrics": true
+    },
+    {
+      "page": "FinanceEquityStatement",
+      "shared_metrics": true,
+      "selected_metric": "Closing Equity",
+      "has_metrics": true
+    },
+    {
+      "page": "FinanceExpenseCategories",
+      "shared_metrics": false,
+      "selected_metric": null,
+      "has_metrics": false
+    },
+    {
+      "page": "FinanceExpenseNew",
+      "shared_metrics": false,
+      "selected_metric": null,
+      "has_metrics": false
+    },
+    {
+      "page": "FinanceExpenseReports",
+      "shared_metrics": false,
+      "selected_metric": null,
+      "has_metrics": true
+    },
+    {
+      "page": "FinanceExpensesReport",
+      "shared_metrics": false,
+      "selected_metric": null,
+      "has_metrics": false
+    },
+    {
+      "page": "FinanceFxRevaluation",
+      "shared_metrics": true,
+      "selected_metric": "'Revalued items'",
+      "has_metrics": true
+    },
+    {
+      "page": "FinanceIncomeVsExpenses",
+      "shared_metrics": true,
+      "selected_metric": "Net profit",
+      "has_metrics": true
+    },
+    {
+      "page": "FinanceIndustries",
+      "shared_metrics": false,
+      "selected_metric": null,
+      "has_metrics": true
+    },
+    {
+      "page": "FinanceLedger",
+      "shared_metrics": true,
+      "selected_metric": "'Revenue MTD'",
+      "has_metrics": true
+    },
+    {
+      "page": "FinancePayments",
+      "shared_metrics": true,
+      "selected_metric": "NET POSITION",
+      "has_metrics": true
+    },
+    {
+      "page": "FinancePos",
+      "shared_metrics": false,
+      "selected_metric": null,
+      "has_metrics": true
+    },
+    {
+      "page": "FinancePosSettings",
+      "shared_metrics": false,
+      "selected_metric": null,
+      "has_metrics": false
+    },
+    {
+      "page": "FinanceProfitLoss",
+      "shared_metrics": true,
+      "selected_metric": "Net Profit",
+      "has_metrics": true
+    },
+    {
+      "page": "FinanceReportsHub",
+      "shared_metrics": false,
+      "selected_metric": null,
+      "has_metrics": false
+    },
+    {
+      "page": "FinanceSalesReport",
+      "shared_metrics": false,
+      "selected_metric": null,
+      "has_metrics": true
+    },
+    {
+      "page": "FinanceTaxClassify",
+      "shared_metrics": false,
+      "selected_metric": null,
+      "has_metrics": false
+    },
+    {
+      "page": "FinanceTaxCodes",
+      "shared_metrics": true,
+      "selected_metric": "'TOTAL TAX CODES'",
+      "has_metrics": true
+    },
+    {
+      "page": "FinanceTaxPreparation",
+      "shared_metrics": false,
+      "selected_metric": null,
+      "has_metrics": false
+    },
+    {
+      "page": "FinanceTaxReport",
+      "shared_metrics": true,
+      "selected_metric": null,
+      "has_metrics": true
+    },
+    {
+      "page": "FinanceTrialBalance",
+      "shared_metrics": true,
+      "selected_metric": "'Total Debits'",
+      "has_metrics": true
+    },
+    {
+      "page": "FinanceVatPeriods",
+      "shared_metrics": true,
+      "selected_metric": "'Total Periods'",
+      "has_metrics": true
+    },
+    {
+      "page": "FinanceVendors",
+      "shared_metrics": true,
+      "selected_metric": "Outstanding Balance",
+      "has_metrics": true
+    },
+    {
+      "page": "FinanceWorkCosts",
+      "shared_metrics": false,
+      "selected_metric": null,
+      "has_metrics": false
+    },
+    {
+      "page": "FixedAssets",
+      "shared_metrics": true,
+      "selected_metric": "Net Book Value",
+      "has_metrics": true
+    },
+    {
+      "page": "GlPeriods",
+      "shared_metrics": true,
+      "selected_metric": "'Total Periods'",
+      "has_metrics": true
+    },
+    {
+      "page": "JournalEntries",
+      "shared_metrics": true,
+      "selected_metric": "'Total Entries'",
+      "has_metrics": true
+    },
+    {
+      "page": "MultiEntityAccounting",
+      "shared_metrics": true,
+      "selected_metric": "'Total Entities'",
+      "has_metrics": true
+    },
+    {
+      "page": "ProductCategoriesPage",
+      "shared_metrics": false,
+      "selected_metric": null,
+      "has_metrics": false
+    },
+    {
+      "page": "ProductReviewsPage",
+      "shared_metrics": true,
+      "selected_metric": "'Total Reviews'",
+      "has_metrics": true
+    },
+    {
+      "page": "ProductsServices",
+      "shared_metrics": true,
+      "selected_metric": "'Total Catalog'",
+      "has_metrics": true
+    },
+    {
+      "page": "PurchaseOrders",
+      "shared_metrics": true,
+      "selected_metric": "TOTAL VALUE",
+      "has_metrics": true
+    },
+    {
+      "page": "Quotations",
+      "shared_metrics": true,
+      "selected_metric": "PIPELINE VALUE",
+      "has_metrics": true
+    },
+    {
+      "page": "RecurringInvoices",
+      "shared_metrics": true,
+      "selected_metric": "Monthly Recurring",
+      "has_metrics": true
+    },
+    {
+      "page": "VendorProfilePage",
+      "shared_metrics": false,
+      "selected_metric": null,
+      "has_metrics": true
+    }
+  ],
+  "metrics_updated": [
+    "Billing",
+    "Bills",
+    "ChartOfAccounts",
+    "CreditNotes",
+    "DeliveryDocumentsPage",
+    "Expenses",
+    "FinanceAgedPayables",
+    "FinanceAgedReceivables",
+    "FinanceBalanceSheet",
+    "FinanceCashFlow",
+    "FinanceEquityStatement",
+    "FinanceFxRevaluation",
+    "FinanceIncomeVsExpenses",
+    "FinanceLedger",
+    "FinancePayments",
+    "FinanceProfitLoss",
+    "FinanceTaxCodes",
+    "FinanceTrialBalance",
+    "FinanceVatPeriods",
+    "FinanceVendors",
+    "FixedAssets",
+    "GlPeriods",
+    "JournalEntries",
+    "MultiEntityAccounting",
+    "ProductReviewsPage",
+    "ProductsServices",
+    "PurchaseOrders",
+    "Quotations",
+    "RecurringInvoices"
+  ],
+  "browser_checks": [
+    {
+      "route": "/finance",
+      "width": 1440,
+      "theme": "light",
+      "url": "/finance",
+      "rendered": true,
+      "horizontalOverflow": false,
+      "metricCards": 4,
+      "accentCards": 0,
+      "gated": false,
+      "errors": [],
+      "failedApi": []
+    },
+    {
+      "route": "/finance/overview",
+      "width": 1440,
+      "theme": "light",
+      "url": "/finance",
+      "rendered": true,
+      "horizontalOverflow": false,
+      "metricCards": 0,
+      "accentCards": 0,
+      "gated": false,
+      "errors": [],
+      "failedApi": []
+    },
+    {
+      "route": "/finance/industries",
+      "width": 1440,
+      "theme": "light",
+      "url": "/finance/industries",
+      "rendered": true,
+      "horizontalOverflow": false,
+      "metricCards": 4,
+      "accentCards": 0,
+      "gated": false,
+      "errors": [],
+      "failedApi": []
+    },
+    {
+      "route": "/finance/invoices",
+      "width": 1440,
+      "theme": "light",
+      "url": "/finance/invoices",
+      "rendered": true,
+      "horizontalOverflow": false,
+      "metricCards": 0,
+      "accentCards": 0,
+      "gated": false,
+      "errors": [],
+      "failedApi": []
+    },
+    {
+      "route": "/finance/invoices/new",
+      "width": 1440,
+      "theme": "light",
+      "url": "/finance/invoices/new",
+      "rendered": true,
+      "horizontalOverflow": false,
+      "metricCards": 0,
+      "accentCards": 0,
+      "gated": false,
+      "errors": [],
+      "failedApi": []
+    },
+    {
+      "route": "/finance/invoices/recurring",
+      "width": 1440,
+      "theme": "light",
+      "url": "/finance/invoices/recurring",
+      "rendered": true,
+      "horizontalOverflow": false,
+      "metricCards": 0,
+      "accentCards": 0,
+      "gated": false,
+      "errors": [],
+      "failedApi": []
+    },
+    {
+      "route": "/finance/credit-notes",
+      "width": 1440,
+      "theme": "light",
+      "url": "/finance/credit-notes",
+      "rendered": true,
+      "horizontalOverflow": false,
+      "metricCards": 0,
+      "accentCards": 0,
+      "gated": false,
+      "errors": [],
+      "failedApi": []
+    },
+    {
+      "route": "/finance/credit-notes/new",
+      "width": 1440,
+      "theme": "light",
+      "url": "/finance/credit-notes/new",
+      "rendered": true,
+      "horizontalOverflow": false,
+      "metricCards": 0,
+      "accentCards": 0,
+      "gated": false,
+      "errors": [],
+      "failedApi": []
+    },
+    {
+      "route": "/finance/quotations",
+      "width": 1440,
+      "theme": "light",
+      "url": "/finance/quotations",
+      "rendered": true,
+      "horizontalOverflow": false,
+      "metricCards": 4,
+      "accentCards": 1,
+      "gated": false,
+      "errors": [],
+      "failedApi": []
+    },
+    {
+      "route": "/finance/quotations/new",
+      "width": 1440,
+      "theme": "light",
+      "url": "/finance/quotations/new",
+      "rendered": true,
+      "horizontalOverflow": false,
+      "metricCards": 0,
+      "accentCards": 0,
+      "gated": false,
+      "errors": [],
+      "failedApi": []
+    },
+    {
+      "route": "/finance/delivery-documents",
+      "width": 1440,
+      "theme": "light",
+      "url": "/finance/delivery-documents",
+      "rendered": true,
+      "horizontalOverflow": false,
+      "metricCards": 4,
+      "accentCards": 1,
+      "gated": false,
+      "errors": [],
+      "failedApi": []
+    },
+    {
+      "route": "/finance/delivery-documents/new",
+      "width": 1440,
+      "theme": "light",
+      "url": "/finance/delivery-documents/new",
+      "rendered": true,
+      "horizontalOverflow": false,
+      "metricCards": 0,
+      "accentCards": 0,
+      "gated": false,
+      "errors": [],
+      "failedApi": []
+    },
+    {
+      "route": "/finance/delivery-notes",
+      "width": 1440,
+      "theme": "light",
+      "url": "/finance/delivery-documents",
+      "rendered": true,
+      "horizontalOverflow": false,
+      "metricCards": 4,
+      "accentCards": 1,
+      "gated": false,
+      "errors": [],
+      "failedApi": []
+    },
+    {
+      "route": "/finance/purchase-orders",
+      "width": 1440,
+      "theme": "light",
+      "url": "/finance/purchase-orders",
+      "rendered": true,
+      "horizontalOverflow": false,
+      "metricCards": 4,
+      "accentCards": 1,
+      "gated": false,
+      "errors": [],
+      "failedApi": []
+    },
+    {
+      "route": "/finance/purchase-orders/new",
+      "width": 1440,
+      "theme": "light",
+      "url": "/finance/purchase-orders/new",
+      "rendered": true,
+      "horizontalOverflow": false,
+      "metricCards": 0,
+      "accentCards": 0,
+      "gated": false,
+      "errors": [],
+      "failedApi": []
+    },
+    {
+      "route": "/finance/bills",
+      "width": 1440,
+      "theme": "light",
+      "url": "/finance/bills",
+      "rendered": true,
+      "horizontalOverflow": false,
+      "metricCards": 3,
+      "accentCards": 1,
+      "gated": false,
+      "errors": [],
+      "failedApi": []
+    },
+    {
+      "route": "/finance/bills/new",
+      "width": 1440,
+      "theme": "light",
+      "url": "/finance/bills/new",
+      "rendered": true,
+      "horizontalOverflow": false,
+      "metricCards": 0,
+      "accentCards": 0,
+      "gated": false,
+      "errors": [],
+      "failedApi": []
+    },
+    {
+      "route": "/finance/vendors",
+      "width": 1440,
+      "theme": "light",
+      "url": "/finance/vendors",
+      "rendered": true,
+      "horizontalOverflow": false,
+      "metricCards": 4,
+      "accentCards": 1,
+      "gated": false,
+      "errors": [],
+      "failedApi": []
+    },
+    {
+      "route": "/finance/vendors/new",
+      "width": 1440,
+      "theme": "light",
+      "url": "/finance/vendors/new",
+      "rendered": true,
+      "horizontalOverflow": false,
+      "metricCards": 0,
+      "accentCards": 0,
+      "gated": false,
+      "errors": [],
+      "failedApi": []
+    },
+    {
+      "route": "/finance/expenses",
+      "width": 1440,
+      "theme": "light",
+      "url": "/finance/expenses",
+      "rendered": true,
+      "horizontalOverflow": false,
+      "metricCards": 4,
+      "accentCards": 1,
+      "gated": false,
+      "errors": [],
+      "failedApi": []
+    },
+    {
+      "route": "/finance/expense-reports",
+      "width": 1440,
+      "theme": "light",
+      "url": "/finance/expense-reports",
+      "rendered": true,
+      "horizontalOverflow": false,
+      "metricCards": 1,
+      "accentCards": 1,
+      "gated": false,
+      "errors": [],
+      "failedApi": []
+    },
+    {
+      "route": "/finance/expense-reports/new",
+      "width": 1440,
+      "theme": "light",
+      "url": "/finance/expense-reports/new",
+      "rendered": true,
+      "horizontalOverflow": false,
+      "metricCards": 0,
+      "accentCards": 0,
+      "gated": false,
+      "errors": [],
+      "failedApi": []
+    },
+    {
+      "route": "/finance/expenses/new",
+      "width": 1440,
+      "theme": "light",
+      "url": "/finance/expenses/new",
+      "rendered": true,
+      "horizontalOverflow": false,
+      "metricCards": 0,
+      "accentCards": 0,
+      "gated": false,
+      "errors": [],
+      "failedApi": []
+    },
+    {
+      "route": "/finance/expenses/categories",
+      "width": 1440,
+      "theme": "light",
+      "url": "/finance/expenses/categories",
+      "rendered": true,
+      "horizontalOverflow": false,
+      "metricCards": 0,
+      "accentCards": 0,
+      "gated": false,
+      "errors": [],
+      "failedApi": []
+    },
+    {
+      "route": "/finance/payments",
+      "width": 1440,
+      "theme": "light",
+      "url": "/finance/payments",
+      "rendered": true,
+      "horizontalOverflow": false,
+      "metricCards": 4,
+      "accentCards": 1,
+      "gated": false,
+      "errors": [],
+      "failedApi": []
+    },
+    {
+      "route": "/finance/products",
+      "width": 1440,
+      "theme": "light",
+      "url": "/finance/products",
+      "rendered": true,
+      "horizontalOverflow": false,
+      "metricCards": 4,
+      "accentCards": 1,
+      "gated": false,
+      "errors": [],
+      "failedApi": []
+    },
+    {
+      "route": "/finance/products/new",
+      "width": 1440,
+      "theme": "light",
+      "url": "/finance/products/new",
+      "rendered": true,
+      "horizontalOverflow": false,
+      "metricCards": 0,
+      "accentCards": 0,
+      "gated": false,
+      "errors": [],
+      "failedApi": []
+    },
+    {
+      "route": "/finance/products/tariff",
+      "width": 1440,
+      "theme": "light",
+      "url": "/finance/products/tariff",
+      "rendered": true,
+      "horizontalOverflow": false,
+      "metricCards": 0,
+      "accentCards": 0,
+      "gated": false,
+      "errors": [],
+      "failedApi": []
+    },
+    {
+      "route": "/finance/products/categories",
+      "width": 1440,
+      "theme": "light",
+      "url": "/finance/products/categories",
+      "rendered": true,
+      "horizontalOverflow": false,
+      "metricCards": 0,
+      "accentCards": 0,
+      "gated": false,
+      "errors": [],
+      "failedApi": []
+    },
+    {
+      "route": "/finance/products/reviews",
+      "width": 1440,
+      "theme": "light",
+      "url": "/finance/products/reviews",
+      "rendered": true,
+      "horizontalOverflow": false,
+      "metricCards": 4,
+      "accentCards": 1,
+      "gated": false,
+      "errors": [],
+      "failedApi": []
+    },
+    {
+      "route": "/finance/pos/settings",
+      "width": 1440,
+      "theme": "light",
+      "url": "/finance/pos/settings",
+      "rendered": true,
+      "horizontalOverflow": false,
+      "metricCards": 4,
+      "accentCards": 1,
+      "gated": false,
+      "errors": [],
+      "failedApi": []
+    },
+    {
+      "route": "/finance/pos",
+      "width": 1440,
+      "theme": "light",
+      "url": "/finance/pos",
+      "rendered": true,
+      "horizontalOverflow": false,
+      "metricCards": 0,
+      "accentCards": 0,
+      "gated": false,
+      "errors": [],
+      "failedApi": []
+    },
+    {
+      "route": "/finance/tax-codes",
+      "width": 1440,
+      "theme": "light",
+      "url": "/finance/tax-codes",
+      "rendered": true,
+      "horizontalOverflow": false,
+      "metricCards": 4,
+      "accentCards": 1,
+      "gated": false,
+      "errors": [],
+      "failedApi": []
+    },
+    {
+      "route": "/finance/tax-codes/classify",
+      "width": 1440,
+      "theme": "light",
+      "url": "/finance/tax-codes/classify",
+      "rendered": true,
+      "horizontalOverflow": false,
+      "metricCards": 0,
+      "accentCards": 0,
+      "gated": false,
+      "errors": [],
+      "failedApi": []
+    },
+    {
+      "route": "/finance/vat-periods",
+      "width": 1440,
+      "theme": "light",
+      "url": "/finance/vat-periods",
+      "rendered": true,
+      "horizontalOverflow": false,
+      "metricCards": 4,
+      "accentCards": 1,
+      "gated": false,
+      "errors": [],
+      "failedApi": []
+    },
+    {
+      "route": "/finance/accounts",
+      "width": 1440,
+      "theme": "light",
+      "url": "/finance/accounts",
+      "rendered": true,
+      "horizontalOverflow": false,
+      "metricCards": 0,
+      "accentCards": 0,
+      "gated": false,
+      "errors": [],
+      "failedApi": []
+    },
+    {
+      "route": "/finance/accounts/chart-of-accounts",
+      "width": 1440,
+      "theme": "light",
+      "url": "/finance/accounts/chart-of-accounts",
+      "rendered": true,
+      "horizontalOverflow": false,
+      "metricCards": 4,
+      "accentCards": 1,
+      "gated": false,
+      "errors": [],
+      "failedApi": []
+    },
+    {
+      "route": "/finance/accounts/journal-entries",
+      "width": 1440,
+      "theme": "light",
+      "url": "/finance/accounts/journal-entries",
+      "rendered": true,
+      "horizontalOverflow": false,
+      "metricCards": 4,
+      "accentCards": 1,
+      "gated": false,
+      "errors": [],
+      "failedApi": []
+    },
+    {
+      "route": "/finance/accounts/ledger",
+      "width": 1440,
+      "theme": "light",
+      "url": "/finance/accounts/ledger",
+      "rendered": true,
+      "horizontalOverflow": false,
+      "metricCards": 5,
+      "accentCards": 2,
+      "gated": false,
+      "errors": [],
+      "failedApi": []
+    },
+    {
+      "route": "/finance/accounts/trial-balance",
+      "width": 1440,
+      "theme": "light",
+      "url": "/finance/accounts/trial-balance",
+      "rendered": true,
+      "horizontalOverflow": false,
+      "metricCards": 4,
+      "accentCards": 1,
+      "gated": false,
+      "errors": [],
+      "failedApi": []
+    },
+    {
+      "route": "/finance/accounts/balance-sheet",
+      "width": 1440,
+      "theme": "light",
+      "url": "/finance/accounts/balance-sheet",
+      "rendered": true,
+      "horizontalOverflow": false,
+      "metricCards": 4,
+      "accentCards": 1,
+      "gated": false,
+      "errors": [],
+      "failedApi": []
+    },
+    {
+      "route": "/finance/accounts/profit-loss",
+      "width": 1440,
+      "theme": "light",
+      "url": "/finance/accounts/profit-loss",
+      "rendered": true,
+      "horizontalOverflow": false,
+      "metricCards": 4,
+      "accentCards": 1,
+      "gated": false,
+      "errors": [],
+      "failedApi": []
+    },
+    {
+      "route": "/finance/accounts/equity-statement",
+      "width": 1440,
+      "theme": "light",
+      "url": "/finance/accounts/equity-statement",
+      "rendered": true,
+      "horizontalOverflow": false,
+      "metricCards": 4,
+      "accentCards": 1,
+      "gated": false,
+      "errors": [],
+      "failedApi": []
+    },
+    {
+      "route": "/finance/accounts/aged-receivables",
+      "width": 1440,
+      "theme": "light",
+      "url": "/finance/accounts/aged-receivables",
+      "rendered": true,
+      "horizontalOverflow": false,
+      "metricCards": 4,
+      "accentCards": 1,
+      "gated": false,
+      "errors": [],
+      "failedApi": []
+    },
+    {
+      "route": "/finance/accounts/aged-payables",
+      "width": 1440,
+      "theme": "light",
+      "url": "/finance/accounts/aged-payables",
+      "rendered": true,
+      "horizontalOverflow": false,
+      "metricCards": 4,
+      "accentCards": 1,
+      "gated": false,
+      "errors": [],
+      "failedApi": []
+    },
+    {
+      "route": "/finance/accounts/multi-entity",
+      "width": 1440,
+      "theme": "light",
+      "url": "/finance/accounts/multi-entity",
+      "rendered": true,
+      "horizontalOverflow": false,
+      "metricCards": 4,
+      "accentCards": 1,
+      "gated": false,
+      "errors": [],
+      "failedApi": [
+        "500 /v1/finance/entities/stats"
+      ]
+    },
+    {
+      "route": "/finance/accounts/fixed-assets",
+      "width": 1440,
+      "theme": "light",
+      "url": "/finance/accounts/fixed-assets",
+      "rendered": true,
+      "horizontalOverflow": false,
+      "metricCards": 4,
+      "accentCards": 1,
+      "gated": false,
+      "errors": [],
+      "failedApi": []
+    },
+    {
+      "route": "/finance/accounts/budgets",
+      "width": 1440,
+      "theme": "light",
+      "url": "/finance/accounts/budgets",
+      "rendered": true,
+      "horizontalOverflow": false,
+      "metricCards": 0,
+      "accentCards": 0,
+      "gated": false,
+      "errors": [],
+      "failedApi": []
+    },
+    {
+      "route": "/finance/accounts/bank-reconciliation",
+      "width": 1440,
+      "theme": "light",
+      "url": "/finance/accounts/bank-reconciliation",
+      "rendered": true,
+      "horizontalOverflow": false,
+      "metricCards": 1,
+      "accentCards": 1,
+      "gated": false,
+      "errors": [],
+      "failedApi": []
+    },
+    {
+      "route": "/finance/accounts/gl-periods",
+      "width": 1440,
+      "theme": "light",
+      "url": "/finance/accounts/gl-periods",
+      "rendered": true,
+      "horizontalOverflow": false,
+      "metricCards": 4,
+      "accentCards": 1,
+      "gated": false,
+      "errors": [],
+      "failedApi": []
+    },
+    {
+      "route": "/finance/accounts/approval-workflows",
+      "width": 1440,
+      "theme": "light",
+      "url": "/finance/accounts/approval-workflows",
+      "rendered": true,
+      "horizontalOverflow": false,
+      "metricCards": 0,
+      "accentCards": 0,
+      "gated": false,
+      "errors": [],
+      "failedApi": []
+    },
+    {
+      "route": "/finance/accounts/fx-revaluation",
+      "width": 1440,
+      "theme": "light",
+      "url": "/finance/accounts/fx-revaluation",
+      "rendered": true,
+      "horizontalOverflow": false,
+      "metricCards": 4,
+      "accentCards": 1,
+      "gated": false,
+      "errors": [],
+      "failedApi": []
+    },
+    {
+      "route": "/finance/reports",
+      "width": 1440,
+      "theme": "light",
+      "url": "/finance/reports",
+      "rendered": true,
+      "horizontalOverflow": false,
+      "metricCards": 0,
+      "accentCards": 0,
+      "gated": false,
+      "errors": [],
+      "failedApi": []
+    },
+    {
+      "route": "/finance/reports/sales",
+      "width": 1440,
+      "theme": "light",
+      "url": "/finance/reports/sales",
+      "rendered": true,
+      "horizontalOverflow": false,
+      "metricCards": 1,
+      "accentCards": 1,
+      "gated": false,
+      "errors": [],
+      "failedApi": []
+    },
+    {
+      "route": "/finance/reports/expenses",
+      "width": 1440,
+      "theme": "light",
+      "url": "/finance/reports/expenses",
+      "rendered": true,
+      "horizontalOverflow": false,
+      "metricCards": 0,
+      "accentCards": 0,
+      "gated": false,
+      "errors": [],
+      "failedApi": []
+    },
+    {
+      "route": "/finance/reports/income-vs-expenses",
+      "width": 1440,
+      "theme": "light",
+      "url": "/finance/reports/income-vs-expenses",
+      "rendered": true,
+      "horizontalOverflow": false,
+      "metricCards": 4,
+      "accentCards": 1,
+      "gated": false,
+      "errors": [],
+      "failedApi": []
+    },
+    {
+      "route": "/finance/reports/tax",
+      "width": 1440,
+      "theme": "light",
+      "url": "/finance/reports/tax",
+      "rendered": true,
+      "horizontalOverflow": false,
+      "metricCards": 3,
+      "accentCards": 1,
+      "gated": false,
+      "errors": [],
+      "failedApi": []
+    },
+    {
+      "route": "/finance/reports/cash-flow",
+      "width": 1440,
+      "theme": "light",
+      "url": "/finance/reports/cash-flow",
+      "rendered": true,
+      "horizontalOverflow": false,
+      "metricCards": 0,
+      "accentCards": 0,
+      "gated": false,
+      "errors": [],
+      "failedApi": [
+        "500 /v1/finance/cash-flow"
+      ]
+    },
+    {
+      "route": "/finance/integrations",
+      "width": 1440,
+      "theme": "light",
+      "url": "/finance/integrations",
+      "rendered": true,
+      "horizontalOverflow": false,
+      "metricCards": 0,
+      "accentCards": 0,
+      "gated": false,
+      "errors": [],
+      "failedApi": []
+    },
+    {
+      "route": "/finance/integrations/deliveries",
+      "width": 1440,
+      "theme": "light",
+      "url": "/finance/integrations/deliveries",
+      "rendered": true,
+      "horizontalOverflow": false,
+      "metricCards": 0,
+      "accentCards": 0,
+      "gated": false,
+      "errors": [],
+      "failedApi": []
+    },
+    {
+      "route": "/finance",
+      "width": 390,
+      "theme": "dark",
+      "url": "/finance",
+      "rendered": true,
+      "horizontalOverflow": false,
+      "metricCards": 4,
+      "accentCards": 0,
+      "gated": false,
+      "errors": [],
+      "failedApi": []
+    },
+    {
+      "route": "/finance/overview",
+      "width": 390,
+      "theme": "dark",
+      "url": "/finance",
+      "rendered": true,
+      "horizontalOverflow": false,
+      "metricCards": 0,
+      "accentCards": 0,
+      "gated": false,
+      "errors": [],
+      "failedApi": []
+    },
+    {
+      "route": "/finance/industries",
+      "width": 390,
+      "theme": "dark",
+      "url": "/finance/industries",
+      "rendered": true,
+      "horizontalOverflow": false,
+      "metricCards": 0,
+      "accentCards": 0,
+      "gated": false,
+      "errors": [],
+      "failedApi": []
+    },
+    {
+      "route": "/finance/invoices",
+      "width": 390,
+      "theme": "dark",
+      "url": "/finance/invoices",
+      "rendered": true,
+      "horizontalOverflow": false,
+      "metricCards": 0,
+      "accentCards": 0,
+      "gated": false,
+      "errors": [],
+      "failedApi": []
+    },
+    {
+      "route": "/finance/invoices/new",
+      "width": 390,
+      "theme": "dark",
+      "url": "/finance/invoices/new",
+      "rendered": true,
+      "horizontalOverflow": false,
+      "metricCards": 0,
+      "accentCards": 0,
+      "gated": false,
+      "errors": [],
+      "failedApi": []
+    },
+    {
+      "route": "/finance/invoices/recurring",
+      "width": 390,
+      "theme": "dark",
+      "url": "/finance/invoices/recurring",
+      "rendered": true,
+      "horizontalOverflow": false,
+      "metricCards": 0,
+      "accentCards": 0,
+      "gated": false,
+      "errors": [],
+      "failedApi": []
+    },
+    {
+      "route": "/finance/credit-notes",
+      "width": 390,
+      "theme": "dark",
+      "url": "/finance/credit-notes",
+      "rendered": true,
+      "horizontalOverflow": false,
+      "metricCards": 4,
+      "accentCards": 1,
+      "gated": false,
+      "errors": [],
+      "failedApi": []
+    },
+    {
+      "route": "/finance/credit-notes/new",
+      "width": 390,
+      "theme": "dark",
+      "url": "/finance/credit-notes/new",
+      "rendered": true,
+      "horizontalOverflow": false,
+      "metricCards": 0,
+      "accentCards": 0,
+      "gated": false,
+      "errors": [],
+      "failedApi": []
+    },
+    {
+      "route": "/finance/quotations",
+      "width": 390,
+      "theme": "dark",
+      "url": "/finance/quotations",
+      "rendered": true,
+      "horizontalOverflow": false,
+      "metricCards": 4,
+      "accentCards": 1,
+      "gated": false,
+      "errors": [],
+      "failedApi": [
+        "500 /v1/quotations",
+        "500 /v1/quotations/stats"
+      ]
+    },
+    {
+      "route": "/finance/quotations/new",
+      "width": 390,
+      "theme": "dark",
+      "url": "/finance/quotations/new",
+      "rendered": true,
+      "horizontalOverflow": false,
+      "metricCards": 0,
+      "accentCards": 0,
+      "gated": false,
+      "errors": [],
+      "failedApi": [
+        "500 /v1/quotations",
+        "500 /v1/quotations/stats",
+        "500 /v1/finance/capabilities/configuration",
+        "500 /v1/products"
+      ]
+    },
+    {
+      "route": "/finance/delivery-documents",
+      "width": 390,
+      "theme": "dark",
+      "url": "/finance/delivery-documents",
+      "rendered": true,
+      "horizontalOverflow": false,
+      "metricCards": 4,
+      "accentCards": 1,
+      "gated": false,
+      "errors": [],
+      "failedApi": []
+    },
+    {
+      "route": "/finance/delivery-documents/new",
+      "width": 390,
+      "theme": "dark",
+      "url": "/finance/delivery-documents/new",
+      "rendered": true,
+      "horizontalOverflow": false,
+      "metricCards": 0,
+      "accentCards": 0,
+      "gated": false,
+      "errors": [],
+      "failedApi": []
+    },
+    {
+      "route": "/finance/delivery-notes",
+      "width": 390,
+      "theme": "dark",
+      "url": "/finance/delivery-documents",
+      "rendered": true,
+      "horizontalOverflow": false,
+      "metricCards": 4,
+      "accentCards": 1,
+      "gated": false,
+      "errors": [],
+      "failedApi": []
+    },
+    {
+      "route": "/finance/purchase-orders",
+      "width": 390,
+      "theme": "dark",
+      "url": "/finance/purchase-orders",
+      "rendered": true,
+      "horizontalOverflow": false,
+      "metricCards": 4,
+      "accentCards": 1,
+      "gated": false,
+      "errors": [],
+      "failedApi": [
+        "500 /v1/finance/capabilities/configuration",
+        "500 /v1/products"
+      ]
+    },
+    {
+      "route": "/finance/purchase-orders/new",
+      "width": 390,
+      "theme": "dark",
+      "url": "/finance/purchase-orders/new",
+      "rendered": true,
+      "horizontalOverflow": false,
+      "metricCards": 0,
+      "accentCards": 0,
+      "gated": false,
+      "errors": [],
+      "failedApi": [
+        "500 /v1/finance/capabilities/configuration",
+        "500 /v1/products"
+      ]
+    },
+    {
+      "route": "/finance/bills",
+      "width": 390,
+      "theme": "dark",
+      "url": "/finance/bills",
+      "rendered": true,
+      "horizontalOverflow": false,
+      "metricCards": 3,
+      "accentCards": 1,
+      "gated": false,
+      "errors": [],
+      "failedApi": [
+        "500 /v1/bills/stats",
+        "500 /v1/bills/recurring",
+        "500 /v1/bills"
+      ]
+    },
+    {
+      "route": "/finance/bills/new",
+      "width": 390,
+      "theme": "dark",
+      "url": "/finance/bills/new",
+      "rendered": true,
+      "horizontalOverflow": false,
+      "metricCards": 0,
+      "accentCards": 0,
+      "gated": false,
+      "errors": [],
+      "failedApi": [
+        "500 /v1/bills/stats",
+        "500 /v1/bills/recurring",
+        "500 /v1/finance/capabilities/configuration",
+        "500 /v1/bills"
+      ]
+    },
+    {
+      "route": "/finance/vendors",
+      "width": 390,
+      "theme": "dark",
+      "url": "/finance/vendors",
+      "rendered": true,
+      "horizontalOverflow": false,
+      "metricCards": 4,
+      "accentCards": 1,
+      "gated": false,
+      "errors": [],
+      "failedApi": [
+        "500 /v1/finance/expenses",
+        "500 /v1/bills",
+        "500 /v1/bills/payments"
+      ]
+    },
+    {
+      "route": "/finance/vendors/new",
+      "width": 390,
+      "theme": "dark",
+      "url": "/finance/vendors/new",
+      "rendered": true,
+      "horizontalOverflow": false,
+      "metricCards": 0,
+      "accentCards": 0,
+      "gated": false,
+      "errors": [],
+      "failedApi": [
+        "500 /v1/finance/expenses",
+        "500 /v1/bills",
+        "500 /v1/bills/payments"
+      ]
+    },
+    {
+      "route": "/finance/expenses",
+      "width": 390,
+      "theme": "dark",
+      "url": "/finance/expenses",
+      "rendered": true,
+      "horizontalOverflow": false,
+      "metricCards": 4,
+      "accentCards": 1,
+      "gated": false,
+      "errors": [],
+      "failedApi": [
+        "500 /v1/finance/capabilities/configuration",
+        "500 /v1/finance/expenses",
+        "500 /v1/finance/expenses/stats"
+      ]
+    },
+    {
+      "route": "/finance/expense-reports",
+      "width": 390,
+      "theme": "dark",
+      "url": "/finance/expense-reports",
+      "rendered": true,
+      "horizontalOverflow": false,
+      "metricCards": 1,
+      "accentCards": 1,
+      "gated": false,
+      "errors": [],
+      "failedApi": [
+        "500 /v1/finance/expense-reports"
+      ]
+    },
+    {
+      "route": "/finance/expense-reports/new",
+      "width": 390,
+      "theme": "dark",
+      "url": "/finance/expense-reports/new",
+      "rendered": true,
+      "horizontalOverflow": false,
+      "metricCards": 0,
+      "accentCards": 0,
+      "gated": false,
+      "errors": [],
+      "failedApi": []
+    },
+    {
+      "route": "/finance/expenses/new",
+      "width": 390,
+      "theme": "dark",
+      "url": "/finance/expenses/new",
+      "rendered": true,
+      "horizontalOverflow": false,
+      "metricCards": 0,
+      "accentCards": 0,
+      "gated": false,
+      "errors": [],
+      "failedApi": [
+        "500 /v1/finance/capabilities/configuration"
+      ]
+    },
+    {
+      "route": "/finance/expenses/categories",
+      "width": 390,
+      "theme": "dark",
+      "url": "/finance/expenses/categories",
+      "rendered": true,
+      "horizontalOverflow": false,
+      "metricCards": 0,
+      "accentCards": 0,
+      "gated": false,
+      "errors": [],
+      "failedApi": []
+    },
+    {
+      "route": "/finance/payments",
+      "width": 390,
+      "theme": "dark",
+      "url": "/finance/payments",
+      "rendered": true,
+      "horizontalOverflow": false,
+      "metricCards": 4,
+      "accentCards": 1,
+      "gated": false,
+      "errors": [],
+      "failedApi": [
+        "500 /v1/invoices"
+      ]
+    },
+    {
+      "route": "/finance/products",
+      "width": 390,
+      "theme": "dark",
+      "url": "/finance/products",
+      "rendered": true,
+      "horizontalOverflow": false,
+      "metricCards": 4,
+      "accentCards": 1,
+      "gated": false,
+      "errors": [],
+      "failedApi": [
+        "500 /v1/finance/capabilities/configuration",
+        "500 /v1/products",
+        "500 /v1/products/stats"
+      ]
+    },
+    {
+      "route": "/finance/products/new",
+      "width": 390,
+      "theme": "dark",
+      "url": "/finance/products/new",
+      "rendered": true,
+      "horizontalOverflow": false,
+      "metricCards": 0,
+      "accentCards": 0,
+      "gated": false,
+      "errors": [],
+      "failedApi": []
+    },
+    {
+      "route": "/finance/products/tariff",
+      "width": 390,
+      "theme": "dark",
+      "url": "/finance/products/tariff",
+      "rendered": true,
+      "horizontalOverflow": false,
+      "metricCards": 0,
+      "accentCards": 0,
+      "gated": false,
+      "errors": [],
+      "failedApi": []
+    },
+    {
+      "route": "/finance/products/categories",
+      "width": 390,
+      "theme": "dark",
+      "url": "/finance/products/categories",
+      "rendered": true,
+      "horizontalOverflow": false,
+      "metricCards": 0,
+      "accentCards": 0,
+      "gated": false,
+      "errors": [],
+      "failedApi": []
+    },
+    {
+      "route": "/finance/products/reviews",
+      "width": 390,
+      "theme": "dark",
+      "url": "/finance/products/reviews",
+      "rendered": true,
+      "horizontalOverflow": false,
+      "metricCards": 4,
+      "accentCards": 1,
+      "gated": false,
+      "errors": [],
+      "failedApi": []
+    },
+    {
+      "route": "/finance/pos/settings",
+      "width": 390,
+      "theme": "dark",
+      "url": "/finance/pos/settings",
+      "rendered": true,
+      "horizontalOverflow": false,
+      "metricCards": 0,
+      "accentCards": 0,
+      "gated": false,
+      "errors": [],
+      "failedApi": []
+    },
+    {
+      "route": "/finance/pos",
+      "width": 390,
+      "theme": "dark",
+      "url": "/finance/pos",
+      "rendered": true,
+      "horizontalOverflow": false,
+      "metricCards": 1,
+      "accentCards": 1,
+      "gated": false,
+      "errors": [],
+      "failedApi": []
+    },
+    {
+      "route": "/finance/tax-codes",
+      "width": 390,
+      "theme": "dark",
+      "url": "/finance/tax-codes",
+      "rendered": true,
+      "horizontalOverflow": false,
+      "metricCards": 4,
+      "accentCards": 1,
+      "gated": false,
+      "errors": [],
+      "failedApi": []
+    },
+    {
+      "route": "/finance/tax-codes/classify",
+      "width": 390,
+      "theme": "dark",
+      "url": "/finance/tax-codes/classify",
+      "rendered": true,
+      "horizontalOverflow": false,
+      "metricCards": 4,
+      "accentCards": 1,
+      "gated": false,
+      "errors": [],
+      "failedApi": []
+    },
+    {
+      "route": "/finance/vat-periods",
+      "width": 390,
+      "theme": "dark",
+      "url": "/finance/vat-periods",
+      "rendered": true,
+      "horizontalOverflow": false,
+      "metricCards": 0,
+      "accentCards": 0,
+      "gated": false,
+      "errors": [],
+      "failedApi": []
+    },
+    {
+      "route": "/finance/accounts",
+      "width": 390,
+      "theme": "dark",
+      "url": "/finance/accounts",
+      "rendered": true,
+      "horizontalOverflow": false,
+      "metricCards": 0,
+      "accentCards": 0,
+      "gated": false,
+      "errors": [],
+      "failedApi": []
+    },
+    {
+      "route": "/finance/accounts/chart-of-accounts",
+      "width": 390,
+      "theme": "dark",
+      "url": "/finance/accounts/chart-of-accounts",
+      "rendered": true,
+      "horizontalOverflow": false,
+      "metricCards": 4,
+      "accentCards": 1,
+      "gated": false,
+      "errors": [],
+      "failedApi": []
+    },
+    {
+      "route": "/finance/accounts/journal-entries",
+      "width": 390,
+      "theme": "dark",
+      "url": "/finance/accounts/journal-entries",
+      "rendered": true,
+      "horizontalOverflow": false,
+      "metricCards": 0,
+      "accentCards": 0,
+      "gated": false,
+      "errors": [],
+      "failedApi": []
+    },
+    {
+      "route": "/finance/accounts/ledger",
+      "width": 390,
+      "theme": "dark",
+      "url": "/finance/accounts/ledger",
+      "rendered": true,
+      "horizontalOverflow": false,
+      "metricCards": 5,
+      "accentCards": 2,
+      "gated": false,
+      "errors": [],
+      "failedApi": []
+    },
+    {
+      "route": "/finance/accounts/trial-balance",
+      "width": 390,
+      "theme": "dark",
+      "url": "/finance/accounts/trial-balance",
+      "rendered": true,
+      "horizontalOverflow": false,
+      "metricCards": 5,
+      "accentCards": 2,
+      "gated": false,
+      "errors": [],
+      "failedApi": []
+    },
+    {
+      "route": "/finance/accounts/balance-sheet",
+      "width": 390,
+      "theme": "dark",
+      "url": "/finance/accounts/balance-sheet",
+      "rendered": true,
+      "horizontalOverflow": false,
+      "metricCards": 0,
+      "accentCards": 0,
+      "gated": false,
+      "errors": [],
+      "failedApi": []
+    },
+    {
+      "route": "/finance/accounts/profit-loss",
+      "width": 390,
+      "theme": "dark",
+      "url": "/finance/accounts/profit-loss",
+      "rendered": true,
+      "horizontalOverflow": false,
+      "metricCards": 0,
+      "accentCards": 0,
+      "gated": false,
+      "errors": [],
+      "failedApi": []
+    },
+    {
+      "route": "/finance/accounts/equity-statement",
+      "width": 390,
+      "theme": "dark",
+      "url": "/finance/accounts/equity-statement",
+      "rendered": true,
+      "horizontalOverflow": false,
+      "metricCards": 0,
+      "accentCards": 0,
+      "gated": false,
+      "errors": [],
+      "failedApi": []
+    },
+    {
+      "route": "/finance/accounts/aged-receivables",
+      "width": 390,
+      "theme": "dark",
+      "url": "/finance/accounts/aged-receivables",
+      "rendered": true,
+      "horizontalOverflow": false,
+      "metricCards": 0,
+      "accentCards": 0,
+      "gated": false,
+      "errors": [],
+      "failedApi": []
+    },
+    {
+      "route": "/finance/accounts/aged-payables",
+      "width": 390,
+      "theme": "dark",
+      "url": "/finance/accounts/aged-payables",
+      "rendered": true,
+      "horizontalOverflow": false,
+      "metricCards": 0,
+      "accentCards": 0,
+      "gated": false,
+      "errors": [],
+      "failedApi": []
+    },
+    {
+      "route": "/finance/accounts/multi-entity",
+      "width": 390,
+      "theme": "dark",
+      "url": "/finance/accounts/multi-entity",
+      "rendered": true,
+      "horizontalOverflow": false,
+      "metricCards": 4,
+      "accentCards": 1,
+      "gated": false,
+      "errors": [],
+      "failedApi": [
+        "500 /v1/finance/entities/stats"
+      ]
+    },
+    {
+      "route": "/finance/accounts/fixed-assets",
+      "width": 390,
+      "theme": "dark",
+      "url": "/finance/accounts/fixed-assets",
+      "rendered": true,
+      "horizontalOverflow": false,
+      "metricCards": 4,
+      "accentCards": 1,
+      "gated": false,
+      "errors": [],
+      "failedApi": []
+    },
+    {
+      "route": "/finance/accounts/budgets",
+      "width": 390,
+      "theme": "dark",
+      "url": "/finance/accounts/budgets",
+      "rendered": true,
+      "horizontalOverflow": false,
+      "metricCards": 0,
+      "accentCards": 0,
+      "gated": false,
+      "errors": [],
+      "failedApi": []
+    },
+    {
+      "route": "/finance/accounts/bank-reconciliation",
+      "width": 390,
+      "theme": "dark",
+      "url": "/finance/accounts/bank-reconciliation",
+      "rendered": true,
+      "horizontalOverflow": false,
+      "metricCards": 1,
+      "accentCards": 1,
+      "gated": false,
+      "errors": [],
+      "failedApi": []
+    },
+    {
+      "route": "/finance/accounts/gl-periods",
+      "width": 390,
+      "theme": "dark",
+      "url": "/finance/accounts/gl-periods",
+      "rendered": true,
+      "horizontalOverflow": false,
+      "metricCards": 4,
+      "accentCards": 1,
+      "gated": false,
+      "errors": [],
+      "failedApi": []
+    },
+    {
+      "route": "/finance/accounts/approval-workflows",
+      "width": 390,
+      "theme": "dark",
+      "url": "/finance/accounts/approval-workflows",
+      "rendered": true,
+      "horizontalOverflow": false,
+      "metricCards": 0,
+      "accentCards": 0,
+      "gated": false,
+      "errors": [],
+      "failedApi": []
+    },
+    {
+      "route": "/finance/accounts/fx-revaluation",
+      "width": 390,
+      "theme": "dark",
+      "url": "/finance/accounts/fx-revaluation",
+      "rendered": true,
+      "horizontalOverflow": false,
+      "metricCards": 4,
+      "accentCards": 1,
+      "gated": false,
+      "errors": [],
+      "failedApi": []
+    },
+    {
+      "route": "/finance/reports",
+      "width": 390,
+      "theme": "dark",
+      "url": "/finance/reports",
+      "rendered": true,
+      "horizontalOverflow": false,
+      "metricCards": 0,
+      "accentCards": 0,
+      "gated": false,
+      "errors": [],
+      "failedApi": []
+    },
+    {
+      "route": "/finance/reports/sales",
+      "width": 390,
+      "theme": "dark",
+      "url": "/finance/reports/sales",
+      "rendered": true,
+      "horizontalOverflow": false,
+      "metricCards": 1,
+      "accentCards": 1,
+      "gated": false,
+      "errors": [],
+      "failedApi": []
+    },
+    {
+      "route": "/finance/reports/expenses",
+      "width": 390,
+      "theme": "dark",
+      "url": "/finance/reports/expenses",
+      "rendered": true,
+      "horizontalOverflow": false,
+      "metricCards": 0,
+      "accentCards": 0,
+      "gated": false,
+      "errors": [],
+      "failedApi": []
+    },
+    {
+      "route": "/finance/reports/income-vs-expenses",
+      "width": 390,
+      "theme": "dark",
+      "url": "/finance/reports/income-vs-expenses",
+      "rendered": true,
+      "horizontalOverflow": false,
+      "metricCards": 4,
+      "accentCards": 1,
+      "gated": false,
+      "errors": [],
+      "failedApi": []
+    },
+    {
+      "route": "/finance/reports/tax",
+      "width": 390,
+      "theme": "dark",
+      "url": "/finance/reports/tax",
+      "rendered": true,
+      "horizontalOverflow": false,
+      "metricCards": 3,
+      "accentCards": 1,
+      "gated": false,
+      "errors": [],
+      "failedApi": []
+    },
+    {
+      "route": "/finance/reports/cash-flow",
+      "width": 390,
+      "theme": "dark",
+      "url": "/finance/reports/cash-flow",
+      "rendered": true,
+      "horizontalOverflow": false,
+      "metricCards": 0,
+      "accentCards": 0,
+      "gated": false,
+      "errors": [],
+      "failedApi": [
+        "500 /v1/finance/cash-flow"
+      ]
+    },
+    {
+      "route": "/finance/integrations",
+      "width": 390,
+      "theme": "dark",
+      "url": "/finance/integrations",
+      "rendered": true,
+      "horizontalOverflow": false,
+      "metricCards": 0,
+      "accentCards": 0,
+      "gated": false,
+      "errors": [],
+      "failedApi": []
+    },
+    {
+      "route": "/finance/integrations/deliveries",
+      "width": 390,
+      "theme": "dark",
+      "url": "/finance/integrations/deliveries",
+      "rendered": true,
+      "horizontalOverflow": false,
+      "metricCards": 0,
+      "accentCards": 0,
+      "gated": false,
+      "errors": [],
+      "failedApi": []
+    }
+  ],
+  "source_files": [
+    "AccountingDeliveries",
+    "AccountingIntegrations",
+    "AccountsQuery",
+    "ApApprovalWorkflows",
+    "BankReconciliation",
+    "Billing",
+    "Bills",
+    "Budgets",
+    "ChartOfAccounts",
+    "CreditNotes",
+    "DeliveryDocumentsPage",
+    "Expenses",
+    "FinanceAgedPayables",
+    "FinanceAgedReceivables",
+    "FinanceBalanceSheet",
+    "FinanceCashFlow",
+    "FinanceCloseReview",
+    "FinanceDashboard",
+    "FinanceDocumentPreview",
+    "FinanceEquityStatement",
+    "FinanceExpenseCategories",
+    "FinanceExpenseNew",
+    "FinanceExpenseReports",
+    "FinanceExpensesReport",
+    "FinanceFxRevaluation",
+    "FinanceIncomeVsExpenses",
+    "FinanceIndustries",
+    "FinanceLedger",
+    "FinancePayments",
+    "FinancePos",
+    "FinancePosSettings",
+    "FinanceProfitLoss",
+    "FinanceReportsHub",
+    "FinanceSalesReport",
+    "FinanceTaxClassify",
+    "FinanceTaxCodes",
+    "FinanceTaxPreparation",
+    "FinanceTaxReport",
+    "FinanceTrialBalance",
+    "FinanceVatPeriods",
+    "FinanceVendors",
+    "FinanceWorkCosts",
+    "FixedAssets",
+    "GlPeriods",
+    "JournalEntries",
+    "MultiEntityAccounting",
+    "ProductCategoriesPage",
+    "ProductReviewsPage",
+    "ProductsServices",
+    "PurchaseOrders",
+    "Quotations",
+    "RecurringInvoices",
+    "VendorProfilePage"
+  ],
+  "scope": "FinOps metric emphasis, configured app colors, light/dark and responsive layout. Record-specific routes are source-reviewed.",
+  "summary": {
+    "routes": 60,
+    "checks": 120,
+    "failures": [
+      {
+        "route": "/finance/accounts/multi-entity",
+        "width": 1440,
+        "theme": "light",
+        "url": "/finance/accounts/multi-entity",
+        "rendered": true,
+        "horizontalOverflow": false,
+        "metricCards": 4,
+        "accentCards": 1,
+        "gated": false,
+        "errors": [],
+        "failedApi": [
+          "500 /v1/finance/entities/stats"
+        ]
+      },
+      {
+        "route": "/finance/reports/cash-flow",
+        "width": 1440,
+        "theme": "light",
+        "url": "/finance/reports/cash-flow",
+        "rendered": true,
+        "horizontalOverflow": false,
+        "metricCards": 0,
+        "accentCards": 0,
+        "gated": false,
+        "errors": [],
+        "failedApi": [
+          "500 /v1/finance/cash-flow"
+        ]
+      },
+      {
+        "route": "/finance/quotations",
+        "width": 390,
+        "theme": "dark",
+        "url": "/finance/quotations",
+        "rendered": true,
+        "horizontalOverflow": false,
+        "metricCards": 4,
+        "accentCards": 1,
+        "gated": false,
+        "errors": [],
+        "failedApi": [
+          "500 /v1/quotations",
+          "500 /v1/quotations/stats"
+        ]
+      },
+      {
+        "route": "/finance/quotations/new",
+        "width": 390,
+        "theme": "dark",
+        "url": "/finance/quotations/new",
+        "rendered": true,
+        "horizontalOverflow": false,
+        "metricCards": 0,
+        "accentCards": 0,
+        "gated": false,
+        "errors": [],
+        "failedApi": [
+          "500 /v1/quotations",
+          "500 /v1/quotations/stats",
+          "500 /v1/finance/capabilities/configuration",
+          "500 /v1/products"
+        ]
+      },
+      {
+        "route": "/finance/purchase-orders",
+        "width": 390,
+        "theme": "dark",
+        "url": "/finance/purchase-orders",
+        "rendered": true,
+        "horizontalOverflow": false,
+        "metricCards": 4,
+        "accentCards": 1,
+        "gated": false,
+        "errors": [],
+        "failedApi": [
+          "500 /v1/finance/capabilities/configuration",
+          "500 /v1/products"
+        ]
+      },
+      {
+        "route": "/finance/purchase-orders/new",
+        "width": 390,
+        "theme": "dark",
+        "url": "/finance/purchase-orders/new",
+        "rendered": true,
+        "horizontalOverflow": false,
+        "metricCards": 0,
+        "accentCards": 0,
+        "gated": false,
+        "errors": [],
+        "failedApi": [
+          "500 /v1/finance/capabilities/configuration",
+          "500 /v1/products"
+        ]
+      },
+      {
+        "route": "/finance/bills",
+        "width": 390,
+        "theme": "dark",
+        "url": "/finance/bills",
+        "rendered": true,
+        "horizontalOverflow": false,
+        "metricCards": 3,
+        "accentCards": 1,
+        "gated": false,
+        "errors": [],
+        "failedApi": [
+          "500 /v1/bills/stats",
+          "500 /v1/bills/recurring",
+          "500 /v1/bills"
+        ]
+      },
+      {
+        "route": "/finance/bills/new",
+        "width": 390,
+        "theme": "dark",
+        "url": "/finance/bills/new",
+        "rendered": true,
+        "horizontalOverflow": false,
+        "metricCards": 0,
+        "accentCards": 0,
+        "gated": false,
+        "errors": [],
+        "failedApi": [
+          "500 /v1/bills/stats",
+          "500 /v1/bills/recurring",
+          "500 /v1/finance/capabilities/configuration",
+          "500 /v1/bills"
+        ]
+      },
+      {
+        "route": "/finance/vendors",
+        "width": 390,
+        "theme": "dark",
+        "url": "/finance/vendors",
+        "rendered": true,
+        "horizontalOverflow": false,
+        "metricCards": 4,
+        "accentCards": 1,
+        "gated": false,
+        "errors": [],
+        "failedApi": [
+          "500 /v1/finance/expenses",
+          "500 /v1/bills",
+          "500 /v1/bills/payments"
+        ]
+      },
+      {
+        "route": "/finance/vendors/new",
+        "width": 390,
+        "theme": "dark",
+        "url": "/finance/vendors/new",
+        "rendered": true,
+        "horizontalOverflow": false,
+        "metricCards": 0,
+        "accentCards": 0,
+        "gated": false,
+        "errors": [],
+        "failedApi": [
+          "500 /v1/finance/expenses",
+          "500 /v1/bills",
+          "500 /v1/bills/payments"
+        ]
+      },
+      {
+        "route": "/finance/expenses",
+        "width": 390,
+        "theme": "dark",
+        "url": "/finance/expenses",
+        "rendered": true,
+        "horizontalOverflow": false,
+        "metricCards": 4,
+        "accentCards": 1,
+        "gated": false,
+        "errors": [],
+        "failedApi": [
+          "500 /v1/finance/capabilities/configuration",
+          "500 /v1/finance/expenses",
+          "500 /v1/finance/expenses/stats"
+        ]
+      },
+      {
+        "route": "/finance/expense-reports",
+        "width": 390,
+        "theme": "dark",
+        "url": "/finance/expense-reports",
+        "rendered": true,
+        "horizontalOverflow": false,
+        "metricCards": 1,
+        "accentCards": 1,
+        "gated": false,
+        "errors": [],
+        "failedApi": [
+          "500 /v1/finance/expense-reports"
+        ]
+      },
+      {
+        "route": "/finance/expenses/new",
+        "width": 390,
+        "theme": "dark",
+        "url": "/finance/expenses/new",
+        "rendered": true,
+        "horizontalOverflow": false,
+        "metricCards": 0,
+        "accentCards": 0,
+        "gated": false,
+        "errors": [],
+        "failedApi": [
+          "500 /v1/finance/capabilities/configuration"
+        ]
+      },
+      {
+        "route": "/finance/payments",
+        "width": 390,
+        "theme": "dark",
+        "url": "/finance/payments",
+        "rendered": true,
+        "horizontalOverflow": false,
+        "metricCards": 4,
+        "accentCards": 1,
+        "gated": false,
+        "errors": [],
+        "failedApi": [
+          "500 /v1/invoices"
+        ]
+      },
+      {
+        "route": "/finance/products",
+        "width": 390,
+        "theme": "dark",
+        "url": "/finance/products",
+        "rendered": true,
+        "horizontalOverflow": false,
+        "metricCards": 4,
+        "accentCards": 1,
+        "gated": false,
+        "errors": [],
+        "failedApi": [
+          "500 /v1/finance/capabilities/configuration",
+          "500 /v1/products",
+          "500 /v1/products/stats"
+        ]
+      },
+      {
+        "route": "/finance/accounts/multi-entity",
+        "width": 390,
+        "theme": "dark",
+        "url": "/finance/accounts/multi-entity",
+        "rendered": true,
+        "horizontalOverflow": false,
+        "metricCards": 4,
+        "accentCards": 1,
+        "gated": false,
+        "errors": [],
+        "failedApi": [
+          "500 /v1/finance/entities/stats"
+        ]
+      },
+      {
+        "route": "/finance/reports/cash-flow",
+        "width": 390,
+        "theme": "dark",
+        "url": "/finance/reports/cash-flow",
+        "rendered": true,
+        "horizontalOverflow": false,
+        "metricCards": 0,
+        "accentCards": 0,
+        "gated": false,
+        "errors": [],
+        "failedApi": [
+          "500 /v1/finance/cash-flow"
+        ]
+      }
+    ],
+    "dynamic_routes": "Source reviewed; document-specific routes require record fixtures."
+  },
+  "followup_browser_checks": [
+    {
+      "route": "/finance/pos",
+      "width": 1440,
+      "theme": "light",
+      "url": "/finance/pos",
+      "rendered": true,
+      "horizontalOverflow": false,
+      "metricCards": 0,
+      "accentCards": 0,
+      "gated": false,
+      "pos": {
+        "body": {
+          "y": 156,
+          "height": 845,
+          "display": "flex"
+        },
+        "categories": {
+          "y": 156,
+          "height": 845,
+          "display": "flex"
+        },
+        "catalogue": {
+          "y": 156,
+          "height": 845,
+          "display": "flex"
+        },
+        "basket": {
+          "y": 0,
+          "height": 0,
+          "display": "none"
+        }
+      },
+      "errors": [],
+      "failedApi": []
+    },
+    {
+      "route": "/finance/pos",
+      "width": 390,
+      "theme": "dark",
+      "url": "/finance/pos",
+      "rendered": true,
+      "horizontalOverflow": false,
+      "metricCards": 0,
+      "accentCards": 0,
+      "gated": false,
+      "pos": {
+        "body": {
+          "y": 158,
+          "height": 776,
+          "display": "flex"
+        },
+        "categories": {
+          "y": 158,
+          "height": 53,
+          "display": "flex"
+        },
+        "catalogue": {
+          "y": 211,
+          "height": 723,
+          "display": "flex"
+        },
+        "basket": {
+          "y": 934,
+          "height": 66,
+          "display": "flex"
+        }
+      },
+      "errors": [],
+      "failedApi": []
+    }
+  ],
+  "followup_summary": {
+    "routes": 1,
+    "checks": 2,
+    "failures": [],
+    "dynamic_routes": "Source reviewed; document-specific routes require record fixtures."
+  },
+  "validation": {
+    "source_files": 53,
+    "static_routes": 60,
+    "browser_checks": 120,
+    "browser_crashes": 0,
+    "horizontal_overflows": 0,
+    "targeted_followup_checks": 4,
+    "targeted_followup_failures": 0,
+    "api_regression_tests": 15,
+    "api_regression_passed": 15,
+    "note": "Initial sweep observed two reproducible API failures, now fixed and browser-rechecked. Other initial API 500s did not reproduce in endpoint regression tests; raw observations are retained.",
+    "web_typecheck": "passed",
+    "design_system_checks": "passed (19 checks)",
+    "repository_typecheck": "Still running in API compilation; no completed result yet."
+  },
+  "fixes": [
+    {
+      "issue": "Multi-entity statistics referenced nonexistent finance_entities and is_active",
+      "change": "Use accounting_entities.active with tenant filtering."
+    },
+    {
+      "issue": "Cash flow generated IN () when a workspace had no cash accounts",
+      "change": "Return zero observed cash totals before executing cash-line aggregates."
+    },
+    {
+      "issue": "Primary metrics lacked consistent configured app-color emphasis across FinOps",
+      "change": "29 shared-metric pages and 8 custom layouts now opt into theme-aware contrast-safe accent cards."
+    }
+  ]
+}

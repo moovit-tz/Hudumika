@@ -239,7 +239,7 @@ export const CarbonPortfolio: React.FC = () => {
                   onClick={() => setTableOpen(o => !o)}
                   style={{
                     display: 'flex', alignItems: 'center', gap: 6, background: 'none', border: 'none', cursor: 'pointer',
-                    color: 'var(--teal)', fontSize: 13, fontWeight: 600, padding: 'var(--ds-btn-py-sm) 0', marginBottom: tableOpen ? 12 : 0, minHeight: 'var(--ctl-h-sm)', boxSizing: 'border-box', lineHeight: 1.25}}
+                    color: 'var(--teal)', fontSize: "var(--text-base)", fontWeight: 600, padding: 'var(--ds-btn-py-sm) 0', marginBottom: tableOpen ? 12 : 0, minHeight: 'var(--ctl-h-sm)', boxSizing: 'border-box', lineHeight: 1.25}}
                  data-ui-native-button="">
                   <Icon name={tableOpen ? 'chevronUp' : 'chevronDown'} size={13} />
                   {tableOpen ? 'Hide customer table' : `View ${data?.by_customer.length ?? 0} customers`}

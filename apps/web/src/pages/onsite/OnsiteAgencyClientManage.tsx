@@ -253,7 +253,7 @@ function AddDomainModal({ base, onClose, onCreated }: { base: string; onClose: (
         <DialogBody style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
           <div className="onsite-form-group">
             <label>Domain *</label>
-            <input type="text" className="onsite-input" placeholder="clientsite.com" value={domain} onChange={(e) => setDomain(e.target.value)} required />
+            <input data-ui-field="input" type="text" className="onsite-input" placeholder="clientsite.com" value={domain} onChange={(e) => setDomain(e.target.value)} required />
           </div>
         </DialogBody>
         <ModalActions onClose={onClose} submitting={submitting} submitLabel="Add domain" busyLabel="Adding…" />
@@ -373,7 +373,7 @@ function AddRecordModal({ base, domainId, onClose, onCreated }: { base: string; 
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: '1rem' }}>
             <div className="onsite-form-group">
               <label>Name</label>
-              <input type="text" className="onsite-input" value={name} onChange={(e) => setName(e.target.value)} required />
+              <input data-ui-field="input" type="text" className="onsite-input" value={name} onChange={(e) => setName(e.target.value)} required />
             </div>
             <div className="onsite-form-group">
               <label>Type</label>
@@ -387,11 +387,11 @@ function AddRecordModal({ base, domainId, onClose, onCreated }: { base: string; 
           </div>
           <div className="onsite-form-group">
             <label>Value *</label>
-            <input type="text" className="onsite-input" value={value} onChange={(e) => setValue(e.target.value)} required />
+            <input data-ui-field="input" type="text" className="onsite-input" value={value} onChange={(e) => setValue(e.target.value)} required />
           </div>
           <div className="onsite-form-group">
             <label>TTL (seconds)</label>
-            <input type="number" className="onsite-input" value={ttl} onChange={(e) => setTtl(e.target.value)} />
+            <input data-ui-field="input" type="number" className="onsite-input" value={ttl} onChange={(e) => setTtl(e.target.value)} />
           </div>
         </DialogBody>
         <ModalActions onClose={onClose} submitting={submitting} submitLabel="Add record" busyLabel="Adding…" />
@@ -525,7 +525,7 @@ function AddAppModal({ base, onClose, onCreated }: { base: string; onClose: () =
         <DialogBody style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
           <div className="onsite-form-group">
             <label>Name *</label>
-            <input type="text" className="onsite-input" placeholder="client-site" value={name} onChange={(e) => setName(e.target.value)} required />
+            <input data-ui-field="input" type="text" className="onsite-input" placeholder="client-site" value={name} onChange={(e) => setName(e.target.value)} required />
           </div>
           <div className="onsite-form-group">
             <label>Runtime</label>
@@ -538,7 +538,7 @@ function AddAppModal({ base, onClose, onCreated }: { base: string; onClose: () =
           </div>
           <div className="onsite-form-group">
             <label>Repository URL</label>
-            <input type="text" className="onsite-input" placeholder="https://github.com/client/repo" value={repoUrl} onChange={(e) => setRepoUrl(e.target.value)} />
+            <input data-ui-field="input" type="text" className="onsite-input" placeholder="https://github.com/client/repo" value={repoUrl} onChange={(e) => setRepoUrl(e.target.value)} />
           </div>
         </DialogBody>
         <ModalActions onClose={onClose} submitting={submitting} submitLabel="Register" busyLabel="Registering…" />
@@ -642,11 +642,11 @@ function AddCheckModal({ base, onClose, onCreated }: { base: string; onClose: ()
         <DialogBody style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
           <div className="onsite-form-group">
             <label>Name *</label>
-            <input type="text" className="onsite-input" placeholder="Homepage" value={name} onChange={(e) => setName(e.target.value)} required />
+            <input data-ui-field="input" type="text" className="onsite-input" placeholder="Homepage" value={name} onChange={(e) => setName(e.target.value)} required />
           </div>
           <div className="onsite-form-group">
             <label>URL *</label>
-            <input type="text" className="onsite-input" placeholder="https://clientsite.com" value={url} onChange={(e) => setUrl(e.target.value)} required />
+            <input data-ui-field="input" type="text" className="onsite-input" placeholder="https://clientsite.com" value={url} onChange={(e) => setUrl(e.target.value)} required />
           </div>
         </DialogBody>
         <ModalActions onClose={onClose} submitting={submitting} submitLabel="Add check" busyLabel="Adding…" />

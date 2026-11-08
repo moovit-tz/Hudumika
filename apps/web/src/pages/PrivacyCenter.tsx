@@ -138,12 +138,12 @@ export function PrivacyCenter() {
             key={t}
             onClick={() => setTab(t)}
             style={{
-              padding: '6px 14px',
+              padding: "var(--action-py) var(--space-md)",
               borderRadius: 'var(--r-sm)',
               border: 'none',
               background: tab === t ? 'hsl(var(--primary))' : 'transparent',
               color: tab === t ? 'hsl(var(--primary-foreground))' : 'var(--ink2)',
-              fontSize: 13,
+              fontSize: "var(--text-base)",
               fontWeight: 500,
               cursor: 'pointer',
               transition: 'background 0.15s, color 0.15s',
@@ -239,7 +239,7 @@ export function PrivacyCenter() {
                   onClick={() => { setSubmitDialog(type); setSubmitError(''); }}
                   style={{
                     display: 'flex', alignItems: 'center', gap: 10,
-                    padding: '12px 16px',
+                    padding: "var(--action-py) var(--space-md)",
                     background: 'var(--surface)',
                     border: '1px solid var(--border)',
                     borderRadius: 'var(--r)',

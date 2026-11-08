@@ -221,7 +221,7 @@ export function SignatureManager({ onChange }: { onChange?: (sigs: EmailSignatur
           <div className="em-sig-editor-fields">
             <div className="em-settings-field">
               <label className="em-field-label">Signature Name</label>
-              <input
+              <input data-ui-field="input"
                 className="em-settings-input"
                 value={draftName}
                 placeholder="e.g. Work Signature, Sales Banner"

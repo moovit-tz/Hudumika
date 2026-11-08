@@ -694,14 +694,14 @@ export function FinanceIndustries() {
               />
             </div>
             <div className="erp-filter-pills">
-              <button
+              <button data-ui-native-button=""
                 type="button"
                 className={`erp-filter-pill${industryFilter === 'all' ? ' erp-filter-pill--active' : ''}`}
                 onClick={() => setIndustryFilter('all')}
               >
                 All Profiles ({FINANCE_INDUSTRIES.length})
               </button>
-              <button
+              <button data-ui-native-button=""
                 type="button"
                 className={`erp-filter-pill${industryFilter === 'active' ? ' erp-filter-pill--active' : ''}`}
                 onClick={() => setIndustryFilter('active')}
@@ -717,7 +717,7 @@ export function FinanceIndustries() {
                 />
                 Active Only ({selectedIndustries.length})
               </button>
-              <button
+              <button data-ui-native-button=""
                 type="button"
                 className={`erp-filter-pill${industryFilter === 'inactive' ? ' erp-filter-pill--active' : ''}`}
                 onClick={() => setIndustryFilter('inactive')}
@@ -1537,7 +1537,7 @@ export function FinanceIndustryWorkDetail() {
           ['Estimated Costs', work.estimated_cost],
           ['Estimated Margin', Number(work.estimated_revenue) - Number(work.estimated_cost)]
         ].map(([label, amount]) => (
-          <Card key={String(label)}>
+          <Card key={String(label)} data-finops-accent={label === 'Estimated Margin' ? '' : undefined}>
             <CardHeader style={{ padding: '16px 20px' }}>
               <CardDescription>{label}</CardDescription>
               <CardTitle style={{ fontSize: '1.25rem', marginTop: 4 }}>{money(amount as number, work.currency)}</CardTitle>

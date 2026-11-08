@@ -65,7 +65,7 @@ export const StepAccount: React.FC<StepProps> = ({ draft, update, onNext }) => {
 
           <div className="login-field">
             <label className="reg-label">{t('onboarding.fullName')}</label>
-            <input
+            <input data-ui-field="input"
               type="text"
               placeholder="e.g. Asha Mwinyi"
               value={draft.name}
@@ -102,7 +102,7 @@ export const StepAccount: React.FC<StepProps> = ({ draft, update, onNext }) => {
             type="button"
             onClick={() => setMode('email')}
             className="login-back-btn"
-            style={{ width: '100%', height: 40, justifyContent: 'center', display: 'flex', alignItems: 'center', gap: 8 }}
+            style={{ width: '100%', height: "var(--action-h)", justifyContent: 'center', display: 'flex', alignItems: 'center', gap: 8 }}
             data-ui-native-button=""
           >
             <Icon name="mail" size={15} />
@@ -113,7 +113,7 @@ export const StepAccount: React.FC<StepProps> = ({ draft, update, onNext }) => {
         <form onSubmit={handleContinue} noValidate className="login-form">
           <div className="login-field">
             <label className="reg-label">{t('onboarding.fullName')}</label>
-            <input
+            <input data-ui-field="input"
               type="text"
               placeholder="e.g. John Mwangi"
               value={draft.name}
@@ -127,7 +127,7 @@ export const StepAccount: React.FC<StepProps> = ({ draft, update, onNext }) => {
 
           <div className="login-field">
             <label className="reg-label">{t('onboarding.workEmail')}</label>
-            <input
+            <input data-ui-field="input"
               type="email"
               placeholder="john@yourcompany.co.tz"
               value={draft.email}
@@ -146,7 +146,7 @@ export const StepAccount: React.FC<StepProps> = ({ draft, update, onNext }) => {
               type="button"
               onClick={() => setMode('ondi')}
               className="login-back-btn"
-              style={{ width: '100%', height: 38, justifyContent: 'center', fontSize: 12.5, display: 'flex', alignItems: 'center', gap: 6 }}
+              style={{ width: '100%', height: "var(--action-h)", justifyContent: 'center', fontSize: "var(--text-base)", display: 'flex', alignItems: 'center', gap: 6 }}
               data-ui-native-button=""
             >
               <Icon name="arrowLeft" size={13} />

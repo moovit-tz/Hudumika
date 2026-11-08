@@ -60,7 +60,7 @@ function SendToComplyOSModal({ ticket, onClose }: { ticket: Ticket; onClose: () 
           </div>
           <div>
             <label style={{ display: 'block', fontSize: 11.5, fontWeight: 700, color: 'var(--ink2)', marginBottom: 5 }}>Certification / Permit Needed</label>
-            <input className="input-field" value={certType} onChange={e => setCertType(e.target.value)} placeholder="e.g. Tax Compliance Certificate" />
+            <input data-ui-field="input" className="input-field" value={certType} onChange={e => setCertType(e.target.value)} placeholder="e.g. Tax Compliance Certificate" />
           </div>
           {error && <div style={{ fontSize: 12.5, color: 'var(--red)' }}>{error}</div>}
         </div>
@@ -209,7 +209,7 @@ function EditAttributesDialog({ open, onClose, ticket, onSave }: {
         <div style={{ padding: '16px 20px', display: 'flex', flexDirection: 'column', gap: 14 }}>
           <div>
             <label style={{ display: 'block', fontSize: 11.5, fontWeight: 700, color: 'var(--ink2)', marginBottom: 5 }}>Subject</label>
-            <input
+            <input data-ui-field="input"
               className="input-field"
               value={subject}
               onChange={e => { setSubject(e.target.value); if (error) setError(''); }}
@@ -456,7 +456,7 @@ export function DetailsPanel({ ticket, agents, onReassign, onStatusChange, onUpd
                 </span>
               ))}
             </div>
-            <input
+            <input data-ui-field="input"
               value={tagInput}
               onChange={e => setTagInput(e.target.value)}
               onKeyDown={handleAddTag}
@@ -472,7 +472,7 @@ export function DetailsPanel({ ticket, agents, onReassign, onStatusChange, onUpd
           headerAction={canEdit && (
             <Tip label="Edit subject, category & priority">
               <button type="button" onClick={() => setEditOpen(true)}
-                style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink3)', padding: 4, marginRight: 2 }} data-ui-native-button="">
+                style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink3)', padding: "var(--action-py) var(--space-md)", marginRight: 2 }} data-ui-native-button="">
                 <Icon name="edit" size={13} />
               </button>
             </Tip>

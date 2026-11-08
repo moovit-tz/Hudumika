@@ -690,7 +690,7 @@ export const CalendarApp: React.FC = () => {
         <div className="cal-topbar-center">
           <div className="cal-topbar-search-box">
             <Icon name="search" size={15} color="var(--ink3)" style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)' }} />
-            <input
+            <input data-ui-field="input" data-field-appearance="bare"
               type="text"
               className="cal-topbar-search-input"
               value={searchQuery}
@@ -709,9 +709,9 @@ export const CalendarApp: React.FC = () => {
             type="button"
             onClick={() => setBookingPagesOpen(true)}
             style={{
-              display: 'inline-flex', alignItems: 'center', gap: 6, padding: '6px 12px',
+              display: 'inline-flex', alignItems: 'center', gap: 6, padding: "var(--action-py) var(--space-md)",
               border: '1px solid var(--border)', borderRadius: 'var(--r)', background: 'var(--white)',
-              fontSize: 12.5, fontWeight: 600, color: 'var(--ink)', cursor: 'pointer',
+              fontSize: "var(--text-base)", fontWeight: 600, color: 'var(--ink)', cursor: 'pointer',
               transition: 'all 0.15s ease', whiteSpace: 'nowrap'
             }}
             onMouseEnter={e => e.currentTarget.style.borderColor = 'var(--teal)'}
@@ -727,9 +727,9 @@ export const CalendarApp: React.FC = () => {
             type="button"
             onClick={() => setCalendarSyncOpen(true)}
             style={{
-              display: 'inline-flex', alignItems: 'center', gap: 6, padding: '6px 12px',
+              display: 'inline-flex', alignItems: 'center', gap: 6, padding: "var(--action-py) var(--space-md)",
               border: '1px solid var(--border)', borderRadius: 'var(--r)', background: 'var(--white)',
-              fontSize: 12.5, fontWeight: 600, color: 'var(--ink)', cursor: 'pointer',
+              fontSize: "var(--text-base)", fontWeight: 600, color: 'var(--ink)', cursor: 'pointer',
               transition: 'all 0.15s ease', whiteSpace: 'nowrap'
             }}
             onMouseEnter={e => e.currentTarget.style.borderColor = 'var(--teal)'}
@@ -772,7 +772,7 @@ export const CalendarApp: React.FC = () => {
               <button
                 type="button"
                 onClick={handleExportICS}
-                style={{ display: 'flex', alignItems: 'center', gap: 8, width: '100%', padding: '8px 6px', border: 'none', background: 'none', cursor: 'pointer', borderRadius: 'var(--r-sm)', fontSize: 13, color: 'var(--ink)', fontWeight: 500 }}
+                style={{ display: 'flex', alignItems: 'center', gap: 8, width: '100%', padding: "var(--action-py) var(--space-md)", border: 'none', background: 'none', cursor: 'pointer', borderRadius: 'var(--r-sm)', fontSize: "var(--text-base)", color: 'var(--ink)', fontWeight: 500 }}
                 onMouseEnter={e => e.currentTarget.style.background = 'var(--hover-bg)'}
                 onMouseLeave={e => e.currentTarget.style.background = 'none'}
                data-ui-native-button="">
@@ -782,7 +782,7 @@ export const CalendarApp: React.FC = () => {
                 type="button"
                 onClick={() => icsFileInputRef.current?.click()}
                 disabled={icsImporting}
-                style={{ display: 'flex', alignItems: 'center', gap: 8, width: '100%', padding: '8px 6px', border: 'none', background: 'none', cursor: icsImporting ? 'default' : 'pointer', borderRadius: 'var(--r-sm)', fontSize: 13, color: 'var(--ink)', fontWeight: 500, opacity: icsImporting ? 0.6 : 1 }}
+                style={{ display: 'flex', alignItems: 'center', gap: 8, width: '100%', padding: "var(--action-py) var(--space-md)", border: 'none', background: 'none', cursor: icsImporting ? 'default' : 'pointer', borderRadius: 'var(--r-sm)', fontSize: "var(--text-base)", color: 'var(--ink)', fontWeight: 500, opacity: icsImporting ? 0.6 : 1 }}
                 onMouseEnter={e => e.currentTarget.style.background = 'var(--hover-bg)'}
                 onMouseLeave={e => e.currentTarget.style.background = 'none'}
                data-ui-native-button="">
@@ -791,7 +791,7 @@ export const CalendarApp: React.FC = () => {
               <DropdownMenuItem asChild onSelect={() => setBookingPagesOpen(true)}>
                 <button
                   type="button"
-                  style={{ display: 'flex', alignItems: 'center', gap: 8, width: '100%', padding: '8px 6px', border: 'none', background: 'none', cursor: 'pointer', borderRadius: 'var(--r-sm)', fontSize: 13, color: 'var(--ink)', fontWeight: 500 }}
+                  style={{ display: 'flex', alignItems: 'center', gap: 8, width: '100%', padding: "var(--action-py) var(--space-md)", border: 'none', background: 'none', cursor: 'pointer', borderRadius: 'var(--r-sm)', fontSize: "var(--text-base)", color: 'var(--ink)', fontWeight: 500 }}
                   onMouseEnter={e => e.currentTarget.style.background = 'var(--hover-bg)'}
                   onMouseLeave={e => e.currentTarget.style.background = 'none'}
                  data-ui-native-button="">
@@ -801,7 +801,7 @@ export const CalendarApp: React.FC = () => {
               <DropdownMenuItem asChild onSelect={() => setCalendarSyncOpen(true)}>
                 <button
                   type="button"
-                  style={{ display: 'flex', alignItems: 'center', gap: 8, width: '100%', padding: '8px 6px', border: 'none', background: 'none', cursor: 'pointer', borderRadius: 'var(--r-sm)', fontSize: 13, color: 'var(--ink)', fontWeight: 500 }}
+                  style={{ display: 'flex', alignItems: 'center', gap: 8, width: '100%', padding: "var(--action-py) var(--space-md)", border: 'none', background: 'none', cursor: 'pointer', borderRadius: 'var(--r-sm)', fontSize: "var(--text-base)", color: 'var(--ink)', fontWeight: 500 }}
                   onMouseEnter={e => e.currentTarget.style.background = 'var(--hover-bg)'}
                   onMouseLeave={e => e.currentTarget.style.background = 'none'}
                  data-ui-native-button="">
@@ -818,9 +818,9 @@ export const CalendarApp: React.FC = () => {
                 type="button"
                 className="cal-topbar-view-dropdown-btn"
                 style={{
-                  display: 'flex', alignItems: 'center', gap: 6, padding: '7px 14px',
+                  display: 'flex', alignItems: 'center', gap: 6, padding: "var(--action-py) var(--space-md)",
                   border: '1px solid var(--border)', borderRadius: 'var(--r-sm)', background: 'var(--white)',
-                  fontSize: 13.5, fontWeight: 600, color: 'var(--ink)', cursor: 'pointer',
+                  fontSize: "var(--text-base)", fontWeight: 600, color: 'var(--ink)', cursor: 'pointer',
                   transition: 'background 0.15s ease'
                 }}
                data-ui-native-button="">
@@ -1316,14 +1316,14 @@ export const CalendarApp: React.FC = () => {
             {/* Top Toolbar */}
             <DialogTitle className="sr-only">{editingEvent ? 'Edit event' : 'New event'}</DialogTitle>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '16px 24px', borderBottom: '1px solid var(--border)', background: 'var(--card-bg)' }}>
-              <input
+              <input data-field-appearance="bare" data-ui-field="input"
                 value={eventTitle}
                 onChange={e => setEventTitle(e.target.value)}
                 placeholder="Add title"
-                style={{ flex: 1, fontSize: 20, fontWeight: 600, border: 'none', background: 'transparent', color: 'var(--ink)', outline: 'none' }}
+                style={{ flex: 1, fontSize: "var(--text-base)", fontWeight: 600, border: 'none', background: 'transparent', color: 'var(--ink)', outline: 'none' }}
               />
               <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginLeft: 16 }}>
-                <Button variant="default" onClick={handleSave} style={{ fontWeight: 600, padding: '6px 20px', borderRadius: 'var(--r-sm)'}}>
+                <Button variant="default" onClick={handleSave} style={{ fontWeight: 600, padding: "var(--action-py) var(--space-md)", borderRadius: 'var(--r-sm)'}}>
                   Save
                 </Button>
                 {editingEvent && (
@@ -1334,13 +1334,13 @@ export const CalendarApp: React.FC = () => {
                       </Button>
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="end" className="w-40 p-1">
-                      <button onClick={handleDelete} style={{ display: 'flex', alignItems: 'center', gap: 8, width: '100%', padding: '7px 10px', border: 'none', background: 'none', cursor: 'pointer', color: 'var(--red)', fontSize: 13, fontWeight: 500, borderRadius: 'var(--r-sm)'}} data-ui-native-button="">
+                      <button onClick={handleDelete} style={{ display: 'flex', alignItems: 'center', gap: 8, width: '100%', padding: "var(--action-py) var(--space-md)", border: 'none', background: 'none', cursor: 'pointer', color: 'var(--red)', fontSize: "var(--text-base)", fontWeight: 500, borderRadius: 'var(--r-sm)'}} data-ui-native-button="">
                         <Icon name="trash" size={14} /> Delete event
                       </button>
                     </DropdownMenuContent>
                   </DropdownMenu>
                 )}
-                <button onClick={() => setShowModal(false)} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 6, color: 'var(--ink3)', borderRadius: 'var(--r-sm)'}} data-ui-native-button="">
+                <button onClick={() => setShowModal(false)} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: "var(--action-py) var(--space-md)", color: 'var(--ink3)', borderRadius: 'var(--r-sm)'}} data-ui-native-button="">
                   <Icon name="close" size={18} />
                 </button>
               </div>
@@ -1351,18 +1351,18 @@ export const CalendarApp: React.FC = () => {
               {/* Date & Time & Timezone Row */}
               <div style={{ display: 'flex', flexDirection: 'column', gap: 10, background: 'var(--bg)', padding: 14, borderRadius: 'var(--r)', border: '1px solid var(--border)' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
-                  <input
+                  <input data-ui-field="input"
                     type={eventAllDay ? 'date' : 'datetime-local'}
                     value={eventAllDay ? eventStart.slice(0, 10) : eventStart}
                     onChange={e => setEventStart(eventAllDay ? `${e.target.value}T00:00` : e.target.value)}
-                    style={{ padding: '7px 10px', border: '1px solid var(--border)', borderRadius: 'var(--r-sm)', fontSize: 13, background: 'var(--card-bg)', color: 'var(--ink)' }}
+                    style={{ padding: "var(--ds-input-py) var(--space-md)", border: '1px solid var(--border)', borderRadius: 'var(--r-sm)', fontSize: "var(--text-base)", background: 'var(--card-bg)', color: 'var(--ink)' }}
                   />
                   <span style={{ fontSize: 13, color: 'var(--ink3)' }}>to</span>
-                  <input
+                  <input data-ui-field="input"
                     type={eventAllDay ? 'date' : 'datetime-local'}
                     value={eventAllDay ? eventEnd.slice(0, 10) : eventEnd}
                     onChange={e => setEventEnd(eventAllDay ? `${e.target.value}T23:59` : e.target.value)}
-                    style={{ padding: '7px 10px', border: '1px solid var(--border)', borderRadius: 'var(--r-sm)', fontSize: 13, background: 'var(--card-bg)', color: 'var(--ink)' }}
+                    style={{ padding: "var(--ds-input-py) var(--space-md)", border: '1px solid var(--border)', borderRadius: 'var(--r-sm)', fontSize: "var(--text-base)", background: 'var(--card-bg)', color: 'var(--ink)' }}
                   />
                   <Button variant="ghost" size="xs" onClick={() => setShowTimezoneModal(true)} style={{ color: 'var(--teal)', fontWeight: 600 }}>
                     <Icon name="globe" size={13} /> {eventTimezone || 'Time zone'}
@@ -1451,10 +1451,10 @@ export const CalendarApp: React.FC = () => {
                       meeting room's own Host Controls panel offers. */}
                   {showMeetingCreateOptions && !eventMeetingUrl && hasBliss && (
                     <div style={{ display: 'flex', flexDirection: 'column', gap: 8, padding: 12, borderRadius: 'var(--r)', background: 'var(--bg)', border: '1px solid var(--border)' }}>
-                      <input
+                      <input data-ui-field="input"
                         value={meetingCreatePassword} onChange={e => setMeetingCreatePassword(e.target.value)}
                         placeholder="Password (optional)"
-                        style={{ padding: '7px 10px', border: '1px solid var(--border)', borderRadius: 'var(--r-sm)', fontSize: 12.5, background: 'var(--white)', color: 'var(--ink)' }}
+                        style={{ padding: "var(--ds-input-py) var(--space-md)", border: '1px solid var(--border)', borderRadius: 'var(--r-sm)', fontSize: "var(--text-base)", background: 'var(--white)', color: 'var(--ink)' }}
                       />
                       <label style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 12.5, color: 'var(--ink)', cursor: 'pointer' }}>
                         <Checkbox checked={meetingCreateWaitingRoom} onCheckedChange={c => setMeetingCreateWaitingRoom(c === true)} />
@@ -1470,11 +1470,11 @@ export const CalendarApp: React.FC = () => {
                   {/* Location Input */}
                   <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                     <Icon name="mapPin" size={16} color="var(--ink3)" />
-                    <input
+                    <input data-ui-field="input"
                       value={eventLocation}
                       onChange={e => setEventLocation(e.target.value)}
                       placeholder="Add location"
-                      style={{ flex: 1, padding: '8px 12px', border: '1px solid var(--border)', borderRadius: 'var(--r-sm)', fontSize: 13.5, background: 'var(--bg)', color: 'var(--ink)' }}
+                      style={{ flex: 1, padding: "var(--ds-input-py) var(--space-md)", border: '1px solid var(--border)', borderRadius: 'var(--r-sm)', fontSize: "var(--text-base)", background: 'var(--bg)', color: 'var(--ink)' }}
                     />
                   </div>
 
@@ -1489,7 +1489,7 @@ export const CalendarApp: React.FC = () => {
                   {/* Category, Color, Visibility, Availability */}
                   <div style={{ display: 'flex', alignItems: 'center', gap: 14, flexWrap: 'wrap', paddingTop: 10, borderTop: '1px solid var(--border)' }}>
                     <Select value={eventCategory} onValueChange={v => setEventCategory(v as Category)}>
-                      <SelectTrigger style={{ width: 'auto', minHeight: 32, fontSize: 13 }}><SelectValue /></SelectTrigger>
+                      <SelectTrigger style={{ width: 'auto', minHeight: "var(--ctl-h)", fontSize: "var(--text-base)" }}><SelectValue /></SelectTrigger>
                       <SelectContent>
                         {(Object.keys(CATEGORY_MAP) as Category[]).filter(c => c !== 'holiday').map(c => (
                           <SelectItem key={c} value={c}>{CATEGORY_MAP[c].label}</SelectItem>
@@ -1505,7 +1505,7 @@ export const CalendarApp: React.FC = () => {
                           title={c.label}
                           onClick={() => setEventColorChoice(c.id)}
                           style={{
-                            width: 18, height: 18, borderRadius: '50%', cursor: 'pointer',
+                            width: "var(--ctl-h-xs)", height: "var(--ctl-h-xs)", borderRadius: '50%', cursor: 'pointer',
                             background: c.hex ?? CATEGORY_MAP[eventCategory].color,
                             border: eventColorChoice === c.id ? '2px solid var(--ink)' : '2px solid transparent',
                           }}
@@ -1514,7 +1514,7 @@ export const CalendarApp: React.FC = () => {
                     </div>
 
                     <Select value={eventBusyStatus} onValueChange={v => setEventBusyStatus(v as 'busy' | 'free')}>
-                      <SelectTrigger style={{ width: 'auto', minHeight: 32, fontSize: 13 }}><SelectValue /></SelectTrigger>
+                      <SelectTrigger style={{ width: 'auto', minHeight: "var(--ctl-h)", fontSize: "var(--text-base)" }}><SelectValue /></SelectTrigger>
                       <SelectContent>
                         <SelectItem value="busy">Busy</SelectItem>
                         <SelectItem value="free">Free</SelectItem>
@@ -1522,7 +1522,7 @@ export const CalendarApp: React.FC = () => {
                     </Select>
 
                     <Select value={eventVisibility} onValueChange={v => setEventVisibility(v as 'default' | 'public' | 'private')}>
-                      <SelectTrigger style={{ width: 'auto', minHeight: 32, fontSize: 13 }}><SelectValue /></SelectTrigger>
+                      <SelectTrigger style={{ width: 'auto', minHeight: "var(--ctl-h)", fontSize: "var(--text-base)" }}><SelectValue /></SelectTrigger>
                       <SelectContent>
                         <SelectItem value="default">Default visibility</SelectItem>
                         <SelectItem value="public">Public</SelectItem>
@@ -1539,12 +1539,12 @@ export const CalendarApp: React.FC = () => {
                         + Create meeting notes
                       </Button>
                     </div>
-                    <textarea
+                    <textarea data-ui-field="textarea"
                       value={eventDescription}
                       onChange={e => setEventDescription(e.target.value)}
                       placeholder="Add description or agenda items"
                       rows={4}
-                      style={{ width: '100%', boxSizing: 'border-box', padding: '10px 12px', border: '1px solid var(--border)', borderRadius: 'var(--r-sm)', fontSize: 13.5, background: 'var(--bg)', color: 'var(--ink)', resize: 'vertical' }}
+                      style={{ width: '100%', boxSizing: 'border-box', padding: "var(--ds-input-py) var(--space-md)", border: '1px solid var(--border)', borderRadius: 'var(--r-sm)', fontSize: "var(--text-base)", background: 'var(--bg)', color: 'var(--ink)', resize: 'vertical' }}
                     />
                   </div>
                 </div>
@@ -1758,7 +1758,7 @@ const EventRecurrencePicker: React.FC<{ value: RecurrenceRule | null; onChange: 
           type="button"
           onClick={() => setOpen(!open)}
           style={{
-            display: 'flex', alignItems: 'center', gap: 6, padding: '7px 12px', borderRadius: 20, fontSize: 12.5, fontWeight: 600, cursor: 'pointer',
+            display: 'flex', alignItems: 'center', gap: 6, padding: "var(--action-py) var(--space-md)", borderRadius: "var(--r-sm)", fontSize: "var(--text-base)", fontWeight: 600, cursor: 'pointer',
             border: `1px solid ${value ? 'var(--teal)' : 'var(--border)'}`, background: value ? 'var(--teal-l)' : 'var(--white)',
             color: value ? 'var(--teal)' : 'var(--ink2)',
           }}
@@ -1770,13 +1770,13 @@ const EventRecurrencePicker: React.FC<{ value: RecurrenceRule | null; onChange: 
         <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
             <span style={{ fontSize: 12.5, color: 'var(--ink2)' }}>Repeat every</span>
-            <input
+            <input data-ui-field="input"
               type="number" min={1} max={365} value={draft.interval}
               onChange={e => setDraft(d => ({ ...d, interval: Math.max(1, parseInt(e.target.value, 10) || 1) }))}
-              style={{ width: 52, padding: '5px 6px', border: '1px solid var(--border)', borderRadius: 'var(--r-sm)', fontSize: 12.5 }}
+              style={{ width: 52, padding: "var(--ds-input-py) var(--space-md)", border: '1px solid var(--border)', borderRadius: 'var(--r-sm)', fontSize: "var(--text-base)" }}
             />
             <Select value={draft.freq} onValueChange={v => setDraft(d => ({ ...d, freq: v as RecurrenceRule['freq'] }))}>
-              <SelectTrigger style={{ minHeight: 28, fontSize: 12.5, flex: 1 }}><SelectValue /></SelectTrigger>
+              <SelectTrigger style={{ minHeight: "var(--ctl-h)", fontSize: "var(--text-base)", flex: 1 }}><SelectValue /></SelectTrigger>
               <SelectContent>
                 <SelectItem value="daily">day(s)</SelectItem>
                 <SelectItem value="weekly">week(s)</SelectItem>
@@ -1794,7 +1794,7 @@ const EventRecurrencePicker: React.FC<{ value: RecurrenceRule | null; onChange: 
                   type="button"
                   onClick={() => toggleWeekday(i)}
                   style={{
-                    width: 26, height: 26, borderRadius: '50%', border: 'none', cursor: 'pointer', fontSize: 11, fontWeight: 700,
+                    width: "var(--ctl-h-xs)", height: "var(--ctl-h-xs)", borderRadius: '50%', border: 'none', cursor: 'pointer', fontSize: "var(--text-xs)", fontWeight: 700,
                     background: draft.byWeekday?.includes(i) ? 'var(--teal)' : 'var(--bg)',
                     color: draft.byWeekday?.includes(i) ? '#fff' : 'var(--ink2)',
                   }}
@@ -1825,11 +1825,11 @@ const EventRecurrencePicker: React.FC<{ value: RecurrenceRule | null; onChange: 
                 {mode === 'count' && (
                   <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                     After
-                    <input
+                    <input data-ui-field="input"
                       type="number" min={1} max={1000} value={draft.count ?? 10}
                       onChange={e => setDraft(d => ({ ...d, count: Math.max(1, parseInt(e.target.value, 10) || 1) }))}
                       onFocus={() => setEndMode('count')}
-                      style={{ width: 52, padding: '4px 6px', border: '1px solid var(--border)', borderRadius: 'var(--r-sm)', fontSize: 12 }}
+                      style={{ width: 52, padding: "var(--ds-input-py) var(--space-md)", border: '1px solid var(--border)', borderRadius: 'var(--r-sm)', fontSize: "var(--text-base)" }}
                     />
                     occurrences
                   </span>
@@ -1868,7 +1868,7 @@ const EventReminderPicker: React.FC<{ value: number[]; onChange: (v: number[]) =
           type="button"
           onClick={() => setOpen(!open)}
           style={{
-            display: 'flex', alignItems: 'center', gap: 6, padding: '7px 12px', borderRadius: 20, fontSize: 12.5, fontWeight: 600, cursor: 'pointer',
+            display: 'flex', alignItems: 'center', gap: 6, padding: "var(--action-py) var(--space-md)", borderRadius: "var(--r-sm)", fontSize: "var(--text-base)", fontWeight: 600, cursor: 'pointer',
             border: `1px solid ${value.length ? 'var(--teal)' : 'var(--border)'}`, background: value.length ? 'var(--teal-l)' : 'var(--white)',
             color: value.length ? 'var(--teal)' : 'var(--ink2)',
           }}
@@ -1913,10 +1913,10 @@ const EventGuestPicker: React.FC<{ guests: CalendarGuest[]; onAdd: (p: Person) =
   return (
     <div>
       <div style={{ position: 'relative' }}>
-        <input
+        <input data-ui-field="input"
           type="text" value={query} onChange={e => setQuery(e.target.value)}
           placeholder="Add guests"
-          style={{ width: '100%', boxSizing: 'border-box', padding: '10px 12px', border: '1px solid var(--border)', borderRadius: 'var(--r)', fontSize: 14 }}
+          style={{ width: '100%', boxSizing: 'border-box', padding: "var(--ds-input-py) var(--space-md)", border: '1px solid var(--border)', borderRadius: 'var(--r)', fontSize: "var(--text-base)" }}
         />
         {(results.length > 0 || searching) && (
           <div style={{ position: 'absolute', top: '100%', left: 0, right: 0, marginTop: 4, background: 'var(--card-bg, #fff)', border: '1px solid var(--border)', borderRadius: 'var(--r)', boxShadow: '0 4px 16px rgba(0,0,0,0.15)', zIndex: 20, maxHeight: 200, overflowY: 'auto' }}>
@@ -1926,7 +1926,7 @@ const EventGuestPicker: React.FC<{ guests: CalendarGuest[]; onAdd: (p: Person) =
                 key={p.id}
                 type="button"
                 onClick={() => { onAdd(p); setQuery(''); setResults([]); }}
-                style={{ display: 'flex', alignItems: 'center', gap: 8, width: '100%', padding: '6px 10px', background: 'none', border: 'none', cursor: 'pointer', textAlign: 'left' }}
+                style={{ display: 'flex', alignItems: 'center', gap: 8, width: '100%', padding: "var(--action-py) var(--space-md)", background: 'none', border: 'none', cursor: 'pointer', textAlign: 'left' }}
                data-ui-native-button="">
                 <PersonAvatar userId={p.id} name={p.name} size={20} />
                 <div style={{ display: 'flex', flexDirection: 'column' }}>
@@ -1944,7 +1944,7 @@ const EventGuestPicker: React.FC<{ guests: CalendarGuest[]; onAdd: (p: Person) =
           {guests.map(g => (
             <span key={g.userId ?? g.email} style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: 12.5, fontWeight: 600, padding: '4px 6px 4px 10px', borderRadius: 'var(--badge-radius)', background: 'var(--bg)', color: 'var(--ink2)' }}>
               {g.name || g.email}
-              <button type="button" onClick={() => onRemove(g.userId, g.email)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink3)', display: 'flex', padding: 2 }} data-ui-native-button="">
+              <button type="button" onClick={() => onRemove(g.userId, g.email)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink3)', display: 'flex', padding: "var(--action-py) var(--space-md)" }} data-ui-native-button="">
                 <Icon name="x" size={11} />
               </button>
             </span>
@@ -2066,13 +2066,13 @@ const BookingPagesPanel: React.FC<{ isMobile: boolean; onClose: () => void }> = 
                   <Switch checked={p.active} onCheckedChange={() => handleToggleActive(p)} />
                 </div>
                 <div style={{ display: 'flex', gap: 8 }}>
-                  <button type="button" onClick={() => copyLink(p)} style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '6px 10px', border: '1px solid var(--border)', borderRadius: 'var(--r)', background: 'var(--white)', cursor: 'pointer', fontSize: 12.5, fontWeight: 500, color: 'var(--ink2)' }} data-ui-native-button="">
+                  <button type="button" onClick={() => copyLink(p)} style={{ display: 'flex', alignItems: 'center', gap: 6, padding: "var(--action-py) var(--space-md)", border: '1px solid var(--border)', borderRadius: 'var(--r)', background: 'var(--white)', cursor: 'pointer', fontSize: "var(--text-base)", fontWeight: 500, color: 'var(--ink2)' }} data-ui-native-button="">
                     <Icon name={copiedId === p.id ? 'check' : 'link'} size={13} /> {copiedId === p.id ? 'Copied' : 'Copy link'}
                   </button>
-                  <button type="button" onClick={() => startEdit(p)} style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '6px 10px', border: '1px solid var(--border)', borderRadius: 'var(--r)', background: 'var(--white)', cursor: 'pointer', fontSize: 12.5, fontWeight: 500, color: 'var(--ink2)' }} data-ui-native-button="">
+                  <button type="button" onClick={() => startEdit(p)} style={{ display: 'flex', alignItems: 'center', gap: 6, padding: "var(--action-py) var(--space-md)", border: '1px solid var(--border)', borderRadius: 'var(--r)', background: 'var(--white)', cursor: 'pointer', fontSize: "var(--text-base)", fontWeight: 500, color: 'var(--ink2)' }} data-ui-native-button="">
                     <Icon name="edit" size={13} /> Edit
                   </button>
-                  <button type="button" onClick={() => handleDeletePage(p)} style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '6px 10px', border: 'none', borderRadius: 'var(--r)', background: 'none', cursor: 'pointer', fontSize: 12.5, fontWeight: 500, color: 'var(--red)', marginLeft: 'auto' }} data-ui-native-button="">
+                  <button type="button" onClick={() => handleDeletePage(p)} style={{ display: 'flex', alignItems: 'center', gap: 6, padding: "var(--action-py) var(--space-md)", border: 'none', borderRadius: 'var(--r)', background: 'none', cursor: 'pointer', fontSize: "var(--text-base)", fontWeight: 500, color: 'var(--red)', marginLeft: 'auto' }} data-ui-native-button="">
                     <Icon name="trash" size={13} />
                   </button>
                 </div>
@@ -2080,7 +2080,7 @@ const BookingPagesPanel: React.FC<{ isMobile: boolean; onClose: () => void }> = 
             ))}
             <button
               type="button" onClick={startCreate}
-              style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, padding: '10px 14px', border: '1px dashed var(--border2)', borderRadius: 'var(--r)', background: 'none', cursor: 'pointer', fontSize: 13.5, fontWeight: 600, color: 'var(--teal)', marginTop: 4 }}
+              style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, padding: "var(--action-py) var(--space-md)", border: '1px dashed var(--border2)', borderRadius: 'var(--r)', background: 'none', cursor: 'pointer', fontSize: "var(--text-base)", fontWeight: 600, color: 'var(--teal)', marginTop: 4 }}
              data-ui-native-button="">
               <Icon name="plus" size={14} /> New booking page
             </button>
@@ -2089,23 +2089,23 @@ const BookingPagesPanel: React.FC<{ isMobile: boolean; onClose: () => void }> = 
 
         {creating && (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-            <input value={form.title ?? ''} onChange={e => setForm(f => ({ ...f, title: e.target.value }))} placeholder="Title (e.g. 30 Minute Meeting)" style={inputStyle} />
+            <input data-ui-field="input" value={form.title ?? ''} onChange={e => setForm(f => ({ ...f, title: e.target.value }))} placeholder="Title (e.g. 30 Minute Meeting)" style={inputStyle} />
             <div>
               <div style={{ fontSize: 11.5, color: 'var(--ink3)', marginBottom: 4 }}>Link</div>
               <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
                 <span style={{ fontSize: 13, color: 'var(--ink3)', whiteSpace: 'nowrap' }}>/book/</span>
-                <input value={form.slug ?? ''} onChange={e => setForm(f => ({ ...f, slug: e.target.value }))} placeholder="auto-generated if left blank" style={inputStyle} />
+                <input data-ui-field="input" value={form.slug ?? ''} onChange={e => setForm(f => ({ ...f, slug: e.target.value }))} placeholder="auto-generated if left blank" style={inputStyle} />
               </div>
             </div>
-            <textarea value={form.description ?? ''} onChange={e => setForm(f => ({ ...f, description: e.target.value }))} placeholder="Description (shown to the person booking)" rows={2} style={{ ...inputStyle, resize: 'none' }} />
+            <textarea data-ui-field="textarea" value={form.description ?? ''} onChange={e => setForm(f => ({ ...f, description: e.target.value }))} placeholder="Description (shown to the person booking)" rows={2} style={{ ...inputStyle, resize: 'none' }} />
             <div style={{ display: 'flex', gap: 12 }}>
               <label style={{ flex: 1 }}>
                 <div style={{ fontSize: 11.5, color: 'var(--ink3)', marginBottom: 4 }}>Duration (min)</div>
-                <input type="number" min={5} max={480} value={form.durationMinutes ?? 30} onChange={e => setForm(f => ({ ...f, durationMinutes: Number(e.target.value) }))} style={inputStyle} />
+                <input data-ui-field="input" type="number" min={5} max={480} value={form.durationMinutes ?? 30} onChange={e => setForm(f => ({ ...f, durationMinutes: Number(e.target.value) }))} style={inputStyle} />
               </label>
               <label style={{ flex: 1 }}>
                 <div style={{ fontSize: 11.5, color: 'var(--ink3)', marginBottom: 4 }}>Buffer between meetings (min)</div>
-                <input type="number" min={0} max={120} value={form.bufferMinutes ?? 0} onChange={e => setForm(f => ({ ...f, bufferMinutes: Number(e.target.value) }))} style={inputStyle} />
+                <input data-ui-field="input" type="number" min={0} max={120} value={form.bufferMinutes ?? 0} onChange={e => setForm(f => ({ ...f, bufferMinutes: Number(e.target.value) }))} style={inputStyle} />
               </label>
             </div>
             <div>
@@ -2117,7 +2117,7 @@ const BookingPagesPanel: React.FC<{ isMobile: boolean; onClose: () => void }> = 
                     <button
                       key={d} type="button" onClick={() => toggleDay(d)}
                       style={{
-                        width: 34, height: 34, borderRadius: '50%', fontSize: 12, fontWeight: 700, cursor: 'pointer',
+                        width: "var(--ctl-h)", height: "var(--ctl-h)", borderRadius: '50%', fontSize: "var(--text-base)", fontWeight: 700, cursor: 'pointer',
                         border: `1px solid ${on ? 'var(--teal)' : 'var(--border)'}`,
                         background: on ? 'hsl(var(--primary))' : 'var(--white)', color: on ? 'hsl(var(--primary-foreground))' : 'var(--ink3)',
                       }}
@@ -2131,16 +2131,16 @@ const BookingPagesPanel: React.FC<{ isMobile: boolean; onClose: () => void }> = 
             <div style={{ display: 'flex', gap: 12 }}>
               <label style={{ flex: 1 }}>
                 <div style={{ fontSize: 11.5, color: 'var(--ink3)', marginBottom: 4 }}>Working hours start</div>
-                <input type="time" value={form.workingStartTime ?? '09:00'} onChange={e => setForm(f => ({ ...f, workingStartTime: e.target.value }))} style={inputStyle} />
+                <input data-ui-field="input" type="time" value={form.workingStartTime ?? '09:00'} onChange={e => setForm(f => ({ ...f, workingStartTime: e.target.value }))} style={inputStyle} />
               </label>
               <label style={{ flex: 1 }}>
                 <div style={{ fontSize: 11.5, color: 'var(--ink3)', marginBottom: 4 }}>Working hours end</div>
-                <input type="time" value={form.workingEndTime ?? '17:00'} onChange={e => setForm(f => ({ ...f, workingEndTime: e.target.value }))} style={inputStyle} />
+                <input data-ui-field="input" type="time" value={form.workingEndTime ?? '17:00'} onChange={e => setForm(f => ({ ...f, workingEndTime: e.target.value }))} style={inputStyle} />
               </label>
             </div>
             <label>
               <div style={{ fontSize: 11.5, color: 'var(--ink3)', marginBottom: 4 }}>How far ahead people can book (days)</div>
-              <input type="number" min={1} max={365} value={form.bookingWindowDays ?? 30} onChange={e => setForm(f => ({ ...f, bookingWindowDays: Number(e.target.value) }))} style={inputStyle} />
+              <input data-ui-field="input" type="number" min={1} max={365} value={form.bookingWindowDays ?? 30} onChange={e => setForm(f => ({ ...f, bookingWindowDays: Number(e.target.value) }))} style={inputStyle} />
             </label>
             <div style={{ fontSize: 11.5, color: 'var(--ink3)' }}>Timezone: {form.timezone}</div>
 
@@ -2275,7 +2275,7 @@ const CalendarSyncPanel: React.FC<{ isMobile: boolean; onClose: () => void }> = 
           <div style={{ marginTop: 18, paddingTop: 16, borderTop: '1px solid var(--border)' }}>
             <button
               type="button" onClick={openConfig}
-              style={{ display: 'flex', alignItems: 'center', gap: 6, background: 'none', border: 'none', cursor: 'pointer', fontSize: 12.5, fontWeight: 700, color: 'var(--ink2)', padding: 0 }}
+              style={{ display: 'flex', alignItems: 'center', gap: 6, background: 'none', border: 'none', cursor: 'pointer', fontSize: "var(--text-base)", fontWeight: 700, color: 'var(--ink2)', padding: 0 }}
              data-ui-native-button="">
               <Icon name={configOpen ? 'chevronUp' : 'chevronDown'} size={13} color="var(--ink3)" />
               App credentials (admin)
@@ -2287,19 +2287,19 @@ const CalendarSyncPanel: React.FC<{ isMobile: boolean; onClose: () => void }> = 
                 </div>
                 <label>
                   <div style={{ fontSize: 11.5, color: 'var(--ink3)', marginBottom: 4 }}>Google Client ID</div>
-                  <input value={creds.googleClientId ?? ''} onChange={e => setCreds(c => ({ ...c, googleClientId: e.target.value }))} style={inputStyle} />
+                  <input data-ui-field="input" value={creds.googleClientId ?? ''} onChange={e => setCreds(c => ({ ...c, googleClientId: e.target.value }))} style={inputStyle} />
                 </label>
                 <label>
                   <div style={{ fontSize: 11.5, color: 'var(--ink3)', marginBottom: 4 }}>Google Client Secret</div>
-                  <input type="password" value={creds.googleClientSecret ?? ''} onChange={e => setCreds(c => ({ ...c, googleClientSecret: e.target.value }))} style={inputStyle} />
+                  <input data-ui-field="input" type="password" value={creds.googleClientSecret ?? ''} onChange={e => setCreds(c => ({ ...c, googleClientSecret: e.target.value }))} style={inputStyle} />
                 </label>
                 <label>
                   <div style={{ fontSize: 11.5, color: 'var(--ink3)', marginBottom: 4 }}>Outlook (Azure AD) Application ID</div>
-                  <input value={creds.outlookClientId ?? ''} onChange={e => setCreds(c => ({ ...c, outlookClientId: e.target.value }))} style={inputStyle} />
+                  <input data-ui-field="input" value={creds.outlookClientId ?? ''} onChange={e => setCreds(c => ({ ...c, outlookClientId: e.target.value }))} style={inputStyle} />
                 </label>
                 <label>
                   <div style={{ fontSize: 11.5, color: 'var(--ink3)', marginBottom: 4 }}>Outlook Client Secret</div>
-                  <input type="password" value={creds.outlookClientSecret ?? ''} onChange={e => setCreds(c => ({ ...c, outlookClientSecret: e.target.value }))} style={inputStyle} />
+                  <input data-ui-field="input" type="password" value={creds.outlookClientSecret ?? ''} onChange={e => setCreds(c => ({ ...c, outlookClientSecret: e.target.value }))} style={inputStyle} />
                 </label>
                 <Button size="sm" onClick={handleSaveCreds} disabled={savingCreds} style={{ alignSelf: 'flex-end' }}>
                   {savingCreds ? 'Saving…' : 'Save credentials'}
@@ -2337,7 +2337,7 @@ const TimezoneModal: React.FC<{ value: string; onClose: () => void; onSelect: (t
           A repeated event has to start and end in the same time zone.
         </p>
         <Select value={selected} onValueChange={setSelected}>
-          <SelectTrigger style={{ width: '100%', minHeight: 40, fontSize: 13 }}><SelectValue /></SelectTrigger>
+          <SelectTrigger style={{ width: '100%', minHeight: "var(--ctl-h)", fontSize: "var(--text-base)" }}><SelectValue /></SelectTrigger>
           <SelectContent>
             {timezones.map(tz => (
               <SelectItem key={tz} value={tz}>{tz}</SelectItem>

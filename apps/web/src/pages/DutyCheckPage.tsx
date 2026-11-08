@@ -209,13 +209,13 @@ export const DutyCheckPage: React.FC = () => {
                   HS Code or Product
                 </label>
                 <div style={{ position: 'relative' }}>
-                  <input
+                  <input data-ui-field="input"
                     className="input-field"
                     placeholder="e.g. 8471.30 or laptop"
                     value={hs}
                     onChange={e => { setHs(e.target.value); setHsSelected(null); setResult(null); }}
                     onKeyDown={e => { if (e.key === 'Enter') runCheck(); }}
-                    style={{ width: '100%', boxSizing: 'border-box', paddingLeft: 38, height: 44, fontSize: 14 }}
+                    style={{ width: '100%', boxSizing: 'border-box', paddingLeft: 38, height: "var(--ctl-h)", fontSize: "var(--text-base)" }}
                   />
                   <Icon name="search" size={15} color="var(--ink3)" style={{ position: 'absolute', left: 14, top: '50%', transform: 'translateY(-50%)' }} />
                 </div>
@@ -252,7 +252,7 @@ export const DutyCheckPage: React.FC = () => {
                 <Banner variant="error">{error}</Banner>
               )}
 
-              <Button type="button" onClick={() => runCheck()} disabled={checking} className="w-full" style={{ minHeight: 44 }}>
+              <Button type="button" onClick={() => runCheck()} disabled={checking} className="w-full" style={{ minHeight: "var(--action-h)" }}>
                 <Icon name="percent" size={15} />
                 {checking ? 'Checking…' : 'Check Duty'}
               </Button>
@@ -284,12 +284,12 @@ export const DutyCheckPage: React.FC = () => {
                   </button>
                 </div>
 
-                <textarea
+                <textarea data-ui-field="textarea"
                   className="input-field"
                   placeholder="e.g. solar panel, 250W monocrystalline, aluminium frame"
                   value={description}
                   onChange={e => setDescription(e.target.value)}
-                  style={{ width: '100%', boxSizing: 'border-box', minHeight: 64, resize: 'vertical', fontFamily: 'var(--font)', fontSize: 13 }}
+                  style={{ width: '100%', boxSizing: 'border-box', minHeight: 64, resize: 'vertical', fontFamily: 'var(--font)', fontSize: "var(--text-base)" }}
                 />
 
                 {suggestError && (
@@ -309,7 +309,7 @@ export const DutyCheckPage: React.FC = () => {
                     <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
                       {suggestions.map(s => (
                         <button key={s.code} type="button" onClick={() => acceptCode(s.code)}
-                          style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '9px 12px', border: '1px solid var(--border)', borderRadius: 'var(--r-sm)', background: 'none', cursor: 'pointer', textAlign: 'left', fontFamily: 'var(--font)' }}
+                          style={{ display: 'flex', alignItems: 'center', gap: 10, padding: "var(--action-py) var(--space-md)", border: '1px solid var(--border)', borderRadius: 'var(--r-sm)', background: 'none', cursor: 'pointer', textAlign: 'left', fontFamily: 'var(--font)' }}
                           onMouseEnter={e => (e.currentTarget.style.background = 'var(--hover-bg)')}
                           onMouseLeave={e => (e.currentTarget.style.background = 'none')} data-ui-native-button="">
                           <span style={{ fontSize: 12.5, fontWeight: 700, color: 'var(--teal)', flexShrink: 0 }}>{s.code}</span>
@@ -405,7 +405,7 @@ export const DutyCheckPage: React.FC = () => {
                     <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
                       {result.alternatives.map(a => (
                         <button key={a.code} type="button" onClick={() => runCheck(a.code)}
-                          style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '9px 12px', border: '1px solid var(--border)', borderRadius: 'var(--r-sm)', background: 'none', cursor: 'pointer', textAlign: 'left', fontFamily: 'var(--font)' }}
+                          style={{ display: 'flex', alignItems: 'center', gap: 10, padding: "var(--action-py) var(--space-md)", border: '1px solid var(--border)', borderRadius: 'var(--r-sm)', background: 'none', cursor: 'pointer', textAlign: 'left', fontFamily: 'var(--font)' }}
                           onMouseEnter={e => (e.currentTarget.style.background = 'var(--hover-bg)')}
                           onMouseLeave={e => (e.currentTarget.style.background = 'none')} data-ui-native-button="">
                           <span style={{ fontSize: 12.5, fontWeight: 700, color: 'var(--teal)', flexShrink: 0 }}>{a.code}</span>

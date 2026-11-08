@@ -106,7 +106,7 @@ export function ProviderFilesPanel({ provider }: { provider: StorageProvider }) 
           <div style={{ fontSize:'var(--text-base)', color: 'var(--ink3)' }}>{meta.blurb}</div>
         </div>
         <div style={{ display: 'flex', gap: 8, width: 320 }}>
-          <input
+          <input data-ui-field="input"
             autoFocus
             value={emailInput}
             onChange={e => setEmailInput(e.target.value)}

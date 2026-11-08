@@ -361,7 +361,7 @@ export const StepCompany: React.FC<StepProps> = ({
                       {isPrimary ? (
                         <span className="text-[9.5px] font-bold uppercase tracking-wide opacity-80">(Primary)</span>
                       ) : (
-                        <button
+                        <button data-ui-native-button=""
                           type="button"
                           onClick={(e) => setPrimary(k, e)}
                           className="text-[10px] text-[var(--lp-ink3)] hover:text-[var(--teal,#0d7a6b)] underline cursor-pointer"
@@ -370,7 +370,7 @@ export const StepCompany: React.FC<StepProps> = ({
                           {t('onboarding.makePrimary')}
                         </button>
                       )}
-                      <button
+                      <button data-ui-native-button=""
                         type="button"
                         onClick={() => toggleIndustry(k)}
                         className="text-[var(--lp-ink3)] hover:text-red-600 cursor-pointer ml-0.5 text-xs font-bold leading-none"

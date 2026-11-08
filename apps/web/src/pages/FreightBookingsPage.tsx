@@ -180,7 +180,7 @@ export function FreightBookingsPage() {
                   )}
                   {(b.status === 'REQUESTED') && (
                     <Tip label="Cancel booking">
-                      <button type="button" aria-label="Cancel booking" onClick={e => { e.stopPropagation(); cancelBooking(b); }} style={{ border: 'none', background: 'none', color: 'var(--ink3)', cursor: 'pointer', padding: 4 }} data-ui-native-button="">
+                      <button type="button" aria-label="Cancel booking" onClick={e => { e.stopPropagation(); cancelBooking(b); }} style={{ border: 'none', background: 'none', color: 'var(--ink3)', cursor: 'pointer', padding: "var(--action-py) var(--space-md)" }} data-ui-native-button="">
                         <Icon name="x" size={14} />
                       </button>
                     </Tip>
@@ -208,11 +208,11 @@ export function FreightBookingsPage() {
                       </div>
                       <div>
                         <label style={{ display: 'block', fontSize: 11, fontWeight: 600, color: 'var(--ink2)', marginBottom: 5 }}>Cost rate *</label>
-                        <input className="input-field" type="number" value={quoteForm.quoted_cost} onChange={e => setQuoteForm(p => ({ ...p, quoted_cost: e.target.value }))} />
+                        <input data-ui-field="input" className="input-field" type="number" value={quoteForm.quoted_cost} onChange={e => setQuoteForm(p => ({ ...p, quoted_cost: e.target.value }))} />
                       </div>
                       <div>
                         <label style={{ display: 'block', fontSize: 11, fontWeight: 600, color: 'var(--ink2)', marginBottom: 5 }}>Sell rate *</label>
-                        <input className="input-field" type="number" value={quoteForm.quoted_sell} onChange={e => setQuoteForm(p => ({ ...p, quoted_sell: e.target.value }))} />
+                        <input data-ui-field="input" className="input-field" type="number" value={quoteForm.quoted_sell} onChange={e => setQuoteForm(p => ({ ...p, quoted_sell: e.target.value }))} />
                       </div>
                     </div>
                     {error && <div style={{ color: 'var(--red)', fontSize: 12, marginBottom: 10 }}>{error}</div>}
@@ -226,23 +226,23 @@ export function FreightBookingsPage() {
                     <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 12, marginBottom: 12 }}>
                       <div>
                         <label style={{ display: 'block', fontSize: 11, fontWeight: 600, color: 'var(--ink2)', marginBottom: 5 }}>Vessel / Flight *</label>
-                        <input className="input-field" value={confirmForm.vessel_name} onChange={e => setConfirmForm(p => ({ ...p, vessel_name: e.target.value }))} />
+                        <input data-ui-field="input" className="input-field" value={confirmForm.vessel_name} onChange={e => setConfirmForm(p => ({ ...p, vessel_name: e.target.value }))} />
                       </div>
                       <div>
                         <label style={{ display: 'block', fontSize: 11, fontWeight: 600, color: 'var(--ink2)', marginBottom: 5 }}>Voyage number</label>
-                        <input className="input-field" value={confirmForm.voyage_number} onChange={e => setConfirmForm(p => ({ ...p, voyage_number: e.target.value }))} />
+                        <input data-ui-field="input" className="input-field" value={confirmForm.voyage_number} onChange={e => setConfirmForm(p => ({ ...p, voyage_number: e.target.value }))} />
                       </div>
                       <div>
                         <label style={{ display: 'block', fontSize: 11, fontWeight: 600, color: 'var(--ink2)', marginBottom: 5 }}>Carrier booking ref</label>
-                        <input className="input-field" value={confirmForm.carrier_booking_ref} onChange={e => setConfirmForm(p => ({ ...p, carrier_booking_ref: e.target.value }))} />
+                        <input data-ui-field="input" className="input-field" value={confirmForm.carrier_booking_ref} onChange={e => setConfirmForm(p => ({ ...p, carrier_booking_ref: e.target.value }))} />
                       </div>
                       <div>
                         <label style={{ display: 'block', fontSize: 11, fontWeight: 600, color: 'var(--ink2)', marginBottom: 5 }}>BL number</label>
-                        <input className="input-field" value={confirmForm.bl_number} onChange={e => setConfirmForm(p => ({ ...p, bl_number: e.target.value }))} />
+                        <input data-ui-field="input" className="input-field" value={confirmForm.bl_number} onChange={e => setConfirmForm(p => ({ ...p, bl_number: e.target.value }))} />
                       </div>
                       <div>
                         <label style={{ display: 'block', fontSize: 11, fontWeight: 600, color: 'var(--ink2)', marginBottom: 5 }}>AWB number</label>
-                        <input className="input-field" value={confirmForm.awb_number} onChange={e => setConfirmForm(p => ({ ...p, awb_number: e.target.value }))} />
+                        <input data-ui-field="input" className="input-field" value={confirmForm.awb_number} onChange={e => setConfirmForm(p => ({ ...p, awb_number: e.target.value }))} />
                       </div>
                       <div>
                         <label style={{ display: 'block', fontSize: 11, fontWeight: 600, color: 'var(--ink2)', marginBottom: 5 }}>ETA</label>

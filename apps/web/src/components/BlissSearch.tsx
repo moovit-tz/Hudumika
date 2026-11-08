@@ -52,14 +52,14 @@ export function BlissSearch({ onClose }: { onClose: () => void }) {
         <DialogTitle className="sr-only">Search</DialogTitle>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '10px 14px', background: 'var(--white)', borderBottom: '1px solid var(--border)', flexShrink: 0 }}>
           <Icon name="search" size={15} color="var(--ink3)" />
-          <input
+          <input data-field-appearance="bare" data-ui-field="input"
             ref={inputRef}
             value={query}
             onChange={e => setQuery(e.target.value)}
             placeholder="Search tickets, chats, knowledge base…"
-            style={{ flex: 1, border: 'none', outline: 'none', background: 'transparent', fontSize: 14, color: 'var(--ink)' }}
+            style={{ flex: 1, border: 'none', outline: 'none', background: 'transparent', fontSize: "var(--text-base)", color: 'var(--ink)' }}
           />
-          <button type="button" onClick={onClose} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink3)', padding: 4 }} title="Close search" data-ui-native-button="">
+          <button type="button" onClick={onClose} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink3)', padding: "var(--action-py) var(--space-md)" }} title="Close search" data-ui-native-button="">
             <Icon name="x" size={16} />
           </button>
         </div>
@@ -84,7 +84,7 @@ export function BlissSearch({ onClose }: { onClose: () => void }) {
             <div style={{ fontSize: 10.5, fontWeight: 800, color: 'var(--ink3)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 8 }}>Tickets</div>
             {results.tickets.map(t => (
               <button key={t.id} type="button" onClick={() => go(`/bliss/inbox?id=${t.id}`)}
-                style={{ display: 'flex', alignItems: 'flex-start', gap: 10, width: '100%', textAlign: 'left', padding: '10px 12px', borderRadius: 'var(--r)', border: '1px solid var(--border)', background: 'var(--white)', marginBottom: 6, cursor: 'pointer' }} data-ui-native-button="">
+                style={{ display: 'flex', alignItems: 'flex-start', gap: 10, width: '100%', textAlign: 'left', padding: "var(--action-py) var(--space-md)", borderRadius: 'var(--r)', border: '1px solid var(--border)', background: 'var(--white)', marginBottom: 6, cursor: 'pointer' }} data-ui-native-button="">
                 <Icon name="inbox" size={15} color="var(--teal)" style={{ marginTop: 2, flexShrink: 0 }} />
                 <div style={{ minWidth: 0 }}>
                   <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--ink)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{t.subject}</div>
@@ -100,7 +100,7 @@ export function BlissSearch({ onClose }: { onClose: () => void }) {
             <div style={{ fontSize: 10.5, fontWeight: 800, color: 'var(--ink3)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 8 }}>Team Chat</div>
             {results.chats.map((c, i) => (
               <button key={`${c.channelId}-${i}`} type="button" onClick={() => go(`/bliss/inbox?view=team&channel=${c.channelId}`)}
-                style={{ display: 'flex', alignItems: 'flex-start', gap: 10, width: '100%', textAlign: 'left', padding: '10px 12px', borderRadius: 'var(--r)', border: '1px solid var(--border)', background: 'var(--white)', marginBottom: 6, cursor: 'pointer' }} data-ui-native-button="">
+                style={{ display: 'flex', alignItems: 'flex-start', gap: 10, width: '100%', textAlign: 'left', padding: "var(--action-py) var(--space-md)", borderRadius: 'var(--r)', border: '1px solid var(--border)', background: 'var(--white)', marginBottom: 6, cursor: 'pointer' }} data-ui-native-button="">
                 <Icon name="chatBubble" size={15} color="var(--gold)" style={{ marginTop: 2, flexShrink: 0 }} />
                 <div style={{ minWidth: 0 }}>
                   <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--ink)' }}>{c.label}</div>
@@ -116,7 +116,7 @@ export function BlissSearch({ onClose }: { onClose: () => void }) {
             <div style={{ fontSize: 10.5, fontWeight: 800, color: 'var(--ink3)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 8 }}>Knowledge Base</div>
             {results.articles.map(a => (
               <button key={a.id} type="button" onClick={() => go(`/bliss/kb?id=${a.id}`)}
-                style={{ display: 'flex', alignItems: 'center', gap: 10, width: '100%', textAlign: 'left', padding: '10px 12px', borderRadius: 'var(--r)', border: '1px solid var(--border)', background: 'var(--white)', marginBottom: 6, cursor: 'pointer' }} data-ui-native-button="">
+                style={{ display: 'flex', alignItems: 'center', gap: 10, width: '100%', textAlign: 'left', padding: "var(--action-py) var(--space-md)", borderRadius: 'var(--r)', border: '1px solid var(--border)', background: 'var(--white)', marginBottom: 6, cursor: 'pointer' }} data-ui-native-button="">
                 <Icon name="fileText" size={15} color="var(--blue)" style={{ flexShrink: 0 }} />
                 <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--ink)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{a.title}</div>
               </button>

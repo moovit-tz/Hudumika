@@ -319,7 +319,7 @@ export function AppSidebar({ appId, sections, beforeNav, fillNav, afterNav, load
             with page content), and there's no page content beside a
             full-screen drawer to share width with. */}
         {!mobileOpen && (
-          <button
+          <button data-ui-native-button=""
             type="button"
             className="app-sb-toggle"
             onClick={toggleCollapse}
@@ -444,7 +444,7 @@ export function AppSidebar({ appId, sections, beforeNav, fillNav, afterNav, load
 
                       return (
                         <React.Fragment key={item.path}>
-                          <button
+                          <button data-ui-native-button=""
                             type="button"
                             className="app-sb-item app-sb-item--parent-hdr"
                             onClick={() => toggleParent(item.path, isParentOpen)}

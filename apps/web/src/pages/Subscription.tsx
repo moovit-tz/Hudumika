@@ -320,7 +320,7 @@ function Btn({ label, icon, onClick, variant = 'ghost', disabled = false }: { la
     danger:  { background: 'var(--white)', color: 'var(--red)', border: '1.5px solid var(--border)' },
   };
   return (
-    <button onClick={onClick} disabled={disabled} style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: 'var(--ds-btn-py) 16px', borderRadius: 'var(--r)', fontSize: 13, fontWeight: 600, cursor: disabled ? 'default' : 'pointer', opacity: disabled ? 0.55 : 1, fontFamily: 'var(--font)', ...style[variant], minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}} data-ui-native-button="">
+    <button onClick={onClick} disabled={disabled} style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: 'var(--ds-btn-py) 16px', borderRadius: 'var(--r)', fontSize: "var(--text-base)", fontWeight: 600, cursor: disabled ? 'default' : 'pointer', opacity: disabled ? 0.55 : 1, fontFamily: 'var(--font)', ...style[variant], minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}} data-ui-native-button="">
       {icon && <Icon name={icon} size={13} strokeWidth={2} />}
       {label}
     </button>
@@ -388,7 +388,7 @@ function CompanyInfoTab({ tenant }: { tenant: any }) {
             ] as const).map(([label, key]) => (
               <FormRow key={key} label={label}>
                 {editingReg ? (
-                  <input value={regForm[key]} onChange={e => setRegForm(f => ({ ...f, [key]: e.target.value }))} className="input-field" style={{ fontSize: 13, padding: '7px 12px', width: '100%', fontFamily: 'var(--font)' }} />
+                  <input data-ui-field="input" value={regForm[key]} onChange={e => setRegForm(f => ({ ...f, [key]: e.target.value }))} className="input-field" style={{ fontSize: "var(--text-base)", padding: "var(--ds-input-py) var(--space-md)", width: '100%', fontFamily: 'var(--font)' }} />
                 ) : (
                   <span style={{ fontSize: 13, color: 'var(--ink)', fontFamily: 'var(--font)' }}>{co[key] || '—'}</span>
                 )}
@@ -572,7 +572,7 @@ function BillingTab({ tenant, onNavigateTab }: { tenant: any; onNavigateTab: (t:
               ))}
             </div>
             <div style={{ display: 'flex', gap: 10, marginTop: 16 }}>
-              <button onClick={cancelSubscription} style={{ padding: 'var(--ds-btn-py) 18px', border: '1.5px solid var(--border)', borderRadius: 'var(--r)', background: 'var(--white)', cursor: 'pointer', fontSize: 13, fontWeight: 600, color: 'var(--red)', fontFamily: 'var(--font)', minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}} data-ui-native-button="">Cancel Subscription</button>
+              <button onClick={cancelSubscription} style={{ padding: 'var(--ds-btn-py) 18px', border: '1.5px solid var(--border)', borderRadius: 'var(--r)', background: 'var(--white)', cursor: 'pointer', fontSize: "var(--text-base)", fontWeight: 600, color: 'var(--red)', fontFamily: 'var(--font)', minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}} data-ui-native-button="">Cancel Subscription</button>
             </div>
           </div>
         </Card>
@@ -593,7 +593,7 @@ function BillingTab({ tenant, onNavigateTab }: { tenant: any; onNavigateTab: (t:
               </div>
             ))}
             {current && current.status !== 'paid' ? (
-              <button onClick={() => payInvoice(current.id)} disabled={paying === current.id} style={{ width: '100%', marginTop: 16, padding: 'var(--ds-btn-py) 0', border: 'none', borderRadius: 'var(--r)', background: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))', cursor: paying === current.id ? 'default' : 'pointer', opacity: paying === current.id ? 0.6 : 1, fontSize: 14, fontWeight: 700, fontFamily: 'var(--font)', minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}} data-ui-native-button="">
+              <button onClick={() => payInvoice(current.id)} disabled={paying === current.id} style={{ width: '100%', marginTop: 16, padding: 'var(--ds-btn-py) 0', border: 'none', borderRadius: 'var(--r)', background: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))', cursor: paying === current.id ? 'default' : 'pointer', opacity: paying === current.id ? 0.6 : 1, fontSize: "var(--text-base)", fontWeight: 700, fontFamily: 'var(--font)', minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}} data-ui-native-button="">
                 {paying === current.id ? 'Processing…' : 'Pay Now'}
               </button>
             ) : (
@@ -601,7 +601,7 @@ function BillingTab({ tenant, onNavigateTab }: { tenant: any; onNavigateTab: (t:
                 {current ? 'Paid' : 'No invoice yet'}
               </div>
             )}
-            <button onClick={() => current && downloadInvoice(current)} disabled={!current} style={{ width: '100%', marginTop: 8, padding: 'var(--ds-btn-py) 0', border: '1.5px solid var(--border)', borderRadius: 'var(--r)', background: 'none', cursor: current ? 'pointer' : 'default', opacity: current ? 1 : 0.5, fontSize: 13, fontWeight: 600, color: 'var(--ink)', fontFamily: 'var(--font)', minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}} data-ui-native-button="">Download Statement</button>
+            <button onClick={() => current && downloadInvoice(current)} disabled={!current} style={{ width: '100%', marginTop: 8, padding: 'var(--ds-btn-py) 0', border: '1.5px solid var(--border)', borderRadius: 'var(--r)', background: 'none', cursor: current ? 'pointer' : 'default', opacity: current ? 1 : 0.5, fontSize: "var(--text-base)", fontWeight: 600, color: 'var(--ink)', fontFamily: 'var(--font)', minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}} data-ui-native-button="">Download Statement</button>
           </div>
         </Card>
       </div>
@@ -730,7 +730,7 @@ function EsbBalanceCard() {
 
         {/* Top-up form */}
         <div style={{ display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap' }}>
-          <input
+          <input data-ui-field="input"
             type="number"
             placeholder="Amount (TZS)"
             value={topUpAmount}
@@ -738,8 +738,8 @@ function EsbBalanceCard() {
             min={1000}
             step={1000}
             style={{
-              width: 180, padding: '8px 12px', borderRadius: 'var(--r-sm)', border: '1px solid var(--border)',
-              background: 'var(--bg)', color: 'var(--ink)', fontSize: 13, fontFamily: 'var(--font)',
+              width: 180, padding: "var(--ds-input-py) var(--space-md)", borderRadius: 'var(--r-sm)', border: '1px solid var(--border)',
+              background: 'var(--bg)', color: 'var(--ink)', fontSize: "var(--text-base)", fontFamily: 'var(--font)',
             }}
           />
           <Btn label={loading ? 'Redirecting…' : 'Top Up'} icon="plus" variant="primary" onClick={handleTopUp} disabled={loading} />
@@ -1022,14 +1022,14 @@ function PaymentsTab({ onNavigateTab }: { tenant?: any; onNavigateTab: (t: SubTa
                 </div>
                 {methodType === 'card' ? (
                   <>
-                    <FormRow label="Card Number"><input value={cardNumber} onChange={e => setCardNumber(e.target.value)} placeholder="4242 4242 4242 4242" className="input-field" style={{ width: '100%', fontSize: 13, padding: '8px 12px' }} /></FormRow>
-                    <FormRow label="Expiry (MM/YY)"><input value={cardExpiry} onChange={e => setCardExpiry(e.target.value)} placeholder="08/28" className="input-field" style={{ width: '100%', fontSize: 13, padding: '8px 12px' }} /></FormRow>
-                    <FormRow label="CVC"><input value={cardCvc} onChange={e => setCardCvc(e.target.value)} placeholder="123" className="input-field" style={{ width: '100%', fontSize: 13, padding: '8px 12px' }} /></FormRow>
+                    <FormRow label="Card Number"><input data-ui-field="input" value={cardNumber} onChange={e => setCardNumber(e.target.value)} placeholder="4242 4242 4242 4242" className="input-field" style={{ width: '100%', fontSize: "var(--text-base)", padding: "var(--ds-input-py) var(--space-md)" }} /></FormRow>
+                    <FormRow label="Expiry (MM/YY)"><input data-ui-field="input" value={cardExpiry} onChange={e => setCardExpiry(e.target.value)} placeholder="08/28" className="input-field" style={{ width: '100%', fontSize: "var(--text-base)", padding: "var(--ds-input-py) var(--space-md)" }} /></FormRow>
+                    <FormRow label="CVC"><input data-ui-field="input" value={cardCvc} onChange={e => setCardCvc(e.target.value)} placeholder="123" className="input-field" style={{ width: '100%', fontSize: "var(--text-base)", padding: "var(--ds-input-py) var(--space-md)" }} /></FormRow>
                   </>
                 ) : methodType === 'mobile_money' ? (
                   <>
                     <FormRow label="Phone Number">
-                      <input
+                      <input data-ui-field="input"
                         value={phone}
                         onChange={e => {
                           const next = e.target.value;
@@ -1039,7 +1039,7 @@ function PaymentsTab({ onNavigateTab }: { tenant?: any; onNavigateTab: (t: SubTa
                         }}
                         placeholder="0755 000 000"
                         className="input-field"
-                        style={{ width: '100%', fontSize: 13, padding: '8px 12px' }}
+                        style={{ width: '100%', fontSize: "var(--text-base)", padding: "var(--ds-input-py) var(--space-md)" }}
                       />
                     </FormRow>
                     <FormRow label="Provider">
@@ -1071,7 +1071,7 @@ function PaymentsTab({ onNavigateTab }: { tenant?: any; onNavigateTab: (t: SubTa
                     )}
                   </FormRow>
                 )}
-                <FormRow label="Label (optional)"><input value={methodLabel} onChange={e => setMethodLabel(e.target.value)} placeholder="e.g. Company Visa" className="input-field" style={{ width: '100%', fontSize: 13, padding: '8px 12px' }} /></FormRow>
+                <FormRow label="Label (optional)"><input data-ui-field="input" value={methodLabel} onChange={e => setMethodLabel(e.target.value)} placeholder="e.g. Company Visa" className="input-field" style={{ width: '100%', fontSize: "var(--text-base)", padding: "var(--ds-input-py) var(--space-md)" }} /></FormRow>
                 {formError && <div style={{ color: 'var(--red)', fontSize: 12.5, marginTop: 8 }}>{formError}</div>}
                 <div style={{ display: 'flex', gap: 10, marginTop: 14 }}>
                   <Btn label={saving ? 'Saving…' : 'Save Method'} icon="save" variant="primary" onClick={submitAdd} disabled={saving} />
@@ -1132,7 +1132,7 @@ function PaymentsTab({ onNavigateTab }: { tenant?: any; onNavigateTab: (t: SubTa
                     <a href="/petti" style={{ fontSize: 12, fontWeight: 700, color: 'var(--teal)', whiteSpace: 'nowrap' }}>Top up →</a>
                   </div>
                 )}
-                <button onClick={payUpcoming} disabled={payingUpcoming} style={{ width: '100%', marginTop: 16, padding: 'var(--ds-btn-py) 0', border: 'none', borderRadius: 'var(--r)', background: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))', cursor: payingUpcoming ? 'default' : 'pointer', opacity: payingUpcoming ? 0.6 : 1, fontSize: 14, fontWeight: 700, fontFamily: 'var(--font)', minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}} data-ui-native-button="">
+                <button onClick={payUpcoming} disabled={payingUpcoming} style={{ width: '100%', marginTop: 16, padding: 'var(--ds-btn-py) 0', border: 'none', borderRadius: 'var(--r)', background: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))', cursor: payingUpcoming ? 'default' : 'pointer', opacity: payingUpcoming ? 0.6 : 1, fontSize: "var(--text-base)", fontWeight: 700, fontFamily: 'var(--font)', minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}} data-ui-native-button="">
                   {payingUpcoming ? 'Processing…' : 'Pay Now'}
                 </button>
               </>
@@ -2120,7 +2120,7 @@ function SupportTab() {
           <Card>
             <CardHead title="New Support Ticket" />
             <div style={{ padding: '0 20px 20px' }}>
-              <FormRow label="Subject"><input value={subject} onChange={e => setSubject(e.target.value)} placeholder="Describe the issue briefly…" className="input-field" style={{ width: '100%', fontSize: 13, padding: '8px 12px' }} /></FormRow>
+              <FormRow label="Subject"><input data-ui-field="input" value={subject} onChange={e => setSubject(e.target.value)} placeholder="Describe the issue briefly…" className="input-field" style={{ width: '100%', fontSize: "var(--text-base)", padding: "var(--ds-input-py) var(--space-md)" }} /></FormRow>
               <FormRow label="Priority">
                 <Select value={priority} onValueChange={(v: any) => setPriority(v)}>
                   <SelectTrigger className="input-field" style={{ width: '100%' }}><SelectValue /></SelectTrigger>
@@ -2142,7 +2142,7 @@ function SupportTab() {
               </FormRow>
               <div style={{ marginTop: 14 }}>
                 <label style={{ fontSize: 12.5, fontWeight: 600, color: 'var(--ink2)', display: 'block', marginBottom: 6 }}>Description</label>
-                <textarea value={message} onChange={e => setMessage(e.target.value)} rows={4} placeholder="Provide steps to reproduce, screenshots, or any relevant details…" className="input-field" style={{ width: '100%', fontSize: 13, padding: '10px 12px', resize: 'none', boxSizing: 'border-box' as const }} />
+                <textarea data-ui-field="textarea" value={message} onChange={e => setMessage(e.target.value)} rows={4} placeholder="Provide steps to reproduce, screenshots, or any relevant details…" className="input-field" style={{ width: '100%', fontSize: "var(--text-base)", padding: "var(--ds-input-py) var(--space-md)", resize: 'none', boxSizing: 'border-box' as const }} />
               </div>
               {formError && <div style={{ color: 'var(--red)', fontSize: 12.5, marginTop: 8 }}>{formError}</div>}
               <div style={{ display: 'flex', gap: 10, marginTop: 16 }}>
@@ -2200,7 +2200,7 @@ function SupportTab() {
                               ))}
                             </div>
                             <div style={{ display: 'flex', gap: 8 }}>
-                              <input value={reply} onChange={e => setReply(e.target.value)} placeholder="Reply…" className="input-field" style={{ flex: 1, fontSize: 12.5, padding: '7px 10px' }} />
+                              <input data-ui-field="input" value={reply} onChange={e => setReply(e.target.value)} placeholder="Reply…" className="input-field" style={{ flex: 1, fontSize: "var(--text-base)", padding: "var(--ds-input-py) var(--space-md)" }} />
                               <Btn label="Send" icon="send" variant="primary" onClick={sendReply} disabled={!reply.trim()} />
                             </div>
                           </div>
@@ -2340,7 +2340,7 @@ export const Subscription: React.FC = () => {
               type="button"
               className="btn btn-primary"
               onClick={() => setTab('plans')}
-              style={{ fontSize: 12.5, fontWeight: 600, padding: '7px 16px' }}
+              style={{ fontSize: "var(--text-base)", fontWeight: 600, padding: "var(--action-py) var(--space-md)" }}
              data-ui-native-button="">
               <Icon name="layers" size={14} />
               <span>Change Plan</span>

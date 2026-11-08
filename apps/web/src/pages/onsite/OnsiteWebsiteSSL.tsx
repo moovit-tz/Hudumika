@@ -70,7 +70,7 @@ export function OnsiteWebsiteSSL() {
       ) : (
         <div className="onsite-card" style={{ padding: 0 }}>
           <div style={{ padding: '0.75rem 1rem', borderBottom: '1px solid var(--border)' }}>
-            <input
+            <input data-ui-field="input"
               className="onsite-input"
               value={q}
               onChange={e => setQ(e.target.value)}

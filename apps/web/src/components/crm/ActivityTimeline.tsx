@@ -94,12 +94,12 @@ export function ActivityTimeline({ subjectType, subjectId, currentUserId }: {
     <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
       <div style={{ display: 'flex', gap: 8, alignItems: 'flex-start' }}>
         <Select value={type} onValueChange={v => setType(v as ActivityType)}>
-          <SelectTrigger style={{ width: 118, height: 36, flexShrink: 0 }}><SelectValue /></SelectTrigger>
+          <SelectTrigger style={{ width: 118, height: "var(--ctl-h)", flexShrink: 0 }}><SelectValue /></SelectTrigger>
           <SelectContent>
             {MANUAL_TYPES.map(t => <SelectItem key={t} value={t}>{TYPE_CFG[t].label}</SelectItem>)}
           </SelectContent>
         </Select>
-        <textarea
+        <textarea data-ui-field="textarea"
           value={body}
           onChange={e => setBody(e.target.value)}
           placeholder={`Log a ${TYPE_CFG[type].label.toLowerCase()}…`}
@@ -108,7 +108,7 @@ export function ActivityTimeline({ subjectType, subjectId, currentUserId }: {
           style={{
             flex: 1, resize: 'vertical', minHeight: 36,
             border: '1px solid var(--border)', borderRadius: 'var(--r-sm)',
-            padding: '7px 10px', fontSize: 13, fontFamily: 'var(--font)',
+            padding: "var(--ds-input-py) var(--space-md)", fontSize: "var(--text-base)", fontFamily: 'var(--font)',
             color: 'var(--ink)', background: 'var(--card-bg, var(--white))',
             outline: 'none', lineHeight: 1.5,
           }}
@@ -142,7 +142,7 @@ export function ActivityTimeline({ subjectType, subjectId, currentUserId }: {
                 </div>
                 {canDelete && (
                   <Button variant="ghost" size="xs" onClick={() => remove(a.id)} title="Delete"
-                    style={{ flexShrink: 0, alignSelf: 'flex-start', color: 'var(--ink3)', padding: '2px 4px' }}>
+                    style={{ flexShrink: 0, alignSelf: 'flex-start', color: 'var(--ink3)', padding: "var(--ds-btn-py-sm) var(--space-md)" }}>
                     <Icon name="x" size={12} />
                   </Button>
                 )}

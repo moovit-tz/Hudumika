@@ -176,8 +176,8 @@ export const TrackingReminders: React.FC = () => {
                 <td style={{ padding: '10px 14px' }}>{r.notified_at ? `Sent ${new Date(r.notified_at).toLocaleString()}` : r.status === 'PENDING' ? 'Scheduled for due date' : 'Not sent'}</td><td style={{ padding: '10px 14px', textAlign: 'right', whiteSpace: 'nowrap' }}>
                   {r.status === 'PENDING' && (
                     <>
-                      <Button type="button" onClick={() => { void setStatus(r.id, 'DONE').catch(reportError); }} style={{ fontSize: 11, fontWeight: 600, color: 'var(--green)', background: 'none', border: 'none', cursor: 'pointer', marginRight: 8 }} data-ui-native-button="">Mark done</Button>
-                      <Button type="button" onClick={() => { void setStatus(r.id, 'DISMISSED').catch(reportError); }} style={{ fontSize: 11, fontWeight: 600, color: 'var(--ink3)', background: 'none', border: 'none', cursor: 'pointer' }} data-ui-native-button="">Dismiss</Button>
+                      <Button type="button" onClick={() => { void setStatus(r.id, 'DONE').catch(reportError); }} style={{ fontSize: "var(--text-xs)", fontWeight: 600, color: 'var(--green)', background: 'none', border: 'none', cursor: 'pointer', marginRight: 8 }} data-ui-native-button="">Mark done</Button>
+                      <Button type="button" onClick={() => { void setStatus(r.id, 'DISMISSED').catch(reportError); }} style={{ fontSize: "var(--text-xs)", fontWeight: 600, color: 'var(--ink3)', background: 'none', border: 'none', cursor: 'pointer' }} data-ui-native-button="">Dismiss</Button>
                     </>
                   )}
                 </td>

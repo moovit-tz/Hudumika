@@ -1,0 +1,64 @@
+/* Shared controls and the legacy field bridge consume the configurator tokens.
+   Bare searches/editors and specialized controls keep their own geometry. */
+[data-ui-field]:not([data-field-appearance="bare"]):not([data-ds-control-exempt]) {
+  --field-height: max(var(--ctl-h), calc(1.4em + var(--ds-input-py) * 2 + var(--border-width, 1px) * 2));
+  box-sizing: border-box;
+  min-width: 0;
+  max-width: 100%;
+  min-height: var(--field-height) !important;
+  height: var(--field-height) !important;
+  border-radius: var(--r-sm) !important;
+  border-width: var(--border-width, 1px) !important;
+  border-style: solid;
+  border-color: var(--border);
+  padding-block: var(--ds-input-py) !important;
+  font-family: var(--font) !important;
+  font-size: var(--text-base, 13px);
+  line-height: 1.4;
+  color: var(--ink) !important;
+  background-color: var(--white) !important;
+  transition: border-color var(--dur-fast) var(--ease), background-color var(--dur-fast) var(--ease);
+}
+[data-ui-field="textarea"]:not([data-field-appearance="bare"]):not([data-ds-control-exempt]) {
+  min-height: calc(var(--ctl-h) * 2) !important;
+  height: auto !important;
+  padding-inline: var(--space-md);
+  resize: vertical;
+}
+[data-ui-field][data-field-appearance="bare"] { font-family: var(--font); color: var(--ink); }
+[data-ui-field]::placeholder { font-family: inherit; color: var(--ink3); opacity: 1; }
+[data-ui-field]:not([data-field-appearance="bare"]):focus-visible {
+  border-color: var(--teal);
+  outline: 2px solid color-mix(in srgb, var(--teal) 38%, transparent);
+  outline-offset: 1px;
+}
+[data-ui-field][aria-invalid="true"], [data-ui-field][data-invalid="true"] { border-color: var(--red); }
+[data-ui-field]:not([data-field-appearance="bare"]):not([data-ds-control-exempt]):not([aria-invalid="true"]):not([data-invalid="true"]):not([class*="error"]):not([class*="invalid"]):not([style*="border-color"]):not([data-entity-status]) { border-color: var(--border) !important; }
+[data-ui-field]:not([data-field-appearance="bare"]):not([data-ds-control-exempt]):focus-visible { border-color: var(--teal) !important; }
+[data-ui-field][aria-invalid="true"]:focus-visible { border-color: var(--red) !important; }
+[data-ui-field]:disabled { cursor: not-allowed; }
+[data-ui-field][readonly] { cursor: default; }
+select[data-ui-field][multiple], select[data-ui-field][size]:not([size="1"]) { height: auto !important; min-height: calc(var(--ctl-h) * 3) !important; }
+[data-ui-button] { font-family: var(--font); line-height: 1.3; }
+[data-ui-button][data-variant="default"] { background-color: hsl(var(--primary)); color: hsl(var(--primary-foreground)); }
+[data-ui-button][data-variant="outline"] { color: var(--ink); border-color: var(--border); }
+[data-ui-button][data-variant="default"]:hover:not(:disabled) { background-color: hsl(var(--primary) / .9); }
+[data-ui-button][data-variant="outline"]:hover:not(:disabled) { border-color: var(--teal); }
+
+/* Actions in a search/filter row use control density, not page-action density. */
+[data-ui-toolbar] { --toolbar-control-h: var(--ctl-h); min-width: 0; }
+[data-ui-toolbar] :is(.stb-search, .stb-dropdown-btn, .stb-filter-btn),
+[data-ui-toolbar] .stb-actions [data-ui-button] {
+  box-sizing: border-box;
+  min-height: var(--toolbar-control-h) !important;
+  height: var(--toolbar-control-h) !important;
+  border-radius: var(--r-sm) !important;
+}
+[data-ui-toolbar] .stb-actions [data-ui-button] { padding-block: 0 !important; padding-inline: var(--space-md); }
+[data-ui-toolbar] .stb-input { font-family: var(--font); font-size: var(--text-base); color: var(--ink); }
+[data-ui-toolbar] .stb-actions [data-ui-button][data-size="icon"] { width: var(--toolbar-control-h); padding-inline: 0; }
+@media (max-width: 640px) {
+  [data-ui-toolbar] { --toolbar-control-h: max(44px, var(--ctl-h)); }
+  [data-ui-toolbar] .stb-actions { min-width: 0; max-width: 100%; flex-wrap: wrap; }
+  [data-ui-field]:not([data-field-appearance="bare"]):not([data-ds-control-exempt]) { font-size: max(16px, var(--text-base)); }
+}

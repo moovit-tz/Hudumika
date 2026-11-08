@@ -380,7 +380,7 @@ export function OnsiteDomains() {
       <div className="onsite-domains-toolbar">
         <div className="onsite-domains-search-box">
           <Icon name="search" size={18} style={{ color: 'var(--ink3)' }} />
-          <input
+          <input data-ui-field="input" data-field-appearance="bare"
             type="text"
             className="onsite-domains-search-input"
             placeholder="Search domain name, TLD, registrar..."
@@ -707,7 +707,7 @@ export function OnsiteDomains() {
 
                 <div className="onsite-form-group">
                   <label>Domain Name *</label>
-                  <input
+                  <input data-ui-field="input"
                     type="text"
                     className="onsite-input"
                     placeholder="e.g. app.mycompany.com or brand.co.tz"

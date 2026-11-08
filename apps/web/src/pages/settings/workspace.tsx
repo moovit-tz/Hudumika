@@ -213,17 +213,17 @@ export const CompanySection: React.FC = () => {
   return (
     <>
       <Card title="Company Information" desc="Basic details about your business.">
-        <Field label="Company Name"><input className="input-field" value={f.name} onChange={e => set('name', e.target.value)} /></Field>
-        <Field label="VAT / Tax Number"><input className="input-field" value={f.vat} onChange={e => set('vat', e.target.value)} /></Field>
-        <Field label="Email Address"><input className="input-field" type="email" value={f.email} onChange={e => set('email', e.target.value)} /></Field>
-        <Field label="Phone Number"><input className="input-field" value={f.phone} onChange={e => set('phone', e.target.value)} /></Field>
-        <Field label="Website"><input className="input-field" type="url" value={f.website} onChange={e => set('website', e.target.value)} /></Field>
-        <Field label="Business Type"><input className="input-field" value={f.businessType} onChange={e => set('businessType', e.target.value)} placeholder="e.g. Customs Clearing Agent" /></Field>
-        <Field label="Contact Person"><input className="input-field" value={f.contactPerson} onChange={e => set('contactPerson', e.target.value)} /></Field>
-        <Field label="Street Address" full><input className="input-field" value={f.address} onChange={e => set('address', e.target.value)} /></Field>
-        <Field label="City"><input className="input-field" value={f.city} onChange={e => set('city', e.target.value)} /></Field>
-        <Field label="State / Region"><input className="input-field" value={f.state} onChange={e => set('state', e.target.value)} /></Field>
-        <Field label="ZIP / Postal Code"><input className="input-field" value={f.zip} onChange={e => set('zip', e.target.value)} /></Field>
+        <Field label="Company Name"><input data-ui-field="input" className="input-field" value={f.name} onChange={e => set('name', e.target.value)} /></Field>
+        <Field label="VAT / Tax Number"><input data-ui-field="input" className="input-field" value={f.vat} onChange={e => set('vat', e.target.value)} /></Field>
+        <Field label="Email Address"><input data-ui-field="input" className="input-field" type="email" value={f.email} onChange={e => set('email', e.target.value)} /></Field>
+        <Field label="Phone Number"><input data-ui-field="input" className="input-field" value={f.phone} onChange={e => set('phone', e.target.value)} /></Field>
+        <Field label="Website"><input data-ui-field="input" className="input-field" type="url" value={f.website} onChange={e => set('website', e.target.value)} /></Field>
+        <Field label="Business Type"><input data-ui-field="input" className="input-field" value={f.businessType} onChange={e => set('businessType', e.target.value)} placeholder="e.g. Customs Clearing Agent" /></Field>
+        <Field label="Contact Person"><input data-ui-field="input" className="input-field" value={f.contactPerson} onChange={e => set('contactPerson', e.target.value)} /></Field>
+        <Field label="Street Address" full><input data-ui-field="input" className="input-field" value={f.address} onChange={e => set('address', e.target.value)} /></Field>
+        <Field label="City"><input data-ui-field="input" className="input-field" value={f.city} onChange={e => set('city', e.target.value)} /></Field>
+        <Field label="State / Region"><input data-ui-field="input" className="input-field" value={f.state} onChange={e => set('state', e.target.value)} /></Field>
+        <Field label="ZIP / Postal Code"><input data-ui-field="input" className="input-field" value={f.zip} onChange={e => set('zip', e.target.value)} /></Field>
         <Field label="Country">
           <Select value={f.country} onValueChange={v => set('country', v)}>
             <SelectTrigger className="input-field"><SelectValue /></SelectTrigger>
@@ -255,7 +255,7 @@ export const CompanySection: React.FC = () => {
       </Card>
       <Card title="Company Branding" desc="Your workspace's name, colour, logo and favicon — used on PDF invoices, quotes and portal documents, and everywhere in the app your team signs into. The pre-authentication sign-in screen is shared by every workspace on the platform, so it isn't set here.">
         <Field label="Workspace Name" hint="Shown in the browser tab and beside your logo in the app.">
-          <input className="input-field" value={workspaceName} onChange={e => setWorkspaceName(e.target.value)} placeholder={f.name || 'Your company name'} />
+          <input data-ui-field="input" className="input-field" value={workspaceName} onChange={e => setWorkspaceName(e.target.value)} placeholder={f.name || 'Your company name'} />
         </Field>
         <Field label="Brand Colour" hint="Used by apps that have no colour of their own — each app keeps its own by design.">
           <div className="s-brand-colour">
@@ -502,10 +502,10 @@ export const SiemExportSection: React.FC = () => {
             <ToggleRow label="Enable SIEM export" value={on} onChange={setOn} />
             {on && <>
               <Field label="Webhook URL" full hint="Ondi POSTs a JSON event here as it happens.">
-                <input className="input-field" type="url" placeholder="https://your-siem.example.com/ingest" value={f.webhookUrl} onChange={e => set('webhookUrl', e.target.value)} />
+                <input data-ui-field="input" className="input-field" type="url" placeholder="https://your-siem.example.com/ingest" value={f.webhookUrl} onChange={e => set('webhookUrl', e.target.value)} />
               </Field>
               <Field label="Signing Secret" full hint="Verify the X-Ondi-Signature header: HMAC-SHA256 of the raw request body, hex-encoded, using this secret.">
-                <input className="input-field" type="password" value={f.secret} onChange={e => set('secret', e.target.value)} />
+                <input data-ui-field="input" className="input-field" type="password" value={f.secret} onChange={e => set('secret', e.target.value)} />
               </Field>
             </>}
           </>
@@ -650,11 +650,11 @@ export const EmailSection: React.FC = () => {
       </Card>
       {protocol === 'smtp' && (
         <Card title="SMTP Configuration">
-          <Field label="SMTP Host"><input className="input-field" placeholder="mail.example.com" value={f.host} onChange={e => set('host', e.target.value)} /></Field>
-          <Field label="Port"><input className="input-field" type="number" value={f.port} onChange={e => set('port', e.target.value)} /></Field>
-          <Field label="Username"><input className="input-field" placeholder="your@email.com" value={f.user} onChange={e => set('user', e.target.value)} /></Field>
+          <Field label="SMTP Host"><input data-ui-field="input" className="input-field" placeholder="mail.example.com" value={f.host} onChange={e => set('host', e.target.value)} /></Field>
+          <Field label="Port"><input data-ui-field="input" className="input-field" type="number" value={f.port} onChange={e => set('port', e.target.value)} /></Field>
+          <Field label="Username"><input data-ui-field="input" className="input-field" placeholder="your@email.com" value={f.user} onChange={e => set('user', e.target.value)} /></Field>
           <Field label="Password" hint={f.pass === '••••••••' ? 'A password is already saved — re-enter it only if you want to change it.' : undefined}>
-            <input className="input-field" type="password" value={f.pass} onChange={e => set('pass', e.target.value)} />
+            <input data-ui-field="input" className="input-field" type="password" value={f.pass} onChange={e => set('pass', e.target.value)} />
           </Field>
           <Field label="Encryption">
             <Select value={f.enc || '__none__'} onValueChange={v => set('enc', v === '__none__' ? '' : v)}>
@@ -680,12 +680,12 @@ export const EmailSection: React.FC = () => {
       {(protocol === 'outlook' || protocol === 'gmail') && (
         <Card title={`${OAUTH_PROVIDER_LABEL[protocol]} Connection`}>
           <Field label="Client ID">
-            <input className="input-field" value={protocol === 'outlook' ? f.outlookClientId : f.gmailClientId}
+            <input data-ui-field="input" className="input-field" value={protocol === 'outlook' ? f.outlookClientId : f.gmailClientId}
               onChange={e => set(protocol === 'outlook' ? 'outlookClientId' : 'gmailClientId', e.target.value)} />
           </Field>
           <Field label="Client Secret"
             hint={(protocol === 'outlook' ? f.outlookClientSecret : f.gmailClientSecret) === '••••••••' ? 'A secret is already saved — re-enter it only if you want to change it.' : undefined}>
-            <input className="input-field" type="password" value={protocol === 'outlook' ? f.outlookClientSecret : f.gmailClientSecret}
+            <input data-ui-field="input" className="input-field" type="password" value={protocol === 'outlook' ? f.outlookClientSecret : f.gmailClientSecret}
               onChange={e => set(protocol === 'outlook' ? 'outlookClientSecret' : 'gmailClientSecret', e.target.value)} />
           </Field>
           <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginTop: 4 }}>
@@ -699,8 +699,8 @@ export const EmailSection: React.FC = () => {
         </Card>
       )}
       <Card title="Sender Identity">
-        <Field label="From Name"><input className="input-field" value={f.fromName} onChange={e => set('fromName', e.target.value)} /></Field>
-        <Field label="From Email"><input className="input-field" type="email" value={f.fromEmail} onChange={e => set('fromEmail', e.target.value)} /></Field>
+        <Field label="From Name"><input data-ui-field="input" className="input-field" value={f.fromName} onChange={e => set('fromName', e.target.value)} /></Field>
+        <Field label="From Email"><input data-ui-field="input" className="input-field" type="email" value={f.fromEmail} onChange={e => set('fromEmail', e.target.value)} /></Field>
         <Field label="Email Signature" full>
           <textarea className="input-field s-resize-v s-font-mono" rows={4} value={f.sig} onChange={e => set('sig', e.target.value)} placeholder="HTML signature appended to outgoing emails" />
         </Field>
@@ -713,8 +713,8 @@ export const EmailSection: React.FC = () => {
         />
         {imapEnabled && (
           <>
-            <Field label="IMAP Host"><input className="input-field" placeholder="imap.example.com" value={imap.host} onChange={e => setImap('host', e.target.value)} /></Field>
-            <Field label="Port"><input className="input-field" type="number" value={imap.port} onChange={e => setImap('port', e.target.value)} /></Field>
+            <Field label="IMAP Host"><input data-ui-field="input" className="input-field" placeholder="imap.example.com" value={imap.host} onChange={e => setImap('host', e.target.value)} /></Field>
+            <Field label="Port"><input data-ui-field="input" className="input-field" type="number" value={imap.port} onChange={e => setImap('port', e.target.value)} /></Field>
             <Field label="Encryption">
               <Select value={imap.encryption || '__none__'} onValueChange={v => setImap('encryption', v === '__none__' ? '' : v)}>
                 <SelectTrigger className="input-field"><SelectValue /></SelectTrigger>
@@ -725,14 +725,14 @@ export const EmailSection: React.FC = () => {
                 </SelectContent>
               </Select>
             </Field>
-            <Field label="Username"><input className="input-field" placeholder="tickets@example.com" value={imap.user} onChange={e => setImap('user', e.target.value)} /></Field>
+            <Field label="Username"><input data-ui-field="input" className="input-field" placeholder="tickets@example.com" value={imap.user} onChange={e => setImap('user', e.target.value)} /></Field>
             <Field label="Password" hint={imap.pass === '••••••••' ? 'A password is already saved — re-enter it only if you want to change it.' : undefined}>
-              <input className="input-field" type="password" value={imap.pass} onChange={e => setImap('pass', e.target.value)} />
+              <input data-ui-field="input" className="input-field" type="password" value={imap.pass} onChange={e => setImap('pass', e.target.value)} />
             </Field>
             <Field label="Default Department" hint="Free text — matched against whatever department names this tenant already uses.">
-              <input className="input-field" value={imap.targetDepartment} onChange={e => setImap('targetDepartment', e.target.value)} />
+              <input data-ui-field="input" className="input-field" value={imap.targetDepartment} onChange={e => setImap('targetDepartment', e.target.value)} />
             </Field>
-            <Field label="Default Ticket Category"><input className="input-field" value={imap.ticketType} onChange={e => setImap('ticketType', e.target.value)} /></Field>
+            <Field label="Default Ticket Category"><input data-ui-field="input" className="input-field" value={imap.ticketType} onChange={e => setImap('ticketType', e.target.value)} /></Field>
             <ToggleRow label="Mark imported emails as read" value={imapMarkAsRead} onChange={setImapMarkAsRead} />
           </>
         )}
@@ -741,7 +741,7 @@ export const EmailSection: React.FC = () => {
         extra={
           <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
             {protocol !== 'smtp' && (
-              <input
+              <input data-ui-field="input"
                 className="input-field"
                 type="email"
                 placeholder="Send test to (optional)"

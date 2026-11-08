@@ -130,7 +130,7 @@ export function CMSMedia() {
           {[{ label: 'All', value: '' }, { label: 'Unfiled', value: UNFILED }, ...folders.map(f => ({ label: f, value: f }))].map(opt => (
             <button key={opt.value} onClick={() => setActiveFolder(opt.value)}
               style={{
-                fontSize: 12, padding: '5px 12px', borderRadius: 999, cursor: 'pointer',
+                fontSize: "var(--text-base)", padding: "var(--action-py) var(--space-md)", borderRadius: 999, cursor: 'pointer',
                 border: `1px solid ${activeFolder === opt.value ? 'var(--teal)' : 'var(--border)'}`,
                 background: activeFolder === opt.value ? 'var(--teal-l, var(--bg))' : 'var(--white)',
                 color: activeFolder === opt.value ? 'var(--teal)' : 'var(--ink2)', fontWeight: activeFolder === opt.value ? 700 : 500,
@@ -157,11 +157,11 @@ export function CMSMedia() {
                   <div style={{ fontSize: 12.5, fontWeight: 600, color: 'var(--ink)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={m.filename}>{m.filename}</div>
                   <div style={{ fontSize: 11, color: 'var(--ink3)' }}>{fmtSize(m.size)} · {fmtDate(m.created_at)}</div>
                   <button onClick={() => handleEditFolder(m)} title="Move to folder"
-                    style={{ fontSize: 10.5, color: m.folder ? 'var(--teal)' : 'var(--ink3)', background: 'none', border: 'none', padding: 0, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 3, textAlign: 'left' }} data-ui-native-button="">
+                    style={{ fontSize: "var(--text-xs)", color: m.folder ? 'var(--teal)' : 'var(--ink3)', background: 'none', border: 'none', padding: 0, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 3, textAlign: 'left' }} data-ui-native-button="">
                     <Icon name="folder" size={10} /> {m.folder || 'Unfiled'}
                   </button>
                   <button onClick={() => handleEditTags(m)} title="Edit tags"
-                    style={{ fontSize: 10.5, color: m.tags ? 'var(--ink2)' : 'var(--ink3)', background: 'none', border: 'none', padding: 0, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 3, textAlign: 'left', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} data-ui-native-button="">
+                    style={{ fontSize: "var(--text-xs)", color: m.tags ? 'var(--ink2)' : 'var(--ink3)', background: 'none', border: 'none', padding: 0, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 3, textAlign: 'left', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} data-ui-native-button="">
                     <Icon name="tag" size={10} /> {m.tags || 'Add tags'}
                   </button>
                   <div style={{ display: 'flex', gap: 6, marginTop: 4 }}>

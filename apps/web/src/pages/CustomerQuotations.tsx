@@ -88,13 +88,13 @@ function RejectModal({ quote, onClose, onReject }: {
           <label style={{ fontSize: 12, fontWeight: 600, color: 'var(--ink2)', display: 'block', marginBottom: 6, fontFamily: 'var(--font)' }}>
             Reason (optional)
           </label>
-          <textarea
+          <textarea data-ui-field="textarea"
             title="Rejection reason"
             placeholder="Let us know why you're rejecting this quote…"
             value={reason}
             onChange={e => setReason(e.target.value)}
             rows={3}
-            style={{ width: '100%', resize: 'none', border: '1.5px solid var(--border)', borderRadius: 'var(--r)', padding: '12px 14px', fontSize: 14, fontFamily: 'var(--font)', color: 'var(--ink)', background: 'var(--bg)', outline: 'none', lineHeight: 1.5, boxSizing: 'border-box' as const, marginBottom: 16 }}
+            style={{ width: '100%', resize: 'none', border: '1.5px solid var(--border)', borderRadius: 'var(--r)', padding: "var(--ds-input-py) var(--space-md)", fontSize: "var(--text-base)", fontFamily: 'var(--font)', color: 'var(--ink)', background: 'var(--bg)', outline: 'none', lineHeight: 1.5, boxSizing: 'border-box' as const, marginBottom: 16 }}
           />
           <Button type="button" variant="destructive" size="lg" onClick={() => onReject(reason.trim())} className="w-full">
             Reject Quote
@@ -188,7 +188,7 @@ function QuoteDetail({ quote: initial, onBack }: { quote: Quote; onBack: () => v
       {/* Top bar */}
       <div style={{ position: 'sticky', top: 0, zIndex: 10, background: 'var(--white)', borderBottom: '1px solid var(--border)', padding: '12px 16px', display: 'flex', alignItems: 'center', gap: 12 }}>
         <button type="button" onClick={onBack}
-          style={{ background: 'none', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 4, color: 'var(--teal)', fontWeight: 600, fontSize: 14, fontFamily: 'var(--font)', padding: 0 }} data-ui-native-button="">
+          style={{ background: 'none', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 4, color: 'var(--teal)', fontWeight: 600, fontSize: "var(--text-base)", fontFamily: 'var(--font)', padding: 0 }} data-ui-native-button="">
           <Icon name="chevronLeft" size={18} color="var(--teal)" />
           Back
         </button>
@@ -357,7 +357,7 @@ function QuoteCard({ quote, onClick }: { quote: Quote; onClick: () => void }) {
       display: 'block', width: '100%', textAlign: 'left', cursor: 'pointer',
       background: 'var(--white)', border: '1px solid var(--border)',
       borderLeft: `4px solid ${st.color}`,
-      borderRadius: 'var(--r)', padding: '16px', fontFamily: 'var(--font)',
+      borderRadius: 'var(--r)', padding: "var(--action-py) var(--space-md)", fontFamily: 'var(--font)',
     }} data-ui-native-button="">
       <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
         <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--ink3)', fontFamily: 'var(--font)', flex: 1 }}>{quote.quote_number}</span>

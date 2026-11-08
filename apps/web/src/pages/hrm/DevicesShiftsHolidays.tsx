@@ -181,7 +181,7 @@ export function DevicesPage() {
                 <form onSubmit={e => { e.preventDefault(); registerDevice(); }}>
                   <div style={{ marginBottom: 16 }}>
                     <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: 'var(--ink2)', marginBottom: 6 }}>Device Name</label>
-                    <input className="input-field" value={newName} onChange={e => setNewName(e.target.value)} placeholder="Head Office Gate" required style={{ width: '100%' }} />
+                    <input data-ui-field="input" className="input-field" value={newName} onChange={e => setNewName(e.target.value)} placeholder="Head Office Gate" required style={{ width: '100%' }} />
                   </div>
                   <div style={{ marginBottom: 16 }}>
                     <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: 'var(--ink2)', marginBottom: 6 }}>Provider</label>
@@ -192,7 +192,7 @@ export function DevicesPage() {
                   </div>
                   <div style={{ marginBottom: 24 }}>
                     <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: 'var(--ink2)', marginBottom: 6 }}>Location (optional)</label>
-                    <input className="input-field" value={newLocation} onChange={e => setNewLocation(e.target.value)} placeholder="Head Office — Main Gate" style={{ width: '100%' }} />
+                    <input data-ui-field="input" className="input-field" value={newLocation} onChange={e => setNewLocation(e.target.value)} placeholder="Head Office — Main Gate" style={{ width: '100%' }} />
                   </div>
                   <Button type="submit" className="w-full" disabled={!newName.trim()}>Register Device</Button>
                 </form>
@@ -286,7 +286,7 @@ function DeviceManageDrawer({ device, staff, onClose }: {
               <div style={{ flex: 1 }}>
                 <Combobox options={staffOptions} value={enrollUserId} onChange={setEnrollUserId} placeholder="Select employee…" />
               </div>
-              <input className="input-field" value={enrollPin} onChange={e => setEnrollPin(e.target.value)} placeholder="Device PIN" style={{ width: 110 }} />
+              <input data-ui-field="input" className="input-field" value={enrollPin} onChange={e => setEnrollPin(e.target.value)} placeholder="Device PIN" style={{ width: 110 }} />
               <Button size="sm" variant="outline" disabled={!enrollUserId || !enrollPin.trim()} onClick={addEnrollment}>Add</Button>
             </div>
             {enrollments.length === 0 ? (
@@ -463,7 +463,7 @@ export function ShiftsPage() {
             />
           </div>
           <Select value={filterDept || '__all__'} onValueChange={v => setFilterDept(v === '__all__' ? '' : v)}>
-            <SelectTrigger className="input-field" style={{ width: 160, height: 32, fontSize: 12 }}><SelectValue /></SelectTrigger>
+            <SelectTrigger className="input-field" style={{ width: 160, height: "var(--ctl-h)", fontSize: "var(--text-base)" }}><SelectValue /></SelectTrigger>
             <SelectContent>
               <SelectItem value="__all__">All Departments</SelectItem>
               {Array.from(new Set(employees.map(e => e.department))).map(d => <SelectItem key={d} value={d}>{d}</SelectItem>)}
@@ -494,7 +494,7 @@ export function ShiftsPage() {
           </div>
           
           <Select value={view} onValueChange={v => setView(v as any)}>
-            <SelectTrigger className="input-field" style={{ width: 120, height: 32, fontSize: 12 }}><SelectValue /></SelectTrigger>
+            <SelectTrigger className="input-field" style={{ width: 120, height: "var(--ctl-h)", fontSize: "var(--text-base)" }}><SelectValue /></SelectTrigger>
             <SelectContent>
               <SelectItem value="week">Weekly View</SelectItem>
               <SelectItem value="month">Monthly View</SelectItem>
@@ -767,7 +767,7 @@ export function HolidaysPage() {
             </div>
             <div style={{ flex: 1, minWidth: 180 }}>
               <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: 'var(--ink2)', marginBottom: 4 }}>Holiday Name</label>
-              <input name="name" required placeholder="e.g. Founders Day" style={{ width: '100%', padding: '7px 10px', border: '1px solid var(--border)', borderRadius: 'var(--r)', fontFamily: 'var(--font)', fontSize: 13, boxSizing: 'border-box' as const }} />
+              <input data-ui-field="input" name="name" required placeholder="e.g. Founders Day" style={{ width: '100%', padding: "var(--ds-input-py) var(--space-md)", border: '1px solid var(--border)', borderRadius: 'var(--r)', fontFamily: 'var(--font)', fontSize: "var(--text-base)", boxSizing: 'border-box' as const }} />
             </div>
             <div>
               <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: 'var(--ink2)', marginBottom: 4 }}>Type</label>

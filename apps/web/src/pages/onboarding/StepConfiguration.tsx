@@ -69,7 +69,7 @@ export const StepConfiguration: React.FC<StepProps> = ({
               <Icon name="user" size={15} className="text-[var(--lp-ink3)]" />
               <span>Identity &amp; Account</span>
             </div>
-            <button
+            <button data-ui-native-button=""
               type="button"
               className="ob-review-edit-link"
               onClick={() => onEditStep?.(1)}
@@ -99,7 +99,7 @@ export const StepConfiguration: React.FC<StepProps> = ({
               <Icon name="building" size={15} className="text-[var(--lp-ink3)]" />
               <span>Business &amp; Industries</span>
             </div>
-            <button
+            <button data-ui-native-button=""
               type="button"
               className="ob-review-edit-link"
               onClick={() => onEditStep?.(2)}
@@ -142,7 +142,7 @@ export const StepConfiguration: React.FC<StepProps> = ({
               <Icon name="layers" size={15} className="text-[var(--lp-ink3)]" />
               <span>Apps &amp; Subscription Plan</span>
             </div>
-            <button
+            <button data-ui-native-button=""
               type="button"
               className="ob-review-edit-link"
               onClick={() => onEditStep?.(3)}
@@ -180,7 +180,7 @@ export const StepConfiguration: React.FC<StepProps> = ({
               <Icon name="globe" size={15} className="text-[var(--lp-ink3)]" />
               <span>Workspace &amp; Regional Settings</span>
             </div>
-            <button
+            <button data-ui-native-button=""
               type="button"
               className="ob-review-edit-link"
               onClick={() => onEditStep?.(4)}
@@ -222,7 +222,7 @@ export const StepConfiguration: React.FC<StepProps> = ({
               <Icon name="creditCard" size={15} className="text-[var(--lp-ink3)]" />
               <span>Billing Details</span>
             </div>
-            <button
+            <button data-ui-native-button=""
               type="button"
               className="ob-review-edit-link"
               onClick={() => onEditStep?.(5)}

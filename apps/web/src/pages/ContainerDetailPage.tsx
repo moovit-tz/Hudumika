@@ -560,7 +560,7 @@ export const ContainerDetailView: React.FC<{
                   <React.Fragment key={s.key}>
                     {/* Step Node */}
                     <div className="flex flex-col items-center flex-shrink-0" style={{ minWidth: 56 }}>
-                      <button
+                      <button data-ui-native-button=""
                         type="button"
                         disabled={idx !== currentStageIndex + 1}
                         onClick={() => handleAdvanceStage(s.key, s.label)}
@@ -570,18 +570,18 @@ export const ContainerDetailView: React.FC<{
                         className="cnt-step-circle group"
                         style={{
                           width: '36px',
-                          height: '36px',
+                          height: "var(--action-h)",
                           minWidth: '36px',
-                          minHeight: '36px',
+                          minHeight: "var(--action-h)",
                           maxWidth: '36px',
                           maxHeight: '36px',
-                          borderRadius: '9999px',
+                          borderRadius: "var(--r-sm)",
                           background: isDone || isCurrent ? 'var(--teal)' : 'var(--border)',
                           color: '#ffffff',
                           boxShadow: isCurrent ? '0 0 0 6px color-mix(in srgb, var(--teal) 22%, transparent), 0 2px 8px color-mix(in srgb, var(--teal) 35%, transparent)' : 'none',
                           border: 'none',
                           cursor: 'pointer',
-                          fontSize: 12.5,
+                          fontSize: "var(--text-base)",
                           fontWeight: 800,
                           transform: isCurrent ? 'scale(1.06)' : 'none',
                         }}

@@ -184,7 +184,7 @@ export function LensIntegrations() {
                     {p.configFields.map(f => (
                       <div key={f.key} style={{ flex: '1 1 200px' }}>
                         <label style={label}>{f.label}{f.required ? ' *' : ''}</label>
-                        <input style={input} placeholder={f.placeholder}
+                        <input data-ui-field="input" style={input} placeholder={f.placeholder}
                           value={draft[p.provider]?.config?.[f.key] ?? ''}
                           onFocus={e => e.target.style.borderColor = 'var(--teal)'}
                           onBlur={e => e.target.style.borderColor = 'var(--border)'}
@@ -199,7 +199,7 @@ export function LensIntegrations() {
                     ))}
                     <div style={{ flex: '1 1 200px' }}>
                       <label style={label}>{p.credentialLabel}</label>
-                      <input style={input} type="password" autoComplete="off"
+                      <input data-ui-field="input" style={input} type="password" autoComplete="off"
                         placeholder={p.has_credential ? 'Stored — leave blank to keep it' : 'Paste the token'}
                         value={draft[p.provider]?.credential ?? ''}
                         onFocus={e => e.target.style.borderColor = 'var(--teal)'}

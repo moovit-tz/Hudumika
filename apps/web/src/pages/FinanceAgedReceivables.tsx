@@ -100,7 +100,7 @@ export const FinanceAgedReceivables: React.FC = () => {
 
         <MetricsRow cards={[
           {
-            title: 'Total Outstanding', value: fmtFull(totals.total), icon: 'dollarSign',
+            emphasis: 'primary', title: 'Total Outstanding', value: fmtFull(totals.total), icon: 'dollarSign',
             sub1Label: 'CURRENT', sub1Value: fmtFull(totals.current),
             sub2Label: 'OVERDUE', sub2Value: fmtFull(overdue), barHighlight: 'var(--blue)',
           },

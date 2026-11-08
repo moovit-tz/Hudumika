@@ -441,19 +441,19 @@ export function VehicleSensorSnapshotsTab({ vehicleId }: { vehicleId: string }) 
 
         <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
           {/* Live Stream Pulse Switch */}
-          <button
+          <button data-ui-native-button=""
             type="button"
             onClick={() => setIsLiveStreaming(prev => !prev)}
             style={{
               display: 'flex',
               alignItems: 'center',
               gap: 8,
-              padding: '6px 12px',
+              padding: "var(--action-py) var(--space-md)",
               borderRadius: 'var(--r)',
               border: `1px solid ${isLiveStreaming ? 'var(--green)' : 'var(--border)'}`,
               background: isLiveStreaming ? 'var(--green-l)' : 'var(--bg)',
               color: isLiveStreaming ? 'var(--green)' : 'var(--ink3)',
-              fontSize: 12,
+              fontSize: "var(--text-base)",
               fontWeight: 600,
               cursor: 'pointer',
             }}
@@ -640,7 +640,7 @@ export function VehicleSensorSnapshotsTab({ vehicleId }: { vehicleId: string }) 
           </div>
 
           {(selectedCategory !== 'all' || selectedStatus !== 'all' || search.trim()) && (
-            <button
+            <button data-ui-native-button=""
               type="button"
               onClick={() => {
                 setSelectedCategory('all');
@@ -651,7 +651,7 @@ export function VehicleSensorSnapshotsTab({ vehicleId }: { vehicleId: string }) 
                 background: 'none',
                 border: 'none',
                 color: 'var(--teal)',
-                fontSize: 12,
+                fontSize: "var(--text-base)",
                 fontWeight: 600,
                 cursor: 'pointer',
                 textDecoration: 'underline',
@@ -668,18 +668,18 @@ export function VehicleSensorSnapshotsTab({ vehicleId }: { vehicleId: string }) 
             value={search}
             onChange={e => setSearch(e.target.value)}
             placeholder="Search sensor, CAN code…"
-            style={{ width: 240, fontSize: 12.5 }}
+            style={{ width: 240, fontSize: "var(--text-base)" }}
           />
 
           {/* View Mode Toggle Switcher (List vs Visual Cards) */}
           <div style={{ display: 'flex', background: 'var(--bg)', borderRadius: 'var(--r)', padding: 3, border: '1px solid var(--border)' }}>
-            <button
+            <button data-ui-native-button=""
               type="button"
               onClick={() => setViewMode('table')}
               style={{
-                padding: '4px 10px',
-                borderRadius: 4,
-                fontSize: 12,
+                padding: "var(--action-py) var(--space-md)",
+                borderRadius: "var(--r-sm)",
+                fontSize: "var(--text-base)",
                 fontWeight: 600,
                 cursor: 'pointer',
                 border: 'none',
@@ -693,13 +693,13 @@ export function VehicleSensorSnapshotsTab({ vehicleId }: { vehicleId: string }) 
             >
               <Icon name="list" size={13} /> Table
             </button>
-            <button
+            <button data-ui-native-button=""
               type="button"
               onClick={() => setViewMode('cards')}
               style={{
-                padding: '4px 10px',
-                borderRadius: 4,
-                fontSize: 12,
+                padding: "var(--action-py) var(--space-md)",
+                borderRadius: "var(--r-sm)",
+                fontSize: "var(--text-base)",
                 fontWeight: 600,
                 cursor: 'pointer',
                 border: 'none',
@@ -1133,7 +1133,7 @@ export function VehicleSensorSnapshotsTab({ vehicleId }: { vehicleId: string }) 
                   {activeChartSensor.code} · Normal Operating Bounds: {activeChartSensor.minSafe} to {activeChartSensor.maxSafe} {activeChartSensor.unit}
                 </div>
               </div>
-              <button
+              <button data-ui-native-button=""
                 onClick={() => setActiveChartSensor(null)}
                 style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink3)' }}
               >
@@ -1245,7 +1245,7 @@ export function VehicleSensorSnapshotsTab({ vehicleId }: { vehicleId: string }) 
                   Configure automatic alerting limits and telematics safety bounds.
                 </div>
               </div>
-              <button onClick={() => setActiveThresholdSensor(null)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink3)' }}>
+              <button data-ui-native-button="" onClick={() => setActiveThresholdSensor(null)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink3)' }}>
                 <Icon name="x" size={16} />
               </button>
             </div>
@@ -1332,7 +1332,7 @@ export function VehicleSensorSnapshotsTab({ vehicleId }: { vehicleId: string }) 
                   Persist a diagnostic snapshot event to the vehicle telematics registry.
                 </div>
               </div>
-              <button onClick={() => setShowLogSnapshotModal(false)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink3)' }}>
+              <button data-ui-native-button="" onClick={() => setShowLogSnapshotModal(false)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink3)' }}>
                 <Icon name="x" size={16} />
               </button>
             </div>
@@ -1357,15 +1357,15 @@ export function VehicleSensorSnapshotsTab({ vehicleId }: { vehicleId: string }) 
               <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: 'var(--ink2)', marginBottom: 6 }}>
                 Payload (JSON)
               </label>
-              <textarea
+              <textarea data-ui-field="textarea"
                 value={newSnapshotPayload}
                 onChange={e => setNewSnapshotPayload(e.target.value)}
                 rows={6}
                 style={{
                   width: '100%',
-                  fontFamily: 'monospace',
-                  fontSize: 12,
-                  padding: '10px',
+                  fontFamily: "var(--font)",
+                  fontSize: "var(--text-base)",
+                  padding: "var(--ds-input-py) var(--space-md)",
                   borderRadius: 'var(--r-sm)',
                   border: '1px solid var(--border)',
                   background: 'var(--bg)',
@@ -1422,7 +1422,7 @@ export function VehicleSensorSnapshotsTab({ vehicleId }: { vehicleId: string }) 
                   Recorded at {new Date(rawPayloadSnapshot.recorded_at).toLocaleString()}
                 </div>
               </div>
-              <button onClick={() => setRawPayloadSnapshot(null)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink3)' }}>
+              <button data-ui-native-button="" onClick={() => setRawPayloadSnapshot(null)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink3)' }}>
                 <Icon name="x" size={16} />
               </button>
             </div>

@@ -275,7 +275,7 @@ function ChargeSectionEditor({ title, color, group, currency, items, onChange, c
               <tr key={item.uid} style={{ borderBottom: '1px solid var(--border)' }}>
                 <td style={{ padding: '6px 4px', textAlign: 'center', color: 'var(--border)', cursor: 'grab', userSelect: 'none', verticalAlign: 'middle' }}>⋮⋮</td>
                 <td style={{ padding: '6px 8px', fontSize: 12, color: 'var(--ink3)', textAlign: 'center', verticalAlign: 'middle' }}>{i + 1}</td>
-                <td style={{ padding: '6px 4px' }}><input value={item.name} onChange={e => update(item.uid, 'name', e.target.value)} placeholder="Item name" style={{ ...inpS, fontWeight: 600 }} /></td>
+                <td style={{ padding: '6px 4px' }}><input data-ui-field="input" value={item.name} onChange={e => update(item.uid, 'name', e.target.value)} placeholder="Item name" style={{ ...inpS, fontWeight: 600 }} /></td>
                 <td style={{ padding: '6px 4px' }}>
                   <Select value={item.unit} onValueChange={v => update(item.uid, 'unit', v)}>
                     <SelectTrigger className="h-7 px-2 text-xs"><SelectValue /></SelectTrigger>
@@ -285,8 +285,8 @@ function ChargeSectionEditor({ title, color, group, currency, items, onChange, c
                     </SelectContent>
                   </Select>
                 </td>
-                <td style={{ padding: '6px 4px' }}><input type="number" min={0} value={item.rate || ''} onChange={e => update(item.uid, 'rate', parseFloat(e.target.value) || 0)} placeholder="0" style={{ ...inpS, textAlign: 'right', fontFamily: 'var(--font)' }} /></td>
-                <td style={{ padding: '6px 4px' }}><input type="number" min={1} value={item.qty} onChange={e => update(item.uid, 'qty', Math.max(1, parseInt(e.target.value) || 1))} style={{ ...inpS, textAlign: 'right' }} /></td>
+                <td style={{ padding: '6px 4px' }}><input data-ui-field="input" type="number" min={0} value={item.rate || ''} onChange={e => update(item.uid, 'rate', parseFloat(e.target.value) || 0)} placeholder="0" style={{ ...inpS, textAlign: 'right', fontFamily: 'var(--font)' }} /></td>
+                <td style={{ padding: '6px 4px' }}><input data-ui-field="input" type="number" min={1} value={item.qty} onChange={e => update(item.uid, 'qty', Math.max(1, parseInt(e.target.value) || 1))} style={{ ...inpS, textAlign: 'right' }} /></td>
                 <td style={{ padding: '6px 4px' }}>
                   <Select value={String(item.taxPct)} onValueChange={v => update(item.uid, 'taxPct', parseInt(v))}>
                     <SelectTrigger className="h-7 px-2 text-xs"><SelectValue /></SelectTrigger>
@@ -302,7 +302,7 @@ function ChargeSectionEditor({ title, color, group, currency, items, onChange, c
                 <td style={{ padding: '6px 4px', verticalAlign: 'middle' }}>
                   {items.length > 0 && (
                     <button type="button" onClick={() => remove(item.uid)}
-                      style={{ width: 24, height: 24, border: 'none', background: 'none', cursor: 'pointer', borderRadius: 'var(--r-sm)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                      style={{ width: "var(--ctl-h-xs)", height: "var(--ctl-h-xs)", border: 'none', background: 'none', cursor: 'pointer', borderRadius: 'var(--r-sm)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
                       onMouseEnter={e => (e.currentTarget.style.background = 'var(--red-l)')}
                       onMouseLeave={e => (e.currentTarget.style.background = 'none')} data-ui-native-button="">
                       <Icon name="trash" size={12} color="var(--red)" />
@@ -318,7 +318,7 @@ function ChargeSectionEditor({ title, color, group, currency, items, onChange, c
             <td colSpan={7} style={{ padding: '8px 10px' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
                 <button type="button" onClick={add}
-                  style={{ display: 'flex', alignItems: 'center', gap: 5, padding: 'var(--ds-btn-py-sm) 12px', border: `1px dashed ${color}`, borderRadius: 'var(--r)', background: 'none', color, fontSize: 12, fontWeight: 700, cursor: 'pointer', fontFamily: 'var(--font)', flexShrink: 0, minHeight: 'var(--ctl-h-sm)', boxSizing: 'border-box', lineHeight: 1.25}}
+                  style={{ display: 'flex', alignItems: 'center', gap: 5, padding: 'var(--ds-btn-py-sm) 12px', border: `1px dashed ${color}`, borderRadius: 'var(--r)', background: 'none', color, fontSize: "var(--text-base)", fontWeight: 700, cursor: 'pointer', fontFamily: 'var(--font)', flexShrink: 0, minHeight: 'var(--ctl-h-sm)', boxSizing: 'border-box', lineHeight: 1.25}}
                   onMouseEnter={e => (e.currentTarget.style.background = 'var(--teal-l)')}
                   onMouseLeave={e => (e.currentTarget.style.background = 'none')} data-ui-native-button="">
                   <Icon name="plus" size={12} color={color} /> Add Line Item

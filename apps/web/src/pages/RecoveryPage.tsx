@@ -53,7 +53,7 @@ function RequestStage() {
       {error && <AuthAlert message={error} />}
       <form onSubmit={submit} noValidate className="auth-form">
         <AuthField label="Your account email">
-          <input type="email" className="auth-input" placeholder="you@company.com" value={email}
+          <input data-ui-field="input" type="email" className="auth-input" placeholder="you@company.com" value={email}
             onChange={e => { setEmail(e.target.value); setError(null); }} autoComplete="email" autoFocus />
         </AuthField>
         <button type="submit" disabled={loading} className="auth-btn-primary" data-ui-native-button="">
@@ -153,10 +153,10 @@ function TokenStage({ token }: { token: string }) {
       {error && <AuthAlert message={error} />}
       <form onSubmit={submit} noValidate className="auth-form">
         <AuthField label="New password">
-          <input type="password" className="auth-input" value={password} onChange={e => setPassword(e.target.value)} autoComplete="new-password" autoFocus />
+          <input data-ui-field="input" type="password" className="auth-input" value={password} onChange={e => setPassword(e.target.value)} autoComplete="new-password" autoFocus />
         </AuthField>
         <AuthField label="Confirm new password">
-          <input type="password" className="auth-input" value={confirm} onChange={e => setConfirm(e.target.value)} autoComplete="new-password" />
+          <input data-ui-field="input" type="password" className="auth-input" value={confirm} onChange={e => setConfirm(e.target.value)} autoComplete="new-password" />
         </AuthField>
         <button type="submit" disabled={loading} className="auth-btn-primary" data-ui-native-button="">
           {loading ? <><span className="auth-spinner" /> Saving…</> : 'Set new password'}

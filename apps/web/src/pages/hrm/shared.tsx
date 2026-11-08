@@ -142,7 +142,7 @@ export function ActionBtn({ label, color = 'var(--teal)', onClick }: { label: st
       onClick={onClick}
       style={{
         display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
-        padding: '0 10px', height: '28px', borderRadius: '6px', fontSize: '12px', fontWeight: 600,
+        padding: '0 10px', height: "var(--action-h)", borderRadius: "var(--r-sm)", fontSize: "var(--text-base)", fontWeight: 600,
         fontFamily: 'var(--font)', cursor: 'pointer', marginRight: 6, transition: 'all 0.15s ease',
         background: isDanger ? 'rgba(225, 29, 72, 0.08)' : 'rgba(15, 118, 110, 0.08)',
         color: isDanger ? '#e11d48' : 'var(--teal, #0f766e)',

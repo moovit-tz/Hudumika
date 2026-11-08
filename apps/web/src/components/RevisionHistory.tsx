@@ -99,7 +99,7 @@ export function RevisionHistory({ open, onOpenChange, resourceType, resourceId, 
                   const changed = prior ? changedKeysOf(rev.snapshot, prior) : [];
                   return (
                     <button key={rev.id} onClick={() => setSelectedId(rev.id)}
-                      style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 12px', border: 'none', borderRadius: 'var(--r-sm)', background: 'transparent', cursor: 'pointer', textAlign: 'left', width: '100%' }}
+                      style={{ display: 'flex', alignItems: 'center', gap: 10, padding: "var(--action-py) var(--space-md)", border: 'none', borderRadius: 'var(--r-sm)', background: 'transparent', cursor: 'pointer', textAlign: 'left', width: '100%' }}
                       onMouseEnter={e => (e.currentTarget.style.background = 'var(--hover-bg)')} onMouseLeave={e => (e.currentTarget.style.background = 'transparent')} data-ui-native-button="">
                       <PersonAvatar userId={rev.author_id} name={rev.author_name || 'Unknown'} size={26} />
                       <div style={{ flex: 1, minWidth: 0 }}>
@@ -116,7 +116,7 @@ export function RevisionHistory({ open, onOpenChange, resourceType, resourceId, 
             )
           ) : (
             <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-              <button onClick={() => setSelectedId(null)} style={{ display: 'flex', alignItems: 'center', gap: 6, background: 'none', border: 'none', cursor: 'pointer', fontSize: 12.5, color: 'var(--ink3)', padding: 0, alignSelf: 'flex-start' }} data-ui-native-button="">
+              <button onClick={() => setSelectedId(null)} style={{ display: 'flex', alignItems: 'center', gap: 6, background: 'none', border: 'none', cursor: 'pointer', fontSize: "var(--text-base)", color: 'var(--ink3)', padding: 0, alignSelf: 'flex-start' }} data-ui-native-button="">
                 <Icon name="arrowLeft" size={13} /> All versions
               </button>
               <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>

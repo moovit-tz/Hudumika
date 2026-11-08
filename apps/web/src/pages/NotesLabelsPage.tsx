@@ -54,7 +54,7 @@ export function NotesLabelsPage() {
 
       <SectionCard title="Labels" collapsible={false}>
         <div style={{ display: 'flex', gap: 10, marginBottom: 16 }}>
-          <input
+          <input data-ui-field="input"
             type="text"
             className="input-field"
             style={{ flex: 1 }}
@@ -77,16 +77,16 @@ export function NotesLabelsPage() {
             {labels.map(l => (
               <div key={l.id} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '8px 12px', border: '1px solid var(--border)', borderRadius: 'var(--r-sm)' }}>
                 <Icon name="tag" size={15} color="var(--ink3)" />
-                <input
+                <input data-field-appearance="bare" data-ui-field="input"
                   type="text"
                   defaultValue={l.name}
                   className="input-field"
-                  style={{ flex: 1, border: 'none', background: 'transparent', padding: '4px 0' }}
+                  style={{ flex: 1, border: 'none', background: 'transparent', padding: "var(--ds-input-py) var(--space-md)" }}
                   onBlur={e => { const v = e.target.value.trim(); if (v && v !== l.name) updateLabel(l.id, v); }}
                   onKeyDown={e => { if (e.key === 'Enter') (e.target as HTMLInputElement).blur(); }}
                 />
                 <button type="button" onClick={() => remove(l.id, l.name)} title="Delete label"
-                  style={{ background: 'none', border: 'none', cursor: 'pointer', display: 'flex', padding: 4 }} data-ui-native-button="">
+                  style={{ background: 'none', border: 'none', cursor: 'pointer', display: 'flex', padding: "var(--action-py) var(--space-md)" }} data-ui-native-button="">
                   <Icon name="trash" size={15} color="var(--red)" />
                 </button>
               </div>

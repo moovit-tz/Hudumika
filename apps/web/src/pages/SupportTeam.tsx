@@ -245,9 +245,9 @@ export const SupportTeam: React.FC = () => {
             <div style={{ display: 'flex', alignItems: 'center', gap: 10, flex: 1, minWidth: 260 }}>
               <div style={{ position: 'relative', flex: 1 }}>
                 <Icon name="search" size={14} style={{ position: 'absolute', left: 10, top: 10, color: 'var(--ink3)' }} />
-                <input
+                <input data-ui-field="input"
                   className="input-field"
-                  style={{ paddingLeft: 30, fontSize: 12.5 }}
+                  style={{ paddingLeft: 30, fontSize: "var(--text-base)" }}
                   placeholder="Search agent by name, role or department..."
                   value={search}
                   onChange={e => setSearch(e.target.value)}
@@ -286,7 +286,7 @@ export const SupportTeam: React.FC = () => {
                 type="button"
                 onClick={() => setViewMode('table')}
                 style={{
-                  padding: '4px 10px',
+                  padding: "var(--action-py) var(--space-md)",
                   borderRadius: 'var(--r)',
                   border: 'none',
                   background: viewMode === 'table' ? 'var(--white)' : 'transparent',
@@ -296,7 +296,7 @@ export const SupportTeam: React.FC = () => {
                   display: 'flex',
                   alignItems: 'center',
                   gap: 4,
-                  fontSize: 12,
+                  fontSize: "var(--text-base)",
                   boxShadow: viewMode === 'table' ? 'var(--elev)' : 'none'
                 }}
                data-ui-native-button="">
@@ -306,7 +306,7 @@ export const SupportTeam: React.FC = () => {
                 type="button"
                 onClick={() => setViewMode('cards')}
                 style={{
-                  padding: '4px 10px',
+                  padding: "var(--action-py) var(--space-md)",
                   borderRadius: 'var(--r)',
                   border: 'none',
                   background: viewMode === 'cards' ? 'var(--white)' : 'transparent',
@@ -316,7 +316,7 @@ export const SupportTeam: React.FC = () => {
                   display: 'flex',
                   alignItems: 'center',
                   gap: 4,
-                  fontSize: 12,
+                  fontSize: "var(--text-base)",
                   boxShadow: viewMode === 'cards' ? 'var(--elev)' : 'none'
                 }}
                data-ui-native-button="">
@@ -495,7 +495,7 @@ export const SupportTeam: React.FC = () => {
                   <div style={{ fontSize: 12, color: 'var(--ink3)' }}>{selectedAgent.role} • {selectedAgent.department}</div>
                 </div>
               </div>
-              <Button variant="ghost" size="sm" onClick={() => setSelectedAgent(null)} style={{ padding: 4 }}>
+              <Button variant="ghost" size="sm" onClick={() => setSelectedAgent(null)} style={{ padding: "var(--ds-btn-py-sm) var(--space-md)" }}>
                 <Icon name="close" size={18} />
               </Button>
             </DialogHeader>

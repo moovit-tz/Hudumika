@@ -80,7 +80,7 @@ export function OnsiteWebsiteDetailShell() {
           {/* Search menu */}
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', background: 'var(--bg)', border: '1px solid var(--border)', borderRadius: 'var(--r-sm)', padding: '0.4rem 0.65rem' }}>
             <Icon name="search" size={14} style={{ color: 'var(--ink3)' }} />
-            <input
+            <input data-field-appearance="bare" data-ui-field="input"
               type="text"
               placeholder="Search tools…"
               value={searchMenu}

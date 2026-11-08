@@ -89,13 +89,13 @@ export const TwoFaSetupRequired: React.FC = () => {
                 <div style={{ fontSize: 12.5, fontWeight: 600, color: 'var(--ink)', marginBottom: 6 }}>1. Scan with your authenticator app</div>
                 <div style={{ fontFamily: 'var(--font)', fontSize: 11.5, color: 'var(--ink3)', wordBreak: 'break-all', marginBottom: 14 }}>{setupData.secret}</div>
                 <div style={{ fontSize: 12.5, fontWeight: 600, color: 'var(--ink)', marginBottom: 6 }}>2. Enter the 6-digit code</div>
-                <input
+                <input data-ui-field="input"
                   type="text"
                   value={verifyCode}
                   onChange={e => setVerifyCode(e.target.value.replace(/\D/g, '').slice(0, 6))}
                   placeholder="000000"
                   className="input-field"
-                  style={{ fontFamily: 'var(--font)', fontSize: 16, letterSpacing: '0.2em', textAlign: 'center', width: 150 }}
+                  style={{ fontFamily: 'var(--font)', fontSize: "var(--text-base)", letterSpacing: '0.2em', textAlign: 'center', width: 150 }}
                 />
               </div>
             </div>

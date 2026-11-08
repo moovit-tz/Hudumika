@@ -167,14 +167,14 @@ function ContainerRow({ container, onClick }: { container: TrackedContainer; onC
   const ago = timeAgo(container.updated_at);
 
   return (
-    <button
+    <button data-ui-native-button=""
       onClick={onClick}
       style={{
         display: 'grid',
         gridTemplateColumns: '44px 1fr auto',
         gap: 14,
         alignItems: 'center',
-        padding: '14px 18px',
+        padding: "var(--action-py) var(--space-md)",
         background: 'var(--white)',
         border: '1px solid var(--border)',
         borderRadius: 'var(--r)',

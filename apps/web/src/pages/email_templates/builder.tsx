@@ -174,7 +174,7 @@ export function AdvancedBuilderDialog({
             </FeaturedIcon>
             <div className="adv-builder-title-group">
               <div className="adv-builder-title-row">
-                <input
+                <input data-ui-field="input"
                   value={title}
                   onChange={e => setTitle(e.target.value)}
                   placeholder="Template Title"
@@ -186,7 +186,7 @@ export function AdvancedBuilderDialog({
                   <Badge variant="brand">Custom Template</Badge>
                 )}
               </div>
-              <input
+              <input data-ui-field="input"
                 value={subject}
                 onChange={e => setSubject(e.target.value)}
                 placeholder="Subject: e.g. Payment receipt for {{company}}"

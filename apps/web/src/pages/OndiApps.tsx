@@ -306,7 +306,7 @@ export const OndiApps: React.FC = () => {
               <div className="oa-toolbar">
                 <div className="oa-search-box">
                   <Icon name="search" size={14} color="var(--ink3)" />
-                  <input
+                  <input data-ui-field="input" data-field-appearance="bare"
                     type="text"
                     value={search}
                     onChange={(e) => setSearch(e.target.value)}

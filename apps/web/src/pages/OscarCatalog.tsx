@@ -617,31 +617,31 @@ function InputsDemo() {
     <div className="flex flex-col gap-4">
       <div className="oscar-input-group">
         <label className="oscar-label">Standard input</label>
-        <input type="text" className="oscar-input" placeholder="Enter value..." />
+        <input data-ui-field="input" type="text" className="oscar-input" placeholder="Enter value..." />
       </div>
       <div className="oscar-input-group">
         <label className="oscar-label">With icon prefix</label>
         <div className="oscar-input-wrap">
           <Icon name="search" size={16} className="oscar-input-icon-left" />
-          <input type="text" className="oscar-input oscar-input-pl" placeholder="Search..." />
+          <input data-ui-field="input" type="text" className="oscar-input oscar-input-pl" placeholder="Search..." />
         </div>
       </div>
       <div className="oscar-input-group">
         <label className="oscar-label">With addon</label>
         <div className="oscar-input-addon-row">
           <span className="oscar-input-addon">https://</span>
-          <input type="text" className="oscar-input oscar-input-addon-right" placeholder="yoursite.com" />
+          <input data-ui-field="input" type="text" className="oscar-input oscar-input-addon-right" placeholder="yoursite.com" />
         </div>
       </div>
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
         <div className="oscar-input-group">
           <label className="oscar-label" style={{ color: 'var(--green)' }}>Valid input</label>
-          <input type="text" className="oscar-input oscar-input-success" defaultValue="valid@email.com" />
+          <input data-ui-field="input" type="text" className="oscar-input oscar-input-success" defaultValue="valid@email.com" />
           <span className="text-xs mt-1" style={{ color: 'var(--green)' }}>✓ Looks good!</span>
         </div>
         <div className="oscar-input-group">
           <label className="oscar-label" style={{ color: 'var(--red)' }}>Error input</label>
-          <input type="text" className="oscar-input oscar-input-error" defaultValue="invalid value" />
+          <input data-ui-field="input" type="text" className="oscar-input oscar-input-error" defaultValue="invalid value" />
           <span className="text-xs mt-1" style={{ color: 'var(--red)' }}>✗ Please enter a valid value</span>
         </div>
       </div>
@@ -967,7 +967,7 @@ function AdvancedDataTablesDemo() {
 
         <div className="flex items-center gap-3">
           <div className="relative w-48">
-            <input
+            <input data-ui-field="input"
               type="text"
               placeholder="Search table..."
               value={search}

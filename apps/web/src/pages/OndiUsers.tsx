@@ -69,7 +69,7 @@ function InviteModal({ onClose, onInvited }: { onClose: () => void; onInvited: (
             <div style={{ fontSize: 16, fontWeight: 800, color: 'var(--ink)' }}>Invite a New Team Member</div>
             <div style={{ fontSize: 12, color: 'var(--ink3)', marginTop: 2 }}>An invitation link will be sent to their email.</div>
           </div>
-          <button type="button" className="ondi-icon-action" onClick={onClose} style={{ background: 'none', border: '1px solid transparent', borderRadius: 'var(--r-sm)', padding: 6, cursor: 'pointer', color: 'var(--ink3)' }} data-ui-native-button="">
+          <button type="button" className="ondi-icon-action" onClick={onClose} style={{ background: 'none', border: '1px solid transparent', borderRadius: 'var(--r-sm)', padding: "var(--action-py) var(--space-md)", cursor: 'pointer', color: 'var(--ink3)' }} data-ui-native-button="">
             <Icon name="x" size={18} />
           </button>
         </div>
@@ -77,7 +77,7 @@ function InviteModal({ onClose, onInvited }: { onClose: () => void; onInvited: (
         <form onSubmit={submit} style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
           <div>
             <label style={{ fontSize: 12, fontWeight: 700, color: 'var(--ink2)', display: 'block', marginBottom: 6 }}>Email Address</label>
-            <input type="email" required value={email} onChange={e => setEmail(e.target.value)} placeholder="colleague@company.com" style={inputStyle} />
+            <input data-ui-field="input" type="email" required value={email} onChange={e => setEmail(e.target.value)} placeholder="colleague@company.com" style={inputStyle} />
           </div>
           <div>
             <label style={{ fontSize: 12, fontWeight: 700, color: 'var(--ink2)', display: 'block', marginBottom: 6 }}>Assigned Role</label>
@@ -256,7 +256,7 @@ export const OndiUsers: React.FC = () => {
         subtitle="Manage seated members, assigned administrative roles, and pending tenant invitations."
         actions={canManage ? (
           <button type="button" className="ondi-primary-action" onClick={() => setShowInvite(true)}
-            style={{ display: 'flex', alignItems: 'center', gap: 8, background: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))', border: 'none', borderRadius: 'var(--r)', padding: '8px 18px', fontFamily: 'var(--font)', fontWeight: 700, fontSize: 13, cursor: 'pointer', boxShadow: '0 2px 8px var(--teal-m)' }} data-ui-native-button="">
+            style={{ display: 'flex', alignItems: 'center', gap: 8, background: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))', border: 'none', borderRadius: 'var(--r)', padding: "var(--action-py) var(--space-md)", fontFamily: 'var(--font)', fontWeight: 700, fontSize: "var(--text-base)", cursor: 'pointer', boxShadow: '0 2px 8px var(--teal-m)' }} data-ui-native-button="">
             <Icon name="userPlus" size={15} /> Invite User
           </button>
         ) : undefined}
@@ -331,7 +331,7 @@ export const OndiUsers: React.FC = () => {
           <div className="ondi-toolbar">
             <div className="ondi-search-input">
               <Icon name="search" size={14} />
-              <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search name or email…" />
+              <input data-ui-field="input" value={search} onChange={e => setSearch(e.target.value)} placeholder="Search name or email…" />
             </div>
 
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10, alignItems: 'center' }}>
@@ -363,7 +363,7 @@ export const OndiUsers: React.FC = () => {
               />
 
               <button type="button" className="ondi-secondary-action" onClick={exportCSV}
-                style={{ display: 'flex', alignItems: 'center', gap: 6, background: 'var(--bg)', border: '1px solid var(--border)', borderRadius: 'var(--r)', padding: '7px 14px', fontSize: 12.5, fontWeight: 700, cursor: 'pointer', color: 'var(--ink)' }} data-ui-native-button="">
+                style={{ display: 'flex', alignItems: 'center', gap: 6, background: 'var(--bg)', border: '1px solid var(--border)', borderRadius: 'var(--r)', padding: "var(--action-py) var(--space-md)", fontSize: "var(--text-base)", fontWeight: 700, cursor: 'pointer', color: 'var(--ink)' }} data-ui-native-button="">
                 <Icon name="download" size={14} /> Export CSV
               </button>
             </div>
@@ -415,7 +415,7 @@ export const OndiUsers: React.FC = () => {
                       <td style={{ textAlign: 'right' }}>
                         <DropdownMenu>
                           <DropdownMenuTrigger asChild>
-                            <button type="button" className="ondi-icon-action" style={{ background: 'none', border: '1px solid transparent', cursor: 'pointer', color: 'var(--ink3)', padding: 6, borderRadius: 'var(--r-sm)'}} data-ui-native-button="">
+                            <button type="button" className="ondi-icon-action" style={{ background: 'none', border: '1px solid transparent', cursor: 'pointer', color: 'var(--ink3)', padding: "var(--action-py) var(--space-md)", borderRadius: 'var(--r-sm)'}} data-ui-native-button="">
                               <Icon name="moreVertical" size={16} />
                             </button>
                           </DropdownMenuTrigger>
@@ -482,7 +482,7 @@ export const OndiUsers: React.FC = () => {
                         {i.status === 'PENDING' && (
                           <DropdownMenu>
                             <DropdownMenuTrigger asChild>
-                              <button type="button" className="ondi-icon-action" style={{ background: 'none', border: '1px solid transparent', borderRadius: 'var(--r-sm)', cursor: 'pointer', color: 'var(--ink3)', padding: 6 }} data-ui-native-button="">
+                              <button type="button" className="ondi-icon-action" style={{ background: 'none', border: '1px solid transparent', borderRadius: 'var(--r-sm)', cursor: 'pointer', color: 'var(--ink3)', padding: "var(--action-py) var(--space-md)" }} data-ui-native-button="">
                                 <Icon name="moreVertical" size={16} />
                               </button>
                             </DropdownMenuTrigger>
@@ -557,7 +557,7 @@ export const OndiUsers: React.FC = () => {
                           </DropdownMenuContent>
                         </DropdownMenu>
                         <button type="button" className="ondi-secondary-action" onClick={() => denyJoinRequest(r.id)}
-                          style={{ background: 'var(--bg)', border: '1px solid var(--border)', color: 'var(--red)', borderRadius: 'var(--r-sm)', padding: '6px 14px', fontSize: 12.5, fontWeight: 700, cursor: 'pointer' }} data-ui-native-button="">
+                          style={{ background: 'var(--bg)', border: '1px solid var(--border)', color: 'var(--red)', borderRadius: 'var(--r-sm)', padding: "var(--action-py) var(--space-md)", fontSize: "var(--text-base)", fontWeight: 700, cursor: 'pointer' }} data-ui-native-button="">
                           Deny
                         </button>
                       </div>

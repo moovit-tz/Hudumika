@@ -52,7 +52,7 @@ function TokenStage({ token }: { token: string }) {
         {error && <AuthAlert message={error} />}
         <form onSubmit={ev => { ev.preventDefault(); attempt(totp); }} noValidate className="auth-form">
           <AuthField label="6-digit code">
-            <input type="text" inputMode="numeric" className="auth-input" placeholder="123456" value={totp}
+            <input data-ui-field="input" type="text" inputMode="numeric" className="auth-input" placeholder="123456" value={totp}
               onChange={e => { setTotp(e.target.value); setError(null); }} autoComplete="one-time-code" autoFocus maxLength={6} />
           </AuthField>
           <button type="submit" disabled={loading || totp.length !== 6} className="auth-btn-primary" data-ui-native-button="">

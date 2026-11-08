@@ -191,17 +191,17 @@ export const SupportTicket: React.FC = () => {
               <div className="st-field-row">
                 <div className="st-field">
                   <label className="st-label">Full Name <span className="st-required">*</span></label>
-                  <input className="st-input" type="text" placeholder="Your full name" value={form.name} onChange={e => handleChange('name', e.target.value)} required />
+                  <input data-ui-field="input" className="st-input" type="text" placeholder="Your full name" value={form.name} onChange={e => handleChange('name', e.target.value)} required />
                 </div>
                 <div className="st-field">
                   <label className="st-label">Email Address <span className="st-required">*</span></label>
-                  <input className="st-input" type="email" placeholder="your@email.com" value={form.email} onChange={e => handleChange('email', e.target.value)} required />
+                  <input data-ui-field="input" className="st-input" type="email" placeholder="your@email.com" value={form.email} onChange={e => handleChange('email', e.target.value)} required />
                 </div>
               </div>
 
               <div className="st-field">
                 <label className="st-label">Company / Organisation</label>
-                <input className="st-input" type="text" placeholder="Your company name (optional)" value={form.company} onChange={e => handleChange('company', e.target.value)} />
+                <input data-ui-field="input" className="st-input" type="text" placeholder="Your company name (optional)" value={form.company} onChange={e => handleChange('company', e.target.value)} />
               </div>
 
               {/* Ticket details */}
@@ -218,7 +218,7 @@ export const SupportTicket: React.FC = () => {
                 </div>
                 <div className="st-field">
                   <label className="st-label">Subject <span className="st-required">*</span></label>
-                  <input className="st-input" type="text" placeholder="Brief description of the issue" value={form.subject} onChange={e => handleChange('subject', e.target.value)} maxLength={120} required />
+                  <input data-ui-field="input" className="st-input" type="text" placeholder="Brief description of the issue" value={form.subject} onChange={e => handleChange('subject', e.target.value)} maxLength={120} required />
                 </div>
               </div>
 
@@ -244,7 +244,7 @@ export const SupportTicket: React.FC = () => {
               {/* Message */}
               <div className="st-field">
                 <label className="st-label">Message <span className="st-required">*</span></label>
-                <textarea
+                <textarea data-ui-field="textarea"
                   className="st-textarea"
                   placeholder="Describe your issue in detail. Include any error messages, steps to reproduce, and what you expected to happen…"
                   value={form.message}

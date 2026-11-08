@@ -522,19 +522,19 @@ export function SettingsView() {
         <Banner variant="brand" icon="shield" className="sa-settings-banner">Enforced platform-wide on every login and request. SUPER_ADMIN accounts are exempt from the IP allowlist so a misconfiguration here can never lock the console itself out.</Banner>
         <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fill,minmax(260px,1fr))', gap:16 }}>
           <Field label="Minimum Password Length" hint="Characters required for all user passwords">
-            <input title="Min password length" type="number" min={6} max={32} value={security.minPasswordLength}
+            <input data-ui-field="input" title="Min password length" type="number" min={6} max={32} value={security.minPasswordLength}
               onChange={e => setSecurity(p=>({...p,minPasswordLength:e.target.value}))} className="input-field" style={{ width:'100%' }} />
           </Field>
           <Field label="Session Timeout" hint="Hours before an idle session is automatically signed out">
-            <input title="Session timeout hours" type="number" min={1} max={168} value={security.sessionTimeoutHours}
+            <input data-ui-field="input" title="Session timeout hours" type="number" min={1} max={168} value={security.sessionTimeoutHours}
               onChange={e => setSecurity(p=>({...p,sessionTimeoutHours:e.target.value}))} className="input-field" style={{ width:'100%' }} />
           </Field>
           <Field label="Max Login Attempts" hint="Failed attempts before account lockout is triggered">
-            <input title="Max login attempts" type="number" min={3} max={20} value={security.maxLoginAttempts}
+            <input data-ui-field="input" title="Max login attempts" type="number" min={3} max={20} value={security.maxLoginAttempts}
               onChange={e => setSecurity(p=>({...p,maxLoginAttempts:e.target.value}))} className="input-field" style={{ width:'100%' }} />
           </Field>
           <Field label="Lockout Duration (minutes)" hint="How long an account stays locked after max attempts">
-            <input title="Lockout duration" type="number" min={5} max={1440} value={security.lockoutMinutes}
+            <input data-ui-field="input" title="Lockout duration" type="number" min={5} max={1440} value={security.lockoutMinutes}
               onChange={e => setSecurity(p=>({...p,lockoutMinutes:e.target.value}))} className="input-field" style={{ width:'100%' }} />
           </Field>
           <Field label="Two-Factor Authentication Policy" hint="Applies to all tenant admin and staff accounts">
@@ -548,7 +548,7 @@ export function SettingsView() {
             </Select>
           </Field>
           <Field label="IP Allowlist" hint="Comma-separated CIDRs. Leave blank to allow all IPs.">
-            <input title="IP allowlist" placeholder="e.g. 196.0.0.0/8, 10.0.0.1" value={security.ipAllowlist}
+            <input data-ui-field="input" title="IP allowlist" placeholder="e.g. 196.0.0.0/8, 10.0.0.1" value={security.ipAllowlist}
               onChange={e => setSecurity(p=>({...p,ipAllowlist:e.target.value}))} className="input-field" style={{ width:'100%' }} />
           </Field>
         </div>
@@ -560,12 +560,12 @@ export function SettingsView() {
       <SectionCard title="Email / SMTP" sub="Outgoing email server configuration for notifications, alerts, and billing" section="smtp">
         <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fill,minmax(260px,1fr))', gap:16 }}>
           <Field label="SMTP Host">
-            <input title="SMTP Host" placeholder="smtp.mailgun.org" value={smtp.host}
+            <input data-ui-field="input" title="SMTP Host" placeholder="smtp.mailgun.org" value={smtp.host}
               onChange={e => setSmtp(p=>({...p,host:e.target.value}))} className="input-field" style={{ width:'100%' }} />
           </Field>
           <Field label="Port">
             <div style={{ display:'flex', gap:10, alignItems:'center' }}>
-              <input title="SMTP Port" placeholder="587" value={smtp.port}
+              <input data-ui-field="input" title="SMTP Port" placeholder="587" value={smtp.port}
                 onChange={e => setSmtp(p=>({...p,port:e.target.value}))} className="input-field" style={{ flex:1 }} />
               <label style={{ display:'flex', alignItems:'center', gap:6, fontSize:12, color:'var(--ink2)', whiteSpace:'nowrap', cursor:'pointer' }}>
                 <Switch checked={smtp.tls} onCheckedChange={v => setSmtp(p=>({...p,tls:v}))} aria-label="TLS" />
@@ -574,15 +574,15 @@ export function SettingsView() {
             </div>
           </Field>
           <Field label="Username">
-            <input title="SMTP Username" placeholder="no-reply@clearos.io" value={smtp.user}
+            <input data-ui-field="input" title="SMTP Username" placeholder="no-reply@clearos.io" value={smtp.user}
               onChange={e => setSmtp(p=>({...p,user:e.target.value}))} className="input-field" style={{ width:'100%' }} />
           </Field>
           <Field label="Password">
-            <input title="SMTP Password" type="password" placeholder="••••••••" value={smtp.pass}
+            <input data-ui-field="input" title="SMTP Password" type="password" placeholder="••••••••" value={smtp.pass}
               onChange={e => setSmtp(p=>({...p,pass:e.target.value}))} className="input-field" style={{ width:'100%' }} />
           </Field>
           <Field label="From Address" hint="Displayed as the sender name in all platform emails">
-            <input title="From address" placeholder="Hudumika <no-reply@clearos.io>" value={smtp.from}
+            <input data-ui-field="input" title="From address" placeholder="Hudumika <no-reply@clearos.io>" value={smtp.from}
               onChange={e => setSmtp(p=>({...p,from:e.target.value}))} className="input-field" style={{ width:'100%' }} />
           </Field>
           <div style={{ display:'flex', alignItems:'flex-end' }}>
@@ -648,7 +648,7 @@ export function SettingsView() {
 
                 <div className="sa-ai-provider-fields">
                   <Field label="API key" hint={freeNote ? `Free — ${freeNote}. Shown masked once saved.` : 'Shown masked once saved.'}>
-                    <input title={`${name} API key`} type="password" placeholder="Paste API key" autoComplete="off" value={row.apiKey}
+                    <input data-ui-field="input" title={`${name} API key`} type="password" placeholder="Paste API key" autoComplete="off" value={row.apiKey}
                       onChange={e => setAiRow(prov.value, { apiKey: e.target.value })} className="input-field" style={{ width:'100%' }} />
                   </Field>
                   <Field label="Model">
@@ -698,7 +698,7 @@ export function SettingsView() {
       <SectionCard title="OCR / Document Scanning" sub="Google Gemini API key used to extract structured data from scanned BLs, invoices, and TANSAD documents in ClearOS" section="ocr">
         <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fill,minmax(260px,1fr))', gap:16 }}>
           <Field label="Gemini API Key" hint="From aistudio.google.com/apikey. Leave blank to keep OCR running on simulated demo data.">
-            <input title="Gemini API Key" type="password" placeholder="AIza••••••••••••••••" value={ocr.geminiApiKey}
+            <input data-ui-field="input" title="Gemini API Key" type="password" placeholder="AIza••••••••••••••••" value={ocr.geminiApiKey}
               onChange={e => setOcr(p=>({...p,geminiApiKey:e.target.value}))} className="input-field" style={{ width:'100%' }} />
           </Field>
           <div style={{ display:'flex', alignItems:'flex-end' }}>
@@ -779,7 +779,7 @@ export function SettingsView() {
                   placeholder="1234567890-abc.apps.googleusercontent.com"
                   value={ondiSso.googleClientId ?? ''}
                   onChange={e => setOndiSso(p => ({ ...p, googleClientId: e.target.value }))}
-                  style={{ fontFamily: 'var(--font)', fontSize: 12 }}
+                  style={{ fontFamily: 'var(--font)', fontSize: "var(--text-base)" }}
                 />
                 <span className="sa-sso-provider-hint">
                   From Google Cloud Console ▸ Credentials (ends in .apps.googleusercontent.com)
@@ -816,7 +816,7 @@ export function SettingsView() {
                   placeholder="00000000-0000-0000-0000-000000000000"
                   value={ondiSso.microsoftClientId ?? ''}
                   onChange={e => setOndiSso(p => ({ ...p, microsoftClientId: e.target.value }))}
-                  style={{ fontFamily: 'var(--font)', fontSize: 12 }}
+                  style={{ fontFamily: 'var(--font)', fontSize: "var(--text-base)" }}
                 />
                 <span className="sa-sso-provider-hint">
                   From Azure Portal ▸ App registrations ▸ Application (client) ID
@@ -853,7 +853,7 @@ export function SettingsView() {
                   placeholder="com.yourcompany.web"
                   value={ondiSso.appleClientId ?? ''}
                   onChange={e => setOndiSso(p => ({ ...p, appleClientId: e.target.value }))}
-                  style={{ fontFamily: 'var(--font)', fontSize: 12 }}
+                  style={{ fontFamily: 'var(--font)', fontSize: "var(--text-base)" }}
                 />
                 <span className="sa-sso-provider-hint">
                   From developer.apple.com ▸ Identifiers ▸ Services ID (not Bundle ID)
@@ -896,13 +896,13 @@ export function SettingsView() {
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: 16, marginBottom: 24 }}>
           <Field label="CarImages API Key" hint="Public identifier used by client loader and signed-url requests">
             <div style={{ display: 'flex', gap: 6 }}>
-              <input
+              <input data-ui-field="input"
                 title="CarImages API Key"
                 type="text"
                 value={carimages.apiKey}
                 onChange={e => setCarimages(p => ({ ...p, apiKey: e.target.value }))}
                 className="input-field"
-                style={{ flex: 1, fontFamily: 'var(--font-mono, monospace)', fontSize: 12 }}
+                style={{ flex: 1, fontFamily: 'var(--font-mono, monospace)', fontSize: "var(--text-base)" }}
               />
               <Tip label={copiedSnippet === 'api-key' ? 'Copied!' : 'Copy API Key'}>
                 <Button
@@ -1048,35 +1048,35 @@ export function SettingsView() {
           {/* Playground Controls */}
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(160px, 1fr))', gap: 12 }}>
             <Field label="Make">
-              <input
+              <input data-ui-field="input"
                 type="text"
                 value={sampleMake}
                 onChange={e => setSampleMake(e.target.value)}
                 placeholder="e.g. BMW, Toyota, Scania"
                 className="input-field"
-                style={{ width: '100%', fontSize: 12 }}
+                style={{ width: '100%', fontSize: "var(--text-base)" }}
               />
             </Field>
 
             <Field label="Model">
-              <input
+              <input data-ui-field="input"
                 type="text"
                 value={sampleModel}
                 onChange={e => setSampleModel(e.target.value)}
                 placeholder="e.g. 3 Series, X5, Hilux"
                 className="input-field"
-                style={{ width: '100%', fontSize: 12 }}
+                style={{ width: '100%', fontSize: "var(--text-base)" }}
               />
             </Field>
 
             <Field label="Year">
-              <input
+              <input data-ui-field="input"
                 type="text"
                 value={sampleYear}
                 onChange={e => setSampleYear(e.target.value)}
                 placeholder="2022"
                 className="input-field"
-                style={{ width: '100%', fontSize: 12 }}
+                style={{ width: '100%', fontSize: "var(--text-base)" }}
               />
             </Field>
 
@@ -1105,11 +1105,11 @@ export function SettingsView() {
 
             {sampleMode === '2d' ? (
               <Field label="Camera Angle">
-                <select
+                <select data-ui-field="select"
                   value={sampleView}
                   onChange={e => setSampleView(e.target.value as any)}
                   className="input-field"
-                  style={{ width: '100%', fontSize: 12 }}
+                  style={{ width: '100%', fontSize: "var(--text-base)" }}
                 >
                   <option value="3-4">3/4 Front Studio</option>
                   <option value="side">Direct Side</option>
@@ -1120,11 +1120,11 @@ export function SettingsView() {
               </Field>
             ) : (
               <Field label="Backdrop Studio">
-                <select
+                <select data-ui-field="select"
                   value={sampleBackdrop}
                   onChange={e => setSampleBackdrop(e.target.value as any)}
                   className="input-field"
-                  style={{ width: '100%', fontSize: 12 }}
+                  style={{ width: '100%', fontSize: "var(--text-base)" }}
                 >
                   <option value="graphite">Graphite Studio</option>
                   <option value="dark">Dark Minimal</option>
@@ -1403,23 +1403,23 @@ curl "https://carimagesapi.com/api/v1/signed-url?api_key=${carimages.apiKey}&mak
 
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: 16, marginBottom: 16 }}>
           <Field label="Mapbox Public Access Token" hint="Format: pk.eyJ1Ijo... (from account.mapbox.com/access-tokens)">
-            <input
+            <input data-ui-field="input"
               title="Mapbox Access Token"
               type="text"
               placeholder="pk.eyJ1IjoiaHVkdW1pa2EiLCJhIjoi..."
               value={mapbox.accessToken}
               onChange={e => setMapbox(p => ({ ...p, accessToken: e.target.value }))}
               className="input-field"
-              style={{ width: '100%', fontFamily: 'var(--font-mono, monospace)', fontSize: 12 }}
+              style={{ width: '100%', fontFamily: 'var(--font-mono, monospace)', fontSize: "var(--text-base)" }}
             />
           </Field>
 
           <Field label="Default Map Style" hint="Basemap style preset for tracking and vehicle routes">
-            <select
+            <select data-ui-field="select"
               value={mapbox.defaultStyle}
               onChange={e => setMapbox(p => ({ ...p, defaultStyle: e.target.value }))}
               className="input-field"
-              style={{ width: '100%', fontSize: 12 }}
+              style={{ width: '100%', fontSize: "var(--text-base)" }}
             >
               <option value="mapbox/streets-v12">Mapbox Streets (streets-v12)</option>
               <option value="mapbox/dark-v11">Mapbox Dark (dark-v11)</option>
@@ -1469,20 +1469,20 @@ curl "https://carimagesapi.com/api/v1/signed-url?api_key=${carimages.apiKey}&mak
         </div>
         <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fill,minmax(260px,1fr))', gap:16 }}>
           <Field label="API Rate Limit" hint="Maximum requests per minute for a normal app session (partner API keys keep their own fixed 300/min)">
-            <input title="Rate limit" type="number" min={10} max={10000} value={api.rateLimit}
+            <input data-ui-field="input" title="Rate limit" type="number" min={10} max={10000} value={api.rateLimit}
               onChange={e => setApi(p=>({...p,rateLimit:e.target.value}))} className="input-field" style={{ width:'100%' }} />
           </Field>
           <Field label="API Key Rotation" hint="Days before API keys are flagged for rotation">
-            <input title="Key rotation days" type="number" min={30} max={365} value={api.keyRotationDays}
+            <input data-ui-field="input" title="Key rotation days" type="number" min={30} max={365} value={api.keyRotationDays}
               onChange={e => setApi(p=>({...p,keyRotationDays:e.target.value}))} className="input-field" style={{ width:'100%' }} />
           </Field>
           <Field label="CORS Allowed Origins" hint="Comma-separated extra origins, layered on top of the server's own configured origin — this can only add access, never remove the app's own.">
-            <input title="CORS origins" placeholder="https://app.yourcompany.com" value={api.corsOrigins}
+            <input data-ui-field="input" title="CORS origins" placeholder="https://app.yourcompany.com" value={api.corsOrigins}
               onChange={e => setApi(p=>({...p,corsOrigins:e.target.value}))} className="input-field" style={{ width:'100%' }} />
           </Field>
           <Field label="Webhook Signing Secret" hint="Not yet used to sign anything — saved for a future outbound webhook feature">
             <div style={{ display:'flex', gap:8 }}>
-              <input title="Webhook secret" type={showWebhookSecret ? 'text' : 'password'} value={api.webhookSecret}
+              <input data-ui-field="input" title="Webhook secret" type={showWebhookSecret ? 'text' : 'password'} value={api.webhookSecret}
                 onChange={e => setApi(p=>({...p,webhookSecret:e.target.value}))} className="input-field" style={{ flex:1 }} />
               <Tip label={showWebhookSecret ? 'Hide webhook secret' : 'Show webhook secret'}>
                 <Button type="button" variant="outline" size="xs" aria-label={showWebhookSecret ? 'Hide webhook secret' : 'Show webhook secret'}
@@ -2350,18 +2350,18 @@ export function AppStatusView() {
             {/* Search Box */}
             <div className="sa-app-status-search">
               <Icon name="search" size={14} color="var(--ink3)" style={{ position:'absolute', left:12, top:'50%', transform:'translateY(-50%)' }} />
-              <input
+              <input data-ui-field="input"
                 className="input-field"
                 value={search}
                 onChange={e => setSearch(e.target.value)}
                 placeholder="Search by app name, key, or category…"
-                style={{ width:'100%', boxSizing:'border-box', paddingLeft:34, paddingRight: search ? 30 : 12, height:36 }}
+                style={{ width:'100%', boxSizing:'border-box', paddingLeft: 34, paddingRight: search ? 30 : 12, height:"var(--ctl-h)" }}
               />
               {search && (
-                <button
+                <button data-ui-native-button=""
                   type="button"
                   onClick={() => setSearch('')}
-                  style={{ position: 'absolute', right: 8, top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink3)', padding: 4 }}
+                  style={{ position: 'absolute', right: 8, top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink3)', padding: "var(--action-py) var(--space-md)" }}
                   aria-label="Clear search"
                 >
                   ✕
@@ -2376,7 +2376,7 @@ export function AppStatusView() {
                 variant={statusFilter === 'all' && !betaOnly ? 'default' : 'outline'}
                 size="sm"
                 onClick={() => { setStatusFilter('all'); setBetaOnly(false); }}
-                style={{ height: 36 }}
+                style={{ height: "var(--ctl-h)" }}
               >
                 All ({rows.length})
               </Button>
@@ -2385,7 +2385,7 @@ export function AppStatusView() {
                 variant={statusFilter === 'active' ? 'default' : 'outline'}
                 size="sm"
                 onClick={() => { setStatusFilter('active'); setBetaOnly(false); }}
-                style={{ height: 36, color: statusFilter === 'active' ? '#fff' : 'var(--green)' }}
+                style={{ height: "var(--ctl-h)", color: statusFilter === 'active' ? '#fff' : 'var(--green)' }}
               >
                 <span className="as-live-pulse-dot" style={{ marginRight: 6 }} />
                 Live ({liveCount})
@@ -2395,7 +2395,7 @@ export function AppStatusView() {
                 variant={statusFilter === 'maintenance' ? 'default' : 'outline'}
                 size="sm"
                 onClick={() => { setStatusFilter('maintenance'); setBetaOnly(false); }}
-                style={{ height: 36, color: statusFilter === 'maintenance' ? '#fff' : '#dc2626' }}
+                style={{ height: "var(--ctl-h)", color: statusFilter === 'maintenance' ? '#fff' : '#dc2626' }}
               >
                 <Icon name="alertTriangle" size={13} style={{ marginRight: 6 }} />
                 Maintenance ({maintenanceCount})
@@ -2405,7 +2405,7 @@ export function AppStatusView() {
                 variant={betaOnly ? 'default' : 'outline'}
                 size="sm"
                 onClick={() => setBetaOnly(v => !v)}
-                style={{ height: 36, color: betaOnly ? '#fff' : 'var(--gold)' }}
+                style={{ height: "var(--ctl-h)", color: betaOnly ? '#fff' : 'var(--gold)' }}
               >
                 <Icon name="sparkle" size={13} style={{ marginRight: 6 }} />
                 Beta Only ({betaCount})
@@ -2414,7 +2414,7 @@ export function AppStatusView() {
 
             {/* Category Filter */}
             <Select value={categoryFilter} onValueChange={setCategoryFilter}>
-              <SelectTrigger className="w-auto shrink-0" style={{ width: 'auto', minWidth: 145, height: 36 }}>
+              <SelectTrigger className="w-auto shrink-0" style={{ width: 'auto', minWidth: 145, height: "var(--ctl-h)" }}>
                 <Icon name="folder" size={13} color="var(--ink3)" />
                 <SelectValue placeholder="Category" />
               </SelectTrigger>
@@ -2428,7 +2428,7 @@ export function AppStatusView() {
 
             {/* Sort Select */}
             <Select value={sortBy} onValueChange={v => setSortBy(v as AppStatusSort)}>
-              <SelectTrigger className="w-auto shrink-0" style={{ width:'auto', minWidth:140, height:36, flexShrink:0 }}>
+              <SelectTrigger className="w-auto shrink-0" style={{ width:'auto', minWidth:140, height:"var(--ctl-h)", flexShrink:0 }}>
                 <Icon name="sliders" size={13} color="var(--ink3)" />
                 <SelectValue />
               </SelectTrigger>
@@ -2440,7 +2440,7 @@ export function AppStatusView() {
             {/* List vs Grid Switcher */}
             <div className="sa-app-status-view-toggle">
               <Tip label="Grid Card View" side="bottom">
-                <button
+                <button data-ui-native-button=""
                   type="button"
                   onClick={() => handleViewChange('grid')}
                   className={`sa-view-btn ${viewMode === 'grid' ? 'active' : ''}`}
@@ -2450,7 +2450,7 @@ export function AppStatusView() {
                 </button>
               </Tip>
               <Tip label="Compact List View" side="bottom">
-                <button
+                <button data-ui-native-button=""
                   type="button"
                   onClick={() => handleViewChange('list')}
                   className={`sa-view-btn ${viewMode === 'list' ? 'active' : ''}`}
@@ -2466,7 +2466,7 @@ export function AppStatusView() {
           {(search || statusFilter !== 'all' || betaOnly || categoryFilter !== 'all') && (
             <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 14, fontSize: 12, color: 'var(--ink3)' }}>
               <span>Filtering {visibleRows.length} of {rows.length} apps</span>
-              <button
+              <button data-ui-native-button=""
                 type="button"
                 onClick={() => { setSearch(''); setStatusFilter('all'); setBetaOnly(false); setCategoryFilter('all'); }}
                 style={{ background: 'none', border: 'none', color: 'var(--teal)', fontWeight: 600, cursor: 'pointer', padding: 0 }}
@@ -2591,7 +2591,7 @@ export function AppStatusView() {
                             placeholder="Reason shown to tenants (e.g. Upgrading database…)"
                             value={currentDraft}
                             onChange={e => setDrafts(prev => ({ ...prev, [row.app_id]: e.target.value }))}
-                            style={{ height: 32, fontSize: 12 }}
+                            style={{ height: "var(--ctl-h)", fontSize: "var(--text-base)" }}
                           />
                           <Button
                             type="button"
@@ -2599,7 +2599,7 @@ export function AppStatusView() {
                             size="sm"
                             disabled={msgBusy || (currentDraft === (row.message ?? ''))}
                             onClick={() => saveMaintenanceMessage(row.app_id)}
-                            style={{ height: 32, flexShrink: 0 }}
+                            style={{ height: "var(--ctl-h)", flexShrink: 0 }}
                           >
                             <Icon name={msgSaved ? 'check' : 'save'} size={12} />
                             <span>{msgSaved ? 'Saved' : msgBusy ? 'Saving…' : 'Save'}</span>
@@ -2609,7 +2609,7 @@ export function AppStatusView() {
                         <div className="as-preset-chips">
                           <span style={{ fontSize: 10, color: 'var(--ink3)' }}>Quick presets:</span>
                           {PRESET_MESSAGES.map((msg, idx) => (
-                            <button
+                            <button data-ui-native-button=""
                               key={idx}
                               type="button"
                               className="as-preset-btn"
@@ -2789,7 +2789,7 @@ export function AppStatusView() {
                           value={p.readiness_state}
                           onValueChange={v => updateReadiness(p.product_key, v as ReadinessState)}
                         >
-                          <SelectTrigger className="w-auto shrink-0" style={{ width: 'auto', minWidth: 190, height: 36 }}>
+                          <SelectTrigger className="w-auto shrink-0" style={{ width: 'auto', minWidth: 190, height: "var(--ctl-h)" }}>
                             <SelectValue />
                           </SelectTrigger>
                           <SelectContent>

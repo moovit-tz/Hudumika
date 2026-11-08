@@ -87,7 +87,7 @@ export function LabelChips({ subjectType, subjectId }: { subjectType: SubjectTyp
       <Popover open={open} onOpenChange={setOpen}>
         <PopoverTrigger asChild>
           <button type="button" title="Add label" style={{
-            display: 'flex', alignItems: 'center', justifyContent: 'center', width: 22, height: 22, borderRadius: '50%',
+            display: 'flex', alignItems: 'center', justifyContent: 'center', width: "var(--ctl-h-xs)", height: "var(--ctl-h-xs)", borderRadius: '50%',
             border: '1px dashed var(--border)', background: 'none', cursor: 'pointer', color: 'var(--ink3)',
           }} data-ui-native-button="">
             <Icon name="plus" size={11} />
@@ -100,8 +100,8 @@ export function LabelChips({ subjectType, subjectId }: { subjectType: SubjectTyp
               const on = assignedIds.has(l.id);
               return (
                 <button key={l.id} type="button" onClick={() => toggle(l, !on)} style={{
-                  display: 'flex', alignItems: 'center', gap: 8, padding: '6px 8px', borderRadius: 6, border: 'none',
-                  background: on ? 'var(--bg)' : 'none', cursor: 'pointer', textAlign: 'left', fontSize: 12.5, color: 'var(--ink)',
+                  display: 'flex', alignItems: 'center', gap: 8, padding: "var(--action-py) var(--space-md)", borderRadius: "var(--r-sm)", border: 'none',
+                  background: on ? 'var(--bg)' : 'none', cursor: 'pointer', textAlign: 'left', fontSize: "var(--text-base)", color: 'var(--ink)',
                 }} data-ui-native-button="">
                   <span style={{ width: 8, height: 8, borderRadius: '50%', background: COLOR_VAR[l.color] ?? COLOR_VAR.teal, flexShrink: 0 }} />
                   <span style={{ flex: 1 }}>{l.name}</span>
@@ -111,8 +111,8 @@ export function LabelChips({ subjectType, subjectId }: { subjectType: SubjectTyp
             })}
           </div>
           <div style={{ display: 'flex', gap: 6, marginTop: 8, paddingTop: 8, borderTop: '1px solid var(--border)' }}>
-            <input
-              className="input-field" style={{ height: 30, fontSize: 12.5 }}
+            <input data-ui-field="input"
+              className="input-field" style={{ height: "var(--ctl-h)", fontSize: "var(--text-base)" }}
               placeholder="New label…" value={newName} onChange={e => setNewName(e.target.value)}
               onKeyDown={e => { if (e.key === 'Enter') createAndAssign(); }}
             />

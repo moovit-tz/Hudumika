@@ -27,7 +27,7 @@ export function CreateFolderModal({ onClose, onCreate }: { onClose: () => void; 
         <DialogBody>
           <div style={{ marginBottom: 16 }}>
             <label style={{ fontSize: 'var(--text-sm)', fontWeight: 600, color: 'var(--ink2)', display: 'block', marginBottom: 6 }}>Folder Name *</label>
-            <input
+            <input data-ui-field="input"
               autoFocus value={name} onChange={e => setName(e.target.value)} disabled={busy}
               onKeyDown={e => { if (e.key === 'Enter') void confirm(); }}
               placeholder="Enter folder name…" className="input-field" style={{ width: '100%' }}
@@ -38,7 +38,7 @@ export function CreateFolderModal({ onClose, onCreate }: { onClose: () => void; 
             <div style={{ display: 'flex', gap: 8 }}>
               {FOLDER_COLORS.map(c => (
                 <button key={c} type="button" onClick={() => setColor(c)} disabled={busy}
-                  style={{ width: 26, height: 26, borderRadius: 'var(--badge-radius)', background: c, border: color === c ? '3px solid var(--ink)' : '2px solid transparent', cursor: busy ? 'default' : 'pointer', transition: 'border .1s', outline: 'none' }}  data-ui-native-button=""/>
+                  style={{ width: "var(--ctl-h-xs)", height: "var(--ctl-h-xs)", borderRadius: 'var(--badge-radius)', background: c, border: color === c ? '3px solid var(--ink)' : '2px solid transparent', cursor: busy ? 'default' : 'pointer', transition: 'border .1s', outline: 'none' }}  data-ui-native-button=""/>
               ))}
             </div>
           </div>

@@ -119,7 +119,7 @@ export const FinanceIncomeVsExpenses: React.FC = () => {
         actions={
           <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
             <Select value={year} onValueChange={setYear}>
-              <SelectTrigger aria-label="Year" style={{ width: 'auto', height: 34, padding: '0 10px', fontSize: 12, fontWeight: 600 }}><SelectValue /></SelectTrigger>
+              <SelectTrigger aria-label="Year" style={{ width: 'auto', height: "var(--ctl-h)", padding: '0 10px', fontSize: "var(--text-base)", fontWeight: 600 }}><SelectValue /></SelectTrigger>
               <SelectContent>
                 {YEARS.map(y => <SelectItem key={y} value={y}>{y}</SelectItem>)}
               </SelectContent>
@@ -141,7 +141,7 @@ export const FinanceIncomeVsExpenses: React.FC = () => {
         <MetricsRow cards={[
           { title: 'Total income', value: fmtM(totalIncome), comparisonLabel: `${year} recorded revenue`, barHighlight: 'var(--teal)' },
           { title: 'Total expenses', value: fmtM(totalExpenses), comparisonLabel: `${year} recorded costs`, barHighlight: 'var(--red)' },
-          { title: 'Net profit', value: fmtM(netProfit), comparisonLabel: netProfit >= 0 ? 'Income less expenses' : 'Expenses exceed income', barHighlight: netProfit >= 0 ? 'var(--green)' : 'var(--red)' },
+          { emphasis: 'primary', title: 'Net profit', value: fmtM(netProfit), comparisonLabel: netProfit >= 0 ? 'Income less expenses' : 'Expenses exceed income', barHighlight: netProfit >= 0 ? 'var(--green)' : 'var(--red)' },
           { title: 'Profit margin', value: `${profitMargin}%`, comparisonLabel: 'Net profit ÷ income', barHighlight: netProfit >= 0 ? 'var(--purple)' : 'var(--red)' },
         ]} />
 

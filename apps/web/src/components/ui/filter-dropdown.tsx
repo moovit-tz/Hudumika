@@ -374,7 +374,7 @@ export function SearchToolbar({
   const filterActive = filtersOpen || activeFilterCount > 0
 
   return (
-    <div className={cn('stb', layout === 'register' && 'stb-register', className)} style={style}>
+    <div data-ui-toolbar="" className={cn('stb', layout === 'register' && 'stb-register', className)} style={style}>
       <div className="stb-search">
         <Search className="stb-search-icon" size={15} strokeWidth={2} aria-hidden />
         <input

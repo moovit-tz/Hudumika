@@ -70,23 +70,23 @@ function FieldInput({ field, value, onChange, components, componentBlocks, relat
   const common = { className: 'input-field', style: { fontSize: 13 } as React.CSSProperties };
   switch (field.field_type) {
     case 'textarea':
-      return <textarea {...common} rows={4} value={(value as string) ?? ''} onChange={e => onChange(e.target.value)} style={{ ...common.style, width: '100%', resize: 'vertical' }} />;
+      return <textarea data-ui-field="textarea" {...common} rows={4} value={(value as string) ?? ''} onChange={e => onChange(e.target.value)} style={{ ...common.style, width: '100%', resize: 'vertical' }} />;
     case 'richtext':
       return <RichTextEditor value={(value as string) ?? ''} onChange={onChange} placeholder={field.label} />;
     case 'blocks':
       return <BlockEditor value={Array.isArray(value) ? value as CmsBlock[] : []} onChange={onChange} components={components} componentBlocks={componentBlocks} forms={forms} experiments={experiments} />;
     case 'number':
-      return <input {...common} type="number" value={(value as number) ?? ''} onChange={e => onChange(e.target.value === '' ? null : Number(e.target.value))} />;
+      return <input data-ui-field="input" {...common} type="number" value={(value as number) ?? ''} onChange={e => onChange(e.target.value === '' ? null : Number(e.target.value))} />;
     case 'boolean':
       return <label style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 13 }}><Checkbox checked={Boolean(value)} onCheckedChange={checked => onChange(Boolean(checked))} /> {field.label}</label>;
     case 'date':
-      return <input {...common} type="date" value={value ? String(value).slice(0, 10) : ''} onChange={e => onChange(e.target.value ? new Date(e.target.value).toISOString() : null)} />;
+      return <input data-ui-field="input" {...common} type="date" value={value ? String(value).slice(0, 10) : ''} onChange={e => onChange(e.target.value ? new Date(e.target.value).toISOString() : null)} />;
     case 'datetime':
-      return <input {...common} type="datetime-local" value={toLocalInput((value as string) ?? null)} onChange={e => onChange(e.target.value ? new Date(e.target.value).toISOString() : null)} />;
+      return <input data-ui-field="input" {...common} type="datetime-local" value={toLocalInput((value as string) ?? null)} onChange={e => onChange(e.target.value ? new Date(e.target.value).toISOString() : null)} />;
     case 'email':
-      return <input {...common} type="email" value={(value as string) ?? ''} onChange={e => onChange(e.target.value)} />;
+      return <input data-ui-field="input" {...common} type="email" value={(value as string) ?? ''} onChange={e => onChange(e.target.value)} />;
     case 'url':
-      return <input {...common} type="url" placeholder="https://…" value={(value as string) ?? ''} onChange={e => onChange(e.target.value)} />;
+      return <input data-ui-field="input" {...common} type="url" placeholder="https://…" value={(value as string) ?? ''} onChange={e => onChange(e.target.value)} />;
     case 'select': {
       const options = Array.isArray((field.config as any)?.options) ? (field.config as any).options as string[] : [];
       return (
@@ -97,9 +97,9 @@ function FieldInput({ field, value, onChange, components, componentBlocks, relat
       );
     }
     case 'tags':
-      return <input {...common} placeholder="comma, separated" value={Array.isArray(value) ? value.join(', ') : ((value as string) ?? '')} onChange={e => onChange(e.target.value.split(',').map(s => s.trim()).filter(Boolean))} />;
+      return <input data-ui-field="input" {...common} placeholder="comma, separated" value={Array.isArray(value) ? value.join(', ') : ((value as string) ?? '')} onChange={e => onChange(e.target.value.split(',').map(s => s.trim()).filter(Boolean))} />;
     case 'image':
-      return <input {...common} placeholder="Image URL" value={(value as string) ?? ''} onChange={e => onChange(e.target.value)} />;
+      return <input data-ui-field="input" {...common} placeholder="Image URL" value={(value as string) ?? ''} onChange={e => onChange(e.target.value)} />;
     case 'relation': {
       const opts = relationOptions?.[field.id] ?? [];
       return (
@@ -115,8 +115,8 @@ function FieldInput({ field, value, onChange, components, componentBlocks, relat
       const setLng = (s: string) => onChange({ lat: v.lat ?? '', lng: s });
       return (
         <div style={{ display: 'flex', gap: 8 }}>
-          <input {...common} type="number" step="any" placeholder="Latitude" value={v.lat === undefined || v.lat === null ? '' : String(v.lat)} onChange={e => setLat(e.target.value)} />
-          <input {...common} type="number" step="any" placeholder="Longitude" value={v.lng === undefined || v.lng === null ? '' : String(v.lng)} onChange={e => setLng(e.target.value)} />
+          <input data-ui-field="input" {...common} type="number" step="any" placeholder="Latitude" value={v.lat === undefined || v.lat === null ? '' : String(v.lat)} onChange={e => setLat(e.target.value)} />
+          <input data-ui-field="input" {...common} type="number" step="any" placeholder="Longitude" value={v.lng === undefined || v.lng === null ? '' : String(v.lng)} onChange={e => setLng(e.target.value)} />
         </div>
       );
     }
@@ -128,15 +128,15 @@ function FieldInput({ field, value, onChange, components, componentBlocks, relat
         />
       );
     case 'phone':
-      return <input {...common} type="tel" placeholder="+255 700 000 000" value={(value as string) ?? ''} onChange={e => onChange(e.target.value)} />;
+      return <input data-ui-field="input" {...common} type="tel" placeholder="+255 700 000 000" value={(value as string) ?? ''} onChange={e => onChange(e.target.value)} />;
     case 'currency': {
       const v = (value as { amount?: unknown; currency?: unknown }) ?? {};
       const setAmount = (s: string) => onChange({ amount: s, currency: v.currency ?? '' });
       const setCurrency = (s: string) => onChange({ amount: v.amount ?? '', currency: s.toUpperCase() });
       return (
         <div style={{ display: 'flex', gap: 8 }}>
-          <input {...common} type="number" step="any" placeholder="Amount" style={{ ...common.style, flex: 2 }} value={v.amount === undefined || v.amount === null ? '' : String(v.amount)} onChange={e => setAmount(e.target.value)} />
-          <input {...common} placeholder="USD" maxLength={3} style={{ ...common.style, flex: 1, fontFamily: 'var(--font)', textTransform: 'uppercase' }} value={(v.currency as string) ?? ''} onChange={e => setCurrency(e.target.value)} />
+          <input data-ui-field="input" {...common} type="number" step="any" placeholder="Amount" style={{ ...common.style, flex: 2 }} value={v.amount === undefined || v.amount === null ? '' : String(v.amount)} onChange={e => setAmount(e.target.value)} />
+          <input data-ui-field="input" {...common} placeholder="USD" maxLength={3} style={{ ...common.style, flex: 1, fontFamily: 'var(--font)', textTransform: 'uppercase' }} value={(v.currency as string) ?? ''} onChange={e => setCurrency(e.target.value)} />
         </div>
       );
     }
@@ -148,7 +148,7 @@ function FieldInput({ field, value, onChange, components, componentBlocks, relat
         <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
           {items.map((item, idx) => (
             <div key={idx} style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
-              <input {...common} type={inputType} style={{ ...common.style, flex: 1 }}
+              <input data-ui-field="input" {...common} type={inputType} style={{ ...common.style, flex: 1 }}
                 placeholder={itemType === 'url' ? 'https://…' : itemType}
                 value={item === undefined || item === null ? '' : String(item)}
                 onChange={e => { const next = [...items]; next[idx] = e.target.value; onChange(next); }} />
@@ -172,7 +172,7 @@ function FieldInput({ field, value, onChange, components, componentBlocks, relat
       );
     case 'text':
     default:
-      return <input {...common} value={(value as string) ?? ''} onChange={e => onChange(e.target.value)} />;
+      return <input data-ui-field="input" {...common} value={(value as string) ?? ''} onChange={e => onChange(e.target.value)} />;
   }
 }
 
@@ -332,7 +332,7 @@ export function CMSContentEntries() {
           <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
             {sites.length > 1 && (
               <Select value={selectedSiteFilter} onValueChange={setSelectedSiteFilter}>
-                <SelectTrigger className="input-field" style={{ fontSize: 12, height: 32, minWidth: 120 }}>
+                <SelectTrigger className="input-field" style={{ fontSize: "var(--text-base)", height: "var(--ctl-h)", minWidth: 120 }}>
                   <SelectValue placeholder="All Sites" />
                 </SelectTrigger>
                 <SelectContent>
@@ -345,7 +345,7 @@ export function CMSContentEntries() {
             )}
 
             <Select value={selectedLocaleFilter} onValueChange={setSelectedLocaleFilter}>
-              <SelectTrigger className="input-field" style={{ fontSize: 12, height: 32, minWidth: 120 }}>
+              <SelectTrigger className="input-field" style={{ fontSize: "var(--text-base)", height: "var(--ctl-h)", minWidth: 120 }}>
                 <SelectValue placeholder="All Locales" />
               </SelectTrigger>
               <SelectContent>
@@ -358,7 +358,7 @@ export function CMSContentEntries() {
 
             <div style={{ position: 'relative' }}>
               <Icon name="search" size={13} style={{ position: 'absolute', left: 9, top: '50%', transform: 'translateY(-50%)', color: 'var(--ink3)' } as React.CSSProperties} />
-              <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search…" style={{ border: '1px solid var(--border)', borderRadius: 'var(--r)', padding: '7px 12px 7px 30px', fontSize: 13, outline: 'none', width: 170, background: 'var(--white)' }} />
+              <input data-ui-field="input" value={search} onChange={e => setSearch(e.target.value)} placeholder="Search…" style={{ border: '1px solid var(--border)', borderRadius: 'var(--r)', padding: "var(--ds-input-py) var(--space-md)", fontSize: "var(--text-base)", outline: 'none', width: 170, background: 'var(--white)' }} />
             </div>
             <button className="btn btn-secondary btn-sm" onClick={handleSaveFilter} style={{ display: 'inline-flex', alignItems: 'center', gap: 5 }} data-ui-native-button="">
               <Icon name="bookmark" size={13} /> Save filter
@@ -368,11 +368,11 @@ export function CMSContentEntries() {
             </button>
             <div style={{ display: 'flex', border: '1px solid var(--border)', borderRadius: 'var(--r)', overflow: 'hidden' }}>
               <Tip label="Table view"><button aria-label="Table view" onClick={() => setView('table')}
-                style={{ padding: '7px 9px', background: view === 'table' ? 'var(--teal-l, var(--bg))' : 'var(--white)', color: view === 'table' ? 'var(--teal)' : 'var(--ink3)', border: 'none', cursor: 'pointer', display: 'flex' }} data-ui-native-button="">
+                style={{ padding: "var(--action-py) var(--space-md)", background: view === 'table' ? 'var(--teal-l, var(--bg))' : 'var(--white)', color: view === 'table' ? 'var(--teal)' : 'var(--ink3)', border: 'none', cursor: 'pointer', display: 'flex' }} data-ui-native-button="">
                 <Icon name="list" size={14} />
               </button></Tip>
               <Tip label="Card view"><button aria-label="Card view" onClick={() => setView('card')}
-                style={{ padding: '7px 9px', background: view === 'card' ? 'var(--teal-l, var(--bg))' : 'var(--white)', color: view === 'card' ? 'var(--teal)' : 'var(--ink3)', border: 'none', cursor: 'pointer', display: 'flex', borderLeft: '1px solid var(--border)' }} data-ui-native-button="">
+                style={{ padding: "var(--action-py) var(--space-md)", background: view === 'card' ? 'var(--teal-l, var(--bg))' : 'var(--white)', color: view === 'card' ? 'var(--teal)' : 'var(--ink3)', border: 'none', cursor: 'pointer', display: 'flex', borderLeft: '1px solid var(--border)' }} data-ui-native-button="">
                 <Icon name="grid" size={14} />
               </button></Tip>
             </div>
@@ -383,7 +383,7 @@ export function CMSContentEntries() {
           <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: 12 }}>
             {savedFilters.map(f => (
               <button key={f.id} onClick={() => applySavedFilter(f)} title={`Status: ${f.status || 'all'}${f.search ? ` · Search: ${f.search}` : ''}`}
-                style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 12, padding: '5px 6px 5px 12px', borderRadius: 999, border: '1px solid var(--border)', background: 'var(--white)', color: 'var(--ink2)', cursor: 'pointer' }} data-ui-native-button="">
+                style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: "var(--text-base)", padding: "var(--action-py) var(--space-md)", borderRadius: 999, border: '1px solid var(--border)', background: 'var(--white)', color: 'var(--ink2)', cursor: 'pointer' }} data-ui-native-button="">
                 {f.name}
                 <span onClick={ev => handleDeleteSavedFilter(f, ev)} style={{ display: 'flex', color: 'var(--ink3)', padding: 2 }}><Icon name="x" size={10} /></span>
               </button>
@@ -398,7 +398,7 @@ export function CMSContentEntries() {
             <button className="btn btn-secondary btn-sm" onClick={() => bulkStatus('draft')} data-ui-native-button="">Draft</button>
             <button className="btn btn-secondary btn-sm" onClick={() => bulkStatus('trash')} data-ui-native-button="">Trash</button>
             <button className="btn btn-secondary btn-sm" style={{ color: 'var(--red)' }} onClick={bulkDelete} data-ui-native-button="">Delete</button>
-            <button onClick={() => setSelected(new Set())} style={{ marginLeft: 'auto', background: 'none', border: 'none', color: 'var(--ink3)', fontSize: 12.5, cursor: 'pointer' }} data-ui-native-button="">Clear</button>
+            <button onClick={() => setSelected(new Set())} style={{ marginLeft: 'auto', background: 'none', border: 'none', color: 'var(--ink3)', fontSize: "var(--text-base)", cursor: 'pointer' }} data-ui-native-button="">Clear</button>
           </div>
         )}
       </div>
@@ -483,7 +483,7 @@ export function CMSContentEntries() {
                             onClick={() => setActiveCommentsDrawer({ open: true, id: e.id, title: e.title })}
                             className="btn btn-secondary btn-sm"
                             title="Comments"
-                            style={{ padding: '4px 7px' }}
+                            style={{ padding: "var(--action-py) var(--space-md)" }}
                            data-ui-native-button="">
                             <Icon name="messageSquare" size={12} />
                           </button>
@@ -491,7 +491,7 @@ export function CMSContentEntries() {
                             onClick={() => setActiveTranslateModal({ open: true, id: e.id, title: e.title, locale: (e as any).locale || 'en', group: (e as any).translation_group_id })}
                             className="btn btn-secondary btn-sm"
                             title="Translate with AI"
-                            style={{ padding: '4px 7px' }}
+                            style={{ padding: "var(--action-py) var(--space-md)" }}
                            data-ui-native-button="">
                             <Icon name="sparkle" size={12} />
                           </button>
@@ -499,7 +499,7 @@ export function CMSContentEntries() {
                             onClick={() => setActiveApprovalModal({ open: true, id: e.id, title: e.title })}
                             className="btn btn-secondary btn-sm"
                             title="Request Approval"
-                            style={{ padding: '4px 7px' }}
+                            style={{ padding: "var(--action-py) var(--space-md)" }}
                            data-ui-native-button="">
                             <Icon name="checkCircle" size={12} />
                           </button>
@@ -507,7 +507,7 @@ export function CMSContentEntries() {
                             onClick={() => setActiveReleaseModal({ open: true, id: e.id, title: e.title })}
                             className="btn btn-secondary btn-sm"
                             title="Add to Release"
-                            style={{ padding: '4px 7px' }}
+                            style={{ padding: "var(--action-py) var(--space-md)" }}
                            data-ui-native-button="">
                             <Icon name="package" size={12} />
                           </button>
@@ -517,7 +517,7 @@ export function CMSContentEntries() {
                               <Icon name="eye" size={11} /> View
                             </a>
                           )}
-                          <button onClick={() => setEditingId(e.id)} className="btn btn-secondary btn-sm" style={{ fontSize: 11 }} data-ui-native-button=""><Icon name="edit" size={11} /> Edit</button>
+                          <button onClick={() => setEditingId(e.id)} className="btn btn-secondary btn-sm" style={{ fontSize: "var(--text-xs)" }} data-ui-native-button=""><Icon name="edit" size={11} /> Edit</button>
                         </div>
                       </td>
                     </tr>
@@ -550,7 +550,7 @@ export function CMSContentEntries() {
                     <div style={{ display: 'flex', gap: 6, marginTop: 'auto' }} onClick={ev => ev.stopPropagation()}>
                       <button onClick={() => setActiveCommentsDrawer({ open: true, id: e.id, title: e.title })} className="btn btn-secondary btn-xs" title="Comments" data-ui-native-button=""><Icon name="messageSquare" size={12} /></button>
                       <button onClick={() => setActiveApprovalModal({ open: true, id: e.id, title: e.title })} className="btn btn-secondary btn-xs" title="Request Approval" data-ui-native-button=""><Icon name="checkCircle" size={12} /></button>
-                      <button onClick={() => setEditingId(e.id)} className="btn btn-secondary btn-sm" style={{ fontSize: 11, flex: 1 }} data-ui-native-button=""><Icon name="edit" size={11} /> Edit</button>
+                      <button onClick={() => setEditingId(e.id)} className="btn btn-secondary btn-sm" style={{ fontSize: "var(--text-xs)", flex: 1 }} data-ui-native-button=""><Icon name="edit" size={11} /> Edit</button>
                     </div>
                   </div>
                 ))}
@@ -712,7 +712,7 @@ function EntryEditor({
     <div style={{ flex: 1, display: 'flex', flexDirection: 'column', height: '100%', background: 'var(--white)' }}>
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 20px', borderBottom: '1px solid var(--border)', flexShrink: 0, flexWrap: 'wrap', rowGap: 8 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
-          <button onClick={onDone} style={{ display: 'flex', alignItems: 'center', gap: 6, background: 'none', border: 'none', cursor: 'pointer', fontSize: 13, color: 'var(--ink3)' }} data-ui-native-button="">
+          <button onClick={onDone} style={{ display: 'flex', alignItems: 'center', gap: 6, background: 'none', border: 'none', cursor: 'pointer', fontSize: "var(--text-base)", color: 'var(--ink3)' }} data-ui-native-button="">
             <Icon name="arrowLeft" size={14} /> Back to {model.name_plural}
           </button>
           {entryId && autosaveState !== 'idle' && (
@@ -721,7 +721,7 @@ function EntryEditor({
         </div>
         <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
           {entry.status === 'scheduled' && (
-            <input type="datetime-local" value={toLocalInput(entry.publish_at)} onChange={e => setEntry(f => f && ({ ...f, publish_at: e.target.value ? new Date(e.target.value).toISOString() : null }))} className="input-field" style={{ fontSize: 12 }} />
+            <input data-ui-field="input" type="datetime-local" value={toLocalInput(entry.publish_at)} onChange={e => setEntry(f => f && ({ ...f, publish_at: e.target.value ? new Date(e.target.value).toISOString() : null }))} className="input-field" style={{ fontSize: "var(--text-base)" }} />
           )}
           {entryId && (
             <>
@@ -811,19 +811,19 @@ function EntryEditor({
       )}
 
       <div style={{ flex: 1, overflowY: 'auto', padding: '24px 28px', maxWidth: 740, display: 'flex', flexDirection: 'column', gap: 16 }}>
-        <input value={entry.title} onChange={e => setEntry(f => f && ({ ...f, title: e.target.value }))} placeholder="Title"
-          style={{ fontSize: 24, fontWeight: 700, border: 'none', borderBottom: '2px solid var(--border)', padding: '6px 0', outline: 'none', background: 'transparent', width: '100%' }} />
+        <input data-field-appearance="bare" data-ui-field="input" value={entry.title} onChange={e => setEntry(f => f && ({ ...f, title: e.target.value }))} placeholder="Title"
+          style={{ fontSize: "var(--text-base)", fontWeight: 700, border: 'none', borderBottom: '2px solid var(--border)', padding: "var(--ds-input-py) var(--space-md)", outline: 'none', background: 'transparent', width: '100%' }} />
 
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
           <div>
             <label style={{ display: 'block', fontSize: 11, fontWeight: 700, color: 'var(--ink3)', textTransform: 'uppercase', marginBottom: 6 }}>Slug</label>
-            <input className="input-field" style={{ fontFamily: 'var(--font)', fontSize: 12.5 }} value={entry.slug} placeholder="auto" onChange={e => setEntry(f => f && ({ ...f, slug: e.target.value }))} />
+            <input data-ui-field="input" className="input-field" style={{ fontFamily: 'var(--font)', fontSize: "var(--text-base)" }} value={entry.slug} placeholder="auto" onChange={e => setEntry(f => f && ({ ...f, slug: e.target.value }))} />
           </div>
 
           <div>
             <label style={{ display: 'block', fontSize: 11, fontWeight: 700, color: 'var(--ink3)', textTransform: 'uppercase', marginBottom: 6 }}>Locale</label>
             <Select value={entry.locale || 'en'} onValueChange={v => setEntry(f => f && ({ ...f, locale: v }))}>
-              <SelectTrigger className="input-field" style={{ fontSize: 12.5 }}><SelectValue /></SelectTrigger>
+              <SelectTrigger className="input-field" style={{ fontSize: "var(--text-base)" }}><SelectValue /></SelectTrigger>
               <SelectContent>
                 {SUPPORTED_LOCALES.map(l => (
                   <SelectItem key={l.code} value={l.code}>{l.flag} {l.name}</SelectItem>
@@ -837,7 +837,7 @@ function EntryEditor({
           <div>
             <label style={{ display: 'block', fontSize: 11, fontWeight: 700, color: 'var(--ink3)', textTransform: 'uppercase', marginBottom: 6 }}>Site Channel</label>
             <Select value={entry.site_id || 'all'} onValueChange={v => setEntry(f => f && ({ ...f, site_id: v === 'all' ? null : v }))}>
-              <SelectTrigger className="input-field" style={{ fontSize: 12.5 }}><SelectValue placeholder="All Sites" /></SelectTrigger>
+              <SelectTrigger className="input-field" style={{ fontSize: "var(--text-base)" }}><SelectValue placeholder="All Sites" /></SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">All Sites (Global)</SelectItem>
                 {sites.map(s => (
@@ -884,7 +884,7 @@ function EntryEditor({
 
         <div>
           <label style={{ display: 'block', fontSize: 11, fontWeight: 700, color: 'var(--ink3)', textTransform: 'uppercase', marginBottom: 6 }}>SEO description</label>
-          <textarea className="input-field" rows={2} value={entry.seo_description} onChange={e => setEntry(f => f && ({ ...f, seo_description: e.target.value }))} style={{ width: '100%', resize: 'vertical' }} />
+          <textarea data-ui-field="textarea" className="input-field" rows={2} value={entry.seo_description} onChange={e => setEntry(f => f && ({ ...f, seo_description: e.target.value }))} style={{ width: '100%', resize: 'vertical' }} />
         </div>
       </div>
     </div>

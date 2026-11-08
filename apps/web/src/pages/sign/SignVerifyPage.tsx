@@ -409,10 +409,10 @@ export function SignVerifyPage() {
                   </Banner>
                   <div className="sign-verify-form-row" style={{ marginTop: 12 }}>
                     <Input aria-label="Verification code" value={code} onChange={e => setCode(e.target.value.toUpperCase())} placeholder="e.g. HSGN-A1B2C3-D4E5F6"
-                      style={{ flex: 1, padding: '10px 14px', borderRadius: 'var(--r-sm)', border: '1px solid var(--border)', fontSize: 14, fontFamily: 'monospace', fontWeight: 600, color: 'var(--ink)', background: 'var(--bg)', outline: 'none', boxSizing: 'border-box' }} />
+                      style={{ flex: 1, padding: "var(--ds-input-py) var(--space-md)", borderRadius: 'var(--r-sm)', border: '1px solid var(--border)', fontSize: "var(--text-base)", fontFamily: "var(--font)", fontWeight: 600, color: 'var(--ink)', background: 'var(--bg)', outline: 'none', boxSizing: 'border-box' }} />
                     <Button size="lg" variant="default" disabled={!code.trim() || !pendingFileRef.current}
                       onClick={() => pendingFileRef.current && runCompare(code, pendingFileRef.current.base64, pendingFileRef.current.mediaType)}
-                      style={{ padding: '0 20px', borderRadius: 'var(--r-sm)', fontSize: 13.5, fontWeight: 600 }}>
+                      style={{ padding: '0 20px', borderRadius: 'var(--r-sm)', fontSize: "var(--text-base)", fontWeight: 600 }}>
                       Compare
                     </Button>
                   </div>

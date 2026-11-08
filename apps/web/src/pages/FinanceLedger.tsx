@@ -218,7 +218,7 @@ export const FinanceLedger: React.FC = () => {
         actions={
           <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
             <Select value={String(periodIdx)} onValueChange={v => setPeriodIdx(Number(v))}>
-              <SelectTrigger aria-label="Period" style={{ width: 'auto', height: 34, padding: '0 10px', fontSize: 12, fontWeight: 600 }}>
+              <SelectTrigger aria-label="Period" style={{ width: 'auto', height: "var(--ctl-h)", padding: '0 10px', fontSize: "var(--text-base)", fontWeight: 600 }}>
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
@@ -255,7 +255,7 @@ export const FinanceLedger: React.FC = () => {
         </div>
 
         <div className="acct-hero-kpis">
-          <div className="acct-hero-kpi-tile">
+          <div className="acct-hero-kpi-tile" data-finops-accent="">
             <div className="acct-hero-kpi-label">Assets</div>
             <div className="acct-hero-kpi-val">{totals.assets > 0 ? fmtCompact(totals.assets) : '—'}</div>
             <div className="acct-hero-kpi-sub">Period closing</div>
@@ -279,7 +279,7 @@ export const FinanceLedger: React.FC = () => {
       </div>
 
       <MetricsRow cards={[
-        { title: 'Revenue MTD', value: mtdRevenue > 0 ? fmtCompact(mtdRevenue) : '—', comparisonLabel: mtdRevenue > 0 ? `${currency} · current month` : 'No revenue recorded', barHighlight: 'var(--green)', loading },
+        { emphasis: 'primary', title: 'Revenue MTD', value: mtdRevenue > 0 ? fmtCompact(mtdRevenue) : '—', comparisonLabel: mtdRevenue > 0 ? `${currency} · current month` : 'No revenue recorded', barHighlight: 'var(--green)', loading },
         { title: 'Net profit MTD', value: mtdNet !== 0 ? fmtCompact(mtdNet) : '—', comparisonLabel: mtdNet > 0 ? 'Current-month profit' : mtdNet < 0 ? 'Current-month loss' : 'No net movement', barHighlight: mtdNet < 0 ? 'var(--red)' : 'var(--green)', loading },
         { title: 'Net margin MTD', value: netMarginPct !== 0 ? `${netMarginPct.toFixed(1)}%` : '—', comparisonLabel: mtdRevenue > 0 ? 'Net profit ÷ revenue' : 'Needs recorded revenue', barHighlight: netMarginPct < 0 ? 'var(--red)' : 'var(--teal)', loading },
         { title: 'YTD net P&L', value: ytdNet !== 0 ? fmtCompact(ytdNet) : '—', comparisonLabel: ytdNet > 0 ? 'Year-to-date surplus' : ytdNet < 0 ? 'Year-to-date deficit' : 'No year-to-date movement', barHighlight: ytdNet < 0 ? 'var(--red)' : 'var(--blue)', loading },
@@ -525,7 +525,7 @@ export const FinanceLedger: React.FC = () => {
                         gridTemplateColumns: '28px 70px minmax(180px, 1fr) 140px 140px 140px 50px',
                         alignItems: 'center',
                         gap: 0,
-                        padding: '12px 14px',
+                        padding: "var(--action-py) var(--space-md)",
                         border: 'none',
                         cursor: 'pointer',
                         fontFamily: 'var(--font)',

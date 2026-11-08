@@ -164,7 +164,7 @@ export function SealExWarehouseEntryDetail() {
                       Both fields come from the same real TANESW/TANCIS submission — this records what the portal returned, it does not assign either one.
                     </div>
                     <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'flex-end' }}>
-                      <input type="text" className="input-field" style={{ width: 220 }} value={submissionReference} onChange={e => setSubmissionReference(e.target.value)} placeholder="Submission reference (from TANESW)" />
+                      <input data-ui-field="input" type="text" className="input-field" style={{ width: 220 }} value={submissionReference} onChange={e => setSubmissionReference(e.target.value)} placeholder="Submission reference (from TANESW)" />
                       <Select value={selectivityChannel || '__none__'} onValueChange={v => setSelectivityChannel((v === '__none__' ? '' : v) as any)}>
                         <SelectTrigger style={{ width: 200 }}><SelectValue /></SelectTrigger>
                         <SelectContent>
@@ -202,7 +202,7 @@ export function SealExWarehouseEntryDetail() {
             {entry.status === 'ASSESSED' && (
               showPay ? (
                 <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'flex-end' }}>
-                  <input type="text" className="input-field" style={{ width: 220 }} value={paymentReference} onChange={e => setPaymentReference(e.target.value)} placeholder="Payment reference" />
+                  <input data-ui-field="input" type="text" className="input-field" style={{ width: 220 }} value={paymentReference} onChange={e => setPaymentReference(e.target.value)} placeholder="Payment reference" />
                   <button type="button" className="btn btn-primary" disabled={busy || !paymentReference.trim()} onClick={() => handleAdvance('PAID', paymentReference.trim())} data-ui-native-button="">{busy ? 'Recording…' : 'Confirm Payment'}</button>
                   <button type="button" className="btn btn-secondary" onClick={() => setShowPay(false)} data-ui-native-button="">Cancel</button>
                 </div>
@@ -295,7 +295,7 @@ export function SealExWarehouseEntryDetail() {
                           <SelectItem value="SEIZURE_RECOMMENDED">Seizure Recommended</SelectItem>
                         </SelectContent>
                       </Select>
-                      <input type="text" className="input-field" style={{ width: 240 }} value={examFindings} onChange={e => setExamFindings(e.target.value)} placeholder="Officer's notes" />
+                      <input data-ui-field="input" type="text" className="input-field" style={{ width: 240 }} value={examFindings} onChange={e => setExamFindings(e.target.value)} placeholder="Officer's notes" />
                       <button type="button" className="btn btn-primary" disabled={busy} onClick={() => handleCompleteExamination(ex.id)} data-ui-native-button="">{busy ? 'Recording…' : 'Complete Examination'}</button>
                       <button type="button" className="btn btn-secondary" onClick={() => setCompletingExamId(null)} data-ui-native-button="">Cancel</button>
                     </div>

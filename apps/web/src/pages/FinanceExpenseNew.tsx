@@ -250,7 +250,7 @@ export const FinanceExpenseNew: React.FC = () => {
         <div className="expense-error-bar">
           <Icon name="alertTriangle" size={15} />
           <span>{error}</span>
-          <button type="button" onClick={() => setError('')} className="expense-error-dismiss">
+          <button data-ui-native-button="" type="button" onClick={() => setError('')} className="expense-error-dismiss">
             <Icon name="close" size={13} />
           </button>
         </div>

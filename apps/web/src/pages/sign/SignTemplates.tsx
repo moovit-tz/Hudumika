@@ -63,12 +63,12 @@ function BulkSendModal({ template, onClose }: { template: SignTemplate; onClose:
             <p style={{ fontSize: 13, color: 'var(--ink3)', margin: '4px 0 14px' }}>
               One line per recipient — a separate document is created and sent to each: <code>Name, email@example.com, phone (optional)</code>
             </p>
-            <textarea
+            <textarea data-ui-field="textarea"
               value={raw}
               onChange={e => setRaw(e.target.value)}
               placeholder={'Jane Mwangi, jane@example.com\nJuma Hassan, juma@example.com, 0712345678'}
               rows={8}
-              style={{ width: '100%', padding: '10px 12px', borderRadius: 'var(--r)', border: '1px solid var(--border)', background: 'var(--bg)', color: 'var(--ink)', fontSize: 13, fontFamily: 'monospace', resize: 'vertical', boxSizing: 'border-box' }}
+              style={{ width: '100%', padding: "var(--ds-input-py) var(--space-md)", borderRadius: 'var(--r)', border: '1px solid var(--border)', background: 'var(--bg)', color: 'var(--ink)', fontSize: "var(--text-base)", fontFamily: "var(--font)", resize: 'vertical', boxSizing: 'border-box' }}
             />
             <div style={{ fontSize: 12, color: 'var(--ink3)', marginTop: 6 }}>
               {validRows.length} of {rows.length} line(s) recognized

@@ -372,7 +372,7 @@ export function AIAutomations() {
           {aiOpen && (
             <div className="aia-ai-panel">
               <div className="aia-ai-panel-title"><Icon name="sparkle" size={14} color="var(--purple)" /> Describe your automation</div>
-              <textarea
+              <textarea data-ui-field="textarea"
                 className="aia-ai-textarea"
                 placeholder='e.g. "When a shipment clears customs, notify the client and assign a delivery driver"'
                 value={aiPrompt}
@@ -405,7 +405,7 @@ export function AIAutomations() {
             onDoubleClick={() => setRenamingId(wf.id)}
           >
             {renamingId === wf.id ? (
-              <input
+              <input data-ui-field="input"
                 autoFocus
                 className="aia-tab-rename"
                 defaultValue={wf.name}
@@ -477,7 +477,7 @@ export function AIAutomations() {
         {selectedNode && (
           <div className="aia-sidebar">
             <div className="aia-sidebar-header">
-              <input
+              <input data-field-appearance="bare" data-ui-field="input"
                 type="text"
                 value={selectedNode.data.label || selectedNode.data.title || 'Settings'}
                 onChange={(e) => updateNode(selectedNode.type === 'triggerNode' ? { title: e.target.value } : { label: e.target.value })}
@@ -512,7 +512,7 @@ export function AIAutomations() {
                     <>
                       <p>This step calls an external URL when it runs.</p>
                       <label className="aia-field-label">Endpoint</label>
-                      <input type="text" className="input-field" value={selectedNode.data.config?.url || ''} onChange={e => updateConfig('url', e.target.value)} style={{ height: 36, fontSize: 13, backgroundColor: 'var(--bg)', border: 'none' }} />
+                      <input data-field-appearance="bare" data-ui-field="input" type="text" className="input-field" value={selectedNode.data.config?.url || ''} onChange={e => updateConfig('url', e.target.value)} style={{ height: "var(--ctl-h)", fontSize: "var(--text-base)", backgroundColor: 'var(--bg)', border: 'none' }} />
                     </>
                   ) : (
                     <p>No external integration is attached to this step yet. Choose the "Webhook / HTTP" step type to call an external API.</p>
@@ -579,7 +579,7 @@ function SetupFields({ selectedNode, updateNode, updateConfig }: {
         <div style={{ marginBottom: 20 }}>
           <label className="aia-field-label">Step type</label>
           <Select value={kind} onValueChange={v => updateNode({ kind: v as ActionKind })}>
-            <SelectTrigger className="input-field" style={{ height: 36, fontSize: 13, backgroundColor: 'var(--bg)', border: 'none' }}><SelectValue /></SelectTrigger>
+            <SelectTrigger className="input-field" style={{ height: "var(--ctl-h)", fontSize: "var(--text-base)", backgroundColor: 'var(--bg)', border: 'none' }}><SelectValue /></SelectTrigger>
             <SelectContent>
               {(Object.keys(ACTION_KIND_META) as ActionKind[]).map(k => (
                 <SelectItem key={k} value={k}>{ACTION_KIND_META[k].label}</SelectItem>
@@ -593,7 +593,7 @@ function SetupFields({ selectedNode, updateNode, updateConfig }: {
             <div style={{ marginBottom: 20 }}>
               <label className="aia-field-label">HTTP Method</label>
               <Select value={cfg.method || 'POST'} onValueChange={v => updateConfig('method', v)}>
-                <SelectTrigger className="input-field" style={{ height: 36, fontSize: 13, backgroundColor: 'var(--bg)', border: 'none' }}><SelectValue /></SelectTrigger>
+                <SelectTrigger className="input-field" style={{ height: "var(--ctl-h)", fontSize: "var(--text-base)", backgroundColor: 'var(--bg)', border: 'none' }}><SelectValue /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="POST">POST</SelectItem>
                   <SelectItem value="GET">GET</SelectItem>
@@ -603,10 +603,10 @@ function SetupFields({ selectedNode, updateNode, updateConfig }: {
               </Select>
             </div>
             <Field label="URL" icon="globe">
-              <input type="text" className="input-field" placeholder="https://api.example.com/hook" value={cfg.url || ''} onChange={e => updateConfig('url', e.target.value)} style={{ paddingLeft: 34, height: 36, fontSize: 13, backgroundColor: 'var(--bg)', border: 'none' }} />
+              <input data-field-appearance="bare" data-ui-field="input" type="text" className="input-field" placeholder="https://api.example.com/hook" value={cfg.url || ''} onChange={e => updateConfig('url', e.target.value)} style={{ paddingLeft: 34, height: "var(--ctl-h)", fontSize: "var(--text-base)", backgroundColor: 'var(--bg)', border: 'none' }} />
             </Field>
             <Field label="Query / body" icon="layers">
-              <input type="text" className="input-field" placeholder="Insert data" value={cfg.query || ''} onChange={e => updateConfig('query', e.target.value)} style={{ paddingLeft: 34, height: 36, fontSize: 13, backgroundColor: 'var(--bg)', border: 'none' }} />
+              <input data-field-appearance="bare" data-ui-field="input" type="text" className="input-field" placeholder="Insert data" value={cfg.query || ''} onChange={e => updateConfig('query', e.target.value)} style={{ paddingLeft: 34, height: "var(--ctl-h)", fontSize: "var(--text-base)", backgroundColor: 'var(--bg)', border: 'none' }} />
             </Field>
           </>
         )}
@@ -616,7 +616,7 @@ function SetupFields({ selectedNode, updateNode, updateConfig }: {
             <div style={{ marginBottom: 20 }}>
               <label className="aia-field-label">Object</label>
               <Select value={cfg.object || 'Task'} onValueChange={v => updateConfig('object', v)}>
-                <SelectTrigger className="input-field" style={{ height: 36, fontSize: 13, backgroundColor: 'var(--bg)', border: 'none' }}><SelectValue /></SelectTrigger>
+                <SelectTrigger className="input-field" style={{ height: "var(--ctl-h)", fontSize: "var(--text-base)", backgroundColor: 'var(--bg)', border: 'none' }}><SelectValue /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="Task">Task</SelectItem>
                   <SelectItem value="Shipment">Shipment</SelectItem>
@@ -627,11 +627,11 @@ function SetupFields({ selectedNode, updateNode, updateConfig }: {
             </div>
             <div style={{ marginBottom: 20 }}>
               <label className="aia-field-label">Field name</label>
-              <input type="text" className="input-field" value={cfg.field || ''} onChange={e => updateConfig('field', e.target.value)} style={{ height: 36, fontSize: 13, backgroundColor: 'var(--bg)', border: 'none' }} />
+              <input data-field-appearance="bare" data-ui-field="input" type="text" className="input-field" value={cfg.field || ''} onChange={e => updateConfig('field', e.target.value)} style={{ height: "var(--ctl-h)", fontSize: "var(--text-base)", backgroundColor: 'var(--bg)', border: 'none' }} />
             </div>
             <div style={{ marginBottom: 20 }}>
               <label className="aia-field-label">New value</label>
-              <input type="text" className="input-field" value={cfg.value || ''} onChange={e => updateConfig('value', e.target.value)} style={{ height: 36, fontSize: 13, backgroundColor: 'var(--bg)', border: 'none' }} />
+              <input data-field-appearance="bare" data-ui-field="input" type="text" className="input-field" value={cfg.value || ''} onChange={e => updateConfig('value', e.target.value)} style={{ height: "var(--ctl-h)", fontSize: "var(--text-base)", backgroundColor: 'var(--bg)', border: 'none' }} />
             </div>
           </>
         )}
@@ -641,7 +641,7 @@ function SetupFields({ selectedNode, updateNode, updateConfig }: {
             <div style={{ marginBottom: 20 }}>
               <label className="aia-field-label">Assign to</label>
               <Select value={cfg.assignee || 'round-robin'} onValueChange={v => updateConfig('assignee', v)}>
-                <SelectTrigger className="input-field" style={{ height: 36, fontSize: 13, backgroundColor: 'var(--bg)', border: 'none' }}><SelectValue /></SelectTrigger>
+                <SelectTrigger className="input-field" style={{ height: "var(--ctl-h)", fontSize: "var(--text-base)", backgroundColor: 'var(--bg)', border: 'none' }}><SelectValue /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="round-robin">Round robin</SelectItem>
                   <SelectItem value="unassigned">Unassigned</SelectItem>
@@ -662,7 +662,7 @@ function SetupFields({ selectedNode, updateNode, updateConfig }: {
             <div style={{ marginBottom: 20 }}>
               <label className="aia-field-label">Channel</label>
               <Select value={cfg.channel || 'in-app'} onValueChange={v => updateConfig('channel', v)}>
-                <SelectTrigger className="input-field" style={{ height: 36, fontSize: 13, backgroundColor: 'var(--bg)', border: 'none' }}><SelectValue /></SelectTrigger>
+                <SelectTrigger className="input-field" style={{ height: "var(--ctl-h)", fontSize: "var(--text-base)", backgroundColor: 'var(--bg)', border: 'none' }}><SelectValue /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="in-app">In-app</SelectItem>
                   <SelectItem value="email">Email</SelectItem>
@@ -672,7 +672,7 @@ function SetupFields({ selectedNode, updateNode, updateConfig }: {
             </div>
             <div style={{ marginBottom: 20 }}>
               <label className="aia-field-label">Message</label>
-              <textarea className="input-field" rows={3} value={cfg.message || ''} onChange={e => updateConfig('message', e.target.value)} style={{ fontSize: 13, backgroundColor: 'var(--bg)', border: 'none', padding: 8, width: '100%', resize: 'vertical' }} />
+              <textarea data-field-appearance="bare" data-ui-field="textarea" className="input-field" rows={3} value={cfg.message || ''} onChange={e => updateConfig('message', e.target.value)} style={{ fontSize: "var(--text-base)", backgroundColor: 'var(--bg)', border: 'none', padding: "var(--ds-input-py) var(--space-md)", width: '100%', resize: 'vertical' }} />
             </div>
           </>
         )}
@@ -681,12 +681,12 @@ function SetupFields({ selectedNode, updateNode, updateConfig }: {
           <div style={{ display: 'flex', gap: 8, marginBottom: 20 }}>
             <div style={{ flex: 1 }}>
               <label className="aia-field-label">Duration</label>
-              <input type="number" min={1} className="input-field" value={cfg.duration ?? 1} onChange={e => updateConfig('duration', Number(e.target.value))} style={{ height: 36, fontSize: 13, backgroundColor: 'var(--bg)', border: 'none' }} />
+              <input data-field-appearance="bare" data-ui-field="input" type="number" min={1} className="input-field" value={cfg.duration ?? 1} onChange={e => updateConfig('duration', Number(e.target.value))} style={{ height: "var(--ctl-h)", fontSize: "var(--text-base)", backgroundColor: 'var(--bg)', border: 'none' }} />
             </div>
             <div style={{ flex: 1 }}>
               <label className="aia-field-label">Unit</label>
               <Select value={cfg.unit || 'hours'} onValueChange={v => updateConfig('unit', v)}>
-                <SelectTrigger className="input-field" style={{ height: 36, fontSize: 13, backgroundColor: 'var(--bg)', border: 'none' }}><SelectValue /></SelectTrigger>
+                <SelectTrigger className="input-field" style={{ height: "var(--ctl-h)", fontSize: "var(--text-base)", backgroundColor: 'var(--bg)', border: 'none' }}><SelectValue /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="minutes">Minutes</SelectItem>
                   <SelectItem value="hours">Hours</SelectItem>
@@ -707,7 +707,7 @@ function SetupFields({ selectedNode, updateNode, updateConfig }: {
         <div style={{ marginBottom: 20 }}>
           <label className="aia-field-label">Node type</label>
           <Select value={kind} onValueChange={v => updateNode({ kind: v as StatusKind })}>
-            <SelectTrigger className="input-field" style={{ height: 36, fontSize: 13, backgroundColor: 'var(--bg)', border: 'none' }}><SelectValue /></SelectTrigger>
+            <SelectTrigger className="input-field" style={{ height: "var(--ctl-h)", fontSize: "var(--text-base)", backgroundColor: 'var(--bg)', border: 'none' }}><SelectValue /></SelectTrigger>
             <SelectContent>
               {(Object.keys(STATUS_KIND_META) as StatusKind[]).map(k => (
                 <SelectItem key={k} value={k}>{STATUS_KIND_META[k].label}</SelectItem>
@@ -720,7 +720,7 @@ function SetupFields({ selectedNode, updateNode, updateConfig }: {
           <div style={{ marginBottom: 20 }}>
             <label className="aia-field-label">State</label>
             <Select value={selectedNode.data.status || 'pending'} onValueChange={v => updateNode({ status: v as any })}>
-              <SelectTrigger className="input-field" style={{ height: 36, fontSize: 13, backgroundColor: 'var(--bg)', border: 'none' }}><SelectValue /></SelectTrigger>
+              <SelectTrigger className="input-field" style={{ height: "var(--ctl-h)", fontSize: "var(--text-base)", backgroundColor: 'var(--bg)', border: 'none' }}><SelectValue /></SelectTrigger>
               <SelectContent>
                 <SelectItem value="pending">Pending</SelectItem>
                 <SelectItem value="success">Success</SelectItem>
@@ -734,12 +734,12 @@ function SetupFields({ selectedNode, updateNode, updateConfig }: {
           <>
             <div style={{ marginBottom: 20 }}>
               <label className="aia-field-label">Field</label>
-              <input type="text" className="input-field" value={cfg.field || ''} onChange={e => updateConfig('field', e.target.value)} style={{ height: 36, fontSize: 13, backgroundColor: 'var(--bg)', border: 'none' }} />
+              <input data-field-appearance="bare" data-ui-field="input" type="text" className="input-field" value={cfg.field || ''} onChange={e => updateConfig('field', e.target.value)} style={{ height: "var(--ctl-h)", fontSize: "var(--text-base)", backgroundColor: 'var(--bg)', border: 'none' }} />
             </div>
             <div style={{ marginBottom: 20 }}>
               <label className="aia-field-label">Operator</label>
               <Select value={cfg.operator || 'equals'} onValueChange={v => updateConfig('operator', v)}>
-                <SelectTrigger className="input-field" style={{ height: 36, fontSize: 13, backgroundColor: 'var(--bg)', border: 'none' }}><SelectValue /></SelectTrigger>
+                <SelectTrigger className="input-field" style={{ height: "var(--ctl-h)", fontSize: "var(--text-base)", backgroundColor: 'var(--bg)', border: 'none' }}><SelectValue /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="equals">Equals</SelectItem>
                   <SelectItem value="not_equals">Not equals</SelectItem>
@@ -751,7 +751,7 @@ function SetupFields({ selectedNode, updateNode, updateConfig }: {
             </div>
             <div style={{ marginBottom: 20 }}>
               <label className="aia-field-label">Value</label>
-              <input type="text" className="input-field" value={cfg.value || ''} onChange={e => updateConfig('value', e.target.value)} style={{ height: 36, fontSize: 13, backgroundColor: 'var(--bg)', border: 'none' }} />
+              <input data-field-appearance="bare" data-ui-field="input" type="text" className="input-field" value={cfg.value || ''} onChange={e => updateConfig('value', e.target.value)} style={{ height: "var(--ctl-h)", fontSize: "var(--text-base)", backgroundColor: 'var(--bg)', border: 'none' }} />
             </div>
           </>
         )}

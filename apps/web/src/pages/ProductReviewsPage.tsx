@@ -107,7 +107,7 @@ function ReplyModal({ review, onSave, onClose }: { review: ProductReview; onSave
 
           <div>
             <label style={lbl}>Staff Reply (optional)</label>
-            <textarea title="Staff reply" value={reply} onChange={e => setReply(e.target.value)} rows={3}
+            <textarea data-ui-field="textarea" title="Staff reply" value={reply} onChange={e => setReply(e.target.value)} rows={3}
               placeholder="Thank you for your review…"
               style={{ ...inp, resize: 'vertical' }} />
           </div>
@@ -205,7 +205,7 @@ export const ProductReviewsPage: React.FC = () => {
       />
 
       <MetricsRow cards={[
-        { title: 'Total Reviews', value: String(reviewStats?.total ?? reviews.length), sub1Label: 'PENDING', sub1Value: String(reviewStats?.pending ?? pending), sub2Label: 'APPROVED', sub2Value: String(reviewStats?.approved ?? approved), barHighlight: 'var(--blue)', loading: !reviewStats },
+        { emphasis: 'primary', title: 'Total Reviews', value: String(reviewStats?.total ?? reviews.length), sub1Label: 'PENDING', sub1Value: String(reviewStats?.pending ?? pending), sub2Label: 'APPROVED', sub2Value: String(reviewStats?.approved ?? approved), barHighlight: 'var(--blue)', loading: !reviewStats },
         { title: 'Avg Rating', value: (reviewStats?.total ?? reviews.length) ? `${(reviewStats?.avgRating ?? avgRating).toFixed(1)} ★` : '—', sub1Label: 'REVIEWS', sub1Value: String(reviewStats?.total ?? reviews.length), sub2Label: 'APPROVED', sub2Value: String(reviewStats?.approved ?? approved), barHighlight: 'var(--gold)', loading: !reviewStats },
         { title: 'Pending Moderation', value: String(reviewStats?.pending ?? pending), sub1Label: 'APPROVED', sub1Value: String(reviewStats?.approved ?? approved), sub2Label: 'REJECTED', sub2Value: String(reviewStats?.rejected ?? rejected), barHighlight: (reviewStats?.pending ?? pending) > 0 ? 'var(--gold)' : 'var(--green)', loading: !reviewStats },
         { title: 'Rejected', value: String(reviewStats?.rejected ?? rejected), sub1Label: 'TOTAL', sub1Value: String(reviewStats?.total ?? reviews.length), sub2Label: 'RATE', sub2Value: (reviewStats?.total ?? reviews.length) ? `${Math.round((reviewStats?.rejected ?? rejected) / (reviewStats?.total ?? reviews.length) * 100)}%` : '—', barHighlight: 'var(--red)', loading: !reviewStats },
@@ -268,21 +268,21 @@ export const ProductReviewsPage: React.FC = () => {
                   <div style={{ display: 'flex', gap: 6, flexShrink: 0, flexWrap: 'wrap', justifyContent: 'flex-end' }}>
                     {r.status === 'pending' && (<>
                       <button type="button" onClick={() => quickStatus(r, 'approved')}
-                        style={{ padding: '4px 10px', fontSize: 11, fontWeight: 700, border: '1px solid var(--green)', borderRadius: 'var(--r-sm)', background: 'var(--green-l)', color: 'var(--green)', cursor: 'pointer' }} data-ui-native-button="">
+                        style={{ padding: "var(--action-py) var(--space-md)", fontSize: "var(--text-xs)", fontWeight: 700, border: '1px solid var(--green)', borderRadius: 'var(--r-sm)', background: 'var(--green-l)', color: 'var(--green)', cursor: 'pointer' }} data-ui-native-button="">
                         Approve
                       </button>
                       <button type="button" onClick={() => quickStatus(r, 'rejected')}
-                        style={{ padding: '4px 10px', fontSize: 11, fontWeight: 700, border: '1px solid var(--red)', borderRadius: 'var(--r-sm)', background: 'var(--red-l)', color: 'var(--red)', cursor: 'pointer' }} data-ui-native-button="">
+                        style={{ padding: "var(--action-py) var(--space-md)", fontSize: "var(--text-xs)", fontWeight: 700, border: '1px solid var(--red)', borderRadius: 'var(--r-sm)', background: 'var(--red-l)', color: 'var(--red)', cursor: 'pointer' }} data-ui-native-button="">
                         Reject
                       </button>
                     </>)}
                     <button type="button" onClick={() => setModerating(r)}
-                      style={{ padding: '4px 10px', fontSize: 11, fontWeight: 600, border: '1px solid var(--border)', borderRadius: 'var(--r-sm)', background: 'var(--bg)', color: 'var(--ink3)', cursor: 'pointer' }} data-ui-native-button="">
+                      style={{ padding: "var(--action-py) var(--space-md)", fontSize: "var(--text-xs)", fontWeight: 600, border: '1px solid var(--border)', borderRadius: 'var(--r-sm)', background: 'var(--bg)', color: 'var(--ink3)', cursor: 'pointer' }} data-ui-native-button="">
                       <Icon name="messageSquare" size={12} /> Reply
                     </button>
                     <Tip label="Delete review">
                       <button type="button" aria-label="Delete review" onClick={() => handleDelete(r)}
-                        style={{ padding: '4px 8px', fontSize: 11, border: '1px solid var(--border)', borderRadius: 'var(--r-sm)', background: 'none', color: 'var(--red)', cursor: 'pointer' }} data-ui-native-button="">
+                        style={{ padding: "var(--action-py) var(--space-md)", fontSize: "var(--text-xs)", border: '1px solid var(--border)', borderRadius: 'var(--r-sm)', background: 'none', color: 'var(--red)', cursor: 'pointer' }} data-ui-native-button="">
                         <Icon name="trash" size={12} />
                       </button>
                     </Tip>

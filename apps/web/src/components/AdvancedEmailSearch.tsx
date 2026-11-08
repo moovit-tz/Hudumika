@@ -99,7 +99,7 @@ export function AdvancedEmailSearch({ labelDefs, onSearch, onCreateFilter, colli
         <div className="em-adv-search-row">
           <label>From</label>
           <div className="em-adv-search-ctrl">
-            <input
+            <input data-ui-field="input"
               className="em-adv-input"
               placeholder="Sender name or email"
               value={q.from ?? ''}
@@ -111,7 +111,7 @@ export function AdvancedEmailSearch({ labelDefs, onSearch, onCreateFilter, colli
         <div className="em-adv-search-row">
           <label>To</label>
           <div className="em-adv-search-ctrl">
-            <input
+            <input data-ui-field="input"
               className="em-adv-input"
               placeholder="Recipient name or email"
               value={q.to ?? ''}
@@ -123,7 +123,7 @@ export function AdvancedEmailSearch({ labelDefs, onSearch, onCreateFilter, colli
         <div className="em-adv-search-row">
           <label>Subject</label>
           <div className="em-adv-search-ctrl">
-            <input
+            <input data-ui-field="input"
               className="em-adv-input"
               placeholder="Subject keywords"
               value={q.subject ?? ''}
@@ -135,7 +135,7 @@ export function AdvancedEmailSearch({ labelDefs, onSearch, onCreateFilter, colli
         <div className="em-adv-search-row">
           <label>Has words</label>
           <div className="em-adv-search-ctrl">
-            <input
+            <input data-ui-field="input"
               className="em-adv-input"
               placeholder="Keywords in body or header"
               value={q.hasWords ?? ''}
@@ -147,7 +147,7 @@ export function AdvancedEmailSearch({ labelDefs, onSearch, onCreateFilter, colli
         <div className="em-adv-search-row">
           <label>Doesn't have</label>
           <div className="em-adv-search-ctrl">
-            <input
+            <input data-ui-field="input"
               className="em-adv-input"
               placeholder="Exclude matching words"
               value={q.doesntHave ?? ''}
@@ -167,7 +167,7 @@ export function AdvancedEmailSearch({ labelDefs, onSearch, onCreateFilter, colli
                 <SelectItem value="lt">Less than</SelectItem>
               </SelectContent>
             </Select>
-            <input
+            <input data-ui-field="input"
               className="em-adv-input em-adv-size-num"
               type="number"
               min={0}

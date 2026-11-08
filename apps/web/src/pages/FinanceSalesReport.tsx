@@ -181,7 +181,7 @@ export const FinanceSalesReport: React.FC = () => {
         actions={
           <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
             <Select value={period} onValueChange={v => setPeriod(v as Period)}>
-              <SelectTrigger aria-label="Period" style={{ width: 'auto', height: 34, padding: '0 10px', fontSize: 12, fontWeight: 600 }}><SelectValue /></SelectTrigger>
+              <SelectTrigger aria-label="Period" style={{ width: 'auto', height: "var(--ctl-h)", padding: '0 10px', fontSize: "var(--text-base)", fontWeight: 600 }}><SelectValue /></SelectTrigger>
               <SelectContent>
                 {PERIODS.map(p => <SelectItem key={p} value={p}>{p}</SelectItem>)}
               </SelectContent>
@@ -200,7 +200,7 @@ export const FinanceSalesReport: React.FC = () => {
             { label: 'Outstanding', value: fmtM(outstanding), icon: 'clock', variant: 'warning' as const, detail: `${invoices.length - paidCount} open invoices` },
             { label: 'Overdue', value: fmtM(overdue), icon: 'alertTriangle', variant: 'error' as const, detail: overdue > 0 ? 'Requires follow-up' : 'No overdue balance' },
           ].map(s => (
-            <article key={s.label} className="fsr-kpi">
+            <article key={s.label} className="fsr-kpi" data-finops-accent={s.variant === 'brand' ? '' : undefined}>
               <FeaturedIcon variant={s.variant} size="md"><Icon name={s.icon as IconName} size={18} /></FeaturedIcon>
               <div className="fsr-kpi-copy">
                 <span>{s.label}</span>

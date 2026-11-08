@@ -78,11 +78,11 @@ function ProductDetail({ product, onClose, onEdit, isMobile }: {
         </div>
         <div style={{ display: 'flex', gap: 6, flexShrink: 0 }}>
           <Tip label="Edit"><button type="button" aria-label={`Edit ${product.name}`} onClick={() => onEdit(product)}
-            style={{ width: 30, height: 30, borderRadius: 'var(--r)', border: '1px solid var(--border)', background: 'var(--bg)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }} data-ui-native-button="">
+            style={{ width: "var(--ctl-h)", height: "var(--ctl-h)", borderRadius: 'var(--r)', border: '1px solid var(--border)', background: 'var(--bg)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }} data-ui-native-button="">
             <Icon name="edit" size={14} color="var(--ink2)" />
           </button></Tip>
           <Tip label="Close"><button type="button" aria-label="Close" onClick={onClose}
-            style={{ width: 30, height: 30, borderRadius: 'var(--r)', border: '1px solid var(--border)', background: 'var(--bg)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }} data-ui-native-button="">
+            style={{ width: "var(--ctl-h)", height: "var(--ctl-h)", borderRadius: 'var(--r)', border: '1px solid var(--border)', background: 'var(--bg)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }} data-ui-native-button="">
             <Icon name="x" size={14} color="var(--ink2)" />
           </button></Tip>
         </div>
@@ -212,7 +212,7 @@ function ProductForm({ product, onSave, onClose }: {
 
       <div className="card" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
           <F label="Name *" col2>
-            <input style={inp} value={form.name} onChange={e => set('name', e.target.value)} placeholder="e.g. Standard Customs Clearance" />
+            <input data-ui-field="input" style={inp} value={form.name} onChange={e => set('name', e.target.value)} placeholder="e.g. Standard Customs Clearance" />
           </F>
           <F label="Type *">
             <Select value={form.type} onValueChange={v => set('type', v as ProductType)}>
@@ -233,7 +233,7 @@ function ProductForm({ product, onSave, onClose }: {
             </Select>
           </F>
           <F label="Code">
-            <input style={inp} value={form.code} onChange={e => set('code', e.target.value)} placeholder="Auto-generated if blank" />
+            <input data-ui-field="input" style={inp} value={form.code} onChange={e => set('code', e.target.value)} placeholder="Auto-generated if blank" />
           </F>
           <F label="Category *">
             <Select value={form.category} onValueChange={v => set('category', v)}>
@@ -260,10 +260,10 @@ function ProductForm({ product, onSave, onClose }: {
             </Select>
           </F>
           <F label="Sale Price (TZS) *">
-            <input style={inp} type="number" min={0} value={form.salePrice} onChange={e => set('salePrice', +e.target.value)} />
+            <input data-ui-field="input" style={inp} type="number" min={0} value={form.salePrice} onChange={e => set('salePrice', +e.target.value)} />
           </F>
           <F label="Purchase / Cost Price">
-            <input style={inp} type="number" min={0} value={form.purchasePrice} onChange={e => set('purchasePrice', +e.target.value)} />
+            <input data-ui-field="input" style={inp} type="number" min={0} value={form.purchasePrice} onChange={e => set('purchasePrice', +e.target.value)} />
           </F>
           {/* Tax treatment, not a bare rate. The old control offered 0% and 18%
               and labelled 0% "(Exempt)" — which is one of four things 0% can
@@ -284,7 +284,7 @@ function ProductForm({ product, onSave, onClose }: {
             </div>
           </F>
           <F label="Description" col2>
-            <textarea style={{ ...inp, minHeight: 72, resize: 'vertical' } as React.CSSProperties}
+            <textarea data-ui-field="textarea" style={{ ...inp, minHeight: 72, resize: 'vertical' } as React.CSSProperties}
               value={form.description} onChange={e => set('description', e.target.value)} placeholder="Brief description…" />
           </F>
         </div>
@@ -441,9 +441,9 @@ export function FinanceProducts() {
 
         <div style={{ position: 'relative', width: isMobile ? '100%' : 260 }}>
           <Icon name="search" size={14} color="var(--ink3)" style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)' } as React.CSSProperties} />
-          <input value={search} onChange={e => setSearch(e.target.value)}
+          <input data-ui-field="input" value={search} onChange={e => setSearch(e.target.value)}
             placeholder="Search products & services…"
-            style={{ width: '100%', padding: '8px 12px 8px 32px', border: '1px solid var(--border)', borderRadius: 'var(--r, 6px)', fontSize: 13, fontFamily: 'var(--font)', background: 'var(--white)', color: 'var(--ink)', outline: 'none', boxSizing: 'border-box' }} />
+            style={{ width: '100%', padding: "var(--ds-input-py) var(--space-md)", border: '1px solid var(--border)', borderRadius: 'var(--r, 6px)', fontSize: "var(--text-base)", fontFamily: 'var(--font)', background: 'var(--white)', color: 'var(--ink)', outline: 'none', boxSizing: 'border-box' }} />
         </div>
         </div>
       </SectionCard>
@@ -499,13 +499,13 @@ export function FinanceProducts() {
                     </td>
                     <td style={{ padding: '11px 10px', whiteSpace: 'nowrap' }}>
                       <Tip label="Edit"><button type="button" aria-label={`Edit ${p.name}`} onClick={e => { e.stopPropagation(); setEditProduct(p); setShowForm(true); }}
-                        style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 4, color: 'var(--ink3)', borderRadius: 'var(--r)' }}
+                        style={{ background: 'none', border: 'none', cursor: 'pointer', padding: "var(--action-py) var(--space-md)", color: 'var(--ink3)', borderRadius: 'var(--r)' }}
                         onMouseEnter={e => (e.currentTarget.style.background = 'var(--hover-bg)')}
                         onMouseLeave={e => (e.currentTarget.style.background = 'none')} data-ui-native-button="">
                         <Icon name="edit" size={14} />
                       </button></Tip>
                       <Tip label="Delete"><button type="button" aria-label={`Delete ${p.name}`} onClick={e => { e.stopPropagation(); handleDelete(p.id); }}
-                        style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 4, color: 'var(--ink3)', borderRadius: 'var(--r)' }}
+                        style={{ background: 'none', border: 'none', cursor: 'pointer', padding: "var(--action-py) var(--space-md)", color: 'var(--ink3)', borderRadius: 'var(--r)' }}
                         onMouseEnter={e => (e.currentTarget.style.color = 'var(--red)')}
                         onMouseLeave={e => (e.currentTarget.style.color = 'var(--ink3)')} data-ui-native-button="">
                         <Icon name="trash2" size={14} />

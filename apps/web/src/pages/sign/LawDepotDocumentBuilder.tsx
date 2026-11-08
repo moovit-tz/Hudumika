@@ -795,7 +795,7 @@ export function LawDepotDocumentBuilder({
                           setCustomWording(e.target.value);
                           setDirty(true);
                         }}
-                        style={{ fontFamily: 'monospace', fontSize: 13 }}
+                        style={{ fontFamily: "var(--font)", fontSize: "var(--text-base)" }}
                       />
                       <span className="lawdepot-form-hint">
                         You can insert variables using <code>{'{{variable_name}}'}</code> syntax.
@@ -925,21 +925,21 @@ export function LawDepotDocumentBuilder({
               <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--ink2)', marginRight: 8 }}>
                 Live Preview:
               </span>
-              <button
+              <button data-ui-native-button=""
                 type="button"
                 className={`lawdepot-lang-btn ${language === 'en' ? 'active' : ''}`}
                 onClick={() => setLanguage('en')}
               >
                 English
               </button>
-              <button
+              <button data-ui-native-button=""
                 type="button"
                 className={`lawdepot-lang-btn ${language === 'sw' ? 'active' : ''}`}
                 onClick={() => setLanguage('sw')}
               >
                 Kiswahili
               </button>
-              <button
+              <button data-ui-native-button=""
                 type="button"
                 className={`lawdepot-lang-btn ${language === 'zh' ? 'active' : ''}`}
                 onClick={() => setLanguage('zh')}

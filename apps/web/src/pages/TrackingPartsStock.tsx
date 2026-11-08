@@ -167,7 +167,7 @@ export const TrackingPartsStock: React.FC = () => {
                   <td style={{ padding: '10px 14px', color: 'var(--ink2)' }}>{p.unit_cost != null ? p.unit_cost.toLocaleString() : '—'}</td>
                   <td style={{ padding: '10px 14px', color: 'var(--ink2)' }}>{vendorName(p.vendor_id)}</td>
                   <td style={{ padding: '10px 14px', textAlign: 'right' }}><Button variant="ghost" size="icon" title="Stock movements" aria-label="Stock movements" onClick={()=>setStockPart(p)}><Icon name="activity" size={16}/></Button>
-                    <Button type="button" onClick={() => { void remove(p.id).catch(reportError); }} title="Remove" aria-label="Remove" style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink3)', padding: 4 }} data-ui-native-button="">
+                    <Button type="button" onClick={() => { void remove(p.id).catch(reportError); }} title="Remove" aria-label="Remove" style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink3)', padding: "var(--action-py) var(--space-md)" }} data-ui-native-button="">
                       <Icon name="close" size={14} />
                     </Button>
                   </td>

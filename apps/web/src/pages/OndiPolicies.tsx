@@ -161,10 +161,10 @@ export const OndiPolicies: React.FC = () => {
                 color: 'var(--teal)',
                 border: '1px solid var(--border)',
                 borderRadius: 'var(--r)',
-                padding: '10px 18px',
+                padding: "var(--action-py) var(--space-md)",
                 fontFamily: 'var(--font)',
                 fontWeight: 700,
-                fontSize: 13,
+                fontSize: "var(--text-base)",
                 cursor: canManagePolicies ? 'pointer' : 'not-allowed',
                 opacity: canManagePolicies ? 1 : 0.6,
                 boxShadow: '0 1px 3px rgba(0,0,0,0.04)'
@@ -185,10 +185,10 @@ export const OndiPolicies: React.FC = () => {
                 color: '#fff',
                 border: 'none',
                 borderRadius: 'var(--r)',
-                padding: '10px 20px',
+                padding: "var(--action-py) var(--space-md)",
                 fontFamily: 'var(--font)',
                 fontWeight: 700,
-                fontSize: 13,
+                fontSize: "var(--text-base)",
                 cursor: canManagePolicies ? 'pointer' : 'not-allowed',
                 opacity: (saving || !loaded || !canManagePolicies) ? 0.6 : 1,
                 boxShadow: '0 2px 10px var(--teal-m)'
@@ -276,7 +276,7 @@ export const OndiPolicies: React.FC = () => {
 
             <div style={{ display: 'flex', alignItems: 'center', gap: 16, flexWrap: 'wrap' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                <input
+                <input data-ui-field="input"
                   type="number"
                   min={5}
                   max={1440}
@@ -285,13 +285,13 @@ export const OndiPolicies: React.FC = () => {
                   onChange={e => setTimeoutMinutes(Number(e.target.value))}
                   style={{
                     width: 120,
-                    padding: '8px 12px',
+                    padding: "var(--ds-input-py) var(--space-md)",
                     borderRadius: 'var(--r)',
                     border: '1px solid var(--border)',
                     background: 'var(--bg)',
                     color: 'var(--ink)',
                     fontWeight: 700,
-                    fontSize: 14
+                    fontSize: "var(--text-base)"
                   }}
                 />
                 <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--ink2)' }}>minutes</span>
@@ -305,11 +305,11 @@ export const OndiPolicies: React.FC = () => {
                     disabled={!canManagePolicies}
                     onClick={() => setTimeoutMinutes(mins)}
                     style={{
-                      padding: '6px 14px',
+                      padding: "var(--action-py) var(--space-md)",
                       borderRadius: 'var(--r)',
                       border: timeoutMinutes === mins ? '1px solid var(--teal)' : '1px solid var(--border)',
                       fontWeight: 700,
-                      fontSize: 12.5,
+                      fontSize: "var(--text-base)",
                       cursor: canManagePolicies ? 'pointer' : 'not-allowed',
                       background: timeoutMinutes === mins ? 'var(--teal-l)' : 'var(--bg)',
                       color: timeoutMinutes === mins ? 'var(--teal)' : 'var(--ink3)',
@@ -370,13 +370,13 @@ export const OndiPolicies: React.FC = () => {
                 onClick={() => setShowCreateModal(true)}
                 disabled={!canManagePolicies}
                 style={{
-                  fontSize: 12.5,
+                  fontSize: "var(--text-base)",
                   fontWeight: 700,
                   color: 'var(--teal)',
                   background: 'var(--teal-l)',
                   border: '1px solid var(--teal-m)',
                   borderRadius: 'var(--r-sm)',
-                  padding: '6px 14px',
+                  padding: "var(--action-py) var(--space-md)",
                   cursor: canManagePolicies ? 'pointer' : 'not-allowed',
                   opacity: canManagePolicies ? 1 : 0.6
                 }}
@@ -460,7 +460,7 @@ export const OndiPolicies: React.FC = () => {
                 <div style={{ fontSize: 12, color: 'var(--ink3)', marginTop: 2 }}>We recommend at least 12 characters for administrator accounts.</div>
               </div>
               <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                <input
+                <input data-ui-field="input"
                   type="number"
                   min={8}
                   max={128}
@@ -469,13 +469,13 @@ export const OndiPolicies: React.FC = () => {
                   onChange={e => setMinLength(Number(e.target.value))}
                   style={{
                     width: 80,
-                    padding: '6px 10px',
+                    padding: "var(--ds-input-py) var(--space-md)",
                     borderRadius: 'var(--r)',
                     border: '1px solid var(--border)',
                     background: 'var(--white)',
                     color: 'var(--ink)',
                     fontWeight: 700,
-                    fontSize: 13,
+                    fontSize: "var(--text-base)",
                     textAlign: 'center'
                   }}
                 />
@@ -533,13 +533,13 @@ export const OndiPolicies: React.FC = () => {
             <form onSubmit={handleCreatePolicy} style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
               <div>
                 <label style={{ fontSize: 12, fontWeight: 700, color: 'var(--ink2)', display: 'block', marginBottom: 4 }}>Policy Name</label>
-                <input
+                <input data-ui-field="input"
                   type="text"
                   required
                   placeholder="e.g. Mandatory Admin IP Subnet Restriction"
                   value={newPolicyName}
                   onChange={e => setNewPolicyName(e.target.value)}
-                  style={{ width: '100%', padding: '9px 12px', borderRadius: 'var(--r)', border: '1px solid var(--border)', background: 'var(--bg)', color: 'var(--ink)', fontSize: 13, boxSizing: 'border-box' }}
+                  style={{ width: '100%', padding: "var(--ds-input-py) var(--space-md)", borderRadius: 'var(--r)', border: '1px solid var(--border)', background: 'var(--bg)', color: 'var(--ink)', fontSize: "var(--text-base)", boxSizing: 'border-box' }}
                 />
               </div>
 
@@ -585,12 +585,12 @@ export const OndiPolicies: React.FC = () => {
 
               <div>
                 <label style={{ fontSize: 12, fontWeight: 700, color: 'var(--ink2)', display: 'block', marginBottom: 4 }}>Policy Description</label>
-                <textarea
+                <textarea data-ui-field="textarea"
                   rows={3}
                   placeholder="Describe the governance requirement and target parameters..."
                   value={newPolicyDesc}
                   onChange={e => setNewPolicyDesc(e.target.value)}
-                  style={{ width: '100%', padding: '9px 12px', borderRadius: 'var(--r)', border: '1px solid var(--border)', background: 'var(--bg)', color: 'var(--ink)', fontSize: 13, boxSizing: 'border-box', resize: 'vertical' }}
+                  style={{ width: '100%', padding: "var(--ds-input-py) var(--space-md)", borderRadius: 'var(--r)', border: '1px solid var(--border)', background: 'var(--bg)', color: 'var(--ink)', fontSize: "var(--text-base)", boxSizing: 'border-box', resize: 'vertical' }}
                 />
               </div>
 
@@ -598,7 +598,7 @@ export const OndiPolicies: React.FC = () => {
                 <button
                   type="button"
                   onClick={() => setShowCreateModal(false)}
-                  style={{ padding: '9px 16px', borderRadius: 'var(--r)', border: '1px solid var(--border)', background: 'var(--bg)', color: 'var(--ink2)', fontSize: 13, fontWeight: 700, cursor: 'pointer' }}
+                  style={{ padding: "var(--action-py) var(--space-md)", borderRadius: 'var(--r)', border: '1px solid var(--border)', background: 'var(--bg)', color: 'var(--ink2)', fontSize: "var(--text-base)", fontWeight: 700, cursor: 'pointer' }}
                  data-ui-native-button="">
                   Cancel
                 </button>

@@ -1006,7 +1006,7 @@ export function PackagesView() {
 
               <div className="mb-4">
                 <label className="text-xs font-semibold text-foreground block mb-1.5">Description — target audience</label>
-                <textarea
+                <textarea data-ui-field="textarea"
                   value={editingAddon.description}
                   onChange={e => setEditingAddon(p => p ? ({ ...p, description: e.target.value }) : p)}
                   rows={3}

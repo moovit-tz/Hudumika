@@ -337,7 +337,7 @@ export function SealAppointments() {
 
       <div className="seal-appointments-toolbar" role="region" aria-label="Appointment filters">
         <div className="seal-scope-pill" role="group" aria-label="Schedule scope">
-          <button
+          <button data-ui-native-button=""
             type="button"
             className={cn(
               'seal-scope-btn',
@@ -347,7 +347,7 @@ export function SealAppointments() {
           >
             Today
           </button>
-          <button
+          <button data-ui-native-button=""
             type="button"
             className={cn('seal-scope-btn', date === undefined && 'seal-scope-btn-active')}
             onClick={handleSelectAllDates}

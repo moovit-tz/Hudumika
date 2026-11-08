@@ -120,7 +120,7 @@ export const SharedLandedCostReport: React.FC = () => {
         </div>
       </div>
       <button type="button" onClick={download}
-        style={{ width: '100%', padding: 'var(--ds-btn-py-lg) 20px', borderRadius: 'var(--r)', border: 'none', background: 'var(--clearos-accent)', color: 'hsl(var(--clearos-foreground))', fontWeight: 700, fontSize: 14, cursor: 'pointer', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 9, minHeight: 'var(--ctl-h-lg)', boxSizing: 'border-box', lineHeight: 1.25}} data-ui-native-button="">
+        style={{ width: '100%', padding: 'var(--ds-btn-py-lg) 20px', borderRadius: 'var(--r)', border: 'none', background: 'var(--clearos-accent)', color: 'hsl(var(--clearos-foreground))', fontWeight: 700, fontSize: "var(--text-base)", cursor: 'pointer', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 9, minHeight: 'var(--ctl-h-lg)', boxSizing: 'border-box', lineHeight: 1.25}} data-ui-native-button="">
         <Icon name="download" size={16} color="hsl(var(--clearos-foreground))" /> Download the PDF
       </button>
       <div style={{ fontSize: 11.5, color: 'var(--ink3)', marginTop: 12, lineHeight: 1.6 }}>
@@ -161,19 +161,19 @@ export const SharedLandedCostReport: React.FC = () => {
         </div>
 
         <label style={{ fontSize: 11, fontWeight: 700, color: 'var(--ink3)', textTransform: 'uppercase', letterSpacing: '.5px', display: 'block', marginBottom: 5 }}>Email address *</label>
-        <input type="email" required value={email} onChange={e => setEmail(e.target.value)} placeholder="you@company.co.tz"
-          style={{ width: '100%', boxSizing: 'border-box', height: 44, fontSize: 14, padding: '0 13px', borderRadius: 'var(--r)', border: '1px solid var(--border)', marginBottom: 13 }} />
+        <input data-ui-field="input" type="email" required value={email} onChange={e => setEmail(e.target.value)} placeholder="you@company.co.tz"
+          style={{ width: '100%', boxSizing: 'border-box', height: "var(--ctl-h)", fontSize: "var(--text-base)", padding: '0 13px', borderRadius: 'var(--r)', border: '1px solid var(--border)', marginBottom: 13 }} />
 
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 16 }}>
           <div>
             <label style={{ fontSize: 11, fontWeight: 700, color: 'var(--ink3)', textTransform: 'uppercase', letterSpacing: '.5px', display: 'block', marginBottom: 5 }}>Your name</label>
-            <input value={fullName} onChange={e => setFullName(e.target.value)} placeholder="Optional"
-              style={{ width: '100%', boxSizing: 'border-box', height: 42, fontSize: 13.5, padding: '0 13px', borderRadius: 'var(--r)', border: '1px solid var(--border)' }} />
+            <input data-ui-field="input" value={fullName} onChange={e => setFullName(e.target.value)} placeholder="Optional"
+              style={{ width: '100%', boxSizing: 'border-box', height: "var(--ctl-h)", fontSize: "var(--text-base)", padding: '0 13px', borderRadius: 'var(--r)', border: '1px solid var(--border)' }} />
           </div>
           <div>
             <label style={{ fontSize: 11, fontWeight: 700, color: 'var(--ink3)', textTransform: 'uppercase', letterSpacing: '.5px', display: 'block', marginBottom: 5 }}>Company</label>
-            <input value={company} onChange={e => setCompany(e.target.value)} placeholder="Optional"
-              style={{ width: '100%', boxSizing: 'border-box', height: 42, fontSize: 13.5, padding: '0 13px', borderRadius: 'var(--r)', border: '1px solid var(--border)' }} />
+            <input data-ui-field="input" value={company} onChange={e => setCompany(e.target.value)} placeholder="Optional"
+              style={{ width: '100%', boxSizing: 'border-box', height: "var(--ctl-h)", fontSize: "var(--text-base)", padding: '0 13px', borderRadius: 'var(--r)', border: '1px solid var(--border)' }} />
           </div>
         </div>
 

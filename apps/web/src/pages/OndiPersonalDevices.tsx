@@ -343,7 +343,7 @@ export const OndiPersonalDevices: React.FC = () => {
                 minHeight: 'var(--ctl-h-sm)',
                 boxSizing: 'border-box',
                 lineHeight: 1.25,
-                fontSize: 12.5,
+                fontSize: "var(--text-base)",
                 fontWeight: 600,
                 cursor: 'pointer',
               }}
@@ -452,7 +452,7 @@ export const OndiPersonalDevices: React.FC = () => {
             <div className="opd-search-icon">
               <Icon name="search" size={14} />
             </div>
-            <input
+            <input data-ui-field="input" data-field-appearance="bare"
               type="text"
               className="opd-search-input"
               placeholder="Search devices, browser, OS..."
@@ -553,9 +553,9 @@ export const OndiPersonalDevices: React.FC = () => {
               style={{
                 background: 'var(--bg)',
                 border: '1px solid var(--border)',
-                padding: '6px 14px',
+                padding: "var(--action-py) var(--space-md)",
                 borderRadius: 'var(--r-sm)',
-                fontSize: 12.5,
+                fontSize: "var(--text-base)",
                 fontWeight: 600,
                 cursor: 'pointer',
                 color: 'var(--ink)',
@@ -761,9 +761,9 @@ export const OndiPersonalDevices: React.FC = () => {
                             background: 'var(--white)',
                             border: '1px solid var(--border)',
                             color: 'var(--ink)',
-                            padding: '6px 12px',
+                            padding: "var(--action-py) var(--space-md)",
                             borderRadius: 'var(--r-sm)',
-                            fontSize: 12,
+                            fontSize: "var(--text-base)",
                             fontWeight: 600,
                             cursor: 'pointer',
                           }}
@@ -777,9 +777,9 @@ export const OndiPersonalDevices: React.FC = () => {
                             background: 'var(--red-l)',
                             border: '1px solid var(--red)',
                             color: 'var(--red)',
-                            padding: '6px 12px',
+                            padding: "var(--action-py) var(--space-md)",
                             borderRadius: 'var(--r-sm)',
-                            fontSize: 12,
+                            fontSize: "var(--text-base)",
                             fontWeight: 600,
                             cursor: 'pointer',
                           }}
@@ -856,7 +856,7 @@ export const OndiPersonalDevices: React.FC = () => {
                   <div className="opd-modal-title-area">
                     {renaming ? (
                       <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-                        <input
+                        <input data-ui-field="input"
                           autoFocus
                           value={renameValue}
                           onChange={(e) => setRenameValue(e.target.value)}
@@ -867,8 +867,8 @@ export const OndiPersonalDevices: React.FC = () => {
                           className="input-field"
                           style={{
                             flex: 1,
-                            fontSize: 13.5,
-                            padding: '6px 10px',
+                            fontSize: "var(--text-base)",
+                            padding: "var(--ds-input-py) var(--space-md)",
                             border: '1.5px solid var(--teal)',
                             borderRadius: 'var(--r-sm)',
                           }}
@@ -879,12 +879,12 @@ export const OndiPersonalDevices: React.FC = () => {
                           onClick={saveRename}
                           disabled={saving}
                           style={{
-                            fontSize: 12.5,
+                            fontSize: "var(--text-base)",
                             fontWeight: 600,
                             color: 'hsl(var(--primary-foreground))',
                             background: 'hsl(var(--primary))',
                             border: 'none',
-                            padding: '6px 12px',
+                            padding: "var(--action-py) var(--space-md)",
                             borderRadius: 'var(--r-sm)',
                             cursor: 'pointer',
                           }}
@@ -895,7 +895,7 @@ export const OndiPersonalDevices: React.FC = () => {
                           type="button"
                           onClick={() => setRenaming(false)}
                           style={{
-                            fontSize: 12.5,
+                            fontSize: "var(--text-base)",
                             color: 'var(--ink3)',
                             background: 'transparent',
                             border: 'none',

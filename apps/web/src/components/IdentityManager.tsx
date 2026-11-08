@@ -122,19 +122,19 @@ export function IdentityManager({ onChange }: { onChange?: (ids: EmailSendIdenti
         <div className="em-settings-row" style={{ flexDirection: 'column', alignItems: 'stretch', gap: 8, marginTop: 10 }}>
           <div className="em-settings-row">
             <span className="em-compose-label">Name</span>
-            <input className="em-compose-input em-settings-input" value={draft.fromName} placeholder="Display name" onChange={e => setDraft({ ...draft, fromName: e.target.value })} />
+            <input data-ui-field="input" className="em-compose-input em-settings-input" value={draft.fromName} placeholder="Display name" onChange={e => setDraft({ ...draft, fromName: e.target.value })} />
           </div>
           <div className="em-settings-row">
             <span className="em-compose-label">Address</span>
-            <input className="em-compose-input em-settings-input" value={draft.fromEmail} placeholder="you@otherdomain.com" onChange={e => setDraft({ ...draft, fromEmail: e.target.value })} />
+            <input data-ui-field="input" className="em-compose-input em-settings-input" value={draft.fromEmail} placeholder="you@otherdomain.com" onChange={e => setDraft({ ...draft, fromEmail: e.target.value })} />
           </div>
           <div className="em-settings-row">
             <span className="em-compose-label">SMTP host</span>
-            <input className="em-compose-input em-settings-input" value={draft.smtpHost} placeholder="smtp.example.com" onChange={e => setDraft({ ...draft, smtpHost: e.target.value })} />
+            <input data-ui-field="input" className="em-compose-input em-settings-input" value={draft.smtpHost} placeholder="smtp.example.com" onChange={e => setDraft({ ...draft, smtpHost: e.target.value })} />
           </div>
           <div className="em-settings-row">
             <span className="em-compose-label">Port</span>
-            <input className="em-compose-input em-settings-input" type="number" value={draft.smtpPort} onChange={e => setDraft({ ...draft, smtpPort: parseInt(e.target.value, 10) || 587 })} />
+            <input data-ui-field="input" className="em-compose-input em-settings-input" type="number" value={draft.smtpPort} onChange={e => setDraft({ ...draft, smtpPort: parseInt(e.target.value, 10) || 587 })} />
             <Select value={draft.smtpEncryption} onValueChange={v => setDraft({ ...draft, smtpEncryption: v as any })}>
               <SelectTrigger className="w-28 shrink-0"><SelectValue /></SelectTrigger>
               <SelectContent>
@@ -146,11 +146,11 @@ export function IdentityManager({ onChange }: { onChange?: (ids: EmailSendIdenti
           </div>
           <div className="em-settings-row">
             <span className="em-compose-label">SMTP user</span>
-            <input className="em-compose-input em-settings-input" value={draft.smtpUser} onChange={e => setDraft({ ...draft, smtpUser: e.target.value })} />
+            <input data-ui-field="input" className="em-compose-input em-settings-input" value={draft.smtpUser} onChange={e => setDraft({ ...draft, smtpUser: e.target.value })} />
           </div>
           <div className="em-settings-row">
             <span className="em-compose-label">SMTP password</span>
-            <input className="em-compose-input em-settings-input" type="password" value={draft.smtpPass} onChange={e => setDraft({ ...draft, smtpPass: e.target.value })} />
+            <input data-ui-field="input" className="em-compose-input em-settings-input" type="password" value={draft.smtpPass} onChange={e => setDraft({ ...draft, smtpPass: e.target.value })} />
           </div>
           <div style={{ display: 'flex', gap: 8 }}>
             <button type="button" className="btn btn-primary" onClick={saveDraft} disabled={saving} data-ui-native-button="">{saving ? 'Saving…' : 'Add address'}</button>

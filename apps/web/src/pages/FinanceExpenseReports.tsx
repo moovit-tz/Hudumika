@@ -131,7 +131,7 @@ export function FinanceExpenseReports() {
 
       {/* Top Metrics Row */}
       <div className="expense-metrics-grid">
-        <div className="expense-metric-card">
+        <div className="expense-metric-card" data-finops-accent="">
           <div className="expense-metric-top">
             <span className="expense-metric-label">All Reports</span>
             <div className="expense-metric-icon-wrap" style={{ background: 'var(--teal-l)', color: 'var(--teal)' }}>
@@ -180,7 +180,7 @@ export function FinanceExpenseReports() {
       <div className="expense-toolbar">
         <div className="expense-tabs-group">
           {states.map(tab => (
-            <button
+            <button data-ui-native-button=""
               key={tab}
               type="button"
               className={cn("expense-tab-btn", status === tab && "active")}
@@ -211,10 +211,10 @@ export function FinanceExpenseReports() {
               className="expense-search-input"
             />
             {search && (
-              <button
+              <button data-ui-native-button=""
                 type="button"
                 onClick={() => setSearch('')}
-                style={{ position: 'absolute', right: 8, top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', padding: 2 }}
+                style={{ position: 'absolute', right: 8, top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', padding: "var(--action-py) var(--space-md)" }}
               >
                 <Icon name="close" size={12} color="var(--ink3)" />
               </button>
@@ -223,7 +223,7 @@ export function FinanceExpenseReports() {
 
           {!isMobile && (
             <div className="expense-view-toggle">
-              <button
+              <button data-ui-native-button=""
                 type="button"
                 className={cn("expense-view-btn", viewMode === 'table' && "active")}
                 onClick={() => setViewMode('table')}
@@ -231,7 +231,7 @@ export function FinanceExpenseReports() {
               >
                 <Icon name="list" size={14} />
               </button>
-              <button
+              <button data-ui-native-button=""
                 type="button"
                 className={cn("expense-view-btn", viewMode === 'cards' && "active")}
                 onClick={() => setViewMode('cards')}
@@ -641,7 +641,7 @@ export function FinanceExpenseReportDetail() {
         <div className="flex items-center gap-2 p-3.5 rounded-xl border border-destructive/30 bg-destructive/10 text-destructive text-sm font-medium">
           <Icon name="alertTriangle" size={16} />
           <span className="flex-1">{error}</span>
-          <button type="button" onClick={() => setError('')} className="p-1 opacity-70 hover:opacity-100">
+          <button data-ui-native-button="" type="button" onClick={() => setError('')} className="p-1 opacity-70 hover:opacity-100">
             <Icon name="close" size={14} />
           </button>
         </div>

@@ -59,13 +59,13 @@ export const GoogleSection: React.FC = () => {
       <Card title="reCAPTCHA">
         <ToggleRow label="Enable reCAPTCHA" hint="Protect forms with Google reCAPTCHA" value={rc} onChange={setRc} />
         {rc && <>
-          <Field label="Site Key"><input className="input-field" value={f.rcSite} onChange={e => set('rcSite', e.target.value)} /></Field>
-          <Field label="Secret Key"><input className="input-field" type="password" value={f.rcSecret} onChange={e => set('rcSecret', e.target.value)} /></Field>
+          <Field label="Site Key"><input data-ui-field="input" className="input-field" value={f.rcSite} onChange={e => set('rcSite', e.target.value)} /></Field>
+          <Field label="Secret Key"><input data-ui-field="input" className="input-field" type="password" value={f.rcSecret} onChange={e => set('rcSecret', e.target.value)} /></Field>
         </>}
       </Card>
       <Card title="Google OAuth (Sign-in)">
-        <Field label="OAuth Client ID"><input className="input-field" value={f.oauthId} onChange={e => set('oauthId', e.target.value)} /></Field>
-        <Field label="OAuth Client Secret"><input className="input-field" type="password" value={f.oauthSecret} onChange={e => set('oauthSecret', e.target.value)} /></Field>
+        <Field label="OAuth Client ID"><input data-ui-field="input" className="input-field" value={f.oauthId} onChange={e => set('oauthId', e.target.value)} /></Field>
+        <Field label="OAuth Client Secret"><input data-ui-field="input" className="input-field" type="password" value={f.oauthSecret} onChange={e => set('oauthSecret', e.target.value)} /></Field>
       </Card>
       <SaveRow saving={saving} saved={saved} onSave={handleSave} />
     </>
@@ -88,8 +88,8 @@ export const MicrosoftSection: React.FC = () => {
   return (
     <>
       <Card title="Microsoft OAuth (Outlook contact sync)" desc="A real Azure AD app registration — create one at portal.azure.com and grant it the Contacts.Read and User.Read delegated permissions.">
-        <Field label="Application (Client) ID"><input className="input-field" value={f.oauthId} onChange={e => set('oauthId', e.target.value)} /></Field>
-        <Field label="Client Secret"><input className="input-field" type="password" value={f.oauthSecret} onChange={e => set('oauthSecret', e.target.value)} /></Field>
+        <Field label="Application (Client) ID"><input data-ui-field="input" className="input-field" value={f.oauthId} onChange={e => set('oauthId', e.target.value)} /></Field>
+        <Field label="Client Secret"><input data-ui-field="input" className="input-field" type="password" value={f.oauthSecret} onChange={e => set('oauthSecret', e.target.value)} /></Field>
       </Card>
       <p className="s-fld-hint" style={{ margin: '4px 2px 0' }}>Until both are saved here, "Connect Outlook Account" in Contacts ▸ Outlook sync stays disabled.</p>
       <SaveRow saving={saving} saved={saved} onSave={handleSave} />
@@ -108,12 +108,12 @@ export const ShipsGoSection: React.FC = () => {
     <>
       <Card title="Container &amp; BL Tracking (ShipsGo)" desc="Used for ocean bill-of-lading and container tracking on the Tracker page.">
         <Field label="ShipsGo API Key" hint="From your ShipsGo account dashboard under API access.">
-          <input className="input-field" type="password" placeholder="Enter ShipsGo API key" value={f.shipsgo_api_key} onChange={e => set('shipsgo_api_key', e.target.value)} />
+          <input data-ui-field="input" className="input-field" type="password" placeholder="Enter ShipsGo API key" value={f.shipsgo_api_key} onChange={e => set('shipsgo_api_key', e.target.value)} />
         </Field>
       </Card>
       <Card title="Air Waybill Tracking (Ship24)" desc="Used for AWB tracking and as a fallback when ShipsGo has no result.">
         <Field label="Ship24 API Key" hint="From your Ship24 account under Developers → API Keys.">
-          <input className="input-field" type="password" placeholder="Enter Ship24 API key" value={f.ship24_api_key} onChange={e => set('ship24_api_key', e.target.value)} />
+          <input data-ui-field="input" className="input-field" type="password" placeholder="Enter Ship24 API key" value={f.ship24_api_key} onChange={e => set('ship24_api_key', e.target.value)} />
         </Field>
       </Card>
       <p className="s-fld-hint" style={{ margin: '4px 2px 0' }}>Until a key is saved here, the Tracker page returns demo/mock tracking data.</p>
@@ -154,13 +154,13 @@ export const GpswoxSection: React.FC = () => {
     <>
       <Card title="GPSWOX Fleet Tracking" desc="Pulls real GPS device positions into HuduFreight's vehicle map, history, and geofence alerts. GPSWOX is typically self-hosted, so the base URL is specific to your instance · save credentials here first.">
         <Field label="Base URL" hint="Your GPSWOX instance root, e.g. https://fleet.yourcompany.com · do not include /api.">
-          <input className="input-field" placeholder="https://fleet.yourcompany.com" value={f.base_url} onChange={e => set('base_url', e.target.value)} />
+          <input data-ui-field="input" className="input-field" placeholder="https://fleet.yourcompany.com" value={f.base_url} onChange={e => set('base_url', e.target.value)} />
         </Field>
         <Field label="Email">
-          <input className="input-field" type="email" placeholder="fleet-account@yourcompany.com" value={f.email} onChange={e => set('email', e.target.value)} />
+          <input data-ui-field="input" className="input-field" type="email" placeholder="fleet-account@yourcompany.com" value={f.email} onChange={e => set('email', e.target.value)} />
         </Field>
         <Field label="Password">
-          <input className="input-field" type="password" placeholder="••••••••" value={f.password} onChange={e => set('password', e.target.value)} />
+          <input data-ui-field="input" className="input-field" type="password" placeholder="••••••••" value={f.password} onChange={e => set('password', e.target.value)} />
         </Field>
         <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginTop: 4 }}>
           <button type="button" className="btn btn-outline btn-sm" onClick={handleTest} disabled={testing || !f.base_url || !f.email || !f.password} data-ui-native-button="">
@@ -236,10 +236,10 @@ export const OpenAISection: React.FC = () => {
                 </Select>
               </Field>
               <Field label="API Key" hint={`Your ${activeProvider.label.split(' — ')[0]} API key`} full>
-                <input className="input-field" type="password" placeholder="sk-…" value={f.apiKey} onChange={e => set('apiKey', e.target.value)} />
+                <input data-ui-field="input" className="input-field" type="password" placeholder="sk-…" value={f.apiKey} onChange={e => set('apiKey', e.target.value)} />
               </Field>
               {activeProvider.value === 'openai' &&
-                <Field label="Organization ID (optional)"><input className="input-field" placeholder="org-…" value={f.org} onChange={e => set('org', e.target.value)} /></Field>}
+                <Field label="Organization ID (optional)"><input data-ui-field="input" className="input-field" placeholder="org-…" value={f.org} onChange={e => set('org', e.target.value)} /></Field>}
               <Field label="Model">
                 <Select value={f.model} onValueChange={v => set('model', v)}>
                   <SelectTrigger className="input-field"><SelectValue /></SelectTrigger>
@@ -249,9 +249,9 @@ export const OpenAISection: React.FC = () => {
                 </Select>
               </Field>
               <Field label="Temperature" hint="0 = deterministic · 1 = creative">
-                <input className="input-field" type="number" step="0.1" min="0" max="2" value={f.temp} onChange={e => set('temp', e.target.value)} />
+                <input data-ui-field="input" className="input-field" type="number" step="0.1" min="0" max="2" value={f.temp} onChange={e => set('temp', e.target.value)} />
               </Field>
-              <Field label="Max Tokens"><input className="input-field" type="number" value={f.maxTokens} onChange={e => set('maxTokens', e.target.value)} /></Field>
+              <Field label="Max Tokens"><input data-ui-field="input" className="input-field" type="number" value={f.maxTokens} onChange={e => set('maxTokens', e.target.value)} /></Field>
             </>}
           </>
         ) : (
@@ -431,13 +431,13 @@ export const TRASection: React.FC = () => {
             </SelectContent>
           </Select>
         </Field>
-        <Field label="TIN" hint="Taxpayer Identification Number"><input title="TIN" placeholder="000-000-000" className="input-field" value={tin} onChange={e => setTin(e.target.value)} /></Field>
-        <Field label="Cert Key" hint="CERTKEY / EFDSERIAL, e.g. 10TZ0001"><input title="Cert Key" placeholder="10TZ0001" className="input-field" value={certKey} onChange={e => setCertKey(e.target.value)} /></Field>
-        <Field label="Cert Serial" hint="Certificate serial number issued by TRA"><input title="Cert Serial" placeholder="Cert serial" className="input-field" value={certSerial} onChange={e => setCertSerial(e.target.value)} /></Field>
+        <Field label="TIN" hint="Taxpayer Identification Number"><input data-ui-field="input" title="TIN" placeholder="000-000-000" className="input-field" value={tin} onChange={e => setTin(e.target.value)} /></Field>
+        <Field label="Cert Key" hint="CERTKEY / EFDSERIAL, e.g. 10TZ0001"><input data-ui-field="input" title="Cert Key" placeholder="10TZ0001" className="input-field" value={certKey} onChange={e => setCertKey(e.target.value)} /></Field>
+        <Field label="Cert Serial" hint="Certificate serial number issued by TRA"><input data-ui-field="input" title="Cert Serial" placeholder="Cert serial" className="input-field" value={certSerial} onChange={e => setCertSerial(e.target.value)} /></Field>
         <Field label=".pfx Certificate File" full>
           <input title="Certificate file" className="input-field" type="file" accept=".pfx,.p12" onChange={e => setPfxFile(e.target.files?.[0] ?? null)} />
         </Field>
-        <Field label="Certificate Password"><input title="Certificate Password" placeholder="Certificate password" className="input-field" type="password" value={pfxPassword} onChange={e => setPfxPassword(e.target.value)} /></Field>
+        <Field label="Certificate Password"><input data-ui-field="input" title="Certificate Password" placeholder="Certificate password" className="input-field" type="password" value={pfxPassword} onChange={e => setPfxPassword(e.target.value)} /></Field>
         <div className="s-fld--full" style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
           <button type="button" className="btn btn-secondary" onClick={uploadCert} disabled={!pfxFile || uploading} data-ui-native-button="">
             {uploading ? 'Uploading…' : pfxPath ? 'Re-upload Certificate' : 'Upload Certificate'}

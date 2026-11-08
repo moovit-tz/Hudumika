@@ -349,7 +349,7 @@ export function OnsiteSettings() {
                 </div>
                 <div className="onsite-form-group">
                   <label>Connection Name / Label *</label>
-                  <input
+                  <input data-ui-field="input"
                     type="text"
                     className="onsite-input"
                     placeholder="e.g. Primary GitHub Organization"
@@ -360,7 +360,7 @@ export function OnsiteSettings() {
                 </div>
                 <div className="onsite-form-group">
                   <label>Personal Access Token / API Key</label>
-                  <input
+                  <input data-ui-field="input"
                     type="password"
                     className="onsite-input"
                     placeholder="ghp_xxxxxxxxxxxx or API token"
@@ -371,7 +371,7 @@ export function OnsiteSettings() {
                 {provider !== 'hostinger' && (
                   <div className="onsite-form-group">
                     <label>{externalIdHelp[provider]?.label ?? 'Project Reference'} *</label>
-                    <input
+                    <input data-ui-field="input"
                       type="text"
                       className="onsite-input onsite-mono"
                       placeholder={externalIdHelp[provider]?.placeholder ?? ''}

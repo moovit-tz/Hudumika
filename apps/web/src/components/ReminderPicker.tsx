@@ -38,7 +38,7 @@ export const ReminderPicker: React.FC<{
         <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--ink3)', textTransform: 'uppercase', letterSpacing: '.05em', marginBottom: 8 }}>
           Remind me
         </div>
-        <input
+        <input data-ui-field="input"
           type="datetime-local"
           className="input-field"
           style={{ width: '100%', boxSizing: 'border-box' }}

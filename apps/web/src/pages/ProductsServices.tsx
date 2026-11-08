@@ -836,7 +836,7 @@ function ProductFormPage({
                 <div>
                   <div className="flex justify-between items-center mb-1">
                     <label className="text-xs font-semibold text-muted-foreground">Catalog Code / SKU *</label>
-                    <button
+                    <button data-ui-native-button=""
                       type="button"
                       onClick={() => set('code', genCode(f.name || 'ITEM', f.category))}
                       className="text-[11px] hover:underline"
@@ -1068,7 +1068,7 @@ function ProductFormPage({
                       />
                     </div>
                     <Tip label="Remove contract rate">
-                      <button
+                      <button data-ui-native-button=""
                         type="button"
                         onClick={() => removePriceRow(idx)}
                         className="p-1.5 text-muted-foreground hover:text-destructive rounded transition-colors"
@@ -1264,7 +1264,7 @@ function ProductTariffImportPage({
             </div>
             <div className="flex items-center gap-1.5">
               {(['ALL', 'TPA', 'TASAC', 'TRA'] as const).map(auth => (
-                <button
+                <button data-ui-native-button=""
                   key={auth}
                   type="button"
                   onClick={() => setAuthorityFilter(auth)}
@@ -1618,7 +1618,7 @@ export const ProductsServices: React.FC = () => {
       {/* Metrics Row */}
       <MetricsRow cards={[
         {
-          title: 'Total Catalog',
+          emphasis: 'primary', title: 'Total Catalog',
           value: String(stats.total),
           sub1Label: 'PRODUCTS',
           sub1Value: String(stats.physical),
@@ -1709,7 +1709,7 @@ export const ProductsServices: React.FC = () => {
             actions={
               <div className="products-view-toggle">
                 <Tip label="Table view">
-                  <button
+                  <button data-ui-native-button=""
                     type="button"
                     className={viewMode === 'table' ? 'is-active' : ''}
                     onClick={() => setViewMode('table')}
@@ -1719,7 +1719,7 @@ export const ProductsServices: React.FC = () => {
                   </button>
                 </Tip>
                 <Tip label="Card grid view">
-                  <button
+                  <button data-ui-native-button=""
                     type="button"
                     className={viewMode === 'grid' ? 'is-active' : ''}
                     onClick={() => setViewMode('grid')}
@@ -1845,7 +1845,7 @@ export const ProductsServices: React.FC = () => {
                     <td className="p-3 text-right pr-3" onClick={e => e.stopPropagation()}>
                       <DropdownMenu>
                         <DropdownMenuTrigger asChild>
-                          <button
+                          <button data-ui-native-button=""
                             type="button"
                             className="w-7 h-7 inline-flex items-center justify-center rounded text-muted-foreground hover:bg-accent hover:text-foreground transition-colors"
                           >
@@ -1878,7 +1878,7 @@ export const ProductsServices: React.FC = () => {
         ) : (
           <div className="products-grid p-4">
             {products.map(p => (
-              <button
+              <button data-ui-native-button=""
                 key={p.id}
                 type="button"
                 onClick={() => navigate(`${baseRoute}/products/${p.id}`)}

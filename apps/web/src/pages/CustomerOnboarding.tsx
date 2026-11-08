@@ -118,7 +118,7 @@ export const CustomerOnboarding: React.FC = () => {
             <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: 14 }}>
               <div style={{ gridColumn: isMobile ? 'auto' : '1 / 3' }}>
                 <label style={{ display: 'block', fontSize: 11, fontWeight: 600, color: 'var(--ink2)', marginBottom: 4 }}>Company Name *</label>
-                <input type="text" className="input-field" placeholder="Acme Imports Ltd" required value={name} onChange={e => setName(e.target.value)} autoFocus />
+                <input data-ui-field="input" type="text" className="input-field" placeholder="Acme Imports Ltd" required value={name} onChange={e => setName(e.target.value)} autoFocus />
               </div>
               <div>
                 <label style={{ display: 'block', fontSize: 11, fontWeight: 600, color: 'var(--ink2)', marginBottom: 4 }}>Category</label>
@@ -133,11 +133,11 @@ export const CustomerOnboarding: React.FC = () => {
               </div>
               <div>
                 <label style={{ display: 'block', fontSize: 11, fontWeight: 600, color: 'var(--ink2)', marginBottom: 4 }}>TIN / Tax ID</label>
-                <input type="text" className="input-field" placeholder="123-456-789" value={taxId} onChange={e => setTaxId(e.target.value)} />
+                <input data-ui-field="input" type="text" className="input-field" placeholder="123-456-789" value={taxId} onChange={e => setTaxId(e.target.value)} />
               </div>
               <div>
                 <label style={{ display: 'block', fontSize: 11, fontWeight: 600, color: 'var(--ink2)', marginBottom: 4 }}>Website</label>
-                <input type="text" className="input-field" placeholder="https://acme.co.tz" value={website} onChange={e => setWebsite(e.target.value)} />
+                <input data-ui-field="input" type="text" className="input-field" placeholder="https://acme.co.tz" value={website} onChange={e => setWebsite(e.target.value)} />
               </div>
             </div>
           </SectionCard>
@@ -146,19 +146,19 @@ export const CustomerOnboarding: React.FC = () => {
             <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: 14 }}>
               <div>
                 <label style={{ display: 'block', fontSize: 11, fontWeight: 600, color: 'var(--ink2)', marginBottom: 4 }}>Contact Person</label>
-                <input type="text" className="input-field" placeholder="John Doe" value={contactName} onChange={e => setContactName(e.target.value)} />
+                <input data-ui-field="input" type="text" className="input-field" placeholder="John Doe" value={contactName} onChange={e => setContactName(e.target.value)} />
               </div>
               <div>
                 <label style={{ display: 'block', fontSize: 11, fontWeight: 600, color: 'var(--ink2)', marginBottom: 4 }}>Email</label>
-                <input type="email" className="input-field" placeholder="info@acme.co.tz" value={email} onChange={e => setEmail(e.target.value)} />
+                <input data-ui-field="input" type="email" className="input-field" placeholder="info@acme.co.tz" value={email} onChange={e => setEmail(e.target.value)} />
               </div>
               <div>
                 <label style={{ display: 'block', fontSize: 11, fontWeight: 600, color: 'var(--ink2)', marginBottom: 4 }}>Phone</label>
-                <input type="text" className="input-field" placeholder="+255700000000" value={phone} onChange={e => setPhone(e.target.value)} />
+                <input data-ui-field="input" type="text" className="input-field" placeholder="+255700000000" value={phone} onChange={e => setPhone(e.target.value)} />
               </div>
               <div>
                 <label style={{ display: 'block', fontSize: 11, fontWeight: 600, color: 'var(--ink2)', marginBottom: 4 }}>WhatsApp Number</label>
-                <input type="text" className="input-field" placeholder="+255712345678" value={phoneWa} onChange={e => setPhoneWa(e.target.value)} />
+                <input data-ui-field="input" type="text" className="input-field" placeholder="+255712345678" value={phoneWa} onChange={e => setPhoneWa(e.target.value)} />
               </div>
               <div>
                 <label style={{ display: 'block', fontSize: 11, fontWeight: 600, color: 'var(--ink2)', marginBottom: 4 }}>Preferred Channel</label>
@@ -178,15 +178,15 @@ export const CustomerOnboarding: React.FC = () => {
             <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: 14 }}>
               <div style={{ gridColumn: isMobile ? 'auto' : '1 / 3' }}>
                 <label style={{ display: 'block', fontSize: 11, fontWeight: 600, color: 'var(--ink2)', marginBottom: 4 }}>Street Address</label>
-                <input type="text" className="input-field" placeholder="14 Harbor Road" value={address} onChange={e => setAddress(e.target.value)} />
+                <input data-ui-field="input" type="text" className="input-field" placeholder="14 Harbor Road" value={address} onChange={e => setAddress(e.target.value)} />
               </div>
               <div>
                 <label style={{ display: 'block', fontSize: 11, fontWeight: 600, color: 'var(--ink2)', marginBottom: 4 }}>City</label>
-                <input type="text" className="input-field" placeholder="Dar es Salaam" value={city} onChange={e => setCity(e.target.value)} />
+                <input data-ui-field="input" type="text" className="input-field" placeholder="Dar es Salaam" value={city} onChange={e => setCity(e.target.value)} />
               </div>
               <div>
                 <label style={{ display: 'block', fontSize: 11, fontWeight: 600, color: 'var(--ink2)', marginBottom: 4 }}>Country</label>
-                <input type="text" className="input-field" placeholder="Tanzania" value={country} onChange={e => setCountry(e.target.value)} />
+                <input data-ui-field="input" type="text" className="input-field" placeholder="Tanzania" value={country} onChange={e => setCountry(e.target.value)} />
               </div>
             </div>
           </SectionCard>

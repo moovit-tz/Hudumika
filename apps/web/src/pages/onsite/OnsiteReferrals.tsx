@@ -62,7 +62,7 @@ export function OnsiteReferrals() {
             </div>
             {link?.url ? (
               <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
-                <input className="onsite-input onsite-mono" readOnly value={link.url} style={{ flex: 1 }} />
+                <input data-ui-field="input" className="onsite-input onsite-mono" readOnly value={link.url} style={{ flex: 1 }} />
                 <Button variant="outline" size="sm" onClick={handleCopy}>
                   <Icon name="copy" size={14} /> Copy
                 </Button>

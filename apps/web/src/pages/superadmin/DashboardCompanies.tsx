@@ -588,13 +588,13 @@ export function CompaniesView() {
                         setPlanFilter('all');
                       }}
                       style={{
-                        fontSize: 12,
+                        fontSize: "var(--text-base)",
                         fontWeight: 600,
                         color: 'hsl(var(--primary))',
                         background: 'transparent',
                         border: 'none',
                         cursor: 'pointer',
-                        padding: '2px 6px',
+                        padding: "var(--action-py) var(--space-md)",
                       }}
                       className="hover:underline"
                      data-ui-native-button="">
@@ -624,9 +624,9 @@ export function CompaniesView() {
                             display: 'inline-flex',
                             alignItems: 'center',
                             gap: 6,
-                            padding: '5px 11px',
-                            borderRadius: 8,
-                            fontSize: 12,
+                            padding: "var(--action-py) var(--space-md)",
+                            borderRadius: "var(--r-sm)",
+                            fontSize: "var(--text-base)",
                             fontWeight: isSelected ? 600 : 500,
                             border: isSelected ? '1px solid hsl(var(--primary))' : '1px solid var(--border)',
                             background: isSelected ? 'hsl(var(--primary) / 0.1)' : 'var(--bg)',
@@ -657,9 +657,9 @@ export function CompaniesView() {
                       style={{
                         display: 'inline-flex',
                         alignItems: 'center',
-                        padding: '5px 11px',
-                        borderRadius: 8,
-                        fontSize: 12,
+                        padding: "var(--action-py) var(--space-md)",
+                        borderRadius: "var(--r-sm)",
+                        fontSize: "var(--text-base)",
                         fontWeight: planFilter === 'all' ? 600 : 500,
                         border: planFilter === 'all' ? '1px solid hsl(var(--primary))' : '1px solid var(--border)',
                         background: planFilter === 'all' ? 'hsl(var(--primary) / 0.1)' : 'var(--bg)',
@@ -680,9 +680,9 @@ export function CompaniesView() {
                           style={{
                             display: 'inline-flex',
                             alignItems: 'center',
-                            padding: '5px 11px',
-                            borderRadius: 8,
-                            fontSize: 12,
+                            padding: "var(--action-py) var(--space-md)",
+                            borderRadius: "var(--r-sm)",
+                            fontSize: "var(--text-base)",
                             fontWeight: isSelected ? 600 : 500,
                             border: isSelected ? '1px solid hsl(var(--primary))' : '1px solid var(--border)',
                             background: isSelected ? 'hsl(var(--primary) / 0.1)' : 'var(--bg)',
@@ -707,7 +707,7 @@ export function CompaniesView() {
                     type="button"
                     onClick={close}
                     className="btn btn-primary btn-sm"
-                    style={{ padding: '4px 12px', fontSize: 12 }}
+                    style={{ padding: "var(--action-py) var(--space-md)", fontSize: "var(--text-base)" }}
                    data-ui-native-button="">
                     Done
                   </button>
@@ -805,13 +805,13 @@ export function CompaniesView() {
                 setPlanFilter('all');
               }}
               style={{
-                fontSize: 11.5,
+                fontSize: "var(--text-base)",
                 fontWeight: 600,
                 color: 'hsl(var(--primary))',
                 background: 'transparent',
                 border: 'none',
                 cursor: 'pointer',
-                padding: '2px 4px',
+                padding: "var(--action-py) var(--space-md)",
               }}
               className="hover:underline"
              data-ui-native-button="">
@@ -888,7 +888,7 @@ export function CompaniesView() {
                       type="button"
                       disabled={!!impersonating}
                       onClick={() => handleImpersonate(co)}
-                      style={{ display:'inline-flex', alignItems:'center', gap:5, padding:'var(--ds-btn-py-xs) 10px', borderRadius:'var(--r)', border:'1px solid var(--teal)', background:'var(--teal-l)', color:'var(--teal)', fontSize:11, fontWeight:700, cursor: impersonating ? 'not-allowed' : 'pointer', fontFamily:'var(--font)', opacity: impersonating===co.id ? 0.6 : 1, whiteSpace:'nowrap', minHeight: 'var(--ctl-h-xs)', boxSizing: 'border-box', lineHeight: 1.25}} data-ui-native-button="">
+                      style={{ display:'inline-flex', alignItems:'center', gap:5, padding:'var(--ds-btn-py-xs) 10px', borderRadius:'var(--r)', border:'1px solid var(--teal)', background:'var(--teal-l)', color:'var(--teal)', fontSize:"var(--text-xs)", fontWeight:700, cursor: impersonating ? 'not-allowed' : 'pointer', fontFamily:'var(--font)', opacity: impersonating===co.id ? 0.6 : 1, whiteSpace:'nowrap', minHeight: 'var(--ctl-h-xs)', boxSizing: 'border-box', lineHeight: 1.25}} data-ui-native-button="">
                       <Icon name="eye" size={11} color="var(--teal)" />
                       {impersonating === co.id ? 'Switching…' : 'Login As'}
                     </button>
@@ -940,7 +940,7 @@ export function CompaniesView() {
               ] as const).map(f=>(
                 <div key={f.key} style={{ gridColumn: f.key==='email'?'span 2':undefined }}>
                   <label style={{ fontSize:12, fontWeight:600, color:'var(--ink2)', display:'block', marginBottom:5 }}>{f.label}</label>
-                  <input title={f.label} value={form[f.key as keyof CoForm]} onChange={e=>setForm(p=>({...p,[f.key]:e.target.value}))} placeholder={f.placeholder} className="input-field" style={{ width:'100%' }} />
+                  <input data-ui-field="input" title={f.label} value={form[f.key as keyof CoForm]} onChange={e=>setForm(p=>({...p,[f.key]:e.target.value}))} placeholder={f.placeholder} className="input-field" style={{ width:'100%' }} />
                 </div>
               ))}
               <div>
@@ -971,7 +971,7 @@ export function CompaniesView() {
             <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:14 }}>
               <div>
                 <label style={{ fontSize:12, fontWeight:600, color:'var(--ink2)', display:'block', marginBottom:5 }}>Company Name</label>
-                <input title="Company Name" value={editForm.name} onChange={e=>setEditForm(p=>({...p,name:e.target.value}))} className="input-field" style={{ width:'100%' }} />
+                <input data-ui-field="input" title="Company Name" value={editForm.name} onChange={e=>setEditForm(p=>({...p,name:e.target.value}))} className="input-field" style={{ width:'100%' }} />
               </div>
               <div>
                 <label style={{ fontSize:12, fontWeight:600, color:'var(--ink2)', display:'block', marginBottom:5 }}>Plan</label>
@@ -1114,7 +1114,7 @@ export function CompaniesView() {
                         title={`Login as ${cust.name}`}
                         disabled={!!impersonatingCustomerId}
                         onClick={() => handleImpersonateCustomer(cust)}
-                        style={{ display:'inline-flex', alignItems:'center', gap:5, padding:'var(--ds-btn-py-xs) 10px', borderRadius:'var(--r)', border:'1px solid var(--teal)', background:'var(--teal-l)', color:'var(--teal)', fontSize:11, fontWeight:700, cursor: impersonatingCustomerId ? 'not-allowed' : 'pointer', fontFamily:'var(--font)', opacity: impersonatingCustomerId===cust.id ? 0.6 : 1, whiteSpace:'nowrap', minHeight: 'var(--ctl-h-xs)', boxSizing: 'border-box', lineHeight: 1.25}} data-ui-native-button="">
+                        style={{ display:'inline-flex', alignItems:'center', gap:5, padding:'var(--ds-btn-py-xs) 10px', borderRadius:'var(--r)', border:'1px solid var(--teal)', background:'var(--teal-l)', color:'var(--teal)', fontSize:"var(--text-xs)", fontWeight:700, cursor: impersonatingCustomerId ? 'not-allowed' : 'pointer', fontFamily:'var(--font)', opacity: impersonatingCustomerId===cust.id ? 0.6 : 1, whiteSpace:'nowrap', minHeight: 'var(--ctl-h-xs)', boxSizing: 'border-box', lineHeight: 1.25}} data-ui-native-button="">
                         <Icon name="eye" size={11} color="var(--teal)" />
                         {impersonatingCustomerId === cust.id ? 'Switching…' : 'Login As Customer'}
                       </button>

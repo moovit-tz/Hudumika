@@ -112,7 +112,7 @@ function TicketCard({ ticket, onClick }: { ticket: Ticket; onClick: () => void }
         background: 'var(--white)',
         border: '1px solid var(--border)',
         borderLeft: `4px solid ${pr.color}`,
-        borderRadius: 'var(--r)', padding: '16px',
+        borderRadius: 'var(--r)', padding: "var(--action-py) var(--space-md)",
         fontFamily: 'var(--font)',
         boxShadow: isActive ? '0 1px 4px rgba(0,0,0,0.06)' : 'none',
         opacity: ticket.status === 'CLOSED' ? 0.7 : 1,
@@ -206,7 +206,7 @@ function TicketThread({ ticket, threadLoading, onBack, onReply }: {
             style={{
               background: 'none', border: 'none', cursor: 'pointer', padding: 'var(--ds-btn-py-xs) 0',
               display: 'flex', alignItems: 'center', gap: 4, color: 'var(--teal)',
-              fontWeight: 600, fontSize: 14, fontFamily: 'var(--font)', minHeight: 'var(--ctl-h-xs)', boxSizing: 'border-box', lineHeight: 1.25}} data-ui-native-button="">
+              fontWeight: 600, fontSize: "var(--text-base)", fontFamily: 'var(--font)', minHeight: 'var(--ctl-h-xs)', boxSizing: 'border-box', lineHeight: 1.25}} data-ui-native-button="">
             <Icon name="chevronLeft" size={18} color="var(--teal)" />
             Back
           </button>
@@ -269,7 +269,7 @@ function TicketThread({ ticket, threadLoading, onBack, onReply }: {
           borderTop: '1px solid var(--border)', background: 'var(--white)',
           padding: '12px 16px', display: 'flex', gap: 10, alignItems: 'flex-end',
         }}>
-          <textarea
+          <textarea data-ui-field="textarea"
             title="Your reply"
             placeholder="Type your message…"
             value={reply}
@@ -279,7 +279,7 @@ function TicketThread({ ticket, threadLoading, onBack, onReply }: {
             rows={2}
             style={{
               flex: 1, resize: 'none', border: '1.5px solid var(--border)', borderRadius: 'var(--r)',
-              padding: '10px 12px', fontSize: 14, fontFamily: 'var(--font)', color: 'var(--ink)',
+              padding: "var(--ds-input-py) var(--space-md)", fontSize: "var(--text-base)", fontFamily: 'var(--font)', color: 'var(--ink)',
               background: 'var(--bg)', outline: 'none',
               lineHeight: 1.5,
             }}
@@ -350,7 +350,7 @@ function NewTicketModal({ onClose, onCreate, creating }: {
             <label style={{ fontSize: 12, fontWeight: 600, color: 'var(--ink2)', display: 'block', marginBottom: 6, fontFamily: 'var(--font)' }}>
               Subject
             </label>
-            <input
+            <input data-ui-field="input"
               type="text"
               title="Ticket subject"
               placeholder="Brief description of your issue"
@@ -358,7 +358,7 @@ function NewTicketModal({ onClose, onCreate, creating }: {
               onChange={e => setSubject(e.target.value)}
               style={{
                 width: '100%', border: '1.5px solid var(--border)', borderRadius: 'var(--r)',
-                padding: '11px 14px', fontSize: 14, fontFamily: 'var(--font)', color: 'var(--ink)',
+                padding: "var(--ds-input-py) var(--space-md)", fontSize: "var(--text-base)", fontFamily: 'var(--font)', color: 'var(--ink)',
                 background: 'var(--bg)', outline: 'none', boxSizing: 'border-box',
               }}
             />
@@ -369,7 +369,7 @@ function NewTicketModal({ onClose, onCreate, creating }: {
             <label style={{ fontSize: 12, fontWeight: 600, color: 'var(--ink2)', display: 'block', marginBottom: 6, fontFamily: 'var(--font)' }}>
               Message
             </label>
-            <textarea
+            <textarea data-ui-field="textarea"
               title="Describe your issue"
               placeholder="Provide as much detail as possible…"
               value={body}
@@ -377,7 +377,7 @@ function NewTicketModal({ onClose, onCreate, creating }: {
               rows={4}
               style={{
                 width: '100%', resize: 'none', border: '1.5px solid var(--border)', borderRadius: 'var(--r)',
-                padding: '11px 14px', fontSize: 14, fontFamily: 'var(--font)', color: 'var(--ink)',
+                padding: "var(--ds-input-py) var(--space-md)", fontSize: "var(--text-base)", fontFamily: 'var(--font)', color: 'var(--ink)',
                 background: 'var(--bg)', outline: 'none', lineHeight: 1.5, boxSizing: 'border-box',
               }}
             />

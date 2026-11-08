@@ -270,9 +270,9 @@ export function SmsCampaignDetail() {
               key={f.id}
               onClick={() => setStatusFilter(f.id)}
               style={{
-                padding: '4px 10px',
+                padding: "var(--action-py) var(--space-md)",
                 borderRadius: 'var(--badge-radius)',
-                fontSize: 12,
+                fontSize: "var(--text-base)",
                 fontWeight: 600,
                 cursor: 'pointer',
                 border: `1px solid ${statusFilter === f.id ? 'var(--teal)' : 'var(--border)'}`,

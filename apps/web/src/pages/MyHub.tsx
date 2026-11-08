@@ -194,7 +194,7 @@ export function MyHubPage() {
                   <div style={{ fontSize: 12, color: 'var(--ink3)' }}>Track your remaining paid leave days for the year</div>
                 </div>
               </div>
-              <Button size="sm" onClick={() => navigate('/nexushr/leaves')} style={{ height: 32, fontSize: 12, fontWeight: 700 }}>
+              <Button size="sm" onClick={() => navigate('/nexushr/leaves')} style={{ height: "var(--ctl-h)", fontSize: "var(--text-base)", fontWeight: 700 }}>
                 + Request Leave
               </Button>
             </div>
@@ -262,10 +262,10 @@ export function MyHubPage() {
                 </div>
 
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 10, alignItems: 'stretch' }}>
-                  <Button onClick={() => navigate('/nexushr/my-payslips')} style={{ fontWeight: 700, fontSize: 13 }}>
+                  <Button onClick={() => navigate('/nexushr/my-payslips')} style={{ fontWeight: 700, fontSize: "var(--text-base)" }}>
                     <Icon name="download" size={14} /> Download PDF
                   </Button>
-                  <Button variant="outline" size="sm" onClick={() => navigate(`/nexushr/staff/${user?.id}`)} style={{ fontSize: 12 }}>
+                  <Button variant="outline" size="sm" onClick={() => navigate(`/nexushr/staff/${user?.id}`)} style={{ fontSize: "var(--text-base)" }}>
                     Payment Details
                   </Button>
                 </div>
@@ -357,7 +357,7 @@ export function MyHubPage() {
                     <button
                       type="button"
                       onClick={() => apiDownload(`/v1/hr/documents/${doc.id}/download`,doc.name).catch((err:Error) => setLoadError(err.message))}
-                      style={{ fontSize: 11, color: 'var(--teal)', background: 'none', border: 'none', cursor: 'pointer', fontWeight: 700 }}
+                      style={{ fontSize: "var(--text-xs)", color: 'var(--teal)', background: 'none', border: 'none', cursor: 'pointer', fontWeight: 700 }}
                      data-ui-native-button="">
                       PDF
                     </button>

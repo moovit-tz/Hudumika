@@ -486,7 +486,7 @@ export const AgenticHome: React.FC = () => {
           <div className="ah-header-center">
             <div className={`ah-header-search${searchFocused ? ' ah-header-search--focused' : ''}`}>
               <Icon name="search" size={14} className="ah-search-icon" />
-              <input
+              <input data-ui-field="input" data-field-appearance="bare"
                 ref={searchInputRef}
                 value={searchQ}
                 onChange={e => setSearchQ(e.target.value)}
@@ -881,7 +881,7 @@ export const AgenticHome: React.FC = () => {
               )}
             </div>
             <div className="ah-chat-input-row">
-              <input
+              <input data-ui-field="input"
                 className="ah-chat-input" value={chatInput}
                 placeholder={pendingApproval ? 'Waiting on an approval decision…' : 'Ask or ask me to do something…'}
                 disabled={!!pendingApproval || chatBusy}

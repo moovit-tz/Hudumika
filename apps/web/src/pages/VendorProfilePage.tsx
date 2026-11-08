@@ -637,7 +637,7 @@ export function VendorProfilePage() {
 
         {/* Live 6-KPI Executive Ribbon */}
         <div className="vendor-hero-kpi-bar">
-          <div className="vendor-kpi-item">
+          <div className="vendor-kpi-item" data-finops-accent="">
             <div className="vendor-kpi-top">
               <span className="vendor-kpi-label">Outstanding Balance</span>
               <Icon name="alertTriangle" size={14} style={{ color: financialMetrics.outstanding > 0 ? 'var(--red)' : 'var(--green)' }} />
@@ -721,7 +721,7 @@ export function VendorProfilePage() {
           { key: 'payments',  label: 'Payments & Remittance', icon: 'dollarSign'   as const, count: payments.length },
           { key: 'edit',      label: 'Profile & Settings',    icon: 'settings'     as const },
         ].map(t => (
-          <button
+          <button data-ui-native-button=""
             key={t.key}
             type="button"
             className={`vendor-tab-btn ${activeTab === t.key ? 'is-active' : ''}`}
@@ -976,7 +976,7 @@ export function VendorProfilePage() {
                   value={notesDraft}
                   onChange={e => setNotesDraft(e.target.value)}
                   placeholder="Record supplier agreements, credit facilities, SLAs, special contact instructions…"
-                  style={{ minHeight: 90, fontSize: 13, lineHeight: 1.5 }}
+                  style={{ minHeight: 90, fontSize: "var(--text-base)", lineHeight: 1.5 }}
                 />
               </div>
             </div>
@@ -995,7 +995,7 @@ export function VendorProfilePage() {
               </h3>
               <div style={{ display: 'flex', gap: 6 }}>
                 {['ALL', 'OVERDUE', 'UNPAID', 'PAID', 'DRAFT'].map(st => (
-                  <button
+                  <button data-ui-native-button=""
                     key={st}
                     type="button"
                     onClick={() => setBillStatusFilter(st)}
@@ -1003,9 +1003,9 @@ export function VendorProfilePage() {
                       border: '1px solid var(--border)',
                       background: billStatusFilter === st ? 'var(--teal-l)' : 'var(--bg)',
                       color: billStatusFilter === st ? 'var(--teal)' : 'var(--ink2)',
-                      fontSize: 11,
+                      fontSize: "var(--text-xs)",
                       fontWeight: 700,
-                      padding: '3px 10px',
+                      padding: "var(--action-py) var(--space-md)",
                       borderRadius: 'var(--r-sm)',
                       cursor: 'pointer',
                     }}
@@ -1097,7 +1097,7 @@ export function VendorProfilePage() {
               </h3>
               <div style={{ display: 'flex', gap: 6 }}>
                 {['ALL', 'OPEN', 'RECEIVED', 'CANCELLED'].map(st => (
-                  <button
+                  <button data-ui-native-button=""
                     key={st}
                     type="button"
                     onClick={() => setPoStatusFilter(st)}
@@ -1105,9 +1105,9 @@ export function VendorProfilePage() {
                       border: '1px solid var(--border)',
                       background: poStatusFilter === st ? 'var(--blue-l)' : 'var(--bg)',
                       color: poStatusFilter === st ? 'var(--blue)' : 'var(--ink2)',
-                      fontSize: 11,
+                      fontSize: "var(--text-xs)",
                       fontWeight: 700,
-                      padding: '3px 10px',
+                      padding: "var(--action-py) var(--space-md)",
                       borderRadius: 'var(--r-sm)',
                       cursor: 'pointer',
                     }}
@@ -1430,7 +1430,7 @@ export function VendorProfilePage() {
                       onChange={e => setEditForm(f => ({ ...f, refCode: e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, '') }))}
                       placeholder="Auto"
                       maxLength={20}
-                      style={{ fontFamily: 'monospace', textTransform: 'uppercase', letterSpacing: 1 }}
+                      style={{ fontFamily: "var(--font)", textTransform: 'uppercase', letterSpacing: 1 }}
                     />
                   </div>
                   <div>
