@@ -63,6 +63,7 @@ import { analyticsRoutes } from './routes/analytics.routes.js';
 import { notificationRoutes } from './routes/notifications.routes.js';
 import { webhookRoutes } from './routes/webhooks.routes.js';
 import { billingWebhookRoutes } from './routes/billing-webhooks.routes.js';
+import { invoiceGatewayWebhookRoutes } from './routes/invoice-gateway-webhooks.routes.js';
 import { declarationRoutes } from './routes/declarations.routes.js';
 import { referenceRoutes } from './routes/reference.routes.js';
 import { sanctionsRoutes } from './routes/sanctions.routes.js';
@@ -581,6 +582,7 @@ export async function registerApp() {
     await server.register(notificationRoutes, { prefix: '/v1/notifications' });
     await server.register(webhookRoutes, { prefix: '/v1/webhooks' });
     await server.register(billingWebhookRoutes, { prefix: '/v1/webhooks/billing' });
+    await server.register(invoiceGatewayWebhookRoutes, { prefix: '/v1/webhooks/invoice-gateway' });
     await server.register(declarationRoutes, { prefix: '/v1/declarations' });
     await server.register(declarationLedgerAnchorRoutes, { prefix: '/v1/declarations' });
     await server.register(referenceRoutes, { prefix: '/v1/reference' });

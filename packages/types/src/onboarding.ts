@@ -72,12 +72,23 @@ export type PaymentMethod = 'card' | 'mpesa';
 export interface OnboardingAccountInput {
   name: string;
   email: string;
-  password: string;
+  /** Legacy path — being phased out in favor of ondi_ticket (full SSO
+   *  registration). Exactly one of password/ondi_ticket must be set. */
+  password?: string;
+  /** Proves this account's identity was verified by Ondi (Google/
+   *  Microsoft/Apple sign-in with no matching existing account) —
+   *  see POST /v1/ondi/auth/{google,microsoft,apple}/verify's
+   *  allowSignupTicket response and POST /v1/onboarding/complete's
+   *  verification of it. The server derives email/name from the
+   *  verified ticket itself, never trusts the client-supplied copies
+   *  above for anything but display. */
+  ondi_ticket?: string;
 }
 
 export interface OnboardingCompanyInput {
   name: string;
   industry?: string;
+  industries?: string[];
   country?: string;
 }
 
@@ -186,4 +197,51 @@ export interface JoinRequestInput {
 export interface JoinRequestSubmitResponse {
   success: true;
   tenant_name: string;
+}
+
+/** Returned by POST /v1/ondi/auth/{google,microsoft,apple}/verify when
+ *  called with allowSignupTicket and no existing account or tenant-domain
+ *  match was found — a verified-but-not-yet-registered identity, for the
+ *  onboarding wizard to carry into brand-new workspace creation (full-SSO
+ *  registration, no password). email/name come from the verified OAuth
+ *  identity, not anything the client typed. */
+export interface FederatedSignupTicket {
+  signup_ticket: string;
+  email: string;
+  name: string;
+}
+
+/**
+ * Resumable onboarding setup: the non-sensitive subset of OnboardingDraft
+ * worth persisting server-side between "verified with Ondi" and "workspace
+ * created" — deliberately excludes payment details and the ondi_ticket
+ * itself (both too sensitive to persist at rest longer than the request
+ * that needs them) and privacy_policy_version_id/privacy_acknowledged
+ * (re-resolved/re-acknowledged fresh on resume, never carried over stale).
+ */
+export interface OnboardingDraftPayload {
+  companyName?: string;
+  industry?: string;
+  industries?: string[];
+  country?: string;
+  onboarding_journey?: string;
+  package_code?: string;
+  billing_cycle?: 'monthly' | 'annual';
+  initial_products?: string[];
+  subdomain?: string;
+  timezone?: string;
+  currency?: string;
+  hq_city?: string;
+  hq_country?: string;
+}
+
+export interface OnboardingDraftSaveInput {
+  ondi_ticket: string;
+  step: number;
+  draft: OnboardingDraftPayload;
+}
+
+export interface OnboardingDraftResumeResponse {
+  step: number;
+  draft: OnboardingDraftPayload;
 }

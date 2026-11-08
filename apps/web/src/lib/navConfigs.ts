@@ -278,6 +278,7 @@ export const NAV_CONFIGS: Record<AppId, NavCategory[]> = {
   hudubi:        [],
   // Petti builds its own sidebar in PettiShell.tsx, like Lens/Onsite/Studio.
   petti:         [],
+  pos:           [],
   sign:          [],
   sms:           [],
   developer:     [],

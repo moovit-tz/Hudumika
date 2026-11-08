@@ -59,10 +59,18 @@ export async function customerCreditRoutes(fastify: FastifyInstance) {
     const { invoice_id, amount } = z.object({ invoice_id: z.string().uuid(), amount: z.number().positive() }).parse(request.body);
 
     return withTenant(user.tenant_id, async (trx) => {
-      const credit = await trx.selectFrom('customer_credits').selectAll().where('id', '=', id).where('tenant_id', '=', user.tenant_id).executeTakeFirst();
+      // forUpdate() on both rows this apply reads a balance from and then
+      // writes a dependent row against: without it, two concurrent /apply
+      // calls against the SAME credit (or the same target invoice) each
+      // compute "remaining"/"outstanding" from a stale, unlocked snapshot,
+      // so both can pass their own under-the-limit check and together
+      // over-apply past what the credit actually holds or the invoice
+      // actually owes — same race class fixed in petti.service.ts and
+      // bills.routes.ts earlier this session.
+      const credit = await trx.selectFrom('customer_credits').selectAll().where('id', '=', id).where('tenant_id', '=', user.tenant_id).forUpdate().executeTakeFirst();
       if (!credit) return reply.status(404).send({ error: 'Credit not found' });
 
-      const invoice = await trx.selectFrom('sales_invoices').selectAll().where('id', '=', invoice_id).where('tenant_id', '=', user.tenant_id).executeTakeFirst();
+      const invoice = await trx.selectFrom('sales_invoices').selectAll().where('id', '=', invoice_id).where('tenant_id', '=', user.tenant_id).forUpdate().executeTakeFirst();
       if (!invoice) return reply.status(404).send({ error: 'Invoice not found' });
       if (credit.customer_id && invoice.customer_id && credit.customer_id !== invoice.customer_id) {
         return reply.status(400).send({ error: 'This credit belongs to a different customer than the target invoice.' });

@@ -48,7 +48,7 @@ const GOOGLE_G_ICON = `
 export function GoogleSignInButton({ onCredential, onError, variant = 'default' }: {
   onCredential: (credential: string) => void;
   onError: (message: string) => void;
-  variant?: 'default' | 'pill';
+  variant?: 'default' | 'pill' | 'choice';
 }) {
   const [clientId, setClientId] = useState<string | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -69,12 +69,12 @@ export function GoogleSignInButton({ onCredential, onError, variant = 'default' 
         callback: (resp: { credential: string }) => onCredential(resp.credential),
       });
 
-      if (variant === 'pill') {
+      if (variant !== 'default') {
         container.innerHTML = '';
         const visual = document.createElement('div');
         visual.className = 'ondi-pill ondi-pill--google-visual';
         visual.style.pointerEvents = 'none';
-        visual.innerHTML = `${GOOGLE_G_ICON}<span>Continue with Google</span>`;
+        visual.innerHTML = `${GOOGLE_G_ICON}<span>${variant === 'choice' ? 'Google' : 'Continue with Google'}</span>`;
         container.appendChild(visual);
         visualRef.current = visual;
 
@@ -97,7 +97,7 @@ export function GoogleSignInButton({ onCredential, onError, variant = 'default' 
   }, [clientId, variant]);
 
   if (!clientId) return null;
-  if (variant === 'pill') {
+  if (variant !== 'default') {
     return <div ref={containerRef} className="ondi-google-pill" />;
   }
   return <div ref={containerRef} style={{ display: 'flex', justifyContent: 'center', marginBottom: 16 }} />;

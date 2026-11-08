@@ -1,13 +1,16 @@
+import { useLocale } from '../hooks/useLocale.js';
 import React, { useEffect, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { startAuthentication } from '@simplewebauthn/browser';
 import { useAuth } from '../hooks/useAuth.js';
 import { Icon } from './Icon.js';
+import { Button } from './ui/button.js';
 import { apiFetch, BASE_URL } from '../lib/api.js';
 import { GoogleSignInButton } from './GoogleSignInButton.js';
 import { MicrosoftSignInButton } from './MicrosoftSignInButton.js';
 import { AppleSignInButton } from './AppleSignInButton.js';
 import { Tip } from './ui/tooltip.js';
+import type { FederatedSignupTicket } from '@hudumika/types';
 
 const METHOD_META: Record<'phone' | 'totp' | 'passkey' | 'magic-link' | 'company-sso', { icon: 'phone' | 'shield' | 'fingerprint' | 'mail' | 'building'; label: string }> = {
   'phone':       { icon: 'phone',       label: 'Sign in with a phone code' },
@@ -28,14 +31,52 @@ const PASSKEY_LOGIN_ENABLED = false;
 // requestMagicLink in useAuth.tsx, and the real /v1/ondi/auth/magic-link/*
 // backend are all untouched; only this entry point is hidden.
 const MAGIC_LINK_LOGIN_ENABLED = false;
+// By direct request: the login picker was showing too many competing
+// options (phone pill, "more ways" reveal with authenticator/company-SSO/
+// Microsoft/Apple) and a user trying to sign in with Google ended up
+// clicking "Sign in with your company's SSO" by mistake, hitting a real
+// but unrelated "No company sign-on found" error. Login now offers exactly
+// one button — Google, the only provider actually configured — same
+// hide-the-entry-point-keep-the-flow pattern as PASSKEY_LOGIN_ENABLED/
+// MAGIC_LINK_LOGIN_ENABLED above: requestOtpLogin/verifyOtpLogin,
+// submitTotpCredentials/submitTotp, and checkCompanySso are all untouched,
+// just unreachable from the UI until one of these flips back to true.
+const PHONE_LOGIN_ENABLED = false;
+const TOTP_LOGIN_ENABLED = false;
+const COMPANY_SSO_LOGIN_ENABLED = false;
+// Same reasoning, login side only — signup already rendered Google only
+// implicitly via ONDI_SSO_MULTI_PROVIDER_SIGNUP below.
 const VISIBLE_METHODS = (Object.keys(METHOD_META) as Array<keyof typeof METHOD_META>)
   .filter(key => key !== 'passkey' || PASSKEY_LOGIN_ENABLED)
-  .filter(key => key !== 'magic-link' || MAGIC_LINK_LOGIN_ENABLED);
+  .filter(key => key !== 'magic-link' || MAGIC_LINK_LOGIN_ENABLED)
+  .filter(key => key !== 'totp' || TOTP_LOGIN_ENABLED)
+  .filter(key => key !== 'company-sso' || COMPANY_SSO_LOGIN_ENABLED);
 // Phone is its own primary pill (the idle view's second CTA, alongside
-// Google), not one more icon in the secondary row below. Always non-empty:
-// totp and company-sso are unconditional members of METHOD_META, never
-// gated by the two ENABLED flags above.
+// Google), not one more icon in the secondary row below.
 const SECONDARY_METHODS = VISIBLE_METHODS.filter(key => key !== 'phone');
+// Microsoft/Apple handlers (handleMicrosoftCredential etc.) stay fully
+// wired below — only the buttons are hidden, both for login and signup —
+// so re-enabling multi-provider sign-in later is flipping this back on,
+// not rebuilding it.
+const ONDI_SSO_MULTI_PROVIDER_SIGNUP = false;
+
+interface OndiSignInPanelProps {
+  /** 'login' (default): the platform's own phone-OTP/authenticator/passkey/
+   *  company-SSO methods — no Google, by explicit product decision (a
+   *  separate federated option read as competing with "sign in with Ondi"
+   *  rather than being part of it). 'signup': brand-new workspace creation
+   *  — ONLY Google/Microsoft/Apple render, because every other method here
+   *  (phone-OTP, magic-link, company-SSO) requires an existing tenant's own
+   *  SMS gateway/mail sender to verify through, which doesn't exist yet for
+   *  someone who isn't registered. OAuth doesn't have that problem — the
+   *  provider does the verifying, Hudumika never sends anything. */
+  intent?: 'login' | 'signup';
+  /** signup intent only: fires when Google/Microsoft/Apple verified a real
+   *  identity with no existing Hudumika account and no company to join —
+   *  genuinely new. The host (StepAccount) carries this into company-
+   *  details collection instead of a password field. */
+  onSignupTicket?: (ticket: FederatedSignupTicket) => void;
+}
 
 /**
  * Ondi's actual method picker and sign-in forms — Google/phone pills, the
@@ -43,21 +84,25 @@ const SECONDARY_METHODS = VISIBLE_METHODS.filter(key => key !== 'phone');
  * every mode's form (phone+OTP, email+authenticator-code, passkey, magic
  * link, company SSO). Pulled out of OndiLogin.tsx (the dedicated /ondi/login
  * page) so the *identical* picker can also render inline — as the "Ondi" tab
- * on the plain Login page, and on signup's own Details/Ondi choice — without
- * three copies of this state machine drifting apart. Only the page-level
- * chrome (theme toggle, the centered icon/headline, the closing "sign in
- * with password instead" links) stays with each host; this component is
- * just the picker + its own error/info feedback.
+ * on the plain Login page, and (intent="signup") on the onboarding wizard's
+ * own Account step — without three copies of this state machine drifting
+ * apart. Only the page-level chrome (theme toggle, the centered icon/
+ * headline, the closing "sign in with password instead" links) stays with
+ * each host; this component is just the picker + its own error/info
+ * feedback.
  *
- * Fully self-contained: no props. Every mode lands on the same session
- * /auth/login issues and always finishes by navigating to '/', regardless
- * of which page is currently hosting it.
+ * Every LOGIN mode lands on the same session /auth/login issues and always
+ * finishes by navigating to '/', regardless of which page is currently
+ * hosting it. SIGNUP intent never creates a session itself — see
+ * onSignupTicket above.
  */
-export function OndiSignInPanel() {
+export function OndiSignInPanel({ intent = 'login', onSignupTicket }: OndiSignInPanelProps) {
+  const { t } = useLocale();
   const { login, requestOtpLogin, verifyOtpLogin, requestMagicLink, requestPasskeyLoginOptions, verifyPasskeyLogin, loginWithGoogle, loginWithMicrosoft, loginWithApple } = useAuth();
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
   const returnTo = searchParams.get('returnTo') || '/';
+  const isSignup = intent === 'signup';
 
   // null = the idle "choose how to sign in" view (the two pills); set once
   // a method is actually picked.
@@ -91,6 +136,11 @@ export function OndiSignInPanel() {
 
   const [error, setError] = useState<string | null>(null);
   const [info, setInfo] = useState<string | null>(null);
+  // Set only for the login-intent NO_MATCHING_WORKSPACE case — renders a
+  // real "create a workspace instead" link rather than leaving it as a
+  // dead-end text hint (the gap this session's own audit flagged: the
+  // provider sign-in actually works, there's just nowhere to go from here).
+  const [noWorkspaceFound, setNoWorkspaceFound] = useState(false);
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
@@ -176,7 +226,7 @@ export function OndiSignInPanel() {
   };
 
   const switchMode = (next: 'phone' | 'totp' | 'passkey' | 'magic-link' | 'company-sso' | null) => {
-    setMode(next); setError(null); setInfo(null); setTotpStep('credentials'); setTotpPassword('');
+    setMode(next); setError(null); setInfo(null); setNoWorkspaceFound(false); setTotpStep('credentials'); setTotpPassword('');
   };
 
   const checkCompanySso = async (ev: React.FormEvent) => {
@@ -233,9 +283,13 @@ export function OndiSignInPanel() {
   // for why that's the only registration case a federated identity can
   // support (never a brand-new tenant with no company/plan/payment behind
   // it).
-  const handleFederatedResult = (res: Awaited<ReturnType<typeof loginWithGoogle>>) => {
+  const handleFederatedResult = (res: Awaited<ReturnType<typeof loginWithMicrosoft>>) => {
     if ('join_request' in res) {
       setInfo(`A request to join ${res.join_request.tenant_name} was sent for review. You'll get an email once an admin approves it.`);
+      return;
+    }
+    if ('signup_ticket' in res) {
+      onSignupTicket?.(res);
       return;
     }
     navigate(returnTo);
@@ -243,34 +297,39 @@ export function OndiSignInPanel() {
 
   const handleFederatedError = (err: any, provider: 'Google' | 'Microsoft' | 'Apple') => {
     if (err?.status === 404 && err?.body?.code === 'NO_MATCHING_WORKSPACE') {
-      setError(`No Hudumika workspace found for that ${provider} account. If your company is new here, create a workspace instead.`);
+      if (isSignup) {
+        setError(`Could not verify your ${provider} account. Try again.`);
+      } else {
+        setError(`No Hudumika workspace found for that ${provider} account.`);
+        setNoWorkspaceFound(true);
+      }
       return;
     }
     setError(err.message || `Could not sign in with ${provider}.`);
   };
 
   const handleGoogleCredential = async (credential: string) => {
-    setError(null); setInfo(null); setLoading(true);
+    setError(null); setInfo(null); setNoWorkspaceFound(false); setLoading(true);
     try {
-      handleFederatedResult(await loginWithGoogle(credential, true));
+      handleFederatedResult(await loginWithGoogle(credential, true, isSignup));
     } catch (err: any) {
       handleFederatedError(err, 'Google');
     } finally { setLoading(false); }
   };
 
   const handleMicrosoftCredential = async (credential: string) => {
-    setError(null); setInfo(null); setLoading(true);
+    setError(null); setInfo(null); setNoWorkspaceFound(false); setLoading(true);
     try {
-      handleFederatedResult(await loginWithMicrosoft(credential, true));
+      handleFederatedResult(await loginWithMicrosoft(credential, true, isSignup));
     } catch (err: any) {
       handleFederatedError(err, 'Microsoft');
     } finally { setLoading(false); }
   };
 
   const handleAppleCredential = async (credential: string, name?: string) => {
-    setError(null); setInfo(null); setLoading(true);
+    setError(null); setInfo(null); setNoWorkspaceFound(false); setLoading(true);
     try {
-      handleFederatedResult(await loginWithApple(credential, name, true));
+      handleFederatedResult(await loginWithApple(credential, name, true, isSignup));
     } catch (err: any) {
       handleFederatedError(err, 'Apple');
     } finally { setLoading(false); }
@@ -280,42 +339,44 @@ export function OndiSignInPanel() {
     <div className="ondi-panel">
       {mode === null ? (
         <>
-          <GoogleSignInButton onCredential={handleGoogleCredential} onError={setError} variant="pill" />
-          <button type="button" onClick={() => switchMode('phone')} className="ondi-pill ondi-pill--phone" data-ui-native-button="">
-            <Icon name="phone" size={16} /> Continue with phone number
-          </button>
-
-          <button type="button" onClick={() => setShowMoreMethods(s => !s)} className="ondi-more-toggle" data-ui-native-button="">
-            {showMoreMethods ? 'Fewer options' : 'More ways to sign in'}
-            <Icon name={showMoreMethods ? 'chevronUp' : 'chevronDown'} size={13} />
-          </button>
-          {showMoreMethods && (
-            <div>
-              <div className="ondi-method-row">
-                {SECONDARY_METHODS.map(key => (
-                  <Tip key={key} label={METHOD_META[key].label}>
-                    <button
-                      type="button"
-                      onClick={() => switchMode(key)}
-                      className="ondi-method-btn"
-                      aria-label={METHOD_META[key].label}
-                     data-ui-native-button="">
-                      <Icon name={METHOD_META[key].icon} size={17} />
-                    </button>
-                  </Tip>
-                ))}
-              </div>
-              <div className="ondi-method-caption">Pick a method above</div>
-              {/* Microsoft and Apple both draw their own real click-handled
-                  buttons (no iframe constraint like Google's), so neither
-                  needs pill treatment here — .login-social-btn's existing
-                  centered look is enough for a secondary, tucked-away
-                  option. Each self-hides independently when its own Client
-                  ID isn't configured (Ondi SSO settings), so this renders
-                  zero, one, or both with no layout gap either way. */}
-              <MicrosoftSignInButton onCredential={handleMicrosoftCredential} onError={setError} />
-              <AppleSignInButton onCredential={handleAppleCredential} onError={setError} />
-            </div>
+          <div className="ondi-signin-choice" role="group" aria-label="Sign-in method">
+            <GoogleSignInButton onCredential={handleGoogleCredential} onError={setError} variant="choice" />
+            <span className="ondi-signin-choice-or" aria-hidden="true">{t('onboarding.or')}</span>
+            <Button type="button" variant="ghost" size="sm" className="ondi-signin-choice-sso" aria-label="Sign in with company SSO" onClick={() => switchMode('company-sso')}>
+              <Icon name="building" size={18} /><span>{t('onboarding.companySso')}</span>
+            </Button>
+          </div>
+          {!isSignup && PHONE_LOGIN_ENABLED && (
+            <button type="button" onClick={() => switchMode('phone')} className="ondi-pill ondi-pill--phone" data-ui-native-button="">
+              <Icon name="phone" size={16} /> Continue with phone number
+            </button>
+          )}
+          {!isSignup && SECONDARY_METHODS.length > 0 && (
+            <>
+              <button type="button" onClick={() => setShowMoreMethods(s => !s)} className="ondi-more-toggle" data-ui-native-button="">
+                {showMoreMethods ? 'Fewer options' : 'More ways to sign in'}
+                <Icon name={showMoreMethods ? 'chevronUp' : 'chevronDown'} size={13} />
+              </button>
+              {showMoreMethods && (
+                <div>
+                  <div className="ondi-method-row">
+                    {SECONDARY_METHODS.map(key => (
+                      <Tip key={key} label={METHOD_META[key].label}>
+                        <button
+                          type="button"
+                          onClick={() => switchMode(key)}
+                          className="ondi-method-btn"
+                          aria-label={METHOD_META[key].label}
+                         data-ui-native-button="">
+                          <Icon name={METHOD_META[key].icon} size={17} />
+                        </button>
+                      </Tip>
+                    ))}
+                  </div>
+                  <div className="ondi-method-caption">Pick a method above</div>
+                </div>
+              )}
+            </>
           )}
         </>
       ) : (
@@ -329,6 +390,17 @@ export function OndiSignInPanel() {
           <Icon name="alertCircle" size={16} />
           <span>{error}</span>
         </div>
+      )}
+      {noWorkspaceFound && (
+        <button
+          type="button"
+          onClick={() => navigate(`/signup?returnTo=${encodeURIComponent(returnTo)}`)}
+          className="login-submit-btn login-submit-btn--full"
+          style={{ marginTop: 4 }}
+          data-ui-native-button=""
+        >
+          Create a workspace instead
+        </button>
       )}
       {info && !error && (
         <div className="login-error" style={{ background: 'var(--green-l, #ecfdf5)', borderColor: 'var(--green, #059669)', color: 'var(--green, #059669)' }}>
@@ -514,6 +586,9 @@ export function OndiSignInPanel() {
       {mode === 'company-sso' && (
         <form onSubmit={checkCompanySso} noValidate className="login-form">
           <div className="login-field">
+            <label className="reg-label" style={{ marginBottom: 4, display: 'block' }}>
+              Work or organization email
+            </label>
             <input
               type="email"
               placeholder="you@yourcompany.com"
@@ -522,10 +597,14 @@ export function OndiSignInPanel() {
               className="login-input"
               autoComplete="username"
               disabled={ssoChecking}
+              autoFocus
             />
+            <p className="login-subtext" style={{ fontSize: 11.5, marginTop: 4 }}>
+              Enter your work email to connect to your organization's Single Sign-On (SSO).
+            </p>
           </div>
           <button type="submit" disabled={ssoChecking} className="login-submit-btn login-submit-btn--full" data-ui-native-button="">
-            {ssoChecking ? 'Redirecting…' : 'Continue'}
+            {ssoChecking ? 'Connecting to SSO…' : 'Continue with SSO'}
           </button>
         </form>
       )}

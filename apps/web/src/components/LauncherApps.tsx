@@ -41,6 +41,7 @@ export const LAUNCHER_APPS: Array<{ id: string; name: string; color: string; pat
   { id: 'onsite',    name: 'Onsite',   color: '#0f172a', path: '/onsite'    },
   { id: 'hudubi',    name: 'HuduBI',   color: '#18181b', path: '/hudubi'    },
   { id: 'petti',     name: 'Petti',    color: '#16a34a', path: '/petti'     },
+  { id: 'pos',       name: 'POS',      color: '#1257c6', path: '/pos'       },
   { id: 'sign',      name: 'eSign',    color: '#2563eb', path: '/sign'      },
   { id: 'sms',       name: 'SMS',      color: '#1257c6', path: '/sms'       },
   { id: 'projects',  name: 'Projects', color: '#f59e0b', path: '/projects'  },

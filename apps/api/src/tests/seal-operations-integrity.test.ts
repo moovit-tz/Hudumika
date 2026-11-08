@@ -3,12 +3,17 @@ import { beforeAll, afterAll, it, expect } from 'vitest';
 import { randomUUID } from 'node:crypto';
 import { dbPlatform, withTenant } from '../db/client.js';
 import { SealService } from '../services/seal.service.js';
-import { createTestTenant, getApp, authHeaders, type TestTenant } from './helpers.js';
+import { createTestTenant, getApp, authHeaders, grantStandaloneProduct, type TestTenant } from './helpers.js';
 let a: TestTenant, b: TestTenant;
 let warehouse: string, destination: string, owner: string;
 beforeAll(async () => {
   a = await createTestTenant(); b = await createTestTenant();
   await dbPlatform.updateTable('tenants').set({plan:'enterprise'}).where('id','in',[a.tenantId,b.tenantId]).execute();
+  // 'enterprise' alone no longer grants SEAL (migration 688 unbundled it into
+  // a standalone product, grandfathering only tenants that existed at
+  // migration time) — a fresh test tenant needs the real subscription too.
+  await grantStandaloneProduct(a.tenantId, 'seal');
+  await grantStandaloneProduct(b.tenantId, 'seal');
   await withTenant(a.tenantId, async trx => {
     owner = (await trx.insertInto('customers').values({tenant_id:a.tenantId,name:'Warehouse test owner',category:'sme',active:true,avatar_initials:'WT',avatar_color:'#0b7264'}).returning('id').executeTakeFirstOrThrow()).id;
     for (const [index,code] of ['SOURCE','DESTINATION'].entries()) {

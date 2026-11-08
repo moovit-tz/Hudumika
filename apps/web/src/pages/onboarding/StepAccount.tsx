@@ -1,260 +1,160 @@
-import React, { useState, useEffect, useRef } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { apiFetch } from '../../lib/api.js';
+import { useLocale } from '../../hooks/useLocale.js';
+import React, { useState } from 'react';
 import { Icon } from '../../components/Icon.js';
-import { OndiLogo } from '../../components/OndiLogo.js';
 import { OndiSignInPanel } from '../../components/OndiSignInPanel.js';
-import { Tip } from '../../components/ui/tooltip.js';
 import type { StepProps } from './types.js';
-import { PERSONAL_EMAIL_DOMAINS } from '@hudumika/types';
-import type { EmailCheckResponse, MatchedTenant } from '@hudumika/types';
+import type { FederatedSignupTicket } from '@hudumika/types';
 
-function passStrength(pw: string): 0 | 1 | 2 | 3 {
-  if (!pw) return 0;
-  let s = 0;
-  if (pw.length >= 8) s++;
-  if (/[A-Z]/.test(pw) && /[a-z]/.test(pw)) s++;
-  if (/\d/.test(pw) && /[^A-Za-z0-9]/.test(pw)) s++;
-  return s as 0 | 1 | 2 | 3;
-}
-const STRENGTH_LABEL = ['', 'Weak', 'Fair', 'Strong'];
+// Full-SSO registration: identity is verified by Ondi (Google/Microsoft/
+// Apple — see OndiSignInPanel's intent="signup" for why those three and not
+// phone/email) before anything else is asked. Once verified, this step only
+// needs a full name (editable — Ondi's own profile name is a convenience
+// default, not a verified claim) and confirmation of the email Ondi already
+// verified (not editable — the ondi_ticket in draft is keyed to that exact
+// address server-side; letting it be retyped here would be purely cosmetic
+// and confusing once /onboarding/complete silently used the real one anyway).
+// There is no password anywhere in this flow — completeOnboarding() mints
+// one server-side from the verified ticket and the account signs in via
+// Ondi from then on, same as any existing user who does.
+export const StepAccount: React.FC<StepProps> = ({ draft, update, onNext }) => {
+  const { t } = useLocale();
+  const [nameErr, setNameErr] = useState<string | undefined>(undefined);
+  const [emailErr, setEmailErr] = useState<string | undefined>(undefined);
+  const [mode, setMode] = useState<'ondi' | 'email'>('ondi');
 
-// The field is labeled "Work email" — this flags the well-known free
-// consumer providers so a personal address gets a clear, honest heads-up
-// instead of silently being accepted as if it were a company domain. A
-// warning, not a hard block: a real small business genuinely running on a
-// gmail.com address is exactly this platform's own target market, and
-// refusing the signup outright would turn away a legitimate customer over
-// a guess about their domain.
-const PERSONAL_EMAIL_DOMAIN_SET = new Set(PERSONAL_EMAIL_DOMAINS);
-function personalEmailDomain(email: string): string | null {
-  const at = email.lastIndexOf('@');
-  if (at === -1) return null;
-  const domain = email.slice(at + 1).trim().toLowerCase();
-  return PERSONAL_EMAIL_DOMAIN_SET.has(domain) ? domain : null;
-}
-
-export const StepAccount: React.FC<StepProps> = ({ draft, update, onNext, onRequestJoin, joinRequestSubmitting, joinRequestError }) => {
-  const navigate = useNavigate();
-  // Details vs Ondi — was a navigation to /ondi/login; moved inline (same
-  // fix, same reasoning, as Login.tsx's own method tabs).
-  const [mode, setMode] = useState<'details' | 'ondi'>('details');
-  const [showPass, setShowPass]       = useState(false);
-  const [showConfirm, setShowConfirm] = useState(false);
-  const [fieldErr, setFieldErr]       = useState<Record<string, string | undefined>>({});
-  const [emailStatus, setEmailStatus] = useState<'idle' | 'checking' | 'available' | 'taken'>('idle');
-  // Auto-join-by-domain — set only when the (available) email's domain
-  // matches an existing tenant's real, active staff. Personal-provider
-  // domains never populate this (check-email never returns one for them).
-  const [matchedTenant, setMatchedTenant] = useState<MatchedTenant | null>(null);
-  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-
-  useEffect(() => {
-    if (debounceRef.current) clearTimeout(debounceRef.current);
-    const email = draft.email;
-    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-      setEmailStatus('idle');
-      setMatchedTenant(null);
-      return;
-    }
-    setEmailStatus('checking');
-    debounceRef.current = setTimeout(async () => {
-      try {
-        const res: EmailCheckResponse = await apiFetch(`/v1/onboarding/check-email?value=${encodeURIComponent(email)}`);
-        setEmailStatus(res.available ? 'available' : 'taken');
-        setMatchedTenant(res.matched_tenant ?? null);
-      } catch {
-        setEmailStatus('idle');
-        setMatchedTenant(null);
-      }
-    }, 400);
-    return () => { if (debounceRef.current) clearTimeout(debounceRef.current); };
-  }, [draft.email]);
-
-  const set = (k: 'name' | 'email' | 'password' | 'confirm') => (e: React.ChangeEvent<HTMLInputElement>) => {
-    update({ [k]: e.target.value } as any);
-    setFieldErr(p => ({ ...p, [k]: undefined }));
+  const handleSignupTicket = (ticket: FederatedSignupTicket) => {
+    update({ ondi_ticket: ticket.signup_ticket, email: ticket.email, name: ticket.name });
   };
 
-  const validate = () => {
-    const e: Record<string, string | undefined> = {};
-    if (!draft.name.trim())   e.name = 'Full name is required';
-    if (!draft.email)         e.email = 'Email address is required';
-    else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(draft.email)) e.email = 'Enter a valid email address';
-    else if (emailStatus === 'taken') e.email = 'An account with this email already exists';
-    if (!draft.password)      e.password = 'Password is required';
-    else if (draft.password.length < 8) e.password = 'Password must be at least 8 characters';
-    if (draft.confirm !== draft.password) e.confirm = 'Passwords do not match';
-    setFieldErr(e);
-    return Object.keys(e).length === 0;
-  };
-
-  const handleSubmit = (ev: React.FormEvent) => {
+  const handleContinue = (ev: React.FormEvent) => {
     ev.preventDefault();
-    if (!validate()) return;
+    let hasErr = false;
+    if (!draft.name?.trim()) {
+      setNameErr(t('onboarding.nameRequired'));
+      hasErr = true;
+    }
+    if (!draft.ondi_ticket && !draft.email?.trim()) {
+      setEmailErr(t('onboarding.emailRequired'));
+      hasErr = true;
+    } else if (!draft.ondi_ticket && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(draft.email)) {
+      setEmailErr(t('onboarding.validEmail'));
+      hasErr = true;
+    }
+    if (hasErr) return;
     onNext();
   };
 
-  const handleRequestJoin = (ev: React.MouseEvent) => {
-    ev.preventDefault();
-    if (!validate() || !matchedTenant || !onRequestJoin) return;
-    onRequestJoin(matchedTenant.id);
-  };
-
-  const strength = passStrength(draft.password);
-  const personalDomain = personalEmailDomain(draft.email);
-  const showJoinOffer = !!matchedTenant && emailStatus === 'available';
+  const useDifferentAccount = () => update({ ondi_ticket: '', email: '', name: '' });
 
   return (
-    <>
-      {/* Same choice, same relocation as the sign-in page: Ondi's own page
-          already handles "does this email belong to a company already on
-          Hudumika" via its Google button (allowJoinRequest — instant join
-          request, no form to fill in at all) — a company that's genuinely
-          new still needs this form (name/plan/payment have nowhere else to
-          come from), but a colleague joining an existing one doesn't. */}
-      <div className="login-method-switcher">
-        <button type="button" onClick={() => setMode('ondi')} className={`login-method-tab${mode === 'ondi' ? ' login-method-tab--active' : ''}`} data-ui-native-button="">
-          <OndiLogo size={14} />
-          <span>Ondi</span>
-        </button>
-        <button type="button" onClick={() => setMode('details')} className={`login-method-tab${mode === 'details' ? ' login-method-tab--active' : ''}`} data-ui-native-button="">
-          <Icon name="user" size={14} />
-          <span>Details</span>
-        </button>
-      </div>
-
-      {mode === 'ondi' && <OndiSignInPanel />}
-
-      {mode === 'details' && (
-      <form onSubmit={handleSubmit} noValidate className="login-form">
-      <div className="login-field">
-        <label className="reg-label">Full name</label>
-        <input
-          type="text"
-          placeholder="John Mwangi"
-          value={draft.name}
-          onChange={set('name')}
-          className={`login-input${fieldErr.name ? ' login-input--error' : ''}`}
-          autoComplete="name"
-        />
-        {fieldErr.name && <span className="login-field-err">{fieldErr.name}</span>}
-      </div>
-
-      <div className="login-field">
-        <label className="reg-label">Work email</label>
-        <div className="login-field-pw">
-          <input
-            type="email"
-            placeholder="you@company.com"
-            value={draft.email}
-            onChange={set('email')}
-            className={`login-input${fieldErr.email ? ' login-input--error' : ''}`}
-            autoComplete="email"
-          />
-          {emailStatus === 'checking' && <span className="ob-field-status ob-field-status--checking">Checking…</span>}
-          {emailStatus === 'available' && <span className="ob-field-status ob-field-status--ok"><Icon name="checkCircle" size={14} /></span>}
-          {emailStatus === 'taken' && <span className="ob-field-status ob-field-status--bad"><Icon name="xCircle" size={14} /></span>}
-        </div>
-        {personalDomain && !fieldErr.email && (
-          <span className="ob-field-hint ob-field-hint--warn">
-            <Icon name="alertTriangle" size={13} />
-            {personalDomain} is a personal email provider, not a work domain — you can still continue with it.
-          </span>
-        )}
-        {fieldErr.email && <span className="login-field-err">{fieldErr.email}</span>}
-      </div>
-
-      {showJoinOffer && matchedTenant && (
-        <div className="ob-join-offer">
-          <Icon name="building" size={18} />
-          <div className="ob-join-offer-body">
-            <div className="ob-join-offer-title">{matchedTenant.name} is already on Hudumika</div>
-            <div className="ob-join-offer-sub">
-              Your email domain matches an existing company workspace. Fill in your name and a password below, then
-              request to join it instead of setting up a brand new one — an admin at {matchedTenant.name} will need
-              to approve you.
+    <div className="ob-account-container">
+      {draft.ondi_ticket ? (
+        <form onSubmit={handleContinue} noValidate className="login-form">
+          <div className="ob-join-offer" style={{ marginBottom: 12 }}>
+            <Icon name="checkCircle" size={18} />
+            <div className="ob-join-offer-body">
+              <div className="ob-join-offer-title">{t('onboarding.verified')}</div>
+              <div className="ob-join-offer-sub">
+                Signed in as <strong>{draft.email}</strong>.{' '}
+                <button type="button" onClick={useDifferentAccount} className="login-footer-link" style={{ padding: 0 }} data-ui-native-button="">
+                  {t('onboarding.differentAccount')}
+                </button>
+              </div>
             </div>
-            {joinRequestError && <div className="ob-join-offer-error">{joinRequestError}</div>}
           </div>
-        </div>
-      )}
 
-      <div className="login-field">
-        <label className="reg-label">Password</label>
-        <div className="login-field-pw">
-          <input
-            type={showPass ? 'text' : 'password'}
-            placeholder="Min. 8 characters"
-            value={draft.password}
-            onChange={set('password')}
-            className={`login-input${fieldErr.password ? ' login-input--error' : ''}`}
-            autoComplete="new-password"
-          />
-          <Tip label={showPass ? 'Hide password' : 'Show password'}>
-            <button type="button" onClick={() => setShowPass(p => !p)} className="login-pw-toggle" data-ui-native-button="">
-              <Icon name={showPass ? 'eyeOff' : 'eye'} size={15} />
-            </button>
-          </Tip>
-        </div>
-        {strength > 0 && (
-          <div className="reg-strength" data-strength={strength}>
-            <div className="reg-strength-bars">
-              {[1, 2, 3].map(lvl => (
-                <div key={lvl} className={`reg-strength-bar${strength >= lvl ? ' reg-strength-bar--on' : ''}`} />
-              ))}
-            </div>
-            <span className="reg-strength-label">{STRENGTH_LABEL[strength]}</span>
+          <div className="login-field">
+            <label className="reg-label">{t('onboarding.fullName')}</label>
+            <input
+              type="text"
+              placeholder="e.g. Asha Mwinyi"
+              value={draft.name}
+              onChange={e => { update({ name: e.target.value }); setNameErr(undefined); }}
+              className={`login-input${nameErr ? ' login-input--error' : ''}`}
+              autoComplete="name"
+              autoFocus
+            />
+            {nameErr && <span className="login-field-err">{nameErr}</span>}
           </div>
-        )}
-        {fieldErr.password && <span className="login-field-err">{fieldErr.password}</span>}
-      </div>
 
-      <div className="login-field">
-        <label className="reg-label">Confirm password</label>
-        <div className="login-field-pw">
-          <input
-            type={showConfirm ? 'text' : 'password'}
-            placeholder="Re-enter password"
-            value={draft.confirm}
-            onChange={set('confirm')}
-            className={`login-input${fieldErr.confirm ? ' login-input--error' : ''}`}
-            autoComplete="new-password"
-          />
-          <Tip label={showConfirm ? 'Hide password' : 'Show password'}>
-            <button type="button" onClick={() => setShowConfirm(p => !p)} className="login-pw-toggle" data-ui-native-button="">
-              <Icon name={showConfirm ? 'eyeOff' : 'eye'} size={15} />
+          <div className="login-form-actions">
+            <button type="submit" className="login-submit-btn login-submit-btn--full" data-ui-native-button="">
+              {t('onboarding.continueBusiness')}
             </button>
-          </Tip>
-        </div>
-        {fieldErr.confirm && <span className="login-field-err">{fieldErr.confirm}</span>}
-      </div>
+          </div>
+        </form>
+      ) : mode === 'ondi' ? (
+        <>
+          <p className="login-subtext" style={{ textAlign: 'center', marginBottom: 16 }}>
+            {t('onboarding.identityIntro')}
+          </p>
+          <OndiSignInPanel intent="signup" onSignupTicket={handleSignupTicket} />
 
-      {showJoinOffer ? (
-        <div className="login-form-actions ob-join-offer-actions">
-          <button type="button" onClick={() => navigate('/login')} className="login-back-btn" data-ui-native-button="">Back to sign in</button>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10, margin: '16px 0 12px' }}>
+            <div style={{ flex: 1, height: 1, background: 'var(--lp-row-border, #e2e8f0)' }} />
+            <span style={{ fontSize: 11, color: 'var(--lp-ink3, #6b7280)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+              {t('onboarding.emailAlternative')}
+            </span>
+            <div style={{ flex: 1, height: 1, background: 'var(--lp-row-border, #e2e8f0)' }} />
+          </div>
+
           <button
             type="button"
-            onClick={handleRequestJoin}
-            disabled={joinRequestSubmitting}
-            className="login-submit-btn"
-           data-ui-native-button="">
-            {joinRequestSubmitting ? 'Sending request…' : `Request to join ${matchedTenant!.name}`}
+            onClick={() => setMode('email')}
+            className="login-back-btn"
+            style={{ width: '100%', height: 40, justifyContent: 'center', display: 'flex', alignItems: 'center', gap: 8 }}
+            data-ui-native-button=""
+          >
+            <Icon name="mail" size={15} />
+            <span>{t('onboarding.emailDetails')}</span>
           </button>
-        </div>
+        </>
       ) : (
-        <div className="login-form-actions">
-          <button type="button" onClick={() => navigate('/login')} className="login-back-btn" data-ui-native-button="">Back to sign in</button>
-          <button type="submit" className="login-submit-btn" data-ui-native-button="">Continue</button>
-        </div>
+        <form onSubmit={handleContinue} noValidate className="login-form">
+          <div className="login-field">
+            <label className="reg-label">{t('onboarding.fullName')}</label>
+            <input
+              type="text"
+              placeholder="e.g. John Mwangi"
+              value={draft.name}
+              onChange={e => { update({ name: e.target.value }); setNameErr(undefined); }}
+              className={`login-input${nameErr ? ' login-input--error' : ''}`}
+              autoComplete="name"
+              autoFocus
+            />
+            {nameErr && <span className="login-field-err">{nameErr}</span>}
+          </div>
+
+          <div className="login-field">
+            <label className="reg-label">{t('onboarding.workEmail')}</label>
+            <input
+              type="email"
+              placeholder="john@yourcompany.co.tz"
+              value={draft.email}
+              onChange={e => { update({ email: e.target.value }); setEmailErr(undefined); }}
+              className={`login-input${emailErr ? ' login-input--error' : ''}`}
+              autoComplete="email"
+            />
+            {emailErr && <span className="login-field-err">{emailErr}</span>}
+          </div>
+
+          <div className="login-form-actions" style={{ flexDirection: 'column', gap: 10 }}>
+            <button type="submit" className="login-submit-btn login-submit-btn--full" data-ui-native-button="">
+              {t('onboarding.continueBusiness')}
+            </button>
+            <button
+              type="button"
+              onClick={() => setMode('ondi')}
+              className="login-back-btn"
+              style={{ width: '100%', height: 38, justifyContent: 'center', fontSize: 12.5, display: 'flex', alignItems: 'center', gap: 6 }}
+              data-ui-native-button=""
+            >
+              <Icon name="arrowLeft" size={13} />
+              <span>{t('onboarding.backProviders')}</span>
+            </button>
+          </div>
+        </form>
       )}
-      {showJoinOffer && (
-        <button type="submit" className="ob-join-offer-skip" data-ui-native-button="">
-          Set up a new, separate workspace instead
-        </button>
-      )}
-      </form>
-      )}
-    </>
+    </div>
   );
 };

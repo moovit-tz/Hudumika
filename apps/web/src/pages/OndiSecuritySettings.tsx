@@ -705,7 +705,7 @@ export const OndiSecuritySettings: React.FC<{ embedded?: boolean }> = ({ embedde
                     </p>
                     <Button variant="default" size="sm" onClick={start2faSetup} disabled={twoFABusy}>
                       <Icon name="shield" size={13} style={{ marginRight: 5 }} />
-                      Configure 2FA Authenticator
+                      Set up authenticator
                     </Button>
                   </div>
                 )}

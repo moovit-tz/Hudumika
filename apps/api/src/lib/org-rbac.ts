@@ -165,6 +165,30 @@ export async function getUserSiteIds(tenantId: string, userId: string): Promise<
   });
 }
 
+/**
+ * The real outlet-scoping decision a route should enforce before returning
+ * site-attributable business records (sales, shipments, etc): `null` means
+ * "no restriction" (the account's tenant-wide default — either a central
+ * role that is meant to see every outlet, or any account with no recorded
+ * `user_org_assignments` row, which today is every account, since nothing
+ * yet writes to that table). A non-null array is the exact set of site ids
+ * this user may see — a route must both filter to it and reject any
+ * explicitly requested site_id outside it, not just silently narrow.
+ *
+ * SUPER_ADMIN/ADMIN/TENANT_ADMIN are the S03 acceptance text's "central
+ * owner" and always see every outlet; every other role is scoped to its
+ * actual `user_org_assignments` rows once any exist for it. This is
+ * additive and backward-compatible: it changes nothing for the accounts
+ * that exist today (none of which have an assignment row), and only takes
+ * effect once a tenant actually assigns a non-admin user to specific
+ * sites — which is the real point of the feature.
+ */
+export async function getEffectiveSiteScope(tenantId: string, userId: string, role: UserRole): Promise<string[] | null> {
+  if (['SUPER_ADMIN', 'ADMIN', 'TENANT_ADMIN'].includes(role)) return null;
+  const siteIds = await getUserSiteIds(tenantId, userId);
+  return siteIds.length > 0 ? siteIds : null;
+}
+
 // ── Platform operator impersonation audit ───────────────────────────────────
 
 export async function logPlatformAction(

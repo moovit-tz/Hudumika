@@ -359,12 +359,22 @@ export async function creditNoteRoutes(fastify: FastifyInstance) {
     const { id } = request.params as { id: string };
     const { reason } = z.object({ reason: z.string().trim().min(1).max(500) }).parse(request.body);
     const result = await withTenant(user.tenant_id, async (trx) => {
-      const cn = await trx.selectFrom('credit_notes').selectAll().where('id', '=', id).where('tenant_id', '=', user.tenant_id).executeTakeFirst();
+      // GLService.voidEntry() already guards the GL side internally (its
+      // own forUpdate() + voided_at check — see gl.service.ts), so two
+      // concurrent voids here can't duplicate the reversal journal entry.
+      // This forUpdate()+status-guarded write closes the remaining,
+      // lower-severity gap: without it, two concurrent voids could both
+      // "succeed" and silently stomp each other's reason in `notes`.
+      const cn = await trx.selectFrom('credit_notes').selectAll().where('id', '=', id).where('tenant_id', '=', user.tenant_id).forUpdate().executeTakeFirst();
       if (!cn) return reply.status(404).send({ error: 'Credit note not found' });
       if (cn.status === 'VOID') return reply.status(409).send({ error: 'This credit note is already void.' });
 
       await GLService.reverseBySource(user.tenant_id, 'AR', cn.id, user.sub, `Credit note voided: ${reason}`, trx);
-      await trx.updateTable('credit_notes').set({ status: 'VOID', notes: `${cn.notes ? cn.notes + ' | ' : ''}Voided: ${reason}`, updated_at: new Date() }).where('id', '=', id).where('tenant_id', '=', user.tenant_id).execute();
+      const voided = await trx.updateTable('credit_notes')
+        .set({ status: 'VOID', notes: `${cn.notes ? cn.notes + ' | ' : ''}Voided: ${reason}`, updated_at: new Date() })
+        .where('id', '=', id).where('tenant_id', '=', user.tenant_id).where('status', '!=', 'VOID')
+        .returningAll().executeTakeFirst();
+      if (!voided) return reply.status(409).send({ error: 'This credit note is already void.' });
 
       // Recompute source invoice status after void
       if (cn.original_invoice_id) {

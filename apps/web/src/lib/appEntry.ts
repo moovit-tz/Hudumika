@@ -29,6 +29,7 @@ const SINGLE_APP_HOSTS: Record<string, string> = {
   'nexushr.hudumika.tz': 'nexushr',
   'developer.hudumika.tz': 'developer',
   'petti.hudumika.tz': 'petti',
+  'pos.hudumika.tz': 'pos',
   'clearos.hudumika.tz': 'clearos',
   'finops.hudumika.tz': 'finance',
   'bliss.hudumika.tz': 'bliss',

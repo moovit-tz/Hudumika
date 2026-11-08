@@ -7,9 +7,9 @@
   "overnight": {
     "status": 200,
     "session": {
-      "id": "4f462700-6726-4906-9a27-abbf81cf6307",
-      "tenant_id": "452fdeb1-bd55-4489-9532-21ef3a528005",
-      "user_id": "d63a093b-1e65-4bc9-b988-eaf72bba0d4f",
+      "id": "c53a6ab4-0e19-43bc-a46a-348fc2981b34",
+      "tenant_id": "8580250e-82f3-4021-ae5d-c4a2b6508ba0",
+      "user_id": "9e901fa4-5d92-4101-a6a0-5726151d520e",
       "date": "2026-10-06",
       "clock_in_at": "2026-10-06T19:00:00.000Z",
       "clock_out_at": "2026-10-07T03:00:00.000Z",
@@ -17,8 +17,8 @@
       "status": "COMPLETED",
       "total_break_minutes": 60,
       "worked_minutes": 420,
-      "created_at": "2026-10-29T12:24:01.461Z",
-      "updated_at": "2026-10-29T12:24:01.461Z",
+      "created_at": "2026-11-08T06:10:31.530Z",
+      "updated_at": "2026-11-08T06:10:31.530Z",
       "source": "MANUAL",
       "device_id": null
     }
@@ -37,20 +37,20 @@
     "liveMinutes": 420,
     "approvalResponse": {
       "approval": {
-        "id": "059d675e-9ceb-4f6f-8c5f-4167ef7f782c",
-        "tenant_id": "452fdeb1-bd55-4489-9532-21ef3a528005",
-        "user_id": "d63a093b-1e65-4bc9-b988-eaf72bba0d4f",
+        "id": "2142d913-ad85-4029-a810-37200d7f00ce",
+        "tenant_id": "8580250e-82f3-4021-ae5d-c4a2b6508ba0",
+        "user_id": "9e901fa4-5d92-4101-a6a0-5726151d520e",
         "period_start": "2026-10-12",
         "period_end": "2026-10-12",
         "status": "APPROVED",
         "total_worked_minutes": 420,
         "session_count": 1,
-        "submitted_at": "2026-10-29T12:24:02.098Z",
-        "reviewed_by": "df261656-dcb5-476b-a778-329fc6290a72",
-        "reviewed_at": "2026-10-29T12:24:02.468Z",
+        "submitted_at": "2026-11-08T06:10:32.352Z",
+        "reviewed_by": "0be46537-0243-4bdf-8011-f7e8a33a4a9a",
+        "reviewed_at": "2026-11-08T06:10:32.813Z",
         "note": null,
-        "created_at": "2026-10-29T12:24:02.098Z",
-        "updated_at": "2026-10-29T12:24:02.468Z"
+        "created_at": "2026-11-08T06:10:32.352Z",
+        "updated_at": "2026-11-08T06:10:32.813Z"
       }
     }
   },
@@ -70,29 +70,29 @@
   },
   "peerReadStatus": 403,
   "concurrentStart": [
-    200,
     400,
+    200,
     400
   ],
   "headerAfterClockIn": [
     {
-      "id": "603a9cf1-b477-4fa6-b5fc-ad01ffea02aa",
-      "tenant_id": "452fdeb1-bd55-4489-9532-21ef3a528005",
-      "user_id": "d63a093b-1e65-4bc9-b988-eaf72bba0d4f",
+      "id": "eb80cd0c-9bd6-4eea-80dd-e5ed3e3c5d4f",
+      "tenant_id": "8580250e-82f3-4021-ae5d-c4a2b6508ba0",
+      "user_id": "9e901fa4-5d92-4101-a6a0-5726151d520e",
       "task_id": null,
       "task_name": "Clocked in",
       "is_billable": false,
-      "started_at": "2026-10-29T12:24:04.024Z",
+      "started_at": "2026-11-08T06:10:34.476Z",
       "ended_at": null,
       "duration_minutes": null,
       "is_extended": false,
       "is_full_day": false,
       "notes": null,
       "entry_type": "CHECK_IN",
-      "date": "2026-10-29",
-      "last_ack_at": "2026-10-29T12:24:04.024Z",
-      "created_at": "2026-10-29T12:24:04.022Z",
-      "updated_at": "2026-10-29T12:24:04.022Z",
+      "date": "2026-11-08",
+      "last_ack_at": "2026-11-08T06:10:34.476Z",
+      "created_at": "2026-11-08T06:10:34.473Z",
+      "updated_at": "2026-11-08T06:10:34.473Z",
       "project_id": null,
       "project_ref": null
     }
@@ -102,26 +102,26 @@
     "body": {
       "ok": true,
       "session": {
-        "id": "5b87ced1-0c51-49da-a306-e822284b247e",
-        "tenant_id": "452fdeb1-bd55-4489-9532-21ef3a528005",
-        "user_id": "d63a093b-1e65-4bc9-b988-eaf72bba0d4f",
-        "date": "2026-10-29",
-        "clock_in_at": "2026-10-29T12:24:04.024Z",
-        "clock_out_at": "2026-10-29T12:24:04.489Z",
+        "id": "bc155aeb-c7b1-43cb-8c9c-4bd7f3515ddf",
+        "tenant_id": "8580250e-82f3-4021-ae5d-c4a2b6508ba0",
+        "user_id": "9e901fa4-5d92-4101-a6a0-5726151d520e",
+        "date": "2026-11-08",
+        "clock_in_at": "2026-11-08T06:10:34.476Z",
+        "clock_out_at": "2026-11-08T06:10:34.880Z",
         "project_name": null,
         "status": "COMPLETED",
         "total_break_minutes": 0,
         "worked_minutes": 0,
-        "created_at": "2026-10-29T12:24:04.022Z",
-        "updated_at": "2026-10-29T12:24:04.489Z",
+        "created_at": "2026-11-08T06:10:34.473Z",
+        "updated_at": "2026-11-08T06:10:34.880Z",
         "source": "WEB",
         "device_id": null
       },
       "warnings": [],
       "summary": {
         "worked_minutes": 0,
-        "clock_in_at": "2026-10-29T12:24:04.024Z",
-        "clock_out_at": "2026-10-29T12:24:04.489Z",
+        "clock_in_at": "2026-11-08T06:10:34.476Z",
+        "clock_out_at": "2026-11-08T06:10:34.880Z",
         "tasks_completed_count": 0,
         "tasks_completed": [],
         "is_short_shift": true,
@@ -131,23 +131,23 @@
   },
   "headerAfterClockOut": [
     {
-      "id": "603a9cf1-b477-4fa6-b5fc-ad01ffea02aa",
-      "tenant_id": "452fdeb1-bd55-4489-9532-21ef3a528005",
-      "user_id": "d63a093b-1e65-4bc9-b988-eaf72bba0d4f",
+      "id": "eb80cd0c-9bd6-4eea-80dd-e5ed3e3c5d4f",
+      "tenant_id": "8580250e-82f3-4021-ae5d-c4a2b6508ba0",
+      "user_id": "9e901fa4-5d92-4101-a6a0-5726151d520e",
       "task_id": null,
       "task_name": "Clocked in",
       "is_billable": false,
-      "started_at": "2026-10-29T12:24:04.024Z",
-      "ended_at": "2026-10-29T12:24:04.489Z",
+      "started_at": "2026-11-08T06:10:34.476Z",
+      "ended_at": "2026-11-08T06:10:34.880Z",
       "duration_minutes": 0,
       "is_extended": false,
       "is_full_day": false,
       "notes": null,
       "entry_type": "CHECK_IN",
-      "date": "2026-10-29",
-      "last_ack_at": "2026-10-29T12:24:04.024Z",
-      "created_at": "2026-10-29T12:24:04.022Z",
-      "updated_at": "2026-10-29T12:24:04.489Z",
+      "date": "2026-11-08",
+      "last_ack_at": "2026-11-08T06:10:34.476Z",
+      "created_at": "2026-11-08T06:10:34.473Z",
+      "updated_at": "2026-11-08T06:10:34.880Z",
       "project_id": null,
       "project_ref": null
     }
@@ -159,7 +159,7 @@
       "activeInternalAccounts": 4,
       "customerAccounts": 1,
       "inactiveInternalAccounts": 1,
-      "lateAttendee": "d63a093b-1e65-4bc9-b988-eaf72bba0d4f"
+      "lateAttendee": "9e901fa4-5d92-4101-a6a0-5726151d520e"
     },
     "body": {
       "hr": {
@@ -187,26 +187,12 @@
         "unread": 0,
         "source": "Workspace notifications"
       },
-      "fetched_at": "2026-10-29T12:24:04.894Z"
+      "fetched_at": "2026-11-08T06:10:35.240Z"
     }
   },
   "plannedMonth": {
     "plannedDays": 22,
     "plannedHours": 176
-  },
-  "shipmentTime": {
-    "status": 200,
-    "shipmentHours": "2.00",
-    "hrWorkedMinutes": 0
-  },
-  "closedShipmentKpi": {
-    "status": 200,
-    "expectedActive": 0,
-    "body": {
-      "checked_in": 0,
-      "active_shipments": 0,
-      "pending_tasks": 0
-    }
   },
   "foreignTask": {
     "status": 400,

@@ -1,154 +1,105 @@
-import { Banner } from '../components/ui/alert.js';
-import { useEffect, useState } from 'react';
-import { PageHeader } from '../components/PageHeader.js';
-import { SectionLoading } from '../components/ui/spinner.js';
-import { Icon } from '../components/Icon.js';
-import { Badge } from '../components/ui/badge.js';
-import { apiFetch } from '../lib/api.js';
+import { useCallback, useEffect, useState } from 'react';
+import { Link } from 'react-router-dom';
+import { Bar, BarChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
 import { CUSTOMS_STATUS_LABELS, type CustomsStatus } from '@hudumika/types';
+import { PageHeader } from '../components/PageHeader.js';
+import { Icon, type IconName } from '../components/Icon.js';
+import { Banner } from '../components/ui/alert.js';
+import { Badge } from '../components/ui/badge.js';
+import { Button } from '../components/ui/button.js';
+import { Card, CardContent, CardHeader } from '../components/ui/card.js';
+import { FeaturedIcon } from '../components/ui/featured-icon.js';
+import { Progress } from '../components/ui/progress.js';
+import { SectionLoading } from '../components/ui/spinner.js';
+import { apiFetch } from '../lib/api.js';
 import { CUSTOMS_STATUS_VARIANT } from '../lib/sealStatus.js';
 import './Seal.css';
-
+import './SealMetrics.css';
 interface Metrics {
-  totals: {
-    lots: number;
-    consignments: number;
-    pendingExams: number;
-    activeTransfers: number;
-    expiredLots: number;
-    nearExpiryLots: number;
-  };
-  movementsActivity: Array<{ date: string; count: string }>;
-  statusBreakdown: Array<{ customs_status: string; count: string }>;
+    totals: {
+        lots: number;
+        consignments: number;
+        pendingExams: number;
+        activeTransfers: number;
+        expiredLots: number;
+        nearExpiryLots: number;
+    };
+    movementsActivity: Array<{
+        date: string;
+        count: string;
+    }>;
+    statusBreakdown: Array<{
+        customs_status: string;
+        count: string;
+    }>;
 }
-
-function SparkBar({ data, color }: { data: Array<{ date: string; count: string }>; color: string }) {
-  if (!data.length) return null;
-  const max = Math.max(...data.map(d => parseInt(d.count)));
-  if (max === 0) return <div style={{ color: 'var(--ink3)', fontSize: 12 }}>No movement data.</div>;
-  return (
-    <div style={{ display: 'flex', gap: 3, alignItems: 'flex-end', height: 48 }}>
-      {data.map((d, i) => (
-        <div key={i} title={`${d.date}: ${d.count} movements`} style={{
-          flex: 1, background: color, borderRadius: 2, opacity: 0.85,
-          height: `${Math.max(4, (parseInt(d.count) / max) * 48)}px`,
-          transition: 'height .2s',
-          cursor: 'default',
-        }} />
-      ))}
-    </div>
-  );
-}
-
+const number = (value: number) => value.toLocaleString();
+const dayLabel = (date: string) => new Date(`${date.slice(0, 10)}T12:00:00`).toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
 export function SealMetrics() {
-  const [metrics, setMetrics] = useState<Metrics | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string|null>(null);
-
-  useEffect(() => {
-    apiFetch('/v1/seal/analytics')
-      .then((r: any) => setMetrics(r))
-      .catch(e => setError(e.message))
-      .finally(() => setLoading(false));
-  }, []);
-
-  if (loading) return <div className="seal-page"><PageHeader crumbs={['SEAL', 'Analytics']} titlePlain="Metrics &" titleEm="reports" subtitle="" /><SectionLoading /></div>;
-
-  const m = metrics;
-
-  return (
-    <div className="seal-page">
-      <PageHeader
-        crumbs={['SEAL', 'Analytics', 'Metrics']}
-        titlePlain="Metrics &"
-        titleEm="reports"
-        subtitle="All warehouses: stock levels, warehouse movements and customs status."
-      />
-
-      {error && <Banner variant="error">{error}</Banner>}
-      {/* Top KPI tiles */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(155px, 1fr))', gap: 12, marginBottom: 24 }}>
-        {[
-          { label: 'Total Lots',        value: m?.totals.lots ?? 0,             color: 'var(--teal)',  icon: 'package' },
-          { label: 'Consignments',      value: m?.totals.consignments ?? 0,     color: 'var(--blue)',  icon: 'truck' },
-          { label: 'Pending Exams',     value: m?.totals.pendingExams ?? 0,     color: 'var(--gold)',  icon: 'search' },
-          { label: 'Active Transfers',  value: m?.totals.activeTransfers ?? 0,  color: 'var(--ink2)',  icon: 'arrowRight' },
-          { label: 'Expired Lots',      value: m?.totals.expiredLots ?? 0,      color: 'var(--red)',   icon: 'alertCircle' },
-          { label: 'Expiring ≤30d',     value: m?.totals.nearExpiryLots ?? 0,   color: 'var(--gold)',  icon: 'clock' },
-        ].map(k => (
-          <div key={k.label} className="seal-card" style={{ padding: '16px', display: 'flex', alignItems: 'center', gap: 12 }}>
-            <div style={{ color: k.color, opacity: 0.75, flexShrink: 0 }}><Icon name={k.icon as any} size={22} /></div>
-            <div style={{ minWidth: 0 }}>
-              <div style={{ fontSize: 24, fontWeight: 700, color: k.color, fontVariantNumeric: 'tabular-nums', lineHeight: 1 }}>{k.value.toLocaleString()}</div>
-              <div style={{ fontSize: 10, color: 'var(--ink3)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '.04em', marginTop: 4 }}>{k.label}</div>
-            </div>
-          </div>
-        ))}
+    const [metrics, setMetrics] = useState<Metrics | null>(null);
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState<string | null>(null);
+    const [updatedAt, setUpdatedAt] = useState<Date | null>(null);
+    const load = useCallback(async () => {
+        setLoading(true);
+        setError(null);
+        try {
+            setMetrics(await apiFetch<Metrics>('/v1/seal/analytics'));
+            setUpdatedAt(new Date());
+        }
+        catch (e) {
+            setError(e instanceof Error ? e.message : 'Unable to load warehouse metrics.');
+        }
+        finally {
+            setLoading(false);
+        }
+    }, []);
+    useEffect(() => { void load(); }, [load]);
+    const activity = metrics?.movementsActivity.map(row => ({ date: row.date.slice(0, 10), count: Number(row.count) })) ?? [];
+    const movementTotal = activity.reduce((sum, row) => sum + row.count, 0);
+    const statusTotal = metrics?.statusBreakdown.reduce((sum, row) => sum + Number(row.count), 0) ?? 0;
+    const peak = activity.reduce((best, row) => row.count > best.count ? row : best, { date: '', count: 0 });
+    function exportReport() {
+        if (!metrics)
+            return;
+        const rows = [['Section', 'Metric / date', 'Value'], ...Object.entries(metrics.totals).map(([key, value]) => ['Snapshot', key, String(value)]), ...activity.map(row => ['Movement', row.date, String(row.count)]), ...metrics.statusBreakdown.map(row => ['Customs status', CUSTOMS_STATUS_LABELS[row.customs_status as CustomsStatus] ?? row.customs_status, row.count])];
+        const csv = rows.map(row => row.map(cell => `"${cell.replace(/"/g, '""')}"`).join(',')).join('\r\n');
+        const url = URL.createObjectURL(new Blob(['\uFEFF', csv], { type: 'text/csv;charset=utf-8;' }));
+        const anchor = document.createElement('a');
+        anchor.href = url;
+        anchor.download = `seal-operational-report-${updatedAt?.toISOString().slice(0, 10)}.csv`;
+        anchor.click();
+        URL.revokeObjectURL(url);
+    }
+    const summaries: Array<{
+        label: string;
+        value: number;
+        icon: IconName;
+        detail: string;
+        path: string;
+    }> = metrics ? [
+        { label: 'Lots in the workspace', value: metrics.totals.lots, icon: 'package', detail: 'Explore lots & batches', path: '/seal/lots' },
+        { label: 'Consignments', value: metrics.totals.consignments, icon: 'truck', detail: 'View receiving activity', path: '/seal/consignments' },
+        { label: 'Active transfers', value: metrics.totals.activeTransfers, icon: 'arrowRight', detail: 'Track stock in transit', path: '/seal/stock-transfers' },
+    ] : [];
+    return <div className="seal-page seal-metrics">
+    <PageHeader crumbs={['SEAL', 'Analytics', 'Metrics']} titlePlain="Operational" titleEm="reports" subtitle="A clear view of your stock, warehouse activity and what needs attention." actions={<><Button variant="outline" size="sm" onClick={() => void load()} disabled={loading}><Icon name="refresh" size={15}/>Refresh</Button><Button size="sm" onClick={exportReport} disabled={!metrics || loading}><Icon name="download" size={15}/>Export report</Button></>}/>
+    <div className="sm-context"><span><Icon name="warehouse" size={15}/>All warehouses <span aria-hidden="true">/</span> Workspace overview</span><span>{loading ? 'Updating snapshot…' : updatedAt ? `Updated ${updatedAt.toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' })}` : 'Snapshot unavailable'}</span></div>
+    {error && <Banner variant="error">{error}{metrics ? ' Showing the last successful snapshot.' : ' Refresh to try again.'}</Banner>}
+    {loading && !metrics ? <SectionLoading /> : !metrics ? <Card><CardContent className="sm-empty"><Icon name="barChart" size={32}/><h2>Metrics are unavailable</h2><p>Refresh to reconnect to your warehouse reports.</p><Button variant="outline" size="sm" onClick={() => void load()}>Try again</Button></CardContent></Card> : <>
+      <div className="sm-kpis">{summaries.map(item => <Card key={item.label}><CardContent className="sm-kpi"><div className="sm-kpi-top"><span>{item.label}</span><FeaturedIcon size="sm"><Icon name={item.icon} size={17}/></FeaturedIcon></div><strong>{number(item.value)}</strong><Link to={item.path}>{item.detail}<Icon name="arrowUpRight" size={14}/></Link></CardContent></Card>)}</div>
+      <div className="sm-main-grid">
+        <Card><CardHeader><div className="sm-heading"><div><span className="sm-eyebrow">WAREHOUSE PULSE</span><h2>Movement activity</h2></div><Badge variant="gray">Last 30 days</Badge></div><div className="sm-total"><strong>{number(movementTotal)}</strong><span>recorded movements</span></div></CardHeader><CardContent>
+          {movementTotal > 0 ? <div className="sm-chart" role="img" aria-label={`${number(movementTotal)} movements in the last 30 days. Peak: ${number(peak.count)} on ${dayLabel(peak.date)}.`}><ResponsiveContainer width="100%" height="100%"><BarChart data={activity} margin={{ top: 10, right: 0, bottom: 0, left: -24 }}><CartesianGrid vertical={false} stroke="var(--border)" strokeDasharray="3 5"/><XAxis dataKey="date" tickFormatter={dayLabel} tick={{ fill: 'var(--ink3)', fontSize: 11 }} axisLine={false} tickLine={false} minTickGap={32}/><YAxis allowDecimals={false} tick={{ fill: 'var(--ink3)', fontSize: 11 }} axisLine={false} tickLine={false}/><Tooltip labelFormatter={label => dayLabel(String(label))} cursor={{ fill: 'var(--teal-l)' }} contentStyle={{ background: 'var(--card-bg)', border: '1px solid var(--border)', borderRadius: 'var(--r-sm)', color: 'var(--ink)' }}/><Bar dataKey="count" name="Movements" fill="var(--teal)" maxBarSize={36}/></BarChart></ResponsiveContainer></div> : <div className="sm-empty sm-chart"><FeaturedIcon variant="gray" size="lg"><Icon name="activity" size={22}/></FeaturedIcon><h3>No movements yet</h3><p>Activity will appear as stock is received, moved or dispatched.</p></div>}
+          <div className="sm-chart-footer"><span>{peak.date ? <>Busiest day<strong>{dayLabel(peak.date)} · {number(peak.count)} movements</strong></> : 'Activity across all warehouses.'}</span><Link to="/seal/movements">Movement history<Icon name="arrowUpRight" size={14}/></Link></div>
+        </CardContent></Card>
+        <Card className="sm-attention"><CardHeader><span className="sm-eyebrow">OPERATIONAL CHECKLIST</span><h2>Needs attention</h2><p>Keep exceptions moving toward resolution.</p></CardHeader><CardContent>{([
+                { label: 'Pending examinations', detail: 'Awaiting completion or waiver', value: metrics.totals.pendingExams, path: '/seal/examinations', icon: 'search', variant: 'warning' },
+                { label: 'Expired lots', detail: 'Review expiry and next steps', value: metrics.totals.expiredLots, path: '/seal/lots', icon: 'alertCircle', variant: 'error' },
+                { label: 'Expiring within 30 days', detail: 'Plan stock rotation early', value: metrics.totals.nearExpiryLots, path: '/seal/lots', icon: 'clock', variant: 'warning' },
+            ] as const).map(item => <Link className="sm-attention-row" to={item.path} key={item.label}><FeaturedIcon size="sm" variant={item.variant}><Icon name={item.icon} size={16}/></FeaturedIcon><span><b>{item.label}</b><small>{item.detail}</small></span><strong>{number(item.value)}</strong><Icon name="arrowUpRight" size={14}/></Link>)}<div className="sm-note"><Icon name="info" size={15}/><span>Examinations and expiry are separate checks and may include the same lot.</span></div></CardContent></Card>
       </div>
-
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
-        {/* Movement activity sparkbar */}
-        <div className="seal-card">
-          <div className="seal-card-header" style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-            <Icon name="activity" size={14} style={{ color: 'var(--teal)' }} />
-            Movement Activity — Last 30 Days
-          </div>
-          <div className="seal-card-body">
-            {m?.movementsActivity.length ? (
-              <>
-                <SparkBar data={m.movementsActivity} color="var(--teal)" />
-                <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 6, fontSize: 11, color: 'var(--ink3)' }}>
-                  <span>{m.movementsActivity[0]?.date ?? ''}</span>
-                  <span style={{ fontWeight: 600 }}>
-                    {m.movementsActivity.reduce((s, d) => s + parseInt(d.count), 0)} total
-                  </span>
-                  <span>{m.movementsActivity[m.movementsActivity.length - 1]?.date ?? ''}</span>
-                </div>
-              </>
-            ) : (
-              <div className="seal-empty" style={{ padding: '32px 0' }}>No movement data in the last 30 days.</div>
-            )}
-          </div>
-        </div>
-
-        {/* Lot status breakdown */}
-        <div className="seal-card">
-          <div className="seal-card-header" style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-            <Icon name="pieChart" size={14} style={{ color: 'var(--teal)' }} />
-            Lot Status Breakdown
-          </div>
-          <div className="seal-card-body">
-            {m?.statusBreakdown.length ? (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-                {m.statusBreakdown.map(row => {
-                  const total = m.statusBreakdown.reduce((s, r) => s + parseInt(r.count), 0);
-                  const pct = total > 0 ? Math.round((parseInt(row.count) / total) * 100) : 0;
-                  const status = row.customs_status as CustomsStatus;
-                  return (
-                    <div key={row.customs_status}>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                          <Badge variant={CUSTOMS_STATUS_VARIANT[status] ?? 'gray'} style={{ fontSize: 10 }}>
-                            {CUSTOMS_STATUS_LABELS[status] ?? row.customs_status}
-                          </Badge>
-                        </div>
-                        <span style={{ fontSize: 12, fontWeight: 600, fontVariantNumeric: 'tabular-nums', color: 'var(--ink2)' }}>
-                          {parseInt(row.count).toLocaleString()} <span style={{ color: 'var(--ink3)', fontWeight: 400 }}>({pct}%)</span>
-                        </span>
-                      </div>
-                      <div style={{ height: 4, background: 'var(--border)', borderRadius: 2, overflow: 'hidden' }}>
-                        <div style={{ height: '100%', width: `${pct}%`, background: 'var(--teal)', borderRadius: 2, transition: 'width .3s' }} />
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            ) : (
-              <div className="seal-empty" style={{ padding: '32px 0' }}>No lots to show breakdown for.</div>
-            )}
-          </div>
-        </div>
-      </div>
-    </div>
-  );
+      <Card><CardHeader><div className="sm-heading"><div><span className="sm-eyebrow">INVENTORY COMPOSITION</span><h2>Customs status</h2></div><Badge variant="brand">{number(statusTotal)} lots</Badge></div></CardHeader><CardContent>{metrics.statusBreakdown.length ? <div className="sm-status-grid">{metrics.statusBreakdown.map(row => { const count = Number(row.count); const pct = statusTotal ? count / statusTotal * 100 : 0; const status = row.customs_status as CustomsStatus; return <div className="sm-status" key={status}><div><Badge variant={CUSTOMS_STATUS_VARIANT[status] ?? 'gray'}>{CUSTOMS_STATUS_LABELS[status] ?? status}</Badge><span>{pct.toFixed(pct > 0 && pct < 1 ? 1 : 0)}%</span></div><strong>{number(count)}<small> lots</small></strong><Progress value={pct} aria-label={`${CUSTOMS_STATUS_LABELS[status] ?? status} share of lots`}/></div>; })}</div> : <p className="sm-no-status">Status distribution will appear once lots are recorded.</p>}</CardContent></Card>
+    </>}
+  </div>;
 }

@@ -627,7 +627,7 @@ input::-ms-clear {
    but not our own .ls-dots overlay or .ls-eye toggle */
 .ls-field input + div:not(.ls-dots),
 .ls-field input + span:not(.ls-cursor),
-.ls-field input + button:not(.ls-eye) {
+.ls-field input + button:not(.ls-eye):not(.ls-eye-btn) {
   display: none !important;
 }
 
@@ -7287,345 +7287,7 @@ html[data-expanded="true"] .fin-shell {
   border-radius: var(--r-sm, 10px) !important;
 }
 
-/* ── Idle lock-screen ─────────────────────────────────────────── */
-
-/* Overlay — frosted glass, accent-tinted radial halo */
-.ls-overlay {
-  position: fixed;
-  inset: 0;
-  z-index: 99999;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 16px;
-  font-family: var(--font);
-  background:
-    radial-gradient(ellipse 70% 55% at 50% 20%, color-mix(in srgb, var(--teal) 5%, transparent), transparent),
-    rgba(255, 255, 255, 0.12);
-  backdrop-filter: blur(22px) saturate(1.3) brightness(0.82);
-  -webkit-backdrop-filter: blur(22px) saturate(1.3) brightness(0.82);
-}
-
-/* Card — opaque solid panel, zero transparency */
-.ls-card {
-  width: 100%;
-  max-width: 440px;
-  padding: clamp(28px, 4.5vw, 36px) clamp(24px, 4vw, 32px);
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  border-radius: var(--card-radius, var(--r-xl, 24px));
-  background: var(--card-bg, #ffffff);
-  border: 1px solid var(--border, rgba(0, 0, 0, 0.08));
-  box-shadow:
-    0 24px 64px -12px rgba(0, 0, 0, 0.12),
-    0 4px 16px -2px rgba(0, 0, 0, 0.05);
-}
-
-/* ── Locked badge ─────────────────────────────────────────────── */
-.ls-badge {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  padding: 4px 12px;
-  border-radius: var(--badge-radius, 9999px);
-  font-size: var(--text-xs, 11px);
-  font-weight: 700;
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
-  background: var(--teal-l, color-mix(in srgb, var(--teal) 12%, transparent));
-  color: var(--teal);
-  border: 1px solid color-mix(in srgb, var(--teal) 28%, transparent);
-  margin-bottom: 22px;
-}
-
-/* ── Avatar wrapper ───────────────────────────────────────────── */
-.ls-avatar-wrap { position: relative; margin-bottom: 14px; }
-
-.ls-avatar-emblem {
-  position: absolute;
-  bottom: -2px;
-  right: -2px;
-  width: 26px;
-  height: 26px;
-  border-radius: 50%;
-  background: hsl(var(--primary));
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  border: 2.5px solid var(--card-bg);
-  box-shadow: 0 2px 8px color-mix(in srgb, var(--teal) 45%, rgba(0, 0, 0, 0.25));
-}
-
-/* ── Identity text ────────────────────────────────────────────── */
-.ls-identity { text-align: center; margin-bottom: 24px; }
-.ls-name {
-  font-weight: 800;
-  font-size: var(--text-xl, 20px);
-  color: var(--ink);
-  letter-spacing: -0.01em;
-}
-.ls-subtitle {
-  font-size: var(--text-sm, 13px);
-  color: var(--ink3);
-  margin-top: 4px;
-}
-
-/* ── Error banner wrapper ─────────────────────────────────────── */
-.ls-error { width: 100%; margin-bottom: 16px; }
-
-/* ── Form ─────────────────────────────────────────────────────── */
-.ls-form { width: 100%; display: flex; flex-direction: column; gap: 14px; }
-.ls-field { position: relative; }
-
-.ls-field-icon {
-  position: absolute;
-  left: 14px;
-  top: 50%;
-  transform: translateY(-50%);
-  pointer-events: none;
-  color: var(--ink3);
-  display: flex;
-  align-items: center;
-  z-index: 2;
-}
-
-.ls-field .input-field,
-.ls-field input[class] {
-  min-height: var(--ctl-h-lg, 46px);
-  padding-left: 40px;
-  padding-right: 48px;
-  font-size: var(--text-md, 15px);
-  border-radius: var(--r, 10px);
-}
-
-/* Dot overlay */
-.ls-dots {
-  position: absolute;
-  inset: 0;
-  pointer-events: none;
-  display: flex;
-  align-items: center;
-  padding-left: 40px;
-  padding-right: 48px;
-  gap: 7px;
-  overflow: hidden;
-}
-.ls-dots-placeholder {
-  font-size: var(--text-md, 14.5px);
-  color: var(--ink3);
-  padding-left: 4px;
-  transition: opacity 0.15s ease, color 0.15s ease;
-  user-select: none;
-}
-.ls-dots-placeholder--focused {
-  opacity: 0.42;
-}
-
-/* Eye toggle */
-.ls-eye {
-  position: absolute;
-  right: 6px;
-  top: 50%;
-  transform: translateY(-50%);
-  width: 36px;
-  height: 36px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  border: none;
-  background: transparent;
-  cursor: pointer;
-  border-radius: var(--r-sm);
-  color: var(--ink3);
-  z-index: 2;
-}
-.ls-eye:hover { color: var(--ink); }
-
-/* Caps lock warning */
-.ls-caps {
-  display: flex;
-  align-items: center;
-  gap: 5px;
-  font-size: var(--text-xs, 11.5px);
-  color: var(--gold, #d97706);
-  font-weight: 600;
-  padding-left: 2px;
-}
-
-/* 2FA field icon override */
-.ls-field-2fa .ls-field-icon { color: var(--teal); }
-
-/* ── Actions bar ──────────────────────────────────────────────── */
-.ls-actions {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-top: 6px;
-  gap: 12px;
-}
-
-/* ── Buttons ──────────────────────────────────────────────────── */
-.ls-logout-btn {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  color: var(--ink2, #475569);
-  font-weight: 600;
-}
-.ls-unlock-btn {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  min-width: 118px;
-  justify-content: center;
-  font-weight: 700;
-  background: hsl(var(--primary));
-  color: hsl(var(--primary-foreground));
-  box-shadow: 0 4px 14px color-mix(in srgb, var(--teal) 35%, transparent);
-}
-.ls-unlock-btn:disabled { box-shadow: none; }
-
-/* ── Footer ───────────────────────────────────────────────────── */
-.ls-footer {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 6px;
-  margin-top: 24px;
-  font-size: var(--text-xs, 11px);
-  color: var(--ink3);
-  opacity: 0.7;
-}
-
-/* ══════════════════════════════════════════════════════════════
-   Dark mode — driven by the .ls-dark class that LockScreen.tsx
-   adds when useIsDarkMode() returns true.  The overlay sits at
-   z-index 99999 outside the app's scoped wrapper, and the old
-   @media (prefers-color-scheme) + :root:not([data-theme="light"])
-   selectors stayed dark after the user toggled to light on an
-   OS-dark system (toggleThemeWithAnimation removes data-theme
-   rather than setting it to "light", so :not(…) still matched).
-   A React-state class eliminates the mismatch entirely.
-   ══════════════════════════════════════════════════════════════ */
-.ls-dark {
-  background:
-    radial-gradient(ellipse 70% 55% at 50% 20%, color-mix(in srgb, var(--teal) 6%, transparent), transparent),
-    rgba(0, 0, 0, 0.25);
-  -webkit-backdrop-filter: blur(22px) saturate(1.3) brightness(0.45);
-  backdrop-filter: blur(22px) saturate(1.3) brightness(0.45);
-}
-.ls-dark .ls-card {
-  background: #0f172a;
-  border-color: rgba(255, 255, 255, 0.10);
-  box-shadow:
-    0 24px 64px -12px rgba(0, 0, 0, 0.50),
-    0 4px 16px -2px rgba(0, 0, 0, 0.30);
-  backdrop-filter: none;
-  -webkit-backdrop-filter: none;
-}
-.ls-dark .ls-name { color: #f1f5f9; }
-.ls-dark .ls-subtitle { color: #94a3b8; }
-.ls-dark .ls-footer { color: #64748b; }
-.ls-dark .ls-badge {
-  background: color-mix(in srgb, var(--teal) 15%, transparent);
-  color: var(--teal);
-  border-color: color-mix(in srgb, var(--teal) 35%, transparent);
-}
-.ls-dark .ls-field-icon { color: #64748b; }
-.ls-dark .ls-dots-placeholder { color: #64748b; }
-.ls-dark .ls-eye { color: #64748b; }
-.ls-dark .ls-eye:hover { color: #cbd5e1; }
-.ls-dark .ls-avatar-emblem {
-  border-color: #0f172a;
-}
-.ls-dark .ls-field .input-field,
-.ls-dark .ls-field input[class] {
-  background: rgba(15, 23, 42, 0.60);
-  border-color: rgba(255, 255, 255, 0.12);
-  color: #f1f5f9;
-}
-.ls-dark .ls-field .input-field::placeholder { color: #64748b; }
-.ls-dark .ls-logout-btn { color: #94a3b8; }
-.ls-dark .ls-logout-btn:hover { color: #cbd5e1; }
-.ls-dark .ls-theme-toggle {
-  background: rgba(15, 23, 42, 0.70);
-  border-color: rgba(255, 255, 255, 0.12);
-  color: #e2e8f0;
-}
-
-/* ── Password dot animation ───────────────────────────────────── */
-@keyframes ls-dot-pop {
-  0%   { transform: scale(1.85); opacity: 0.65; }
-  55%  { transform: scale(0.84); }
-  80%  { transform: scale(1.06); }
-  100% { transform: scale(1);    opacity: 1; }
-}
-.ls-dot {
-  display: inline-block;
-  width: 9px;
-  height: 9px;
-  border-radius: 50%;
-  background: var(--teal, var(--ink));
-  box-shadow: 0 0 6px color-mix(in srgb, var(--teal) 40%, transparent);
-  flex-shrink: 0;
-}
-.ls-dot--pop {
-  animation: ls-dot-pop 0.38s cubic-bezier(0.34, 1.56, 0.64, 1) both;
-}
-@keyframes ls-cursor-blink {
-  0%, 100% { opacity: 1; }
-  50%       { opacity: 0; }
-}
-.ls-cursor {
-  display: inline-block;
-  width: 2px;
-  height: 20px;
-  background: var(--teal, var(--ink));
-  border-radius: 1px;
-  flex-shrink: 0;
-  align-self: center;
-  animation: ls-cursor-blink 1.05s step-end infinite;
-  box-shadow: 0 0 6px color-mix(in srgb, var(--teal) 40%, transparent);
-}
-.ls-cursor--empty {
-  position: absolute;
-  left: 40px;
-}
-
-/* ── Theme toggle ─────────────────────────────────────────────── */
-.ls-theme-toggle {
-  position: fixed;
-  top: 24px;
-  right: 24px;
-  width: 42px;
-  height: 42px;
-  border-radius: 9999px;
-  background: color-mix(in srgb, var(--card-bg) 88%, transparent);
-  border: 1px solid color-mix(in srgb, var(--teal) 22%, var(--border));
-  color: var(--ink);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  cursor: pointer;
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12), 0 0 0 1px rgba(255, 255, 255, 0.08);
-  -webkit-backdrop-filter: blur(16px) saturate(1.2);
-  backdrop-filter: blur(16px) saturate(1.2);
-  transition: transform 0.2s cubic-bezier(0.4, 0, 0.2, 1), background 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
-  z-index: 100000;
-  outline: none;
-}
-.ls-theme-toggle:hover {
-  transform: scale(1.08);
-  background: var(--card-bg);
-  border-color: var(--teal);
-  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.18), 0 0 14px color-mix(in srgb, var(--teal) 35%, transparent);
-}
-.ls-theme-toggle:active {
-  transform: scale(0.92);
-}
-
-
+/* ── Idle lock-screen (styles live in components/LockScreen.css) ── */
 
 /* ═══════════════════════════════════════════════════════════════════════
    FilterBar — shared pill-row filter bar (ui/filter-bar.tsx)
@@ -7751,6 +7413,24 @@ html[data-expanded="true"] .fin-shell {
   .filter-bar-label { font-size: 10px; }
 }
 
+/* Theme controls retain circular geometry under every tenant shape preset. */
+[data-theme-switcher] {
+  --r-sm: 50%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 auto;
+  width: var(--ctl-h, 42px) !important;
+  height: var(--ctl-h, 42px) !important;
+  min-width: var(--ctl-h, 42px) !important;
+  padding: 0 !important;
+  border-radius: 50% !important;
+  border: 1px solid var(--lp-toggle-border, var(--border));
+  background: var(--lp-toggle-bg, var(--white));
+  color: var(--lp-toggle-color, var(--ink2));
+  box-shadow: none;
+}
+[data-theme-switcher]:focus-visible { outline: 2px solid var(--lp-link-accent, var(--teal)); outline-offset: 3px; }
 [data-ui-button] { box-sizing: border-box; max-width: 100%; }
 [data-ui-native-button]:not([role="tab"]):not(.ds-tabs-trigger):not([data-ds-tabs-exempt] > button):not([class*="avatar"]):not([aria-label*="avatar" i]):not(.cnt-step-circle):not([class*="step-circle"]):not([data-search-result]) {
   border-radius: var(--r-sm, 6px) !important;

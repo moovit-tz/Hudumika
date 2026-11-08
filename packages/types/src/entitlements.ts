@@ -81,6 +81,13 @@ export const ALL_FEATURE_KEYS = [
   'sign',
   'sms',
   'travel',
+  // POS standalone entry (migration 709/710) — same drift class this
+  // file's own history already describes for petti/notes/sign: without a
+  // key here, GET /v1/entitlements never reports features.pos at all, so
+  // RequireAppEnabled (appId='pos') silently passes regardless of plan —
+  // caught live-verifying a disposable standalone tenant, not from reading
+  // the code.
+  'pos',
   // Enterprise Identity & Governance (migration 387) — a sub-feature key
   // sitting alongside its parent 'ondi', same dotted convention as
   // tracking.*: SAML SSO federation, JIT-expiring role grants, and SIEM

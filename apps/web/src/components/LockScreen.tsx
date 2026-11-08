@@ -9,6 +9,7 @@ import { Input } from './ui/input.js';
 import { Button } from './ui/button.js';
 import { Banner } from './ui/alert.js';
 import { PersonAvatar } from './PersonAvatar.js';
+import './LockScreen.css';
 
 export function LockScreen() {
   const { user, logout } = useAuth();
@@ -23,32 +24,17 @@ export function LockScreen() {
   const [capsLock, setCapsLock] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
-  const [isFocused, setIsFocused] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
-    // If autoFocus already focused the input on mount, sync focus state immediately
-    if (inputRef.current && document.activeElement === inputRef.current) {
-      setIsFocused(true);
-    }
+    // Auto-focus the password input on mount
+    inputRef.current?.focus();
   }, []);
 
-  const [dotKeys, setDotKeys] = useState<string[]>([]);
-  const prevLenRef = useRef(0);
-  useEffect(() => {
-    const newLen = password.length;
-    const delta  = newLen - prevLenRef.current;
-    prevLenRef.current = newLen;
-    if (delta > 0) {
-      const fresh = Array.from({ length: delta }, (_, i) => `d-${Date.now()}-${i}`);
-      setDotKeys(prev => [...prev, ...fresh]);
-    } else if (delta < 0) {
-      setDotKeys(prev => prev.slice(0, newLen));
-    }
-  }, [password.length]);
-
   const handleKeyActivity = (e: React.KeyboardEvent) => {
-    if (e.getModifierState) setCapsLock(e.getModifierState('CapsLock'));
+    if (e.getModifierState) {
+      setCapsLock(e.getModifierState('CapsLock'));
+    }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -71,171 +57,154 @@ export function LockScreen() {
 
   return (
     <div className={`ls-overlay${isDark ? ' ls-dark' : ''}`}>
+      {/* Light / Dark Mode Toggle */}
       <button
         type="button"
         className="ls-theme-toggle"
+        data-theme-switcher=""
         onClick={(e) => toggleThemeWithAnimation(e, !isDark)}
         title={isDark ? 'Switch to Light Mode' : 'Switch to Dark Mode'}
         aria-label={isDark ? 'Switch to Light Mode' : 'Switch to Dark Mode'}
       >
-        <Icon name={isDark ? 'sun' : 'moon'} size={18} color="var(--ink)" />
+        <Icon name={isDark ? 'sun' : 'moon'} size={18} />
       </button>
 
+      {/* Main Lock Screen Card */}
       <div className="ls-card">
-        {/* Locked badge */}
+        {/* Status Badge */}
         <div className="ls-badge">
           <Icon name="lock" size={12} color="var(--teal)" />
           <span>Locked</span>
         </div>
 
-        {/* Avatar + lock emblem */}
+        {/* User Avatar with Status Ring */}
         <div className="ls-avatar-wrap">
-          <PersonAvatar
-            userId={(user as any)?.id}
-            name={user?.name ?? 'User'}
-            size={80}
-            hideStatus
-            style={{
-              border: '2.5px solid color-mix(in srgb, var(--teal) 35%, var(--border))',
-              boxShadow: '0 8px 24px -4px color-mix(in srgb, var(--teal) 25%, rgba(0, 0, 0, 0.2))',
-            }}
-          />
+          <div className="ls-avatar-ring">
+            <PersonAvatar
+              userId={(user as any)?.id}
+              name={user?.name ?? 'User'}
+              size={76}
+              hideStatus
+              style={{ display: 'block', borderRadius: '50%' }}
+            />
+          </div>
           <div className="ls-avatar-emblem">
-            <Icon name="lock" size={12} color="hsl(var(--primary-foreground))" />
+            <Icon name="lock" size={12} />
           </div>
         </div>
 
-        {/* Identity */}
+        {/* User Identity */}
         <div className="ls-identity">
-          <div className="ls-name">{user?.name}</div>
+          <div className="ls-name">{user?.name || 'Workspace User'}</div>
           <div className="ls-subtitle">Enter your password to unlock your workspace</div>
         </div>
 
-        {/* Error */}
+        {/* Error Display */}
         {error && (
           <div className="ls-error">
             <Banner variant="error">{error}</Banner>
           </div>
         )}
 
-        {/* Form */}
+        {/* Unlock Form */}
         <form onSubmit={handleSubmit} noValidate className="ls-form">
-          {/* Password field */}
-          <div className="ls-field" onClick={() => inputRef.current?.focus()}>
+          {/* Password Field */}
+          <div className="ls-field">
             <div className="ls-field-icon">
-              <Icon name="key" size={16} />
+              <Icon name="key" size={15} />
             </div>
             <Input
               ref={inputRef}
               type={showPass ? 'text' : 'password'}
-              placeholder={showPass ? 'Password' : ''}
+              placeholder="Enter password…"
               value={password}
               onChange={e => setPassword(e.target.value)}
               onKeyDown={handleKeyActivity}
               onKeyUp={handleKeyActivity}
-              onFocus={() => setIsFocused(true)}
-              onBlur={() => setIsFocused(false)}
               autoComplete="current-password"
               autoFocus
-              // Suppress password-manager extension icon injections (1Password, Bitwarden,
-              // LastPass, Dashlane, etc.) — the field has its own custom eye toggle.
+              className={`ls-input ${!showPass ? 'password-masked' : ''}`}
               data-1p-ignore=""
               data-lpignore="true"
               data-bwignore=""
               data-form-type="other"
-              style={{
-                color: showPass ? undefined : 'transparent',
-                caretColor: showPass ? 'var(--teal, #3b82f6)' : 'transparent',
-              }}
             />
-            {!showPass && (
-              <div className="ls-dots">
-                {dotKeys.length === 0 ? (
-                  <>
-                    {isFocused && <span className="ls-cursor ls-cursor--empty" />}
-                    <span className={`ls-dots-placeholder${isFocused ? ' ls-dots-placeholder--focused' : ''}`}>
-                      Password
-                    </span>
-                  </>
-                ) : (
-                  <>
-                    {dotKeys.map((k, i) => (
-                      <span key={k} className={`ls-dot${i === dotKeys.length - 1 ? ' ls-dot--pop' : ''}`} />
-                    ))}
-                    {isFocused && <span className="ls-cursor" />}
-                  </>
-                )}
-              </div>
-            )}
             <button
               type="button"
-              className="ls-eye"
+              className="ls-eye-btn"
               onClick={() => {
                 setShowPass(p => !p);
                 setTimeout(() => inputRef.current?.focus(), 0);
               }}
               onMouseDown={e => e.preventDefault()}
               title={showPass ? 'Hide password' : 'Show password'}
-              data-ui-native-button=""
+              aria-label={showPass ? 'Hide password' : 'Show password'}
             >
-              <Icon name={showPass ? 'eyeOff' : 'eye'} size={18} />
+              <Icon name={showPass ? 'eyeOff' : 'eye'} size={16} />
             </button>
           </div>
 
-          {/* Caps lock */}
+          {/* CapsLock Warning */}
           {capsLock && (
             <div className="ls-caps">
               <Icon name="alertTriangle" size={12} color="var(--gold, #d97706)" />
-              Caps Lock is on
+              <span>Caps Lock is on</span>
             </div>
           )}
 
-          {/* 2FA */}
+          {/* 2FA Input (Conditional) */}
           {needs2fa && (
-            <div className="ls-field ls-field-2fa">
+            <div className="ls-field">
               <div className="ls-field-icon">
-                <Icon name="shield" size={16} color="var(--teal)" />
+                <Icon name="shield" size={15} color="var(--teal)" />
               </div>
               <Input
                 type="text"
                 inputMode="numeric"
-                placeholder="6-digit authentication code"
+                placeholder="6-digit authenticator code"
                 value={totp}
                 onChange={e => setTotp(e.target.value)}
                 autoComplete="one-time-code"
                 autoFocus
-                style={{ caretColor: 'var(--teal, #3b82f6)' }}
+                className="ls-input"
               />
             </div>
           )}
 
-          {/* Actions */}
+          {/* Action Buttons Row */}
           <div className="ls-actions">
             <Button
               type="button"
-              variant="ghost"
+              variant="outline"
               size="lg"
               onClick={logout}
-              className="ls-logout-btn"
+              className="ls-btn-logout"
             >
-              <Icon name="logOut" size={15} color="currentColor" />
-              Log out
+              <Icon name="logOut" size={14} />
+              <span>Log out</span>
             </Button>
             <Button
               type="submit"
               size="lg"
               disabled={submitting || !password}
-              className="ls-unlock-btn"
+              className="ls-btn-unlock"
             >
-              {submitting ? 'Unlocking…' : <><span>Unlock</span><Icon name="arrowRight" size={14} color="currentColor" /></>}
+              {submitting ? (
+                <span>Unlocking…</span>
+              ) : (
+                <>
+                  <span>Unlock</span>
+                  <Icon name="arrowRight" size={14} />
+                </>
+              )}
             </Button>
           </div>
         </form>
 
-        {/* Footer */}
+        {/* Security Footer */}
         <div className="ls-footer">
           <Icon name="shield" size={12} color="var(--teal)" />
-          Encrypted Session · {branding.platformName || 'Hudumika'} Security
+          <span>Encrypted Session · {branding.platformName || 'Hudumika'} Security</span>
         </div>
       </div>
     </div>

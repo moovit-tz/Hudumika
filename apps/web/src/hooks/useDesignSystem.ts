@@ -140,13 +140,13 @@ export const DENSITY_LABELS: Record<DensityId, string> = {
 };
 
 export const ICON_LIBRARY_LABELS: Record<IconLibraryId, string> = {
-  stroke: 'Stroke (default)', twotone: 'Twotone', hugeicons: 'Hugeicons',
+  stroke: 'Stroke', twotone: 'Twotone', hugeicons: 'Hugeicons Pro (default)',
 };
 
 export const ICON_LIBRARY_DESCRIPTIONS: Record<IconLibraryId, string> = {
-  stroke: "The platform's own icon set — every name is covered.",
+  stroke: "The platform's own hand-drawn icon set — every name is covered. The fallback every other library uses for a name it doesn't cover.",
   twotone: 'Dual-layer accent style. Covers the most common ~25 names; anything else falls back to Stroke.',
-  hugeicons: 'Real Hugeicons free-tier artwork. Covers most names; anything unmapped falls back to Stroke.',
+  hugeicons: 'Real, owned Hugeicons Pro artwork (components/hugeicons-pro-map.ts). Covers most names; anything unmapped falls back to Stroke.',
 };
 
 export const SHADOW_LABELS: Record<ShadowId, string> = {

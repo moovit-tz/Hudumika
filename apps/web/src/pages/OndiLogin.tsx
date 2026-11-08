@@ -1,9 +1,10 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { Link } from 'react-router-dom';
-import { useBranding } from '../hooks/useBranding.js';
+import { Link, useLocation } from 'react-router-dom';
+import { useBranding, BRAND_LOGO_LIGHT, BRAND_LOGO_DARK } from '../hooks/useBranding.js';
+import { Button } from '../components/ui/button.js';
+import { OndiLogo } from '../components/OndiLogo.js';
 import { Icon } from '../components/Icon.js';
 import { toggleThemeWithAnimation } from '../lib/theme.js';
-import { lightenHex, enforceContrastFloor, pickForegroundHsl } from '../lib/color.js';
 import { OndiSignInPanel } from '../components/OndiSignInPanel.js';
 import { Tip } from '../components/ui/tooltip.js';
 import './Login.css';
@@ -25,6 +26,8 @@ const LOGIN_BG_MAP: Record<string, string> = {
  * that cutover is a later, separate, reversible milestone.
  */
 export const OndiLogin: React.FC = () => {
+  const { pathname, search } = useLocation();
+  const isWelcome = pathname === '/';
   const rootRef = useRef<HTMLDivElement>(null);
   const branding = useBranding(true);
 
@@ -83,7 +86,7 @@ export const OndiLogin: React.FC = () => {
     // The tenant's raw accent has no contrast guarantee (see Login.tsx's
     // identical comment) — used as literal link text below, it can be
     // nearly invisible on the dark card when the accent itself is dark.
-    el.style.setProperty('--lp-link-accent', d ? '#8ab4f8' : accent);
+    el.style.setProperty('--lp-link-accent', 'var(--teal)');
     el.style.setProperty('--lp-error-bg', d ? '#2c1e1e' : '#fdf2f2');
     el.style.setProperty('--lp-error-border', d ? '#4b2e2e' : '#fde2e2');
     el.style.setProperty('--lp-error-text', d ? '#fca5a5' : '#c2410c');
@@ -92,21 +95,14 @@ export const OndiLogin: React.FC = () => {
     // before the contrast floor) rather than the raw accent, which passes
     // WCAG against white text but still reads as a heavy, near-invisible
     // block when the accent itself is dark and the page already is too.
-    const surfaceBase = d ? lightenHex(accent, 0.45) : accent;
-    const surface = enforceContrastFloor(surfaceBase).hex;
-    el.style.setProperty('--lp-accent-surface',    surface);
-    el.style.setProperty('--lp-accent-surface-fg', `hsl(${pickForegroundHsl(surface)})`);
-    // Also apply the accent as --teal so any component using var(--teal)
-    // inside this page tracks the platform brand colour.
-    if (/^#[0-9a-fA-F]{6}$/.test(accent)) {
-      const ar = parseInt(accent.slice(1, 3), 16);
-      const ag = parseInt(accent.slice(3, 5), 16);
-      const ab = parseInt(accent.slice(5, 7), 16);
-      el.style.setProperty('--teal',   accent);
-      el.style.setProperty('--teal-l', `rgba(${ar},${ag},${ab},0.1)`);
-      el.style.setProperty('--teal-m', `rgba(${ar},${ag},${ab},0.18)`);
-    }
+    el.style.setProperty('--lp-accent-surface', 'hsl(var(--primary))');
+    el.style.setProperty('--lp-accent-surface-fg', 'hsl(var(--primary-foreground))');
   }, [isDark, isBgDark, pageBg, accent]);
+
+  const appName = isWelcome ? 'Hudumika' : branding.getAppName('ondi', 'Ondi');
+  const logo = isWelcome
+    ? (isDark ? branding.logoDark || branding.logoLight || BRAND_LOGO_DARK : branding.logoLight || BRAND_LOGO_LIGHT)
+    : branding.getAppLogo('ondi') || (isDark ? '/ondi-logo-full-white.svg' : '/ondi-logo-full.svg');
 
   return (
     <div ref={rootRef} className="login-page ondi-login" data-theme={theme}>
@@ -118,26 +114,39 @@ export const OndiLogin: React.FC = () => {
             setTheme(next);
             toggleThemeWithAnimation(e, next === 'dark');
           }}
-          className="login-toggle">
+          className="login-toggle"
+          data-theme-switcher=""
+          aria-label={isDark ? 'Switch to light mode' : 'Switch to dark mode'}>
           <Icon name={isDark ? 'sun' : 'moon'} size={18} />
         </button>
       </Tip>
 
       <div className="login-card">
         <div className="login-brand-hdr ondi-idle-header">
-          <img src="/ondi-icon.svg" alt="Ondi" className="ondi-idle-icon" />
+          <div className="login-brand-row" style={{ display: 'flex', justifyContent: 'center', marginBottom: 14 }}>
+            <img
+              src={logo}
+              alt={appName}
+              className="g-brand-logo-img"
+            />
+          </div>
           <div className="login-header-left">
-            <h1 className="login-headline">Welcome to Ondi</h1>
-            <p className="login-subtext">Your identity. Your access. Your control.</p>
+            <h1 className="login-headline">Welcome to {appName}</h1>
+            <p className="login-subtext">{isWelcome ? branding.platformTagline || 'Smart Business, Simplified.' : 'One identity. Every app.'}</p>
           </div>
         </div>
 
-        <OndiSignInPanel />
+        {isWelcome ? (
+          <div className="ondi-panel">
+            <Button asChild variant="outline" className="ondi-pill ondi-pill--ondi">
+              <Link to={`/ondi/login${search}`}><OndiLogo size={20} /><span>Continue with Ondi</span></Link>
+            </Button>
+          </div>
+        ) : <OndiSignInPanel />}
 
         <div className="login-create-links">
           <p className="login-create-p">
-            <span className="login-create-lead">Prefer a password?</span>{' '}
-            <Link to="/login" className="login-create-link">Sign in instead</Link>
+            <Link to="/auth/forgot-password" className="login-create-link">Reset password</Link>
           </p>
           <p className="login-create-p">
             <span className="login-create-lead">New company?</span>{' '}

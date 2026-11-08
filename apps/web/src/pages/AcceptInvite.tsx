@@ -4,12 +4,15 @@ import { apiFetch } from '../lib/api.js';
 import { useAuth } from '../hooks/useAuth.js';
 import { Icon } from '../components/Icon.js';
 import { AuthCard, AuthAlert, AuthField } from './Login.js';
+import { GoogleSignInButton } from '../components/GoogleSignInButton.js';
+import { MicrosoftSignInButton } from '../components/MicrosoftSignInButton.js';
+import { AppleSignInButton } from '../components/AppleSignInButton.js';
 
 export const AcceptInvite: React.FC = () => {
   const navigate = useNavigate();
   const [params] = useSearchParams();
   const token = params.get('token') ?? '';
-  const { completeOnboarding } = useAuth();
+  const { completeOnboarding, loginWithGoogle, loginWithMicrosoft, loginWithApple } = useAuth();
 
   const [name, setName]           = useState('');
   const [password, setPassword]   = useState('');
@@ -18,6 +21,32 @@ export const AcceptInvite: React.FC = () => {
   const [error, setError]         = useState<string | null>(null);
   const [fieldErr, setFieldErr]   = useState<{ name?: string; password?: string; confirm?: string }>({});
   const [loading, setLoading]     = useState(false);
+  // Full-SSO alternative to the typed-password form below — same
+  // Google/Microsoft/Apple identity verification the signup wizard uses,
+  // scoped to this exact invite token server-side (see
+  // acceptHrInviteForFederatedIdentity). The password form stays: not every
+  // invitee has signed in anywhere with these yet, and there's no reason to
+  // force the choice.
+  const handleFederatedResult = (res: Awaited<ReturnType<typeof loginWithGoogle>>) => {
+    if ('join_request' in res || 'signup_ticket' in res) return; // never returned for this call shape
+    // loginWithGoogle/Microsoft/Apple already set the session cookie and
+    // local user state via completeLogin() — nothing left to do but land
+    // in the workspace, same as any other successful sign-in.
+    navigate('/nexushr');
+  };
+  const handleFederatedError = (err: any) => setError(err.message || 'Could not verify that account for this invitation.');
+  const handleGoogleCredential = (credential: string) => {
+    setError(null); setLoading(true);
+    loginWithGoogle(credential, false, false, token).then(handleFederatedResult).catch(handleFederatedError).finally(() => setLoading(false));
+  };
+  const handleMicrosoftCredential = (credential: string) => {
+    setError(null); setLoading(true);
+    loginWithMicrosoft(credential, false, false, token).then(handleFederatedResult).catch(handleFederatedError).finally(() => setLoading(false));
+  };
+  const handleAppleCredential = (credential: string, appleName?: string) => {
+    setError(null); setLoading(true);
+    loginWithApple(credential, appleName, false, false, token).then(handleFederatedResult).catch(handleFederatedError).finally(() => setLoading(false));
+  };
 
   const validate = () => {
     const e: typeof fieldErr = {};
@@ -75,6 +104,17 @@ export const AcceptInvite: React.FC = () => {
       </div>
 
       {error && <AuthAlert message={error} />}
+
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginBottom: 18 }}>
+        <GoogleSignInButton onCredential={handleGoogleCredential} onError={handleFederatedError} />
+        <MicrosoftSignInButton onCredential={handleMicrosoftCredential} onError={handleFederatedError} />
+        <AppleSignInButton onCredential={handleAppleCredential} onError={handleFederatedError} />
+      </div>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 10, margin: '4px 0 18px', color: 'var(--ink3, #94a3b8)', fontSize: 13 }}>
+        <div style={{ flex: 1, height: 1, background: 'var(--border, #e2e8f0)' }} />
+        or set a password instead
+        <div style={{ flex: 1, height: 1, background: 'var(--border, #e2e8f0)' }} />
+      </div>
 
       <form onSubmit={handleSubmit} noValidate className="auth-form">
         <AuthField label="Full name" error={fieldErr.name}>

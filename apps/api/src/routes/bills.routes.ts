@@ -77,7 +77,7 @@ import { tenantAccountingDate } from '../services/finance-date.service.js';
 import { TRAService } from '../services/tra.service.js';
 import { isTaxCodeUserError, resolveLineTax, resolveTaxCode, splitInputTax } from '../services/tax-code.service.js';
 import {
-  DocumentPosted, assertPeriodOpen, isPeriodError, reverseDocumentJournals, tenantJurisdiction,
+  DocumentPosted, assertPeriodOpenForJurisdictions, billJurisdictions, isPeriodError, reverseDocumentJournals,
 } from '../services/vat-period.service.js';
 import type { Transaction } from 'kysely';
 import type { Database } from '../db/client.js';
@@ -705,7 +705,15 @@ export async function billRoutes(fastify: FastifyInstance) {
     const user = request.user;
     const { id } = request.params as { id: string };
     return withTenant(user.tenant_id, async (trx) => {
-      const bill = await trx.selectFrom('supplier_bills').selectAll().where('id', '=', id).where('tenant_id', '=', user.tenant_id).executeTakeFirst();
+      // forUpdate() — same transaction does a real GL post further down,
+      // so a second concurrent approve() for this same bill must block
+      // here until the first commits, not just read a stale status. Two
+      // requests hitting this route close together (double-click, or a
+      // retried request) would otherwise both pass the plain status check
+      // below and both post a duplicate GL entry — same race class as
+      // petti.service.ts's disburseWithdrawal/confirmReconciledDeposit,
+      // fixed earlier this session.
+      const bill = await trx.selectFrom('supplier_bills').selectAll().where('id', '=', id).where('tenant_id', '=', user.tenant_id).forUpdate().executeTakeFirst();
       if (!bill) return reply.status(404).send({ error: 'Bill not found' });
       if (bill.status !== 'PENDING_APPROVAL') return reply.status(409).send({ error: 'This bill is not pending approval.' });
       if (!bill.approval_workflow_id) return reply.status(409).send({ error: 'This bill has no resolved approval workflow.' });
@@ -725,9 +733,16 @@ export async function billRoutes(fastify: FastifyInstance) {
         }, trx);
       }
 
+      // Belt-and-braces alongside forUpdate() above: the status condition
+      // repeated on the write itself means this is correct even if the
+      // lock semantics above were ever misapplied (e.g. a future refactor
+      // splitting this across transactions, the exact way petti.service.ts's
+      // bugs happened).
       const updated = await trx.updateTable('supplier_bills')
         .set({ status: 'POSTED', approved_by: user.sub, approved_at: new Date(), updated_at: new Date() })
-        .where('id', '=', id).where('tenant_id', '=', user.tenant_id).returningAll().executeTakeFirstOrThrow();
+        .where('id', '=', id).where('tenant_id', '=', user.tenant_id).where('status', '=', 'PENDING_APPROVAL')
+        .returningAll().executeTakeFirst();
+      if (!updated) return reply.status(409).send({ error: 'This bill was already approved or is no longer pending.' });
 
       await enqueueAccountingSync(trx, user.tenant_id, 'BILL', id);
       await trx.insertInto('bill_activity_log').values({
@@ -747,8 +762,12 @@ export async function billRoutes(fastify: FastifyInstance) {
     const user = request.user;
     const { id } = request.params as { id: string };
     return withTenant(user.tenant_id, async (trx) => {
+      // forUpdate() — same reasoning as /:id/approve above: this
+      // transaction may post a real GL entry further down, so a second
+      // concurrent submit() for this bill must block here, not read a
+      // stale DRAFT status.
       const bill = await trx.selectFrom('supplier_bills').selectAll()
-        .where('id', '=', id).where('tenant_id', '=', user.tenant_id).executeTakeFirst();
+        .where('id', '=', id).where('tenant_id', '=', user.tenant_id).forUpdate().executeTakeFirst();
       if (!bill) return reply.status(404).send({ error: 'Bill not found' });
       if (bill.status !== 'DRAFT') return reply.status(409).send({ error: 'Only a draft bill can be submitted.' });
 
@@ -764,7 +783,7 @@ export async function billRoutes(fastify: FastifyInstance) {
       }
 
       try {
-        await assertPeriodOpen(trx, user.tenant_id, bill.bill_date, await tenantJurisdiction(trx, user.tenant_id));
+        await assertPeriodOpenForJurisdictions(trx, user.tenant_id, bill.bill_date, await billJurisdictions(trx, user.tenant_id, id));
       } catch (e) {
         if (isPeriodError(e)) return reply.status(409).send({ error: e.message });
         throw e;
@@ -777,7 +796,7 @@ export async function billRoutes(fastify: FastifyInstance) {
           const pending = await trx.updateTable('supplier_bills').set({
             status: 'PENDING_APPROVAL', approval_workflow_id: workflow.id,
             submitted_for_approval_at: new Date(), updated_at: new Date(),
-          }).where('id', '=', id).where('tenant_id', '=', user.tenant_id)
+          }).where('id', '=', id).where('tenant_id', '=', user.tenant_id).where('status', '=', 'DRAFT')
             .returningAll().executeTakeFirstOrThrow();
           await trx.insertInto('bill_activity_log').values({
             tenant_id: user.tenant_id, bill_id: id, actor_id: user.sub, actor_name: user.name || user.email,
@@ -798,7 +817,7 @@ export async function billRoutes(fastify: FastifyInstance) {
       }
       const posted = await trx.updateTable('supplier_bills')
         .set({ status: 'POSTED', updated_at: new Date() })
-        .where('id', '=', id).where('tenant_id', '=', user.tenant_id)
+        .where('id', '=', id).where('tenant_id', '=', user.tenant_id).where('status', '=', 'DRAFT')
         .returningAll().executeTakeFirstOrThrow();
       await enqueueAccountingSync(trx, user.tenant_id, 'BILL', id);
       await trx.insertInto('bill_activity_log').values({
@@ -828,7 +847,9 @@ export async function billRoutes(fastify: FastifyInstance) {
 
       const updated = await trx.updateTable('supplier_bills')
         .set({ status: 'DRAFT', rejected_by: user.sub, rejected_at: new Date(), rejection_reason: reason, updated_at: new Date() })
-        .where('id', '=', id).where('tenant_id', '=', user.tenant_id).returningAll().executeTakeFirstOrThrow();
+        .where('id', '=', id).where('tenant_id', '=', user.tenant_id).where('status', '=', 'PENDING_APPROVAL')
+        .returningAll().executeTakeFirst();
+      if (!updated) return reply.status(409).send({ error: 'This bill was already approved or rejected.' });
 
       await trx.insertInto('bill_activity_log').values({
         tenant_id: user.tenant_id, bill_id: id, actor_id: user.sub, actor_name: user.name || user.email,
@@ -866,9 +887,9 @@ export async function billRoutes(fastify: FastifyInstance) {
       }
 
       try {
-        const juris = await tenantJurisdiction(trx, user.tenant_id);
-        await assertPeriodOpen(trx, user.tenant_id, existing.bill_date, juris);
-        if (body.bill_date) await assertPeriodOpen(trx, user.tenant_id, body.bill_date, juris);
+        const juris = await billJurisdictions(trx, user.tenant_id, id);
+        await assertPeriodOpenForJurisdictions(trx, user.tenant_id, existing.bill_date, juris);
+        if (body.bill_date) await assertPeriodOpenForJurisdictions(trx, user.tenant_id, body.bill_date, juris);
       } catch (e) {
         if (isPeriodError(e)) return reply.status(409).send({ error: e.message });
         throw e;
@@ -1016,7 +1037,7 @@ export async function billRoutes(fastify: FastifyInstance) {
       if (bill.status === 'VOID') return reply.status(409).send({ error: 'That bill is already void.' });
 
       try {
-        await assertPeriodOpen(trx, user.tenant_id, bill.bill_date, await tenantJurisdiction(trx, user.tenant_id));
+        await assertPeriodOpenForJurisdictions(trx, user.tenant_id, bill.bill_date, await billJurisdictions(trx, user.tenant_id, id));
       } catch (e) {
         if (isPeriodError(e)) return reply.status(409).send({ error: e.message });
         throw e;
@@ -1060,7 +1081,7 @@ export async function billRoutes(fastify: FastifyInstance) {
         });
       }
       try {
-        await assertPeriodOpen(trx, user.tenant_id, existing.bill_date, await tenantJurisdiction(trx, user.tenant_id));
+        await assertPeriodOpenForJurisdictions(trx, user.tenant_id, existing.bill_date, await billJurisdictions(trx, user.tenant_id, id));
       } catch (e) {
         if (isPeriodError(e)) return reply.status(409).send({ error: e.message });
         throw e;

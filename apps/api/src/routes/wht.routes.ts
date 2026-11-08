@@ -233,8 +233,12 @@ export async function whtRoutes(fastify: FastifyInstance) {
       paid_at: z.string().optional(), reference: z.string().max(200).optional(), account_code: z.string().max(20).optional(),
     }).parse(request.body ?? {});
     return withTenant(user.tenant_id, async (trx) => {
+      // forUpdate() — this transaction posts a real GL entry further down,
+      // so a second concurrent /pay for this same remittance must block
+      // here, not read a stale status and double-pay it. Same race class
+      // fixed across several other GLService.post() callers this session.
       const remittance = await trx.selectFrom('wht_remittances').selectAll()
-        .where('id', '=', id).where('tenant_id', '=', user.tenant_id).executeTakeFirst();
+        .where('id', '=', id).where('tenant_id', '=', user.tenant_id).forUpdate().executeTakeFirst();
       if (!remittance) return reply.status(404).send({ error: 'Remittance not found' });
       if (remittance.status === 'PAID') return reply.status(409).send({ error: 'This remittance has already been paid.' });
 
@@ -252,10 +256,16 @@ export async function whtRoutes(fastify: FastifyInstance) {
         ],
       }, trx);
 
-      return trx.updateTable('wht_remittances').set({
+      // Status guard repeated on the write (belt-and-braces alongside
+      // forUpdate()) plus the tenant_id filter the original write was
+      // missing entirely.
+      const paid = await trx.updateTable('wht_remittances').set({
         status: 'PAID', paid_at: paid_at ? new Date(paid_at) : new Date(),
         reference: reference || null, journal_entry_id: journalEntryId,
-      }).where('id', '=', id).returningAll().executeTakeFirstOrThrow();
+      }).where('id', '=', id).where('tenant_id', '=', user.tenant_id).where('status', '!=', 'PAID')
+        .returningAll().executeTakeFirst();
+      if (!paid) return reply.status(409).send({ error: 'This remittance has already been paid.' });
+      return paid;
     });
   });
 }

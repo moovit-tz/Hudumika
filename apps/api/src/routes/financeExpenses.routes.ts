@@ -416,7 +416,12 @@ export async function financeExpensesRoutes(fastify: FastifyInstance) {
     if (Object.keys(patch).length === 0) return reply.status(400).send({ error: 'No fields to update' });
 
     const row = await withTenant(user.tenant_id, async (trx) => {
-      const existing = await trx.selectFrom('finance_expenses').select(['industry_key','industry_work_id']).where('tenant_id','=',user.tenant_id).where('id','=',id).executeTakeFirst();
+      // forUpdate() — this transaction may reverse+re-post a real GL entry
+      // further down, so a second concurrent PATCH on this same expense must
+      // block here, not independently reverse+repost in parallel and double
+      // the ledger entry. Same race class fixed across several other
+      // GLService.post() callers this session.
+      const existing = await trx.selectFrom('finance_expenses').select(['industry_key','industry_work_id']).where('tenant_id','=',user.tenant_id).where('id','=',id).forUpdate().executeTakeFirst();
       if (!existing) return undefined;
       let industry = body.industry_key === undefined ? existing.industry_key : body.industry_key;
       await validateCatalogIndustry(trx, user.tenant_id, industry, undefined, existing.industry_key);
@@ -430,23 +435,27 @@ export async function financeExpensesRoutes(fastify: FastifyInstance) {
       // Scoped. Without the tenant filter this reached any expense in the
       // database given its id, and RLS does not stop it: the connection owns
       // the table, and Postgres lets an owner bypass row-level policies.
-      return trx.updateTable('finance_expenses').set(patch)
+      const updated = await trx.updateTable('finance_expenses').set(patch)
         .where('id', '=', id).where('tenant_id', '=', user.tenant_id).where('report_id', 'is', null)
         .returningAll().executeTakeFirst();
+      if (!updated) return undefined;
+      // Re-post only if this row was ever actually posted (APPROVED) —
+      // editing a SUBMITTED/REJECTED row (M11) has nothing to reverse yet;
+      // reverseBySource on a row with no active entries is a silent no-op,
+      // but calling it anyway would be a lie about what this edit just did.
+      // Done inside the same locked transaction as the update (not after it
+      // commits) so a concurrent PATCH can't double the ledger entry.
+      if (updated.status === 'APPROVED') {
+        // Re-post: drop the prior ledger entry and post the corrected figures, so
+        // a changed amount/category/direction never double-counts in P&L.
+        try {
+          await GLService.reverseBySource(user.tenant_id, 'EXPENSE', id, user.sub, 'Expense edited — re-posting corrected figures', trx);
+          await postExpenseToGl(user.tenant_id, updated, user.sub, trx);
+        } catch (e: any) { request.log.error({ err: e }, '[Finance] expense GL re-post failed'); }
+      }
+      return updated;
     });
     if (!row) return reply.status(404).send({ error: 'Expense not found' });
-    // Re-post only if this row was ever actually posted (APPROVED) —
-    // editing a SUBMITTED/REJECTED row (M11) has nothing to reverse yet;
-    // reverseBySource on a row with no active entries is a silent no-op,
-    // but calling it anyway would be a lie about what this edit just did.
-    if (row.status === 'APPROVED') {
-      // Re-post: drop the prior ledger entry and post the corrected figures, so
-      // a changed amount/category/direction never double-counts in P&L.
-      try {
-        await GLService.reverseBySource(user.tenant_id, 'EXPENSE', id, user.sub, 'Expense edited — re-posting corrected figures');
-        await postExpenseToGl(user.tenant_id, row, user.sub);
-      } catch (e: any) { request.log.error({ err: e }, '[Finance] expense GL re-post failed'); }
-    }
     if ('attachment_data' in patch || 'shipment_id' in patch) {
       mirrorExpenseAttachment(user.tenant_id, row).catch(e => request.log.warn({ err: e.message }, '[Cloud] expense attachment mirror failed'));
     }

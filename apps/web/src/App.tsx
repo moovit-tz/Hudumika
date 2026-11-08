@@ -92,6 +92,7 @@ const GuestMeetingJoin = React.lazy(() => import('./pages/calls/GuestMeetingJoin
 // Lazy loaded workspace shells (30+ apps split into individual chunks)
 const ClearOSShell = React.lazy(() => import('./shells/ClearOSShell.js').then(m => ({ default: m.ClearOSShell })));
 const FinOpsShell = React.lazy(() => import('./shells/FinOpsShell.js').then(m => ({ default: m.FinOpsShell })));
+const StandalonePos = React.lazy(() => import('./pages/StandalonePos.js').then(m => ({ default: m.StandalonePos })));
 const LensShell = React.lazy(() => import('./shells/LensShell.js').then(m => ({ default: m.LensShell })));
 const NexusHRShell = React.lazy(() => import('./shells/NexusHRShell.js').then(m => ({ default: m.NexusHRShell })));
 const BlissShell = React.lazy(() => import('./shells/BlissShell.js').then(m => ({ default: m.BlissShell })));
@@ -348,17 +349,6 @@ const AppContentBody: React.FC = () => {
   const { pathname, search } = useLocation();
   const isHub = pathname === '/';
 
-  // M7 SSO cutover — dark-launched, SuperAdmin-controlled (Platform Settings
-  // → Ondi SSO), default off. Decides only which login experience an
-  // unauthenticated visitor sees FIRST at the catch-all route; both pages
-  // remain fully reachable via their existing cross-link regardless of this
-  // flag (see ondi-auth.routes.ts's GET /config for why this is global, not
-  // per-tenant). Starts false so nothing changes until a SuperAdmin opts in.
-  const [ondiSsoDefault, setOndiSsoDefault] = useState(false);
-  useEffect(() => {
-    getOndiConfig().then(cfg => setOndiSsoDefault(cfg.sso_enabled)).catch(() => {});
-  }, []);
-
   /* ── Organization portal — a completely separate session from the
      staff/customer one above (see useOrgAuth.tsx). Checked first: an org
      session can exist with or without a staff/customer session in the same
@@ -392,7 +382,7 @@ const AppContentBody: React.FC = () => {
   if (!user) return (
     <Suspense fallback={<SkeletonPage />}>
       <Routes>
-        <Route path="/ondi/authorize" element={<Navigate replace to={`/login?${new URLSearchParams({ returnTo: pathname + search })}`} />} />
+        <Route path="/ondi/authorize" element={<Navigate replace to={`/?${new URLSearchParams({ returnTo: pathname + search })}`} />} />
         <Route path="/maintenance"          element={<MaintenancePage />} />
         <Route path="/signup"               element={<OnboardingWizard />} />
         <Route path="/signup/finalizing"     element={<OnboardingFinalizing />} />
@@ -444,38 +434,14 @@ const AppContentBody: React.FC = () => {
             personally sent. */}
         <Route path="/meet/:id"            element={<GuestMeetingJoin />} />
         <Route path="/ondi/login"          element={<OndiLogin />} />
-        {/* Always the password page, unconditionally — the one stable target
-            for OndiLogin's "Sign in with password instead" link. Without this,
-            /login had no route of its own and fell through to the same
-            flag-conditional catch-all below, so flipping Ondi SSO on made
-            that link loop back to Ondi instead of ever reaching the password
-            page — caught by testing the link, not just the default view. */}
-        <Route path="/login"                element={<Login />} />
+        <Route path="/login" element={<Navigate to={`/${search}`} replace />} />
         <Route path="/2fa-setup-required"   element={<TwoFaSetupRequired />} />
-        {/* Same gap, different link: ForgotPassword/AcceptInvite/ResetPassword
-            all point back to /auth/login (not /login) after a password reset
-            or invite acceptance. That path had no route of its own either, so
-            it fell through to the flag-conditional catch-all below the same
-            way /login did before the fix above — a user who just set a new
-            password would land back on OndiLogin instead of the form that
-            needs it once Ondi SSO is the default. */}
-        <Route path="/auth/login"           element={<Navigate to="/login" replace />} />
-        {/* A deep link hit while signed out (e.g. a standalone app's own
-            URL, a notification link, a bookmark) used to render the login
-            page directly in place at that URL with no returnTo ever set —
-            Login.tsx and OndiSignInPanel.tsx both only ever read returnTo
-            from the query string, so after signing in the user landed on
-            "/" and the original destination was lost. Redirecting here
-            (same shape as /ondi/authorize just above) is what actually
-            preserves it, matching how Onsite's own acceptance test
-            ("sign-in and return to a deep link") and every other
-            standalone app entry point needs this to behave. Root "/" is
-            excluded so the plain hub visit doesn't pick up a pointless
-            ?returnTo=%2F. */}
+        <Route path="/auth/login"           element={<Navigate to={`/${search}`} replace />} />
+        {/* Keep signed-out deep links through the shared welcome page. */}
         <Route path="*" element={
           pathname === '/'
-            ? (ondiSsoDefault ? <OndiLogin /> : <Login />)
-            : <Navigate replace to={`/login?${new URLSearchParams({ returnTo: pathname + search })}`} />
+            ? <OndiLogin />
+            : <Navigate replace to={`/?${new URLSearchParams({ returnTo: pathname + search })}`} />
         } />
       </Routes>
     </Suspense>
@@ -529,6 +495,13 @@ const AppContentBody: React.FC = () => {
             <Route path="/lens/*"     element={<RequireRoles roles={['SUPER_ADMIN']}><LensShell /></RequireRoles>} />
             <Route path="/finance/*"  element={<RequireRoles roles={FIN_ROLES}><FinOpsShell /></RequireRoles>} />
             <Route path="/finops/*"   element={<RequireRoles roles={FIN_ROLES}><FinOpsShell /></RequireRoles>} />
+            {/* POS's own standalone identity (migration 709) — /finance/pos
+                (FinOpsShell's special-case branch) keeps working unchanged
+                for a bundled tenant; this is the direct entry for a tenant
+                who subscribed to POS standalone. Full-viewport, no
+                PageLayout — same reason FinOpsShell's own /finance/pos
+                branch skips it. */}
+            <Route path="/pos"        element={<RequireRoles roles={FIN_ROLES}><StandalonePos /></RequireRoles>} />
             <Route path="/nexushr/*"    element={<NexusHRShell />} />
             {/* /onepi is retired as the HR prefix — it is being freed for the
                 separate KPI-management app. Bookmarks, printed reports and the

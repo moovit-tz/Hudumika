@@ -5,15 +5,14 @@ import { Icon } from '../components/Icon.js';
 import { useBranding, BRAND_LOGO_LIGHT, BRAND_LOGO_DARK } from '../hooks/useBranding.js';
 import { useLocale } from '../hooks/useLocale.js';
 import { toggleThemeWithAnimation } from '../lib/theme.js';
-import { lightenHex, enforceContrastFloor, pickForegroundHsl } from '../lib/color.js';
 import { OndiLogo } from '../components/OndiLogo.js';
-import { OndiSignInPanel } from '../components/OndiSignInPanel.js';
+import { Button } from '../components/ui/button.js';
 import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem } from '../components/ui/dropdown-menu.js';
 import { Tip } from '../components/ui/tooltip.js';
 import './Login.css';
 
 const DEMO_ACCOUNTS = [
-  { role: 'Super Admin',    email: 'viden@hudumika.tz' },
+  { role: 'Super Admin',    email: 'viden@optin.co.tz' },
   { role: 'Tenant Admin',   email: 'admin@msomi.co' },
   { role: 'Manager',        email: 'manager@msomi.co' },
   { role: 'Finance',        email: 'finance@msomi.co' },
@@ -51,13 +50,9 @@ export const Login: React.FC = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const [email, setEmail]             = useState('');
-  const [password, setPassword]       = useState('');
-  const [showPass, setShowPass]       = useState(false);
   const [error, setError]             = useState<string | null>(
     searchParams.get('expired') ? 'Your session has expired. Please log in again.' : null
   );
-  const [fieldErr, setFieldErr]       = useState<{ email?: string; password?: string }>({});
   const [loading, setLoading]         = useState(false);
   // Real password+authenticator-code 2FA (Workspace ▸ Security's "Enable
   // 2FA" — a user sets this up once there; every sign-in after that, this
@@ -65,23 +60,10 @@ export const Login: React.FC = () => {
   // field only appears once the server confirms the account actually has
   // 2FA enabled (requires_2fa) — asking for it upfront on every account
   // would leak who has 2FA turned on before a password is even checked.
+  const [pendingDemoEmail, setPendingDemoEmail] = useState('');
   const [needs2fa, setNeeds2fa]       = useState(false);
   const [totpCode, setTotpCode]       = useState('');
   const [demoLoadingEmail, setDemoLoadingEmail] = useState<string | null>(null);
-  const [method, setMethod] = useState<'password' | 'ondi'>('password');
-
-  // Google/Microsoft/phone/authenticator/company-SSO used to be three
-  // separate things on this page: a "Google" tab, a "Microsoft" tab, and a
-  // "Continue with Ondi" link buried below the form. All of them are really
-  // the same choice ("something other than a typed password"), and Ondi's
-  // own page (/ondi/login) already offers every one of them — Google
-  // included, with its client ID resolved the same way GoogleSignInButton
-  // always did. So this tab now just navigates there instead of
-  // re-rendering a second, partial copy of that page's own method picker.
-  const methods: Array<{ key: typeof method; label: string; icon: React.ReactNode }> = [
-    { key: 'ondi', label: 'Ondi', icon: <OndiLogo size={14} /> },
-    { key: 'password', label: 'Password', icon: <Icon name="lock" size={14} /> },
-  ];
 
   const branding = useBranding(true);
   const isDark   = theme === 'dark';
@@ -131,7 +113,7 @@ export const Login: React.FC = () => {
     // it can be nearly invisible when the accent itself is a dark tone.
     // Google's own dark-mode link blue is a safe, on-theme fallback for text
     // specifically; the accent still drives the button surface below.
-    el.style.setProperty('--lp-link-accent',     d ? '#8ab4f8' : accent);
+    el.style.setProperty('--lp-link-accent', 'var(--teal)');
     // Button *surface*, not just text: the assumption that the raw accent
     // "reads fine as the submit button's fill because contrast is against
     // white button text" is exactly the bug — a dark tenant colour (navy,
@@ -142,46 +124,21 @@ export const Login: React.FC = () => {
     // floor, dark mode only, light mode uses the hex as picked) — this reuses
     // the exact same lib/color.ts functions instead of inventing a second,
     // login-page-only fix.
-    const surfaceBase = d ? lightenHex(accent, 0.45) : accent;
-    const surface = enforceContrastFloor(surfaceBase).hex;
-    el.style.setProperty('--lp-accent-surface',    surface);
-    el.style.setProperty('--lp-accent-surface-fg', `hsl(${pickForegroundHsl(surface)})`);
+    el.style.setProperty('--lp-accent-surface', 'hsl(var(--primary))');
+    el.style.setProperty('--lp-accent-surface-fg', 'hsl(var(--primary-foreground))');
   }, [isDark, isBgDark, pageBg, accent]);
-
-  const validate = () => {
-    const e: typeof fieldErr = {};
-    if (!email) e.email = t('login.enterEmail');
-    else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) e.email = t('login.enterValidEmail');
-    if (!password) e.password = t('login.enterPassword');
-    setFieldErr(e);
-    return Object.keys(e).length === 0;
-  };
 
   const handleSubmit = async (ev: React.FormEvent) => {
     ev.preventDefault();
-    if (needs2fa) {
-      if (totpCode.trim().length < 6) { setError('Enter the 6-digit code from your authenticator app.'); return; }
-      setError(null);
-      setLoading(true);
-      try {
-        const res = await login(email, password, totpCode.trim());
-        if ('requires_2fa' in res) { setError('Invalid code. Try again.'); return; }
-        navigate(returnTo);
-      } catch (err: any) {
-        setError(err.message || 'Invalid or expired code.');
-      } finally { setLoading(false); }
-      return;
-    }
-    if (!validate()) return;
-    setError(null);
-    setLoading(true);
+    if (loading || !pendingDemoEmail) return;
+    if (totpCode.trim().length !== 6) { setError('Enter the 6-digit code from your authenticator app.'); return; }
+    setError(null); setLoading(true);
     try {
-      const res = await login(email, password);
+      const res = await login(pendingDemoEmail, 'password123', totpCode.trim());
+      if ('requires_2fa' in res) { setError('Invalid code. Try again.'); return; }
       if ('requires_2fa_setup' in res) { navigate('/2fa-setup-required', { state: { setupToken: res.setup_token } }); return; }
-      if ('requires_2fa' in res) { setNeeds2fa(true); return; }
       navigate(returnTo);
-    }
-    catch (err: any) { setError(err.message || 'Invalid email or password. Please try again.'); }
+    } catch (err: any) { setError(err.message || 'Invalid or expired code.'); }
     finally { setLoading(false); }
   };
 
@@ -189,13 +146,18 @@ export const Login: React.FC = () => {
     if (loading || demoLoadingEmail) return;
     setError(null);
     setDemoLoadingEmail(demoEmail);
-    try { await login(demoEmail, 'password123'); navigate(returnTo); }
+    try {
+      const res = await login(demoEmail, 'password123');
+      if ('requires_2fa_setup' in res) { navigate('/2fa-setup-required', { state: { setupToken: res.setup_token } }); return; }
+      if ('requires_2fa' in res) { setPendingDemoEmail(demoEmail); setTotpCode(''); setNeeds2fa(true); return; }
+      navigate(returnTo);
+    }
     catch (err: any) { setError(err.message || 'Failed to login with demo account.'); }
     finally { setDemoLoadingEmail(null); }
   };
 
   return (
-    <div ref={rootRef} className="login-page" data-theme={theme}>
+    <div ref={rootRef} className="login-page password-login" data-theme={theme}>
 
       <Tip label={t('login.toggleTheme')}>
         <button
@@ -205,7 +167,9 @@ export const Login: React.FC = () => {
             setTheme(next);
             toggleThemeWithAnimation(e, next === 'dark');
           }}
-          className="login-toggle">
+          className="login-toggle"
+          data-theme-switcher=""
+          aria-label={isDark ? 'Switch to light mode' : 'Switch to dark mode'}>
           <Icon name={isDark ? 'sun' : 'moon'} size={18} />
         </button>
       </Tip>
@@ -225,14 +189,6 @@ export const Login: React.FC = () => {
 
         <h1 className="login-headline">{branding.loginHeadline}</h1>
 
-        {/* Sign in / Sign up — Sign up isn't rebuilt in-card since /signup
-            is already a real, dedicated multi-step registration flow
-            (OnboardingWizard); this pill just navigates there. */}
-        <div className="login-toplevel-switcher">
-          <button type="button" className="login-toplevel-tab login-toplevel-tab--active" data-ui-native-button="">{t('login.signIn')}</button>
-          <button type="button" onClick={() => navigate('/signup')} className="login-toplevel-tab" data-ui-native-button="">{t('login.createAccount')}</button>
-        </div>
-
         <div className="login-header-left">
           <p className="login-subtext">{branding.loginSubtext}</p>
         </div>
@@ -244,32 +200,7 @@ export const Login: React.FC = () => {
           </div>
         )}
 
-        {/* ── Sign-in method tabs — both render inline now: Password's own
-            form below, or OndiSignInPanel (the exact same picker /ondi/login
-            renders standalone) in the Ondi tab. Was a navigation to
-            /ondi/login; moved inline per direct feedback — a tab switching
-            to a different *page* read as broken, not as a tab. ── */}
-        <div className="login-method-switcher">
-          {methods.map(m => (
-            <button
-              key={m.key}
-              type="button"
-              onClick={() => setMethod(m.key)}
-              className={`login-method-tab${method === m.key ? ' login-method-tab--active' : ''}`}
-             data-ui-native-button="">
-              {m.icon}
-              <span>{m.label}</span>
-            </button>
-          ))}
-        </div>
-
-        {method === 'ondi' && <OndiSignInPanel />}
-
-        {/* ── Credentials Form ── */}
-        {method === 'password' && (
-        <form onSubmit={handleSubmit} noValidate className="login-form">
-
-          {needs2fa ? (
+        {needs2fa && <form onSubmit={handleSubmit} noValidate className="login-form">
             <>
               <div className="login-field">
                 <label className="login-label" htmlFor="login-totp">Authenticator code</label>
@@ -300,64 +231,13 @@ export const Login: React.FC = () => {
                 </button>
               </div>
             </>
-          ) : (
-            <>
-              <div className="login-field">
-                <label className="login-label" htmlFor="login-email">{t('login.emailAddressLabel')}</label>
-                <input
-                  id="login-email"
-                  type="email"
-                  placeholder={t('login.emailPlaceholder')}
-                  value={email}
-                  onChange={e => { setEmail(e.target.value); setFieldErr(p => ({ ...p, email: undefined })); }}
-                  className={`login-input${fieldErr.email ? ' login-input--error' : ''}`}
-                  autoComplete="email"
-                />
-                {fieldErr.email && (
-                  <span className="login-field-err">
-                    <Icon name="alertCircle" size={12} /> {fieldErr.email}
-                  </span>
-                )}
-              </div>
+        </form>}
 
-              <div className="login-field">
-                <div className="login-label-row">
-                  <label className="login-label" htmlFor="login-password">{t('login.passwordLabel')}</label>
-                  <Link to="/auth/forgot-password" className="login-forgot-link">{t('login.forgotPassword')}</Link>
-                </div>
-                <div className="login-field-pw">
-                  <input
-                    id="login-password"
-                    type={showPass ? 'text' : 'password'}
-                    placeholder={t('login.passwordPlaceholder')}
-                    value={password}
-                    onChange={e => { setPassword(e.target.value); setFieldErr(p => ({ ...p, password: undefined })); }}
-                    className={`login-input${fieldErr.password ? ' login-input--error' : ''}`}
-                    autoComplete="current-password"
-                  />
-                  <Tip label={showPass ? t('login.hidePassword') : t('login.showPassword')}>
-                    <button type="button" onClick={() => setShowPass(p => !p)} className="login-pw-toggle" data-ui-native-button="">
-                      <Icon name={showPass ? 'eyeOff' : 'eye'} size={16} />
-                    </button>
-                  </Tip>
-                </div>
-                {fieldErr.password && (
-                  <span className="login-field-err">
-                    <Icon name="alertCircle" size={12} /> {fieldErr.password}
-                  </span>
-                )}
-              </div>
 
-              <button type="submit" disabled={loading} className="login-submit-btn login-submit-btn--full" data-ui-native-button="">
-                {loading ? t('login.signingIn') : t('login.signIn')}
-                {!loading && <Icon name="arrowRight" size={14} color="#fff" />}
-              </button>
-            </>
-          )}
-        </form>
-        )}
-
-        {/* ── Demo accounts ── */}
+        <div className="password-login-links">
+          <Button asChild variant="outline" size="sm" className="password-login-ondi"><Link to={returnTo === '/' ? '/' : `/?${new URLSearchParams({ returnTo })}`}><OndiLogo size={18} />{t('login.useOndi')}</Link></Button>
+          <Link to="/signup" className="login-create-link">{t('login.createWorkspace')}</Link>
+        </div>
         <div className="login-divider"><span>{t('login.orTryDemo')}</span></div>
         <div className="login-demo-grid">
           {DEMO_ACCOUNTS.map(acc => (
@@ -377,6 +257,7 @@ export const Login: React.FC = () => {
             </Tip>
           ))}
         </div>
+
 
       </div>
 
@@ -480,11 +361,9 @@ export function AuthCard({ children }: { children: React.ReactNode }) {
     el.style.setProperty('--lp-success-bg',      d ? '#1e2c22' : '#f0fdf4');
     el.style.setProperty('--lp-success-border',  d ? '#2d4a37' : 'var(--green-l)');
     el.style.setProperty('--lp-success-text',    d ? '#86efac' : '#166534');
-    el.style.setProperty('--lp-link-accent',     d ? '#8ab4f8' : accent);
-    const surfaceBase = d ? lightenHex(accent, 0.45) : accent;
-    const surface = enforceContrastFloor(surfaceBase).hex;
-    el.style.setProperty('--lp-accent-surface',    surface);
-    el.style.setProperty('--lp-accent-surface-fg', `hsl(${pickForegroundHsl(surface)})`);
+    el.style.setProperty('--lp-link-accent', 'var(--teal)');
+    el.style.setProperty('--lp-accent-surface', 'hsl(var(--primary))');
+    el.style.setProperty('--lp-accent-surface-fg', 'hsl(var(--primary-foreground))');
   }, [isDark, isBgDark, pageBg, accent]);
 
   return (
@@ -497,7 +376,9 @@ export function AuthCard({ children }: { children: React.ReactNode }) {
             setTheme(next);
             toggleThemeWithAnimation(e, next === 'dark');
           }}
-          className="login-toggle">
+          className="login-toggle"
+          data-theme-switcher=""
+          aria-label={isDark ? 'Switch to light mode' : 'Switch to dark mode'}>
           <Icon name={isDark ? 'sun' : 'moon'} size={18} />
         </button>
       </Tip>

@@ -52,6 +52,7 @@ export const APP_LABELS: Record<AppId, string> = {
   seal:          'SEAL',
   hudubi:        'HuduBI',
   petti:         'Petti',
+  pos:           'POS',
   notes:         'Notes',
   sign:          'eSign',
   sms:           'SMS',
@@ -95,7 +96,7 @@ export const APP_COLORS: Record<AppId, string> = {
   store: DEFAULT_APP_COLOR, calendar: DEFAULT_APP_COLOR, tasks: DEFAULT_APP_COLOR, notes: DEFAULT_APP_COLOR,
   sign: '#1a56db',
   demurrage: DEFAULT_APP_COLOR, cargotracker: DEFAULT_APP_COLOR, seal: DEFAULT_APP_COLOR,
-  hudubi: DEFAULT_APP_COLOR, petti: DEFAULT_APP_COLOR,
+  hudubi: DEFAULT_APP_COLOR, petti: DEFAULT_APP_COLOR, pos: DEFAULT_APP_COLOR,
   sms: DEFAULT_APP_COLOR, projects: DEFAULT_APP_COLOR, developer: '#0f766e',
   travel: '#7c3aed',
   tuma: '#0891b2',
@@ -126,7 +127,7 @@ export const APP_PALETTE_SLOT: Record<AppId, number> = {
   // 0 — clearance & customs
   clearos: 0, cargotracker: 0, demurrage: 0,
   // 1 — finance & commerce
-  finops: 1, store: 1, petti: 1,
+  finops: 1, store: 1, petti: 1, pos: 1,
   // 2 — compliance & legal
   complyos: 2,
   // 3 — warehouse & stock

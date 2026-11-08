@@ -39,6 +39,7 @@ export interface Customer {
   organization_name?: string;
   daily_report_enabled?: boolean | null;
   whatsapp_alerts_enabled?: boolean | null;
+  preferred_channel?: string;
   ref_code?: string | null;
 }
 

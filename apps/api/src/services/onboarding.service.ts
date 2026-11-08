@@ -1,7 +1,8 @@
 import { sql } from 'kysely';
 import crypto from 'crypto';
-import { dbPlatform } from '../db/client.js';
+import { dbPlatform, withTenant } from '../db/client.js';
 import { hashPassword } from '../lib/password.js';
+import { emitDomainEvent } from './domain-events.service.js';
 import { PaymentsIntegration } from '../integrations/payments.js';
 import { PaymentGateway } from '../integrations/payment-gateway.js';
 import { GLService } from './gl.service.js';
@@ -172,6 +173,119 @@ export async function createJoinRequestForFederatedIdentity(
   return submitJoinRequest(matched, cleanName, cleanEmail, randomPasswordHash);
 }
 
+/** Full-SSO registration: an OAuth identity (Google/Microsoft/Apple) with
+ *  no matching active account AND no existing tenant to join — genuinely a
+ *  brand-new company. Rather than the plain 404 NO_MATCHING_WORKSPACE every
+ *  other caller still gets, issues a short-lived signed ticket proving this
+ *  identity was really verified, for the onboarding wizard to attach to
+ *  POST /v1/onboarding/complete instead of a password. Phone/email OTP
+ *  can't do this job — both require an existing tenant's own SMS gateway/
+ *  mail sender to send through, which doesn't exist yet for someone who
+ *  isn't registered. OAuth doesn't have that problem: Google/Microsoft/
+ *  Apple already did the verifying, Hudumika never sends anything. */
+export async function createSignupTicketForFederatedIdentity(
+  fastify: FastifyInstance, name: string, email: string,
+): Promise<{ signup_ticket: string; email: string; name: string } | null> {
+  const cleanEmail = email.trim().toLowerCase();
+  const cleanName = name.trim() || cleanEmail.split('@')[0];
+  if (!(await isEmailAvailable(cleanEmail))) return null;
+  if (await findTenantByEmailDomain(cleanEmail)) return null; // handled by the join-request path instead
+
+  const signup_ticket = fastify.jwt.sign(
+    { typ: 'onboarding_signup', email: cleanEmail, name: cleanName } as any,
+    { expiresIn: '15m' },
+  );
+  return { signup_ticket, email: cleanEmail, name: cleanName };
+}
+
+/**
+ * Accepting a real HR staff invitation (hr_invitations — created by an
+ * existing admin, a genuinely different case from the two functions above:
+ * membership here comes from a specific, already-approved invite, not a
+ * domain guess) via a verified Google/Microsoft/Apple identity instead of
+ * a typed password. Unlike createSignupTicketForFederatedIdentity, this
+ * never mints an intermediate ticket — the invite token itself already
+ * proves authorization, so the moment the OAuth identity is confirmed to
+ * be the exact email that was invited, the account is created and signed
+ * in immediately, same as /auth/accept-invite's password path.
+ *
+ * The verified email MUST equal the invite's own email exactly — someone
+ * invited as alice@acme.com can't accept using a verified bob@acme.com
+ * identity just because they're both real Google accounts on the same
+ * domain. That's a different, explicitly-reviewed case (join requests),
+ * not this one.
+ */
+export async function acceptHrInviteForFederatedIdentity(
+  inviteToken: string, verifiedEmail: string, verifiedName: string,
+): Promise<{ ok: true; user: any } | { ok: false; status: number; error: string }> {
+  const invite = await dbPlatform.selectFrom('hr_invitations').selectAll()
+    .where('token', '=', inviteToken).executeTakeFirst();
+  if (!invite) return { ok: false, status: 404, error: 'Invitation not found' };
+  if (invite.status !== 'PENDING') return { ok: false, status: 400, error: 'Invitation is no longer valid' };
+  if (new Date(invite.expires_at) < new Date()) {
+    await withTenant(invite.tenant_id, trx => trx.updateTable('hr_invitations').set({ status: 'EXPIRED' })
+      .where('id', '=', invite.id).where('tenant_id', '=', invite.tenant_id).execute());
+    return { ok: false, status: 400, error: 'Invitation has expired' };
+  }
+  if (invite.email.trim().toLowerCase() !== verifiedEmail.trim().toLowerCase()) {
+    return { ok: false, status: 403, error: `This invitation was sent to ${invite.email} — sign in with that exact account.` };
+  }
+
+  const cleanName = verifiedName.trim() || invite.email.split('@')[0];
+  try {
+    const { newUser } = await withTenant(invite.tenant_id, async (trx) => {
+      // Flip PENDING -> ACCEPTED first, gated on status still being PENDING,
+      // and check it actually touched a row. Two concurrent accepts of the
+      // same invite (e.g. a double-click, or the provider popup firing
+      // twice, or racing the password path in another tab) both pass the
+      // plain status check above; only one of them can win this conditional
+      // update, so only one ever creates a user.
+      const flipped = await trx.updateTable('hr_invitations').set({ status: 'ACCEPTED' })
+        .where('id', '=', invite.id).where('tenant_id', '=', invite.tenant_id).where('status', '=', 'PENDING')
+        .executeTakeFirst();
+      if (Number(flipped.numUpdatedRows ?? 0) === 0) {
+        // statusCode, not a custom field — index.ts's global error handler
+        // reads exactly this to pick the response status for a plain thrown
+        // Error (see its own comment on that path).
+        throw Object.assign(new Error('Invitation is no longer valid'), { statusCode: 400 });
+      }
+
+      // A genuine unique_violation here (users_email_tenant_unique, migration
+      // 002 — this same invite already accepted via the password path in the
+      // sliver between the update above and this insert) is a raw driver
+      // error, not an application Error, so it's deliberately left
+      // unhandled: index.ts's global handler already maps 23505 to a clean
+      // 409 "That already exists." — duplicating that here would just be a
+      // second, worse copy of the same mapping.
+      const newUser = await trx.insertInto('users').values({
+        tenant_id: invite.tenant_id,
+        email: invite.email,
+        // Random, never-shown — same reasoning as every other Ondi-verified
+        // account this session: sign-in is Ondi-only going forward, so there
+        // is no password for anyone to type, let alone one worth hashing a
+        // real secret into.
+        password_hash: hashPassword(crypto.randomBytes(32).toString('hex')),
+        password_changed_at: new Date(),
+        role: invite.role as any,
+        name: cleanName,
+        active: true,
+      }).returningAll().executeTakeFirstOrThrow();
+
+      await emitDomainEvent(trx, invite.tenant_id, {
+        type: 'user.joined', sourceApp: 'auth', entityType: 'user', entityId: newUser.id,
+        payload: { userId: newUser.id, name: newUser.name, email: newUser.email, role: newUser.role },
+      });
+
+      return { newUser };
+    });
+
+    return { ok: true, user: newUser };
+  } catch (err: any) {
+    if (typeof err?.statusCode === 'number') return { ok: false, status: err.statusCode, error: err.message };
+    throw err;
+  }
+}
+
 /** Shared by createJoinRequest and createJoinRequestForFederatedIdentity —
  *  the actual queue insert plus the admin notification (in-app + email).
  *  See createJoinRequest's own header for why this is a reviewed request,
@@ -220,10 +334,27 @@ async function submitJoinRequest(
     });
     await MailService.enqueueTemplated(matched.id, 'onboarding.join_request', a.email, {
       requesterName: name, requesterEmail: email, tenantName: matched.name, link,
-    }, 'onboarding').catch(() => {});
+    }, 'onboarding').catch(() => { });
   }));
 
   return { success: true, tenant_name: matched.name };
+}
+
+// Signup is a platform-level duplicate check, before a tenant exists. Only a
+// boolean leaves this boundary; private CRM records are never returned.
+export async function isCompanyEntityAvailable(name: string, country: string): Promise<boolean> {
+  const normalized = name.trim().replace(/\s+/g, ' ').toLowerCase();
+  const [customer, tenant] = await Promise.all([
+    dbPlatform.selectFrom('customers').select('id')
+      .where(sql<string>`lower(regexp_replace(trim(name), '\\s+', ' ', 'g'))`, '=', normalized)
+      .where('deleted_at', 'is', null)
+      .where(eb => eb.or([eb('country', 'is', null), eb('country', '=', ''), eb('country', '=', country)]))
+      .executeTakeFirst(),
+    dbPlatform.selectFrom('tenants').select('id')
+      .where(sql<string>`lower(regexp_replace(trim(name), '\\s+', ' ', 'g'))`, '=', normalized)
+      .executeTakeFirst(),
+  ]);
+  return !customer && !tenant;
 }
 
 export class OnboardingService {
@@ -239,6 +370,9 @@ export class OnboardingService {
     opts: { skipPaymentGate?: boolean; passwordAlreadyHashed?: boolean; realTxRef?: string; verifiedPayment?: { amount: number; currency: string } } = {},
   ): Promise<OnboardingCompleteResponse> {
     const email = input.account.email.trim().toLowerCase();
+    if (!(await isCompanyEntityAvailable(input.company.name, input.company.country || ''))) {
+      throw new OnboardingError(409, 'This entity already exists in Hudumika. Contact your workspace administrator for access.');
+    }
 
     if (!(await isEmailAvailable(email))) {
       throw new OnboardingError(409, 'An account with this email already exists');
@@ -304,6 +438,11 @@ export class OnboardingService {
     const slug = await uniqueSlug(input.company.name);
 
     const { tenant, admin } = await dbPlatform.transaction().execute(async (trx) => {
+      const entityKey = input.company.name.trim().replace(/\s+/g, ' ').toLowerCase();
+      await sql`SELECT pg_advisory_xact_lock(hashtextextended(${entityKey}, 0))`.execute(trx);
+      if (!(await isCompanyEntityAvailable(input.company.name, input.company.country || ''))) {
+        throw new OnboardingError(409, 'This entity already exists in Hudumika. Contact your workspace administrator for access.');
+      }
       const founderDomain = domainOf(email);
       const tenant = await trx.insertInto('tenants').values({
         name: input.company.name,
@@ -362,7 +501,7 @@ export class OnboardingService {
       const admin = await trx.insertInto('users').values({
         tenant_id: tenant.id,
         email,
-        password_hash: opts.passwordAlreadyHashed ? input.account.password : hashPassword(input.account.password),
+        password_hash: opts.passwordAlreadyHashed ? input.account.password! : hashPassword(input.account.password!),
         role: 'TENANT_ADMIN',
         name: input.account.name,
         active: true,
@@ -431,13 +570,20 @@ export class OnboardingService {
         .catch(err => fastify.log.error(err, 'Failed to record referral commission'));
     }
 
-    if (input.company.industry) {
-      // Auto-activate the industry for the new tenant so the admin panel
-      // shows relevant app capabilities from day one. Non-blocking — a
-      // missing/invalid industry key must never fail signup.
-      IndustryRegistryService.resolveKey(input.company.industry)
-        .then(key => key ? OrgModelService.activateTenantIndustry(tenant.id, admin.id, key, true) : null)
-        .catch(err => fastify.log.error(err, 'Failed to activate industry for new tenant'));
+    const requestedIndustries = Array.isArray(input.company.industries) && input.company.industries.length
+      ? input.company.industries
+      : input.company.industry ? [input.company.industry] : [];
+
+    if (requestedIndustries.length > 0) {
+      // Auto-activate all chosen industries for the new tenant.
+      // The first / primary industry gets is_primary = true. Non-blocking.
+      Promise.all(requestedIndustries.map(async (rawKey, idx) => {
+        const resolved = await IndustryRegistryService.resolveKey(rawKey);
+        if (resolved) {
+          const isPrimary = (input.company.industry ? resolved === input.company.industry : idx === 0);
+          await OrgModelService.activateTenantIndustry(tenant.id, admin.id, resolved, isPrimary);
+        }
+      })).catch(err => fastify.log.error(err, 'Failed to activate industries for new tenant'));
     }
 
     const payload: Omit<JWTPayload, 'iat' | 'exp'> = {

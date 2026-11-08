@@ -43,6 +43,7 @@ const SLOGANS: Partial<Record<AppId, string>> = {
   studio:       'Workflow builder and clearance automations',
   hudubi:       'Data layer & executive AI analytics engine',
   petti:        'Tenant petty-cash wallet, deposits & withdrawal approvals',
+  pos:          'Register checkout, shifts, payments & receipts',
   sms:          'Bulk & transactional SMS — quick send, groups, templates & campaigns',
   tuma:         'Parcel logistics — booking, dispatch, delivery tracking & agent management',
   lexcore:      'Legal practice management — matters, time/billing, trust accounts & conflicts',

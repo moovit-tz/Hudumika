@@ -446,7 +446,7 @@ export class PettiService {
     );
     if (!row) throw new Error('Workflow not found.');
     if (row.is_system) throw new Error('The built-in system workflows cannot be deleted — create a new one for a different process instead.');
-    await withTenant(tenantId, (trx) => trx.deleteFrom('petti_workflows').where('id', '=', workflowId).execute());
+    await withTenant(tenantId, (trx) => trx.deleteFrom('petti_workflows').where('id', '=', workflowId).where('tenant_id', '=', tenantId).execute());
   }
 
   /** Resolves which workflow governs a request: the wallet's per-category
@@ -741,17 +741,37 @@ export class PettiService {
     );
     if (!deposit) throw new Error('Deposit not found.');
     if (deposit.status !== 'pending') throw new Error(`This deposit is already ${deposit.status} — nothing to reconcile.`);
+    const mergedNote = note ? `${deposit.note ? deposit.note + ' — ' : ''}${note}` : deposit.note;
 
     if (outcome === 'failed') {
-      return withTenant(tenantId, (trx) =>
+      // Same race as 'confirmed' below, simpler to close since there's no
+      // GL entry to post first: the write itself carries the status guard.
+      const updated = await withTenant(tenantId, (trx) =>
         trx.updateTable('petti_deposits').set({
-          status: 'failed',
-          reconciled_by: userId,
-          reconciled_at: new Date(),
-          note: note ? `${deposit.note ? deposit.note + ' — ' : ''}${note}` : deposit.note,
-        }).where('id', '=', depositId).where('tenant_id', '=', tenantId)
-          .returningAll().executeTakeFirstOrThrow()
+          status: 'failed', reconciled_by: userId, reconciled_at: new Date(), note: mergedNote,
+        }).where('id', '=', depositId).where('tenant_id', '=', tenantId).where('status', '=', 'pending')
+          .returningAll().executeTakeFirst()
       );
+      if (!updated) throw new Error('This deposit is no longer pending — it may have just been reconciled by someone else.');
+      return updated;
+    }
+
+    // Claim the deposit atomically before posting any GL entry — same
+    // shape as disburseWithdrawal's fix above: two concurrent reconcile
+    // calls for the same gateway deposit (or a reconcile racing a second
+    // submission) both pass the plain status check above; only one can
+    // win this conditional update, so only one ever posts a GL entry for
+    // it. journal_entry_id is filled in once the post actually succeeds;
+    // a failed post reverts the claim back to 'pending' so a genuine
+    // retry can still go through.
+    const claimed = await withTenant(tenantId, (trx) =>
+      trx.updateTable('petti_deposits').set({
+        status: 'confirmed', reconciled_by: userId, reconciled_at: new Date(), note: mergedNote,
+      }).where('id', '=', depositId).where('tenant_id', '=', tenantId).where('status', '=', 'pending')
+        .executeTakeFirst()
+    );
+    if (Number(claimed.numUpdatedRows ?? 0) === 0) {
+      throw new Error('This deposit is no longer pending — it may have just been reconciled by someone else.');
     }
 
     const wallet = await withTenant(tenantId, (trx) =>
@@ -760,27 +780,30 @@ export class PettiService {
     const walletAccount = await withTenant(tenantId, (trx) =>
       trx.selectFrom('chart_of_accounts').select('code').where('id', '=', wallet.gl_account_id).executeTakeFirstOrThrow()
     );
-    const journalEntryId = await GLService.post(tenantId, {
-      entryDate: new Date().toISOString(),
-      description: `Petti deposit (reconciled): ${wallet.name}${deposit.reference ? ` (${deposit.reference})` : ''}`,
-      reference: deposit.reference ?? undefined,
-      sourceModule: 'MANUAL',
-      sourceId: wallet.id,
-      createdBy: userId,
-      lines: [
-        { accountCode: walletAccount.code, debit: Number(deposit.amount), credit: 0, description: `Deposit to ${wallet.name}`, currency: wallet.currency },
-        { accountCode: BANK_ACCOUNT, debit: 0, credit: Number(deposit.amount), description: `To ${wallet.name}`, currency: wallet.currency },
-      ],
-    });
+    let journalEntryId: string;
+    try {
+      journalEntryId = await GLService.post(tenantId, {
+        entryDate: new Date().toISOString(),
+        description: `Petti deposit (reconciled): ${wallet.name}${deposit.reference ? ` (${deposit.reference})` : ''}`,
+        reference: deposit.reference ?? undefined,
+        sourceModule: 'MANUAL',
+        sourceId: wallet.id,
+        createdBy: userId,
+        lines: [
+          { accountCode: walletAccount.code, debit: Number(deposit.amount), credit: 0, description: `Deposit to ${wallet.name}`, currency: wallet.currency },
+          { accountCode: BANK_ACCOUNT, debit: 0, credit: Number(deposit.amount), description: `To ${wallet.name}`, currency: wallet.currency },
+        ],
+      });
+    } catch (e) {
+      await withTenant(tenantId, (trx) => trx.updateTable('petti_deposits')
+        .set({ status: 'pending', reconciled_by: null, reconciled_at: null })
+        .where('id', '=', depositId).where('tenant_id', '=', tenantId).execute());
+      throw e;
+    }
 
     return withTenant(tenantId, (trx) =>
-      trx.updateTable('petti_deposits').set({
-        status: 'confirmed',
-        journal_entry_id: journalEntryId,
-        reconciled_by: userId,
-        reconciled_at: new Date(),
-        note: note ? `${deposit.note ? deposit.note + ' — ' : ''}${note}` : deposit.note,
-      }).where('id', '=', depositId).where('tenant_id', '=', tenantId)
+      trx.updateTable('petti_deposits').set({ journal_entry_id: journalEntryId })
+        .where('id', '=', depositId).where('tenant_id', '=', tenantId)
         .returningAll().executeTakeFirstOrThrow()
     );
   }
@@ -1258,12 +1281,20 @@ export class PettiService {
     if (req.requested_by === actor.id) throw new Error('The requester cannot approve their own withdrawal request.');
     await PettiService.assertCanActOnApprovalStep(tenantId, actor, req);
 
-    return withTenant(tenantId, (trx) =>
+    // Guard the actual write with the same status condition just checked,
+    // plus the tenant_id filter the plain .where('id', '=', requestId) below
+    // was missing — same two-part fix as disburseWithdrawal's claim: closes
+    // a concurrent approve/reject race on one request, and closes a
+    // standing cross-tenant id-smuggling gap (CLAUDE.md's tenant-isolation
+    // rule) in the same pass.
+    const updated = await withTenant(tenantId, (trx) =>
       trx.updateTable('petti_withdrawal_requests')
         .set({ status: 'approved', approved_by: actor.id, approved_at: new Date() })
-        .where('id', '=', requestId)
-        .returningAll().executeTakeFirstOrThrow()
+        .where('id', '=', requestId).where('tenant_id', '=', tenantId).where('status', '=', 'pending')
+        .returningAll().executeTakeFirst()
     );
+    if (!updated) throw new Error('This request is no longer pending — it may have just been approved or rejected.');
+    return updated;
   }
 
   static async rejectWithdrawal(tenantId: string, actor: PettiActor, requestId: string, reason?: string) {
@@ -1275,12 +1306,19 @@ export class PettiService {
     if (req.status !== 'pending') throw new Error(`Cannot reject a request in '${req.status}' status.`);
     await PettiService.assertCanActOnApprovalStep(tenantId, actor, req);
 
-    return withTenant(tenantId, (trx) =>
+    // Same two-part fix as approveWithdrawal just above: the write itself
+    // is now guarded by status = 'pending' (closing the concurrent
+    // approve/reject race — a request already approved or disbursed by a
+    // racing call can no longer be silently relabelled 'rejected' here)
+    // and by tenant_id (closing the missing isolation filter).
+    const updated = await withTenant(tenantId, (trx) =>
       trx.updateTable('petti_withdrawal_requests')
         .set({ status: 'rejected', approved_by: actor.id, approved_at: new Date(), rejection_reason: reason || null })
-        .where('id', '=', requestId)
-        .returningAll().executeTakeFirstOrThrow()
+        .where('id', '=', requestId).where('tenant_id', '=', tenantId).where('status', '=', 'pending')
+        .returningAll().executeTakeFirst()
     );
+    if (!updated) throw new Error('This request is no longer pending — it may have just been approved or rejected.');
+    return updated;
   }
 
   /**
@@ -1307,6 +1345,28 @@ export class PettiService {
     );
     if (!req) throw new Error('Withdrawal request not found.');
     if (req.status !== 'approved') throw new Error(`Cannot disburse a request in '${req.status}' status — it must be approved first.`);
+
+    // Claim the request atomically before doing any real work — two
+    // concurrent disburse calls for the same requestId (a double-click, or
+    // a retried request) both pass the plain status check above; only one
+    // can win this conditional update, so only one ever creates a real
+    // finance_expenses row or GL entry. Flips straight to the final
+    // 'disbursed' state (not an intermediate one) since that's the only
+    // documented status value this column actually uses elsewhere
+    // (petti_wallets.sql's own comment: pending | approved | rejected |
+    // disbursed) — if the GL post below fails, the catch block reverts
+    // this flip back to 'approved' so a genuine retry after failure can
+    // still proceed, same as the just-inserted expense row it already
+    // rolls back.
+    const claimed = await withTenant(tenantId, (trx) =>
+      trx.updateTable('petti_withdrawal_requests')
+        .set({ status: 'disbursed', disbursed_by: userId, disbursed_at: new Date() })
+        .where('id', '=', requestId).where('tenant_id', '=', tenantId).where('status', '=', 'approved')
+        .executeTakeFirst()
+    );
+    if (Number(claimed.numUpdatedRows ?? 0) === 0) {
+      throw new Error('This request was already disbursed or is no longer approved.');
+    }
 
     const wallet = await withTenant(tenantId, (trx) =>
       trx.selectFrom('petti_wallets').selectAll().where('id', '=', req.wallet_id).executeTakeFirstOrThrow()
@@ -1355,17 +1415,21 @@ export class PettiService {
       });
     } catch (e) {
       await withTenant(tenantId, (trx) => trx.deleteFrom('finance_expenses').where('id', '=', expenseRow.id).execute());
+      // Undo the claim above too — otherwise a failed GL post leaves the
+      // request stuck 'disbursed' with no expense/journal attached, and a
+      // genuine retry (not a concurrent duplicate — the claim above already
+      // rules that out) would be wrongly told it's already been disbursed.
+      await withTenant(tenantId, (trx) => trx.updateTable('petti_withdrawal_requests')
+        .set({ status: 'approved', disbursed_by: null, disbursed_at: null })
+        .where('id', '=', requestId).where('tenant_id', '=', tenantId).execute());
       throw e;
     }
 
     return withTenant(tenantId, (trx) =>
       trx.updateTable('petti_withdrawal_requests').set({
-        status: 'disbursed',
-        disbursed_by: userId,
-        disbursed_at: new Date(),
         finance_expense_id: expenseRow.id,
         journal_entry_id: journalEntryId,
-      }).where('id', '=', requestId).returningAll().executeTakeFirstOrThrow()
+      }).where('id', '=', requestId).where('tenant_id', '=', tenantId).returningAll().executeTakeFirstOrThrow()
     );
   }
 

@@ -91,6 +91,47 @@ export function isPeriodError(e: unknown): e is Error {
 }
 
 /**
+ * The real jurisdiction(s) an invoice's own lines are actually classified
+ * under (via each line's tax_code_id -> tax_codes.jurisdiction), falling
+ * back to the tenant's single default jurisdiction when no line has been
+ * classified yet. A multi-jurisdiction tenant's document must be checked
+ * against the period freeze of the country its own lines carry — not the
+ * tenant's unrelated default — or a document genuinely booked under a
+ * non-default country silently escapes that country's own closed period.
+ */
+export async function invoiceJurisdictions(db: Db, tenantId: string, invoiceId: string): Promise<string[]> {
+  const rows = await db
+    .selectFrom('sales_invoice_lines').innerJoin('tax_codes', 'tax_codes.id', 'sales_invoice_lines.tax_code_id')
+    .select('tax_codes.jurisdiction').distinct()
+    .where('sales_invoice_lines.invoice_id', '=', invoiceId).where('tax_codes.tenant_id', '=', tenantId)
+    .execute();
+  const found = [...new Set(rows.map(r => r.jurisdiction.toUpperCase()))];
+  return found.length > 0 ? found : [await tenantJurisdiction(db, tenantId)];
+}
+
+/** The bill equivalent of invoiceJurisdictions() — same reasoning. */
+export async function billJurisdictions(db: Db, tenantId: string, billId: string): Promise<string[]> {
+  const rows = await db
+    .selectFrom('supplier_bill_lines').innerJoin('tax_codes', 'tax_codes.id', 'supplier_bill_lines.tax_code_id')
+    .select('tax_codes.jurisdiction').distinct()
+    .where('supplier_bill_lines.bill_id', '=', billId).where('tax_codes.tenant_id', '=', tenantId)
+    .execute();
+  const found = [...new Set(rows.map(r => r.jurisdiction.toUpperCase()))];
+  return found.length > 0 ? found : [await tenantJurisdiction(db, tenantId)];
+}
+
+/** Throws if the date falls inside a closed period for ANY jurisdiction
+ *  passed — a document whose lines carry more than one country's tax code
+ *  must respect every one of those countries' own period freezes. */
+export async function assertPeriodOpenForJurisdictions(
+  db: Db, tenantId: string, date: string | null | undefined, jurisdictions: string[],
+) {
+  for (const j of jurisdictions) {
+    await assertPeriodOpen(db, tenantId, date, j);
+  }
+}
+
+/**
  * Void a posted document's journal entries by posting their mirror image.
  *
  * A reversal rather than an edit or a delete: the original stays, the reversal
@@ -138,8 +179,12 @@ export async function closeVatPeriod(
   actorId: string | null,
   reportingCurrency: string,
 ) {
+  // forUpdate() — a second concurrent close for this same period must block
+  // here, not independently re-check for an existing adjustment entry and
+  // post a duplicate one. Same race class fixed across several other
+  // GLService.post() callers this session.
   const period = await trx.selectFrom('vat_periods').selectAll()
-    .where('id', '=', periodId).where('tenant_id', '=', tenantId).executeTakeFirst();
+    .where('id', '=', periodId).where('tenant_id', '=', tenantId).forUpdate().executeTakeFirst();
   if (!period) return { error: 'Period not found' as const };
   if (period.status === 'closed') return { error: 'That period is already closed' as const };
 
@@ -183,6 +228,8 @@ export async function closeVatPeriod(
     } as any);
   }
 
+  // Status guard repeated on the write (belt-and-braces alongside
+  // forUpdate()).
   await trx.updateTable('vat_periods').set({
     status: 'closed',
     return_snapshot: JSON.stringify(ret) as any,
@@ -191,7 +238,7 @@ export async function closeVatPeriod(
     closed_at: new Date(),
     closed_by: actorId,
     updated_at: new Date(),
-  }).where('id', '=', periodId).where('tenant_id', '=', tenantId).execute();
+  }).where('id', '=', periodId).where('tenant_id', '=', tenantId).where('status', '!=', 'closed').execute();
 
   return { period: await trx.selectFrom('vat_periods').selectAll().where('id', '=', periodId).executeTakeFirst(), ret };
 }

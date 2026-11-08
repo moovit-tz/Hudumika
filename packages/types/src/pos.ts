@@ -30,6 +30,10 @@ export interface PosShift {
   variance?: number | null;
   cash_in?: number;
   cash_out?: number;
+  /** The outlet this register was opened at (tenant_sites, migration 641/
+   *  711) — null for every tenant that hasn't set up multi-outlet config,
+   *  or a shift opened before this field existed. */
+  site_id?: string | null;
 }
 
 export interface PosSaleLine {
@@ -48,9 +52,19 @@ export interface PosSaleLine {
 }
 
 export interface PosAnalytics {
+  /** The tenant's reporting currency (tenant_settings.company.currency) —
+   *  every number below is scoped to sales made in this currency only. */
+  currency: string;
+  /** Completed sales made today in a DIFFERENT currency than `currency` —
+   *  deliberately excluded from every total below rather than silently
+   *  summed into them. Empty for the common single-currency tenant. */
+  other_currency_sales: Array<{ currency: string; sales_count: number }>;
   today: { sales_count: number; revenue: number; discounts: number; tax: number; cost: number; margin: number; average_sale: number };
   cashiers: Array<{ user_id: string; name: string; sales_count: number; revenue: number; average_sale: number }>;
   payments: Array<{ method: PosPaymentMethod; amount: number; count: number }>;
+  /** Per-outlet breakdown (migration 711) — empty for a tenant with no
+   *  tenant_sites set up; never includes a null-site "unknown outlet" row. */
+  sites: Array<{ site_id: string; name: string; sales_count: number; revenue: number; average_sale: number }>;
 }
 
 export interface PosHeldCart {
@@ -91,8 +105,14 @@ export interface PosSale {
   sold_at: string;
   refunded_at?: string | null;
   refund_reason?: string | null;
+  /** Set only by POST /sales/:id/void (migration 712) — a mis-rung sale
+   *  corrected within the same still-open shift, distinct from a refund. */
+  voided_at?: string | null;
+  void_reason?: string | null;
   posting_error?: string | null;
   posting_attempts?: number;
   lines?: PosSaleLine[];
   payments?: PosPayment[];
+  /** Denormalized off the shift at checkout (migration 711) — see PosShift.site_id. */
+  site_id?: string | null;
 }

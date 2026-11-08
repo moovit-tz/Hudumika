@@ -814,6 +814,7 @@ export function AppHeader({
                 type="button"
                 className="app-header-icon-btn"
                 onClick={toggleTheme}
+                data-theme-switcher=""
                 aria-label={isDark ? t('header.lightMode') : t('header.darkMode')}
                data-ui-native-button="">
                 <Icon name={isDark ? 'sun' : 'moon'} size={17} />

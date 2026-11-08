@@ -439,7 +439,7 @@ export const CustomerDetailPage: React.FC = () => {
     setSaving(true);
     try {
       const updated = await apiFetch(`/v1/customers/${selected.id}`, {
-        method: 'PUT',
+        method: 'PATCH',
         body: JSON.stringify(form),
       });
       setSelected(updated);
@@ -897,7 +897,7 @@ export const CustomerDetailPage: React.FC = () => {
                   onCheckedChange={async (v) => {
                     try {
                       const updated = await apiFetch(`/v1/customers/${sel.id}`, {
-                        method: 'PUT',
+                        method: 'PATCH',
                         body: JSON.stringify({ daily_report_enabled: v }),
                       });
                       setSelected(updated);
@@ -908,13 +908,13 @@ export const CustomerDetailPage: React.FC = () => {
                 <SwitchRow
                   title="WhatsApp Milestone Notifications"
                   description="Send instant delivery & customs clearance alerts"
-                  checked={Boolean(sel.whatsapp_alerts_enabled)}
+                  checked={Boolean(sel.preferred_channel === 'whatsapp')}
                   onCheckedChange={async (v) => {
                     if (v && !custPhone) { showAlert('This customer has no phone number on file.'); return; }
                     try {
                       const updated = await apiFetch(`/v1/customers/${sel.id}`, {
-                        method: 'PUT',
-                        body: JSON.stringify({ whatsapp_alerts_enabled: v }),
+                        method: 'PATCH',
+                        body: JSON.stringify({ preferred_channel: v ? 'whatsapp' : 'email' }),
                       });
                       setSelected(updated);
                       showAlert(v ? 'WhatsApp alerts enabled.' : 'WhatsApp alerts disabled.', { variant: 'success' });
@@ -1913,7 +1913,7 @@ export const CustomerDetailPage: React.FC = () => {
               onClick={async () => {
                 setSendingInvite(true);
                 try {
-                  await apiFetch(`/v1/customers/${sel.id}/invite-portal`, {
+                  await apiFetch(`/v1/customers/${sel.id}/invite`, {
                     method: 'POST',
                     body: JSON.stringify({ email: inviteEmail || sel.email }),
                   });

@@ -33,6 +33,7 @@ export type AppId =
   | 'studio'       // Workflow Studio — the platform's automation control plane
   | 'hudubi'       // Data Layer & AI Analytics Engine
   | 'petti'        // Tenant petty-cash wallet — deposits, request/approve/disburse withdrawals
+  | 'pos'          // Point of Sale — register checkout, shifts, standalone entry (migration 709), reuses FinancePos.tsx
   | 'notes'        // Google Keep style notes app — free app
   | 'sign'         // eSign — DocuSign/Google eSign style electronic signature platform
   | 'sms'          // Bulk/transactional SMS — quick send, groups, templates, campaigns
@@ -49,7 +50,7 @@ export const ALL_APP_IDS: AppId[] = [
   'clearos', 'finops', 'complyos', 'bliss',
   'nexushr', 'onesite', 'onsite', 'ondi', 'tracking', 'cloud', 'workspace', 'admin', 'email', 'crm', 'contacts', 'store',
   'calendar', 'tasks', 'notes', 'sign', 'sms',
-  'demurrage', 'cargotracker', 'seal', 'studio', 'hudubi', 'petti', 'projects', 'developer', 'travel',
+  'demurrage', 'cargotracker', 'seal', 'studio', 'hudubi', 'petti', 'pos', 'projects', 'developer', 'travel',
   'tuma', 'lexcore', 'ngao', 'gereji',
   // Internal tooling. Present so the app shell and design system can resolve it
   // like any other app; the launcher filters it out for non-SuperAdmins and

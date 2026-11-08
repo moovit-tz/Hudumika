@@ -69,6 +69,7 @@ const APP_ICONS: Record<AppId, IconName> = {
   studio:    'gitBranch',
   hudubi:    'barChart2',
   petti:     'wallet',
+  pos:       'shoppingCart',
   notes:     'fileText',
   sign:      'stamp',
   sms:       'messageSquare',

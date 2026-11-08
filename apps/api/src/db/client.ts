@@ -3164,6 +3164,39 @@ export interface InvoicePaymentsTable {
   created_at: Generated<Date>;
 }
 
+export interface PosSaleLineReturnsTable {
+  id: Generated<string>;
+  tenant_id: string;
+  sale_id: string;
+  sale_line_id: string;
+  qty: number;
+  disposition: Generated<'restock' | 'damaged'>;
+  refund_net: number;
+  refund_tax: number;
+  refund_total: number;
+  reason: string;
+  journal_entry_id: string | null;
+  movement_id: string | null;
+  created_by: string | null;
+  created_at: Generated<Date>;
+}
+
+export interface GatewayCheckoutSessionsTable {
+  id: Generated<string>;
+  tenant_id: string;
+  invoice_id: string;
+  gateway: string;
+  tx_ref: string;
+  amount: number;
+  currency: string;
+  status: Generated<'pending' | 'settled' | 'failed'>;
+  provider_transaction_id: string | null;
+  invoice_payment_id: string | null;
+  created_by: string | null;
+  created_at: Generated<Date>;
+  settled_at: Date | null;
+}
+
 export interface InvoiceNotesTable {
   id: Generated<string>;
   tenant_id: string;
@@ -3436,6 +3469,7 @@ export interface PosShiftsTable {
   opened_at: Generated<Date>;
   closed_at: Date | null;
   notes: string | null;
+  site_id: string | null;
 }
 
 export interface PosSalesTable {
@@ -3466,6 +3500,11 @@ export interface PosSalesTable {
   posting_error: string | null;
   posting_attempts: Generated<number>;
   last_posting_attempt_at: Date | null;
+  idempotency_key: string | null;
+  site_id: string | null;
+  voided_at: Date | null;
+  voided_by: string | null;
+  void_reason: string | null;
 }
 
 export interface PosSaleLinesTable {
@@ -3516,6 +3555,35 @@ export interface PosHeldCartsTable {
   items: unknown;
   held_by: string;
   held_at: Generated<Date>;
+}
+
+export interface PosPromotionsTable {
+  id: Generated<string>;
+  tenant_id: string;
+  name: string;
+  product_id: string | null;
+  category: string | null;
+  discount_type: 'percent' | 'amount';
+  discount_value: number;
+  site_id: string | null;
+  starts_at: Generated<Date>;
+  ends_at: Date | null;
+  active: Generated<boolean>;
+  created_by: string;
+  created_at: Generated<Date>;
+  updated_at: Generated<Date>;
+}
+
+export interface PosSiteProductPricesTable {
+  id: Generated<string>;
+  tenant_id: string;
+  site_id: string;
+  product_id: string;
+  price: number;
+  currency: string;
+  created_by: string;
+  created_at: Generated<Date>;
+  updated_at: Generated<Date>;
 }
 
 export interface CustomerProductPricesTable {
@@ -6008,6 +6076,8 @@ export interface Database {
   pos_payments: PosPaymentsTable;
   pos_cash_movements: PosCashMovementsTable;
   pos_held_carts: PosHeldCartsTable;
+  pos_promotions: PosPromotionsTable;
+  pos_site_product_prices: PosSiteProductPricesTable;
   inventory_warehouses: InventoryWarehousesTable;
   inventory_locations: InventoryLocationsTable;
   inventory_items: InventoryItemsTable;
@@ -6231,6 +6301,8 @@ export interface Database {
   sales_invoices: SalesInvoicesTable;
   sales_invoice_lines: SalesInvoiceLinesTable;
   invoice_payments: InvoicePaymentsTable;
+  gateway_checkout_sessions: GatewayCheckoutSessionsTable;
+  pos_sale_line_returns: PosSaleLineReturnsTable;
   invoice_notes: InvoiceNotesTable;
   invoice_tasks: InvoiceTasksTable;
   invoice_reminders: InvoiceRemindersTable;
@@ -6479,6 +6551,7 @@ export interface Database {
   subscription_invoices: SubscriptionInvoicesTable;
   billing_webhook_events: BillingWebhookEventsTable;
   pending_signups: PendingSignupsTable;
+  onboarding_drafts: OnboardingDraftsTable;
   cloud_retention_policies: CloudRetentionPoliciesTable;
   invoice_sequences: InvoiceSequencesTable;
   customer_invoice_sequences: CustomerInvoiceSequencesTable;
@@ -10206,6 +10279,15 @@ export interface PendingSignupsTable {
   currency: string;
   status: Generated<'pending' | 'completed' | 'failed' | 'expired'>;
   completed_tenant_id: string | null;
+  created_at: Generated<Date>;
+  updated_at: Generated<Date>;
+}
+
+export interface OnboardingDraftsTable {
+  id: Generated<string>;
+  email: string;
+  payload: unknown;
+  step: Generated<number>;
   created_at: Generated<Date>;
   updated_at: Generated<Date>;
 }

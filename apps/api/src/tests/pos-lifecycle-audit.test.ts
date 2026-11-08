@@ -202,6 +202,60 @@ describe('POS lifecycle audit — disposable tenants', () => {
     const entry = await withTenant(owner.tenantId, trx => trx.selectFrom('journal_entries').select('voided_at').where('tenant_id', '=', owner.tenantId).where('id', '=', created.journal_entry_id).executeTakeFirstOrThrow());
     expect(entry.voided_at).toBeNull();
   });
+  it('returns a mixed sale item-by-item, respecting disposition and the remaining-qty guard', async () => {
+    const created = await sale({
+      inventory_location_id: location,
+      items: [{ product_id: product, qty: 4 }, { product_id: service, qty: 1 }],
+      payments: [{ method: 'CASH', amount: 100 }, { method: 'CARD', amount: 418 }],
+    });
+    const detail = (await call('GET', `/sales/${created.id}`)).json();
+    const productLine = detail.lines.find((l: any) => l.product_id === product);
+    const serviceLine = detail.lines.find((l: any) => l.product_id === service);
+    const before = (await call('GET', `/availability?location_id=${location}`)).json()[product];
+
+    // Return half the stocked line, restocked — the rest of the sale
+    // (the untouched service line) must keep the sale COMPLETED, not
+    // flip it to REFUNDED the way a whole-sale refund would.
+    const partial = await call('POST', `/sales/${created.id}/refund`, {
+      reason: 'Customer kept half', lines: [{ sale_line_id: productLine.id, qty: 2, disposition: 'restock' }],
+    });
+    expect(partial.statusCode, partial.body).toBe(200);
+    expect(partial.json().fully_refunded).toBe(false);
+    expect(partial.json().refund_total).toBe(200);
+    expect((await call('GET', `/availability?location_id=${location}`)).json()[product]).toBe(before + 2);
+    const midStatus = await withTenant(owner.tenantId, trx => trx.selectFrom('pos_sales').select('status').where('tenant_id', '=', owner.tenantId).where('id', '=', created.id).executeTakeFirstOrThrow());
+    expect(midStatus.status).toBe('COMPLETED');
+
+    // Asking for more than what's left on that line must be refused, not
+    // silently clamped.
+    const over = await call('POST', `/sales/${created.id}/refund`, { reason: 'Too much', lines: [{ sale_line_id: productLine.id, qty: 3 }] });
+    expect(over.statusCode).toBe(422);
+
+    // The other 2 units come back damaged — refunded, but never restocked.
+    const beforeDamaged = (await call('GET', `/availability?location_id=${location}`)).json()[product];
+    const damaged = await call('POST', `/sales/${created.id}/refund`, {
+      reason: 'Rest arrived damaged', lines: [{ sale_line_id: productLine.id, qty: 2, disposition: 'damaged' }],
+    });
+    expect(damaged.statusCode, damaged.body).toBe(200);
+    expect((await call('GET', `/availability?location_id=${location}`)).json()[product]).toBe(beforeDamaged);
+    expect(damaged.json().fully_refunded).toBe(false);
+
+    // Returning the last untouched line finally fully refunds the sale.
+    const finalReturn = await call('POST', `/sales/${created.id}/refund`, { reason: 'Service cancelled too', lines: [{ sale_line_id: serviceLine.id, qty: 1 }] });
+    expect(finalReturn.statusCode, finalReturn.body).toBe(200);
+    expect(finalReturn.json().fully_refunded).toBe(true);
+    const finalStatus = await withTenant(owner.tenantId, trx => trx.selectFrom('pos_sales').select('status').where('tenant_id', '=', owner.tenantId).where('id', '=', created.id).executeTakeFirstOrThrow());
+    expect(finalStatus.status).toBe('REFUNDED');
+
+    // Every partial-return journal entry this test produced balances.
+    const returns = await withTenant(owner.tenantId, trx => trx.selectFrom('pos_sale_line_returns').select('journal_entry_id')
+      .where('tenant_id', '=', owner.tenantId).where('sale_id', '=', created.id).execute());
+    for (const r of returns) {
+      if (!r.journal_entry_id) continue;
+      const jLines = await withTenant(owner.tenantId, trx => trx.selectFrom('journal_lines').select(['debit', 'credit']).where('journal_entry_id', '=', r.journal_entry_id!).execute());
+      expect(jLines.reduce((n, l) => n + Number(l.debit) - Number(l.credit), 0)).toBeCloseTo(0, 6);
+    }
+  });
   it('supports cash movements and closes the register with a frozen cash count', async () => {
     expect((await call('POST', `/shifts/${shift}/movements`, { direction: 'IN', amount: 20, reason: 'Audit cash float' })).statusCode).toBe(201);
     const before = (await call('GET', '/bootstrap')).json().shift.expected_cash;

@@ -177,7 +177,7 @@ export async function glPeriodRoutes(fastify: FastifyInstance) {
       // were, same rule vat-period.service.ts's own reopen already follows.
       const updated = await trx.updateTable('gl_periods').set({
         status: 'open', reopened_at: new Date(), reopened_by: user.sub, reopen_reason: reason,
-      }).where('id', '=', id).returningAll().executeTakeFirstOrThrow();
+      }).where('id', '=', id).where('tenant_id', '=', user.tenant_id).returningAll().executeTakeFirstOrThrow();
       return updated;
     });
   });
@@ -189,7 +189,7 @@ export async function glPeriodRoutes(fastify: FastifyInstance) {
       const period = await trx.selectFrom('gl_periods').select(['id', 'status', 'closed_at']).where('id', '=', id).where('tenant_id', '=', user.tenant_id).executeTakeFirst();
       if (!period) return reply.status(404).send({ error: 'Period not found' });
       if (period.closed_at) return reply.status(409).send({ error: 'A period that has ever been closed cannot be deleted — reopen or leave it as a record.' });
-      await trx.deleteFrom('gl_periods').where('id', '=', id).execute();
+      await trx.deleteFrom('gl_periods').where('id', '=', id).where('tenant_id', '=', user.tenant_id).execute();
       return { success: true };
     });
   });

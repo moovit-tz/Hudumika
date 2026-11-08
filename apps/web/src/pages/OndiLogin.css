@@ -29,6 +29,7 @@
    just restyle a component. */
 
 .ondi-login {
+  font-family: var(--font);
   --ondi-1: #4253d1;
   --ondi-2: #4e76e5;
   /* Kept deliberately faint — an early pass had this loud enough to read as
@@ -68,7 +69,7 @@
    brand color, not labeled by it. ── */
 .ondi-login .login-card {
   border-radius: 22px;
-  padding: 30px 28px 26px;
+  padding: clamp(32px, 5vw, 44px) clamp(24px, 5vw, 40px);
   border-color: color-mix(in srgb, var(--ondi-1) 14%, var(--lp-card-border));
   box-shadow:
     0 1px 2px rgba(16, 24, 60, 0.04),
@@ -122,7 +123,7 @@
   gap: 6px;
   background: color-mix(in srgb, var(--lp-ink, #1f1f1f) 5%, transparent);
   border: 1px solid color-mix(in srgb, var(--lp-ink, #1f1f1f) 11%, transparent);
-  border-radius: 14px;
+  border-radius: var(--r-sm);
   padding: 6px;
 }
 .ondi-panel .ondi-method-btn {
@@ -211,20 +212,77 @@
   gap: 16px;
 }
 
+.ondi-login .ondi-panel .ondi-pill--ondi {
+  width: fit-content;
+  max-width: 100%;
+  align-self: center;
+  padding-inline: var(--space-xl, 32px);
+  border-radius: var(--r-sm) !important;
+  border: 1px solid var(--lp-row-border, var(--border));
+  box-shadow: none;
+}
+
+.ondi-login .ondi-panel,
+.ondi-login .ondi-panel .login-form,
+.ondi-login .ondi-panel .login-field {
+  text-align: center;
+}
+
+.ondi-login .ondi-panel .ondi-form-back {
+  align-self: center;
+  justify-content: center;
+}
+
+.ondi-login .ondi-panel .login-input {
+  text-align: center;
+}
+
+.ondi-login .ondi-panel .login-submit-btn {
+  align-self: center;
+  width: fit-content;
+  max-width: 100%;
+  margin-inline: auto;
+  padding-inline: var(--space-xl, 32px);
+}
+
 .ondi-panel .ondi-pill {
   width: 100%;
   display: flex;
   align-items: center;
   justify-content: center;
   gap: 10px;
-  height: 52px;
-  border-radius: 14px;
+  min-height: var(--action-h);
+  height: auto;
+  border-radius: var(--r-sm);
   font-size: 13.5px;
   font-weight: 700;
   font-family: var(--font);
   cursor: pointer;
   box-sizing: border-box;
   transition: opacity 0.15s, background-color 0.15s;
+}
+
+.ondi-panel .ondi-pill--ondi {
+  background: var(--lp-card-bg, #ffffff);
+  border: 1.5px solid var(--lp-input-border, #dadce0);
+  color: var(--lp-ink, #1f1f1f);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+  transition: all 0.18s ease;
+}
+.ondi-panel .ondi-pill--ondi:hover {
+  background: color-mix(in srgb, var(--ondi-1, #4253d1) 6%, var(--lp-card-bg, #fff));
+  border-color: color-mix(in srgb, var(--ondi-1, #4253d1) 50%, var(--lp-input-border, #dadce0));
+  box-shadow: 0 2px 8px rgba(66, 83, 209, 0.15);
+  transform: translateY(-1px);
+}
+.login-page[data-theme="dark"] .ondi-panel .ondi-pill--ondi {
+  background: #1e1e1f;
+  border-color: #3c4043;
+  color: #e3e3e3;
+}
+.login-page[data-theme="dark"] .ondi-panel .ondi-pill--ondi:hover {
+  background: color-mix(in srgb, var(--ondi-2, #4e76e5) 15%, #1e1e1f);
+  border-color: color-mix(in srgb, var(--ondi-2, #4e76e5) 50%, #3c4043);
 }
 
 /* "Continue with phone number" — same --lp-accent-surface/-fg treatment as
@@ -252,8 +310,9 @@
 .ondi-panel .ondi-google-pill {
   position: relative;
   width: 100%;
-  height: 52px;
-  border-radius: 14px;
+  min-height: var(--action-h);
+  height: auto;
+  border-radius: var(--r-sm);
   background: var(--lp-card-bg, #fff);
   border: 1px solid var(--lp-input-border, #dadce0);
   box-sizing: border-box;
@@ -294,3 +353,53 @@
   gap: 4px;
   margin-bottom: 2px;
 }
+.ondi-panel .ondi-signin-choice {
+  position: relative;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  align-items: stretch;
+  width: 100%;
+  border: 1px solid var(--lp-row-border, var(--border));
+  border-radius: var(--action-h, var(--ctl-h));
+  background: var(--lp-card-bg, var(--card-bg));
+  overflow: hidden;
+}
+.ondi-signin-choice .ondi-google-pill,
+.ondi-signin-choice .ondi-pill--google-visual,
+.ondi-signin-choice .ondi-signin-choice-sso {
+  height: auto;
+  min-height: var(--action-h, 52px);
+  border: 0;
+  border-radius: 0;
+  box-shadow: none;
+  background: transparent;
+  color: var(--lp-ink);
+  font-family: var(--font);
+  font-size: 13px;
+  font-weight: 600;
+}
+.ondi-signin-choice .ondi-pill--google-visual { padding-block: var(--action-py, 12px); gap: 8px; }
+.ondi-signin-choice .ondi-signin-choice-sso { border-left: 1px solid var(--lp-row-border, var(--border)); padding-inline: var(--space-sm, 12px); gap: 8px; }
+.ondi-signin-choice .ondi-signin-choice-sso:hover { background: color-mix(in srgb, var(--lp-ink) 5%, transparent); }
+.ondi-signin-choice .ondi-signin-choice-or {
+  position: absolute;
+  z-index: 2;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  width: 26px;
+  height: 26px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--lp-row-border, var(--border));
+  border-radius: 50%;
+  background: var(--lp-card-bg, var(--card-bg));
+  color: var(--lp-ink3);
+  font-size: 11px;
+  font-style: italic;
+  pointer-events: none;
+}
+.ondi-signin-choice:not(:has(.ondi-google-pill)) { grid-template-columns: minmax(0, 1fr); }
+.ondi-signin-choice:not(:has(.ondi-google-pill)) .ondi-signin-choice-or { display: none; }
+.ondi-signin-choice:not(:has(.ondi-google-pill)) .ondi-signin-choice-sso { border-left: 0; }

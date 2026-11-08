@@ -1417,7 +1417,7 @@ export const Tracker: React.FC = () => {
           !trackedError && <p className="py-6 text-center text-sm text-(--ink2)">Track a shipment above and add it to this list, or add a container to your fleet.</p>
         ) : (
           <>
-            <ul className="divide-y divide-(--border) overflow-hidden rounded-lg border border-(--border) bg-(--white)">
+            <ul className="divide-y divide-(--border) overflow-hidden rounded-none border border-(--border) bg-(--white)">
               {tracked.map(({ id, container, snapshots: records }) => {
                 const primarySnap = records[0] ?? null;
                 const extraSnaps = records.slice(1);
@@ -1559,7 +1559,7 @@ export const Tracker: React.FC = () => {
                                   </div>
                                 )}
 
-                                <div className="inline-flex items-center rounded border border-(--border) divide-x divide-(--border) bg-(--bg)/40 overflow-hidden">
+                                <div className="inline-flex items-center rounded-none border border-(--border) divide-x divide-(--border) bg-(--bg)/40 overflow-hidden">
                                   {container ? (
                                     <>
                                       <TrackerIconAction size="sm" label="Track container" icon="search" onClick={() => selectPreset(container.container_number, 'CONTAINER')} />
@@ -1602,13 +1602,13 @@ export const Tracker: React.FC = () => {
                                   const extraBadgeVariant = extraStatus.fg === 'var(--green)' ? 'success' : extraStatus.fg === 'var(--red)' ? 'error' : extraStatus.fg === 'var(--gold)' ? 'warning' : extraStatus.fg === 'var(--blue)' ? 'info' : 'gray';
                                   const extraEvents = parseEvents(extra.events);
                                   return (
-                                    <div key={extra.id} className="flex flex-wrap items-center justify-between gap-2 text-xs py-1 bg-(--bg)/40 px-2 rounded">
+                                    <div key={extra.id} className="flex flex-wrap items-center justify-between gap-2 text-xs py-1 bg-(--bg)/40 px-2 rounded-none">
                                       <div className="flex items-center gap-2 min-w-0">
                                         <span className="font-mono text-xs font-semibold">{extra.tracking_number}</span>
                                         <span className="text-[11px] text-(--ink3)">{[extra.tracking_type, extra.carrier].filter(Boolean).join(' · ')}</span>
                                         <Badge variant={extraBadgeVariant} className="text-[10px] h-4">{extraStatus.label}</Badge>
                                       </div>
-                                      <div className="inline-flex items-center rounded border border-(--border) divide-x divide-(--border) bg-(--bg)/40 overflow-hidden">
+                                      <div className="inline-flex items-center rounded-none border border-(--border) divide-x divide-(--border) bg-(--bg)/40 overflow-hidden">
                                         <TrackerIconAction size="sm" label="Retrack" icon="refresh" onClick={() => retrack(extra)} disabled={retrackingId === extra.id} />
                                         <TrackerIconAction size="sm" label="PDF" icon="fileText" onClick={() => generatePDF({
                                           tracking_number: extra.tracking_number, tracking_type: extra.tracking_type, carrier: extra.carrier ?? '',

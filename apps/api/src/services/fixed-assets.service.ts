@@ -75,7 +75,13 @@ export async function runDepreciationForTenant(tenantId: string, periodDate = ne
  *  proceeds — a genuine gain/loss on disposal, not just a status flip. */
 export async function disposeFixedAsset(tenantId: string, assetId: string, disposedAt: string, proceeds: number): Promise<void> {
   return withTenant(tenantId, async (trx) => {
-    const asset = await trx.selectFrom('fixed_assets').selectAll().where('id', '=', assetId).where('tenant_id', '=', tenantId).executeTakeFirst();
+    // forUpdate() — this transaction posts a real GL entry further down,
+    // so a second concurrent dispose() for this same asset must block
+    // here, not read a stale status and double-post the disposal. Same
+    // race class fixed across several other GLService.post() callers
+    // this session (petti.service.ts, bills.routes.ts, dividends.routes.ts,
+    // customer-credits.routes.ts).
+    const asset = await trx.selectFrom('fixed_assets').selectAll().where('id', '=', assetId).where('tenant_id', '=', tenantId).forUpdate().executeTakeFirst();
     if (!asset) throw new Error('Fixed asset not found');
     if (asset.status === 'DISPOSED') throw new Error('This asset has already been disposed.');
 
@@ -108,8 +114,11 @@ export async function disposeFixedAsset(tenantId: string, assetId: string, dispo
       lines,
     });
 
+    // Status guard repeated on the write (belt-and-braces alongside
+    // forUpdate()) plus the tenant_id filter the original write was
+    // missing entirely.
     await trx.updateTable('fixed_assets').set({
       status: 'DISPOSED', disposed_at: disposedAt, disposal_proceeds: proceeds, updated_at: new Date(),
-    }).where('id', '=', assetId).execute();
+    }).where('id', '=', assetId).where('tenant_id', '=', tenantId).where('status', '!=', 'DISPOSED').execute();
   });
 }

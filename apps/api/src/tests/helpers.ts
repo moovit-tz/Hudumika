@@ -66,6 +66,32 @@ export async function createTestTenant(role: UserRole = 'TENANT_ADMIN'): Promise
   };
 }
 
+/**
+ * Subscribes a test tenant to a real standalone commercial product (SEAL,
+ * ClearOS, etc.) the same way a paying tenant actually gets access —
+ * migrations 685/688 unbundled both from every base plan's free grant
+ * (`package_features`) into priced standalone products, backfilling only
+ * tenants that existed at migration time with a grandfathered
+ * `tenant_product_subscriptions` row. A brand-new test tenant created
+ * after those migrations gets neither the free grant nor the backfill, so
+ * `plan: 'enterprise'` alone (the pre-685/688 assumption some fixtures
+ * still make) no longer unlocks either app — this is that real purchase
+ * path, not a weakened gate. `packageCode` defaults to the live `-addon`
+ * carrier (`seal-addon`/`clearos-addon`); pass an explicit code only to
+ * exercise a different tier.
+ */
+export async function grantStandaloneProduct(tenantId: string, productKey: 'seal' | 'clearos', packageCode?: string) {
+  const product = await dbPlatform.selectFrom('commercial_products').select('id')
+    .where('product_key', '=', productKey).executeTakeFirstOrThrow();
+  await dbPlatform.insertInto('tenant_product_subscriptions').values({
+    tenant_id: tenantId,
+    commercial_product_id: product.id,
+    package_code: packageCode ?? `${productKey}-addon`,
+    status: 'active',
+    started_at: new Date(),
+  }).onConflict(oc => oc.columns(['tenant_id', 'commercial_product_id']).doUpdateSet({ status: 'active' })).execute();
+}
+
 export function authHeaders(token: string) {
   // inject infers JSON for object payloads; bodyless DELETE must omit it.
   return { authorization: `Bearer ${token}` };

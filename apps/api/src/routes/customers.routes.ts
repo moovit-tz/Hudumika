@@ -318,9 +318,10 @@ export async function customerRoutes(fastify: FastifyInstance) {
 
   /**
    * PATCH /v1/customers/:id
+   * PUT /v1/customers/:id
    * Update customer profile fields
    */
-  fastify.patch('/:id', { preHandler: requireRole('SUPER_ADMIN', 'ADMIN', 'TENANT_ADMIN', 'SENIOR', 'JUNIOR', 'OFFICER', 'SALES') }, async (request, reply) => {
+  const updateCustomerHandler = async (request: any, reply: any) => {
     const user = request.user;
     const { id } = idParamSchema.parse(request.params);
     const body = customerPatchSchema.parse(request.body) as Record<string, any>;
@@ -372,7 +373,11 @@ export async function customerRoutes(fastify: FastifyInstance) {
       if (!updated) return reply.status(404).send({ error: 'Customer not found' });
       return updated;
     });
-  });
+  };
+
+  const updateRoles = { preHandler: requireRole('SUPER_ADMIN', 'ADMIN', 'TENANT_ADMIN', 'SENIOR', 'JUNIOR', 'OFFICER', 'SALES') };
+  fastify.patch('/:id', updateRoles, updateCustomerHandler);
+  fastify.put('/:id', updateRoles, updateCustomerHandler);
 
   /**
    * POST /v1/customers/:id/claim-code

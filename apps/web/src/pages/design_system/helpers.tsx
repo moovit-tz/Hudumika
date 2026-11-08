@@ -344,7 +344,7 @@ function HugeiconsIconGrid() {
 const ICON_TAB_META: Record<IconLibraryId, { label: string; count: number | null }> = {
   stroke: { label: 'Stroke Icons', count: STROKE_ICON_NAMES.length },
   twotone: { label: 'Twotone Rounded', count: TWOTONE_ICON_NAMES.length },
-  hugeicons: { label: 'Hugeicons', count: null },
+  hugeicons: { label: 'Hugeicons Pro', count: null },
 };
 
 export function IconSystemSection() {
@@ -358,9 +358,9 @@ export function IconSystemSection() {
         <h3 className="ds-section-heading">Icon System</h3>
         <p className="ds-section-sub">
           Hudumika ships three icon libraries, switchable platform-wide.
-          <strong> Stroke</strong> — the platform's own crisp 24×24 outline set (covers every icon name, the default).
+          <strong> Hugeicons Pro</strong> — real, owned Hugeicons Pro artwork, the platform default.
+          <strong> Stroke</strong> — the platform's own crisp 24×24 outline set (covers every icon name — the fallback every other library uses for a name it doesn't cover).
           <strong> Twotone Rounded</strong> — a hand-authored Hugeicons-inspired dual-layer style.
-          <strong> Hugeicons</strong> — real, officially licensed Hugeicons free-tier artwork.
           Browse a library below, then use <strong>Use platform-wide</strong> to make it what every &lt;Icon&gt; in the app actually renders — a name the chosen library doesn't cover quietly falls back to Stroke rather than going blank.
         </p>
       </div>

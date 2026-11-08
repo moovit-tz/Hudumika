@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { apiFetch } from '../lib/api.js';
-import type { SafeUser, OnboardingCompleteResponse, JoinRequestSubmitResponse } from '@hudumika/types';
+import type { SafeUser, OnboardingCompleteResponse, JoinRequestSubmitResponse, FederatedSignupTicket } from '@hudumika/types';
 import { resetEnabledAppsCache } from './useEnabledApps.js';
 import { resetFinanceCapabilitiesCache } from './useFinanceCapabilities.js';
 import { hydrateCompanyFromServer, resetCompanyCache } from '../data/companyStore.js';
@@ -64,9 +64,9 @@ interface AuthContextType {
   resumeSession: () => Promise<SafeUser | null>;
   requestPasskeyLoginOptions: (email: string) => Promise<any>;
   verifyPasskeyLogin: (email: string, response: any) => Promise<SafeUser>;
-  loginWithGoogle: (credential: string, allowJoinRequest?: boolean) => Promise<SafeUser | { join_request: JoinRequestSubmitResponse }>;
-  loginWithMicrosoft: (credential: string, allowJoinRequest?: boolean) => Promise<SafeUser | { join_request: JoinRequestSubmitResponse }>;
-  loginWithApple: (credential: string, name?: string, allowJoinRequest?: boolean) => Promise<SafeUser | { join_request: JoinRequestSubmitResponse }>;
+  loginWithGoogle: (credential: string, allowJoinRequest?: boolean, allowSignupTicket?: boolean, inviteToken?: string) => Promise<SafeUser | { join_request: JoinRequestSubmitResponse } | FederatedSignupTicket>;
+  loginWithMicrosoft: (credential: string, allowJoinRequest?: boolean, allowSignupTicket?: boolean, inviteToken?: string) => Promise<SafeUser | { join_request: JoinRequestSubmitResponse } | FederatedSignupTicket>;
+  loginWithApple: (credential: string, name?: string, allowJoinRequest?: boolean, allowSignupTicket?: boolean, inviteToken?: string) => Promise<SafeUser | { join_request: JoinRequestSubmitResponse } | FederatedSignupTicket>;
   completeOnboarding: (res: OnboardingCompleteResponse) => void;
   logout: () => void;
   impersonate: (tenantId: string) => Promise<void>;
@@ -275,33 +275,36 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   // backend queued one; every other caller (the plain Login page's Google
   // tab) never sends the flag and keeps getting a plain 404 on no match, so
   // its behavior is unchanged.
-  const loginWithGoogle = async (credential: string, allowJoinRequest?: boolean) => {
+  const loginWithGoogle = async (credential: string, allowJoinRequest?: boolean, allowSignupTicket?: boolean, inviteToken?: string) => {
     const res = await apiFetch('/v1/ondi/auth/google/verify', {
       method: 'POST',
-      body: JSON.stringify({ credential, ...(allowJoinRequest ? { allowJoinRequest: true } : {}) }),
+      body: JSON.stringify({ credential, ...(allowJoinRequest ? { allowJoinRequest: true } : {}), ...(allowSignupTicket ? { allowSignupTicket: true } : {}), ...(inviteToken ? { inviteToken } : {}) }),
     });
     if (res && typeof res === 'object' && 'join_request' in res) return res as { join_request: JoinRequestSubmitResponse };
+    if (res && typeof res === 'object' && 'signup_ticket' in res) return res as FederatedSignupTicket;
     return completeLogin(res);
   };
 
-  const loginWithMicrosoft = async (credential: string, allowJoinRequest?: boolean) => {
+  const loginWithMicrosoft = async (credential: string, allowJoinRequest?: boolean, allowSignupTicket?: boolean, inviteToken?: string) => {
     const res = await apiFetch('/v1/ondi/auth/microsoft/verify', {
       method: 'POST',
-      body: JSON.stringify({ credential, ...(allowJoinRequest ? { allowJoinRequest: true } : {}) }),
+      body: JSON.stringify({ credential, ...(allowJoinRequest ? { allowJoinRequest: true } : {}), ...(allowSignupTicket ? { allowSignupTicket: true } : {}), ...(inviteToken ? { inviteToken } : {}) }),
     });
     if (res && typeof res === 'object' && 'join_request' in res) return res as { join_request: JoinRequestSubmitResponse };
+    if (res && typeof res === 'object' && 'signup_ticket' in res) return res as FederatedSignupTicket;
     return completeLogin(res);
   };
 
   // name: only ever present on a user's very first "Sign in with Apple" —
   // see AppleSignInButton/apple-oidc.ts's own comments on why Apple's
   // id_token itself never carries one.
-  const loginWithApple = async (credential: string, name?: string, allowJoinRequest?: boolean) => {
+  const loginWithApple = async (credential: string, name?: string, allowJoinRequest?: boolean, allowSignupTicket?: boolean, inviteToken?: string) => {
     const res = await apiFetch('/v1/ondi/auth/apple/verify', {
       method: 'POST',
-      body: JSON.stringify({ credential, ...(name ? { name } : {}), ...(allowJoinRequest ? { allowJoinRequest: true } : {}) }),
+      body: JSON.stringify({ credential, ...(name ? { name } : {}), ...(allowJoinRequest ? { allowJoinRequest: true } : {}), ...(allowSignupTicket ? { allowSignupTicket: true } : {}), ...(inviteToken ? { inviteToken } : {}) }),
     });
     if (res && typeof res === 'object' && 'join_request' in res) return res as { join_request: JoinRequestSubmitResponse };
+    if (res && typeof res === 'object' && 'signup_ticket' in res) return res as FederatedSignupTicket;
     return completeLogin(res);
   };
 

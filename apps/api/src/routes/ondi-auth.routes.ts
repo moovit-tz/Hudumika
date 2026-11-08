@@ -17,7 +17,7 @@ import { verifyMicrosoftIdToken } from '../lib/microsoft-oidc.js';
 import { verifyAppleIdToken } from '../lib/apple-oidc.js';
 import { computeTrustScore } from '../lib/trust-score.js';
 import { assessRisk } from '../lib/risk-engine.js';
-import { createJoinRequestForFederatedIdentity } from '../services/onboarding.service.js';
+import { createJoinRequestForFederatedIdentity, createSignupTicketForFederatedIdentity, acceptHrInviteForFederatedIdentity } from '../services/onboarding.service.js';
 import type { SafeUser, JWTPayload } from '@hudumika/types';
 
 /**
@@ -67,12 +67,18 @@ const passkeyVerifySchema = z.object({ email: z.string().trim().email().max(320)
 // same endpoint) sends neither, and stays exactly the login-only surface it
 // always was. See createJoinRequestForFederatedIdentity's own header for
 // what "join request" means here (never a silent tenant creation).
-const googleVerifySchema = z.object({ credential: z.string().trim().min(1).max(4000), allowJoinRequest: z.boolean().optional() });
-const microsoftVerifySchema = z.object({ credential: z.string().trim().min(1).max(4000), allowJoinRequest: z.boolean().optional() });
+// inviteToken: set only by the HR invite-accept page offering "sign in with
+// Google/Microsoft/Apple instead of setting a password" — takes priority
+// over allowJoinRequest/allowSignupTicket (checked first in each handler
+// below) since a specific, already-approved invitation is a stronger claim
+// than a domain guess or a brand-new signup. See
+// acceptHrInviteForFederatedIdentity's own header for the exact-email rule.
+const googleVerifySchema = z.object({ credential: z.string().trim().min(1).max(4000), allowJoinRequest: z.boolean().optional(), allowSignupTicket: z.boolean().optional(), inviteToken: z.string().min(1).max(500).optional() });
+const microsoftVerifySchema = z.object({ credential: z.string().trim().min(1).max(4000), allowJoinRequest: z.boolean().optional(), allowSignupTicket: z.boolean().optional(), inviteToken: z.string().min(1).max(500).optional() });
 // name: Apple's id_token never carries one (see apple-oidc.ts's header) — the
 // frontend forwards the `user.name` Apple's SDK hands it on a first-ever
 // authorization only, used solely as a join request's display name.
-const appleVerifySchema = z.object({ credential: z.string().trim().min(1).max(4000), name: z.string().trim().max(200).optional(), allowJoinRequest: z.boolean().optional() });
+const appleVerifySchema = z.object({ credential: z.string().trim().min(1).max(4000), name: z.string().trim().max(200).optional(), allowJoinRequest: z.boolean().optional(), allowSignupTicket: z.boolean().optional(), inviteToken: z.string().min(1).max(500).optional() });
 
 const OTP_TTL_SECONDS = 5 * 60;
 const OTP_MAX_ATTEMPTS = 5;
@@ -554,7 +560,7 @@ export async function ondiAuthRoutes(fastify: FastifyInstance) {
    * instead of a bare 404 — see createJoinRequestForFederatedIdentity.
    */
   fastify.post('/google/verify', { config: { rateLimit: { max: 10, timeWindow: '1 minute' } } }, async (request, reply) => {
-    const { credential, allowJoinRequest } = googleVerifySchema.parse(request.body);
+    const { credential, allowJoinRequest, allowSignupTicket, inviteToken } = googleVerifySchema.parse(request.body);
     const { google: googleClientId } = await resolveOAuthClientIds();
     if (!googleClientId) {
       return reply.status(503).send({ error: 'Google sign-in is not configured for this platform yet.' });
@@ -569,12 +575,23 @@ export async function ondiAuthRoutes(fastify: FastifyInstance) {
       return reply.status(401).send({ error: 'Your Google account email is not verified.' });
     }
 
+    if (inviteToken) {
+      const accepted = await acceptHrInviteForFederatedIdentity(inviteToken, data.email, data.name || '');
+      if (!accepted.ok) return reply.status(accepted.status).send({ error: accepted.error });
+      await recordAuthEvent(accepted.user.tenant_id, accepted.user.id, 'google_login', { ip: request.ip, userAgent: String(request.headers['user-agent'] || '') });
+      return issueSessionFor(fastify, reply, accepted.user, request.ip, String(request.headers['user-agent'] || ''));
+    }
+
     const user = await dbPlatform.selectFrom('users').selectAll()
       .where('email', '=', data.email).where('active', '=', true).executeTakeFirst();
     if (!user) {
       if (allowJoinRequest) {
         const joinResult = await createJoinRequestForFederatedIdentity(data.name || '', data.email);
         if (joinResult) return reply.status(202).send({ join_request: joinResult });
+      }
+      if (allowSignupTicket) {
+        const ticket = await createSignupTicketForFederatedIdentity(fastify, data.name || '', data.email);
+        if (ticket) return reply.status(200).send(ticket);
       }
       return reply.status(404).send({
         error: 'No active account found for this Google email.',
@@ -607,7 +624,7 @@ export async function ondiAuthRoutes(fastify: FastifyInstance) {
    * is email-shaped and present on every token this flow will see.
    */
   fastify.post('/microsoft/verify', { config: { rateLimit: { max: 10, timeWindow: '1 minute' } } }, async (request, reply) => {
-    const { credential, allowJoinRequest } = microsoftVerifySchema.parse(request.body);
+    const { credential, allowJoinRequest, allowSignupTicket, inviteToken } = microsoftVerifySchema.parse(request.body);
     const { microsoft: microsoftClientId } = await resolveOAuthClientIds();
     if (!microsoftClientId) {
       return reply.status(503).send({ error: 'Microsoft sign-in is not configured for this platform yet.' });
@@ -619,12 +636,23 @@ export async function ondiAuthRoutes(fastify: FastifyInstance) {
     const email = data.email || data.preferred_username;
     if (!email) return reply.status(401).send({ error: 'Your Microsoft account has no email address to sign in with.' });
 
+    if (inviteToken) {
+      const accepted = await acceptHrInviteForFederatedIdentity(inviteToken, email, data.name || '');
+      if (!accepted.ok) return reply.status(accepted.status).send({ error: accepted.error });
+      await recordAuthEvent(accepted.user.tenant_id, accepted.user.id, 'microsoft_login', { ip: request.ip, userAgent: String(request.headers['user-agent'] || '') });
+      return issueSessionFor(fastify, reply, accepted.user, request.ip, String(request.headers['user-agent'] || ''));
+    }
+
     const user = await dbPlatform.selectFrom('users').selectAll()
       .where('email', '=', email).where('active', '=', true).executeTakeFirst();
     if (!user) {
       if (allowJoinRequest) {
         const joinResult = await createJoinRequestForFederatedIdentity(data.name || '', email);
         if (joinResult) return reply.status(202).send({ join_request: joinResult });
+      }
+      if (allowSignupTicket) {
+        const ticket = await createSignupTicketForFederatedIdentity(fastify, data.name || '', email);
+        if (ticket) return reply.status(200).send(ticket);
       }
       return reply.status(404).send({
         error: 'No active account found for this Microsoft email.',
@@ -646,7 +674,7 @@ export async function ondiAuthRoutes(fastify: FastifyInstance) {
    * already falls back to the email's local part when it's blank.
    */
   fastify.post('/apple/verify', { config: { rateLimit: { max: 10, timeWindow: '1 minute' } } }, async (request, reply) => {
-    const { credential, name, allowJoinRequest } = appleVerifySchema.parse(request.body);
+    const { credential, name, allowJoinRequest, allowSignupTicket, inviteToken } = appleVerifySchema.parse(request.body);
     const { apple: appleClientId } = await resolveOAuthClientIds();
     if (!appleClientId) {
       return reply.status(503).send({ error: 'Apple sign-in is not configured for this platform yet.' });
@@ -661,12 +689,23 @@ export async function ondiAuthRoutes(fastify: FastifyInstance) {
       return reply.status(401).send({ error: 'Your Apple account email is not verified.' });
     }
 
+    if (inviteToken) {
+      const accepted = await acceptHrInviteForFederatedIdentity(inviteToken, email, name || '');
+      if (!accepted.ok) return reply.status(accepted.status).send({ error: accepted.error });
+      await recordAuthEvent(accepted.user.tenant_id, accepted.user.id, 'apple_login', { ip: request.ip, userAgent: String(request.headers['user-agent'] || '') });
+      return issueSessionFor(fastify, reply, accepted.user, request.ip, String(request.headers['user-agent'] || ''));
+    }
+
     const user = await dbPlatform.selectFrom('users').selectAll()
       .where('email', '=', email).where('active', '=', true).executeTakeFirst();
     if (!user) {
       if (allowJoinRequest) {
         const joinResult = await createJoinRequestForFederatedIdentity(name || '', email);
         if (joinResult) return reply.status(202).send({ join_request: joinResult });
+      }
+      if (allowSignupTicket) {
+        const ticket = await createSignupTicketForFederatedIdentity(fastify, name || '', email);
+        if (ticket) return reply.status(200).send(ticket);
       }
       return reply.status(404).send({
         error: 'No active account found for this Apple email.',

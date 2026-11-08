@@ -44,6 +44,7 @@ export const StepPayment: React.FC<StepProps> = ({ draft, update, onNext, onBack
   const isHostedCheckout = !!gatewayConfigured && amount > 0;
 
   const validate = () => {
+    if (amount === 0) return true;
     if (isHostedCheckout) return true;
     const e: Record<string, string | undefined> = {};
     if (p.method === 'card') {
@@ -66,6 +67,14 @@ export const StepPayment: React.FC<StepProps> = ({ draft, update, onNext, onBack
     onNext();
   };
 
+  if (amount === 0) {
+    return <form onSubmit={handleSubmit} className="login-form">
+      <div className="ob-step-intro"><h2>Confirm billing</h2><p>No payment details are needed for the included workspace. Any selected app subscriptions follow their own catalog pricing.</p></div>
+      <div className="ob-review"><div className="ob-review-row"><span>Workspace fee</span><span>Included</span></div><div className="ob-review-row"><span>Billing cycle</span><span>{draft.billing_cycle === 'annual' ? 'Annual' : 'Monthly'}</span></div></div>
+      <div className="login-form-actions"><button type="button" onClick={onBack} className="login-back-btn" data-ui-native-button="">Back</button><button type="submit" className="login-submit-btn" data-ui-native-button="">Continue to review</button></div>
+    </form>;
+  }
+
   if (isHostedCheckout) {
     return (
       <form onSubmit={handleSubmit} noValidate className="login-form ob-payment-form">
@@ -78,7 +87,7 @@ export const StepPayment: React.FC<StepProps> = ({ draft, update, onNext, onBack
         </div>
         <div className="login-form-actions">
           <button type="button" onClick={onBack} className="login-back-btn" data-ui-native-button="">Back</button>
-          <button type="submit" className="login-submit-btn" data-ui-native-button="">Continue to Payment</button>
+          <button type="submit" className="login-submit-btn" data-ui-native-button="">Continue to review</button>
         </div>
       </form>
     );

@@ -391,7 +391,8 @@ export async function authRoutes(fastify: FastifyInstance) {
     if (!invite) return reply.status(404).send({ error: 'Invitation not found' });
     if (invite.status !== 'PENDING') return reply.status(400).send({ error: 'Invitation is no longer valid' });
     if (new Date(invite.expires_at) < new Date()) {
-      await withTenant(invite.tenant_id, trx => trx.updateTable('hr_invitations').set({ status: 'EXPIRED' }).where('id', '=', invite.id).execute());
+      await withTenant(invite.tenant_id, trx => trx.updateTable('hr_invitations').set({ status: 'EXPIRED' })
+        .where('id', '=', invite.id).where('tenant_id', '=', invite.tenant_id).execute());
       return reply.status(400).send({ error: 'Invitation has expired' });
     }
 
@@ -402,6 +403,23 @@ export async function authRoutes(fastify: FastifyInstance) {
 
     // Everything past this point is that tenant's own data.
     const { newUser } = await withTenant(invite.tenant_id, async (trx) => {
+      // Flip PENDING -> ACCEPTED first, gated on status still being
+      // PENDING — same race this invite's OAuth sibling
+      // (acceptHrInviteForFederatedIdentity) guards against: two
+      // concurrent accepts of the same token (password form submitted
+      // twice, or the OAuth path racing this one) both pass the plain
+      // status check above; only one wins this conditional update, so
+      // only one ever creates a user.
+      const flipped = await trx.updateTable('hr_invitations').set({ status: 'ACCEPTED' })
+        .where('id', '=', invite.id).where('tenant_id', '=', invite.tenant_id).where('status', '=', 'PENDING')
+        .executeTakeFirst();
+      if (Number(flipped.numUpdatedRows ?? 0) === 0) {
+        // statusCode, not a custom field — index.ts's global error handler
+        // reads exactly this to pick the response status for a plain
+        // thrown Error.
+        throw Object.assign(new Error('Invitation is no longer valid'), { statusCode: 400 });
+      }
+
       const newUser = await trx.insertInto('users').values({
         tenant_id: invite.tenant_id,
         email: invite.email,
@@ -411,8 +429,6 @@ export async function authRoutes(fastify: FastifyInstance) {
         name,
         active: true,
       }).returningAll().executeTakeFirstOrThrow();
-
-      await trx.updateTable('hr_invitations').set({ status: 'ACCEPTED' }).where('id', '=', invite.id).execute();
 
       // No actor — this is the new user's own action, not something done to
       // them by someone else (see DomainEvent.actorId's own doc comment on

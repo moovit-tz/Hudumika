@@ -1,0 +1,383 @@
+/* ══════════════════════════════════════════════════════════════
+   Hudumika Lock Screen (Clean Architecture & Design System)
+   ══════════════════════════════════════════════════════════════ */
+
+.ls-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 99999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  font-family: var(--font, system-ui, -apple-system, sans-serif);
+  background:
+    radial-gradient(circle at 50% 25%, color-mix(in srgb, var(--teal) 10%, transparent) 0%, transparent 65%),
+    rgba(241, 245, 249, 0.82);
+  backdrop-filter: blur(24px) saturate(150%);
+  -webkit-backdrop-filter: blur(24px) saturate(150%);
+  animation: ls-overlay-fade 0.25s ease-out;
+}
+
+@keyframes ls-overlay-fade {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+/* ── Theme Switcher in Top Right ────────────────────────────── */
+.ls-theme-toggle {
+  position: absolute;
+  top: 20px;
+  right: 20px;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  border: 1px solid var(--border, rgba(0, 0, 0, 0.08));
+  background: var(--card-bg, #ffffff);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.06);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  color: var(--ink);
+  transition: transform 0.15s ease, background-color 0.15s ease, box-shadow 0.15s ease;
+  z-index: 2;
+}
+
+.ls-theme-toggle:hover {
+  transform: scale(1.06);
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.1);
+}
+
+.ls-theme-toggle:active {
+  transform: scale(0.96);
+}
+
+/* ── Main Lock Card ─────────────────────────────────────────── */
+.ls-card {
+  width: 100%;
+  max-width: 448px;
+  box-sizing: border-box;
+  padding: 40px 44px 34px 44px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  border-radius: 24px;
+  background: var(--card-bg, #ffffff);
+  border: 1px solid var(--border, rgba(0, 0, 0, 0.08));
+  box-shadow:
+    0 24px 64px -12px rgba(15, 23, 42, 0.14),
+    0 4px 20px -2px rgba(15, 23, 42, 0.04);
+  animation: ls-card-pop 0.28s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes ls-card-pop {
+  from {
+    opacity: 0;
+    transform: scale(0.96) translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
+/* ── Locked Status Pill ─────────────────────────────────────── */
+.ls-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 12px;
+  border-radius: 9999px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  background: var(--teal-l, color-mix(in srgb, var(--teal) 10%, transparent));
+  color: var(--teal);
+  border: 1px solid color-mix(in srgb, var(--teal) 25%, transparent);
+  margin-bottom: 20px;
+}
+
+/* ── Avatar Section ─────────────────────────────────────────── */
+.ls-avatar-wrap {
+  position: relative;
+  margin-bottom: 16px;
+}
+
+.ls-avatar-ring {
+  border-radius: 50%;
+  padding: 3px;
+  background: linear-gradient(135deg, var(--teal) 0%, color-mix(in srgb, var(--teal) 30%, transparent) 100%);
+  box-shadow: 0 8px 24px -4px color-mix(in srgb, var(--teal) 30%, rgba(0, 0, 0, 0.15));
+}
+
+.ls-avatar-emblem {
+  position: absolute;
+  bottom: -2px;
+  right: -2px;
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  background: var(--teal);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #ffffff;
+  border: 2.5px solid var(--card-bg, #ffffff);
+  box-shadow: 0 2px 8px color-mix(in srgb, var(--teal) 45%, rgba(0, 0, 0, 0.25));
+}
+
+/* ── User Identity Text ─────────────────────────────────────── */
+.ls-identity {
+  text-align: center;
+  margin-bottom: 22px;
+  width: 100%;
+}
+
+.ls-name {
+  font-weight: 800;
+  font-size: 20px;
+  color: var(--ink);
+  letter-spacing: -0.01em;
+  line-height: 1.25;
+}
+
+.ls-subtitle {
+  font-size: 13px;
+  color: var(--ink3);
+  margin-top: 5px;
+  line-height: 1.4;
+}
+
+/* ── Error Banner ───────────────────────────────────────────── */
+.ls-error {
+  width: 100%;
+  margin-bottom: 16px;
+}
+
+/* ── Form & Inputs ──────────────────────────────────────────── */
+.ls-form {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.ls-field {
+  position: relative;
+  width: 100%;
+}
+
+.ls-field-icon {
+  position: absolute;
+  left: 14px;
+  top: 50%;
+  transform: translateY(-50%);
+  pointer-events: none;
+  color: var(--ink3);
+  display: flex;
+  align-items: center;
+  z-index: 2;
+}
+
+.ls-input {
+  width: 100% !important;
+  box-sizing: border-box !important;
+  height: 44px !important;
+  min-height: 44px !important;
+  padding-left: 42px !important;
+  padding-right: 44px !important;
+  font-size: 14px !important;
+  border-radius: 12px !important;
+  border: 1px solid var(--border, rgba(0, 0, 0, 0.12)) !important;
+  background: var(--bg, #f8fafc) !important;
+  color: var(--ink) !important;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease, background-color 0.15s ease;
+}
+
+.ls-input:focus {
+  outline: none !important;
+  background: var(--card-bg, #ffffff) !important;
+  border-color: var(--teal) !important;
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--teal) 18%, transparent) !important;
+}
+
+.ls-input.password-masked {
+  letter-spacing: 0.22em;
+  font-size: 16px !important;
+}
+
+.ls-input.password-masked::placeholder {
+  letter-spacing: normal;
+  font-size: 13.5px !important;
+}
+
+/* Eye visibility toggle */
+.ls-eye-btn {
+  position: absolute;
+  right: 6px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: var(--ink3);
+  transition: color 0.15s ease, background-color 0.15s ease;
+  z-index: 2;
+}
+
+.ls-eye-btn:hover {
+  color: var(--ink);
+  background: color-mix(in srgb, var(--ink) 6%, transparent);
+}
+
+/* CapsLock Warning */
+.ls-caps {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11.5px;
+  font-weight: 600;
+  color: var(--gold, #d97706);
+  padding: 2px 4px;
+}
+
+/* ── Action Buttons ─────────────────────────────────────────── */
+.ls-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  margin-top: 4px;
+}
+
+.ls-actions .ls-btn-logout {
+  flex: 1;
+  height: 42px;
+  border-radius: 12px;
+  font-size: 13px;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+}
+
+.ls-actions .ls-btn-unlock {
+  flex: 1.3;
+  height: 42px;
+  border-radius: 12px;
+  font-size: 13px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  background: var(--teal) !important;
+  color: #ffffff !important;
+  box-shadow: 0 4px 14px color-mix(in srgb, var(--teal) 35%, transparent);
+}
+
+.ls-actions .ls-btn-unlock:hover:not(:disabled) {
+  opacity: 0.94;
+  box-shadow: 0 6px 18px color-mix(in srgb, var(--teal) 45%, transparent);
+}
+
+.ls-actions .ls-btn-unlock:disabled {
+  box-shadow: none;
+  opacity: 0.6;
+}
+
+/* ── Footer ─────────────────────────────────────────────────── */
+.ls-footer {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  margin-top: 22px;
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--ink3);
+  letter-spacing: 0.01em;
+}
+
+/* ── Dark Mode ──────────────────────────────────────────────── */
+.ls-dark {
+  background:
+    radial-gradient(circle at 50% 25%, color-mix(in srgb, var(--teal) 12%, transparent) 0%, transparent 65%),
+    rgba(10, 15, 29, 0.88);
+}
+
+.ls-dark .ls-card {
+  background: #131b2e;
+  border-color: rgba(255, 255, 255, 0.1);
+  box-shadow:
+    0 24px 64px -12px rgba(0, 0, 0, 0.6),
+    0 4px 20px -2px rgba(0, 0, 0, 0.4);
+}
+
+.ls-dark .ls-theme-toggle {
+  background: #1e293b;
+  border-color: rgba(255, 255, 255, 0.12);
+  color: #f8fafc;
+}
+
+.ls-dark .ls-avatar-emblem {
+  border-color: #131b2e;
+}
+
+.ls-dark .ls-name {
+  color: #f8fafc;
+}
+
+.ls-dark .ls-subtitle {
+  color: #94a3b8;
+}
+
+.ls-dark .ls-input {
+  background: #0b1120 !important;
+  border-color: rgba(255, 255, 255, 0.12) !important;
+  color: #f8fafc !important;
+}
+
+.ls-dark .ls-input:focus {
+  background: #0f172a !important;
+  border-color: var(--teal) !important;
+}
+
+.ls-dark .ls-eye-btn {
+  color: #94a3b8;
+}
+
+.ls-dark .ls-eye-btn:hover {
+  color: #f8fafc;
+}
+
+.ls-dark .ls-footer {
+  color: #64748b;
+}
+
+/* ── Mobile Responsiveness ──────────────────────────────────── */
+@media (max-width: 480px) {
+  .ls-overlay {
+    padding: 16px;
+  }
+  .ls-card {
+    padding: 32px 28px 24px 28px;
+    border-radius: 20px;
+  }
+  .ls-theme-toggle {
+    top: 14px;
+    right: 14px;
+    width: 36px;
+    height: 36px;
+  }
+}
+

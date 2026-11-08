@@ -319,6 +319,8 @@ export const GATEWAYS: GatewayDef[] = [
       { key: 'publicKey',  label: 'Public Key'   },
       { key: 'secretKey',  label: 'Secret Key',   type: 'password' },
       { key: 'encKey',     label: 'Encryption Key', type: 'password' },
+      { key: 'webhookSecret', label: 'Webhook Secret Hash', type: 'password',
+        hint: 'On your Flutterwave dashboard, set Settings ▸ Webhooks ▸ URL to this API’s /v1/webhooks/invoice-gateway/flutterwave, then set the same Secret Hash value here and there. Required for online invoice payments to confirm automatically — without it, a payment that times out in the customer’s browser has no way to be reconciled.' },
     ],
   },
   {
@@ -570,7 +572,7 @@ export const PaymentGatewaysSection: React.FC = () => {
                         {/* Fields */}
                         <div className={`s-gw-fields${gw.fields.length > 3 ? ' s-gw-fields--2' : ''}`}>
                           {gw.fields.map(f => (
-                            <div key={f.key} className={f.key === 'instructions' || f.key === 'webhook' ? 's-gw-fspan' : undefined}>
+                            <div key={f.key} className={f.key === 'instructions' || f.key === 'webhook' || f.key === 'webhookSecret' ? 's-gw-fspan' : undefined}>
                               <label className="s-gw-flbl">{f.label}</label>
                               {f.key === 'instructions' ? (
                                 <textarea

@@ -48,6 +48,25 @@ export async function getActiveGateway(tenantId: string): Promise<ActiveGateway 
   });
 }
 
+/** A specific gateway's own saved config, regardless of whether it is the
+ *  currently active one — needed by a webhook resolving an *earlier*
+ *  checkout (recorded against whichever gateway was active at the time),
+ *  which must not assume the tenant hasn't since switched to a different
+ *  one. Returns null if that gateway was never configured for this
+ *  tenant. */
+export async function getGatewayConfig(tenantId: string, gatewayId: string): Promise<ActiveGateway | null> {
+  return withTenant(tenantId, async (trx) => {
+    const row = await trx.selectFrom('tenant_settings').select('settings')
+      .where('tenant_id', '=', tenantId).executeTakeFirst();
+    if (!row) return null;
+    const settings = typeof row.settings === 'string' ? JSON.parse(row.settings) : row.settings;
+    const gw = settings?.[`gw-${gatewayId}`];
+    if (!gw) return null;
+    const { enabled, sandbox, ...config } = gw;
+    return { id: gatewayId, sandbox: !!sandbox, config };
+  });
+}
+
 /** Every `gw-*` key this tenant has ever saved in Settings, enabled or not —
  *  unlike getActiveGateway() above, which stops at the first enabled one.
  *  Built for the Gateways catalog view (Petti and, later, anywhere else

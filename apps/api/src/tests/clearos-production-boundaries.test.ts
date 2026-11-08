@@ -4,7 +4,7 @@ import { writeFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { sql } from 'kysely';
 import { dbPlatform, withTenant } from '../db/client.js';
-import { authHeaders, createTestTenant, getApp, type TestTenant } from './helpers.js';
+import { authHeaders, createTestTenant, getApp, grantStandaloneProduct, type TestTenant } from './helpers.js';
 let a: TestTenant, b: TestTenant, shipmentA: string, shipmentB: string;
 const observations: Record<string, unknown> = {};
 const payload = (shipment_id: string) => ({shipment_id,tancis_ref:`AUDIT-${randomUUID()}`,declaration_mode:'NORMAL',tansad_form_type:'G',clearing_office:'Synthetic',reference_date:'2026-11-02',consignment_country:'TZ',country_of_export:'CN',country_of_destination:'TZ',importer_tin:'TEST',importer_name:'Synthetic importer',declarant_tin:'TEST',declarant_name:'Synthetic declarant'});
@@ -12,6 +12,10 @@ beforeAll(async()=>{
  a=await createTestTenant(); b=await createTestTenant();
  for(const t of [a,b]) {
   await dbPlatform.updateTable('tenants').set({plan:'enterprise'}).where('id','=',t.tenantId).execute();
+  // 'enterprise' alone no longer grants ClearOS (migration 685 unbundled it
+  // into a standalone product, grandfathering only tenants that existed at
+  // migration time) — a fresh test tenant needs the real subscription too.
+  await grantStandaloneProduct(t.tenantId, 'clearos');
   const id=await withTenant(t.tenantId,async trx=>{
    const c=await trx.insertInto('customers').values({tenant_id:t.tenantId,name:'ClearOS synthetic audit'} as any).returning('id').executeTakeFirstOrThrow();
    return (await trx.insertInto('shipment_cases').values({tenant_id:t.tenantId,customer_id:c.id,ref_number:`AUDIT-${randomUUID()}`,type:'SEA_FCL',goods_desc:'Synthetic audit cargo',containers:'[]',vessel:'Test',origin_port:'Test',dest_port:'Test'}).returning('id').executeTakeFirstOrThrow()).id;

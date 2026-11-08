@@ -15,6 +15,7 @@ import { tenantHasEnabledFinanceCapability } from '../services/finance-capabilit
 import { requireFinanceCapability } from '../middleware/finance-capability.js';
 import { prepareIndustryBilling, attachIndustryInvoice } from '../services/finance-industry-work.service.js';
 import { getActiveGateway, getConfiguredGateways } from '../lib/payment-gateway.js';
+import { recordInvoicePayment } from '../services/invoice-payment.service.js';
 
 // Real values — Billing.tsx's own `Status` type.
 const INVOICE_STATUS = ['Draft', 'Partial', 'Paid', 'Credited', 'Unpaid', 'Overdue'] as const;
@@ -114,7 +115,7 @@ import { getNextDocNumber, getNextCustomerDocNumber } from '../lib/doc-numbering
 import { toDateParam } from '../utils/dates.js';
 import { isTaxCodeUserError, resolveTaxCode } from '../services/tax-code.service.js';
 import {
-  DocumentPosted, assertPeriodOpen, isPeriodError, reverseDocumentJournals, tenantJurisdiction,
+  DocumentPosted, assertPeriodOpenForJurisdictions, invoiceJurisdictions, isPeriodError, reverseDocumentJournals,
 } from '../services/vat-period.service.js';
 import type { Transaction } from 'kysely';
 import type { Database } from '../db/client.js';
@@ -1062,9 +1063,12 @@ export async function invoiceRoutes(fastify: FastifyInstance) {
       // checked: an invoice must not be able to escape a closed period, nor
       // walk into one.
       try {
-        const juris = await tenantJurisdiction(trx, user.tenant_id);
-        await assertPeriodOpen(trx, user.tenant_id, existing.bill_date, juris);
-        if (body.bill_date) await assertPeriodOpen(trx, user.tenant_id, body.bill_date, juris);
+        // The document's own lines' tax codes, not the tenant's unrelated
+        // default — a multi-jurisdiction tenant's invoice must respect the
+        // period freeze of the country it's actually classified under.
+        const juris = await invoiceJurisdictions(trx, user.tenant_id, id);
+        await assertPeriodOpenForJurisdictions(trx, user.tenant_id, existing.bill_date, juris);
+        if (body.bill_date) await assertPeriodOpenForJurisdictions(trx, user.tenant_id, body.bill_date, juris);
       } catch (e) {
         if (isPeriodError(e)) return reply.status(409).send({ error: e.message });
         throw e;
@@ -1183,7 +1187,7 @@ export async function invoiceRoutes(fastify: FastifyInstance) {
       if (inv.status === 'Void') return reply.status(409).send({ error: 'That invoice is already void.' });
 
       try {
-        await assertPeriodOpen(trx, user.tenant_id, inv.bill_date, await tenantJurisdiction(trx, user.tenant_id));
+        await assertPeriodOpenForJurisdictions(trx, user.tenant_id, inv.bill_date, await invoiceJurisdictions(trx, user.tenant_id, id));
       } catch (e) {
         if (isPeriodError(e)) return reply.status(409).send({ error: e.message });
         throw e;
@@ -1226,7 +1230,7 @@ export async function invoiceRoutes(fastify: FastifyInstance) {
         });
       }
       try {
-        await assertPeriodOpen(trx, user.tenant_id, existing.bill_date, await tenantJurisdiction(trx, user.tenant_id));
+        await assertPeriodOpenForJurisdictions(trx, user.tenant_id, existing.bill_date, await invoiceJurisdictions(trx, user.tenant_id, id));
       } catch (e) {
         if (isPeriodError(e)) return reply.status(409).send({ error: e.message });
         throw e;
@@ -1250,124 +1254,19 @@ export async function invoiceRoutes(fastify: FastifyInstance) {
     const requestKey = z.string().trim().min(1).max(128).optional().parse(request.headers['idempotency-key']);
     let committedEvent: DomainEvent | undefined;
     const result = await withTenant(user.tenant_id, async (trx) => {
-      const inv = await trx.selectFrom('sales_invoices').selectAll().where('id', '=', id).where('tenant_id', '=', user.tenant_id).forUpdate().executeTakeFirst();
-      if (!inv) return reply.status(404).send({ error: 'Invoice not found' });
-      if (!['Unpaid', 'Partial', 'Paid', 'Overdue'].includes(inv.status)) return reply.status(409).send({ error: 'Only issued invoices can receive payments.' });
-      if (requestKey) {
-        const prior = await trx.selectFrom('invoice_payments').select(['amount', 'method', 'payment_date', 'note']).where('tenant_id', '=', user.tenant_id).where('invoice_id', '=', id).where('request_key', '=', requestKey).executeTakeFirst();
-        if (prior) {
-          if (Number(prior.amount) !== amount || (prior.method || '') !== (method || '') || (prior.note || '') !== (note || '') || (prior.payment_date ? new Date(prior.payment_date as any).toISOString().slice(0, 10) : null) !== (payment_date || null)) return reply.status(409).send({ error: 'Payment request key was already used with different details.' });
-          return { success: true, received: Number(inv.received), status: inv.status, replayed: true };
-        }
-      } else {
-        const recentDup = await trx.selectFrom('invoice_payments')
-          .select('id')
-          .where('tenant_id', '=', user.tenant_id)
-          .where('invoice_id', '=', id)
-          .where('amount', '=', Number(amount))
-          .where('created_at', '>', sql<Date>`now() - interval '60 seconds'`)
-          .executeTakeFirst();
-        if (recentDup) return reply.status(409).send({ error: 'A payment with the same amount was recorded moments ago. Use an Idempotency-Key header to safely retry.' });
+      const outcome = await recordInvoicePayment(trx, user.tenant_id, id, {
+        amount, method, paymentDate: payment_date, note, requestKey, actorId: user.sub, actorName: user.name || user.email,
+      });
+      switch (outcome.outcome) {
+        case 'not_found': return reply.status(404).send({ error: 'Invoice not found' });
+        case 'not_payable': return reply.status(409).send({ error: 'Only issued invoices can receive payments.' });
+        case 'request_key_conflict': return reply.status(409).send({ error: 'Payment request key was already used with different details.' });
+        case 'recent_duplicate': return reply.status(409).send({ error: 'A payment with the same amount was recorded moments ago. Use an Idempotency-Key header to safely retry.' });
+        case 'replayed': return { success: true, received: outcome.received, status: outcome.status, replayed: true };
+        case 'recorded':
+          committedEvent = outcome.event;
+          return { success: true, received: outcome.received, status: outcome.status, credit_issued: outcome.credit_issued };
       }
-      const payment = await trx.insertInto('invoice_payments').values({
-        request_key: requestKey ?? null,
-        tenant_id: user.tenant_id,
-        invoice_id: id,
-        amount: Number(amount),
-        method: method || null,
-        payment_date: payment_date || null,
-        note: note || null,
-        created_by: user.sub,
-      }).returning('id').executeTakeFirstOrThrow();
-      // Money received against an invoice — the closing leg of a consignment's
-      // journey, and the trigger downstream apps care about.
-      committedEvent = await emitDomainEvent(trx, user.tenant_id, {
-        type: 'invoice.payment_recorded', sourceApp: 'finops', entityType: 'invoice', entityId: id,
-        payload: { amount: Number(amount), method: method || null, customerId: (inv as any).customer_id ?? null },
-      }, { deferDispatch: true });
-
-      const payments = await trx.selectFrom('invoice_payments').select('amount').where('invoice_id', '=', id).where('tenant_id', '=', user.tenant_id).execute();
-      const totalPaid = payments.reduce((s, p) => s + Number(p.amount), 0);
-      // Get lines to compute grand total
-      const lines = await trx.selectFrom('sales_invoice_lines').selectAll().where('invoice_id', '=', id).execute();
-      // The old fallback here was `|| 2650` - a hardcoded TZS/USD rate
-      // invented at the point of use. 1 is the only honest default: it means
-      // "no conversion", not "guess".
-      const grandTotal = invoiceGrandTotal(lines, inv.currency, Number(inv.exchange_rate) || 1);
-
-      // An overpayment used to just vanish into "Paid" — the excess was
-      // never tracked anywhere, so it disappeared from both the balance
-      // sheet and the customer's own running balance (M10). The amount
-      // that actually clears *this* invoice's AR is capped at what was
-      // still outstanding before this payment; anything beyond that
-      // becomes a real customer_credits row against 2150, not a phantom
-      // reduction of AR that was never owed in the first place.
-      // Subtract linked credit notes from outstanding so credits reduce what can be cleared
-      const cnTotalPay = await sql<{ credited: string }>`
-        SELECT coalesce(round(sum(cl.rate * cl.qty * (1 + coalesce(cl.tax_pct, 0) / 100)), 2), 0) credited
-        FROM credit_note_lines cl JOIN credit_notes cn ON cn.id = cl.credit_note_id
-        WHERE cn.original_invoice_id = ${id}::uuid AND cn.status = 'POSTED' AND cn.tenant_id = ${user.tenant_id}
-      `.execute(trx);
-      const creditedAmtPay = Number(cnTotalPay.rows[0]?.credited) || 0;
-      const previouslyPaid = totalPaid - Number(amount);
-      const outstandingBefore = Math.max(0, grandTotal - previouslyPaid - creditedAmtPay);
-      const clearAmount = Math.min(Number(amount), outstandingBefore);
-      const excessAmount = Math.round((Number(amount) - clearAmount) * 100) / 100;
-
-      let newStatus: string;
-      const effectiveTotal = Math.max(0, grandTotal - creditedAmtPay);
-      if (totalPaid <= 0) newStatus = effectiveTotal <= 0 ? 'Credited' : 'Unpaid';
-      else if (totalPaid >= effectiveTotal) newStatus = 'Paid';
-      else newStatus = 'Partial';
-      await trx.updateTable('sales_invoices').set({ received: totalPaid, status: newStatus, updated_at: new Date() }).where('id', '=', id).where('tenant_id', '=', user.tenant_id).execute();
-
-      // Post payment to GL — amounts arrive in the invoice's currency;
-      // convert to reporting currency for the ledger.
-      const payFx = Number(inv.exchange_rate) || 1;
-      const payFxMeta = { currency: inv.currency, exchangeRate: payFx };
-      const payDims = inv.business_line_id ? { business_line_id: inv.business_line_id } : undefined;
-
-      const tsPay = await trx.selectFrom('tenant_settings').select('settings').where('tenant_id', '=', user.tenant_id).executeTakeFirst();
-      const sPay = tsPay ? (typeof tsPay.settings === 'string' ? JSON.parse(tsPay.settings) : tsPay.settings) : {};
-      const reportingCcyPay = (sPay?.company?.currency || 'TZS').toUpperCase();
-      const invCcyPay = inv.currency.toUpperCase();
-      const needsPayConversion = invCcyPay !== reportingCcyPay && payFx !== 1 && payFx > 0;
-      const glPayAmount = needsPayConversion ? Math.round(Number(amount) * payFx * 100) / 100 : Number(amount);
-      const glClearAmt = needsPayConversion ? Math.round(clearAmount * payFx * 100) / 100 : clearAmount;
-      const glExcessAmt = needsPayConversion ? Math.round(excessAmount * payFx * 100) / 100 : excessAmount;
-
-      const journalEntryId = await GLService.post(user.tenant_id, {
-        entryDate: payment_date ? new Date(payment_date).toISOString() : new Date().toISOString(),
-        description: `Payment received: ${inv.invoice_number}`,
-        reference: inv.invoice_number,
-        sourceModule: 'AR',
-        sourceId: inv.id,
-        createdBy: user.sub,
-        lines: [
-          { accountCode: '1010', debit: glPayAmount, credit: 0, description: 'Cash received', dimensions: payDims, ...payFxMeta },
-          ...(glClearAmt > 0.01 ? [{ accountCode: '1100', debit: 0, credit: glClearAmt, description: `Clear AR: ${inv.invoice_number}`, dimensions: payDims, ...payFxMeta }] : []),
-          ...(glExcessAmt > 0.01 ? [{ accountCode: '2150', debit: 0, credit: glExcessAmt, description: `Overpayment credit: ${inv.invoice_number}`, dimensions: payDims, ...payFxMeta }] : []),
-        ],
-      }, trx);
-
-      if (excessAmount > 0.01) {
-        await trx.insertInto('customer_credits').values({
-          tenant_id: user.tenant_id, customer_id: inv.customer_id ?? null, amount: String(excessAmount),
-          source_invoice_id: inv.id, reason: `Overpayment on ${inv.invoice_number}`,
-          journal_entry_id: journalEntryId, created_by: user.sub,
-        }).execute();
-      }
-
-      await trx.insertInto('invoice_activity_log').values({
-        tenant_id: user.tenant_id, invoice_id: id, actor_id: user.sub, actor_name: user.name || user.email,
-        action: 'payment_recorded',
-        detail: `${method || 'Payment'} of ${Number(amount).toLocaleString()} recorded${excessAmount > 0.01 ? ` (${excessAmount.toLocaleString()} credited to customer account as overpayment)` : ''}`,
-        created_at: new Date(),
-      }).execute();
-
-      await enqueueAccountingSync(trx, user.tenant_id, 'INVOICE', id);
-      await enqueueAccountingSync(trx, user.tenant_id, 'INVOICE_PAYMENT', payment.id);
-      return { success: true, received: totalPaid, status: newStatus, credit_issued: excessAmount };
     });
     if (committedEvent && !reply.sent) dispatchDomainEvent(user.tenant_id, committedEvent);
     return result;
@@ -1816,6 +1715,17 @@ export async function invoiceRoutes(fastify: FastifyInstance) {
         default:
           return reply.status(422).send({ error: `Online checkout is not yet available for the "${gateway.id}" gateway. Supported: Stripe, Flutterwave, Paystack.` });
       }
+
+      // One row per checkout attempt, independent of whether this
+      // gateway's webhook is wired up yet — this is what lets a later
+      // inbound confirmation (webhook, or a manual "check status" poll)
+      // resolve tx_ref back to this invoice/tenant and settle exactly
+      // once, regardless of whether the cashier's own browser ever saw
+      // the redirect (S05's "timeout followed by late success" case).
+      await trx.insertInto('gateway_checkout_sessions').values({
+        tenant_id: user.tenant_id, invoice_id: id, gateway: gateway.id, tx_ref: txRef,
+        amount: balance, currency: inv.currency, created_by: user.sub,
+      }).execute();
 
       await trx.insertInto('invoice_activity_log').values({
         tenant_id: user.tenant_id, invoice_id: id, actor_id: user.sub,

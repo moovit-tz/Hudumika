@@ -22,6 +22,7 @@ import { SealCompartmentEdit } from '../pages/SealCompartmentEdit.js';
 import { SealZoneHeatGrid } from '../pages/SealZoneHeatGrid.js';
 import { SealGuarantees } from '../pages/SealGuarantees.js';
 import { SealConsignments } from '../pages/SealConsignments.js';
+import { SealConsignmentNew } from '../pages/SealConsignmentNew.js';
 import { SealConsignmentDetail } from '../pages/SealConsignmentDetail.js';
 import { SealExaminations } from '../pages/SealExaminations.js';
 import { SealStockAccount } from '../pages/SealStockAccount.js';
@@ -156,6 +157,7 @@ export function SealShell() {
                 <Route path="compartments/:id/sorting-dashboard" element={<SealSortingDashboard />} />
                 <Route path="guarantees"        element={<SealGuarantees />}         />
                 <Route path="consignments"      element={<SealConsignments />}       />
+                <Route path="consignments/new"  element={<SealConsignmentNew />}     />
                 <Route path="consignments/:id"  element={<SealConsignmentDetail />}  />
                 <Route path="ex-warehouse"      element={<SealExWarehouseEntries />}     />
                 <Route path="ex-warehouse/new"  element={<SealExWarehouseEntryNew />}    />

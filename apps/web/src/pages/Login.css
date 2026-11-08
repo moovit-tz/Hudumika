@@ -185,6 +185,24 @@
 .login-method-tab--active { color: var(--lp-ink, #1f1f1f); border-bottom-color: var(--lp-ink, #1f1f1f); }
 .login-method-panel { display: flex; justify-content: center; padding: 6px 0 2px; }
 
+/* ── Password fallback link — Ondi is the only visible default now; this
+   is the one way back to the hidden, still-fully-working password form
+   (see Login.tsx's `method` state comment). ── */
+.login-use-other-link {
+  display: block;
+  width: 100%;
+  text-align: center;
+  background: transparent;
+  border: none;
+  padding: 10px 0 0;
+  margin-top: 2px;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--lp-ink3, #5f6368);
+  cursor: pointer;
+}
+.login-use-other-link:hover { color: var(--lp-link-accent, var(--lp-accent, #0b1e3a)); text-decoration: underline; }
+
 /* ── Labeled fields ── */
 .login-label     { font-size: 12.5px; font-weight: 700; color: var(--lp-ink, #1f1f1f); }
 .login-label-row { display: flex; justify-content: space-between; align-items: center; }
@@ -213,10 +231,10 @@
   max-width: 320px;
   margin: 0 auto 16px;
   padding: 10px 12px;
-  min-height: 52px;
+  min-height: var(--action-h);
   box-sizing: border-box;
   border: 1px solid var(--lp-input-border, #747775);
-  border-radius: 14px;
+  border-radius: var(--r-sm);
   background: var(--lp-input-bg, #fff);
   color: var(--lp-ink2, #444746);
   font-size: 13px;
@@ -335,10 +353,10 @@
    page's own theme state always wins inside its own scope now. */
 .login-page .login-input {
   width: 100%;
-  min-height: 52px;
+  min-height: var(--action-h);
   box-sizing: border-box;
   padding: 11px 16px;
-  border-radius: 14px;
+  border-radius: var(--r-sm);
   border: 1px solid var(--lp-input-border, #747775);
   background: var(--lp-input-bg, #fff);
   color: var(--lp-ink, #1f1f1f);
@@ -467,8 +485,8 @@
   background: var(--lp-accent-surface, var(--lp-accent, #0b1e3a));
   color: var(--lp-accent-surface-fg, #fff);
   border: none;
-  border-radius: 14px;
-  min-height: 52px;
+  border-radius: var(--r-sm);
+  min-height: var(--action-h);
   box-sizing: border-box;
   padding: 0 24px;
   font-size: 13.5px;
@@ -702,3 +720,28 @@
 
 /* Full-width submit button (register form) */
 .login-submit-btn--full { width: 100%; margin-top: 8px; }
+/* Password entry stays distinct from the Ondi provider picker. */
+.password-login .login-card { padding: clamp(32px, 5vw, 44px) clamp(24px, 5vw, 40px); gap: 20px; }
+.password-login .login-brand-hdr { margin-bottom: 4px; }
+.password-login .login-field, .password-login .login-input, .password-login .login-label-row { text-align: center; }
+.password-login .login-label-row { flex-direction: column; gap: 8px; }
+.password-login .login-field-err { justify-content: center; }
+.password-login .login-submit-btn { align-self: center; width: fit-content; max-width: 100%; padding-inline: var(--space-xl, 32px); border-radius: var(--r-sm) !important; }
+.password-login .password-login-links { display: flex; flex-direction: column; align-items: center; gap: 14px; border-top: 1px solid var(--lp-row-border); padding-top: 20px; font-size: 12px; }
+.password-login .password-login-ondi { border-radius: var(--r-sm) !important; border-color: var(--lp-row-border); background: transparent; color: var(--lp-ink); }
+.password-login .password-login-demo { color: var(--lp-ink2); }
+.password-login .password-login-demo [data-state] { background: transparent; border-color: var(--lp-row-border); color: inherit; }
+.password-login .password-login-demo h3 { margin: 0; }
+.password-login .password-login-demo button { font-family: var(--font); }
+/* Auth controls share the configurator's density, shape and primary surface. */
+.login-page .login-submit-btn {
+  min-height: var(--action-h);
+  padding: var(--action-py) var(--space-xl);
+  border-radius: var(--r-sm);
+  border-width: var(--border-width);
+  background: hsl(var(--primary));
+  color: hsl(var(--primary-foreground));
+}
+.login-page .login-back-btn { min-height: var(--action-h); border-radius: var(--r-sm); color: var(--teal); }
+.login-page .login-input { border-radius: var(--r-sm); padding-block: var(--ds-btn-py); }
+.login-page .login-input:focus { border-color: var(--teal); }

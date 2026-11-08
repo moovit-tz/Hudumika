@@ -1,8 +1,10 @@
 import type { FastifyInstance } from 'fastify';
+import crypto from 'crypto';
 import { z } from 'zod';
-import type { SubdomainCheckResponse, EmailCheckResponse, JoinRequestInput, JoinRequestSubmitResponse } from '@hudumika/types';
+import type { SubdomainCheckResponse, EmailCheckResponse, JoinRequestInput, JoinRequestSubmitResponse, OnboardingDraftPayload, OnboardingDraftSaveInput, OnboardingDraftResumeResponse } from '@hudumika/types';
 import {
   OnboardingService,
+  isCompanyEntityAvailable,
   OnboardingError,
   validateSubdomain,
   isSubdomainAvailable,
@@ -18,6 +20,79 @@ import { hashPassword } from '../lib/password.js';
 import { env } from '../config/env.js';
 import type { JWTPayload, TenantPlan } from '@hudumika/types';
 import { SIGNUP_BASE_PLAN_CODES, signupPackageAmount } from '@hudumika/types';
+
+/**
+ * Verifies a signup ticket (minted by createSignupTicketForFederatedIdentity
+ * after a real Google/Microsoft/Apple sign-in with no matching user) and
+ * returns the identity it carries. Shared by the account-resolution path
+ * below and the onboarding-draft save/resume routes, both of which need
+ * "is this really the person who verified with Ondi" with no further
+ * side effects.
+ */
+function verifySignupTicket(
+  fastify: FastifyInstance,
+  ticket: string,
+): { email: string; name: string } | { error: string } {
+  let payload: any;
+  try {
+    payload = fastify.jwt.verify(ticket);
+  } catch {
+    return { error: 'Your sign-in verification has expired. Please sign in with Ondi again.' };
+  }
+  if (payload?.typ !== 'onboarding_signup' || typeof payload.email !== 'string') {
+    return { error: 'Invalid sign-in verification.' };
+  }
+  return { email: payload.email, name: typeof payload.name === 'string' ? payload.name : '' };
+}
+
+/**
+ * Full-SSO registration: when `account.ondi_ticket` is set, it's the only
+ * thing trusted for this account's email/name — overwrites whatever the
+ * client also sent in `account.name`/`account.email` (display copies only,
+ * never the source of truth) so a tampered client value can't create an
+ * account under an email Ondi never actually verified. A random,
+ * never-shown password is generated so the rest of the caller (and
+ * completeOnboarding()) needs no further changes — this account simply
+ * never has a usable password and signs in via Ondi going forward, same as
+ * any existing user who does. Mutates `account` in place; returns whether
+ * the resulting password is already hashed, or an error to send verbatim.
+ */
+function resolveOndiSignupTicket(
+  fastify: FastifyInstance,
+  account: { name: string; email: string; password?: string; ondi_ticket?: string },
+): { ok: true; passwordAlreadyHashed: boolean } | { ok: false; status: number; error: string } {
+  if (!account.ondi_ticket) return { ok: true, passwordAlreadyHashed: false };
+  const verified = verifySignupTicket(fastify, account.ondi_ticket);
+  if ('error' in verified) return { ok: false, status: 401, error: verified.error };
+  account.email = verified.email;
+  account.name = verified.name || account.name;
+  account.password = hashPassword(crypto.randomBytes(32).toString('hex'));
+  return { ok: true, passwordAlreadyHashed: true };
+}
+
+const onboardingDraftPayloadSchema = z.object({
+  companyName: z.string().trim().max(200).optional(),
+  industry: z.string().max(100).optional(),
+  industries: z.array(z.string().max(100)).max(30).optional(),
+  country: z.string().max(100).optional(),
+  onboarding_journey: z.string().max(60).optional(),
+  package_code: z.string().max(50).optional(),
+  billing_cycle: z.enum(['monthly', 'annual']).optional(),
+  initial_products: z.array(z.string().max(50)).max(10).optional(),
+  subdomain: z.string().max(63).optional(),
+  timezone: z.string().max(100).optional(),
+  currency: z.string().max(10).optional(),
+  hq_city: z.string().max(100).optional(),
+  hq_country: z.string().max(100).optional(),
+}).strict();
+
+const onboardingDraftSaveSchema = z.object({
+  ondi_ticket: z.string().min(1).max(4000),
+  step: z.number().int().min(1).max(6),
+  draft: onboardingDraftPayloadSchema,
+});
+
+const onboardingDraftResumeSchema = z.object({ ondi_ticket: z.string().min(1).max(4000) });
 
 const joinRequestSchema = z.object({
   name: z.string().trim().min(1).max(200),
@@ -38,11 +113,19 @@ const onboardingCompleteSchema = z.object({
   account: z.object({
     name: z.string().trim().min(1).max(200),
     email: z.string().trim().email().max(320),
-    password: z.string().min(8).max(200),
+    // Exactly one of these — full-SSO registration (ondi_ticket, verified
+    // by a real Ondi OAuth sign-in with no existing account) or the legacy
+    // password path. Checked below, not here, so the error message can
+    // name which one is missing rather than zod's generic union failure.
+    password: z.string().min(8).max(200).optional(),
+    ondi_ticket: z.string().min(1).max(4000).optional(),
+  }).refine(v => !!v.password !== !!v.ondi_ticket, {
+    message: 'Provide exactly one of password or ondi_ticket.',
   }),
   company: z.object({
     name: z.string().trim().min(1).max(200),
     industry: z.string().max(100).optional(),
+    industries: z.array(z.string().max(100)).max(30).optional(),
     country: z.string().max(100).optional(),
   }),
   package_code: z.string().min(1).max(50),
@@ -77,6 +160,29 @@ const onboardingCompleteSchema = z.object({
   initial_products: z.array(z.string().max(50)).max(10).optional(),
 });
 
+const DEFAULT_INDUSTRY_CORE_APPS: Record<string, string[]> = {
+  retail: ['pos', 'inventory', 'sales'],
+  wholesale: ['inventory', 'procurement', 'warehouse'],
+  ecommerce: ['inventory', 'pos', 'sales'],
+  manufacturing: ['inventory', 'manufacturing', 'procurement'],
+  food_beverage: ['inventory', 'manufacturing', 'procurement'],
+  printing: ['inventory', 'procurement', 'manufacturing'],
+  warehousing: ['seal', 'inventory', 'warehouse'],
+  professional_services: ['projects', 'timesheet', 'finance'],
+  consulting: ['projects', 'timesheet', 'finance'],
+  construction: ['projects', 'procurement', 'finance'],
+  property: ['property', 'billing', 'finance'],
+  automotive: ['gereji', 'inventory', 'fleet'],
+  hospitality: ['pos', 'hospitality', 'finance'],
+  restaurant: ['pos', 'inventory', 'procurement'],
+  education: ['education', 'billing', 'finance'],
+  insurance: ['insurance', 'billing', 'finance'],
+  lending: ['lending', 'billing', 'finance'],
+  logistics: ['cargotracker', 'clearos', 'tuma', 'fleet'],
+  legal: ['lexcore', 'billing', 'documents'],
+  privacy: ['ngao', 'compliance', 'documents'],
+};
+
 export async function onboardingRoutes(fastify: FastifyInstance) {
   /**
    * GET /v1/onboarding/industries
@@ -87,16 +193,23 @@ export async function onboardingRoutes(fastify: FastifyInstance) {
     const results = await Promise.all(industries.map(async (ind) => {
       const caps = await IndustryRegistryService.listAppCapabilities(ind.key);
       const coreApps = caps.filter(c => c.capability_key === 'core').map(c => c.app_id);
+      const effectiveCoreApps = coreApps.length > 0 ? coreApps : (DEFAULT_INDUSTRY_CORE_APPS[ind.key] ?? []);
       let recommendedPackageCode: string | null = null;
       const configuredCode = (ind as typeof ind & { default_package_code?: string | null }).default_package_code;
       if (configuredCode && SIGNUP_BASE_PLAN_CODES.includes(configuredCode)) {
         recommendedPackageCode = configuredCode;
+      } else if (['construction', 'insurance', 'lending'].includes(ind.key)) {
+        recommendedPackageCode = 'scale-tzs';
+      } else if (['retail', 'ecommerce', 'restaurant', 'professional_services', 'consulting'].includes(ind.key)) {
+        recommendedPackageCode = 'starter-tzs';
+      } else {
+        recommendedPackageCode = 'business-tzs';
       }
       return {
         key: ind.key,
         name: ind.name,
         description: ind.description,
-        core_apps: coreApps,
+        core_apps: effectiveCoreApps,
         recommended_package_code: recommendedPackageCode,
       };
     }));
@@ -194,8 +307,16 @@ export async function onboardingRoutes(fastify: FastifyInstance) {
       return reply.status(400).send({ error: 'Select an available base plan or standalone product.' });
     }
 
+    const ticket = resolveOndiSignupTicket(fastify, input.account);
+    if (!ticket.ok) return reply.status(ticket.status).send({ error: ticket.error });
+
     try {
-      const result = await OnboardingService.completeOnboarding(fastify, input);
+      const result = await OnboardingService.completeOnboarding(fastify, input as any, { passwordAlreadyHashed: ticket.passwordAlreadyHashed });
+      // Setup finished — any saved draft for this email is done serving its
+      // purpose. Best-effort: a failure here never blocks the response, the
+      // row just lingers until a later /draft/save or /draft/resume for a
+      // new, unrelated signup under the same email overwrites/misses it.
+      dbPlatform.deleteFrom('onboarding_drafts').where('email', '=', input.account.email).execute().catch(() => {});
       return reply.status(201).send(result);
     } catch (err) {
       if (err instanceof OnboardingError) {
@@ -204,6 +325,55 @@ export async function onboardingRoutes(fastify: FastifyInstance) {
       fastify.log.error(err);
       return reply.status(500).send({ error: 'Failed to complete onboarding' });
     }
+  });
+
+  /**
+   * POST /v1/onboarding/draft/save
+   * Public — requires a valid ondi_ticket (proves the caller really is the
+   * person who just verified with Ondi, not an arbitrary email). Upserts
+   * this signup's in-progress, non-sensitive setup state so closing the
+   * tab or the ticket simply expiring doesn't lose it — see migration 715.
+   */
+  fastify.post('/draft/save', async (request, reply) => {
+    const input: OnboardingDraftSaveInput = onboardingDraftSaveSchema.parse(request.body);
+    const verified = verifySignupTicket(fastify, input.ondi_ticket);
+    if ('error' in verified) return reply.status(401).send({ error: verified.error });
+    await dbPlatform.insertInto('onboarding_drafts')
+      .values({ email: verified.email, payload: JSON.stringify(input.draft) as any, step: input.step })
+      .onConflict(oc => oc.column('email').doUpdateSet({
+        payload: JSON.stringify(input.draft) as any,
+        step: input.step,
+        updated_at: new Date(),
+      }))
+      .execute();
+    return reply.status(204).send();
+  });
+
+  /**
+   * POST /v1/onboarding/draft/resume
+   * Public — same ticket-proves-identity shape as /draft/save. Called right
+   * after a fresh Ondi verification, before the wizard shows step 2, so an
+   * abandoned signup picks back up instead of starting over.
+   */
+  fastify.post('/check-company', { config: { rateLimit: { max: 30, timeWindow: '1 minute' } } }, async (request, reply) => {
+    const input = z.object({ ondi_ticket: z.string().max(8192).optional(), name: z.string().trim().min(2).max(200), country: z.string().max(100) }).parse(request.body);
+    // Email-first signup has no Ondi ticket yet. Like check-email and
+    // check-subdomain, this rate-limited endpoint exposes only availability.
+    if (input.ondi_ticket) {
+      const verified = verifySignupTicket(fastify, input.ondi_ticket);
+      if ('error' in verified) return reply.status(401).send({ error: verified.error });
+    }
+    return { available: await isCompanyEntityAvailable(input.name, input.country) };
+  });
+
+  fastify.post('/draft/resume', async (request, reply) => {
+    const { ondi_ticket } = onboardingDraftResumeSchema.parse(request.body);
+    const verified = verifySignupTicket(fastify, ondi_ticket);
+    if ('error' in verified) return reply.status(401).send({ error: verified.error });
+    const row = await dbPlatform.selectFrom('onboarding_drafts').selectAll().where('email', '=', verified.email).executeTakeFirst();
+    if (!row) return reply.status(404).send({ error: 'No saved setup found.' });
+    const res: OnboardingDraftResumeResponse = { step: row.step, draft: row.payload as OnboardingDraftPayload };
+    return res;
   });
 
   /** GET /v1/onboarding/payment-status — public. Tells the signup wizard
@@ -232,6 +402,8 @@ export async function onboardingRoutes(fastify: FastifyInstance) {
     if (input.package_code !== 'workspace-free' && !SIGNUP_BASE_PLAN_CODES.includes(input.package_code)) {
       return reply.status(400).send({ error: 'Select an available base plan or standalone product.' });
     }
+    const ticket = resolveOndiSignupTicket(fastify, input.account);
+    if (!ticket.ok) return reply.status(ticket.status).send({ error: ticket.error });
     try {
       const pkg = await dbPlatform.selectFrom('packages')
         .select(['annual_price', 'monthly_price', 'price_flat_monthly', 'price_flat_annual', 'currency'])
@@ -240,11 +412,21 @@ export async function onboardingRoutes(fastify: FastifyInstance) {
       const amount = signupPackageAmount(pkg, input.billing_cycle);
 
       if (amount === 0 || !PaymentGateway.isConfigured()) {
-        const result = await OnboardingService.completeOnboarding(fastify, input);
+        const result = await OnboardingService.completeOnboarding(fastify, input as any, { passwordAlreadyHashed: ticket.passwordAlreadyHashed });
         return reply.status(201).send(result);
       }
 
-      const hashedInput = { ...input, account: { ...input.account, password: hashPassword(input.account.password) } };
+      // Ondi-ticket signups never reach hosted checkout in practice today
+      // (full-SSO registration is wired up for the free/simulated path the
+      // wizard actually uses), but handle it correctly regardless: don't
+      // re-hash a password the ticket already hashed.
+      const hashedInput = {
+        ...input,
+        account: {
+          ...input.account,
+          password: ticket.passwordAlreadyHashed ? input.account.password! : hashPassword(input.account.password!),
+        },
+      };
       const row = await dbPlatform.insertInto('pending_signups').values({
         tx_ref: '', // filled in below once we know the row's id
         payload: JSON.stringify(hashedInput) as any,

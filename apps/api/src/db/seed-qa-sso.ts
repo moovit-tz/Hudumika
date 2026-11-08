@@ -19,7 +19,7 @@ import { dbPlatform } from './client.js';
 import { env } from '../config/env.js';
 
 // Must match Login.tsx's DEMO_ACCOUNTS exactly.
-const SUPER_ADMIN_EMAIL = 'viden@hudumika.tz';   // linked across ALL standalone apps
+const SUPER_ADMIN_EMAIL = 'viden@optin.co.tz';   // linked across ALL standalone apps
 const MANAGER_EMAIL = 'manager@msomi.co';        // linked in Tuma/LexCore/Stride; deliberately NOT linked in Gereji
 
 function assertLocalDestination() {

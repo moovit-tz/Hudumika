@@ -711,3 +711,279 @@
     min-width: 100%;
   }
 }
+
+
+/* ══════════════════════════════════════════════════════════════
+   Consignments & Receiving Modern Redesign Styles
+   ══════════════════════════════════════════════════════════════ */
+.seal-consign-container {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+/* Executive KPI Grid */
+.seal-kpi-modern-grid {
+  display: grid;
+  grid-template-columns: repeat(6, 1fr);
+  gap: 12px;
+}
+
+@media (max-width: 1280px) {
+  .seal-kpi-modern-grid {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
+@media (max-width: 680px) {
+  .seal-kpi-modern-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+.seal-kpi-tile {
+  background: var(--card-bg, #ffffff);
+  border: 1px solid var(--border);
+  border-radius: var(--r, 14px);
+  padding: 14px 16px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  cursor: pointer;
+  transition: all 0.16s ease;
+  position: relative;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+}
+
+.seal-kpi-tile:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.06);
+  border-color: color-mix(in srgb, var(--seal, var(--teal)) 40%, var(--border));
+}
+
+.seal-kpi-tile.active {
+  border-color: var(--seal, var(--teal));
+  background: color-mix(in srgb, var(--seal, var(--teal)) 7%, var(--card-bg, #ffffff));
+}
+
+.seal-kpi-tile-icon {
+  width: 40px;
+  height: 40px;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.seal-kpi-tile-info {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.seal-kpi-tile-num {
+  font-size: 20px;
+  font-weight: 800;
+  color: var(--ink);
+  line-height: 1.15;
+  font-variant-numeric: tabular-nums;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.seal-kpi-tile-label {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--ink3);
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  margin-top: 2px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Lifecycle Tabs Row */
+.seal-stage-tabs-wrap {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+/* Toolbar */
+.seal-toolbar-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+  padding: 12px 16px;
+  background: var(--card-bg, #ffffff);
+  border: 1px solid var(--border);
+  border-radius: var(--r, 12px);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.03);
+}
+
+.seal-toolbar-left {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex: 1;
+  min-width: 280px;
+}
+
+.seal-toolbar-right {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+/* Cards Grid */
+.seal-consign-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
+  gap: 16px;
+}
+
+.seal-consign-card {
+  background: var(--card-bg, #ffffff);
+  border: 1px solid var(--border);
+  border-radius: var(--r, 14px);
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.04);
+  padding: 18px 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  cursor: pointer;
+  transition: all 0.16s ease;
+  position: relative;
+}
+
+.seal-consign-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.08);
+  border-color: color-mix(in srgb, var(--seal, var(--teal)) 50%, var(--border));
+}
+
+.seal-consign-card-hdr {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.seal-consign-doc-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.seal-doc-type-pill {
+  font-size: 10.5px;
+  font-weight: 800;
+  padding: 2px 7px;
+  border-radius: 6px;
+  background: color-mix(in srgb, var(--seal, var(--teal)) 14%, var(--bg));
+  color: var(--seal, var(--teal));
+  letter-spacing: 0.03em;
+}
+
+.seal-doc-num-mono {
+  font-family: var(--font-mono, monospace);
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--ink);
+}
+
+.seal-consign-owner-row {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  padding: 8px 10px;
+  border-radius: 8px;
+  background: var(--bg);
+}
+
+.seal-consign-owner-name {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--ink);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.seal-consign-goods-desc {
+  font-size: 12.5px;
+  color: var(--ink2);
+  line-height: 1.45;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.seal-consign-meta-strip {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 10px;
+  padding-top: 10px;
+  border-top: 1px dashed var(--border);
+  font-size: 12px;
+}
+
+.seal-consign-meta-item {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.seal-consign-meta-label {
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  color: var(--ink3);
+  letter-spacing: 0.04em;
+}
+
+.seal-consign-meta-val {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--ink);
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.seal-consign-card-ftr {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding-top: 10px;
+  border-top: 1px solid var(--border);
+  font-size: 12px;
+  color: var(--seal, var(--teal));
+  font-weight: 600;
+}
+
+/* Status Pulse Dot */
+.seal-pulse-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: currentColor;
+  box-shadow: 0 0 0 0 currentColor;
+  animation: seal-pulse 1.8s infinite;
+  display: inline-block;
+}
+
+@keyframes seal-pulse {
+  0% { box-shadow: 0 0 0 0 color-mix(in srgb, currentColor 50%, transparent); }
+  70% { box-shadow: 0 0 0 6px transparent; }
+  100% { box-shadow: 0 0 0 0 transparent; }
+}

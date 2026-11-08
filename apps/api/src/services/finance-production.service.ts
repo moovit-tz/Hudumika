@@ -74,6 +74,34 @@ export async function progressProduction(tenantId: string, actorId: string, work
     }
     if (production.status !== 'released') throw new IndustryWorkError('Only released production can be completed.');
     if (!actualQuantity || !Number.isFinite(actualQuantity) || actualQuantity <= 0) throw new IndustryWorkError('Enter the actual positive output quantity.', 400);
+
+    // Manufacturing P0: completion used to be gated only on the order's
+    // own status, not on whether the stages/inspections attached to it had
+    // actually been resolved — a production with a stage still sitting
+    // in_progress, or a failed/held inspection nobody released, could be
+    // completed and receive real output into sellable stock anyway. Both
+    // gates below are read fresh under the forUpdate() lock already taken
+    // above, so a concurrent progressStage()/releaseQualityHold() can't
+    // race past this check.
+    const blockingStages = await trx.selectFrom('finance_production_stages').select(['stage_name', 'status'])
+      .where('tenant_id', '=', tenantId).where('production_id', '=', productionId)
+      .where('status', 'in', ['pending', 'in_progress']).orderBy('stage_order').execute();
+    if (blockingStages.length > 0) {
+      throw new IndustryWorkError(`Complete or skip every stage first — still ${blockingStages[0]!.status}: ${blockingStages[0]!.stage_name}.`, 409);
+    }
+    const blockingInspections = await trx.selectFrom('finance_quality_inspections').select(['id', 'status', 'hold_reason'])
+      .where('tenant_id', '=', tenantId).where('production_id', '=', productionId)
+      .where('status', 'in', ['pending', 'on_hold', 'failed']).execute();
+    if (blockingInspections.length > 0) {
+      const blocker = blockingInspections[0]!;
+      throw new IndustryWorkError(
+        blocker.status === 'pending'
+          ? 'A quality inspection on this production is still pending a result.'
+          : `This production has a quality hold that hasn't been released${blocker.hold_reason ? `: ${blocker.hold_reason}` : '.'}`,
+        409,
+      );
+    }
+
     const output = await trx.selectFrom('inventory_items').select('base_uom').where('tenant_id', '=', tenantId).where('id', '=', production.output_item_id).executeTakeFirstOrThrow();
     await InventoryService.recordMovement(trx, tenantId, { actorId, movementType: 'receipt', itemId: production.output_item_id, toLocationId: production.target_location_id,
       enteredQty: actualQuantity, enteredUom: output.base_uom, batchNo: production.output_batch, unitCost: (Number(production.material_cost) + Number(production.conversion_cost)) / actualQuantity, reference: work.reference, productionId, workId });

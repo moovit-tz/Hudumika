@@ -1,11 +1,17 @@
+import { useLocale } from '../../hooks/useLocale.js';
 import React, { useState, useEffect, useRef } from 'react';
 import { apiFetch } from '../../lib/api.js';
 import { Icon } from '../../components/Icon.js';
+import { Input } from '../../components/ui/input.js';
+import { Label } from '../../components/ui/label.js';
+import { Button } from '../../components/ui/button.js';
 import { slugify } from './types.js';
+import { WorkspaceSettings } from './StepConfiguration.js';
 import type { StepProps } from './types.js';
 import type { SubdomainCheckResponse } from '@hudumika/types';
 
 export const StepDomain: React.FC<StepProps> = ({ draft, update, onNext, onBack }) => {
+  const { t } = useLocale();
   const [status, setStatus] = useState<'idle' | 'checking' | 'available' | 'taken'>('idle');
   const [reason, setReason] = useState<string | undefined>();
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -21,6 +27,7 @@ export const StepDomain: React.FC<StepProps> = ({ draft, update, onNext, onBack 
   }, []);
 
   useEffect(() => {
+    let active = true;
     if (debounceRef.current) clearTimeout(debounceRef.current);
     const value = draft.subdomain;
     if (!value || value.length < 3) {
@@ -31,13 +38,14 @@ export const StepDomain: React.FC<StepProps> = ({ draft, update, onNext, onBack 
     debounceRef.current = setTimeout(async () => {
       try {
         const res: SubdomainCheckResponse = await apiFetch(`/v1/onboarding/check-subdomain?value=${encodeURIComponent(value)}`);
+        if (!active) return;
         setStatus(res.available ? 'available' : 'taken');
         setReason(res.reason);
       } catch {
-        setStatus('idle');
+        if (active) setStatus('idle');
       }
     }, 400);
-    return () => { if (debounceRef.current) clearTimeout(debounceRef.current); };
+    return () => { active = false; if (debounceRef.current) clearTimeout(debounceRef.current); };
   }, [draft.subdomain]);
 
   const handleSubmit = (ev: React.FormEvent) => {
@@ -47,11 +55,15 @@ export const StepDomain: React.FC<StepProps> = ({ draft, update, onNext, onBack 
   };
 
   return (
-    <form onSubmit={handleSubmit} noValidate className="login-form">
+    <form onSubmit={handleSubmit} noValidate className="login-form ob-workspace-form">
+      <div className="ob-step-intro">
+        <p>{t('onboarding.workspaceSummary')}</p>
+      </div>
       <div className="login-field">
-        <label className="reg-label">Choose your workspace address</label>
-        <div className="ob-domain-row">
-          <input
+        <Label htmlFor="workspace-address" className="reg-label">{t('onboarding.addressLabel')}</Label>
+        <div className="ob-domain-row" data-status={status}>
+          <Input
+            id="workspace-address"
             aria-describedby="workspace-domain-status"
             aria-invalid={status === 'taken'}
             type="text"
@@ -64,15 +76,16 @@ export const StepDomain: React.FC<StepProps> = ({ draft, update, onNext, onBack 
           <span className="ob-domain-suffix">.hudumika.tz</span>
         </div>
         <div id="workspace-domain-status" className="ob-domain-feedback" aria-live="polite">
-          {status === 'checking' && <span className="ob-field-status ob-field-status--checking">Checking availability…</span>}
-          {status === 'available' && <span className="ob-field-status ob-field-status--ok"><Icon name="checkCircle" size={14} /> {draft.subdomain}.hudumika.tz is available</span>}
-          {status === 'taken' && <span className="login-field-err"><Icon name="xCircle" size={14} /> {reason || 'This subdomain is already taken'}</span>}
+          {status === 'checking' && <span className="ob-field-status ob-field-status--checking">{t('onboarding.checking')}</span>}
+          {status === 'available' && <span className="ob-field-status ob-field-status--ok"><Icon name="checkCircle" size={14} /> {t('onboarding.addressAvailable')}</span>}
+          {status === 'taken' && <span className="login-field-err"><Icon name="xCircle" size={14} /> {reason || t('onboarding.addressTaken')}</span>}
         </div>
       </div>
 
+      <WorkspaceSettings draft={draft} update={update} />
       <div className="login-form-actions">
-        <button type="button" onClick={onBack} className="login-back-btn" data-ui-native-button="">Back</button>
-        <button type="submit" className="login-submit-btn" disabled={status !== 'available'} data-ui-native-button="">Continue</button>
+        <Button type="button" onClick={onBack} variant="ghost">{t('onboarding.back')}</Button>
+        <Button type="submit" disabled={status !== 'available'}>{t('onboarding.continue')}</Button>
       </div>
     </form>
   );

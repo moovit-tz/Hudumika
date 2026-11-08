@@ -69,7 +69,12 @@ export async function dividendRoutes(fastify: FastifyInstance) {
     }).parse(request.body ?? {});
 
     return withTenant(user.tenant_id, async (trx) => {
-      const dividend = await trx.selectFrom('dividends').selectAll().where('id', '=', id).where('tenant_id', '=', user.tenant_id).executeTakeFirst();
+      // forUpdate() — same transaction posts a real GL entry further down,
+      // so a second concurrent /pay for this same dividend must block
+      // here, not read a stale status and double-pay it. Same race class
+      // fixed across petti.service.ts/bills.routes.ts/customer-credits
+      // earlier this session.
+      const dividend = await trx.selectFrom('dividends').selectAll().where('id', '=', id).where('tenant_id', '=', user.tenant_id).forUpdate().executeTakeFirst();
       if (!dividend) return reply.status(404).send({ error: 'Dividend not found' });
       if (dividend.status === 'PAID') return reply.status(409).send({ error: 'This dividend has already been paid.' });
 
@@ -85,10 +90,16 @@ export async function dividendRoutes(fastify: FastifyInstance) {
         ],
       }, trx);
 
-      return trx.updateTable('dividends').set({
+      // Status guard repeated on the write (belt-and-braces alongside
+      // forUpdate()) plus the tenant_id filter the original write was
+      // missing entirely — a real cross-tenant gap, not just a race.
+      const paid = await trx.updateTable('dividends').set({
         status: 'PAID', paid_at: paid_at ? paid_at.slice(0, 10) : new Date().toISOString().slice(0, 10),
         paid_journal_entry_id: journalEntryId, reference: reference || null,
-      }).where('id', '=', id).returningAll().executeTakeFirstOrThrow();
+      }).where('id', '=', id).where('tenant_id', '=', user.tenant_id).where('status', '!=', 'PAID')
+        .returningAll().executeTakeFirst();
+      if (!paid) return reply.status(409).send({ error: 'This dividend has already been paid.' });
+      return paid;
     });
   });
 }
