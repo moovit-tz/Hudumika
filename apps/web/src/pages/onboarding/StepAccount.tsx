@@ -1,5 +1,6 @@
 import { useLocale } from '../../hooks/useLocale.js';
 import React, { useState } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
 import { Icon } from '../../components/Icon.js';
 import { OndiSignInPanel } from '../../components/OndiSignInPanel.js';
 import type { StepProps } from './types.js';
@@ -18,6 +19,7 @@ import type { FederatedSignupTicket } from '@hudumika/types';
 // Ondi from then on, same as any existing user who does.
 export const StepAccount: React.FC<StepProps> = ({ draft, update, onNext }) => {
   const { t } = useLocale();
+  const navigate = useNavigate();
   const [nameErr, setNameErr] = useState<string | undefined>(undefined);
   const [emailErr, setEmailErr] = useState<string | undefined>(undefined);
   const [mode, setMode] = useState<'ondi' | 'email'>('ondi');
@@ -56,7 +58,11 @@ export const StepAccount: React.FC<StepProps> = ({ draft, update, onNext }) => {
               <div className="ob-join-offer-title">{t('onboarding.verified')}</div>
               <div className="ob-join-offer-sub">
                 Signed in as <strong>{draft.email}</strong>.{' '}
-                <button type="button" onClick={useDifferentAccount} className="login-footer-link" style={{ padding: 0 }} data-ui-native-button="">
+                <button
+                  type="button"
+                  onClick={useDifferentAccount}
+                  className="ob-signin-link"
+                >
                   {t('onboarding.differentAccount')}
                 </button>
               </div>
@@ -108,6 +114,13 @@ export const StepAccount: React.FC<StepProps> = ({ draft, update, onNext }) => {
             <Icon name="mail" size={15} />
             <span>{t('onboarding.emailDetails')}</span>
           </button>
+
+          <p className="login-subtext ob-existing-account" style={{ marginTop: 18 }}>
+            <span>{t('onboarding.alreadyHaveAccount')}</span>
+            <Link to="/ondi/login" className="ob-signin-link">
+              {t('onboarding.signInInstead')}
+            </Link>
+          </p>
         </>
       ) : (
         <form onSubmit={handleContinue} noValidate className="login-form">
@@ -153,6 +166,13 @@ export const StepAccount: React.FC<StepProps> = ({ draft, update, onNext }) => {
               <span>{t('onboarding.backProviders')}</span>
             </button>
           </div>
+
+          <p className="login-subtext ob-existing-account" style={{ marginTop: 18 }}>
+            <span>{t('onboarding.alreadyHaveAccount')}</span>
+            <Link to="/ondi/login" className="ob-signin-link">
+              {t('onboarding.signInInstead')}
+            </Link>
+          </p>
         </form>
       )}
     </div>

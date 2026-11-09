@@ -12,10 +12,12 @@ import { InventoryService, InvalidMovement, UnknownUom } from '../services/inven
 import { GLService } from '../services/gl.service.js';
 import { emitDomainEventStandalone } from '../services/domain-events.service.js';
 import { getEffectiveSiteScope } from '../lib/org-rbac.js';
+import { redeemGiftCard, refundGiftCard } from '../services/gift-card.service.js';
+import { earnPointsForSale, reverseLoyaltyEarnForSale, redeemPointsForSale, refundRedeemedPoints } from '../services/loyalty.service.js';
 
 const POS_ROLES = ['SUPER_ADMIN', 'ADMIN', 'TENANT_ADMIN', 'MANAGER', 'FINANCE', 'SALES'] as const;
 const POS_MANAGER_ROLES = new Set(['SUPER_ADMIN', 'ADMIN', 'TENANT_ADMIN', 'MANAGER', 'FINANCE']);
-const paymentMethod = z.enum(['CASH', 'CARD', 'MOBILE_MONEY', 'BANK', 'OTHER']);
+const paymentMethod = z.enum(['CASH', 'CARD', 'MOBILE_MONEY', 'BANK', 'OTHER', 'GIFT_CARD', 'LOYALTY_POINTS']);
 const openShiftSchema = z.object({ opening_float: z.number().min(0).default(0), notes: z.string().max(1000).optional(), site_id: z.string().uuid().nullable().optional() });
 const closeShiftSchema = z.object({ closing_cash: z.number().min(0), notes: z.string().max(1000).optional() });
 const cashMovementSchema = z.object({ direction:z.enum(['IN','OUT']), amount:z.number().positive().max(1_000_000_000), reason:z.string().trim().min(3).max(500) });
@@ -71,12 +73,21 @@ const checkoutSchema = z.object({
     qty: z.number().positive().max(1_000_000),
     discount: z.number().min(0).default(0),
   })).min(1).max(200),
-  payments: z.array(z.object({ method: paymentMethod, amount: z.number().positive(), reference: z.string().max(160).optional() })).min(1).max(10),
+  payments: z.array(z.object({
+    method: paymentMethod, amount: z.number().positive(), reference: z.string().max(160).optional(),
+    gift_card_code: z.string().trim().min(4).max(40).optional(),
+    redeem_points: z.number().positive().optional(),
+  })
+    .refine(p => p.method !== 'GIFT_CARD' || !!p.gift_card_code, { message: 'gift_card_code is required for a GIFT_CARD payment.' })
+    .refine(p => p.method !== 'LOYALTY_POINTS' || !!p.redeem_points, { message: 'redeem_points is required for a LOYALTY_POINTS payment.' })
+  ).min(1).max(10),
+}).refine(body => !body.payments.some(p => p.method === 'LOYALTY_POINTS') || !!body.customer_id, {
+  message: 'A customer must be selected to pay with loyalty points.',
 });
 
 const money = (value: number) => Math.round((value + Number.EPSILON) * 100) / 100;
 const iso = (value: Date | string | null) => value == null ? null : new Date(value).toISOString();
-const tenderAccounts = { CASH:'1001', CARD:'1020', MOBILE_MONEY:'1021', BANK:'1010', OTHER:'1022' } as const;
+const tenderAccounts = { CASH:'1001', CARD:'1020', MOBILE_MONEY:'1021', BANK:'1010', OTHER:'1022', GIFT_CARD:'2160', LOYALTY_POINTS:'2170' } as const;
 
 interface PromotionRow {
   product_id: string | null; category: string | null;
@@ -139,6 +150,33 @@ async function postSaleJournal(tenantId:string, actorId:string, sale:{ id:string
 }
 
 /**
+ * Restores the full balance to every gift card a sale redeemed — used by
+ * the whole-sale refund and void paths, where GLService.voidEntry already
+ * symmetrically reverses the entire original journal entry (including the
+ * '2160' liability leg), so only the card's own app-level spendable-balance
+ * ledger needs updating here, not a second GL post.
+ */
+async function restoreGiftCardTenders(trx: Transaction<Database>, tenantId: string, saleId: string, actorId: string) {
+  const giftCardPayments = await trx.selectFrom('pos_payments').select(['amount', 'gift_card_id'])
+    .where('tenant_id', '=', tenantId).where('sale_id', '=', saleId).where('method', '=', 'GIFT_CARD').where('gift_card_id', 'is not', null).execute();
+  for (const p of giftCardPayments) {
+    await refundGiftCard(trx, tenantId, { giftCardId: p.gift_card_id!, amount: Number(p.amount), saleId, actorId });
+  }
+}
+
+/** Sibling of restoreGiftCardTenders, same reasoning — see that function's
+ *  own comment. `customerId` comes from the already-loaded sale row at
+ *  each call site, since pos_payments itself carries no customer_id. */
+async function restoreLoyaltyRedemption(trx: Transaction<Database>, tenantId: string, saleId: string, customerId: string | null, actorId: string) {
+  if (!customerId) return;
+  const loyaltyPayments = await trx.selectFrom('pos_payments').select('loyalty_points_redeemed')
+    .where('tenant_id', '=', tenantId).where('sale_id', '=', saleId).where('method', '=', 'LOYALTY_POINTS').where('loyalty_points_redeemed', 'is not', null).execute();
+  for (const p of loyaltyPayments) {
+    await refundRedeemedPoints(trx, tenantId, { customerId, points: Number(p.loyalty_points_redeemed), saleId, actorId });
+  }
+}
+
+/**
  * Item-level, partial-quantity return (S07 / Retail's own backlog item —
  * the prior refund path could only void an entire sale). Each requested
  * line is checked against what's *actually still returnable* — the
@@ -157,6 +195,7 @@ async function processItemLevelReturn(
   sale: { id: string; sale_number: string; grand_total: string | number; currency: string; inventory_location_id: string | null; customer_id: string | null },
   requested: { sale_line_id: string; qty: number; disposition: 'restock' | 'damaged' }[],
   reason: string,
+  restockLocationId: string | null,
 ) {
   const lineIds = requested.map(r => r.sale_line_id);
   const saleLines = await trx.selectFrom('pos_sale_lines').selectAll()
@@ -173,7 +212,7 @@ async function processItemLevelReturn(
     .groupBy('sale_line_id').execute();
   const returnedByLine = new Map(alreadyReturned.map(r => [r.sale_line_id, Number(r.qty)]));
 
-  const payments = await trx.selectFrom('pos_payments').select(['method', 'amount']).where('tenant_id', '=', tenantId).where('sale_id', '=', saleId).execute();
+  const payments = await trx.selectFrom('pos_payments').select(['method', 'amount', 'gift_card_id', 'loyalty_points_redeemed']).where('tenant_id', '=', tenantId).where('sale_id', '=', saleId).execute();
   const grandTotal = Number(sale.grand_total);
 
   let refundNetTotal = 0, refundTaxTotal = 0, refundTotal = 0;
@@ -231,13 +270,51 @@ async function processItemLevelReturn(
     ],
   }, trx);
 
+  // The GL side of a gift-card refund was just posted above (the credit
+  // line to '2160' in tenderRefunds) — this restores the actual card's own
+  // spendable balance, split across whichever specific gift_card_id(s)
+  // this sale drew from, proportioned to each one's own original amount
+  // (same "last absorbs the remainder" rounding convention as above).
+  const giftCardRefundTotal = tenderRefunds.get('GIFT_CARD') ?? 0;
+  if (giftCardRefundTotal > 0) {
+    const giftCardPayments = payments.filter(p => p.method === 'GIFT_CARD' && p.gift_card_id);
+    const giftCardOriginalTotal = giftCardPayments.reduce((s, p) => s + Number(p.amount), 0);
+    let allocated = 0;
+    for (let i = 0; i < giftCardPayments.length; i++) {
+      const p = giftCardPayments[i]!;
+      const isLast = i === giftCardPayments.length - 1;
+      const share = isLast ? money(giftCardRefundTotal - allocated) : money(giftCardRefundTotal * (Number(p.amount) / giftCardOriginalTotal));
+      allocated = money(allocated + share);
+      if (share > 0) await refundGiftCard(trx, tenantId, { giftCardId: p.gift_card_id!, amount: share, saleId, actorId });
+    }
+  }
+
+  // Restores the same fraction of any loyalty points REDEEMED on this
+  // sale — operates directly in points (the real ledger unit), applying
+  // the same per-event refundRatio to each payment row's own original
+  // points_redeemed, rather than round-tripping through currency and the
+  // program's (tenant-editable) current rate the way the gift-card block
+  // above has to.
+  if (sale.customer_id) {
+    const loyaltyPayments = payments.filter(p => p.method === 'LOYALTY_POINTS' && p.loyalty_points_redeemed != null);
+    for (const p of loyaltyPayments) {
+      const points = Math.floor(Number(p.loyalty_points_redeemed) * refundRatio);
+      if (points > 0) await refundRedeemedPoints(trx, tenantId, { customerId: sale.customer_id, points, saleId, actorId });
+    }
+  }
+
+  // Claws back the same fraction of any loyalty points this sale earned —
+  // see loyalty.service.ts's own comment on why multiple partial returns
+  // against one sale can drift by a point or two of rounding, accepted the
+  // same way "last absorbs the remainder" roundings are elsewhere here.
+  await reverseLoyaltyEarnForSale(trx, tenantId, saleId, actorId, refundRatio);
+
   let restockedAny = false;
   for (let i = 0; i < requested.length; i++) {
     const r = requested[i]!;
     const line = byId.get(r.sale_line_id)!;
     let movementId: string | null = null;
     if (r.disposition === 'restock') {
-      const restockLocationId = sale.inventory_location_id;
       if (restockLocationId) {
         const item = await trx.selectFrom('inventory_items').select(['id', 'base_uom'])
           .where('tenant_id', '=', tenantId).where('product_id', '=', line.product_id).where('active', '=', true).executeTakeFirst();
@@ -274,7 +351,7 @@ async function processItemLevelReturn(
     }).where('tenant_id', '=', tenantId).where('id', '=', saleId).where('status', '=', 'COMPLETED').execute();
   }
 
-  return { sale, reversalId, restockLocationId: null, itemLevel: true as const, refundTotal, fullyRefunded, restockedAny, lineResults };
+  return { sale, reversalId, restockLocationId, itemLevel: true as const, refundTotal, fullyRefunded, restockedAny, lineResults };
 }
 
 export async function posRoutes(fastify: FastifyInstance) {
@@ -912,7 +989,7 @@ export async function posRoutes(fastify: FastifyInstance) {
           if (!location) throw Object.assign(new Error('Inventory location does not belong to this workspace.'), { statusCode: 422 });
         }
 
-        const inventoryItems = await trx.selectFrom('inventory_items').select(['id', 'product_id', 'base_uom', 'avg_cost'])
+        const inventoryItems = await trx.selectFrom('inventory_items').select(['id', 'product_id', 'base_uom', 'avg_cost', 'is_batch_tracked'])
           .where('tenant_id', '=', user.tenant_id).where('product_id', 'in', productIds).where('active', '=', true).execute();
         const itemByProduct = new Map(inventoryItems.map(item => [item.product_id, item]));
         const categories = [...new Set(products.map(p => p.category).filter((c): c is string => c != null))];
@@ -975,10 +1052,55 @@ export async function posRoutes(fastify: FastifyInstance) {
         const roundedPayments = body.payments.map(payment => ({ ...payment, amount: money(payment.amount) }));
         const roundedSum = money(roundedPayments.reduce((sum, payment) => sum + payment.amount, 0));
         const remainder = money(amountPaid - roundedSum);
-        if (remainder !== 0) roundedPayments[roundedPayments.length - 1]!.amount = money(roundedPayments[roundedPayments.length - 1]!.amount + remainder);
-        await trx.insertInto('pos_payments').values(roundedPayments.map(payment => ({
+        if (remainder !== 0) {
+          // Prefer a real-money tender to absorb the rounding remainder —
+          // nudging a GIFT_CARD or LOYALTY_POINTS tender's amount would
+          // make it disagree with the exact code balance / points*rate
+          // value the customer is actually redeeming. Only when every
+          // tender on the sale is one of those (no real-money tender
+          // exists) does the last one absorb it regardless.
+          const absorberIndex = (() => {
+            for (let i = roundedPayments.length - 1; i >= 0; i--) {
+              if (roundedPayments[i]!.method !== 'GIFT_CARD' && roundedPayments[i]!.method !== 'LOYALTY_POINTS') return i;
+            }
+            return roundedPayments.length - 1;
+          })();
+          roundedPayments[absorberIndex]!.amount = money(roundedPayments[absorberIndex]!.amount + remainder);
+        }
+        // A GIFT_CARD tender draws down a real card's balance right here,
+        // inside this same transaction — a bad code, an expired card, or an
+        // insufficient balance throws and rolls back the whole sale, same
+        // as an inventory shortfall does below.
+        const giftCardIds: (string | null)[] = [];
+        for (const payment of roundedPayments) {
+          if (payment.method === 'GIFT_CARD') {
+            const redeemed = await redeemGiftCard(trx, user.tenant_id, { code: payment.gift_card_code!, amount: payment.amount, saleId: created.id, actorId: user.sub });
+            giftCardIds.push(redeemed.giftCardId);
+          } else if (payment.method === 'LOYALTY_POINTS') {
+            await redeemPointsForSale(trx, user.tenant_id, {
+              customerId: body.customer_id!, points: payment.redeem_points!, amount: payment.amount,
+              saleId: created.id, saleNumber, currency: body.currency.toUpperCase(), actorId: user.sub,
+            });
+            giftCardIds.push(null);
+          } else {
+            giftCardIds.push(null);
+          }
+        }
+        await trx.insertInto('pos_payments').values(roundedPayments.map((payment, i) => ({
           tenant_id: user.tenant_id, sale_id: created.id, method: payment.method, amount: payment.amount, reference: payment.reference?.trim() || null,
+          gift_card_id: giftCardIds[i], loyalty_points_redeemed: payment.method === 'LOYALTY_POINTS' ? String(payment.redeem_points) : null,
         }))).execute();
+
+        // Earn loyalty points on real money received only — excludes any
+        // GIFT_CARD/LOYALTY_POINTS-tendered portion, so a reward can't be
+        // used to mint itself a second one. Inside this same transaction:
+        // a program misconfiguration (an invalid rate) rolls back the
+        // whole sale.
+        const rewardTenderTotal = money(roundedPayments.filter(p => p.method === 'GIFT_CARD' || p.method === 'LOYALTY_POINTS').reduce((s, p) => s + p.amount, 0));
+        await earnPointsForSale(trx, user.tenant_id, {
+          customerId: body.customer_id ?? null, saleId: created.id, saleNumber,
+          netAmount: money(grandTotal - rewardTenderTotal), currency: body.currency.toUpperCase(), actorId: user.sub,
+        });
 
         if (body.inventory_location_id) {
           for (const line of lines) {
@@ -988,9 +1110,35 @@ export async function posRoutes(fastify: FastifyInstance) {
             const stock = await trx.selectFrom('inventory_stock_levels').select(sql<number>`COALESCE(SUM(qty_on_hand), 0)`.as('qty'))
               .where('tenant_id', '=', user.tenant_id).where('item_id', '=', item.id).where('location_id', '=', body.inventory_location_id).executeTakeFirst();
             if (Number(stock?.qty ?? 0) < line.qty) throw Object.assign(new Error(`Insufficient stock for ${line.product.name}.`), { statusCode: 422 });
+
+            // A batch/lot-tracked item requires InventoryService.recordMovement()
+            // to be told exactly which batch to decrement — it does not pick
+            // one itself. Previously this call never passed one at all, so
+            // selling a batch-tracked product through POS either threw ("a
+            // batch number is required") or — if the item happened not to be
+            // flagged batch-tracked despite carrying real expiry-dated batch
+            // rows — silently decremented whichever row the DB conflict
+            // target hit first, with no expiry check at all. FEFO-select the
+            // earliest-expiring batch with enough stock that hasn't already
+            // expired, same discipline pharmacy.service.ts's dispenseMedication()
+            // already proved out — refuse outright rather than quietly
+            // selling from an expired batch or an arbitrary one.
+            let batchNo: string | undefined;
+            if (item.is_batch_tracked) {
+              const todayIso = new Date().toISOString().slice(0, 10);
+              const batch = await trx.selectFrom('inventory_stock_levels').select(['batch_no', 'expiry_date', 'qty_on_hand'])
+                .where('tenant_id', '=', user.tenant_id).where('item_id', '=', item.id).where('location_id', '=', body.inventory_location_id)
+                .where('qty_on_hand', '>=', String(line.qty))
+                .where(eb => eb.or([eb('expiry_date', 'is', null), eb('expiry_date', '>=', todayIso)]))
+                .orderBy('expiry_date', 'asc')
+                .forUpdate().executeTakeFirst();
+              if (!batch) throw Object.assign(new Error(`No unexpired batch of ${line.product.name} has enough stock for this sale (insufficient quantity, or only expired batches remain).`), { statusCode: 422 });
+              batchNo = batch.batch_no;
+            }
+
             await InventoryService.recordMovement(trx, user.tenant_id, {
               actorId: user.sub, movementType: 'issue', itemId: item.id, fromLocationId: body.inventory_location_id,
-              enteredQty: line.qty, enteredUom: item.base_uom, reasonCode: 'POS_SALE', reference: saleNumber,
+              enteredQty: line.qty, enteredUom: item.base_uom, reasonCode: 'POS_SALE', reference: saleNumber, batchNo,
             });
           }
         }
@@ -1073,18 +1221,26 @@ export async function posRoutes(fastify: FastifyInstance) {
         if (sale.status !== 'COMPLETED') throw Object.assign(new Error('Only a completed sale can be refunded.'), { statusCode: 409 });
         if (!sale.journal_entry_id) throw Object.assign(new Error('This sale has no posted journal entry and cannot be refunded automatically.'), { statusCode: 409 });
 
-        if (body.lines) {
-          return await processItemLevelReturn(trx, user.tenant_id, user.sub, id, sale, body.lines, body.reason);
-        }
-
-        const lines = await trx.selectFrom('pos_sale_lines').select(['product_id', 'qty']).where('tenant_id', '=', user.tenant_id).where('sale_id', '=', id).execute();
+        // Same override convention on both paths: omit restock_location_id
+        // entirely to restock to the sale's own original location (the
+        // long-standing default), pass a location to restock elsewhere, or
+        // pass null explicitly to skip restocking altogether.
         const restockLocationId = body.restock_location_id === undefined ? sale.inventory_location_id : body.restock_location_id;
         if (restockLocationId) {
           const location = await trx.selectFrom('inventory_locations').select('id').where('tenant_id', '=', user.tenant_id).where('id', '=', restockLocationId).executeTakeFirst();
           if (!location) throw Object.assign(new Error('Restock location does not belong to this workspace.'), { statusCode: 422 });
         }
 
+        if (body.lines) {
+          return await processItemLevelReturn(trx, user.tenant_id, user.sub, id, sale, body.lines, body.reason, restockLocationId);
+        }
+
+        const lines = await trx.selectFrom('pos_sale_lines').select(['product_id', 'qty']).where('tenant_id', '=', user.tenant_id).where('sale_id', '=', id).execute();
+
         const reversalId = await GLService.voidEntry(user.tenant_id, sale.journal_entry_id!, user.sub, `POS refund: ${body.reason}`, trx);
+        await restoreGiftCardTenders(trx, user.tenant_id, id, user.sub);
+        await restoreLoyaltyRedemption(trx, user.tenant_id, id, sale.customer_id, user.sub);
+        await reverseLoyaltyEarnForSale(trx, user.tenant_id, id, user.sub, 1);
 
         if (restockLocationId) {
           const productIds = lines.map(line => line.product_id);
@@ -1154,6 +1310,9 @@ export async function posRoutes(fastify: FastifyInstance) {
         }
 
         const reversalId = await GLService.voidEntry(user.tenant_id, sale.journal_entry_id!, user.sub, `POS void: ${body.reason}`, trx);
+        await restoreGiftCardTenders(trx, user.tenant_id, id, user.sub);
+        await restoreLoyaltyRedemption(trx, user.tenant_id, id, sale.customer_id, user.sub);
+        await reverseLoyaltyEarnForSale(trx, user.tenant_id, id, user.sub, 1);
 
         if (restockLocationId) {
           const productIds = lines.map(line => line.product_id);

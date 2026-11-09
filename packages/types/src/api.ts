@@ -249,7 +249,12 @@ export type ServerEvent =
   // ws-broadcast.ts), but a channel's messages are membership-gated
   // (GET /v1/chat/channels/:id/messages 403s a non-member) — the content
   // itself only ever reaches a client through that check, never the socket.
-  | { type: 'chat.message_received'; channelId: string; authorId: string };
+  | { type: 'chat.message_received'; channelId: string; authorId: string }
+  // Sent instead of a replay when a client reconnects after missing more
+  // events than the server's in-memory buffer retained — tells consumers
+  // their cached view may be stale and they should refetch, rather than
+  // silently staying behind with no signal at all.
+  | { type: 'resync.required' };
 
 // ── Declaration List Query ───────────────────────────────────
 

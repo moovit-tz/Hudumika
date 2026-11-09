@@ -195,6 +195,8 @@
 .pos-dialog-field { display: grid; gap: 7px; font-size: 12px; font-weight: 600; }
 .pos-dialog-field + .pos-dialog-field { margin-top: 14px; }
 .pos-dialog-help { font-size: 12px; color: var(--ink3); line-height: 1.5; }
+.pos-gift-card-code { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-top: 12px; padding: 12px 14px; border: 1px solid var(--border); border-radius: var(--r); background: var(--surface2); }
+.pos-gift-card-code strong { font-size: 16px; letter-spacing: 0.04em; }
 
 /* ── Register history dialog ── */
 .pos-register-table { display: grid; border: 1px solid var(--border); border-radius: var(--r); overflow: hidden; }
@@ -905,4 +907,8 @@
  .pos-toolbar-brand { margin-right:auto; }
  .pos-toolbar-status { margin-right:0; }
  .pos-toolbar-actions [data-ui-button] { min-height:36px; height:36px; padding-inline:10px; }
+ .pos-tile-info { padding:8px 10px 4px; }
+ .pos-tile-bottom { padding:4px 10px 10px; gap:6px; }
+ .pos-tile-price { font-size:11.5px; letter-spacing:-0.025em; }
+ .pos-tile-add { width:26px; height:26px; }
 }

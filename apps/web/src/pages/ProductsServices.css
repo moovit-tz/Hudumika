@@ -22,24 +22,31 @@
   align-items: center;
   gap: 2px;
   padding: 3px;
-  border-radius: var(--r, 8px);
+  border-radius: var(--r-sm, 6px);
   background: var(--card-sunken, var(--bg));
-  border: 1px solid var(--border);
-  height: 32px;
+  border: 1px solid color-mix(in srgb, var(--border) 56%, var(--white) 44%);
+  height: var(--toolbar-control-h, var(--ctl-h, 36px));
   box-sizing: border-box;
+}
+[data-theme="dark"] .products-view-toggle {
+  border-color: color-mix(in srgb, var(--ink) 16%, var(--border) 84%);
 }
 .products-view-toggle button {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 26px;
-  height: 24px;
+  width: 30px;
+  height: calc(var(--toolbar-control-h, var(--ctl-h, 36px)) - 8px);
+  padding: 0;
   border: 0;
-  border-radius: calc(var(--r, 8px) - 2px);
+  border-radius: calc(var(--r-sm, 6px) - 2px);
   background: transparent;
   color: var(--ink3);
   cursor: pointer;
-  transition: all 120ms ease;
+  transition: all 140ms ease;
+}
+.products-view-toggle button svg {
+  flex-shrink: 0;
 }
 .products-view-toggle button:hover {
   color: var(--ink);

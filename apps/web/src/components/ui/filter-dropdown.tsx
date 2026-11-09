@@ -242,7 +242,10 @@ function InlineQuickFilter({ config }: { config: QuickFilterConfig }) {
           aria-expanded={open}
         >
           {config.icon}
-          <span>{config.label ? `${config.label}: ` : ''}{displayLabel}</span>
+          <span>
+            {config.label ? <span className="stb-dropdown-label">{config.label}: </span> : null}
+            <span className="stb-dropdown-val">{displayLabel}</span>
+          </span>
           <ChevronDown size={13} className="stb-chevron" />
         </button>
       </PopoverTrigger>

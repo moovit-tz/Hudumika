@@ -1,9 +1,12 @@
 import { FastifyPluginAsync } from 'fastify';
-import { randomUUID } from 'node:crypto';
 import { z } from 'zod';
 import { sql } from 'kysely';
 import { dbPlatform, withTenant } from '../db/client.js';
 import { requireRole } from '../middleware/rbac.js';
+import {
+  installApp, configureApp, activateApp, updateAppVersion, disableApp, uninstallApp,
+  listLifecycleHistory, submitAppVersion, reviewAppVersion, MarketplaceError,
+} from '../services/marketplace-lifecycle.service.js';
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
@@ -52,24 +55,91 @@ export const storeRoutes: FastifyPluginAsync = async (app) => {
   app.post('/installed', { preHandler: requireRole(...STORE_MGMT_ROLES) }, async (request, reply) => {
     const user = request.user;
     const { app_id } = z.object({ app_id: z.string() }).parse(request.body);
-    return withTenant(user.tenant_id, async (trx) => {
-      await trx.insertInto('store_installed_apps').values({
-        id: randomUUID(), tenant_id: user.tenant_id, app_id, installed_by: UUID_RE.test(user.sub) ? user.sub : null,
-      }).onConflict(oc => oc.columns(['tenant_id', 'app_id']).doNothing()).execute();
-      reply.status(204);
-      return null;
-    });
+    const result = await installApp(user.tenant_id, app_id, UUID_RE.test(user.sub) ? user.sub : null);
+    reply.status(201);
+    return result;
   });
 
-  // DELETE /v1/store/installed/:appId -> uninstall for this tenant
+  // POST /v1/store/installed/:appId/configure { config } -> set tenant-specific config
+  app.post('/installed/:appId/configure', { preHandler: requireRole(...STORE_MGMT_ROLES) }, async (request) => {
+    const user = request.user;
+    const { appId } = request.params as { appId: string };
+    const { config } = z.object({ config: z.record(z.string(), z.any()) }).parse(request.body);
+    return configureApp(user.tenant_id, appId, user.sub, config);
+  });
+
+  // POST /v1/store/installed/:appId/activate -> go live (requires required config, if any, to be set)
+  app.post('/installed/:appId/activate', { preHandler: requireRole(...STORE_MGMT_ROLES) }, async (request) => {
+    const user = request.user;
+    const { appId } = request.params as { appId: string };
+    return activateApp(user.tenant_id, appId, user.sub);
+  });
+
+  // POST /v1/store/installed/:appId/update -> move onto the app's current approved version
+  app.post('/installed/:appId/update', { preHandler: requireRole(...STORE_MGMT_ROLES) }, async (request) => {
+    const user = request.user;
+    const { appId } = request.params as { appId: string };
+    return updateAppVersion(user.tenant_id, appId, user.sub);
+  });
+
+  // POST /v1/store/installed/:appId/disable -> stop live access, reversible (also cuts webhook delivery)
+  app.post('/installed/:appId/disable', { preHandler: requireRole(...STORE_MGMT_ROLES) }, async (request) => {
+    const user = request.user;
+    const { appId } = request.params as { appId: string };
+    const { reason } = z.object({ reason: z.string().max(500).optional() }).parse(request.body ?? {});
+    return disableApp(user.tenant_id, appId, user.sub, reason);
+  });
+
+  // GET /v1/store/installed/:appId/history -> preserved lifecycle audit trail
+  app.get('/installed/:appId/history', { preHandler: requireRole(...STORE_MGMT_ROLES) }, async (request) => {
+    const user = request.user;
+    const { appId } = request.params as { appId: string };
+    return listLifecycleHistory(user.tenant_id, appId);
+  });
+
+  // DELETE /v1/store/installed/:appId -> uninstall for this tenant. Terminal:
+  // also revokes the separate Integrations webhook grant (tenant_marketplace_
+  // installs) — previously this route only touched store_installed_apps, so
+  // an "uninstalled" app with a live Integrations grant kept receiving
+  // webhooks regardless (see migration 726's own note).
   app.delete('/installed/:appId', { preHandler: requireRole(...STORE_MGMT_ROLES) }, async (request, reply) => {
     const user = request.user;
     const { appId } = request.params as { appId: string };
-    return withTenant(user.tenant_id, async (trx) => {
-      await trx.deleteFrom('store_installed_apps').where('tenant_id', '=', user.tenant_id).where('app_id', '=', appId).execute();
-      reply.status(204);
-      return null;
+    await uninstallApp(user.tenant_id, appId, user.sub);
+    reply.status(204);
+    return null;
+  });
+
+  // POST /v1/store/apps/:id/versions { version, manifest } -> submit a new manifest version for review
+  app.post('/apps/:id/versions', { preHandler: async (request: any, reply) => {
+    if (request.user.role === 'CUSTOMER') return reply.status(403).send({ error: 'Not available for this account type.' });
+  } }, async (request, reply) => {
+    const { id } = request.params as { id: string };
+    const schema = z.object({
+      version: z.string().trim().min(1).max(50),
+      manifest: z.object({
+        compatibility: z.object({ platform_min_version: z.string().optional() }).optional(),
+        dependencies: z.array(z.string()).optional(),
+        permissions: z.array(z.string()).optional(),
+        config_schema: z.object({ fields: z.array(z.object({ key: z.string(), label: z.string(), type: z.enum(['string', 'number', 'boolean']), required: z.boolean() })) }).optional(),
+        events_declared: z.array(z.string()).optional(),
+        api_scopes: z.array(z.string()).optional(),
+        financial_contract: z.object({ touches_money: z.boolean(), description: z.string().nullable().optional() }).optional(),
+        privacy_declaration: z.string().nullable().optional(),
+      }),
     });
+    const body = schema.parse(request.body);
+    const userId = request.user?.sub;
+    if (!userId || !UUID_RE.test(userId)) return reply.status(400).send({ error: 'A module version must be submitted by a signed-in user account.' });
+    reply.status(201);
+    return submitAppVersion(id, userId, body.version, body.manifest);
+  });
+
+  // PATCH /v1/store/admin/versions/:versionId { decision, reason? } -> review a submitted manifest version
+  app.patch('/admin/versions/:versionId', { preHandler: requireRole('SUPER_ADMIN') }, async (request) => {
+    const { versionId } = request.params as { versionId: string };
+    const { decision, reason } = z.object({ decision: z.enum(['approved', 'rejected']), reason: z.string().max(1000).optional() }).parse(request.body);
+    return reviewAppVersion(versionId, request.user.sub, decision, reason);
   });
 
   // GET /v1/store/admin/apps (Admin) -> returns all apps including pending.

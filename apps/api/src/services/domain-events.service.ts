@@ -183,16 +183,27 @@ export async function replayUndeliveredEvents(tenantId: string): Promise<number>
  * verify it came from us and was not replayed from another tenant.
  */
 async function dispatchToMarketplaceWebhooks(tenantId: string, event: DomainEvent): Promise<void> {
+  // Also requires an ACTIVE Store install (store_installed_apps), not just a
+  // non-revoked Integrations grant. Before this join, uninstalling an app
+  // from Store (DELETE /installed/:appId) never touched this table at all —
+  // an app a tenant believed was uninstalled could keep receiving live
+  // webhooks indefinitely as long as its separate Integrations grant was
+  // never explicitly revoked (migration 726 / marketplace-lifecycle.service.ts
+  // now revoke it together on uninstall/disable, but this join is the actual
+  // enforcement — belt and suspenders, since a future write path to either
+  // table must not silently reopen this gap).
   const rows = await withTenant(tenantId, trx =>
     sql<{ webhook_url: string; name: string; webhook_secret: string }>`
       SELECT a.webhook_url, a.name, i.webhook_secret
       FROM tenant_marketplace_installs i
       JOIN marketplace_apps a ON a.id = i.app_id
+      JOIN store_installed_apps si ON si.tenant_id = i.tenant_id AND si.app_id = i.app_id
       WHERE i.tenant_id = ${tenantId}
         AND i.revoked_at IS NULL
         AND i.events_enabled = true
         AND a.status = 'approved'
         AND a.webhook_url IS NOT NULL
+        AND si.status = 'active'
     `.execute(trx),
   );
 

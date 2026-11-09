@@ -1660,7 +1660,7 @@ export const ProductsServices: React.FC = () => {
       ]} />
 
       {/* Search & Filters */}
-      <SectionCard padded={false} className="mt-4">
+      <div className="products-toolbar-wrap mt-4">
         <SearchToolbar
             layout="register"
             search={search}
@@ -1715,7 +1715,7 @@ export const ProductsServices: React.FC = () => {
                     onClick={() => setViewMode('table')}
                     aria-label="Table view"
                   >
-                    <Icon name="list" size={13} />
+                    <Icon name="list" size={14} />
                   </button>
                 </Tip>
                 <Tip label="Card grid view">
@@ -1725,13 +1725,13 @@ export const ProductsServices: React.FC = () => {
                     onClick={() => setViewMode('grid')}
                     aria-label="Card grid view"
                   >
-                    <Icon name="layoutGrid" size={13} />
+                    <Icon name="layoutGrid" size={14} />
                   </button>
                 </Tip>
               </div>
             }
           />
-      </SectionCard>
+      </div>
 
       {/* Content Table or Grid */}
       <SectionCard padded={false} className="mt-3">

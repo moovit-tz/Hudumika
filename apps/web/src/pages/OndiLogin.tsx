@@ -100,9 +100,18 @@ export const OndiLogin: React.FC = () => {
   }, [isDark, isBgDark, pageBg, accent]);
 
   const appName = isWelcome ? 'Hudumika' : branding.getAppName('ondi', 'Ondi');
-  const logo = isWelcome
+  const [logoError, setLogoError] = useState(false);
+
+  const customLogo = isWelcome
     ? (isDark ? branding.logoDark || branding.logoLight || BRAND_LOGO_DARK : branding.logoLight || BRAND_LOGO_LIGHT)
-    : branding.getAppLogo('ondi') || (isDark ? '/ondi-logo-full-white.svg' : '/ondi-logo-full.svg');
+    : branding.getAppLogo('ondi');
+
+  const handleLogoError = () => {
+    if (!isWelcome) {
+      try { localStorage.removeItem('hudumika_app_logo_ts_ondi'); } catch {}
+    }
+    setLogoError(true);
+  };
 
   return (
     <div ref={rootRef} className="login-page ondi-login" data-theme={theme}>
@@ -124,11 +133,16 @@ export const OndiLogin: React.FC = () => {
       <div className="login-card">
         <div className="login-brand-hdr ondi-idle-header">
           <div className="login-brand-row" style={{ display: 'flex', justifyContent: 'center', marginBottom: 14 }}>
-            <img
-              src={logo}
-              alt={appName}
-              className="g-brand-logo-img"
-            />
+            {!isWelcome && (logoError || !customLogo) ? (
+              <OndiLogo size={52} variant={isDark ? 'white' : 'full'} />
+            ) : (
+              <img
+                src={(!logoError && customLogo) ? customLogo : (isDark ? BRAND_LOGO_DARK : BRAND_LOGO_LIGHT)}
+                alt={appName}
+                className="g-brand-logo-img"
+                onError={handleLogoError}
+              />
+            )}
           </div>
           <div className="login-header-left">
             <h1 className="login-headline">Welcome to {appName}</h1>

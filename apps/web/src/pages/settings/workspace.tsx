@@ -374,7 +374,7 @@ export const LocalizationSection: React.FC = () => {
   // honoured by nothing — the app formats through Intl, which derives those from
   // the locale itself. Fields that cannot change anything do not belong on a
   // settings screen.
-  const [f, set] = useSettingsFields('localization', { lang: language, tz: 'Africa/Dar_es_Salaam' });
+  const [f, set] = useSettingsFields('localization', { lang: language, tz: 'Africa/Dar_es_Salaam', businessDayCutoffHour: '0' });
   const { save } = useContext(SettingsCtx);
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
@@ -406,6 +406,14 @@ export const LocalizationSection: React.FC = () => {
             <SelectTrigger className="input-field"><SelectValue /></SelectTrigger>
             <SelectContent>
               {[['Africa/Dar_es_Salaam','Africa/Dar es Salaam (EAT +3)'],['Africa/Nairobi','Africa/Nairobi (EAT +3)'],['Africa/Kampala','Africa/Kampala (EAT +3)'],['Africa/Johannesburg','Africa/Johannesburg (SAST +2)'],['Africa/Lagos','Africa/Lagos (WAT +1)'],['Europe/London','Europe/London (GMT)'],['Europe/Paris','Europe/Paris (CET +1)'],['Asia/Dubai','Asia/Dubai (GST +4)'],['America/New_York','America/New York (EST -5)'],['UTC','UTC']].map(([v,l]) => <SelectItem key={v} value={v}>{l}</SelectItem>)}
+            </SelectContent>
+          </Select>
+        </Field>
+        <Field label="Business day cutoff" hint="For a shop, bar or restaurant that stays open past midnight — a sale before this hour still books under the PREVIOUS calendar day, so a late-night shift doesn't get split across two accounting days.">
+          <Select value={f.businessDayCutoffHour ?? '0'} onValueChange={v => set('businessDayCutoffHour', v)}>
+            <SelectTrigger className="input-field"><SelectValue /></SelectTrigger>
+            <SelectContent>
+              {[0,1,2,3,4,5,6].map(h => <SelectItem key={h} value={String(h)}>{h === 0 ? 'Midnight (no cutoff)' : `${h}:00 AM`}</SelectItem>)}
             </SelectContent>
           </Select>
         </Field>

@@ -12,14 +12,22 @@ export function useWebSocket(onEvent: (event: ServerEvent) => void) {
   useEffect(() => {
     let ws: WebSocket;
     let reconnectTimer: NodeJS.Timeout;
+    // Tracks the highest event sequence number seen so far (assigned by the
+    // server's per-tenant replay buffer, lib/ws-broadcast.ts) so a
+    // reconnect can ask the server to replay anything broadcast during the
+    // drop instead of silently missing it. `everConnected` distinguishes
+    // the very first connection (nothing to resume) from a reconnect.
+    let lastSeq = 0;
+    let everConnected = false;
 
     const connect = () => {
       ws = new WebSocket(BASE_URL.replace(/^http/, 'ws') + '/ws');
 
       ws.onmessage = (event) => {
         try {
-          const parsed = JSON.parse(event.data) as ServerEvent;
-          callbackRef.current(parsed);
+          const parsed = JSON.parse(event.data) as { seq?: number; event: ServerEvent };
+          if (typeof parsed.seq === 'number') lastSeq = Math.max(lastSeq, parsed.seq);
+          callbackRef.current(parsed.event);
         } catch (err) {
           console.error('Failed to parse WebSocket message:', err);
         }
@@ -27,6 +35,10 @@ export function useWebSocket(onEvent: (event: ServerEvent) => void) {
 
       ws.onopen = () => {
         console.log('🔌 Live WebSockets connection established');
+        if (everConnected) {
+          try { ws.send(JSON.stringify({ type: 'resume', lastSeq })); } catch { /* ignore */ }
+        }
+        everConnected = true;
       };
 
       ws.onclose = () => {

@@ -20,6 +20,7 @@ x-api-environment: &api-environment
   PUBLIC_APP_URL: https://${APP_DOMAIN}
   API_BASE_URL: https://${APP_DOMAIN}
   OPS_BOARD_URL: https://${APP_DOMAIN}/clearos/ops
+  GOOGLE_OAUTH_CLIENT_ID: ${GOOGLE_OAUTH_CLIENT_ID:-}
   CLAMAV_HOST: clamav
   CLOUD_REQUIRE_SCAN: 'true'
   SMTP_HOST: ${SMTP_HOST:?Configure real SMTP}

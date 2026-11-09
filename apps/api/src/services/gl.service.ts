@@ -54,6 +54,8 @@ const STANDARD_COA: { code: string; name: string; type: 'ASSET' | 'LIABILITY' | 
   // liability until applied to a future invoice. Backfilled to existing
   // tenants by migration 339.
   { code: '2150', name: 'Customer Credits Payable', type: 'LIABILITY', subtype: 'CURRENT_LIABILITY', normalBalance: 'CREDIT' },
+  { code: '2160', name: 'Gift Card Liability', type: 'LIABILITY', subtype: 'CURRENT_LIABILITY', normalBalance: 'CREDIT' },
+  { code: '2170', name: 'Loyalty Points Liability', type: 'LIABILITY', subtype: 'CURRENT_LIABILITY', normalBalance: 'CREDIT' },
   { code: '2200', name: 'VAT Output (Payable)', type: 'LIABILITY', subtype: 'CURRENT_LIABILITY', normalBalance: 'CREDIT' },
   { code: '2300', name: 'Withholding Tax Payable', type: 'LIABILITY', subtype: 'CURRENT_LIABILITY', normalBalance: 'CREDIT' },
   // Payroll's own liability accounts — kept separate from 2300 (WHT on
@@ -72,6 +74,12 @@ const STANDARD_COA: { code: string; name: string; type: 'ASSET' | 'LIABILITY' | 
   { code: '2500', name: 'Long-term Loans', type: 'LIABILITY', subtype: 'LONG_TERM_LIABILITY', normalBalance: 'CREDIT' },
   { code: '2700', name: 'Client Trust Funds Held', type: 'LIABILITY', subtype: 'CURRENT_LIABILITY', normalBalance: 'CREDIT' },
   { code: '2710', name: 'Agent Float Held', type: 'LIABILITY', subtype: 'CURRENT_LIABILITY', normalBalance: 'CREDIT' },
+  // Fintech wallets (M29) — money a customer holds in their platform wallet
+  // is owed BACK to them, so it is a liability, not the business's own cash
+  // (contrast Petti's per-wallet accounts, which are internal company
+  // float and sit on the asset side). Backfilled to existing tenants by
+  // migration 727.
+  { code: '2720', name: 'Customer Wallet Liability', type: 'LIABILITY', subtype: 'CURRENT_LIABILITY', normalBalance: 'CREDIT' },
   // Dividends (M6) — declared/paid as two distinct events. Backfilled to
   // existing tenants by migration 335.
   { code: '2600', name: 'Dividends Payable', type: 'LIABILITY', subtype: 'CURRENT_LIABILITY', normalBalance: 'CREDIT' },
@@ -82,6 +90,10 @@ const STANDARD_COA: { code: string; name: string; type: 'ASSET' | 'LIABILITY' | 
   { code: '4200', name: 'Port Handling Revenue', type: 'REVENUE', subtype: 'OPERATING_REVENUE', normalBalance: 'CREDIT' },
   { code: '4300', name: 'Transport Revenue', type: 'REVENUE', subtype: 'OPERATING_REVENUE', normalBalance: 'CREDIT' },
   { code: '4500', name: 'Other Revenue', type: 'REVENUE', subtype: 'OTHER_REVENUE', normalBalance: 'CREDIT' },
+  // Fintech wallets (M29) — fee income on wallet transactions (deposit/
+  // withdrawal/transfer fees), kept separate from 4500 so it's reportable
+  // on its own line. Backfilled to existing tenants by migration 727.
+  { code: '4600', name: 'Fintech Transaction Fee Income', type: 'REVENUE', subtype: 'OPERATING_REVENUE', normalBalance: 'CREDIT' },
   { code: '5000', name: 'Direct Purchase & Service Costs', type: 'EXPENSE', subtype: 'COST_OF_SERVICES', normalBalance: 'DEBIT' },
   { code: '5001', name: 'Freight Costs', type: 'EXPENSE', subtype: 'COST_OF_SERVICES', normalBalance: 'DEBIT' },
   { code: '5002', name: 'Transport Costs', type: 'EXPENSE', subtype: 'COST_OF_SERVICES', normalBalance: 'DEBIT' },
@@ -119,6 +131,7 @@ const STANDARD_COA: { code: string; name: string; type: 'ASSET' | 'LIABILITY' | 
   // more specific (e.g. "Miscellaneous"). Without it those expenses would have
   // no GL account to post to. Backfilled to existing tenants by migration 216.
   { code: '5900', name: 'Other Operating Expenses', type: 'EXPENSE', subtype: 'OPERATING_EXPENSE', normalBalance: 'DEBIT' },
+  { code: '5910', name: 'Loyalty Points Expense', type: 'EXPENSE', subtype: 'OPERATING_EXPENSE', normalBalance: 'DEBIT' },
   { code: '5950', name: 'Income Tax Expense', type: 'EXPENSE', subtype: 'TAX_EXPENSE', normalBalance: 'DEBIT' },
   { code: '5951', name: 'Deferred Tax Expense', type: 'EXPENSE', subtype: 'TAX_EXPENSE', normalBalance: 'DEBIT' },
 ];

@@ -32,28 +32,35 @@ const PASSKEY_LOGIN_ENABLED = false;
 // backend are all untouched; only this entry point is hidden.
 const MAGIC_LINK_LOGIN_ENABLED = false;
 // By direct request: the login picker was showing too many competing
-// options (phone pill, "more ways" reveal with authenticator/company-SSO/
-// Microsoft/Apple) and a user trying to sign in with Google ended up
-// clicking "Sign in with your company's SSO" by mistake, hitting a real
-// but unrelated "No company sign-on found" error. Login now offers exactly
-// one button — Google, the only provider actually configured — same
+// options (phone pill, "more ways" reveal with authenticator/Microsoft/
+// Apple) and a user trying to sign in with Google ended up clicking the
+// wrong secondary option by mistake. Login still offers exactly these two
+// primary buttons — Google and (below) company SSO — same
 // hide-the-entry-point-keep-the-flow pattern as PASSKEY_LOGIN_ENABLED/
-// MAGIC_LINK_LOGIN_ENABLED above: requestOtpLogin/verifyOtpLogin,
-// submitTotpCredentials/submitTotp, and checkCompanySso are all untouched,
-// just unreachable from the UI until one of these flips back to true.
+// MAGIC_LINK_LOGIN_ENABLED above: requestOtpLogin/verifyOtpLogin and
+// submitTotpCredentials/submitTotp are untouched, just unreachable from
+// the UI until one of these flips back to true.
 const PHONE_LOGIN_ENABLED = false;
 const TOTP_LOGIN_ENABLED = false;
-const COMPANY_SSO_LOGIN_ENABLED = false;
-// Same reasoning, login side only — signup already rendered Google only
-// implicitly via ONDI_SSO_MULTI_PROVIDER_SIGNUP below.
+// Company SSO is a real, first-class sign-in option, not a hidden/dead
+// flag: any tenant can configure its own SAML identity provider through
+// the guided setup wizard at Ondi ▸ SSO (OndiSSO.tsx →
+// POST/PATCH /v1/ondi/sso-providers), and /v1/ondi/auth/saml/lookup
+// resolves an entered email against every tenant that actually has an
+// enabled provider before redirecting anywhere. If no provider is configured,
+// the form explains how to enable it instead of pretending a redirect exists.
+const COMPANY_SSO_LOGIN_ENABLED = true;
+// Keep this list in sync with the buttons rendered in the sign-in chooser.
 const VISIBLE_METHODS = (Object.keys(METHOD_META) as Array<keyof typeof METHOD_META>)
   .filter(key => key !== 'passkey' || PASSKEY_LOGIN_ENABLED)
   .filter(key => key !== 'magic-link' || MAGIC_LINK_LOGIN_ENABLED)
   .filter(key => key !== 'totp' || TOTP_LOGIN_ENABLED)
   .filter(key => key !== 'company-sso' || COMPANY_SSO_LOGIN_ENABLED);
 // Phone is its own primary pill (the idle view's second CTA, alongside
-// Google), not one more icon in the secondary row below.
-const SECONDARY_METHODS = VISIBLE_METHODS.filter(key => key !== 'phone');
+// Google) and company-sso is its own primary button right next to Google
+// (below) — neither belongs a second time as one more icon in the
+// secondary "more ways to sign in" row.
+const SECONDARY_METHODS = VISIBLE_METHODS.filter(key => key !== 'phone' && key !== 'company-sso');
 // Microsoft/Apple handlers (handleMicrosoftCredential etc.) stay fully
 // wired below — only the buttons are hidden, both for login and signup —
 // so re-enabling multi-provider sign-in later is flipping this back on,
@@ -65,11 +72,14 @@ interface OndiSignInPanelProps {
    *  company-SSO methods — no Google, by explicit product decision (a
    *  separate federated option read as competing with "sign in with Ondi"
    *  rather than being part of it). 'signup': brand-new workspace creation
-   *  — ONLY Google/Microsoft/Apple render, because every other method here
-   *  (phone-OTP, magic-link, company-SSO) requires an existing tenant's own
-   *  SMS gateway/mail sender to verify through, which doesn't exist yet for
+   *  — only Google/Microsoft/Apple and company SSO render; phone-OTP/
+   *  magic-link/authenticator all require an existing tenant's own SMS
+   *  gateway/mail sender to verify through, which doesn't exist yet for
    *  someone who isn't registered. OAuth doesn't have that problem — the
-   *  provider does the verifying, Hudumika never sends anything. */
+   *  provider does the verifying, Hudumika never sends anything. Company
+   *  SSO doesn't either — it signs into an EXISTING workspace that already
+   *  has SAML configured (see StepAccount's own "already have an account"
+   *  link), never creates a new one, so it belongs here too. */
   intent?: 'login' | 'signup';
   /** signup intent only: fires when Google/Microsoft/Apple verified a real
    *  identity with no existing Hudumika account and no company to join —
@@ -156,12 +166,26 @@ export function OndiSignInPanel({ intent = 'login', onSignupTicket }: OndiSignIn
   // Login.tsx's own ?expired=.
   useEffect(() => {
     if (searchParams.get('samlError')) {
-      setMode('company-sso');
-      setError("Your company sign-on didn't complete. Try again, or check with your IT administrator.");
+      if (COMPANY_SSO_LOGIN_ENABLED) {
+        setMode('company-sso');
+        setError("Your company sign-on didn't complete. Try again, or check with your IT administrator.");
+      }
       setSearchParams(params => { params.delete('samlError'); return params; }, { replace: true });
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  // Vite Fast Refresh preserves component state across edits. If an admin
+  // disables Company SSO while this form is open, the stale mode must not
+  // leave users on a dead-end lookup screen that no longer has a provider.
+  useEffect(() => {
+    if (!COMPANY_SSO_LOGIN_ENABLED && mode === 'company-sso') {
+      setMode(null);
+      setError(null);
+      setInfo(null);
+      setSsoEmail('');
+    }
+  }, [mode]);
 
   const sendCode = async () => {
     if (!phone.trim()) { setError('Enter your phone number.'); return; }
@@ -240,7 +264,7 @@ export function OndiSignInPanel({ intent = 'login', onSignupTicket }: OndiSignIn
         // can't be driven through the SPA's own request layer.
         window.location.href = `${BASE_URL}/v1/ondi/auth/saml/${res.providerId}/login`;
       } else {
-        setError('No company sign-on found for that email. Check with your IT administrator, or use another sign-in method.');
+        setError(t('onboarding.companySsoNotConfigured'));
         setSsoChecking(false);
       }
     } catch (err: any) {
@@ -341,10 +365,14 @@ export function OndiSignInPanel({ intent = 'login', onSignupTicket }: OndiSignIn
         <>
           <div className="ondi-signin-choice" role="group" aria-label="Sign-in method">
             <GoogleSignInButton onCredential={handleGoogleCredential} onError={setError} variant="choice" />
-            <span className="ondi-signin-choice-or" aria-hidden="true">{t('onboarding.or')}</span>
-            <Button type="button" variant="ghost" size="sm" className="ondi-signin-choice-sso" aria-label="Sign in with company SSO" onClick={() => switchMode('company-sso')}>
-              <Icon name="building" size={18} /><span>{t('onboarding.companySso')}</span>
-            </Button>
+            {COMPANY_SSO_LOGIN_ENABLED && (
+              <>
+                <span className="ondi-signin-choice-or" aria-hidden="true">{t('onboarding.or')}</span>
+                <Button type="button" variant="ghost" size="sm" className="ondi-signin-choice-sso" aria-label="Sign in with company SSO" onClick={() => switchMode('company-sso')}>
+                  <Icon name="building" size={18} /><span>{t('onboarding.companySso')}</span>
+                </Button>
+              </>
+            )}
           </div>
           {!isSignup && PHONE_LOGIN_ENABLED && (
             <button type="button" onClick={() => switchMode('phone')} className="ondi-pill ondi-pill--phone" data-ui-native-button="">
@@ -583,7 +611,7 @@ export function OndiSignInPanel({ intent = 'login', onSignupTicket }: OndiSignIn
         )
       )}
 
-      {mode === 'company-sso' && (
+      {mode === 'company-sso' && COMPANY_SSO_LOGIN_ENABLED && (
         <form onSubmit={checkCompanySso} noValidate className="login-form">
           <div className="login-field">
             <label className="reg-label" style={{ marginBottom: 4, display: 'block' }}>

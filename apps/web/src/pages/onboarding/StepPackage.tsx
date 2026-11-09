@@ -3,6 +3,7 @@ import React, { useState, useEffect } from 'react';
 import { Icon } from '../../components/Icon.js';
 import { Button } from '../../components/ui/button.js';
 import { apiFetch } from '../../lib/api.js';
+import { convertAmount, refreshFxRates } from '../../lib/currency.js';
 import type { StepProps } from './types.js';
 import type { Package } from '@hudumika/types';
 
@@ -13,34 +14,17 @@ interface StandaloneProduct {
   pricing: { currency: string; price_flat_monthly: string | number | null; price_flat_annual: string | number | null } | null;
 }
 
-const CORE_APP_DISPLAY: Record<string, string> = {
-  gereji: 'Gereji',
-  seal: 'Seal',
-  ngao: 'Ngao',
-  projects: 'Projects',
-  pos: 'POS',
-  inventory: 'Inventory',
-  sales: 'Sales',
-  procurement: 'Procurement',
-  warehouse: 'Warehouse',
-  manufacturing: 'Manufacturing',
-  cargotracker: 'CargoTracker',
-  clearos: 'ClearOS',
-  tuma: 'Tuma',
-  fleet: 'Fleet',
-  hudufreight: 'HuduFreight',
-  lexcore: 'LexCore',
-  compliance: 'Compliance',
-  documents: 'Documents',
-  billing: 'Billing',
-  finance: 'Finance',
-  property: 'Property',
-  timesheet: 'Timesheets',
-  hospitality: 'Hospitality',
-  education: 'Education',
-  insurance: 'Insurance',
-  lending: 'Lending',
-};
+const PRICING_CURRENCIES = ['TZS', 'USD', 'KES', 'UGX'] as const;
+
+function formatConvertedPrice(amount: number, fromCurrency: string, targetCurrency: string): string {
+  const from = fromCurrency || 'TZS';
+  const to = targetCurrency || 'TZS';
+  const converted = Math.round(convertAmount(amount, from, to));
+  if (to === 'USD') {
+    return `$${converted.toLocaleString()}`;
+  }
+  return `${to} ${converted.toLocaleString()}`;
+}
 
 const PRODUCT_META: Record<string, { icon: 'shield' | 'lock' | 'truck' | 'globe' | 'shoppingCart' | 'layers'; category: string; bullets: string[] }> = {
   clearos: {
@@ -170,32 +154,20 @@ function storageLabel(pkg: Package): string {
   return `${gb} GB Cloud Vault`;
 }
 
-export const StepPackage: React.FC<StepProps> = ({ draft, update, onNext, onBack, packages, industries = [] }) => {
+export const StepPackage: React.FC<StepProps> = ({ draft, update, onNext, onBack, packages }) => {
   const { t } = useLocale();
   const [err, setErr] = useState<string | null>(null);
   const [showMatrix, setShowMatrix] = useState(false);
-
-  // Selected industries summary for tailor-made recommendations
-  const selectedIndKeys = Array.isArray(draft.industries) && draft.industries.length
-    ? draft.industries
-    : draft.industry ? [draft.industry] : [];
-
-  const selectedIndList = selectedIndKeys
-    .map(k => industries.find(item => item.key === k))
-    .filter(Boolean);
-
-  const configuredIndustriesText = selectedIndList.length > 0
-    ? selectedIndList.map(i => i?.name).join(', ')
-    : '';
-
-  const tailorApps = selectedIndList.length > 0
-    ? Array.from(new Set(selectedIndList.flatMap(i => i?.core_apps || [])))
-    : [];
+  const activeCurrency = draft.currency || 'TZS';
+  const currencyOptions = PRICING_CURRENCIES.includes(activeCurrency as any)
+    ? [...PRICING_CURRENCIES]
+    : [...PRICING_CURRENCIES, activeCurrency];
 
   const [mode, setMode] = useState<'plan' | 'product'>(draft.initial_products.length ? 'product' : 'plan');
   const [products, setProducts] = useState<StandaloneProduct[] | null>(null);
 
   useEffect(() => {
+    void refreshFxRates();
     apiFetch('/v1/onboarding/products').then(res => setProducts(res.data)).catch(() => setProducts([]));
   }, []);
 
@@ -248,17 +220,13 @@ export const StepPackage: React.FC<StepProps> = ({ draft, update, onNext, onBack
 
   return (
     <form onSubmit={handleSubmit} noValidate className="login-form ob-package-form">
-      {/* Header Section */}
+      {/* Simplified Header & Controls */}
       <div className="ob-pricing-top">
-        <span className="ob-pricing-kicker">{t('onboarding.pricingKicker')}</span>
         <h2 className="ob-pricing-headline">{t('onboarding.choosePlan')}</h2>
-        <p className="ob-pricing-subhead">
-          All workspace plans include custom domain support, collaborative business tools, and enterprise sovereign identity.
-        </p>
 
         <div className="ob-package-controls">
           {/* Billing Cycle Toggle */}
-          <div className="ob-billing-toggle" data-ds-tabs-exempt="">
+          <div className="ob-billing-toggle" data-ds-tabs-exempt="" role="group" aria-label="Billing cycle">
             <button
               type="button"
               className={`ob-billing-opt${draft.billing_cycle === 'monthly' ? ' ob-billing-opt--active' : ''}`}
@@ -276,12 +244,12 @@ export const StepPackage: React.FC<StepProps> = ({ draft, update, onNext, onBack
               data-ui-native-button=""
             >
               <span>{t('onboarding.annual')}</span>
-              <span className="ob-save-badge">Save ~17%</span>
+              <span className="ob-save-badge">-17%</span>
             </button>
           </div>
 
           {/* Standalone Product vs Full Plan Switcher */}
-          <div className="ob-billing-toggle" data-ds-tabs-exempt="">
+          <div className="ob-billing-toggle" data-ds-tabs-exempt="" role="group" aria-label="Plan scope">
             <button
               type="button"
               className={`ob-billing-opt${mode === 'plan' ? ' ob-billing-opt--active' : ''}`}
@@ -301,31 +269,22 @@ export const StepPackage: React.FC<StepProps> = ({ draft, update, onNext, onBack
               {t('onboarding.oneProduct')}
             </button>
           </div>
-        </div>
-      </div>
 
-      {/* Tailor-made Recommendation Banner */}
-      <div className="ob-tailor-package-banner">
-        <div className="ob-tailor-package-header">
-          <Icon name="sparkle" size={16} className="ob-tailor-sparkle shrink-0" />
-          <div className="ob-tailor-text-wrap">
-            <strong className="ob-tailor-company-title">
-              Tailor-made for {draft.companyName || 'Aleka Holdings Ltd'}
-            </strong>
-            <div className="ob-tailor-package-subtitle">
-              Configured for {configuredIndustriesText || 'Automotive & Workshop, Food & Beverage, Printing, Warehousing'}
-            </div>
+          {/* Currency Switcher */}
+          <div className="ob-billing-toggle ob-currency-toggle" data-ds-tabs-exempt="" role="group" aria-label="Currency">
+            {currencyOptions.map(code => (
+              <button
+                key={code}
+                type="button"
+                className={`ob-billing-opt ob-currency-opt${activeCurrency === code ? ' ob-billing-opt--active' : ''}`}
+                onClick={() => update({ currency: code })}
+                aria-pressed={activeCurrency === code}
+                data-ui-native-button=""
+              >
+                {code}
+              </button>
+            ))}
           </div>
-        </div>
-        <div className="ob-tailor-package-apps">
-          {(tailorApps.length ? tailorApps : ['gereji', 'seal', 'ngao', 'projects']).map(app => (
-            <span key={app} className="ob-tailor-app-tag">
-              <span className="ob-app-check">
-                <Icon name="check" size={12} />
-              </span>
-              <span>{CORE_APP_DISPLAY[app] || app.charAt(0).toUpperCase() + app.slice(1)}</span>
-            </span>
-          ))}
         </div>
       </div>
 
@@ -334,11 +293,6 @@ export const StepPackage: React.FC<StepProps> = ({ draft, update, onNext, onBack
       {mode === 'product' ? (
         /* Standalone Products View */
         <div className="ob-product-view-wrap">
-          <div className="ob-product-intro">
-            <h3>Individual Standalone Apps</h3>
-            <p>Pick only the specific software modules your team needs today. You can add more apps anytime in Workspace Settings.</p>
-          </div>
-
           <div className="ob-product-grid">
             {products === null && <div className="ob-loading">Loading products...</div>}
             {products?.length === 0 && <div className="ob-loading">No standalone products are available right now.</div>}
@@ -350,7 +304,7 @@ export const StepPackage: React.FC<StepProps> = ({ draft, update, onNext, onBack
                 : p.pricing?.price_flat_monthly != null
                   ? Number(p.pricing.price_flat_monthly)
                   : null;
-              const curr = p.pricing?.currency === 'TZS' ? 'TZS ' : '$';
+              const srcCurr = p.pricing?.currency || 'TZS';
               const meta = PRODUCT_META[p.product_key] || {
                 icon: 'layers',
                 category: 'Business Module',
@@ -376,12 +330,12 @@ export const StepPackage: React.FC<StepProps> = ({ draft, update, onNext, onBack
 
                     <div className="ob-product-price-row">
                       <div className="ob-product-price">
-                        {monthly != null ? `${curr}${monthly.toLocaleString()}` : 'Custom'}
+                        {monthly != null ? formatConvertedPrice(monthly, srcCurr, activeCurrency) : 'Custom'}
                         {monthly != null && <span className="ob-product-price-unit">/mo</span>}
                       </div>
                       {isAnnual && p.pricing?.price_flat_annual && (
                         <span className="ob-product-annual-note">
-                          Billed {curr}{Number(p.pricing.price_flat_annual).toLocaleString()}/yr
+                          Billed {formatConvertedPrice(Number(p.pricing.price_flat_annual), srcCurr, activeCurrency)}/yr
                         </span>
                       )}
                     </div>
@@ -437,8 +391,7 @@ export const StepPackage: React.FC<StepProps> = ({ draft, update, onNext, onBack
             {packages.map((pkg) => {
               const isCustom = pkg.code === 'enterprise';
               const isFlat = pkg.price_flat_monthly != null || pkg.price_flat_annual != null;
-              const curr = pkg.currency === 'TZS' ? 'TZS' : '$';
-              const sep = pkg.currency === 'TZS' ? ' ' : '';
+              const srcCurr = pkg.currency || 'TZS';
 
               let displayPrice: string;
               let priceUnit: string;
@@ -458,18 +411,18 @@ export const StepPackage: React.FC<StepProps> = ({ draft, update, onNext, onBack
                 const monthly = draft.billing_cycle === 'annual'
                   ? Math.round((pkg.price_flat_annual ?? (pkg.price_flat_monthly ?? 0) * 12) / 12)
                   : pkg.price_flat_monthly ?? 0;
-                displayPrice = `${curr}${sep}${monthly.toLocaleString()}`;
+                displayPrice = formatConvertedPrice(monthly, srcCurr, activeCurrency);
                 priceUnit = '/mo';
                 if (draft.billing_cycle === 'annual') {
                   const annual = pkg.price_flat_annual ?? (pkg.price_flat_monthly ?? 0) * 12;
-                  annualNote = `Billed ${curr}${sep}${annual.toLocaleString()}/yr`;
+                  annualNote = `Billed ${formatConvertedPrice(annual, srcCurr, activeCurrency)}/yr`;
                 }
               } else {
                 const seatPrice = draft.billing_cycle === 'annual' ? Math.round(pkg.annual_price / 12) : pkg.monthly_price;
-                displayPrice = `${curr}${sep}${seatPrice.toLocaleString()}`;
+                displayPrice = formatConvertedPrice(seatPrice, srcCurr, activeCurrency);
                 priceUnit = '/user/mo';
                 if (draft.billing_cycle === 'annual') {
-                  annualNote = `Billed annually (${curr}${sep}${pkg.annual_price.toLocaleString()}/seat/yr)`;
+                  annualNote = `Billed annually (${formatConvertedPrice(pkg.annual_price, srcCurr, activeCurrency)}/seat/yr)`;
                 }
               }
 
@@ -489,14 +442,7 @@ export const StepPackage: React.FC<StepProps> = ({ draft, update, onNext, onBack
                   onClick={() => update({ package_code: pkg.code })}
                   className={`ob-pkg-card${isPro ? ' ob-pkg-card--pro' : ''}${selected ? ' ob-pkg-card--selected' : ''}`}
                 >
-                  {/* Pro Card Sparkle Icon */}
-                  {isPro && (
-                    <div className="ob-sparkle-topright">
-                      <Icon name="sparkle" size={20} />
-                    </div>
-                  )}
-
-                  {/* Sticky Card Top Header & Subscription Action (Google Workspace style) */}
+                  {/* Sticky Card Top Header & Subscription Action */}
                   <div className="ob-pkg-card-sticky-top">
                     {/* Title & Badge */}
                     <div className="ob-pkg-header-row">
@@ -548,7 +494,6 @@ export const StepPackage: React.FC<StepProps> = ({ draft, update, onNext, onBack
                           <Icon name="check" size={11} />
                         </span>
                         <span>{pkg.max_users === 0 ? 'Unlimited users' : `${pkg.included_seats || pkg.max_users} users included`}</span>
-                        {isPro && <span className="ob-boosted-pill"><Icon name="trendingUp" size={12} />Boosted</span>}
                       </li>
                       <li className="ob-pkg-feature-item">
                         <span className="ob-pkg-feature-icon">
@@ -573,7 +518,6 @@ export const StepPackage: React.FC<StepProps> = ({ draft, update, onNext, onBack
                           <Icon name="check" size={11} />
                         </span>
                         <span>{pkg.monthly_item_limit ? `${pkg.monthly_item_limit.toLocaleString()} shipments / month` : isScale ? '2,000 shipments / month' : isPro ? '500 shipments / month' : '100 shipments / month'}</span>
-                        {isPro && <span className="ob-boosted-pill"><Icon name="trendingUp" size={12} />Boosted</span>}
                       </li>
                       <li className="ob-pkg-feature-item">
                         <span className="ob-pkg-feature-icon">
@@ -587,7 +531,6 @@ export const StepPackage: React.FC<StepProps> = ({ draft, update, onNext, onBack
                             <Icon name="check" size={11} />
                           </span>
                           <span>Demurrage Risk Radar</span>
-                          {isPro && <span className="ob-boosted-pill"><Icon name="trendingUp" size={12} />Boosted</span>}
                         </li>
                       )}
                     </ul>
@@ -665,7 +608,7 @@ export const StepPackage: React.FC<StepProps> = ({ draft, update, onNext, onBack
                               {isPro && <span className="ob-badge-popular-green">{t('onboarding.popular')}</span>}
                             </div>
                             <div className="ob-th-price">
-                              TZS {monthly.toLocaleString()} <span className="ob-th-price-unit">/mo</span>
+                              {formatConvertedPrice(monthly, pkg?.currency || 'TZS', activeCurrency)} <span className="ob-th-price-unit">/mo</span>
                             </div>
                             <button
                               type="button"

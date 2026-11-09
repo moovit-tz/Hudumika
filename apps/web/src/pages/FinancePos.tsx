@@ -33,13 +33,13 @@ interface Customer { id:string; name:string; email:string|null }
 interface Location { id:string; code:string; name:string; warehouse_name:string }
 interface Bootstrap { products:Product[]; customers:Customer[]; locations:Location[]; shift:PosShift|null }
 interface CartLine extends Product { qty:number; discount:number; discountMode:'amount'|'pct' }
-interface PaymentDraft { id:string; method:PosPaymentMethod; amount:string; reference:string }
+interface PaymentDraft { id:string; method:PosPaymentMethod; amount:string; reference:string; giftCardCode:string }
 interface SalesResponse { items:PosSale[]; total:number; page:number; page_size:number }
 interface PosUsage { used:number; limit:number|null; period:string }
 
 const METHODS: { value: PosPaymentMethod; label: string }[] = [
   { value:'CASH', label:'Cash' }, { value:'CARD', label:'Card' }, { value:'MOBILE_MONEY', label:'Mobile money' },
-  { value:'BANK', label:'Bank transfer' }, { value:'OTHER', label:'Other' },
+  { value:'BANK', label:'Bank transfer' }, { value:'GIFT_CARD', label:'Gift card' }, { value:'OTHER', label:'Other' },
 ];
 
 const CATEGORY_ICONS: Record<string, IconName> = {
@@ -90,7 +90,7 @@ export function FinancePos() {
   const [customerId, setCustomerId] = useState('');
   const [locationId, setLocationId] = useState('');
   const [saleNotes, setSaleNotes] = useState('');
-  const [payments, setPayments] = useState<PaymentDraft[]>([{ id:'primary', method:'CASH', amount:'', reference:'' }]);
+  const [payments, setPayments] = useState<PaymentDraft[]>([{ id:'primary', method:'CASH', amount:'', reference:'', giftCardCode:'' }]);
   const [openingFloat, setOpeningFloat] = useState('0');
   const [closingCash, setClosingCash] = useState('');
   const [shiftDialog, setShiftDialog] = useState<'open'|'close'|null>(null);
@@ -122,6 +122,10 @@ export function FinancePos() {
   const [cashDirection, setCashDirection] = useState<PosCashMovementDirection>('IN');
   const [cashAmount, setCashAmount] = useState('');
   const [cashReason, setCashReason] = useState('');
+  const [giftCardIssueOpen, setGiftCardIssueOpen] = useState(false);
+  const [giftCardAmount, setGiftCardAmount] = useState('');
+  const [giftCardMethod, setGiftCardMethod] = useState<PosPaymentMethod>('CASH');
+  const [giftCardIssuedCode, setGiftCardIssuedCode] = useState<string|null>(null);
   const [receiptSearch, setReceiptSearch] = useState('');
   const [receiptStatus, setReceiptStatus] = useState('ALL');
   const [receiptPage, setReceiptPage] = useState(1);
@@ -262,7 +266,7 @@ export function FinancePos() {
   function updatePayment(id:string, patch:Partial<PaymentDraft>) {
     setPayments(prev => prev.map(p => p.id === id ? { ...p, ...patch } : p));
   }
-  function addPayment() { setPayments(prev => [...prev, { id:`payment-${Date.now()}`, method:'CARD', amount:'', reference:'' }]); }
+  function addPayment() { setPayments(prev => [...prev, { id:`payment-${Date.now()}`, method:'CARD', amount:'', reference:'', giftCardCode:'' }]); }
   function removePayment(id:string) { setPayments(prev => prev.length === 1 ? prev : prev.filter(p => p.id !== id)); }
 
   function handleCatalogueKey(event:React.KeyboardEvent<HTMLInputElement>) {
@@ -332,6 +336,16 @@ export function FinancePos() {
     } catch (e:any) { showAlert(e.message); } finally { setSaving(false); }
   }
 
+  async function issueGiftCard() {
+    if (Number(giftCardAmount) <= 0 || giftCardMethod === 'GIFT_CARD') return;
+    setSaving(true);
+    try {
+      const card = await apiFetch('/v1/gift-cards', { method:'POST', body:JSON.stringify({ initial_value:Number(giftCardAmount), method:giftCardMethod }) }) as { code:string };
+      setGiftCardIssuedCode(card.code); setGiftCardAmount('');
+      showAlert('Gift card issued.', { variant:'success' });
+    } catch (e:any) { showAlert(e.message); } finally { setSaving(false); }
+  }
+
   async function printSale(sale:PosSale) {
     try {
       if(!user)throw new Error('Sign in before printing.');
@@ -345,6 +359,8 @@ export function FinancePos() {
     if (!data?.shift || !cart.length) return;
     if (paymentBalance > 0.01) { showAlert(`Payment is short by ${cash(paymentBalance, currency)}.`); return; }
     if (invalidChange) { showAlert('Change can only be issued from the cash portion of the payment.'); return; }
+    const missingGiftCardCode = payments.some(p => p.method === 'GIFT_CARD' && !p.giftCardCode.trim());
+    if (missingGiftCardCode) { showAlert('Enter the gift card code for the gift card payment.'); return; }
     setSaving(true);
     try {
       const sale = await apiFetch('/v1/finance/pos/sales', { method:'POST', body:JSON.stringify({
@@ -353,7 +369,10 @@ export function FinancePos() {
         currency,
         notes: saleNotes.trim() || null,
         items: cart.map(l => ({ product_id:l.id, qty:l.qty, discount:l.discount })),
-        payments: payments.map(p => ({ method:p.method, amount:Number(p.amount), reference:p.reference || undefined })),
+        payments: payments.map(p => ({
+          method:p.method, amount:Number(p.amount), reference:p.reference || undefined,
+          gift_card_code: p.method === 'GIFT_CARD' ? p.giftCardCode.trim() : undefined,
+        })),
       }) }) as PosSale;
       const full = await apiFetch(`/v1/finance/pos/sales/${sale.id}`) as PosSale;
       setUsage(cur => cur ? { ...cur, used:cur.used + 1 } : cur);
@@ -361,7 +380,7 @@ export function FinancePos() {
       const printSettings = loadPosPrintSettings(posPrintKey(user?.tenant_id, user?.id));
       if (printSettings.autoPrint) void printSale(full);
       clearCart();
-      setPayments([{ id:'primary', method:'CASH', amount:'', reference:'' }]);
+      setPayments([{ id:'primary', method:'CASH', amount:'', reference:'', giftCardCode:'' }]);
       await Promise.all([load(), loadSales()]);
       if (full.status === 'POSTING_FAILED') showAlert('The sale was saved, but accounting posting failed. A manager can retry it from the receipt.', { variant:'warning' });
     } catch (e:any) { showAlert(e.message); } finally { setSaving(false); }
@@ -469,6 +488,7 @@ export function FinancePos() {
               {!readOnly && <>
                 {holds.length > 0 && <DropdownMenuItem onSelect={() => setHoldDialog('list')}><Icon name="pause" size={15}/>Held carts ({holds.length})</DropdownMenuItem>}
                 {sel.shift && <DropdownMenuItem onSelect={() => setCashMovementOpen(true)}><Icon name="coins" size={15}/>Cash movement</DropdownMenuItem>}
+                {sel.shift && <DropdownMenuItem onSelect={() => { setGiftCardIssuedCode(null); setGiftCardIssueOpen(true); }}><Icon name="package" size={15}/>Issue gift card</DropdownMenuItem>}
                 <DropdownMenuItem onSelect={() => setShiftDialog(sel.shift ? 'close' : 'open')}><Icon name={sel.shift ? 'lock' : 'unlock'} size={15}/>{sel.shift ? 'Close register' : 'Open register'}</DropdownMenuItem>
               </>}
             </DropdownMenuContent>
@@ -687,7 +707,11 @@ export function FinancePos() {
                         <SelectContent>{METHODS.map(m => <SelectItem key={m.value} value={m.value}>{m.label}</SelectItem>)}</SelectContent>
                       </Select>
                       <Input aria-label={`Payment ${index + 1} amount`} inputMode="decimal" type="number" min="0.01" step="0.01" value={payment.amount} onChange={e => updatePayment(payment.id, { amount:e.target.value })} placeholder={index === 0 ? totals.total.toFixed(2) : 'Amount'} />
-                      <Input aria-label={`Payment ${index + 1} reference`} value={payment.reference} onChange={e => updatePayment(payment.id, { reference:e.target.value })} placeholder="Reference (optional)" />
+                      {payment.method === 'GIFT_CARD' ? (
+                        <Input aria-label={`Payment ${index + 1} gift card code`} value={payment.giftCardCode} onChange={e => updatePayment(payment.id, { giftCardCode:e.target.value })} placeholder="Gift card code" />
+                      ) : (
+                        <Input aria-label={`Payment ${index + 1} reference`} value={payment.reference} onChange={e => updatePayment(payment.id, { reference:e.target.value })} placeholder="Reference (optional)" />
+                      )}
                       {payments.length > 1 && <Button size="icon" variant="ghost" aria-label={`Remove payment ${index + 1}`} onClick={() => removePayment(payment.id)}><Icon name="trash" size={14}/></Button>}
                     </div>
                     {payment.method === 'CASH' && totals.total > 0 && (
@@ -957,7 +981,7 @@ export function FinancePos() {
                         <div key={p.method} className="pos-pay-mix-item">
                           <div className="pos-analytics-row">
                             <span className="pos-pay-icon">
-                              <Icon name={p.method === 'CASH' ? 'coins' : p.method === 'CARD' ? 'creditCard' : p.method === 'MOBILE_MONEY' ? 'smartphone' : p.method === 'BANK' ? 'bankNote' : 'creditCard'} size={14} />
+                              <Icon name={p.method === 'CASH' ? 'coins' : p.method === 'CARD' ? 'creditCard' : p.method === 'MOBILE_MONEY' ? 'smartphone' : p.method === 'BANK' ? 'bankNote' : p.method === 'GIFT_CARD' ? 'package' : 'creditCard'} size={14} />
                             </span>
                             <div className="pos-pay-info">
                               <strong>{METHODS.find(m => m.value === p.method)?.label ?? p.method}</strong>
@@ -1024,6 +1048,44 @@ export function FinancePos() {
           </div>
         </DialogBody>
         <DialogFooter><Button onClick={() => setShiftHistoryOpen(false)}>Done</Button></DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Issue gift card */}
+      <Dialog open={giftCardIssueOpen} onOpenChange={open => { setGiftCardIssueOpen(open); if (!open) setGiftCardIssuedCode(null); }}>
+        <DialogContent size="sm"><DialogHeader><DialogTitle>Issue gift card</DialogTitle></DialogHeader>
+        <DialogBody>
+          {giftCardIssuedCode ? (
+            <>
+              <p className="pos-dialog-help">Give this code to the customer — it's what they'll hand back at checkout to redeem it.</p>
+              <div className="pos-gift-card-code">
+                <strong>{giftCardIssuedCode}</strong>
+                <Button variant="outline" size="xs" type="button" onClick={async () => { try { await navigator.clipboard.writeText(giftCardIssuedCode); showAlert('Copied.', { variant:'success' }); } catch { /* clipboard unavailable */ } }}>Copy</Button>
+              </div>
+            </>
+          ) : (
+            <>
+              <p className="pos-dialog-help">Sells a new gift card for cash received now at the register.</p>
+              <label className="pos-dialog-field"><span>Amount</span><Input type="number" min="0.01" step="0.01" value={giftCardAmount} onChange={e => setGiftCardAmount(e.target.value)} placeholder="0.00" /></label>
+              <label className="pos-dialog-field"><span>Tender received</span>
+                <Select value={giftCardMethod} onValueChange={v => setGiftCardMethod(v as PosPaymentMethod)}>
+                  <SelectTrigger><SelectValue/></SelectTrigger>
+                  <SelectContent>{METHODS.filter(m => m.value !== 'GIFT_CARD').map(m => <SelectItem key={m.value} value={m.value}>{m.label}</SelectItem>)}</SelectContent>
+                </Select>
+              </label>
+            </>
+          )}
+        </DialogBody>
+        <DialogFooter>
+          {giftCardIssuedCode ? (
+            <Button onClick={() => setGiftCardIssueOpen(false)}>Done</Button>
+          ) : (
+            <>
+              <Button variant="outline" onClick={() => setGiftCardIssueOpen(false)}>Cancel</Button>
+              <Button disabled={saving || Number(giftCardAmount) <= 0} onClick={issueGiftCard}>{saving ? 'Issuing…' : 'Issue'}</Button>
+            </>
+          )}
+        </DialogFooter>
         </DialogContent>
       </Dialog>
 

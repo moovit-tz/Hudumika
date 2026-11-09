@@ -22,6 +22,7 @@ export default
     "cityLabel": "城市（可选）"
 ,
     "companySso": "企业单点登录",
+    "companySsoNotConfigured": "此邮箱尚未配置企业单点登录。请联系工作空间管理员配置 SAML 单点登录，或选择其他登录方式。",
     "or": "或",
     "title": "设置工作空间",
     "step": "第 {{step}} 步，共 6 步 — {{label}}",
@@ -42,6 +43,8 @@ export default
     "verified": "已通过 Ondi 验证",
     "differentAccount": "使用其他账号",
     "identityIntro": "验证身份以开始使用。",
+    "alreadyHaveAccount": "已经有 Hudumika 工作区账户了吗？",
+    "signInInstead": "登录",
     "nameRequired": "请输入姓名",
     "emailRequired": "请输入工作邮箱",
     "validEmail": "请输入有效的邮箱地址",

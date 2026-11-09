@@ -1,5 +1,29 @@
 import type { FastifyInstance } from 'fastify';
 
+// Per-tenant in-memory replay buffer, so a client that drops and reconnects
+// within a short window (a network blip, a laptop sleep) can catch up on
+// what it missed instead of silently staying stale until its next full
+// page load. This is deliberately NOT a durable log — it lives only in this
+// process's memory, same scope as `fastify.websocketServer.clients` itself,
+// so it does not survive a server restart or help across multiple API
+// instances. Each tenant's bookkeeping lives forever (bounded by tenant
+// count, not event volume), but the events themselves are capped by both
+// count and age below.
+const BUFFER_MAX_EVENTS = 200;
+const BUFFER_TTL_MS = 5 * 60 * 1000;
+
+interface BufferedEvent { seq: number; payload: unknown; at: number; }
+const tenantSeq = new Map<string, number>();
+const tenantBuffer = new Map<string, BufferedEvent[]>();
+
+function pushBuffered(tenantId: string, entry: BufferedEvent): void {
+  const buf = tenantBuffer.get(tenantId) ?? [];
+  buf.push(entry);
+  const cutoff = Date.now() - BUFFER_TTL_MS;
+  while (buf.length && (buf.length > BUFFER_MAX_EVENTS || buf[0].at < cutoff)) buf.shift();
+  tenantBuffer.set(tenantId, buf);
+}
+
 /**
  * Sends `payload` only to sockets whose handshake authenticated as
  * `tenantId` — tagged in index.ts's `/ws` upgrade handler as
@@ -10,10 +34,33 @@ import type { FastifyInstance } from 'fastify';
  * cross-tenant leak, not a style nit.
  */
 export function broadcastToTenant(fastify: FastifyInstance, tenantId: string, payload: unknown): void {
-  const message = JSON.stringify(payload);
+  const seq = (tenantSeq.get(tenantId) ?? 0) + 1;
+  tenantSeq.set(tenantId, seq);
+  pushBuffered(tenantId, { seq, payload, at: Date.now() });
+  const message = JSON.stringify({ seq, event: payload });
   fastify.websocketServer?.clients.forEach((client: any) => {
     if (client.tenantId === tenantId && client.readyState === client.OPEN) {
       client.send(message);
     }
   });
+}
+
+/**
+ * Replays everything the buffer still holds for `tenantId` after `sinceSeq`,
+ * sent only to the one reconnecting `socket` — never broadcast. Returns
+ * false when `sinceSeq` has already aged or rotated out of the buffer, so
+ * the caller can tell that client it needs a full resync instead of quietly
+ * leaving a gap (see the `resync.required` ServerEvent).
+ */
+export function replayMissedEvents(socket: any, tenantId: string, sinceSeq: number): boolean {
+  const currentSeq = tenantSeq.get(tenantId) ?? 0;
+  if (!Number.isFinite(sinceSeq) || sinceSeq >= currentSeq) return true;
+  const buf = tenantBuffer.get(tenantId) ?? [];
+  if (buf.length === 0 || buf[0].seq > sinceSeq + 1) return false;
+  for (const entry of buf) {
+    if (entry.seq > sinceSeq) {
+      try { socket.send(JSON.stringify({ seq: entry.seq, event: entry.payload })); } catch { /* client gone */ }
+    }
+  }
+  return true;
 }

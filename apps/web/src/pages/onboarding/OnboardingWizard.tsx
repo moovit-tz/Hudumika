@@ -162,25 +162,23 @@ export const OnboardingWizard: React.FC = () => {
     // reads as a hole punched through the card rather than a field on it.
     el.style.setProperty('--lp-input-bg',        d ? '#2a2a2d'                      : '#fff');
     el.style.setProperty('--lp-input-border',    d ? '#8e918f'                      : '#cbd5e1');
+    el.style.setProperty('--lp-tabs-bg',         d ? '#131314'                      : '#f1f5f9');
+    el.style.setProperty('--lp-tabs-border',     d ? '#3c4043'                      : '#e2e8f0');
+    el.style.setProperty('--lp-tab-active-bg',   d ? '#2a2a2d'                      : '#ffffff');
+    el.style.setProperty('--lp-tab-active-color', d ? '#ffffff'                     : '#0f172a');
+    el.style.setProperty('--lp-tab-active-shadow', d ? '0 1px 2px rgba(0,0,0,0.4)'  : '0 1px 2px rgba(0,0,0,0.06)');
     el.style.setProperty('--lp-row-border',      d ? '#3c4043'                      : '#e2e8f0');
     el.style.setProperty('--lp-toggle-border',   d ? '#3c4043'  : b ? 'rgba(255,255,255,0.25)' : '#e0e2e6');
     el.style.setProperty('--lp-toggle-bg',       d ? '#1e1e1f'  : b ? 'rgba(255,255,255,0.12)' : '#fff');
     el.style.setProperty('--lp-toggle-color',    d ? '#e3e3e3'  : b ? '#fff'                   : '#444746');
     el.style.setProperty('--lp-page-text',       b ? 'rgba(255,255,255,0.65)' : d ? '#9aa0a6'  : '#5f6368');
     el.style.setProperty('--lp-page-link',       b ? 'rgba(255,255,255,0.85)' : d ? 'rgba(255,255,255,0.7)' : '#5f6368');
-    // Same fix as Login.tsx's own copy of this effect: the tenant's raw
-    // accent has no contrast guarantee (it can be a dark tone) and reads as
-    // near-invisible link text on a dark page. Google's dark-mode link blue
-    // is a safe, on-theme fallback for text specifically.
-    el.style.setProperty('--lp-link-accent', 'var(--teal)');
-    // Button surface: the raw accent as a solid fill passes WCAG against
-    // white text but still reads as a heavy, near-invisible block on a dark
-    // page when the accent itself is dark — same fix as Login.tsx's/
-    // OndiLogin.tsx's identical block, reusing useDesignSystem.ts's own
-    // --primary dark-mode derivation (lighten 45% before the contrast floor)
-    // instead of a third, page-local fix.
-    el.style.setProperty('--lp-accent-surface', 'hsl(var(--primary))');
-    el.style.setProperty('--lp-accent-surface-fg', 'hsl(var(--primary-foreground))');
+    el.style.setProperty('--lp-error-bg',        d ? '#2c1e1e'                      : '#fdf2f2');
+    el.style.setProperty('--lp-error-border',    d ? '#4b2e2e'                      : '#fde2e2');
+    el.style.setProperty('--lp-error-text',      d ? '#fca5a5'                      : '#c2410c');
+    el.style.setProperty('--lp-link-accent',     'var(--teal)');
+    el.style.setProperty('--lp-accent-surface',  accent);
+    el.style.setProperty('--lp-accent-surface-fg', '#ffffff');
   }, [isDark, isBgDark, pageBg, accent]);
 
   useEffect(() => {
@@ -393,6 +391,12 @@ export const OnboardingWizard: React.FC = () => {
                   src={logo || (isDark ? BRAND_LOGO_DARK : BRAND_LOGO_LIGHT)}
                   alt={branding.platformName}
                   className="g-brand-logo-img"
+                  onError={(e) => {
+                    const fallback = isDark ? BRAND_LOGO_DARK : BRAND_LOGO_LIGHT;
+                    if (e.currentTarget.src !== fallback) {
+                      e.currentTarget.src = fallback;
+                    }
+                  }}
                 />
               </div>
               <div>
@@ -440,18 +444,45 @@ export const OnboardingWizard: React.FC = () => {
                 <span>Your verification expired. Everything saved up to your last change is safe — verify with Ondi again to pick up right where you left off.</span>
               </div>
             )}
-            {resumeNotice && (
-              <div className="login-error" style={{ background: 'var(--green-l, #ecfdf5)', borderColor: 'var(--green, #059669)', color: 'var(--green, #059669)' }}>
-                <Icon name="checkCircle" size={16} />
-                <span>{resumeNotice}</span>
-              </div>
-            )}
             {submitError && <div className="login-error">{submitError}</div>}
-            {step >= 2 && saveStatus !== 'idle' && (
-              <div className="ob-save-status" style={{ fontSize: 12.5, color: saveStatus === 'error' ? 'var(--red, #dc2626)' : 'var(--lp-ink3)', display: 'flex', alignItems: 'center', gap: 6, marginTop: -4, marginBottom: 8 }}>
-                {saveStatus === 'saving' && <>Saving…</>}
-                {saveStatus === 'saved' && <><Icon name="checkCircle" size={13} /> Saved</>}
-                {saveStatus === 'error' && <>Couldn't save your progress — check your connection.</>}
+            {(resumeNotice || (step >= 2 && saveStatus !== 'idle')) && (
+              <div
+                className={`ob-status-bar${saveStatus === 'error' ? ' ob-status-bar--error' : ''}`}
+                role="status"
+                aria-live="polite"
+              >
+                {resumeNotice && (
+                  <div className="ob-resume-notice">
+                    <Icon name="checkCircle" size={13} className="ob-status-icon" />
+                    <span className="ob-resume-text-full">{resumeNotice}</span>
+                    <span className="ob-resume-text-compact" aria-hidden="true">Resumed saved draft</span>
+                  </div>
+                )}
+                {resumeNotice && step >= 2 && saveStatus !== 'idle' && (
+                  <span className="ob-status-divider" aria-hidden="true" />
+                )}
+                {step >= 2 && saveStatus !== 'idle' && (
+                  <div className={`ob-save-status ob-save-status--${saveStatus}`}>
+                    {saveStatus === 'saving' && (
+                      <>
+                        <Icon name="clock" size={13} className="ob-status-icon" />
+                        <span>Saving…</span>
+                      </>
+                    )}
+                    {saveStatus === 'saved' && (
+                      <>
+                        <Icon name="check" size={14} className="ob-status-icon" />
+                        <span>Saved</span>
+                      </>
+                    )}
+                    {saveStatus === 'error' && (
+                      <>
+                        <Icon name="alertCircle" size={14} className="ob-status-icon" />
+                        <span>Couldn't save your progress — check your connection.</span>
+                      </>
+                    )}
+                  </div>
+                )}
               </div>
             )}
 

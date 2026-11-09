@@ -708,7 +708,17 @@ export async function superAdminRoutes(fastify: FastifyInstance) {
       .where('tenant_id', '=', GLOBAL_TENANT_ID)
       .executeTakeFirst();
 
-    const settings = row ? (typeof row.settings === 'string' ? JSON.parse(row.settings) : row.settings) : {};
+    const rawSettings = row ? (typeof row.settings === 'string' ? JSON.parse(row.settings) : row.settings) : {};
+    const stored = rawSettings && typeof rawSettings === 'object' && !Array.isArray(rawSettings) ? rawSettings : {};
+    // The settings row is a shared platform JSON blob and can contain large
+    // branding assets and unrelated integration credentials. This screen only
+    // edits these sections; returning the whole blob made its initial load
+    // needlessly large and exposed settings owned by other screens. Keep this
+    // allowlist aligned with SettingsAppStatus.tsx's load and save payloads.
+    const settings: Record<string, any> = {};
+    for (const key of ['maintenance', 'smtp', 'security', 'api', 'ocr', 'ai', 'ondiSso', 'carimages', 'mapbox']) {
+      if (stored[key] !== undefined) settings[key] = stored[key];
+    }
     // The SMTP password is encrypted at rest — never send the ciphertext to
     // the browser. A masked sentinel round-trips through POST /settings as
     // "leave this unchanged" (see below), matching settings.routes.ts's own

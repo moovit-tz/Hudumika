@@ -582,8 +582,18 @@ export async function ondiAuthRoutes(fastify: FastifyInstance) {
       return issueSessionFor(fastify, reply, accepted.user, request.ip, String(request.headers['user-agent'] || ''));
     }
 
+    // email is unique only per tenant (users_email_tenant_unique), not
+    // platform-wide — the same address can be a real active user in more
+    // than one workspace. executeTakeFirst() with no explicit order would
+    // return whichever row Postgres's own scan happened to produce first
+    // (not a stable choice across runs/plans) and sign the person into a
+    // workspace they didn't choose. ORDER BY created_at picks the same,
+    // oldest-account row every time instead of an undefined one — a real
+    // "which workspace did you mean" picker is the fuller fix, not built
+    // here, but this closes the actual safety gap (never an arbitrary
+    // tenant) without it.
     const user = await dbPlatform.selectFrom('users').selectAll()
-      .where('email', '=', data.email).where('active', '=', true).executeTakeFirst();
+      .where('email', '=', data.email).where('active', '=', true).orderBy('created_at', 'asc').executeTakeFirst();
     if (!user) {
       if (allowJoinRequest) {
         const joinResult = await createJoinRequestForFederatedIdentity(data.name || '', data.email);
@@ -643,8 +653,10 @@ export async function ondiAuthRoutes(fastify: FastifyInstance) {
       return issueSessionFor(fastify, reply, accepted.user, request.ip, String(request.headers['user-agent'] || ''));
     }
 
+    // Same cross-tenant-email ambiguity as /google/verify above — see its
+    // comment for why ORDER BY created_at, not a bare executeTakeFirst().
     const user = await dbPlatform.selectFrom('users').selectAll()
-      .where('email', '=', email).where('active', '=', true).executeTakeFirst();
+      .where('email', '=', email).where('active', '=', true).orderBy('created_at', 'asc').executeTakeFirst();
     if (!user) {
       if (allowJoinRequest) {
         const joinResult = await createJoinRequestForFederatedIdentity(data.name || '', email);
@@ -696,8 +708,10 @@ export async function ondiAuthRoutes(fastify: FastifyInstance) {
       return issueSessionFor(fastify, reply, accepted.user, request.ip, String(request.headers['user-agent'] || ''));
     }
 
+    // Same cross-tenant-email ambiguity as /google/verify above — see its
+    // comment for why ORDER BY created_at, not a bare executeTakeFirst().
     const user = await dbPlatform.selectFrom('users').selectAll()
-      .where('email', '=', email).where('active', '=', true).executeTakeFirst();
+      .where('email', '=', email).where('active', '=', true).orderBy('created_at', 'asc').executeTakeFirst();
     if (!user) {
       if (allowJoinRequest) {
         const joinResult = await createJoinRequestForFederatedIdentity(name || '', email);

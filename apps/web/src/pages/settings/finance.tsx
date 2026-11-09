@@ -381,6 +381,19 @@ export const GATEWAYS: GatewayDef[] = [
       { key: 'apiKey',    label: 'API Key'   },
       { key: 'apiSecret', label: 'API Secret', type: 'password' },
       { key: 'vendor',    label: 'Vendor ID'  },
+      { key: 'verified',  label: 'Verified against real sandbox (type "true" once confirmed)',
+        hint: 'The Fintech wallet module (SelcomAdapter) refuses to move real money until this says "true" — set it only after testing a real charge/disburse call against Selcom’s own sandbox and confirming the field names match what we built.' },
+    ],
+  },
+  {
+    id: 'azampay', name: 'AzamPay', desc: 'Tanzania payment gateway · merchant payments & mobile money.',
+    color: '#e67e22', bg: '#fdf3e9', abbr: 'AP', region: 'East Africa', sandbox: true,
+    fields: [
+      { key: 'appName',     label: 'App Name' },
+      { key: 'clientId',    label: 'Client ID' },
+      { key: 'clientSecret',label: 'Client Secret', type: 'password' },
+      { key: 'verified',    label: 'Verified against real sandbox (type "true" once confirmed)',
+        hint: 'The Fintech wallet module (AzamPayAdapter) refuses to move real money until this says "true" — set it only after testing a real charge/disburse call against AzamPay’s own sandbox and confirming the field names match what we built.' },
     ],
   },
   {

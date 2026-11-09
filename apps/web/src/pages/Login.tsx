@@ -183,6 +183,12 @@ export const Login: React.FC = () => {
               src={logo || (isDark ? BRAND_LOGO_DARK : BRAND_LOGO_LIGHT)}
               alt={branding.platformName}
               className="g-brand-logo-img"
+              onError={(e) => {
+                const fallback = isDark ? BRAND_LOGO_DARK : BRAND_LOGO_LIGHT;
+                if (e.currentTarget.src !== fallback) {
+                  e.currentTarget.src = fallback;
+                }
+              }}
             />
           </div>
         </div>
@@ -390,6 +396,12 @@ export function AuthCard({ children }: { children: React.ReactNode }) {
               src={logo || (isDark ? BRAND_LOGO_DARK : BRAND_LOGO_LIGHT)}
               alt={branding.platformName}
               className="g-brand-logo-img"
+              onError={(e) => {
+                const fallback = isDark ? BRAND_LOGO_DARK : BRAND_LOGO_LIGHT;
+                if (e.currentTarget.src !== fallback) {
+                  e.currentTarget.src = fallback;
+                }
+              }}
             />
           </div>
         </div>

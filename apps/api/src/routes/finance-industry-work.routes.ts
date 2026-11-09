@@ -14,6 +14,11 @@ import { accrueWorkCost, allocatePostedWorkCost, getWorkPostedResults, listWorkC
 import { GLService } from '../services/gl.service.js';
 import { createInspection, recordInspectionResult, releaseQualityHold, progressStage, recordWaste, recordTraceabilityLink, traceForward, traceBackward } from '../services/manufacturing-quality.service.js';
 import { createMedication, listMedications, createPrescriptionForDispensing, approvePrescription, rejectPrescription, dispenseMedication, returnDispensedMedication, holdBatch, releaseBatchHold, recallReport } from '../services/pharmacy.service.js';
+import {
+  createMeter, createTariff, recordMeterReading, billReading, correctMeterReading,
+  createTank, createNozzle, receiveFuelDelivery, openFuelShift, closeFuelShift,
+  createConnector, startEvSession, endEvSession, settleEvSession,
+} from '../services/energy.service.js';
 import { createPropertyUnit, listPropertyUnits, createLease, generateLeaseCharges, listLeaseCharges,
   addBoqItem, listBoqItems, createProgressCertificate,
   registerVehicle, listVehicles, createJobCard, progressJobCard,
@@ -24,6 +29,12 @@ import { createPropertyUnit, listPropertyUnits, createLease, generateLeaseCharge
   createPatient, listPatients, createAppointment, progressAppointment,
   createEncounter, signEncounter, amendEncounter, createOrder, recordResult,
   createPrescription, amendPrescription } from '../services/industry-domains.service.js';
+import {
+  createSubscriber, listSubscribers, createPlan, subscribeToPlan,
+  suspendSubscriber, resumeSubscriber, cancelSubscriber,
+  ingestUsageEvent, disputeUsageEvent, resolveUsageDispute, correctUsageEvent,
+  billUsagePeriod, rebillUsagePeriod,
+} from '../services/telecom.service.js';
 
 const day = z.string().regex(/^\d{4}-\d{2}-\d{2}$/).refine(value => {
   const date = new Date(`${value}T00:00:00Z`);
@@ -677,5 +688,155 @@ export async function financeIndustryWorkRoutes(server: FastifyInstance) {
   server.get('/pharmacy/recall', async request => {
     const { item_id, batch_no } = z.object({ item_id: z.string().uuid(), batch_no: z.string().min(1) }).parse(request.query);
     return recallReport(request.user.tenant_id, item_id, batch_no);
+  });
+
+  // ═══════ ENERGY: UTILITY BILLING ═══════
+  server.post('/:id/energy/meters', { preHandler: writers }, async (request, reply) => {
+    const { id } = paramsSchema.parse(request.params);
+    const input = z.object({
+      meter_number: z.string().trim().min(1).max(100), service_point: z.string().max(200).optional(),
+      meter_type: z.enum(['electricity', 'water', 'gas']),
+    }).parse(request.body);
+    return reply.status(201).send(await createMeter(request.user.tenant_id, id, input));
+  });
+  server.post('/energy/tariffs', { preHandler: writers }, async (request, reply) => {
+    const input = z.object({
+      meter_type: z.enum(['electricity', 'water', 'gas', 'ev']), name: z.string().trim().min(1).max(200),
+      rate_per_unit: z.number().min(0), effective_from: day, effective_to: day.optional(),
+    }).parse(request.body);
+    return reply.status(201).send(await createTariff(request.user.tenant_id, input));
+  });
+  server.post('/energy/meters/:meterId/readings', { preHandler: writers }, async (request, reply) => {
+    const { meterId } = z.object({ meterId: z.string().uuid() }).parse(request.params);
+    const input = z.object({ reading_date: day, reading_value: z.number().min(0) }).parse(request.body);
+    return reply.status(201).send(await recordMeterReading(request.user.tenant_id, request.user.sub, meterId, input));
+  });
+  server.post('/energy/readings/:readingId/bill', { preHandler: writers }, async (request, reply) => {
+    const { readingId } = z.object({ readingId: z.string().uuid() }).parse(request.params);
+    return reply.status(201).send(await billReading(request.user.tenant_id, readingId));
+  });
+  server.post('/energy/readings/:readingId/correct', { preHandler: writers }, async (request, reply) => {
+    const { readingId } = z.object({ readingId: z.string().uuid() }).parse(request.params);
+    const input = z.object({ reading_value: z.number().min(0), reason: z.string().trim().min(1).max(1000) }).parse(request.body);
+    return reply.status(201).send(await correctMeterReading(request.user.tenant_id, request.user.sub, readingId, input));
+  });
+
+  // ═══════ ENERGY: FUEL RETAIL ═══════
+  server.post('/:id/fuel/tanks', { preHandler: writers }, async (request, reply) => {
+    const { id } = paramsSchema.parse(request.params);
+    const input = z.object({
+      tank_number: z.string().trim().min(1).max(50), fuel_type: z.enum(['petrol', 'diesel', 'kerosene']),
+      capacity_litres: z.number().positive(),
+    }).parse(request.body);
+    return reply.status(201).send(await createTank(request.user.tenant_id, id, input));
+  });
+  server.post('/fuel/tanks/:tankId/nozzles', { preHandler: writers }, async (request, reply) => {
+    const { tankId } = z.object({ tankId: z.string().uuid() }).parse(request.params);
+    const { nozzle_number } = z.object({ nozzle_number: z.string().trim().min(1).max(50) }).parse(request.body);
+    return reply.status(201).send(await createNozzle(request.user.tenant_id, tankId, nozzle_number));
+  });
+  server.post('/fuel/tanks/:tankId/deliveries', { preHandler: writers }, async (request, reply) => {
+    const { tankId } = z.object({ tankId: z.string().uuid() }).parse(request.params);
+    const input = z.object({ delivered_litres: z.number().positive(), supplier_reference: z.string().max(200).optional() }).parse(request.body);
+    return reply.status(201).send(await receiveFuelDelivery(request.user.tenant_id, request.user.sub, tankId, input));
+  });
+  server.post('/:id/fuel/nozzles/:nozzleId/shifts', { preHandler: writers }, async (request, reply) => {
+    const { id, nozzleId } = z.object({ id: z.string().uuid(), nozzleId: z.string().uuid() }).parse(request.params);
+    const { opening_totalizer } = z.object({ opening_totalizer: z.number().min(0) }).parse(request.body);
+    return reply.status(201).send(await openFuelShift(request.user.tenant_id, request.user.sub, id, nozzleId, opening_totalizer));
+  });
+  server.post('/fuel/shifts/:shiftId/close', { preHandler: writers }, async request => {
+    const { shiftId } = z.object({ shiftId: z.string().uuid() }).parse(request.params);
+    const { closing_totalizer } = z.object({ closing_totalizer: z.number().min(0) }).parse(request.body);
+    return closeFuelShift(request.user.tenant_id, request.user.sub, shiftId, closing_totalizer);
+  });
+
+  // ═══════ ENERGY: EV CHARGING ═══════
+  server.post('/:id/ev/connectors', { preHandler: writers }, async (request, reply) => {
+    const { id } = paramsSchema.parse(request.params);
+    const { connector_number } = z.object({ connector_number: z.string().trim().min(1).max(50) }).parse(request.body);
+    return reply.status(201).send(await createConnector(request.user.tenant_id, id, connector_number));
+  });
+  server.post('/ev/connectors/:connectorId/sessions', { preHandler: writers }, async (request, reply) => {
+    const { connectorId } = z.object({ connectorId: z.string().uuid() }).parse(request.params);
+    return reply.status(201).send(await startEvSession(request.user.tenant_id, request.user.sub, connectorId));
+  });
+  server.post('/ev/sessions/:sessionId/end', { preHandler: writers }, async request => {
+    const { sessionId } = z.object({ sessionId: z.string().uuid() }).parse(request.params);
+    const { energy_kwh } = z.object({ energy_kwh: z.number().positive() }).parse(request.body);
+    return endEvSession(request.user.tenant_id, sessionId, energy_kwh);
+  });
+  server.post('/ev/sessions/:sessionId/settle', { preHandler: writers }, async request => {
+    const { sessionId } = z.object({ sessionId: z.string().uuid() }).parse(request.params);
+    return settleEvSession(request.user.tenant_id, sessionId);
+  });
+
+  // ═══════ TELECOM: MOBILE/USAGE BILLING ═══════
+  server.post('/:id/telecom/subscribers', { preHandler: writers }, async (request, reply) => {
+    const { id } = paramsSchema.parse(request.params);
+    const input = z.object({ msisdn: z.string().trim().min(1).max(30), subscriber_name: z.string().trim().min(1).max(200) }).parse(request.body);
+    return reply.status(201).send(await createSubscriber(request.user.tenant_id, id, input));
+  });
+  server.get('/:id/telecom/subscribers', async request => {
+    const { id } = paramsSchema.parse(request.params);
+    return listSubscribers(request.user.tenant_id, id);
+  });
+  server.post('/telecom/plans', { preHandler: writers }, async (request, reply) => {
+    const input = z.object({
+      name: z.string().trim().min(1).max(200), monthly_fee: z.number().min(0).optional(),
+      allowance_voice_minutes: z.number().min(0).optional(), allowance_data_mb: z.number().min(0).optional(), allowance_sms: z.number().min(0).optional(),
+      overage_rate_voice: z.number().min(0).optional(), overage_rate_data: z.number().min(0).optional(), overage_rate_sms: z.number().min(0).optional(),
+      effective_from: day,
+    }).parse(request.body);
+    return reply.status(201).send(await createPlan(request.user.tenant_id, input));
+  });
+  server.post('/telecom/subscribers/:subscriberId/subscribe', { preHandler: writers }, async (request, reply) => {
+    const { subscriberId } = z.object({ subscriberId: z.string().uuid() }).parse(request.params);
+    const { plan_id } = z.object({ plan_id: z.string().uuid() }).parse(request.body);
+    return reply.status(201).send(await subscribeToPlan(request.user.tenant_id, subscriberId, plan_id));
+  });
+  server.post('/telecom/subscribers/:subscriberId/suspend', { preHandler: writers }, async request => {
+    const { subscriberId } = z.object({ subscriberId: z.string().uuid() }).parse(request.params);
+    const { reason } = z.object({ reason: z.string().trim().min(1).max(500) }).parse(request.body);
+    return suspendSubscriber(request.user.tenant_id, subscriberId, reason);
+  });
+  server.post('/telecom/subscribers/:subscriberId/resume', { preHandler: writers }, async request => {
+    const { subscriberId } = z.object({ subscriberId: z.string().uuid() }).parse(request.params);
+    return resumeSubscriber(request.user.tenant_id, subscriberId);
+  });
+  server.post('/telecom/subscribers/:subscriberId/cancel', { preHandler: writers }, async request => {
+    const { subscriberId } = z.object({ subscriberId: z.string().uuid() }).parse(request.params);
+    return cancelSubscriber(request.user.tenant_id, subscriberId);
+  });
+  server.post('/telecom/usage-events', { preHandler: writers }, async (request, reply) => {
+    const input = z.object({
+      subscriber_id: z.string().uuid(), event_type: z.enum(['voice', 'data', 'sms']),
+      quantity: z.number().positive(), occurred_at: z.string().min(1), external_event_id: z.string().trim().min(1).max(200),
+    }).parse(request.body);
+    return reply.status(201).send(await ingestUsageEvent(request.user.tenant_id, input));
+  });
+  server.post('/telecom/usage-events/:eventId/dispute', { preHandler: writers }, async request => {
+    const { eventId } = z.object({ eventId: z.string().uuid() }).parse(request.params);
+    const { reason } = z.object({ reason: z.string().trim().min(1).max(1000) }).parse(request.body);
+    return disputeUsageEvent(request.user.tenant_id, eventId, reason);
+  });
+  server.post('/telecom/usage-events/:eventId/resolve-dispute', { preHandler: writers }, async request => {
+    const { eventId } = z.object({ eventId: z.string().uuid() }).parse(request.params);
+    const { decision } = z.object({ decision: z.enum(['upheld', 'rejected']) }).parse(request.body);
+    return resolveUsageDispute(request.user.tenant_id, eventId, decision);
+  });
+  server.post('/telecom/usage-events/:eventId/correct', { preHandler: writers }, async request => {
+    const { eventId } = z.object({ eventId: z.string().uuid() }).parse(request.params);
+    const input = z.object({ corrected_quantity: z.number().positive(), reason: z.string().trim().min(1).max(1000) }).parse(request.body);
+    return correctUsageEvent(request.user.tenant_id, eventId, input.corrected_quantity, input.reason);
+  });
+  server.post('/telecom/subscribers/:subscriberId/bill', { preHandler: writers }, async (request, reply) => {
+    const { subscriberId } = z.object({ subscriberId: z.string().uuid() }).parse(request.params);
+    const input = z.object({ period_start: day, period_end: day }).parse(request.body);
+    return reply.status(201).send(await billUsagePeriod(request.user.tenant_id, subscriberId, input.period_start, input.period_end));
+  });
+  server.post('/telecom/charges/:chargeId/rebill', { preHandler: writers }, async (request, reply) => {
+    const { chargeId } = z.object({ chargeId: z.string().uuid() }).parse(request.params);
+    return reply.status(201).send(await rebillUsagePeriod(request.user.tenant_id, chargeId));
   });
 }

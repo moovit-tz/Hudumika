@@ -22,6 +22,7 @@ export default
     "cityLabel": "Ville (facultatif)"
 ,
     "companySso": "SSO entreprise",
+    "companySsoNotConfigured": "Le SSO d'entreprise n'est pas encore configuré pour cette adresse e-mail. Demandez à l'administrateur de votre espace de travail de configurer le SAML SSO, ou choisissez une autre méthode de connexion.",
     "or": "ou",
     "title": "Configurez votre espace de travail",
     "step": "Étape {{step}} sur 6 — {{label}}",
@@ -42,6 +43,8 @@ export default
     "verified": "Vérifié avec Ondi",
     "differentAccount": "Utiliser un autre compte",
     "identityIntro": "Vérifiez votre identité pour commencer.",
+    "alreadyHaveAccount": "Vous avez déjà un compte d'espace de travail Hudumika ?",
+    "signInInstead": "Se connecter",
     "nameRequired": "Le nom complet est obligatoire",
     "emailRequired": "L’e-mail professionnel est obligatoire",
     "validEmail": "Saisissez une adresse e-mail valide",

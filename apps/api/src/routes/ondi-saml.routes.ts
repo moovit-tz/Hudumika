@@ -348,15 +348,24 @@ export async function ondiSamlRoutes(fastify: FastifyInstance) {
     const email = (request.query.email || '').trim().toLowerCase();
     if (!email || !email.includes('@')) return reply.status(400).send({ error: 'A valid email is required.' });
 
-    const user = await dbPlatform.selectFrom('users').select(['tenant_id'])
-      .where('email', '=', email).where('active', '=', true).executeTakeFirst();
-    if (!user) return { found: false };
+    // Email is only unique within a tenant. Resolve it together with a usable
+    // SAML provider instead of taking an arbitrary matching user first (which
+    // could belong to a workspace without SSO when the email is shared).
+    const candidates = await dbPlatform.selectFrom('users')
+      .innerJoin('sso_providers', 'sso_providers.tenant_id', 'users.tenant_id')
+      .select(['sso_providers.id as providerId', 'sso_providers.name as providerName'])
+      .where('users.email', '=', email)
+      .where('users.active', '=', true)
+      .where('sso_providers.provider_type', '=', 'SAML')
+      .where('sso_providers.enabled', '=', true)
+      .execute();
 
-    const provider = await dbPlatform.selectFrom('sso_providers').select(['id', 'name'])
-      .where('tenant_id', '=', user.tenant_id).where('provider_type', '=', 'SAML').where('enabled', '=', true)
-      .executeTakeFirst();
-    if (!provider) return { found: false };
+    for (const candidate of candidates) {
+      const provider = await loadProvider(candidate.providerId);
+      if (!provider || !(await isGovernanceEntitled(provider.row.tenant_id))) continue;
+      return { found: true, providerId: candidate.providerId, providerName: candidate.providerName };
+    }
 
-    return { found: true, providerId: provider.id, providerName: provider.name };
+    return { found: false };
   });
 }

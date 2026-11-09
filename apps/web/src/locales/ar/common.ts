@@ -22,6 +22,7 @@ export default
     "cityLabel": "المدينة (اختياري)"
 ,
     "companySso": "الدخول الموحد للشركة",
+    "companySsoNotConfigured": "لم يتم إعداد الدخول الموحد للشركة لهذا البريد الإلكتروني بعد. اطلب من مسؤول مساحة العمل إعداد SAML SSO أو اختر طريقة دخول أخرى.",
     "or": "أو",
     "title": "إعداد مساحة العمل",
     "step": "الخطوة {{step}} من 6 — {{label}}",
@@ -42,6 +43,8 @@ export default
     "verified": "تم التحقق عبر Ondi",
     "differentAccount": "استخدام حساب آخر",
     "identityIntro": "تحقق من هويتك للبدء.",
+    "alreadyHaveAccount": "هل لديك حساب مساحة عمل في Hudumika؟",
+    "signInInstead": "تسجيل الدخول",
     "nameRequired": "الاسم الكامل مطلوب",
     "emailRequired": "البريد الإلكتروني للعمل مطلوب",
     "validEmail": "أدخل عنوان بريد إلكتروني صالحًا",

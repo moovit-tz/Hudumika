@@ -134,6 +134,38 @@ describe('POS lifecycle audit — disposable tenants', () => {
     expect((await call('GET', `/availability?location_id=${location}`)).json()[product]).toBe(20);
     expect((await call('POST', `/sales/${created.id}/refund`, { reason: 'Repeat audit return' })).statusCode).toBe(409);
   });
+  it('FEFO-selects an unexpired batch for a batch-tracked item and refuses the sale when only an expired batch has enough stock', async () => {
+    const batchProduct = randomUUID();
+    let batchItem = '';
+    let expiredBatchNo = '';
+    let freshBatchNo = '';
+    await withTenant(owner.tenantId, async trx => {
+      await trx.insertInto('products').values({ id: batchProduct, tenant_id: owner.tenantId, code: 'BATCHED', name: 'Audit batched item', type: 'product', sale_price: 50, tax_rate: 0, currency: 'TZS', track_inventory: true }).execute();
+      batchItem = (await trx.insertInto('inventory_items').values({ tenant_id: owner.tenantId, sku: 'BATCHED', name: 'Audit batched item', product_id: batchProduct, base_uom: 'EA', is_batch_tracked: true, reorder_point: null, reorder_qty: null }).returning('id').executeTakeFirstOrThrow()).id;
+      expiredBatchNo = `EXP-${randomUUID().slice(0, 8)}`;
+      freshBatchNo = `OK-${randomUUID().slice(0, 8)}`;
+      await InventoryService.recordMovement(trx, owner.tenantId, { actorId: owner.userId, movementType: 'receipt', itemId: batchItem, toLocationId: location, enteredQty: 10, enteredUom: 'EA', batchNo: expiredBatchNo, expiryDate: '2020-01-01', unitCost: 10 });
+      await InventoryService.recordMovement(trx, owner.tenantId, { actorId: owner.userId, movementType: 'receipt', itemId: batchItem, toLocationId: location, enteredQty: 10, enteredUom: 'EA', batchNo: freshBatchNo, expiryDate: '2099-01-01', unitCost: 10 });
+    });
+
+    // A sale within the fresh batch's quantity must pick it over the
+    // already-expired one, even though summed-across-batches stock would
+    // otherwise appear sufficient from either.
+    const sold = await sale({ inventory_location_id: location, items: [{ product_id: batchProduct, qty: 4 }], payments: [{ method: 'CASH', amount: 200 }] });
+    expect(sold.id).toBeDefined();
+    const levels = await withTenant(owner.tenantId, trx => trx.selectFrom('inventory_stock_levels').select(['batch_no', 'qty_on_hand'])
+      .where('tenant_id', '=', owner.tenantId).where('item_id', '=', batchItem).where('location_id', '=', location).execute());
+    expect(Number(levels.find(l => l.batch_no === freshBatchNo)?.qty_on_hand)).toBe(6); // 10 - 4, decremented from the FRESH batch
+    expect(Number(levels.find(l => l.batch_no === expiredBatchNo)?.qty_on_hand)).toBe(10); // untouched
+
+    // Only the expired batch (10 units) plus the fresh batch's remaining 6
+    // units could sum to enough stock for a 7-unit sale, but no SINGLE
+    // unexpired batch actually has 7 — must refuse, not silently sell from
+    // the expired one or split across two batches on one line.
+    const refused = await call('POST', '/sales', checkout({ inventory_location_id: location, items: [{ product_id: batchProduct, qty: 7 }], payments: [{ method: 'CASH', amount: 350 }] }));
+    expect(refused.statusCode).toBe(422);
+    expect(refused.body).toMatch(/no unexpired batch/i);
+  });
   it('rolls back insufficient stock including duplicate product lines', async () => {
     const before = (await call('GET', `/availability?location_id=${location}`)).json()[product];
     const result = await call('POST', '/sales', checkout({ inventory_location_id: location, items: [{ product_id: product, qty: 11 }, { product_id: product, qty: 11 }], payments: [{ method: 'CASH', amount: 2200 }] }));
@@ -255,6 +287,46 @@ describe('POS lifecycle audit — disposable tenants', () => {
       const jLines = await withTenant(owner.tenantId, trx => trx.selectFrom('journal_lines').select(['debit', 'credit']).where('journal_entry_id', '=', r.journal_entry_id!).execute());
       expect(jLines.reduce((n, l) => n + Number(l.debit) - Number(l.credit), 0)).toBeCloseTo(0, 6);
     }
+  });
+  it('honors an explicit restock_location_id override on an item-level return, including skipping restock with null', async () => {
+    const altLocation = (await withTenant(owner.tenantId, async trx => {
+      const warehouse = await trx.selectFrom('inventory_warehouses').select('id').where('tenant_id', '=', owner.tenantId).limit(1).executeTakeFirstOrThrow();
+      return trx.insertInto('inventory_locations').values({ tenant_id: owner.tenantId, warehouse_id: warehouse.id, code: 'ALT', name: 'Alternate bin' }).returning('id').executeTakeFirstOrThrow();
+    })).id;
+    const created = await sale({ inventory_location_id: location, items: [{ product_id: product, qty: 3 }], payments: [{ method: 'CASH', amount: 300 }] });
+    const detail = (await call('GET', `/sales/${created.id}`)).json();
+    const productLine = detail.lines.find((l: any) => l.product_id === product);
+    const beforeOrigin = (await call('GET', `/availability?location_id=${location}`)).json()[product];
+    const beforeAlt = (await call('GET', `/availability?location_id=${altLocation}`)).json()[product] ?? 0;
+
+    // Omitting restock_location_id on an item-level return still defaults
+    // to the sale's own location (unchanged default behavior).
+    const defaulted = await call('POST', `/sales/${created.id}/refund`, {
+      reason: 'Default restock location', lines: [{ sale_line_id: productLine.id, qty: 1, disposition: 'restock' }],
+    });
+    expect(defaulted.statusCode, defaulted.body).toBe(200);
+    expect((await call('GET', `/availability?location_id=${location}`)).json()[product]).toBe(beforeOrigin + 1);
+
+    // An explicit override restocks to a DIFFERENT location than the sale
+    // was fulfilled from — not the long-standing "always the sale's own
+    // location" behavior this test's sibling above exercises.
+    const overridden = await call('POST', `/sales/${created.id}/refund`, {
+      reason: 'Restock to alternate bin', restock_location_id: altLocation, lines: [{ sale_line_id: productLine.id, qty: 1, disposition: 'restock' }],
+    });
+    expect(overridden.statusCode, overridden.body).toBe(200);
+    expect((await call('GET', `/availability?location_id=${location}`)).json()[product]).toBe(beforeOrigin + 1);
+    expect((await call('GET', `/availability?location_id=${altLocation}`)).json()[product]).toBe(beforeAlt + 1);
+
+    // Explicit null skips restocking entirely, distinct from "restock" with
+    // no location on the sale (which already means no restock today).
+    const beforeSkip = (await call('GET', `/availability?location_id=${location}`)).json()[product];
+    const skipped = await call('POST', `/sales/${created.id}/refund`, {
+      reason: 'Write off remainder', restock_location_id: null, lines: [{ sale_line_id: productLine.id, qty: 1, disposition: 'restock' }],
+    });
+    expect(skipped.statusCode, skipped.body).toBe(200);
+    expect(skipped.json().fully_refunded).toBe(true);
+    expect((await call('GET', `/availability?location_id=${location}`)).json()[product]).toBe(beforeSkip);
+    expect((await call('GET', `/availability?location_id=${altLocation}`)).json()[product]).toBe(beforeAlt + 1);
   });
   it('supports cash movements and closes the register with a frozen cash count', async () => {
     expect((await call('POST', `/shifts/${shift}/movements`, { direction: 'IN', amount: 20, reason: 'Audit cash float' })).statusCode).toBe(201);

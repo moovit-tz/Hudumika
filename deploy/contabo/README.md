@@ -11,12 +11,14 @@ Use a Linux VPS with Docker Engine, the Compose plugin, Python 3, curl and syste
 3. Generate the private configuration:
 
    ```bash
-   python3 deploy/contabo/init.py --domain YOUR_APPLICATION_DOMAIN --email YOUR_CERTIFICATE_EMAIL
+   python3 deploy/contabo/init.py --domain hudumika.tz --email YOUR_CERTIFICATE_EMAIL
    ```
 
    This creates `.env.production` with independent random secrets and restrictive permissions. Re-running it preserves existing secrets. Keep a secure offline recovery copy: changing encryption/signing keys after launch can make existing data or identities unusable.
 
 4. Edit `.env.production` and enter real SMTP credentials and an off-server S3-compatible backup repository. Quote values with single quotes, especially passwords containing dollar signs. Never commit this file.
+
+   To keep Ondi's Google sign-in working on a fresh cloud database, `init.py` copies `GOOGLE_OAUTH_CLIENT_ID` from the process environment or the local root `.env` into `.env.production`. If initializing directly on the VPS, set the variable there or copy the client ID from local Platform Settings → Ondi SSO before deploying. The API uses the database setting when present and this environment value as the deployment fallback. This flow uses no Google client secret. In Google Cloud Console, add `https://hudumika.tz` as an authorized JavaScript origin for the same OAuth client before switching DNS; otherwise Google rejects sign-in from the VPS domain.
 
    Required provider settings: `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASS`, `SMTP_FROM`, `BACKUP_REPOSITORY`, `BACKUP_ACCESS_KEY`, `BACKUP_SECRET_KEY`. `BACKUP_REGION` is optional and defaults to `us-east-1`.
 

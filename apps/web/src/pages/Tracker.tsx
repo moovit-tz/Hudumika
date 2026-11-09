@@ -14,6 +14,7 @@ import { FeaturedIcon } from '../components/ui/featured-icon.js';
 import type { IconName } from '../components/Icon.js';
 import { useIsMobile } from '../hooks/useIsMobile.js';
 import { PageHeader } from '../components/PageHeader.js';
+import { MetricsRow } from '../components/MetricCard.js';
 import { getCompany } from '../data/companyStore.js';
 import { Combobox } from '../components/ui/combobox.js';
 import { showAlert } from '../lib/alert.js';
@@ -297,99 +298,80 @@ function generatePDF(result: TrackingResult) {
   setTimeout(() => w.print(), 600);
 }
 
-// ── Snapshot card (dark, embeddable) ─────────────────────────────────────────
+// ── Snapshot card (clean, theme-aware operational summary) ───────────────────
 
 export const SnapshotCard = React.forwardRef<HTMLDivElement, { result: TrackingResult }>(({ result }, ref) => {
   const days = daysUntil(result.eta);
   const st = getStatus(result.status_code);
-  return (
-    <div ref={ref} style={{
-      background: 'linear-gradient(150deg, hsl(220 65% 7%) 0%, hsl(220 58% 13%) 100%)',
-      borderRadius: 'var(--r-lg)', padding: '22px 22px 18px', color: 'var(--bg)',
-      fontFamily: 'var(--font)', border: '1px solid rgba(255,255,255,.06)',
-      boxShadow: 'var(--elev-lg)', position: 'relative', overflow: 'hidden',
-    }}>
-      {/* glow blobs */}
-      <div style={{ position: 'absolute', top: -50, right: -50, width: 180, height: 180, borderRadius: '50%', background: 'radial-gradient(circle, var(--teal-l) 0%, transparent 70%)', pointerEvents: 'none' }} />
-      <div style={{ position: 'absolute', bottom: -40, left: -40, width: 140, height: 140, borderRadius: '50%', background: 'radial-gradient(circle, var(--teal-l) 0%, transparent 70%)', pointerEvents: 'none' }} />
+  const badgeVariant = st.fg === 'var(--green)' ? 'success' : st.fg === 'var(--red)' ? 'error' : st.fg === 'var(--gold)' ? 'warning' : st.fg === 'var(--blue)' ? 'info' : 'gray';
 
+  return (
+    <div ref={ref} className="tracker-snapshot-card">
       {/* Top row */}
-      <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 18, position: 'relative' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-          <div style={{ width: 38, height: 38, borderRadius: 'var(--r)', background: 'linear-gradient(135deg, var(--teal), hsl(var(--primary)))', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-            <Icon name={result.tracking_type === 'AWB' ? 'compass' : 'anchor'} size={17} color="hsl(var(--primary-foreground))" />
+      <div className="flex items-start justify-between gap-3">
+        <div className="flex items-center gap-2.5 min-w-0">
+          <div className="size-9 rounded-lg bg-(--white) border border-(--trk-border) flex items-center justify-center shrink-0">
+            {detectShippingLine(result.carrier) ? (
+              <CarrierLogo carrier={result.carrier} size={24} />
+            ) : (
+              <Icon name={result.tracking_type === 'AWB' ? 'compass' : 'anchor'} size={15} color="var(--teal)" />
+            )}
           </div>
-          <div>
-            <div style={{ fontSize: 9, color: 'var(--ink3)', textTransform: 'uppercase', letterSpacing: '.1em', marginBottom: 3 }}>
+          <div className="min-w-0">
+            <div className="text-[10px] font-semibold uppercase tracking-wider text-(--ink3)">
               {result.tracking_type === 'AWB' ? 'Air Waybill' : 'Bill of Lading'} · {result.carrier}
             </div>
-            <div style={{ fontSize: 15, fontWeight: 800, fontFamily: 'var(--font)', letterSpacing: '.03em' }}>
+            <div className="font-mono text-sm font-bold text-(--ink) truncate mt-0.5">
               {result.tracking_number}
             </div>
           </div>
         </div>
-        <div style={{ padding: '4px 10px', borderRadius: 'var(--badge-radius)', fontSize: 10, fontWeight: 700, background: 'rgba(255,255,255,.12)', color: st.fg, border: `1px solid ${st.fg}`, display: 'flex', alignItems: 'center', gap: 5, flexShrink: 0 }}>
-          <Icon name={st.icon} size={10} color={st.fg} />
+        <Badge variant={badgeVariant as any} className="shrink-0">
+          <Icon name={st.icon} size={11} color={st.fg} />
           {st.label}
-        </div>
+        </Badge>
       </div>
 
       {/* Route */}
-      <div style={{ marginBottom: 16 }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 10 }}>
-          <div style={{ textAlign: 'center', minWidth: 54 }}>
-            <div style={{ fontSize: 19, fontWeight: 900, fontFamily: 'var(--font)', letterSpacing: '-.01em' }}>{result.origin_code}</div>
-            <div style={{ fontSize: 9, color: 'var(--ink2)', marginTop: 1, maxWidth: 54, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{result.origin_name}</div>
+      <div className="tracker-snapshot-route">
+        <div className="min-w-0">
+          <div className="font-mono text-base font-extrabold text-(--ink) leading-none">{result.origin_code || '—'}</div>
+          <div className="text-[11px] text-(--ink3) truncate mt-1">{result.origin_name}</div>
+        </div>
+        <div className="flex-1 px-2 flex flex-col items-center gap-1 min-w-0">
+          <div className="w-full h-1.5 rounded-full bg-(--border)/60 overflow-hidden">
+            <div className="h-full rounded-full bg-(--teal)" style={{ width: `${result.progress_pct}%` }} />
           </div>
-          <div style={{ flex: 1, position: 'relative', height: 30, display: 'flex', alignItems: 'center' }}>
-            <div style={{ position: 'absolute', left: 0, right: 0, height: 2, background: 'rgba(255,255,255,.06)', borderRadius: 'var(--r-sm)'}} />
-            <div style={{ position: 'absolute', left: 0, width: `${result.progress_pct}%`, height: 2, background: 'var(--teal)', borderRadius: 'var(--r-sm)'}} />
-            <div style={{ position: 'absolute', left: `calc(${result.progress_pct}% - 13px)` }}>
-              <div style={{ width: 26, height: 26, borderRadius: '50%', background: 'rgba(255,255,255,.1)', border: '2px solid var(--teal)', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 0 0 3px rgba(255,255,255,.06)' }}>
-                <Icon name={result.tracking_type === 'AWB' ? 'compass' : 'anchor'} size={11} color="var(--teal)" />
-              </div>
-            </div>
-          </div>
-          <div style={{ textAlign: 'center', minWidth: 54 }}>
-            <div style={{ fontSize: 19, fontWeight: 900, fontFamily: 'var(--font)', letterSpacing: '-.01em' }}>{result.dest_code}</div>
-            <div style={{ fontSize: 9, color: 'var(--ink2)', marginTop: 1, maxWidth: 54, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{result.dest_name}</div>
+          <div className="text-[10.5px] text-(--ink2) truncate max-w-full flex items-center gap-1">
+            <Icon name="mapPin" size={10} color="var(--teal)" />
+            <span className="truncate">{result.current_location}</span>
           </div>
         </div>
-        <div style={{ textAlign: 'center', fontSize: 10, color: 'var(--ink3)', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 4 }}>
-          <Icon name="mapPin" size={10} color="var(--teal)" />
-          Currently at <strong style={{ color: 'var(--ink3)', marginLeft: 3 }}>{result.current_location}</strong>
+        <div className="min-w-0 text-right">
+          <div className="font-mono text-base font-extrabold text-(--ink) leading-none">{result.dest_code || '—'}</div>
+          <div className="text-[11px] text-(--ink3) truncate mt-1">{result.dest_name}</div>
         </div>
       </div>
 
       {/* Metrics */}
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 7, marginBottom: 14 }}>
+      <div className="tracker-snapshot-grid">
         {[
-          { icon: 'calendar' as IconName, label: 'ETA',        value: fmtDate(result.eta) },
-          { icon: 'clock'    as IconName, label: 'Time Left',  value: days == null ? '—' : days > 0 ? `~${days} days` : days === 0 ? 'Today' : 'Overdue' },
-          { icon: 'layers'   as IconName, label: 'Progress',   value: `${result.progress_pct}%` },
-          { icon: 'activity' as IconName, label: 'Updates',    value: `${result.events.length} events` },
+          { label: 'Estimated Arrival', value: fmtDate(result.eta) },
+          { label: 'Remaining', value: days == null ? '—' : days > 0 ? `${days} days` : days === 0 ? 'Today' : `${Math.abs(days)}d overdue` },
+          { label: 'Completion', value: `${result.progress_pct}%` },
+          { label: 'Checkpoints', value: `${result.events.length} events` },
         ].map(m => (
-          <div key={m.label} style={{ background: 'rgba(255,255,255,.04)', borderRadius: 'var(--r)', padding: '9px 11px', border: '1px solid rgba(255,255,255,.05)', display: 'flex', alignItems: 'center', gap: 8 }}>
-            <div style={{ width: 26, height: 26, borderRadius: 'var(--r)', background: 'var(--teal-l)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-              <Icon name={m.icon} size={12} color="var(--teal)" />
-            </div>
-            <div>
-              <div style={{ fontSize: 8, color: 'var(--ink2)', textTransform: 'uppercase', letterSpacing: '.07em' }}>{m.label}</div>
-              <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--bg)', marginTop: 1 }}>{m.value}</div>
-            </div>
+          <div key={m.label} className="tracker-snapshot-cell">
+            <div className="text-[10px] font-semibold uppercase tracking-wider text-(--ink3)">{m.label}</div>
+            <div className="text-xs font-bold text-(--ink) mt-0.5 tabular-nums">{m.value}</div>
           </div>
         ))}
       </div>
 
       {/* Footer */}
-      <div style={{ borderTop: '1px solid rgba(255,255,255,.05)', paddingTop: 10, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-          <div style={{ width: 18, height: 18, borderRadius: 'var(--r-sm)', background: 'linear-gradient(135deg, var(--teal), hsl(var(--primary)))', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-            <Icon name="globe" size={9} color="#fff" />
-          </div>
-          <span style={{ fontSize: 10, fontWeight: 700, color: 'var(--ink2)', letterSpacing: '.04em' }}>Hudumika Safetracker</span>
-        </div>
-        <span style={{ fontSize: 9, color: 'var(--ink)' }}>{result.source === 'live' ? 'Provider' : 'Unverified'} · {fmtDate(new Date().toISOString())}</span>
+      <div className="flex items-center justify-between pt-2 border-t border-(--trk-border) text-[11px] text-(--ink3)">
+        <span className="font-semibold text-(--ink2)">Safetracker · Consignment Summary</span>
+        <span>{result.source === 'live' ? `Verified (${result.provider || 'provider'})` : 'Manual record'}</span>
       </div>
     </div>
   );
@@ -408,23 +390,6 @@ export function TrackingBadge({ snap }: { snap: Pick<TrackingSnapshot, 'tracking
       <span style={{ color: 'var(--border)' }}>|</span>
       <span style={{ color: st.fg, fontWeight: 600 }}>{st.label}</span>
       {days != null && <span style={{ color: 'var(--ink3)' }}>· {days > 0 ? `${days}d` : days === 0 ? 'Today' : 'OVD'}</span>}
-    </div>
-  );
-}
-
-// ── Metric tile ───────────────────────────────────────────────────────────────
-
-function KpiCard({ icon, label, value, sub, accent = 'var(--teal)' }: { icon: IconName; label: string; value: string; sub?: string; accent?: string }) {
-  return (
-            <div style={{ background: 'var(--white)', borderRadius: 'var(--r-lg)', border: '1px solid var(--border)', padding: '18px 20px' }}>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10 }}>
-        <div style={{ width: 34, height: 34, borderRadius: 'var(--r)', background: `color-mix(in srgb, ${accent} 10%, var(--bg))`, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-          <Icon name={icon} size={16} color={accent} />
-        </div>
-        <span style={{ fontSize: 10, fontWeight: 700, color: 'var(--ink3)', textTransform: 'uppercase', letterSpacing: '.07em' }}>{label}</span>
-      </div>
-      <div style={{ fontSize: 22, fontWeight: 800, color: 'var(--ink)', lineHeight: 1.1, letterSpacing: '-.02em' }}>{value}</div>
-      {sub && <div style={{ fontSize: 11, color: 'var(--ink3)', marginTop: 4 }}>{sub}</div>}
     </div>
   );
 }
@@ -513,6 +478,7 @@ export const Tracker: React.FC = () => {
   const [result, setResult] = useState<TrackingResult | null>(null);
   const [activeContainerNum, setActiveContainerNum] = useState<string>('');
   const [containerModel, setContainerModel] = useState<ContainerDetails | null>(null);
+  const [showContainerSpecs, setShowContainerSpecs] = useState(false);
   const containerRequest = useRef(0);
 
   const [savingSnap, setSavingSnap] = useState(false);
@@ -633,12 +599,20 @@ export const Tracker: React.FC = () => {
     finally { if (requestId === containerRequest.current) setLoading(false); }
   };
 
-  const handleTrack = () => executeTrack(inputNumber, trackType);
+  const handleTrack = () => {
+    if (suggTimer.current) clearTimeout(suggTimer.current);
+    setSuggLoading(false);
+    setShowSugg(false);
+    void executeTrack(inputNumber, trackType);
+  };
 
   const selectPreset = (num: string, type: 'AWB' | 'BL' | 'CONTAINER') => {
+    if (suggTimer.current) clearTimeout(suggTimer.current);
+    setSuggLoading(false);
+    setShowSugg(false);
     setInputNumber(num);
     setTrackType(type);
-    executeTrack(num, type);
+    void executeTrack(num, type);
   };
 
   const handleSave = async () => {
@@ -758,10 +732,12 @@ export const Tracker: React.FC = () => {
   }, [inputNumber, snapshots, fleetContainers]);
 
   const pickSuggestion = (s: Suggestion) => {
+    if (suggTimer.current) clearTimeout(suggTimer.current);
+    setSuggLoading(false);
+    setShowSugg(false);
     setInputNumber(s.number);
     setTrackType(s.type);
-    setShowSugg(false);
-    executeTrack(s.number, s.type);
+    void executeTrack(s.number, s.type);
   };
 
   const retrack = async (snap: TrackingSnapshot) => {
@@ -818,13 +794,9 @@ export const Tracker: React.FC = () => {
   return (
     <div className="tracker-page">
       <style>{`
-        @keyframes fadeUp { from { opacity:0; transform:translateY(12px); } to { opacity:1; transform:translateY(0); } }
-        .tr-fade { animation: fadeUp .28s ease both; }
-        .tr-btn { transition: all .15s ease; }
-        .tr-btn:hover:not(:disabled) { filter: brightness(1.06); transform: translateY(-1px); box-shadow: 0 4px 16px rgba(0,0,0,.12); }
-        .tr-btn:active:not(:disabled) { transform: translateY(0); }
-        .tr-input:focus { border-color: var(--teal) !important; box-shadow: 0 0 0 3px var(--teal-m) !important; }
-        .tracker-ghost-dashed { border: 1px dashed var(--border) !important; }
+        @keyframes fadeUp { from { opacity:0; transform:translateY(8px); } to { opacity:1; transform:translateY(0); } }
+        .tr-fade { animation: fadeUp .22s ease both; }
+        .tracker-ghost-dashed { border: 1px dashed var(--trk-border) !important; }
       `}</style>
 
       {/* ── Header ── */}
@@ -832,27 +804,26 @@ export const Tracker: React.FC = () => {
         crumbs={['Cargo Tracker', 'Shipment Tracker']}
         titlePlain="Shipment"
         titleEm="Tracker"
-        subtitle="Track containers, ocean bills of lading & air waybills · inspect 3D specifications, survey records, CSC certifications and milestone timelines."
+        subtitle="Track containers, ocean bills of lading, and air waybills across carrier schedules, port calls, and customs milestones."
         actions={
-          <Button size="sm" onClick={() => navigate('/cargotracker/containers/new')}>
-            <Icon name="container" size={14} color="hsl(var(--primary-foreground))" />
-            Record Container
-          </Button>
+          <div className="flex items-center gap-2">
+            <Button variant="outline" size="sm" asChild>
+              <Link to="/cargotracker/customs">
+                <Icon name="shield" size={14} color="var(--teal)" />
+                Customs Tracker
+              </Link>
+            </Button>
+            <Button size="sm" onClick={() => navigate('/cargotracker/containers/new')}>
+              <Icon name="container" size={14} color="hsl(var(--primary-foreground))" />
+              Record Container
+            </Button>
+          </div>
         }
       />
 
-      {/* ── Search card ── */}
+      {/* ── Operational Lookup Bar ── */}
       <div className="tracker-search-shell">
-        {/* Left: input & controls */}
-        <div className="tracker-search-main">
-          <div className="tracker-search-eyebrow">
-            <span className="tracker-live-dot" />
-            Global shipment visibility
-          </div>
-          <div className="tracker-search-heading">Where is your cargo?</div>
-          <div className="tracker-search-copy">Enter a container, bill of lading, or air waybill number for its latest operational status.</div>
-
-          {/* Mode toggle */}
+        <div className="tracker-search-top">
           <Tabs value={trackType} onValueChange={(v) => setTrackType(v as any)} variant="segmented">
             <TabsList className="tracker-mode-tabs">
               <TabsTrigger value="CONTAINER">
@@ -870,413 +841,543 @@ export const Tracker: React.FC = () => {
             </TabsList>
           </Tabs>
 
-          {/* Input + button */}
-          <div className="tracker-search-row">
-            <div className="tracker-input-wrap">
-              <div style={{ position: 'absolute', left: 14, top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none', zIndex: 1 }}>
-                <Icon name={trackType === 'AWB' ? 'compass' : trackType === 'CONTAINER' ? 'container' : 'anchor'} size={18} color="var(--ink3)" />
-              </div>
-              <input data-ui-field="input"
-                type="text"
-                value={inputNumber}
-                onChange={e => handleInput(e.target.value)}
-                onKeyDown={e => { if (e.key === 'Enter') { setShowSugg(false); handleTrack(); } if (e.key === 'Escape') setShowSugg(false); }}
-                onFocus={() => suggestions.length > 0 && setShowSugg(true)}
-                onBlur={() => setTimeout(() => setShowSugg(false), 180)}
-                placeholder={trackType === 'AWB' ? 'e.g. 006-12345678' : trackType === 'CONTAINER' ? 'e.g. MSCU1234567' : 'e.g. MAEU1234567890'}
-                aria-label={`Track by ${trackType === 'AWB' ? 'air waybill' : trackType === 'CONTAINER' ? 'container number' : 'bill of lading'}`}
-                className="tr-input"
-                style={{
-                  width: '100%', height: "var(--ctl-h)", paddingLeft: 46, paddingRight: "var(--space-md)",
-                  border: '1.5px solid var(--border)', borderRadius: 'var(--r)',
-                  fontFamily: 'var(--font)', fontSize: "var(--text-base)", fontWeight: 700,
-                  background: 'var(--bg)', color: 'var(--ink)',
-                  boxSizing: 'border-box', outline: 'none',
-                }}
-              />
-              {suggLoading && inputNumber.trim().length >= 2 && (
-                <div style={{ position: 'absolute', right: 14, top: '50%', transform: 'translateY(-50%)' }}>
-                  <Spinner size={14} />
-                </div>
-              )}
-              {showSugg && suggestions.length > 0 && (
-                <div style={{ position: 'absolute', top: 54, left: 0, right: 0, zIndex: 40, background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 'var(--r)', boxShadow: 'var(--elev-lg)', overflow: 'hidden' }}>
-                  {suggestions.map((s, i) => (
-                    <button
-                      key={`${s.kind}-${s.number}-${i}`}
-                      type="button"
-                      onMouseDown={e => e.preventDefault()}
-                      onClick={() => pickSuggestion(s)}
-                      style={{ display: 'flex', alignItems: 'center', gap: 10, width: '100%', padding: 'var(--ds-btn-py) 14px', border: 'none', borderBottom: i < suggestions.length - 1 ? '1px solid var(--border)' : 'none', background: 'none', cursor: 'pointer', textAlign: 'left', minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}}
-                      onMouseEnter={e => (e.currentTarget.style.background = 'var(--hover-bg)')}
-                      onMouseLeave={e => (e.currentTarget.style.background = '')}
-                     data-ui-native-button="">
-                      <div style={{ width: 28, height: 28, borderRadius: 'var(--r)', background: s.type === 'CONTAINER' ? 'var(--gold-l)' : s.kind === 'snapshot' ? 'var(--teal-l)' : 'var(--blue-l)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                        <Icon name={s.type === 'AWB' ? 'compass' : s.type === 'CONTAINER' ? 'container' : 'anchor'} size={13} color={s.type === 'CONTAINER' ? 'var(--gold)' : s.kind === 'snapshot' ? 'var(--teal)' : 'var(--blue)'} />
-                      </div>
-                      <div style={{ minWidth: 0 }}>
-                        <div style={{ fontSize: 13, fontWeight: 700, fontFamily: 'var(--font)', color: 'var(--ink)' }}>{s.label}</div>
-                        <div style={{ fontSize: 11, color: 'var(--ink3)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{s.sub}</div>
-                      </div>
-                      <span style={{ marginLeft: 'auto', fontSize: 9, fontWeight: 800, color: 'var(--ink3)', textTransform: 'uppercase', letterSpacing: '.06em', flexShrink: 0 }}>{s.kind}</span>
-                    </button>
-                  ))}
-                </div>
-              )}
-            </div>
-
-            <Button
-              onClick={handleTrack}
-              disabled={loading || !inputNumber.trim()}
-              variant={inputNumber.trim() && !loading ? 'default' : 'outline'}
-              className="tracker-submit"
-            >
-              {loading
-                ? <><ButtonSpinner />Tracking…</>
-                : <><Icon name="search" size={16} color={inputNumber.trim() ? 'hsl(var(--primary-foreground))' : 'var(--ink3)'} />Track</>
-              }
-            </Button>
-          </div>
-
-          {trackType === 'CONTAINER' && <ContainerIdentity number={inputNumber} />}
-
-          {/* Fleet quick-access chips — from real DB */}
-          {fleetContainers.length > 0 && (
-            <div className="flex items-center flex-wrap gap-2 mt-3 pt-2">
-              <span className="text-[11px] font-bold text-(--ink3)">Your Fleet:</span>
-              {fleetContainers.slice(0, 6).map(c => (
-                <button
-                  key={c.container_number}
-                  type="button"
-                  onClick={() => selectPreset(c.container_number, 'CONTAINER')}
-                  title={`${c.size_type || c.iso_code} · ${c.lifecycle_stage?.replace(/_/g, ' ')}`}
-                  className="px-2.5 py-1 rounded-md text-[11px] font-bold bg-(--bg) border border-(--border) text-(--ink2) hover:border-(--teal) hover:text-(--ink) transition-colors"
-                 data-ui-native-button="">
-                  {c.container_number}
-                </button>
-              ))}
-              <button
-                type="button"
-                onClick={() => navigate('/cargotracker/containers')}
-                className="px-2.5 py-1 rounded-md text-[11px] font-bold text-(--teal) hover:underline"
-               data-ui-native-button="">
-                Fleet →
-              </button>
-            </div>
-          )}
-
-          {error && (
-            <div style={{ marginTop: 12, padding: '11px 14px', background: 'var(--red-l)', border: '1px solid var(--red)', borderRadius: 'var(--r)', fontSize: 13, color: 'var(--red)', display: 'flex', alignItems: 'center', gap: 8 }}>
-              <Icon name="alertCircle" size={14} color="var(--red)" />
-              {error}
+          {!isMobile && (
+            <div className="tracker-format-inline" aria-label="Supported reference formats">
+              <span className="font-semibold text-(--ink3)">Examples:</span>
+              <span className="tracker-format-pill">
+                Container <code>MSCU1234567</code>
+              </span>
+              <span className="tracker-format-pill">
+                B/L <code>MAEU1234567890</code>
+              </span>
+              <span className="tracker-format-pill">
+                AWB <code>006-12345678</code>
+              </span>
             </div>
           )}
         </div>
 
-        {/* Right: format guide (desktop) */}
-        {!isMobile && (
-          <aside className="tracker-format-guide">
-            <div className="tracker-format-icon"><Icon name="search" size={17} color="var(--teal)" /></div>
-            <div>
-              <div className="tracker-format-title">Supported references</div>
-              <div className="tracker-format-copy">Use the exact carrier-issued number.</div>
+        {/* Input + Track Button */}
+        <div className="tracker-search-row">
+          <div className="tracker-input-wrap">
+            <div className="tracker-input-icon">
+              <Icon name={trackType === 'AWB' ? 'compass' : trackType === 'CONTAINER' ? 'container' : 'anchor'} size={16} color="var(--ink3)" />
             </div>
-            {[
-              { icon: 'container' as IconName, label: 'Container No.', eg: 'MSCU1234567', bg: 'var(--teal-l)', color: 'var(--teal)' },
-              { icon: 'anchor'  as IconName, label: 'Bill of Lading', eg: 'MAEU1234567890', bg: 'var(--blue-l)', color: 'var(--blue)' },
-              { icon: 'compass' as IconName, label: 'Air Waybill', eg: '006-12345678', bg: 'var(--gold-l)', color: 'var(--gold)' },
-            ].map(h => (
-              <div key={h.label} className="tracker-format-row">
-                <div className="tracker-format-icon" style={{ background: h.bg, borderColor: 'transparent', width: 28, height: 28 }}>
-                  <Icon name={h.icon} size={13} color={h.color} />
-                </div>
-                <div>
-                  <div className="tracker-format-title">{h.label}</div>
-                  <div className="tracker-format-copy">{h.eg}</div>
-                </div>
+            <input
+              data-ui-field="input"
+              type="text"
+              value={inputNumber}
+              onChange={e => handleInput(e.target.value)}
+              onKeyDown={e => {
+                if (e.key === 'Enter') { setShowSugg(false); handleTrack(); }
+                if (e.key === 'Escape') setShowSugg(false);
+              }}
+              onFocus={() => suggestions.length > 0 && setShowSugg(true)}
+              onBlur={() => setTimeout(() => setShowSugg(false), 180)}
+              placeholder={
+                trackType === 'AWB'
+                  ? 'Enter Air Waybill number (e.g. 006-12345678)…'
+                  : trackType === 'CONTAINER'
+                    ? 'Enter ISO Container number (e.g. MSCU1234567)…'
+                    : 'Enter Master or House Bill of Lading (e.g. MAEU1234567890)…'
+              }
+              aria-label={`Track by ${trackType === 'AWB' ? 'air waybill' : trackType === 'CONTAINER' ? 'container number' : 'bill of lading'}`}
+              className="tr-input tracker-input"
+            />
+            {suggLoading && inputNumber.trim().length >= 2 ? (
+              <div style={{ position: 'absolute', right: 12, top: '50%', transform: 'translateY(-50%)' }}>
+                <Spinner size={14} />
               </div>
+            ) : inputNumber ? (
+              <button
+                type="button"
+                data-ui-native-button=""
+                className="tracker-input-clear"
+                onClick={() => { setInputNumber(''); setShowSugg(false); }}
+                aria-label="Clear reference number"
+              >
+                <Icon name="x" size={13} />
+              </button>
+            ) : null}
+
+            {showSugg && suggestions.length > 0 && (
+              <div className="tracker-suggestions">
+                {suggestions.map((s, i) => (
+                  <button
+                    key={`${s.kind}-${s.number}-${i}`}
+                    type="button"
+                    data-ui-native-button=""
+                    className="tracker-suggestion-btn"
+                    onMouseDown={e => e.preventDefault()}
+                    onClick={() => pickSuggestion(s)}
+                  >
+                    <div
+                      style={{
+                        width: 28,
+                        height: 28,
+                        borderRadius: 'var(--r-sm, 6px)',
+                        background: s.type === 'CONTAINER' ? 'var(--gold-l)' : s.kind === 'snapshot' ? 'var(--teal-l)' : 'var(--blue-l)',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        flexShrink: 0,
+                      }}
+                    >
+                      <Icon
+                        name={s.type === 'AWB' ? 'compass' : s.type === 'CONTAINER' ? 'container' : 'anchor'}
+                        size={13}
+                        color={s.type === 'CONTAINER' ? 'var(--gold)' : s.kind === 'snapshot' ? 'var(--teal)' : 'var(--blue)'}
+                      />
+                    </div>
+                    <div style={{ minWidth: 0 }}>
+                      <div className="font-mono text-xs font-bold text-(--ink)">{s.label}</div>
+                      <div className="text-[11px] text-(--ink3) truncate">{s.sub}</div>
+                    </div>
+                    <span className="ml-auto text-[10px] font-bold uppercase tracking-wider text-(--ink3) shrink-0">
+                      {s.kind}
+                    </span>
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+
+          <Button
+            onClick={handleTrack}
+            disabled={loading || !inputNumber.trim()}
+            variant="default"
+            className="tracker-submit"
+          >
+            {loading ? (
+              <>
+                <ButtonSpinner />
+                Tracking…
+              </>
+            ) : (
+              <>
+                <Icon name="search" size={15} color="hsl(var(--primary-foreground))" />
+                Track
+              </>
+            )}
+          </Button>
+        </div>
+
+        {trackType === 'CONTAINER' && inputNumber.trim().length >= 4 && (
+          <ContainerIdentity number={inputNumber} />
+        )}
+
+        {/* Fleet quick-access chips — from real DB */}
+        {fleetContainers.length > 0 && (
+          <div className="tracker-fleet-bar">
+            <span className="tracker-fleet-label">Fleet quick-select:</span>
+            {fleetContainers.slice(0, 6).map(c => (
+              <button
+                key={c.container_number}
+                type="button"
+                data-ui-native-button=""
+                onClick={() => selectPreset(c.container_number, 'CONTAINER')}
+                title={`${c.size_type || c.iso_code} · ${c.lifecycle_stage?.replace(/_/g, ' ')}`}
+                className="tracker-fleet-chip"
+              >
+                {c.container_number}
+              </button>
             ))}
-          </aside>
+            <button
+              type="button"
+              data-ui-native-button=""
+              onClick={() => navigate('/cargotracker/containers')}
+              className="ml-auto text-xs font-semibold text-(--teal) hover:underline"
+            >
+              All containers →
+            </button>
+          </div>
+        )}
+
+        {error && (
+          <div
+            role="alert"
+            style={{
+              padding: '10px 12px',
+              background: 'var(--red-l)',
+              border: '1px solid var(--red)',
+              borderRadius: 'var(--r-sm, 6px)',
+              fontSize: 12.5,
+              color: 'var(--red)',
+              display: 'flex',
+              alignItems: 'center',
+              gap: 8,
+            }}
+          >
+            <Icon name="alertCircle" size={14} color="var(--red)" />
+            {error}
+          </div>
         )}
       </div>
 
-      {/* ── HIGH FIDELITY CONTAINER DETAILS & TRACKING CARD (Image 1 & 2) ── */}
-      {activeContainerNum && result && result.tracking_type !== 'AWB' && (
-        <div className="tr-fade">
-          {/* Multi-container switcher if BL has multiple containers */}
-          {result?.containers && result.containers.length > 1 && (
-            <div className="flex items-center gap-2 p-2 bg-[var(--white)] border border-[var(--border)] rounded-xl mb-4">
-              <span className="text-xs font-bold text-[var(--ink3)] px-2">Containers on this BL:</span>
-              <div className="flex flex-wrap gap-1.5">
-                {result.containers.map((c) => (
-                  <Button
-                    key={c.number}
-                    size="sm"
-                    variant={activeContainerNum === c.number ? 'default' : 'outline'}
-                    onClick={() => handleContainerSwitch(c.number)}
-                    className="font-mono"
-                  >
-                    <Icon name="container" size={11} color={activeContainerNum === c.number ? 'hsl(var(--primary-foreground))' : 'var(--ink3)'} />
-                    {c.number} ({c.size})
-                  </Button>
-                ))}
-              </div>
-            </div>
-          )}
-
-          {containerModel ? (
-            <ContainerDetailView
-              key={containerModel.container_number}
-              number={containerModel.container_number}
-              providedContainer={containerModel}
-            />
-          ) : <SectionLoading label="Loading container details…" />}
-        </div>
-      )}
-
+      {/* ── Active Tracking Result ── */}
       {result && (
-        <div className="tr-fade">
-          {/* Journey dark banner */}
-          <div style={{
-            background: 'linear-gradient(150deg, hsl(220 65% 7%), hsl(220 58% 13%))',
-            borderRadius: 'var(--r-lg)', border: '1px solid rgba(255,255,255,.06)',
-            padding: isMobile ? '20px 18px' : '24px 30px', color: 'var(--bg)',
-            boxShadow: 'var(--elev-lg)',
-          }}>
-            {/* Top row: carrier + BL + status */}
-            <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 16, flexWrap: 'wrap', gap: 10 }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                <div style={{ width: 44, height: 44, borderRadius: 'var(--r-lg)', background: 'rgba(255,255,255,.1)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                  {detectShippingLine(result.carrier) ? <CarrierLogo carrier={result.carrier} size={44} /> : <Icon name={result.tracking_type === 'AWB' ? 'compass' : 'anchor'} size={20} color="var(--teal)" />}
+        <div className="tr-fade flex flex-col gap-4">
+          {/* Consignment Summary & Route Card */}
+          <div className="tracker-result-card">
+            <div className="tracker-result-head">
+              <div className="tracker-result-id-group">
+                <div className="tracker-carrier-box">
+                  {detectShippingLine(result.carrier) ? (
+                    <CarrierLogo carrier={result.carrier} size={32} />
+                  ) : (
+                    <Icon name={result.tracking_type === 'AWB' ? 'compass' : 'anchor'} size={18} color="var(--teal)" />
+                  )}
                 </div>
-                <div>
-                  <div style={{ fontSize: 10, color: 'var(--ink2)', textTransform: 'uppercase', letterSpacing: '.09em', marginBottom: 2 }}>{result.carrier}{result.service_name ? ` · ${result.service_name}` : ''}</div>
-                  <div style={{ fontSize: isMobile ? 16 : 20, fontWeight: 900, fontFamily: 'var(--font)', letterSpacing: '.02em', lineHeight: 1.1 }}>{result.tracking_number}</div>
+                <div className="min-w-0">
+                  <div className="tracker-result-meta">
+                    {result.tracking_type === 'AWB' ? 'Air Waybill' : 'Bill of Lading'} · {result.carrier}
+                    {result.service_name ? ` · ${result.service_name}` : ''}
+                  </div>
+                  <div className="tracker-result-number">{result.tracking_number}</div>
                   {result.vessel_name && (
-                    <div style={{ fontSize: 11, color: 'var(--ink3)', marginTop: 3, display: 'flex', alignItems: 'center', gap: 6 }}>
-                      <Icon name="ship" size={11} color="var(--ink3)" />
-                      {result.vessel_name}{result.voyage_number ? <span style={{ fontFamily: 'var(--font)', color: 'var(--ink2)' }}> · VOY {result.voyage_number}</span> : ''}
+                    <div className="tracker-result-vessel">
+                      <Icon name="ship" size={12} color="var(--ink3)" />
+                      <span className="font-semibold text-(--ink)">{result.vessel_name}</span>
+                      {result.voyage_number && (
+                        <span className="font-mono text-xs text-(--ink3)">· VOY {result.voyage_number}</span>
+                      )}
+                      {result.co2_emission ? (
+                        <span className="text-xs text-(--ink3)">· {result.co2_emission.toLocaleString()} kg CO₂e</span>
+                      ) : null}
                     </div>
                   )}
                 </div>
               </div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
-                {/* Delay badge */}
+
+              <div className="flex items-center gap-2 flex-wrap">
                 {result.eta && result.eta_initial && result.eta !== result.eta_initial && (() => {
                   const delayDays = Math.round((new Date(result.eta).getTime() - new Date(result.eta_initial).getTime()) / 86_400_000);
                   return delayDays !== 0 ? (
                     <Badge variant={delayDays > 0 ? 'error' : 'success'}>
                       <Icon name={delayDays > 0 ? 'alertCircle' : 'checkCircle'} size={11} color={delayDays > 0 ? 'var(--red)' : 'var(--green)'} />
-                      {delayDays > 0 ? `+${delayDays}d delay` : `${Math.abs(delayDays)}d early`}
+                      {delayDays > 0 ? `+${delayDays}d schedule variance` : `${Math.abs(delayDays)}d ahead`}
                     </Badge>
                   ) : null;
                 })()}
-                {(() => { const st = getStatus(result.status_code);
-                  const bv = st.fg === 'var(--green)' ? 'success' : st.fg === 'var(--red)' ? 'error' : st.fg === 'var(--gold)' ? 'warning' : st.fg === 'var(--blue)' ? 'info' : st.fg === 'var(--purple)' ? 'info' : 'gray';
+                {(() => {
+                  const st = getStatus(result.status_code);
+                  const bv = st.fg === 'var(--green)' ? 'success' : st.fg === 'var(--red)' ? 'error' : st.fg === 'var(--gold)' ? 'warning' : st.fg === 'var(--blue)' ? 'info' : 'gray';
                   return (
                     <Badge variant={bv as any}>
-                      <Icon name={st.icon} size={13} color={st.fg} />{st.label}
+                      <Icon name={st.icon} size={12} color={st.fg} />
+                      {st.label}
                     </Badge>
                   );
                 })()}
-                <button
-                  type="button"
-                  onClick={() => { setResult(null); setContainerModel(null); setError(null); setSavedId(null); setInputNumber(''); }}
-                  style={{ height: "var(--action-h)", padding: '0 10px', borderRadius: 'var(--r)', border: '1px solid rgba(255,255,255,.15)', background: 'rgba(255,255,255,.06)', color: 'rgba(255,255,255,.7)', fontSize: "var(--text-xs)", fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 5, letterSpacing: '.04em', textTransform: 'uppercase' }}
-                  onMouseEnter={e => (e.currentTarget.style.background = 'rgba(255,255,255,.12)')}
-                  onMouseLeave={e => (e.currentTarget.style.background = 'rgba(255,255,255,.06)')}
-                 data-ui-native-button="">
-                  <Icon name="x" size={10} color="rgba(255,255,255,.7)" />New Search
-                </button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => {
+                    setResult(null);
+                    setContainerModel(null);
+                    setShowContainerSpecs(false);
+                    setError(null);
+                    setSavedId(null);
+                    setInputNumber('');
+                  }}
+                >
+                  <Icon name="x" size={12} />
+                  Clear
+                </Button>
               </div>
             </div>
 
-            {/* Container chips */}
+            {/* Route Strip */}
+            <div className="tracker-route-strip">
+              <div className="tracker-route-Endpoint">
+                <div className="text-[10px] font-semibold uppercase tracking-wider text-(--ink3)">Port of Loading</div>
+                <div className="tracker-port-code mt-0.5">{result.origin_code || 'POL'}</div>
+                <div className="tracker-port-name">{result.origin_name}</div>
+              </div>
+
+              <div className="tracker-route-center">
+                <div className="tracker-route-status-row">
+                  <span className="inline-flex items-center gap-1.5 font-medium text-(--ink)">
+                    <Icon name="mapPin" size={12} color="var(--teal)" />
+                    <span>{result.current_location || 'In transit'}</span>
+                  </span>
+                  <span className="font-mono text-xs font-bold text-(--teal)">{result.progress_pct}%</span>
+                </div>
+                <div className="tracker-route-bar">
+                  <div className="tracker-route-fill" style={{ width: `${result.progress_pct}%` }} />
+                </div>
+                <div className="flex items-center justify-between text-[11px] text-(--ink3)">
+                  <span>{result.events.length} recorded milestones</span>
+                  <span>ETA: <strong className="text-(--ink2)">{fmtDate(result.eta)}</strong></span>
+                </div>
+              </div>
+
+              <div className="tracker-route-Endpoint tracker-route-Endpoint--dest">
+                <div className="text-[10px] font-semibold uppercase tracking-wider text-(--ink3)">Port of Discharge</div>
+                <div className="tracker-port-code mt-0.5">{result.dest_code || 'POD'}</div>
+                <div className="tracker-port-name">{result.dest_name}</div>
+              </div>
+            </div>
+
+            {/* Containers on Consignment Bar */}
             {result.containers && result.containers.length > 0 && (
-              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 16 }}>
-                {result.containers.map(c => (
-                  <div key={c.number} style={{ display: 'inline-flex', alignItems: 'center', gap: 5, background: 'rgba(255,255,255,.06)', border: '1px solid rgba(255,255,255,.1)', borderRadius: 'var(--r)', padding: '4px 10px', fontSize: 11 }}>
-                    <Icon name="container" size={11} color="var(--teal)" />
-                    <span style={{ fontFamily: 'var(--font)', fontWeight: 700, color: 'var(--bg)', letterSpacing: '.03em' }}>{c.number}</span>
-                    <span style={{ color: 'var(--ink2)', fontSize: 10 }}>{c.size}</span>
-                  </div>
-                ))}
-                {result.co2_emission && (
-                  <div style={{ display: 'inline-flex', alignItems: 'center', gap: 5, background: 'var(--green-l)', border: '1px solid var(--green)', borderRadius: 'var(--r)', padding: '4px 10px', fontSize: 11, color: 'var(--green)' }}>
-                    <Icon name="activity" size={11} color="var(--green)" />
-                    {result.co2_emission.toLocaleString()} kg CO₂
+              <div className="tracker-containers-bar">
+                <div className="tracker-containers-list">
+                  <span className="text-xs font-semibold text-(--ink3) mr-1">
+                    Containers ({result.containers.length}):
+                  </span>
+                  {result.containers.map(c => {
+                    const isSelected = activeContainerNum === c.number;
+                    return (
+                      <button
+                        key={c.number}
+                        type="button"
+                        data-ui-native-button=""
+                        onClick={() => handleContainerSwitch(c.number)}
+                        className={`tracker-container-pill ${isSelected ? 'is-active' : ''}`}
+                      >
+                        <Icon name="container" size={12} color={isSelected ? 'var(--teal)' : 'var(--ink3)'} />
+                        <span className="font-mono font-bold">{c.number}</span>
+                        <span className="text-[11px] opacity-75">{c.size}</span>
+                      </button>
+                    );
+                  })}
+                </div>
+
+                {activeContainerNum && result.tracking_type !== 'AWB' && (
+                  <div className="flex items-center gap-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setShowContainerSpecs(v => !v)}
+                    >
+                      <Icon name="layers" size={13} color="var(--teal)" />
+                      {showContainerSpecs ? 'Hide Container Specs' : `Inspect ${activeContainerNum} Specs`}
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => navigate(`/cargotracker/containers/${encodeURIComponent(activeContainerNum)}`)}
+                    >
+                      Open Full Record
+                      <Icon name="externalLink" size={12} />
+                    </Button>
                   </div>
                 )}
               </div>
             )}
-
-            {/* Route visualization */}
-            <div style={{ display: 'flex', alignItems: 'center', gap: isMobile ? 10 : 20, marginBottom: 18 }}>
-              <div style={{ textAlign: 'center', minWidth: isMobile ? 52 : 72, flexShrink: 0 }}>
-                <div style={{ fontSize: isMobile ? 22 : 30, fontWeight: 900, fontFamily: 'var(--font)', lineHeight: 1, letterSpacing: '-.01em' }}>{result.origin_code}</div>
-                <div style={{ fontSize: 10, color: 'var(--ink2)', marginTop: 3 }}>{result.origin_name}</div>
-              </div>
-              <div style={{ flex: 1, position: 'relative', height: 48, display: 'flex', alignItems: 'center' }}>
-                <div style={{ position: 'absolute', left: 0, right: 0, height: 3, background: 'rgba(255,255,255,.07)', borderRadius: 'var(--r-sm)'}} />
-                <div style={{ position: 'absolute', left: 0, width: `${result.progress_pct}%`, height: 3, background: 'var(--teal)', borderRadius: 'var(--r-sm)', transition: 'width .9s cubic-bezier(.34,1.56,.64,1)' }} />
-                <div style={{ position: 'absolute', left: `calc(${result.progress_pct}% - 18px)`, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 3, transition: 'left .9s cubic-bezier(.34,1.56,.64,1)' }}>
-                  <div style={{ fontSize: 9, fontWeight: 700, color: 'var(--teal)', background: 'rgba(255,255,255,.12)', border: '1px solid rgba(255,255,255,.18)', borderRadius: 'var(--r-sm)', padding: '2px 7px', whiteSpace: 'nowrap', maxWidth: 120, overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                    {result.current_location}
-                  </div>
-                  <div style={{ width: 36, height: 36, borderRadius: '50%', background: 'rgba(255,255,255,.1)', border: '2.5px solid var(--teal)', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 0 0 4px rgba(255,255,255,.06)' }}>
-                    <Icon name={result.tracking_type === 'AWB' ? 'compass' : 'anchor'} size={15} color="var(--teal)" />
-                  </div>
-                </div>
-              </div>
-              <div style={{ textAlign: 'center', minWidth: isMobile ? 52 : 72, flexShrink: 0 }}>
-                <div style={{ fontSize: isMobile ? 22 : 30, fontWeight: 900, fontFamily: 'var(--font)', lineHeight: 1, letterSpacing: '-.01em' }}>{result.dest_code}</div>
-                <div style={{ fontSize: 10, color: 'var(--ink2)', marginTop: 3 }}>{result.dest_name}</div>
-              </div>
-            </div>
-
-            {/* Progress bar */}
-            <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
-              <div style={{ flex: 1, height: 5, background: 'rgba(255,255,255,.07)', borderRadius: 'var(--r-sm)', overflow: 'hidden' }}>
-                <div style={{ height: '100%', width: `${result.progress_pct}%`, background: 'var(--teal)', borderRadius: 'var(--r-sm)', transition: 'width .9s ease' }} />
-              </div>
-              <span style={{ fontSize: 13, fontWeight: 900, color: 'var(--teal)', fontFamily: 'var(--font)', flexShrink: 0 }}>{result.progress_pct}%</span>
-            </div>
           </div>
 
-          {/* KPI row */}
-          <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr 1fr' : 'repeat(4,1fr)', gap: 12 }}>
-            <KpiCard icon="calendar" label="Estimated Arrival" accent="var(--teal)"
-              value={fmtDate(result.eta)}
-              sub={result.eta ? new Date(result.eta).toLocaleDateString('en-GB', { weekday: 'long' }) : undefined}
-            />
-            <KpiCard icon="clock" label="Days Remaining" accent="var(--ink)"
-              value={(() => { const d = daysUntil(result.eta); return d == null ? '—' : d > 0 ? `~${d}` : d === 0 ? 'Today' : 'Overdue'; })()}
-              sub={(() => { const d = daysUntil(result.eta); return d != null && d < 0 ? `${Math.abs(d)}d overdue` : d != null && d <= 3 ? 'Arriving very soon' : undefined; })()}
-            />
-            <KpiCard icon="layers" label="Journey Progress" accent="var(--green)"
-              value={`${result.progress_pct}%`}
-              sub={`${result.events.length} tracking events`}
-            />
-            <KpiCard icon="truck" label="Carrier & Mode" accent="var(--gold)"
-              value={result.carrier}
-              sub={result.tracking_type === 'AWB' ? 'Air Freight' : 'Ocean Freight'}
-            />
-          </div>
+          {/* Standard MetricsRow KPIs */}
+          {(() => {
+            const d = daysUntil(result.eta);
+            return (
+              <MetricsRow
+                cards={[
+                  {
+                    emphasis: 'primary',
+                    title: 'Estimated Arrival',
+                    value: fmtDate(result.eta),
+                    sub1Label: 'DAY',
+                    sub1Value: result.eta ? new Date(result.eta).toLocaleDateString('en-GB', { weekday: 'short' }) : '—',
+                    sub2Label: 'DESTINATION',
+                    sub2Value: result.dest_code || result.dest_name || '—',
+                    barHighlight: 'var(--teal)',
+                  },
+                  {
+                    title: 'Schedule Window',
+                    value: d == null ? '—' : d > 0 ? `${d} days` : d === 0 ? 'Arriving Today' : `${Math.abs(d)}d Overdue`,
+                    sub1Label: 'INITIAL ETA',
+                    sub1Value: fmtDate(result.eta_initial ?? result.eta),
+                    sub2Label: 'STATUS',
+                    sub2Value: getStatus(result.status_code).label,
+                    barHighlight: d != null && d < 0 ? 'var(--red)' : 'var(--blue)',
+                  },
+                  {
+                    title: 'Journey Progress',
+                    value: `${result.progress_pct}%`,
+                    sub1Label: 'MILESTONES',
+                    sub1Value: `${result.events.length} events`,
+                    sub2Label: 'PORT CALLS',
+                    sub2Value: `${result.port_calls?.length ?? 0} ports`,
+                    barHighlight: 'var(--green)',
+                  },
+                  {
+                    title: 'Carrier & Mode',
+                    value: result.carrier || '—',
+                    sub1Label: 'MODE',
+                    sub1Value: result.tracking_type === 'AWB' ? 'Air Freight' : 'Ocean Freight',
+                    sub2Label: 'SOURCE',
+                    sub2Value: result.source === 'live' ? (result.provider || 'Live EDI') : 'Manual',
+                    barHighlight: 'var(--gold)',
+                  },
+                ]}
+              />
+            );
+          })()}
+
+          {/* On-demand Container Specification View */}
+          {showContainerSpecs && activeContainerNum && result.tracking_type !== 'AWB' && (
+            <SectionCard
+              title={`Container Specification & Telemetry · ${activeContainerNum}`}
+              action={
+                <Button variant="ghost" size="sm" onClick={() => setShowContainerSpecs(false)}>
+                  <Icon name="x" size={13} />
+                  Close preview
+                </Button>
+              }
+            >
+              {containerModel ? (
+                <ContainerDetailView
+                  key={containerModel.container_number}
+                  number={containerModel.container_number}
+                  providedContainer={containerModel}
+                />
+              ) : (
+                <SectionLoading label="Loading container specifications…" />
+              )}
+            </SectionCard>
+          )}
 
           {/* ── Port Routing Table (ShipsGo / rich data) ── */}
           {result.port_calls && result.port_calls.length > 0 && (
             <SectionCard
-              title="Port Routing"
-              action={result.provider ? (
-                <div style={{ fontSize: 10, fontWeight: 700, color: 'var(--ink3)', background: 'var(--bg)', border: '1px solid var(--border)', borderRadius: 'var(--r-sm)', padding: '3px 9px' }}>
-                  via {result.provider === 'shipsgo' ? 'ShipsGo' : 'Ship24'}
-                </div>
-              ) : undefined}
+              title="Port Routing Schedule"
+              action={
+                result.provider ? (
+                  <Badge variant="gray">
+                    Source: {result.provider === 'shipsgo' ? 'ShipsGo EDI' : 'Ship24'}
+                  </Badge>
+                ) : undefined
+              }
             >
               <div style={{ overflowX: 'auto' }}>
-              <div style={{ fontSize: 11, color: 'var(--ink3)', marginBottom: 14 }}>{result.port_calls.length} ports · actual dates confirmed · estimated shown in italic</div>
+                <div style={{ fontSize: 11.5, color: 'var(--ink3)', marginBottom: 12 }}>
+                  {result.port_calls.length} scheduled port calls · confirmed actual dates in bold · estimated dates in italic
+                </div>
 
-              {/* All unique event codes across all port calls */}
-              {(() => {
-                // Fixed chronological order: gate in → arrive → discharge → load → depart → gate out
-                const CODE_ORDER = ['EMSH', 'GTIN', 'ARRV', 'DISC', 'LOAD', 'DEPA', 'GTOT', 'EMRT'];
-                const presentCodes = new Set(result.port_calls!.flatMap(pc => pc.events.map(e => e.code)));
-                const allCodes = CODE_ORDER.filter(c => presentCodes.has(c));
-                const codeLabels: Record<string, string> = {
-                  EMSH: 'Empty Ship', GTIN: 'Gate In', ARRV: 'Arrived',
-                  DISC: 'Discharged', LOAD: 'Loaded', DEPA: 'Departed',
-                  GTOT: 'Gate Out', EMRT: 'Empty Return',
-                };
+                {(() => {
+                  const CODE_ORDER = ['EMSH', 'GTIN', 'ARRV', 'DISC', 'LOAD', 'DEPA', 'GTOT', 'EMRT'];
+                  const presentCodes = new Set(result.port_calls!.flatMap(pc => pc.events.map(e => e.code)));
+                  const allCodes = CODE_ORDER.filter(c => presentCodes.has(c));
+                  const codeLabels: Record<string, string> = {
+                    EMSH: 'Empty Ship', GTIN: 'Gate In', ARRV: 'Arrived',
+                    DISC: 'Discharged', LOAD: 'Loaded', DEPA: 'Departed',
+                    GTOT: 'Gate Out', EMRT: 'Empty Return',
+                  };
 
-                return (
-                  <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: 600, fontFamily: 'var(--font)' }}>
-                    <thead>
-                      <tr style={{ borderBottom: '2px solid var(--border)' }}>
-                        <th style={{ textAlign: 'left', padding: '8px 12px 10px', fontSize: 10, fontWeight: 700, color: 'var(--ink3)', textTransform: 'uppercase', letterSpacing: '.07em', minWidth: 140 }}>Port</th>
-                        {allCodes.map(code => (
-                          <th key={code} style={{ textAlign: 'center', padding: '8px 10px 10px', fontSize: 10, fontWeight: 700, color: 'var(--ink3)', textTransform: 'uppercase', letterSpacing: '.07em', whiteSpace: 'nowrap' }}>
-                            {codeLabels[code] ?? code}
-                          </th>
-                        ))}
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {result.port_calls!.map((pc, pi) => {
-                        const isLast = pi === result.port_calls!.length - 1;
-                        const isActive = pc.events.some(e => e.act) && !pc.events.every(e => e.act);
-                        return (
-                          <tr key={pc.port_code} style={{
-                            borderBottom: isLast ? 'none' : '1px solid var(--border)',
-                            background: isActive ? 'var(--teal-l)' : 'transparent',
-                          }}>
-                            {/* Port name cell */}
-                            <td style={{ padding: '10px 12px', verticalAlign: 'middle' }}>
-                              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                                <div style={{ width: 8, height: 8, borderRadius: '50%', flexShrink: 0, background: isActive ? 'var(--teal)' : pc.events.every(e => e.act) ? 'var(--green)' : 'var(--border)' }} />
-                                <div>
-                                  <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--ink)', lineHeight: 1.2 }}>{pc.port_name}</div>
-                                  <div style={{ fontSize: 10, color: 'var(--ink3)', marginTop: 2, display: 'flex', alignItems: 'center', gap: 4 }}>
-                                    <span style={{ fontFamily: 'var(--font)' }}>{pc.port_code}</span>
-                                    {pc.is_transshipment && <span style={{ background: 'var(--bg)', border: '1px solid var(--border)', borderRadius: 'var(--r-sm)', padding: '1px 5px', fontSize: 9, fontWeight: 700, color: 'var(--ink3)' }}>T/S</span>}
-                                  </div>
-                                </div>
-                              </div>
-                            </td>
-                            {/* Event date cells */}
-                            {allCodes.map(code => {
-                              const ev = pc.events.find(e => e.code === code);
-                              const date = ev?.act ?? ev?.est ?? null;
-                              const isActual = !!ev?.act;
-                              return (
-                                <td key={code} style={{ padding: '10px', textAlign: 'center', verticalAlign: 'middle' }}>
-                                  {date ? (
-                                    <div>
-                                      <div style={{ fontSize: 11, fontWeight: isActual ? 700 : 400, color: isActual ? 'var(--ink)' : 'var(--ink3)', fontStyle: isActual ? 'normal' : 'italic', whiteSpace: 'nowrap' }}>
-                                        {fmtDate(date)}
-                                      </div>
-                                      {isActual && (
-                                        <div style={{ fontSize: 9, color: 'var(--teal)', fontWeight: 700, marginTop: 1 }}>✓ actual</div>
+                  return (
+                    <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: 600, fontFamily: 'var(--font)' }}>
+                      <thead>
+                        <tr style={{ borderBottom: '1px solid var(--trk-border-strong)', background: 'var(--bg)' }}>
+                          <th style={{ textAlign: 'left', padding: '9px 12px', fontSize: 10.5, fontWeight: 700, color: 'var(--ink3)', textTransform: 'uppercase', letterSpacing: '.06em', minWidth: 150 }}>Port</th>
+                          {allCodes.map(code => (
+                            <th key={code} style={{ textAlign: 'center', padding: '9px 10px', fontSize: 10.5, fontWeight: 700, color: 'var(--ink3)', textTransform: 'uppercase', letterSpacing: '.06em', whiteSpace: 'nowrap' }}>
+                              {codeLabels[code] ?? code}
+                            </th>
+                          ))}
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {result.port_calls!.map((pc, pi) => {
+                          const isLast = pi === result.port_calls!.length - 1;
+                          const isActive = pc.events.some(e => e.act) && !pc.events.every(e => e.act);
+                          return (
+                            <tr
+                              key={pc.port_code}
+                              style={{
+                                borderBottom: isLast ? 'none' : '1px solid var(--trk-border)',
+                                background: isActive ? 'color-mix(in srgb, var(--teal-l) 55%, transparent)' : 'transparent',
+                              }}
+                            >
+                              <td style={{ padding: '10px 12px', verticalAlign: 'middle' }}>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                                  <div style={{ width: 8, height: 8, borderRadius: '50%', flexShrink: 0, background: isActive ? 'var(--teal)' : pc.events.every(e => e.act) ? 'var(--green)' : 'var(--border)' }} />
+                                  <div>
+                                    <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--ink)', lineHeight: 1.2 }}>{pc.port_name}</div>
+                                    <div style={{ fontSize: 10.5, color: 'var(--ink3)', marginTop: 2, display: 'flex', alignItems: 'center', gap: 5 }}>
+                                      <span className="font-mono">{pc.port_code}</span>
+                                      {pc.is_transshipment && (
+                                        <span style={{ background: 'var(--bg)', border: '1px solid var(--trk-border)', borderRadius: 'var(--r-sm)', padding: '0 5px', fontSize: 9.5, fontWeight: 700, color: 'var(--ink2)' }}>
+                                          Transshipment
+                                        </span>
                                       )}
                                     </div>
-                                  ) : (
-                                    <span style={{ color: 'var(--border)', fontSize: 14 }}>—</span>
-                                  )}
-                                </td>
-                              );
-                            })}
-                          </tr>
-                        );
-                      })}
-                    </tbody>
-                  </table>
-                );
-              })()}
+                                  </div>
+                                </div>
+                              </td>
+                              {allCodes.map(code => {
+                                const ev = pc.events.find(e => e.code === code);
+                                const date = ev?.act ?? ev?.est ?? null;
+                                const isActual = !!ev?.act;
+                                return (
+                                  <td key={code} style={{ padding: '10px', textAlign: 'center', verticalAlign: 'middle' }}>
+                                    {date ? (
+                                      <div>
+                                        <div style={{ fontSize: 11.5, fontWeight: isActual ? 700 : 400, color: isActual ? 'var(--ink)' : 'var(--ink3)', fontStyle: isActual ? 'normal' : 'italic', whiteSpace: 'nowrap' }}>
+                                          {fmtDate(date)}
+                                        </div>
+                                        {isActual && (
+                                          <div style={{ fontSize: 9.5, color: 'var(--teal)', fontWeight: 600, marginTop: 1 }}>Confirmed</div>
+                                        )}
+                                      </div>
+                                    ) : (
+                                      <span style={{ color: 'var(--ink3)', opacity: 0.45, fontSize: 13 }}>—</span>
+                                    )}
+                                  </td>
+                                );
+                              })}
+                            </tr>
+                          );
+                        })}
+                      </tbody>
+                    </table>
+                  );
+                })()}
               </div>
             </SectionCard>
           )}
 
-          {/* Timeline + snapshot */}
+          {/* Timeline + Snapshot Export */}
           <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '3fr 2fr', gap: 16 }}>
-
             {/* Events */}
-            <SectionCard title="Tracking Events">
-              <div style={{ fontSize: 11, color: 'var(--ink3)', marginBottom: 14 }}>{result.events.length} updates recorded</div>
-              <div style={{ maxHeight: 440, overflowY: 'auto' }}>
+            <SectionCard title="Tracking Milestones">
+              <div style={{ fontSize: 11.5, color: 'var(--ink3)', marginBottom: 14 }}>
+                {result.events.length} chronological carrier checkpoints recorded
+              </div>
+              <div style={{ maxHeight: 420, overflowY: 'auto', paddingRight: 4 }}>
                 {result.events.map((ev, i) => {
                   const st = getStatus(ev.status_code);
                   return (
-                    <div key={i} style={{ display: 'flex', gap: 14, marginBottom: 22, position: 'relative' }}>
-                      {i < result.events.length - 1 && <div style={{ position: 'absolute', left: 16, top: 36, bottom: -22, width: 1, background: 'var(--border)' }} />}
-                      <div style={{ width: 33, height: 33, borderRadius: '50%', flexShrink: 0, background: i === 0 ? st.bg : 'var(--bg)', border: `2px solid ${i === 0 ? st.fg : 'var(--border)'}`, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                        <Icon name={st.icon} size={14} color={i === 0 ? st.fg : 'var(--ink3)'} />
+                    <div key={i} style={{ display: 'flex', gap: 12, marginBottom: i === result.events.length - 1 ? 4 : 18, position: 'relative' }}>
+                      {i < result.events.length - 1 && (
+                        <div style={{ position: 'absolute', left: 15, top: 32, bottom: -18, width: 1, background: 'var(--trk-border)' }} />
+                      )}
+                      <div
+                        style={{
+                          width: 30,
+                          height: 30,
+                          borderRadius: '50%',
+                          flexShrink: 0,
+                          background: i === 0 ? st.bg : 'var(--bg)',
+                          border: `1.5px solid ${i === 0 ? st.fg : 'var(--trk-border)'}`,
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                        }}
+                      >
+                        <Icon name={st.icon} size={13} color={i === 0 ? st.fg : 'var(--ink3)'} />
                       </div>
-                      <div style={{ flex: 1, paddingTop: 3 }}>
-                        <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--ink)', marginBottom: 4 }}>{ev.description}</div>
+                      <div style={{ flex: 1, paddingTop: 2 }}>
+                        <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--ink)', marginBottom: 3 }}>{ev.description}</div>
                         <div style={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: 8 }}>
-                          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: 11, color: 'var(--ink3)' }}>
-                            <Icon name="mapPin" size={10} color="var(--ink3)" />{ev.location || '—'}
+                          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: 11.5, color: 'var(--ink2)' }}>
+                            <Icon name="mapPin" size={11} color="var(--ink3)" />
+                            {ev.location || '—'}
                           </span>
-                          <span style={{ fontSize: 11, color: 'var(--ink3)', fontFamily: 'var(--font)' }}>{fmtDate(ev.timestamp)} · {fmtTime(ev.timestamp)}</span>
+                          <span style={{ fontSize: 11.5, color: 'var(--ink3)', fontVariantNumeric: 'tabular-nums' }}>
+                            · {fmtDate(ev.timestamp)} {fmtTime(ev.timestamp)}
+                          </span>
                         </div>
                       </div>
                     </div>
@@ -1285,104 +1386,129 @@ export const Tracker: React.FC = () => {
               </div>
             </SectionCard>
 
-            {/* Snapshot panel */}
-            <SectionCard title="Tracking Snapshot">
-              <div style={{ fontSize: 11, color: 'var(--ink3)', marginBottom: 10 }}>Save · Share · Embed · PDF</div>
+            {/* Snapshot & Export Panel */}
+            <SectionCard title="Save & Export Consignment">
+              <div style={{ fontSize: 11.5, color: 'var(--ink3)', marginBottom: 12 }}>
+                Save to your tracked register, share a customer status link, or export a PDF report.
+              </div>
 
-              <div style={{ margin: '16px 0' }}>
+              <div style={{ marginBottom: 14 }}>
                 <SnapshotCard result={result} />
               </div>
 
-              {/* Actions */}
               <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
                 {!savedId ? (
                   <Button className="w-full" onClick={handleSave} disabled={savingSnap}>
-                    {savingSnap
-                      ? <><ButtonSpinner />Saving…</>
-                      : <><Icon name="save" size={14} color="hsl(var(--primary-foreground))" />Add to tracked</>
-                    }
+                    {savingSnap ? (
+                      <>
+                        <ButtonSpinner />
+                        Saving…
+                      </>
+                    ) : (
+                      <>
+                        <Icon name="save" size={14} color="hsl(var(--primary-foreground))" />
+                        Save to Tracked Register
+                      </>
+                    )}
                   </Button>
                 ) : (
-                  <Badge variant="success" className="justify-center py-3 text-[13px]">
-                    <Icon name="checkCircle" size={15} color="var(--green)" />
-                    Added to tracked
+                  <Badge variant="success" className="justify-center py-2.5 text-xs">
+                    <Icon name="checkCircle" size={14} color="var(--green)" />
+                    Saved to Tracked Register
                   </Badge>
                 )}
 
-                {savedId && (
-                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
+                <div style={{ display: 'grid', gridTemplateColumns: savedId ? '1fr 1fr' : '1fr', gap: 8 }}>
+                  {savedId && (
                     <Button variant="outline" size="sm" onClick={() => copyLink(savedId)}>
                       <Icon name="link" size={13} color="var(--teal)" />
-                      {copied ? 'Copied!' : 'Share Link'}
+                      {copied ? 'Link Copied' : 'Share Status Link'}
                     </Button>
-                    <Button variant="outline" size="sm" onClick={() => generatePDF(result)}>
-                      <Icon name="fileText" size={13} color="var(--teal)" />
-                      PDF Report
-                    </Button>
-                  </div>
-                )}
-
-                {result && (
-                  <Button variant="outline" size="sm" onClick={() => generatePDF(result)} className="w-full tracker-ghost-dashed" style={{ color: 'var(--ink3)' }}>
-                    <Icon name="download" size={12} color="var(--ink3)" />
-                    Export PDF without saving
+                  )}
+                  <Button variant="outline" size="sm" onClick={() => generatePDF(result)}>
+                    <Icon name="download" size={13} color="var(--teal)" />
+                    Export PDF Report
                   </Button>
-                )}
+                </div>
               </div>
             </SectionCard>
           </div>
 
           {/* ── Arrival Analytics + Demurrage bridge ── */}
           <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '3fr 2fr', gap: 16 }}>
-            {/* Arrival Analytics */}
-            <SectionCard title="Arrival Analytics">
-              <div style={{ fontSize: 11, color: 'var(--ink3)', marginBottom: 14 }}>{result.carrier} reliability, computed from your own tracked shipments</div>
+            <SectionCard title="Carrier Schedule Reliability">
+              <div style={{ fontSize: 11.5, color: 'var(--ink3)', marginBottom: 12 }}>
+                Historical performance for {result.carrier} across your workspace shipments
+              </div>
               {!carrierReliability || carrierReliability.on_time_pct === null ? (
-                <div style={{ padding: '20px 4px', fontSize: 12.5, color: 'var(--ink3)' }}>
-                  Not enough history for {result.carrier} yet — save a few more shipments on this carrier to build a reliability rating.
+                <div style={{ padding: '16px 4px', fontSize: 12.5, color: 'var(--ink3)' }}>
+                  Insufficient historical records for {result.carrier}. Save additional shipments on this carrier to compute schedule reliability.
                 </div>
               ) : (
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: 14 }}>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: 12 }}>
                   {[
-                    { label: 'On-time Rate', value: `${carrierReliability.on_time_pct}%`, accent: carrierReliability.on_time_pct >= 80 ? 'var(--green)' : carrierReliability.on_time_pct >= 50 ? 'var(--gold)' : 'var(--red)' },
-                    { label: 'Avg Deviation', value: carrierReliability.avg_deviation_days === null ? '—' : `${carrierReliability.avg_deviation_days > 0 ? '+' : ''}${carrierReliability.avg_deviation_days}d`, accent: 'var(--ink)' },
-                    { label: 'Avg Transit', value: carrierReliability.avg_transit_days === null ? '—' : `${carrierReliability.avg_transit_days}d`, accent: 'var(--ink)' },
+                    { label: 'On-Time Arrival', value: `${carrierReliability.on_time_pct}%`, accent: carrierReliability.on_time_pct >= 80 ? 'var(--green)' : carrierReliability.on_time_pct >= 50 ? 'var(--gold)' : 'var(--red)' },
+                    { label: 'Avg Schedule Drift', value: carrierReliability.avg_deviation_days === null ? '—' : `${carrierReliability.avg_deviation_days > 0 ? '+' : ''}${carrierReliability.avg_deviation_days}d`, accent: 'var(--ink)' },
+                    { label: 'Avg Transit Time', value: carrierReliability.avg_transit_days === null ? '—' : `${carrierReliability.avg_transit_days}d`, accent: 'var(--ink)' },
                   ].map(s => (
-                    <div key={s.label} style={{ padding: '14px 12px', borderRadius: 'var(--r)', background: 'var(--bg)', border: '1px solid var(--border)' }}>
-                      <div style={{ fontSize: 10, fontWeight: 700, color: 'var(--ink3)', textTransform: 'uppercase', letterSpacing: '.05em', marginBottom: 6 }}>{s.label}</div>
-                      <div style={{ fontSize: 20, fontWeight: 800, color: s.accent, fontVariantNumeric: 'tabular-nums' }}>{s.value}</div>
+                    <div key={s.label} style={{ padding: '12px 14px', borderRadius: 'var(--r-sm, 6px)', background: 'var(--bg)', border: '1px solid var(--trk-border)' }}>
+                      <div style={{ fontSize: 10, fontWeight: 700, color: 'var(--ink3)', textTransform: 'uppercase', letterSpacing: '.05em', marginBottom: 4 }}>{s.label}</div>
+                      <div style={{ fontSize: 19, fontWeight: 800, color: s.accent, fontVariantNumeric: 'tabular-nums' }}>{s.value}</div>
                     </div>
                   ))}
-                  <div style={{ gridColumn: '1 / -1', fontSize: 11, color: 'var(--ink3)' }}>
-                    Based on {carrierReliability.shipments} shipment{carrierReliability.shipments === 1 ? '' : 's'} tracked with {result.carrier}.
+                  <div style={{ gridColumn: '1 / -1', fontSize: 11.5, color: 'var(--ink3)' }}>
+                    Computed from {carrierReliability.shipments} tracked consignment{carrierReliability.shipments === 1 ? '' : 's'} with {result.carrier}.
                   </div>
                 </div>
               )}
             </SectionCard>
 
-            {/* Demurrage bridge */}
-            <SectionCard title="Demurrage">
-              <div style={{ fontSize: 11, color: 'var(--ink3)', marginBottom: 14 }}>Containers on this BL already under dwell tracking</div>
+            <SectionCard
+              title="Demurrage & Free-Time Exposure"
+              action={
+                <Button variant="ghost" size="sm" onClick={() => navigate('/cargotracker/demurrage')}>
+                  Demurrage Ledger →
+                </Button>
+              }
+            >
+              <div style={{ fontSize: 11.5, color: 'var(--ink3)', marginBottom: 12 }}>
+                Dwell status for containers linked to this bill of lading
+              </div>
               {demurrageContainers.length === 0 ? (
                 <div style={{ padding: '8px 4px', fontSize: 12.5, color: 'var(--ink3)' }}>
                   {result.containers && result.containers.length > 0
-                    ? 'No demurrage records found for these containers yet.'
-                    : 'No containers on this shipment.'}
+                    ? 'No active demurrage exposure recorded for these containers.'
+                    : 'No containers attached to this consignment.'}
                 </div>
               ) : (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
                   {demurrageContainers.map((c: any) => (
-                    <div key={c.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '10px 12px', borderRadius: 'var(--r)', background: c.demurrage_days > 0 ? 'var(--red-l)' : 'var(--bg)', border: `1px solid ${c.demurrage_days > 0 ? 'var(--red)' : 'var(--border)'}` }}>
+                    <div
+                      key={c.id}
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'space-between',
+                        padding: '10px 12px',
+                        borderRadius: 'var(--r-sm, 6px)',
+                        background: c.demurrage_days > 0 ? 'var(--red-l)' : 'var(--bg)',
+                        border: `1px solid ${c.demurrage_days > 0 ? 'var(--red)' : 'var(--trk-border)'}`,
+                      }}
+                    >
                       <div>
-                        <div style={{ fontSize: 12.5, fontWeight: 700, fontFamily: 'var(--font)', color: 'var(--ink)' }}>{c.container_number}</div>
-                        <div style={{ fontSize: 10.5, color: 'var(--ink3)', marginTop: 2 }}>{c.container_size} · {c.status}</div>
+                        <div className="font-mono text-xs font-bold text-(--ink)">{c.container_number}</div>
+                        <div style={{ fontSize: 11, color: 'var(--ink3)', marginTop: 2 }}>
+                          {c.container_size} · {String(c.status || '').replace(/_/g, ' ')}
+                        </div>
                       </div>
                       <div style={{ textAlign: 'right' }}>
-                        <div style={{ fontSize: 13, fontWeight: 800, color: c.demurrage_days > 0 ? 'var(--red)' : 'var(--ink2)' }}>
-                          {c.demurrage_days > 0 ? `${c.demurrage_days}d` : 'On time'}
+                        <div style={{ fontSize: 12.5, fontWeight: 700, color: c.demurrage_days > 0 ? 'var(--red)' : 'var(--green)' }}>
+                          {c.demurrage_days > 0 ? `${c.demurrage_days}d chargeable` : 'Within free time'}
                         </div>
                         {c.demurrage_cost > 0 && (
-                          <div style={{ fontSize: 10.5, color: 'var(--ink3)' }}>{new Intl.NumberFormat('en-US', { style: 'currency', currency: c.demurrage_currency || 'USD', minimumFractionDigits: 0 }).format(c.demurrage_cost)}</div>
+                          <div style={{ fontSize: 11, fontWeight: 600, color: 'var(--ink2)' }}>
+                            {new Intl.NumberFormat('en-US', { style: 'currency', currency: c.demurrage_currency || 'USD', minimumFractionDigits: 0 }).format(c.demurrage_cost)}
+                          </div>
                         )}
                       </div>
                     </div>
@@ -1394,19 +1520,13 @@ export const Tracker: React.FC = () => {
         </div>
       )}
 
+      {/* ── Tracked Register ── */}
       <SectionCard
-        title="Tracked"
+        title="Tracked Shipments & Fleet"
         action={
-          <div className="flex flex-wrap items-center justify-end gap-2">
-            <Tip label="Open Customs Tracker">
-              <Button variant="outline" size="sm" asChild>
-                <Link to="/cargotracker/customs" aria-label="Open Customs Tracker">
-                  <Icon name="shield" size={16} /><span className="hidden sm:inline">Customs Tracker</span>
-                </Link>
-              </Button>
-            </Tip>
+          <div className="flex flex-wrap items-center justify-end gap-1.5">
             <TrackerIconAction label="Refresh tracked list" icon="refresh" onClick={() => loadTracked(trackedPage)} disabled={loadingTracked} />
-            <TrackerIconAction label="Add container" icon="plus" onClick={() => navigate('/cargotracker/containers/new')} />
+            <TrackerIconAction label="Record container" icon="plus" onClick={() => navigate('/cargotracker/containers/new')} />
           </div>
         }
       >
@@ -1414,16 +1534,20 @@ export const Tracker: React.FC = () => {
         {loadingTracked && !tracked.length ? (
           <SectionLoading label="Loading tracked shipments and containers…" />
         ) : !tracked.length && trackedPage === 1 ? (
-          !trackedError && <p className="py-6 text-center text-sm text-(--ink2)">Track a shipment above and add it to this list, or add a container to your fleet.</p>
+          !trackedError && (
+            <p className="py-6 text-center text-sm text-(--ink2)">
+              Enter a container, bill of lading, or air waybill number above to track and save it to your register.
+            </p>
+          )
         ) : (
           <>
-            <ul className="divide-y divide-(--border) overflow-hidden rounded-none border border-(--border) bg-(--white)">
+            <ul className="tracker-register-list">
               {tracked.map(({ id, container, snapshots: records }) => {
                 const primarySnap = records[0] ?? null;
                 const extraSnaps = records.slice(1);
 
                 return (
-                  <li key={id} className="min-w-0 [overflow-wrap:anywhere] transition-colors hover:bg-(--hover-bg)/30">
+                  <li key={id} className="tracker-register-item">
                     {primarySnap ? (
                       (() => {
                         const snap = primarySnap;
@@ -1433,133 +1557,112 @@ export const Tracker: React.FC = () => {
                         const badgeVariant = status.fg === 'var(--green)' ? 'success' : status.fg === 'var(--red)' ? 'error' : status.fg === 'var(--gold)' ? 'warning' : status.fg === 'var(--blue)' ? 'info' : 'gray';
 
                         return (
-                          <div className="min-w-0 px-3.5 py-2.5 sm:px-4 sm:py-2">
-                            {/* Row 1: Identity, Carrier, Route & Status/ETA */}
-                            <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1">
-                              {/* Left: Carrier Icon + Main ID + Badges + Type/Carrier */}
-                              <div className="flex items-center gap-2 min-w-0 flex-wrap">
+                          <div className="min-w-0">
+                            <div className="tracker-register-main">
+                              {/* Col 1: Consignment / Container Identity */}
+                              <div className="tracker-register-col-id">
                                 {detectShippingLine(snap.carrier ?? undefined) ? (
-                                  <CarrierLogo carrier={snap.carrier} size={22} />
-                                ) : (
-                                  <div className="size-5.5 rounded bg-muted/60 flex items-center justify-center shrink-0 text-(--ink2)">
-                                    <Icon name={snap.tracking_type === 'AWB' ? 'compass' : 'anchor'} size={12} />
-                                  </div>
-                                )}
-                                {container ? (
-                                  <div className="flex items-center gap-1.5 flex-wrap">
-                                    <span className="font-mono text-[13px] font-bold text-(--ink)">{container.container_number}</span>
-                                    <Badge
-                                      variant={['EMPTY_RETURNED', 'AVAILABLE_AT_DEPOT'].includes(container.lifecycle_stage ?? '') ? 'success' : 'gray'}
-                                      className="text-[10px] px-1.5 py-0 h-4 capitalize font-semibold"
-                                    >
-                                      {container.lifecycle_stage?.replace(/_/g, ' ').toLowerCase() || 'Status unknown'}
-                                    </Badge>
-                                    <span className="text-[11px] text-(--ink3)">
-                                      {[container.size_type || container.iso_code, snap.tracking_number ? `BL: ${snap.tracking_number}` : null, container.carrier_name || snap.carrier].filter(Boolean).join(' · ')}
-                                    </span>
+                                  <div className="mt-0.5 shrink-0">
+                                    <CarrierLogo carrier={snap.carrier} size={26} />
                                   </div>
                                 ) : (
-                                  <div className="flex items-center gap-1.5 flex-wrap">
-                                    <span className="font-mono text-[13px] font-bold text-(--ink)">{snap.tracking_number}</span>
-                                    <span className="text-[11px] text-(--ink3)">
-                                      {[snap.tracking_type, snap.carrier].filter(Boolean).join(' · ')}
-                                    </span>
+                                  <div className="size-7 rounded-md bg-(--bg) border border-(--trk-border) flex items-center justify-center shrink-0 text-(--ink2) mt-0.5">
+                                    <Icon name={snap.tracking_type === 'AWB' ? 'compass' : 'anchor'} size={13} />
                                   </div>
                                 )}
-                                <Badge variant={badgeVariant} className="text-[10px] h-4.5 px-1.5 font-semibold shrink-0">{status.label}</Badge>
-                              </div>
-
-                              {/* Right: Route & ETA / Progress */}
-                              <div className="flex items-center gap-3 shrink-0 text-xs">
-                                {(snap.origin_name || snap.dest_name) && (
-                                  <span className="font-semibold text-xs text-(--ink) flex items-center gap-1">
-                                    {snap.origin_name || '—'}
-                                    <Icon name="arrowRight" size={10} className="text-(--ink3)" />
-                                    {snap.dest_name || '—'}
-                                  </span>
-                                )}
-                                <div className="flex items-center gap-1 text-[11px]">
-                                  <span className="font-medium text-(--ink)">ETA {fmtDate(snap.eta)}</span>
-                                  {days != null ? (
-                                    days < 0 ? (
-                                      <span className="font-semibold text-destructive">· Overdue</span>
-                                    ) : days === 0 ? (
-                                      <span className="font-semibold text-amber-600">· Today</span>
-                                    ) : null
-                                  ) : null}
-                                  <span className="font-bold text-(--teal)">· {snap.progress_pct}%</span>
+                                <div className="min-w-0">
+                                  <div className="flex items-center gap-2 flex-wrap">
+                                    <span className="font-mono text-[13.5px] font-bold text-(--ink)">
+                                      {container ? container.container_number : snap.tracking_number}
+                                    </span>
+                                    {container && snap.tracking_number && snap.tracking_number !== container.container_number && (
+                                      <span className="font-mono text-[11px] font-medium text-(--ink3) bg-(--bg) border border-(--trk-border) rounded px-1.5 py-0.5">
+                                        B/L {snap.tracking_number}
+                                      </span>
+                                    )}
+                                  </div>
+                                  <div className="text-[11.5px] text-(--ink3) truncate mt-0.5">
+                                    {container
+                                      ? [container.size_type || container.iso_code, container.carrier_name || snap.carrier, container.customer_name].filter(Boolean).join(' · ')
+                                      : [snap.tracking_type === 'AWB' ? 'Air Waybill' : 'Bill of Lading', snap.carrier].filter(Boolean).join(' · ')}
+                                  </div>
                                 </div>
                               </div>
-                            </div>
 
-                            {/* Inline Edit Form if Editing */}
-                            {editingId === snap.id && (
-                              <div className="flex flex-wrap items-center gap-2 py-1.5 my-1 border-y border-(--border)/50">
-                                <Input aria-label="Tracking number" value={editNumber} onChange={e => setEditNumber(e.target.value)} className="h-7 text-xs sm:max-w-44" />
-                                <Input aria-label="Carrier" value={editCarrier} onChange={e => setEditCarrier(e.target.value)} className="h-7 text-xs sm:max-w-44" />
-                                <Button size="sm" className="h-7 text-xs px-2.5" onClick={saveEdit}>Save</Button>
-                                <Button size="sm" variant="outline" className="h-7 text-xs px-2.5" onClick={() => setEditingId(null)}>Cancel</Button>
-                              </div>
-                            )}
-
-                            {/* Row 2: Milestone, Source & Action Toolbar */}
-                            <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1 pt-1.5 mt-1 border-t border-(--border)/40 text-xs">
-                              {/* Left: Latest Event & Source Pill */}
-                              <div className="flex items-center gap-2 min-w-0 flex-wrap">
-                                {events[0] && (
-                                  <span className="text-[11px] text-(--ink2) flex items-center gap-1 truncate max-w-md">
-                                    <Icon name="activity" size={10} className="text-(--ink3) shrink-0" />
-                                    <span className="truncate">{events[0].description}</span>
-                                    <span className="text-(--ink3)">({fmtDate(events[0].timestamp)})</span>
-                                  </span>
+                              {/* Col 2: Route & Latest Event */}
+                              <div className="tracker-register-col-route">
+                                {(snap.origin_name || snap.dest_name) && (
+                                  <div className="text-xs font-semibold text-(--ink) flex items-center gap-1.5 truncate">
+                                    <span className="truncate">{snap.origin_name || '—'}</span>
+                                    <Icon name="arrowRight" size={11} className="text-(--ink3) shrink-0" />
+                                    <span className="truncate">{snap.dest_name || '—'}</span>
+                                  </div>
                                 )}
-                                {snap.source === 'live' ? (
-                                  <span className="inline-flex items-center gap-0.5 text-[10px] font-medium text-emerald-600 dark:text-emerald-400">
-                                    <Icon name="checkCircle" size={10} />
-                                    Live ({snap.provider || 'provider'})
-                                  </span>
-                                ) : snap.source === 'manual' ? (
-                                  <span className="inline-flex items-center gap-0.5 text-[10px] text-(--ink3)">
-                                    <Icon name="edit" size={10} />
-                                    Manual
-                                  </span>
-                                ) : (
-                                  <Tip label="Unverified legacy snapshot. Refresh from provider before relying on it.">
-                                    <span className="inline-flex items-center gap-0.5 rounded bg-amber-500/10 px-1 py-0.5 text-[10px] font-medium text-amber-700 dark:text-amber-400 cursor-help">
-                                      <Icon name="alertTriangle" size={10} />
-                                      Legacy snapshot
+                                <div className="flex items-center gap-2 text-[11px] text-(--ink3) min-w-0">
+                                  {events[0] ? (
+                                    <span className="truncate" title={events[0].description}>
+                                      {events[0].description} ({fmtDate(events[0].timestamp)})
                                     </span>
-                                  </Tip>
-                                )}
-                                {container?.customer_name && (
-                                  <span className="text-[11px] text-(--ink3) hidden md:inline">
-                                    · Customer: {container.customer_name}
-                                  </span>
-                                )}
+                                  ) : (
+                                    <span>No checkpoint events recorded</span>
+                                  )}
+                                  {snap.source === 'live' ? (
+                                    <span className="inline-flex items-center gap-0.5 text-[10.5px] font-medium text-(--green) shrink-0">
+                                      <Icon name="checkCircle" size={10} />
+                                      {snap.provider || 'Live'}
+                                    </span>
+                                  ) : snap.source === 'manual' ? (
+                                    <span className="text-[10.5px] text-(--ink3) shrink-0">· Manual</span>
+                                  ) : null}
+                                </div>
                               </div>
 
-                              {/* Right: Actions & Shipment Link */}
-                              <div className="flex items-center gap-1.5 shrink-0 ml-auto">
+                              {/* Col 3: Status, Progress & ETA */}
+                              <div className="tracker-register-col-eta">
+                                <div className="flex items-center justify-between gap-2">
+                                  <Badge variant={badgeVariant as any} className="text-[10.5px] h-5 px-2 font-semibold shrink-0">
+                                    {status.label}
+                                  </Badge>
+                                  <span className="font-mono text-[11.5px] font-bold text-(--teal) tabular-nums">
+                                    {snap.progress_pct}%
+                                  </span>
+                                </div>
+                                <div className="w-full h-1.5 rounded-full bg-(--bg) border border-(--trk-border) overflow-hidden">
+                                  <div className="h-full bg-(--teal) rounded-full" style={{ width: `${snap.progress_pct}%` }} />
+                                </div>
+                                <div className="text-[11px] text-(--ink2) flex items-center justify-between gap-1">
+                                  <span>ETA {fmtDate(snap.eta)}</span>
+                                  {days != null && days < 0 && (
+                                    <span className="font-semibold text-(--red)">Overdue</span>
+                                  )}
+                                  {days === 0 && (
+                                    <span className="font-semibold text-(--gold)">Today</span>
+                                  )}
+                                </div>
+                              </div>
+
+                              {/* Col 4: Shipment Link & Action Toolbar */}
+                              <div className="tracker-register-col-actions">
                                 {snap.shipment_id ? (
                                   <Tip label={shipments.find(s => s.id === snap.shipment_id)?.ref_number ? `Shipment: ${shipments.find(s => s.id === snap.shipment_id)?.ref_number}` : 'Linked to shipment'}>
-                                    <Badge variant="success" className="h-6 text-[10px] px-1.5 font-medium shrink-0">
+                                    <Badge variant="success" className="h-6 text-[10.5px] px-2 font-medium shrink-0">
                                       Linked
                                     </Badge>
                                   </Tip>
                                 ) : (
-                                  <div className="w-28 sm:w-32">
+                                  <div className="w-28">
                                     <Combobox
                                       options={shipments.slice(0, 30).map(s => ({ value: s.id, label: s.ref_number }))}
                                       value=""
                                       onChange={v => v && linkSnap(snap.id, v)}
                                       disabled={linkingId === snap.id}
                                       placeholder="Link shipment…"
-                                      className="h-6 text-[11px]"
+                                      className="h-6.5 text-[11px]"
                                     />
                                   </div>
                                 )}
 
-                                <div className="inline-flex items-center rounded-none border border-(--border) divide-x divide-(--border) bg-(--bg)/40 overflow-hidden">
+                                <div className="tracker-action-group">
                                   {container ? (
                                     <>
                                       <TrackerIconAction size="sm" label="Track container" icon="search" onClick={() => selectPreset(container.container_number, 'CONTAINER')} />
@@ -1581,9 +1684,9 @@ export const Tracker: React.FC = () => {
                                   })} />
                                   {snap.tracking_type === 'BL' && !container && !/^[A-Z]{4}\d{7}$/i.test(snap.tracking_number) && (
                                     <Tip label="Look up in Customs Tracker">
-                                      <Button variant="ghost" size="icon" className="size-6.5 rounded-none p-0 text-(--ink2) hover:text-(--ink) hover:bg-(--hover-bg)" asChild>
+                                      <Button variant="ghost" size="icon" className="size-7 rounded-none p-0 text-(--ink2) hover:text-(--ink) hover:bg-(--hover-bg)" asChild>
                                         <Link aria-label="Look up in Customs Tracker" to={'/cargotracker/customs?' + new URLSearchParams({ bl: snap.tracking_number })}>
-                                          <Icon name="shield" size={12} />
+                                          <Icon name="shield" size={13} />
                                         </Link>
                                       </Button>
                                     </Tip>
@@ -1594,21 +1697,31 @@ export const Tracker: React.FC = () => {
                               </div>
                             </div>
 
-                            {/* Any additional snapshot records on the same container */}
+                            {/* Inline Edit Form if Editing */}
+                            {editingId === snap.id && (
+                              <div className="flex flex-wrap items-center gap-2 pt-2.5 mt-2.5 border-t border-(--trk-border)">
+                                <Input aria-label="Tracking number" value={editNumber} onChange={e => setEditNumber(e.target.value)} className="h-8 text-xs sm:max-w-48" />
+                                <Input aria-label="Carrier" value={editCarrier} onChange={e => setEditCarrier(e.target.value)} className="h-8 text-xs sm:max-w-48" />
+                                <Button size="sm" onClick={saveEdit}>Save</Button>
+                                <Button size="sm" variant="outline" onClick={() => setEditingId(null)}>Cancel</Button>
+                              </div>
+                            )}
+
+                            {/* Additional snapshot records on the same container */}
                             {extraSnaps.length > 0 && (
-                              <div className="pt-1.5 mt-1 border-t border-(--border)/40 space-y-1">
+                              <div className="pt-2 mt-2 border-t border-(--trk-border) space-y-1.5">
                                 {extraSnaps.map(extra => {
                                   const extraStatus = getStatus(extra.status_code);
                                   const extraBadgeVariant = extraStatus.fg === 'var(--green)' ? 'success' : extraStatus.fg === 'var(--red)' ? 'error' : extraStatus.fg === 'var(--gold)' ? 'warning' : extraStatus.fg === 'var(--blue)' ? 'info' : 'gray';
                                   const extraEvents = parseEvents(extra.events);
                                   return (
-                                    <div key={extra.id} className="flex flex-wrap items-center justify-between gap-2 text-xs py-1 bg-(--bg)/40 px-2 rounded-none">
+                                    <div key={extra.id} className="flex flex-wrap items-center justify-between gap-2 text-xs py-1.5 px-2.5 bg-(--bg) rounded-md border border-(--trk-border)">
                                       <div className="flex items-center gap-2 min-w-0">
-                                        <span className="font-mono text-xs font-semibold">{extra.tracking_number}</span>
+                                        <span className="font-mono text-xs font-semibold text-(--ink)">{extra.tracking_number}</span>
                                         <span className="text-[11px] text-(--ink3)">{[extra.tracking_type, extra.carrier].filter(Boolean).join(' · ')}</span>
-                                        <Badge variant={extraBadgeVariant} className="text-[10px] h-4">{extraStatus.label}</Badge>
+                                        <Badge variant={extraBadgeVariant as any} className="text-[10px] h-4">{extraStatus.label}</Badge>
                                       </div>
-                                      <div className="inline-flex items-center rounded-none border border-(--border) divide-x divide-(--border) bg-(--bg)/40 overflow-hidden">
+                                      <div className="tracker-action-group">
                                         <TrackerIconAction size="sm" label="Retrack" icon="refresh" onClick={() => retrack(extra)} disabled={retrackingId === extra.id} />
                                         <TrackerIconAction size="sm" label="PDF" icon="fileText" onClick={() => generatePDF({
                                           tracking_number: extra.tracking_number, tracking_type: extra.tracking_type, carrier: extra.carrier ?? '',
@@ -1628,25 +1741,20 @@ export const Tracker: React.FC = () => {
                       })()
                     ) : (
                       container && (
-                        <div className="min-w-0 px-3.5 py-2.5 sm:px-4 sm:py-2">
-                          <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1">
-                            <div className="flex items-center gap-2 min-w-0 flex-wrap">
-                              <span aria-hidden="true" className="size-2.5 shrink-0 rounded-full" style={{ background: container.color_hex || 'var(--teal)' }} />
-                              <span className="font-mono text-[13px] font-bold text-(--ink)">{container.container_number}</span>
-                              <Badge variant={['EMPTY_RETURNED', 'AVAILABLE_AT_DEPOT'].includes(container.lifecycle_stage ?? '') ? 'success' : 'gray'} className="text-[10px] px-1.5 py-0 h-4 capitalize font-semibold">
-                                {container.lifecycle_stage?.replace(/_/g, ' ').toLowerCase() || 'Status unknown'}
-                              </Badge>
-                              <span className="text-[11px] text-(--ink3)">
-                                {[container.size_type || container.iso_code, container.carrier_name || container.carrier_code].filter(Boolean).join(' · ')}
-                              </span>
-                            </div>
-                            {container.customer_name && (
-                              <span className="text-xs text-(--ink3)">Customer: {container.customer_name}</span>
-                            )}
+                        <div className="flex flex-wrap items-center justify-between gap-3">
+                          <div className="flex items-center gap-2.5 min-w-0 flex-wrap">
+                            <span aria-hidden="true" className="size-2.5 shrink-0 rounded-full" style={{ background: container.color_hex || 'var(--teal)' }} />
+                            <span className="font-mono text-[13.5px] font-bold text-(--ink)">{container.container_number}</span>
+                            <Badge variant={['EMPTY_RETURNED', 'AVAILABLE_AT_DEPOT'].includes(container.lifecycle_stage ?? '') ? 'success' : 'gray'} className="text-[10px] px-2 h-5 capitalize font-semibold">
+                              {container.lifecycle_stage?.replace(/_/g, ' ').toLowerCase() || 'Status unknown'}
+                            </Badge>
+                            <span className="text-[11.5px] text-(--ink3)">
+                              {[container.size_type || container.iso_code, container.carrier_name || container.carrier_code, container.customer_name ? `Customer: ${container.customer_name}` : null].filter(Boolean).join(' · ')}
+                            </span>
                           </div>
-                          <div className="flex flex-wrap items-center justify-between gap-2 pt-1.5 mt-1 border-t border-(--border)/40 text-xs">
-                            <span className="text-[11px] text-(--ink3)">No carrier tracking linked yet</span>
-                            <div className="inline-flex items-center rounded border border-(--border) divide-x divide-(--border) bg-(--bg)/40 overflow-hidden">
+                          <div className="flex items-center gap-2 ml-auto">
+                            <span className="text-[11px] text-(--ink3)">No carrier tracking linked</span>
+                            <div className="tracker-action-group">
                               <TrackerIconAction size="sm" label="Track container" icon="search" onClick={() => selectPreset(container.container_number, 'CONTAINER')} />
                               <TrackerIconAction size="sm" label="Container details" icon="externalLink" onClick={() => navigate('/cargotracker/containers/' + encodeURIComponent(container.container_number))} />
                             </div>
@@ -1656,9 +1764,16 @@ export const Tracker: React.FC = () => {
                     )}
                   </li>
                 );
-              })}</ul>
-            <TrackerPagination label="Tracked pages" page={trackedPage} count={tracked.length} loading={loadingTracked}
-              hasNext={hasMoreTracked} onPrevious={() => loadTracked(trackedPage - 1)} onNext={() => loadTracked(trackedPage + 1)}
+              })}
+            </ul>
+            <TrackerPagination
+              label="Tracked pages"
+              page={trackedPage}
+              count={tracked.length}
+              loading={loadingTracked}
+              hasNext={hasMoreTracked}
+              onPrevious={() => loadTracked(trackedPage - 1)}
+              onNext={() => loadTracked(trackedPage + 1)}
             />
           </>
         )}

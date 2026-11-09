@@ -17,13 +17,30 @@ parser.add_argument('--check', action='store_true')
 parser.add_argument('--print-domain', action='store_true')
 args = parser.parse_args()
 
+def configured_google_client_id():
+    value = os.environ.get('GOOGLE_OAUTH_CLIENT_ID', '').strip()
+    if value:
+        return value
+    local_env = ROOT / '.env'
+    if not local_env.exists():
+        return ''
+    for line in local_env.read_text(encoding='utf-8').splitlines():
+        key, separator, raw_value = line.partition('=')
+        if separator and key.strip() == 'GOOGLE_OAUTH_CLIENT_ID':
+            raw_value = raw_value.strip()
+            try:
+                return str(ast.literal_eval(raw_value)) if raw_value.startswith(("'", '"')) else raw_value
+            except (SyntaxError, ValueError):
+                return ''
+    return ''
+
 if not args.file.exists():
     if args.check or not args.domain or not args.email:
         parser.error('Initialize with --domain YOUR_DOMAIN --email YOUR_EMAIL, then configure SMTP and backup storage.')
     values = dict(APP_DOMAIN=args.domain, ACME_EMAIL=args.email, RELEASE_TAG='local', TZ='Africa/Dar_es_Salaam')
     for key in ['POSTGRES_PASSWORD', 'DB_APP_PASSWORD', 'DB_PLATFORM_PASSWORD', 'DB_READONLY_PASSWORD', 'REDIS_PASSWORD', 'JWT_SECRET', 'SIGN_CERT_PASSWORD', 'ONSITE_SECRETS_KEY', 'FILE_SIGNING_SECRET', 'RESTIC_PASSWORD']:
         values[key] = secrets.token_hex(32)
-    values.update(SMTP_HOST='', SMTP_PORT='587', SMTP_USER='', SMTP_PASS='', SMTP_FROM=f'Hudumika <noreply@{args.domain}>', BACKUP_REPOSITORY='', BACKUP_ACCESS_KEY='', BACKUP_SECRET_KEY='', SMS_WEBHOOK_SECRET='')
+    values.update(SMTP_HOST='', SMTP_PORT='587', SMTP_USER='', SMTP_PASS='', SMTP_FROM=f'Hudumika <noreply@{args.domain}>', BACKUP_REPOSITORY='', BACKUP_ACCESS_KEY='', BACKUP_SECRET_KEY='', SMS_WEBHOOK_SECRET='', GOOGLE_OAUTH_CLIENT_ID=configured_google_client_id())
     args.file.parent.mkdir(parents=True, exist_ok=True)
     # Generated values contain no quotes; single quotes also keep dollar
     # signs literal when administrators subsequently enter provider passwords.

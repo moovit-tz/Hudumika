@@ -3528,9 +3528,123 @@ export interface PosPaymentsTable {
   id: Generated<string>;
   tenant_id: string;
   sale_id: string;
-  method: 'CASH' | 'CARD' | 'MOBILE_MONEY' | 'BANK' | 'OTHER';
+  method: 'CASH' | 'CARD' | 'MOBILE_MONEY' | 'BANK' | 'OTHER' | 'GIFT_CARD' | 'LOYALTY_POINTS';
   amount: number;
   reference: string | null;
+  gift_card_id: string | null;
+  loyalty_points_redeemed: string | null; // NUMERIC
+  created_at: Generated<Date>;
+}
+
+export interface GiftCardsTable {
+  id: Generated<string>;
+  tenant_id: string;
+  code: string;
+  customer_id: string | null;
+  status: Generated<'active' | 'void'>;
+  expires_at: Date | null;
+  issued_by: string | null;
+  created_at: Generated<Date>;
+}
+
+export interface GiftCardTransactionsTable {
+  id: Generated<string>;
+  tenant_id: string;
+  gift_card_id: string;
+  type: 'issue' | 'reload' | 'redeem' | 'refund' | 'void_writeoff';
+  amount: string; // NUMERIC
+  sale_id: string | null;
+  journal_entry_id: string | null;
+  created_by: string | null;
+  created_at: Generated<Date>;
+}
+
+export interface WarrantiesTable {
+  id: Generated<string>;
+  tenant_id: string;
+  customer_id: string;
+  product_id: string | null;
+  source_type: Generated<'pos_sale' | 'invoice' | 'manual'>;
+  source_id: string | null;
+  serial_number: string | null;
+  warranty_start: string; // DATE
+  warranty_end: string; // DATE
+  terms: string | null;
+  status: Generated<'active' | 'expired' | 'voided'>;
+  created_by: string | null;
+  created_at: Generated<Date>;
+}
+
+export interface WarrantyClaimsTable {
+  id: Generated<string>;
+  tenant_id: string;
+  warranty_id: string;
+  claim_number: string;
+  status: Generated<'submitted' | 'under_review' | 'approved' | 'rejected' | 'resolved'>;
+  resolution_type: 'repair' | 'replace' | 'refund' | null;
+  description: string;
+  review_note: string | null;
+  resolution_note: string | null;
+  refund_amount: string | null; // NUMERIC
+  refund_method: string | null;
+  journal_entry_id: string | null;
+  movement_id: string | null;
+  created_by: string | null;
+  reviewed_by: string | null;
+  reviewed_at: Date | null;
+  resolved_at: Date | null;
+  created_at: Generated<Date>;
+}
+
+export interface BookableResourcesTable {
+  id: Generated<string>;
+  tenant_id: string;
+  name: string;
+  resource_type: string | null;
+  description: string | null;
+  capacity: Generated<number>;
+  active: Generated<boolean>;
+  created_by: string | null;
+  created_at: Generated<Date>;
+}
+
+export interface ResourceBookingsTable {
+  id: Generated<string>;
+  tenant_id: string;
+  resource_id: string;
+  customer_id: string | null;
+  booked_by: string | null;
+  starts_at: Date;
+  ends_at: Date;
+  qty: Generated<number>;
+  status: Generated<'confirmed' | 'cancelled'>;
+  note: string | null;
+  cancelled_by: string | null;
+  cancelled_at: Date | null;
+  cancel_reason: string | null;
+  created_at: Generated<Date>;
+}
+
+export interface LoyaltyProgramsTable {
+  tenant_id: string;
+  enabled: Generated<boolean>;
+  points_per_currency_unit: string; // NUMERIC
+  redemption_value_per_point: string; // NUMERIC
+  updated_by: string | null;
+  updated_at: Generated<Date>;
+}
+
+export interface LoyaltyTransactionsTable {
+  id: Generated<string>;
+  tenant_id: string;
+  customer_id: string;
+  type: 'earn' | 'redeem' | 'adjust_add' | 'adjust_subtract' | 'void_writeoff' | 'reversal' | 'refund';
+  points: string; // NUMERIC
+  value: string; // NUMERIC
+  sale_id: string | null;
+  journal_entry_id: string | null;
+  created_by: string | null;
+  note: string | null;
   created_at: Generated<Date>;
 }
 
@@ -3866,6 +3980,8 @@ export interface CustomerCreditsTable {
   journal_entry_id: string | null;
   created_by: string | null;
   created_at: Generated<Date>;
+  source_type: Generated<'overpayment' | 'deposit'>;
+  received_via: string | null;
 }
 
 export interface CustomerCreditApplicationsTable {
@@ -3877,6 +3993,18 @@ export interface CustomerCreditApplicationsTable {
   journal_entry_id: string | null;
   applied_by: string | null;
   applied_at: Generated<Date>;
+}
+
+export interface CustomerCreditRefundsTable {
+  id: Generated<string>;
+  tenant_id: string;
+  credit_id: string;
+  amount: string; // NUMERIC
+  method: string;
+  note: string | null;
+  journal_entry_id: string | null;
+  refunded_by: string | null;
+  refunded_at: Generated<Date>;
 }
 
 export interface ApApprovalWorkflowsTable {
@@ -4540,6 +4668,37 @@ export interface StoreInstalledAppsTable {
   app_id: string;
   installed_by: string | null;
   installed_at: Generated<Date>;
+  version_id: string | null;
+  status: Generated<'installed' | 'configured' | 'active' | 'disabled' | 'uninstalled'>;
+  config: Generated<any>;
+  activated_at: Date | null;
+  disabled_at: Date | null;
+  uninstalled_at: Date | null;
+}
+
+export interface MarketplaceAppVersionsTable {
+  id: Generated<string>;
+  app_id: string;
+  version: string;
+  manifest: Generated<any>;
+  status: Generated<'draft' | 'pending_review' | 'approved' | 'rejected' | 'deprecated'>;
+  submitted_by: string | null;
+  reviewed_by: string | null;
+  reviewed_at: Date | null;
+  rejection_reason: string | null;
+  created_at: Generated<Date>;
+}
+
+export interface StoreAppLifecycleEventsTable {
+  id: Generated<string>;
+  tenant_id: string;
+  app_id: string;
+  version_id: string | null;
+  from_status: string | null;
+  to_status: string;
+  actor_id: string | null;
+  reason: string | null;
+  created_at: Generated<Date>;
 }
 
 export interface ProjectTemplatesTable {
@@ -5997,6 +6156,120 @@ export interface Database {
     refunded_by: string | null; refunded_at: Date | null; refund_reference: string | null;
     created_at: Generated<Date>;
   };
+  energy_meters: {
+    id: Generated<string>; tenant_id: string; work_id: string; meter_number: string; service_point: string | null;
+    meter_type: 'electricity' | 'water' | 'gas'; status: Generated<'active' | 'inactive' | 'removed'>;
+    created_at: Generated<Date>; updated_at: Generated<Date>;
+  };
+  energy_tariffs: {
+    id: Generated<string>; tenant_id: string; meter_type: 'electricity' | 'water' | 'gas' | 'ev';
+    name: string; rate_per_unit: number; effective_from: string; effective_to: string | null; created_at: Generated<Date>;
+  };
+  energy_readings: {
+    id: Generated<string>; tenant_id: string; meter_id: string; reading_date: string;
+    reading_value: number; consumption: number; is_correction: Generated<boolean>;
+    corrects_reading_id: string | null; status: Generated<'active' | 'corrected'>; billed: Generated<boolean>;
+    recorded_by: string | null; created_at: Generated<Date>;
+  };
+  energy_charges: {
+    id: Generated<string>; tenant_id: string; reading_id: string; tariff_id: string; amount: number;
+    status: Generated<'pending' | 'invoiced' | 'voided'>;
+    voided_at: Date | null; voided_by: string | null; void_reason: string | null; created_at: Generated<Date>;
+  };
+  fuel_tanks: {
+    id: Generated<string>; tenant_id: string; work_id: string; tank_number: string;
+    fuel_type: 'petrol' | 'diesel' | 'kerosene'; capacity_litres: number; current_volume_litres: Generated<number>;
+    created_at: Generated<Date>; updated_at: Generated<Date>;
+  };
+  fuel_nozzles: {
+    id: Generated<string>; tenant_id: string; tank_id: string; nozzle_number: string; created_at: Generated<Date>;
+  };
+  fuel_deliveries: {
+    id: Generated<string>; tenant_id: string; tank_id: string; delivered_litres: number;
+    supplier_reference: string | null; delivered_at: Generated<Date>; recorded_by: string | null; created_at: Generated<Date>;
+  };
+  fuel_shifts: {
+    id: Generated<string>; tenant_id: string; work_id: string; nozzle_id: string; opened_by: string | null;
+    opening_totalizer: number; closing_totalizer: number | null; litres_dispensed: number | null;
+    tank_variance_litres: number | null; status: Generated<'open' | 'closed'>;
+    opened_at: Generated<Date>; closed_at: Date | null;
+  };
+  ev_connectors: {
+    id: Generated<string>; tenant_id: string; work_id: string; connector_number: string;
+    status: Generated<'available' | 'charging' | 'faulted'>; created_at: Generated<Date>; updated_at: Generated<Date>;
+  };
+  ev_sessions: {
+    id: Generated<string>; tenant_id: string; connector_id: string; started_at: Generated<Date>; ended_at: Date | null;
+    energy_kwh: number | null; tariff_id: string | null; amount: number | null;
+    status: Generated<'active' | 'completed' | 'settled'>; started_by: string | null; created_at: Generated<Date>;
+  };
+  telecom_subscribers: {
+    id: Generated<string>; tenant_id: string; work_id: string; msisdn: string; subscriber_name: string;
+    status: Generated<'active' | 'suspended' | 'cancelled'>;
+    suspended_at: Date | null; suspended_reason: string | null; cancelled_at: Date | null;
+    created_at: Generated<Date>; updated_at: Generated<Date>;
+  };
+  telecom_plans: {
+    id: Generated<string>; tenant_id: string; name: string; monthly_fee: Generated<number>;
+    allowance_voice_minutes: Generated<number>; allowance_data_mb: Generated<number>; allowance_sms: Generated<number>;
+    overage_rate_voice: Generated<number>; overage_rate_data: Generated<number>; overage_rate_sms: Generated<number>;
+    effective_from: string; effective_to: string | null; created_at: Generated<Date>;
+  };
+  telecom_subscriptions: {
+    id: Generated<string>; tenant_id: string; subscriber_id: string; plan_id: string;
+    started_at: Generated<Date>; ended_at: Date | null; status: Generated<'active' | 'changed' | 'cancelled'>;
+  };
+  telecom_usage_events: {
+    id: Generated<string>; tenant_id: string; subscriber_id: string; event_type: 'voice' | 'data' | 'sms';
+    quantity: number; occurred_at: Date; external_event_id: string; rated_amount: Generated<number>;
+    status: Generated<'rated' | 'disputed' | 'voided' | 'corrected'>;
+    dispute_reason: string | null; corrects_event_id: string | null; created_at: Generated<Date>;
+  };
+  telecom_charges: {
+    id: Generated<string>; tenant_id: string; subscriber_id: string; period_start: string; period_end: string;
+    monthly_fee_amount: Generated<number>; usage_amount: Generated<number>; amount: Generated<number>;
+    status: Generated<'pending' | 'invoiced' | 'voided'>; created_at: Generated<Date>;
+  };
+  fintech_kyc_checks: {
+    id: Generated<string>; tenant_id: string; customer_id: string;
+    level: Generated<'basic' | 'enhanced'>; status: Generated<'pending' | 'verified' | 'rejected'>;
+    document_refs: Generated<any>; checked_by: string | null; checked_at: Date | null;
+    rejection_reason: string | null; created_at: Generated<Date>;
+  };
+  fintech_wallets: {
+    id: Generated<string>; tenant_id: string; customer_id: string; currency: Generated<string>;
+    status: Generated<'active' | 'frozen' | 'closed'>; frozen_reason: string | null;
+    created_at: Generated<Date>; updated_at: Generated<Date>;
+  };
+  fintech_wallet_transactions: {
+    id: Generated<string>; tenant_id: string; wallet_id: string;
+    type: 'deposit' | 'withdrawal' | 'transfer_in' | 'transfer_out' | 'fee' | 'reversal';
+    amount: number; fee_amount: Generated<number>; currency: Generated<string>;
+    status: Generated<'pending' | 'posted' | 'failed' | 'reversed'>;
+    provider: Generated<'selcom' | 'azampay' | 'internal'>; provider_reference: string | null;
+    related_transaction_id: string | null; gl_entry_id: string | null;
+    failed_reason: string | null; created_at: Generated<Date>;
+    posted_at: Date | null; failed_at: Date | null; reversed_at: Date | null;
+  };
+  fintech_wallet_holds: {
+    id: Generated<string>; tenant_id: string; wallet_id: string; amount: number; reason: string;
+    status: Generated<'held' | 'released' | 'captured'>; captured_transaction_id: string | null;
+    created_at: Generated<Date>; released_at: Date | null;
+  };
+  fintech_provider_settlements: {
+    id: Generated<string>; tenant_id: string; provider: 'selcom' | 'azampay'; batch_reference: string;
+    period_start: string; period_end: string; expected_amount: number; settled_amount: number;
+    status: Generated<'pending' | 'matched' | 'mismatched' | 'investigating' | 'resolved'>;
+    notes: string | null; resolved_by: string | null; resolved_at: Date | null; created_at: Generated<Date>;
+  };
+  fintech_exception_cases: {
+    id: Generated<string>; tenant_id: string;
+    case_type: 'uncertain_transaction' | 'failed_transaction' | 'settlement_mismatch' | 'kyc_flag';
+    wallet_transaction_id: string | null; settlement_id: string | null;
+    status: Generated<'open' | 'investigating' | 'resolved' | 'escalated'>;
+    assigned_to: string | null; evidence: Generated<any>; resolution_notes: string | null;
+    resolved_by: string | null; opened_at: Generated<Date>; resolved_at: Date | null;
+  };
   finance_room_inventory: {
     id: Generated<string>; tenant_id: string; room_number: string;
     room_type: 'single' | 'double' | 'twin' | 'suite' | 'deluxe' | 'family' | 'dormitory' | 'conference';
@@ -6452,6 +6725,15 @@ export interface Database {
   ap_approval_workflows: ApApprovalWorkflowsTable;
   customer_credits: CustomerCreditsTable;
   customer_credit_applications: CustomerCreditApplicationsTable;
+  customer_credit_refunds: CustomerCreditRefundsTable;
+  gift_cards: GiftCardsTable;
+  gift_card_transactions: GiftCardTransactionsTable;
+  loyalty_programs: LoyaltyProgramsTable;
+  loyalty_transactions: LoyaltyTransactionsTable;
+  warranties: WarrantiesTable;
+  warranty_claims: WarrantyClaimsTable;
+  bookable_resources: BookableResourcesTable;
+  resource_bookings: ResourceBookingsTable;
   recurring_bills: RecurringBillsTable;
   recurring_invoices: RecurringInvoicesTable;
   // Tenant Settings
@@ -6508,6 +6790,8 @@ export interface Database {
   project_pins: ProjectPinsTable;
   project_bookmarks: ProjectBookmarksTable;
   store_installed_apps: StoreInstalledAppsTable;
+  marketplace_app_versions: MarketplaceAppVersionsTable;
+  store_app_lifecycle_events: StoreAppLifecycleEventsTable;
   project_discussions: ProjectDiscussionsTable;
   contract_comments: ContractCommentsTable;
   task_collaborators: TaskCollaboratorsTable;
@@ -10167,6 +10451,7 @@ export interface MarketplaceAppsTable {
   installs: Generated<string>;
   created_at: Generated<Date>;
   updated_at: Generated<Date>;
+  current_version_id: string | null;
 }
 
 /** Per-tenant webhook-event authorization for a marketplace app (migration

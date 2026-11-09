@@ -72,6 +72,7 @@ export function SettingsView() {
   // security (lockout / 2FA / IP allowlist), API, OCR, SSO and AI-key settings with this page's
   // built-in defaults. Saves are refused until it is true.
   const [settingsLoaded, setSettingsLoaded] = useState(false);
+  const [settingsLoadError, setSettingsLoadError] = useState<string | null>(null);
   // Per-provider result of the "Test" button (POST /v1/superadmin/ai/test).
   const [aiTest, setAiTest] = useState<Record<string, { busy: boolean; ok?: boolean; message?: string }>>({});
   async function testAiProvider(provider: string) {
@@ -192,7 +193,8 @@ export function SettingsView() {
         }
         setLoading(false);
       })
-      .catch(() => {
+      .catch((err: unknown) => {
+        setSettingsLoadError(err instanceof Error ? err.message : 'Could not load platform settings.');
         setLoading(false);
       });
     apiFetch('/v1/superadmin/jobs').then(setJobs).catch(() => {});
@@ -200,7 +202,7 @@ export function SettingsView() {
   }, []);
 
   async function save(section: string) {
-    if (!settingsLoaded) { showAlert('Settings did not load, so saving is disabled to protect what is stored. Reload the page and try again.'); return; }
+    if (!settingsLoaded) { showAlert(settingsLoadError || 'Settings did not load, so saving is disabled to protect what is stored. Reload the page and try again.'); return; }
     const payload = {
       maintenance,
       smtp,
@@ -474,6 +476,7 @@ export function SettingsView() {
   return (
     <div className="sa-settings-page">
       <PageHdr title="Platform Settings" sub="Platform-wide configuration applied across all tenants" />
+      {settingsLoadError && <Banner variant="error" role="alert">Platform settings could not be loaded: {settingsLoadError}</Banner>}
 
       {/* ── Maintenance Mode ── */}
       <div className={`sa-settings-card sa-maintenance-card${maintenance ? ' is-active' : ''}`}>

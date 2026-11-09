@@ -16,6 +16,7 @@ import { db, withTenant } from './db/client.js';
 import { authPlugin } from './middleware/auth.js';
 import { getPlatformApiSettings } from './lib/platform-settings.js';
 import { extractToken } from './lib/cookies.js';
+import { replayMissedEvents } from './lib/ws-broadcast.js';
 import { bootstrapJobs } from './jobs/index.js';
 import { bootstrapSubscribers } from './subscribers/index.js';
 import { replayAllUndeliveredEvents } from './services/domain-events.service.js';
@@ -132,6 +133,10 @@ import { dividendRoutes } from './routes/dividends.routes.js';
 import { fxRevaluationRoutes } from './routes/fx-revaluation.routes.js';
 import { apApprovalWorkflowRoutes } from './routes/ap-approval-workflows.routes.js';
 import { customerCreditRoutes } from './routes/customer-credits.routes.js';
+import { giftCardRoutes } from './routes/gift-cards.routes.js';
+import { loyaltyRoutes } from './routes/loyalty.routes.js';
+import { warrantyRoutes } from './routes/warranty.routes.js';
+import { resourceBookingRoutes } from './routes/resource-booking.routes.js';
 import { settingsRoutes } from './routes/settings.routes.js';
 import { mailOAuthRoutes } from './routes/mail-oauth.routes.js';
 import { reportsRoutes } from './routes/reports.routes.js';
@@ -237,6 +242,7 @@ import { posRoutes } from './routes/pos.routes.js';
 import { relatedRecordsRoutes } from './routes/related-records.routes.js';
 import { apiKeysRoutes } from './routes/api-keys.routes.js';
 import { storeRoutes } from './routes/store.routes.js';
+import { fintechRoutes } from './routes/fintech.routes.js';
 import { searchRoutes } from './routes/search.routes.js';
 import { workspaceCockpitRoutes } from './routes/workspace-cockpit.routes.js';
 import { tasksRoutes } from './routes/tasks.routes.js';
@@ -528,6 +534,20 @@ export async function registerApp() {
 
       server.log.info(`🔌 WebSocket client connected (tenant ${socket.tenantId})`);
       socket.on('message', (message: any) => {
+        // A reconnecting client sends { type: 'resume', lastSeq } to catch
+        // up on events broadcast while it was offline (lib/ws-broadcast.ts).
+        // Anything else is just the existing debug log — this socket has no
+        // other inbound protocol.
+        try {
+          const parsed = JSON.parse(String(message));
+          if (parsed?.type === 'resume' && typeof parsed.lastSeq === 'number') {
+            const caughtUp = replayMissedEvents(socket, socket.tenantId, parsed.lastSeq);
+            if (!caughtUp) {
+              try { socket.send(JSON.stringify({ seq: 0, event: { type: 'resync.required' } })); } catch { /* client gone */ }
+            }
+            return;
+          }
+        } catch { /* not a resume request — fall through to the debug log */ }
         server.log.debug(`WebSocket message received: ${message}`);
       });
       socket.on('close', () => {
@@ -692,6 +712,10 @@ export async function registerApp() {
     await server.register(fxRevaluationRoutes, { prefix: '/v1/fx-revaluations' });
     await server.register(apApprovalWorkflowRoutes, { prefix: '/v1/ap-approval-workflows' });
     await server.register(customerCreditRoutes, { prefix: '/v1/customer-credits' });
+    await server.register(giftCardRoutes, { prefix: '/v1/gift-cards' });
+    await server.register(loyaltyRoutes, { prefix: '/v1/loyalty' });
+    await server.register(warrantyRoutes, { prefix: '/v1/warranties' });
+    await server.register(resourceBookingRoutes, { prefix: '/v1/bookings' });
     await server.register(settingsRoutes, { prefix: '/v1/settings' });
     await server.register(mailOAuthRoutes, { prefix: '/v1/settings/email' });
     await server.register(reportsRoutes, { prefix: '/v1/reports' });
@@ -780,6 +804,7 @@ export async function registerApp() {
     await server.register(relatedRecordsRoutes, { prefix: '/v1/related' });
     await server.register(apiKeysRoutes, { prefix: '/v1/api-keys' });
     await server.register(storeRoutes, { prefix: '/v1/store' });
+    await server.register(fintechRoutes, { prefix: '/v1/fintech' });
     await server.register(searchRoutes, { prefix: '/v1/search' });
     await server.register(workspaceCockpitRoutes, { prefix: '/v1/workspace/cockpit' });
     await server.register(tasksRoutes, { prefix: '/v1/tasks' });

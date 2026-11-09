@@ -1,6 +1,6 @@
 export type PosShiftStatus = 'OPEN' | 'CLOSED';
 export type PosSaleStatus = 'COMPLETED' | 'VOIDED' | 'REFUNDED' | 'POSTING_FAILED';
-export type PosPaymentMethod = 'CASH' | 'CARD' | 'MOBILE_MONEY' | 'BANK' | 'OTHER';
+export type PosPaymentMethod = 'CASH' | 'CARD' | 'MOBILE_MONEY' | 'BANK' | 'OTHER' | 'GIFT_CARD' | 'LOYALTY_POINTS';
 export type PosCashMovementDirection = 'IN' | 'OUT';
 
 export interface PosCashMovement {

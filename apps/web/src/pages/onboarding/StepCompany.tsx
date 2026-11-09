@@ -347,7 +347,7 @@ export const StepCompany: React.FC<StepProps> = ({
 
             {/* Selected Industry Chips */}
             {selectedKeys.length > 0 && (
-              <div className="ob-industry-selections flex flex-wrap gap-1.5">
+              <div className="ob-industry-selections">
                 {selectedKeys.map(k => {
                   const ind = availableIndustries.find(i => i.key === k);
                   const isPrimary = k === primaryKey;
@@ -357,26 +357,28 @@ export const StepCompany: React.FC<StepProps> = ({
                       className="ob-industry-chip"
                       data-primary={isPrimary}
                     >
-                      <span>{ind?.name || k}</span>
+                      <span className="ob-chip-name">{ind?.name || k}</span>
                       {isPrimary ? (
-                        <span className="text-[9.5px] font-bold uppercase tracking-wide opacity-80">(Primary)</span>
+                        <span className="ob-chip-primary-badge">{t('onboarding.primary')}</span>
                       ) : (
-                        <button data-ui-native-button=""
+                        <button
                           type="button"
                           onClick={(e) => setPrimary(k, e)}
-                          className="text-[10px] text-[var(--lp-ink3)] hover:text-[var(--teal,#0d7a6b)] underline cursor-pointer"
+                          className="ob-chip-primary-btn"
                           title={t('onboarding.primaryTitle')}
+                          data-ui-native-button=""
                         >
                           {t('onboarding.makePrimary')}
                         </button>
                       )}
-                      <button data-ui-native-button=""
+                      <button
                         type="button"
                         onClick={() => toggleIndustry(k)}
-                        className="text-[var(--lp-ink3)] hover:text-red-600 cursor-pointer ml-0.5 text-xs font-bold leading-none"
+                        className="ob-chip-remove-btn"
                         aria-label={`Remove ${ind?.name || k}`}
+                        data-ui-native-button=""
                       >
-                        ✕
+                        <Icon name="x" size={11} />
                       </button>
                     </span>
                   );

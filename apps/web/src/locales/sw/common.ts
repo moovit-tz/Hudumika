@@ -22,6 +22,7 @@ export default
     "cityLabel": "Mji (si lazima)"
 ,
     "companySso": "SSO ya kampuni",
+    "companySsoNotConfigured": "SSO ya kampuni haijasanidiwa kwa barua pepe hii bado. Muombe msimamizi wa nafasi yako ya kazi aweke SAML SSO, au uchague njia nyingine ya kuingia.",
     "or": "au",
     "title": "Sanidi nafasi yako ya kazi",
     "step": "Hatua ya {{step}} kati ya 6 — {{label}}",
@@ -42,6 +43,8 @@ export default
     "verified": "Imethibitishwa na Ondi",
     "differentAccount": "Tumia akaunti nyingine",
     "identityIntro": "Thibitisha utambulisho wako ili kuanza.",
+    "alreadyHaveAccount": "Je, una akaunti ya nafasi ya kazi ya Hudumika?",
+    "signInInstead": "Ingia",
     "nameRequired": "Jina kamili linahitajika",
     "emailRequired": "Barua pepe ya kazi inahitajika",
     "validEmail": "Weka anwani sahihi ya barua pepe",
