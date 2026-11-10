@@ -1,4 +1,4 @@
-﻿import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Icon } from '../components/Icon.js';
 import { apiFetch } from '../lib/api.js';
 import { useCompany } from '../data/companyStore.js';
@@ -8,6 +8,8 @@ import { MetricsRow } from '../components/MetricCard.js';
 import { SectionCard } from '../components/SectionCard.js';
 import { Button } from '../components/ui/button.js';
 import { Badge } from '../components/ui/badge.js';
+import { SectionLoading } from '../components/ui/spinner.js';
+import { Banner } from '../components/ui/alert.js';
 
 export const FinanceAgedPayables: React.FC = () => {
   const co = useCompany();
@@ -69,9 +71,9 @@ export const FinanceAgedPayables: React.FC = () => {
       />
 
       {loading ? (
-        <div style={{ padding: '48px 0', textAlign: 'center', color: 'var(--ink3)' }}>Loading aged payables…</div>
+        <SectionLoading label="Loading aged payables…" />
       ) : error ? (
-        <div style={{ padding: '48px 0', textAlign: 'center', color: 'var(--red)' }}>{error}</div>
+        <Banner variant="error">{error}</Banner>
       ) : (
       <div style={{ flex: 1, overflowY: 'auto', padding: '0', display: 'flex', flexDirection: 'column', gap: 16 }}>
 

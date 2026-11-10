@@ -6,6 +6,7 @@ import { PageHeader } from '../components/PageHeader.js';
 import { SectionLoading } from '../components/ui/spinner.js';
 import { Banner } from '../components/ui/alert.js';
 import { RadioGroup, RadioGroupItem } from '../components/ui/radio-group.js';
+import { useIsMobile } from '../hooks/useIsMobile.js';
 
 type ReportType = 'receivables' | 'payables' | 'revenue' | 'expenses' | 'summary';
 
@@ -123,6 +124,7 @@ function exportCSV(reportType: ReportType, data: any[]) {
 }
 
 export function AccountsQuery() {
+  const isMobile = useIsMobile();
   const [reportType, setReportType] = useState<ReportType>('receivables');
   const [dateFrom, setDateFrom] = useState('');
   const [dateTo, setDateTo] = useState('');
@@ -179,14 +181,15 @@ export function AccountsQuery() {
     : 1;
 
   return (
-    <div style={{ display: 'flex', gap: 0, height: '100%', minHeight: 'calc(100vh - 120px)', fontFamily: 'var(--font)' }}>
+    <div style={{ display: 'flex', flexDirection: isMobile ? 'column' : 'row', gap: 0, height: '100%', minHeight: 'calc(100vh - 120px)', fontFamily: 'var(--font)' }}>
       {/* Left panel */}
       <aside style={{
-        width: 300,
-        minWidth: 280,
-        maxWidth: 320,
+        width: isMobile ? '100%' : 300,
+        minWidth: isMobile ? 'auto' : 280,
+        maxWidth: isMobile ? 'none' : 320,
         background: 'var(--white)',
-        borderRight: '1px solid var(--border)',
+        borderRight: isMobile ? 'none' : '1px solid var(--border)',
+        borderBottom: isMobile ? '1px solid var(--border)' : 'none',
         padding: '28px 20px',
         display: 'flex',
         flexDirection: 'column',

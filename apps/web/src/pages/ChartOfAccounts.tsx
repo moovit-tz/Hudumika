@@ -486,50 +486,55 @@ export const ChartOfAccounts: React.FC = () => {
           </div>
         </div>
 
-        {/* Column headers */}
-        <div style={{
-          display: 'grid', gridTemplateColumns: '32px 100px 1fr 90px 80px 80px',
-          padding: '9px 16px', background: 'var(--bg)', borderBottom: '2px solid var(--border)',
-        }}>
-          {['', 'Code', 'Account Name', 'Type', 'Normal', 'Status'].map((h, i) => (
-            <span key={h} style={{
-              fontSize: 11, fontWeight: 700, color: 'var(--ink3)',
-              textTransform: 'uppercase', letterSpacing: '0.06em',
-              textAlign: i >= 4 ? 'center' : 'left',
-            }}>{h}</span>
-          ))}
-        </div>
+        {/* Column headers + tree rows scroll together, horizontally, so a
+            deep/narrow viewport scrolls the table instead of the page. */}
+        <div style={{ overflowX: 'auto' }}>
+          <div style={{ minWidth: 560 }}>
+            <div style={{
+              display: 'grid', gridTemplateColumns: '32px 100px 1fr 90px 80px 80px',
+              padding: '9px 16px', background: 'var(--bg)', borderBottom: '2px solid var(--border)',
+            }}>
+              {['', 'Code', 'Account Name', 'Type', 'Normal', 'Status'].map((h, i) => (
+                <span key={h} style={{
+                  fontSize: 11, fontWeight: 700, color: 'var(--ink3)',
+                  textTransform: 'uppercase', letterSpacing: '0.06em',
+                  textAlign: i >= 4 ? 'center' : 'left',
+                }}>{h}</span>
+              ))}
+            </div>
 
-        {/* Tree rows */}
-        {loading ? (
-          <div style={{ padding: '48px 32px', textAlign: 'center', color: 'var(--ink3)' }}>Loading chart of accounts…</div>
-        ) : loadError ? (
-          <div style={{ padding: '48px 32px', textAlign: 'center', color: 'var(--red)' }}>{loadError}</div>
-        ) : coaTree.length === 0 ? (
-          <div style={{ padding: '48px 32px', textAlign: 'center', color: 'var(--ink3)' }}>
-            <Icon name="folder" size={28} color="var(--ink3)" />
-            <div style={{ marginTop: 12, fontWeight: 600, fontSize: 14, color: 'var(--ink)' }}>No accounts configured yet</div>
-            <div style={{ fontSize: 13, marginTop: 4 }}>Add your first account to get started</div>
+            {/* Tree rows */}
+            {loading ? (
+              <div style={{ padding: '48px 32px', textAlign: 'center', color: 'var(--ink3)' }}>Loading chart of accounts…</div>
+            ) : loadError ? (
+              <div style={{ padding: '48px 32px', textAlign: 'center', color: 'var(--red)' }}>{loadError}</div>
+            ) : coaTree.length === 0 ? (
+              <div style={{ padding: '48px 32px', textAlign: 'center', color: 'var(--ink3)' }}>
+                <Icon name="folder" size={28} color="var(--ink3)" />
+                <div style={{ marginTop: 12, fontWeight: 600, fontSize: 14, color: 'var(--ink)' }}>No accounts configured yet</div>
+                <div style={{ fontSize: 13, marginTop: 4 }}>Add your first account to get started</div>
+              </div>
+            ) : displayTree.length === 0 ? (
+              <div style={{ padding: '48px 32px', textAlign: 'center', color: 'var(--ink3)' }}>
+                <Icon name="search" size={28} color="var(--ink3)" />
+                <div style={{ marginTop: 12, fontWeight: 600, fontSize: 14, color: 'var(--ink)' }}>No accounts match</div>
+                <div style={{ fontSize: 13, marginTop: 4 }}>Try a different search or type filter</div>
+              </div>
+            ) : (
+              pagedTree.map(account => (
+                <AccountRow
+                  key={account.id}
+                  account={account}
+                  depth={0}
+                  expanded={expanded}
+                  onToggle={toggle}
+                  onSelect={setSelected}
+                  selected={selected?.id ?? null}
+                />
+              ))
+            )}
           </div>
-        ) : displayTree.length === 0 ? (
-          <div style={{ padding: '48px 32px', textAlign: 'center', color: 'var(--ink3)' }}>
-            <Icon name="search" size={28} color="var(--ink3)" />
-            <div style={{ marginTop: 12, fontWeight: 600, fontSize: 14, color: 'var(--ink)' }}>No accounts match</div>
-            <div style={{ fontSize: 13, marginTop: 4 }}>Try a different search or type filter</div>
-          </div>
-        ) : (
-          pagedTree.map(account => (
-            <AccountRow
-              key={account.id}
-              account={account}
-              depth={0}
-              expanded={expanded}
-              onToggle={toggle}
-              onSelect={setSelected}
-              selected={selected?.id ?? null}
-            />
-          ))
-        )}
+        </div>
 
         {/* Hidden when it would only ever read "Page 1 of 1". */}
         {displayTree.length > PAGE_SIZE && (
@@ -563,7 +568,8 @@ export const ChartOfAccounts: React.FC = () => {
       {/* Selected account detail panel */}
       {selected && (
         <div style={{
-          position: 'fixed', bottom: 24, right: 24, width: 320,
+          position: 'fixed', bottom: 24, right: isMobile ? 16 : 24, left: isMobile ? 16 : 'auto',
+          width: isMobile ? 'auto' : 320,
           background: 'var(--white)', border: '1px solid var(--border)',
           borderRadius: 'var(--card-radius)', boxShadow: 'var(--elev-lg)',
           zIndex: 200, overflow: 'hidden',
@@ -583,10 +589,12 @@ export const ChartOfAccounts: React.FC = () => {
               </span>
               <span style={{ fontSize: 14, fontWeight: 700, color: 'var(--ink)' }}>{selected.name}</span>
             </div>
-            <button type="button" onClick={() => setSelected(null)}
-              style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink3)', padding: "var(--action-py) var(--space-md)" }} data-ui-native-button="">
-              <Icon name="x" size={14} />
-            </button>
+            <Tip label="Close">
+              <button type="button" aria-label="Close" onClick={() => setSelected(null)}
+                style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink3)', padding: "var(--action-py) var(--space-md)" }} data-ui-native-button="">
+                <Icon name="x" size={14} />
+              </button>
+            </Tip>
           </div>
           <div style={{ padding: '14px 16px', display: 'flex', flexDirection: 'column', gap: 10 }}>
             {[
@@ -612,9 +620,11 @@ export const ChartOfAccounts: React.FC = () => {
                 <Icon name="edit" size={12} /> Edit
               </button>
               {!selected.is_system && (
-                <button type="button" className="btn btn-secondary btn-sm" style={{ color: 'var(--red)' }} onClick={() => handleDeleteAccount(selected)} data-ui-native-button="">
-                  <Icon name="trash2" size={12} />
-                </button>
+                <Tip label="Delete account">
+                  <button type="button" aria-label="Delete account" className="btn btn-secondary btn-sm" style={{ color: 'var(--red)' }} onClick={() => handleDeleteAccount(selected)} data-ui-native-button="">
+                    <Icon name="trash2" size={12} />
+                  </button>
+                </Tip>
               )}
             </div>}
           </div>

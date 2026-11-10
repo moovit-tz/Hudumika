@@ -2,16 +2,19 @@ import { useEffect, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import type { IndustryCostAllocation, IndustryCostSource, IndustryWork } from '@hudumika/types';
 import { apiFetch } from '../lib/api.js';
+import { formatAmount } from '../lib/currency.js';
 import { PageHeader } from '../components/PageHeader.js';
 import { Button } from '../components/ui/button.js';
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card.js';
 import { Input } from '../components/ui/input.js';
 import { Label } from '../components/ui/label.js';
 import { SearchToolbar } from '../components/ui/filter-dropdown.js';
+import { SectionLoading } from '../components/ui/spinner.js';
+import { Banner } from '../components/ui/alert.js';
 import './FinanceIndustries.css';
 
 type Costs = { data: IndustryCostSource[]; has_more: boolean; allocations: IndustryCostAllocation[] };
-const money = (amount: number) => new Intl.NumberFormat('en-TZ', { style: 'currency', currency: 'TZS' }).format(amount);
+const money = (amount: number) => formatAmount(amount, 'TZS');
 export function FinanceWorkCosts() {
   const { id, industry } = useParams();
   const [work, setWork] = useState<IndustryWork>(); const [costs, setCosts] = useState<Costs>();
@@ -33,15 +36,15 @@ export function FinanceWorkCosts() {
     catch (err) { setError(err instanceof Error ? err.message : 'Unable to save allocation.'); }
     finally { setBusy(false); }
   }
-  if (work && work.industry !== industry) return <p role="alert">This job belongs to another workspace.</p>;
+  if (work && work.industry !== industry) return <Banner variant="error">This job belongs to another workspace.</Banner>;
   const allowed = work?.currency === 'TZS' && ['active', 'completed'].includes(work.status);
   return <div className="industry-page">
     <PageHeader crumbs={[{ label: 'Finance', to: '/finance' }, { label: work?.reference || 'Job', to: `/finance/industries/${industry}/${id}` }, 'Costs']} titlePlain="Allocate job" titleEm="costs" subtitle="Assign posted bills, expenses and payroll costs to a job. Company profit stays unchanged." actions={<Button variant="outline" asChild><Link to={`/finance/industries/${industry}/${id}`}>View job</Link></Button>} />
-    {error && <p role="alert">{error}</p>}
-    {work && !allowed && <p role="status">Cost allocation requires an active or completed TZS job.</p>}
+    {error && <Banner variant="error">{error}</Banner>}
+    {work && !allowed && <Banner variant="info">Cost allocation requires an active or completed TZS job.</Banner>}
     <Card><CardHeader><CardTitle>Posted costs</CardTitle></CardHeader><CardContent>
       <SearchToolbar search={search} onSearch={value => { setSearch(value); setPage(1); }} placeholder="Search journal or account" />
-      {!costs && !error && <p role="status">Loading costs…</p>}
+      {!costs && !error && <SectionLoading label="Loading costs…" />}
       {costs?.data.length === 0 && <p>No unallocated costs match this search.</p>}
       <div className="industry-hub-grid">{costs?.data.map(item => <Card key={item.id}><CardContent className="pt-6"><strong>{item.entry_number} · {item.account_name}</strong><p>{item.description}</p><p>Available: {money(item.available)}</p><Button variant={source?.id === item.id ? 'default' : 'outline'} disabled={!allowed || busy} onClick={() => { setSource(item); setAmount(String(item.available)); }}>Select cost</Button></CardContent></Card>)}</div>
       <div className="industry-actions"><Button variant="outline" disabled={page === 1 || !costs || busy} onClick={() => setPage(value => value - 1)}>Previous</Button><span>Page {page}</span><Button variant="outline" disabled={!costs?.has_more || busy} onClick={() => setPage(value => value + 1)}>Next</Button></div>

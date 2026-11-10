@@ -9,10 +9,11 @@ import { Badge } from '../components/ui/badge.js';
 import { Button } from '../components/ui/button.js';
 import { Input } from '../components/ui/input.js';
 import { FileUploader } from '../components/ui/file-uploader.js';
-import { Dialog, DialogContent, DialogTitle, DialogDescription } from '../components/ui/dialog.js';
+import { Dialog, DialogContent, DialogHeader, DialogBody, DialogFooter, DialogTitle, DialogDescription } from '../components/ui/dialog.js';
 import { FeaturedIcon } from '../components/ui/featured-icon.js';
 import { SectionLoading } from '../components/ui/spinner.js';
 import { Banner } from '../components/ui/alert.js';
+import { Tip } from '../components/ui/tooltip.js';
 import { useFinanceReadOnly } from '../components/FinanceCapabilityGate.js';
 import './BankReconciliation.css';
 
@@ -457,9 +458,9 @@ export function BankReconciliation() {
               <FeaturedIcon variant="brand" size="lg">
                 <Icon name="building" size={28} color="var(--teal)" />
               </FeaturedIcon>
-              <h3>Select a Statement Feed</h3>
+              <h3>Select a statement feed</h3>
               <p>
-                Choose an imported bank account feed from the left panel to review statement lines, verify candidate matches, and reconcile ledger balances.
+                Choose a bank feed from the left to review its lines, verify matches, and reconcile balances.
               </p>
               {!readOnly && (
                 <Button variant="default" size="sm" onClick={() => setShowImport(true)}>
@@ -534,11 +535,13 @@ export function BankReconciliation() {
                   {!readOnly && (
                     <div style={{ display: 'flex', gap: 6 }}>
                       <Button variant="default" size="sm" onClick={handleAutoMatch} disabled={unmatchedLines.length === 0}>
-                        <Icon name="sparkle" size={14} /> Auto-Match Exact
+                        <Icon name="sparkle" size={14} /> Auto-match exact
                       </Button>
-                      <Button variant="ghost" size="sm" onClick={() => handleDelete(selected)} title="Delete statement feed">
-                        <Icon name="trash" size={14} color="var(--red)" />
-                      </Button>
+                      <Tip label="Delete statement feed">
+                        <Button variant="ghost" size="icon" iconOnly aria-label="Delete statement feed" onClick={() => handleDelete(selected)}>
+                          <Icon name="trash" size={14} color="var(--red)" />
+                        </Button>
+                      </Tip>
                     </div>
                   )}
                 </div>
@@ -617,115 +620,111 @@ export function BankReconciliation() {
 
       {/* ── Import Statement Dialog ── */}
       <Dialog open={!readOnly && showImport} onOpenChange={o => { if (!o) setShowImport(false); }}>
-        <DialogContent className="max-w-120 gap-0" style={{ padding: 24 }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 4 }}>
-            <FeaturedIcon variant="brand" size="md">
-              <Icon name="upload" size={18} color="var(--teal)" />
-            </FeaturedIcon>
-            <div>
-              <DialogTitle style={{ fontWeight: 800, fontSize: 16, color: 'var(--ink)' }}>
-                Import Bank Statement
-              </DialogTitle>
-              <DialogDescription style={{ fontSize: 12.5, color: 'var(--ink3)' }}>
-                Upload an electronic bank statement (CSV, MT940, OFX) to reconcile against the cash ledger.
-              </DialogDescription>
+        <DialogContent size="sm">
+          <DialogHeader>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+              <FeaturedIcon variant="brand" size="md">
+                <Icon name="upload" size={18} color="var(--teal)" />
+              </FeaturedIcon>
+              <div>
+                <DialogTitle style={{ fontWeight: 800, fontSize: 16, color: 'var(--ink)' }}>
+                  Import bank statement
+                </DialogTitle>
+                <DialogDescription style={{ fontSize: 12.5, color: 'var(--ink3)' }}>
+                  Upload a CSV, MT940 or OFX statement to reconcile against the cash ledger.
+                </DialogDescription>
+              </div>
             </div>
-          </div>
+          </DialogHeader>
 
-          <div style={{ marginTop: 16, display: 'flex', flexDirection: 'column', gap: 14 }}>
-            <div>
-              <label style={{ fontSize: 12, fontWeight: 700, color: 'var(--ink2)', display: 'block', marginBottom: 6 }}>
-                Bank Institution / Account Name
-              </label>
-              <Input
-                value={bankName}
-                onChange={e => setBankName(e.target.value)}
-                placeholder="e.g. CRDB Main Corporate, NMB Revenue Account"
-              />
+          <DialogBody>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+              <div>
+                <label style={{ fontSize: 12, fontWeight: 700, color: 'var(--ink2)', display: 'block', marginBottom: 6 }}>
+                  Bank institution / account name
+                </label>
+                <Input
+                  value={bankName}
+                  onChange={e => setBankName(e.target.value)}
+                  placeholder="e.g. CRDB Main Corporate, NMB Revenue Account"
+                />
+              </div>
+
+              <div>
+                <label style={{ fontSize: 12, fontWeight: 700, color: 'var(--ink2)', display: 'block', marginBottom: 6 }}>
+                  General ledger account code
+                </label>
+                <Input
+                  value={accountCode}
+                  onChange={e => setAccountCode(e.target.value)}
+                  placeholder="e.g. 1010 (Bank Current Account)"
+                />
+              </div>
+
+              <div>
+                <label style={{ fontSize: 12, fontWeight: 700, color: 'var(--ink2)', display: 'block', marginBottom: 6 }}>
+                  Statement file (.csv)
+                </label>
+                <FileUploader
+                  accept=".csv"
+                  multiple={false}
+                  onUpload={handleUpload}
+                  uploadingFiles={
+                    importing ? [{ id: '1', name: 'Processing & ingesting statement…', size: 0, progress: 65, status: 'uploading' }] : []
+                  }
+                  onRemoveFile={() => {}}
+                />
+              </div>
             </div>
+          </DialogBody>
 
-            <div>
-              <label style={{ fontSize: 12, fontWeight: 700, color: 'var(--ink2)', display: 'block', marginBottom: 6 }}>
-                General Ledger Account Code
-              </label>
-              <Input
-                value={accountCode}
-                onChange={e => setAccountCode(e.target.value)}
-                placeholder="e.g. 1010 (Bank Current Account)"
-              />
-            </div>
-
-            <div>
-              <label style={{ fontSize: 12, fontWeight: 700, color: 'var(--ink2)', display: 'block', marginBottom: 6 }}>
-                Statement File (.csv)
-              </label>
-              <FileUploader
-                accept=".csv"
-                multiple={false}
-                onUpload={handleUpload}
-                uploadingFiles={
-                  importing ? [{ id: '1', name: 'Processing & ingesting statement…', size: 0, progress: 65, status: 'uploading' }] : []
-                }
-                onRemoveFile={() => {}}
-              />
-            </div>
-          </div>
-
-          <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: 20 }}>
+          <DialogFooter>
             <Button variant="outline" size="sm" onClick={() => setShowImport(false)}>
               Cancel
             </Button>
-          </div>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
 
       {/* ── Match Picker Candidate Dialog ── */}
       <Dialog open={!readOnly && !!pendingLine} onOpenChange={o => { if (!o) setPendingLine(null); }}>
-        <DialogContent className="max-w-130 gap-0" style={{ padding: 24, maxHeight: '80vh', display: 'flex', flexDirection: 'column' }}>
+        <DialogContent size="lg">
           {pendingLine && (
             <>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 12 }}>
-                <FeaturedIcon variant="brand" size="md">
-                  <Icon name="link" size={18} color="var(--teal)" />
-                </FeaturedIcon>
-                <div>
-                  <DialogTitle style={{ fontWeight: 800, fontSize: 16, color: 'var(--ink)' }}>
-                    Pair Statement Entry with Ledger
-                  </DialogTitle>
-                  <DialogDescription style={{ fontSize: 12.5, color: 'var(--ink3)' }}>
-                    Select an open candidate ledger transaction that corresponds to this bank line.
-                  </DialogDescription>
+              <DialogHeader>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                  <FeaturedIcon variant="brand" size="md">
+                    <Icon name="link" size={18} color="var(--teal)" />
+                  </FeaturedIcon>
+                  <div>
+                    <DialogTitle style={{ fontWeight: 800, fontSize: 16, color: 'var(--ink)' }}>
+                      Pair statement entry with ledger
+                    </DialogTitle>
+                    <DialogDescription style={{ fontSize: 12.5, color: 'var(--ink3)' }}>
+                      Select a candidate ledger entry matching this bank line.
+                    </DialogDescription>
+                  </div>
                 </div>
-              </div>
+              </DialogHeader>
 
-              {/* Pending Transaction Highlight Banner */}
-              <div
-                style={{
-                  padding: '12px 16px',
-                  background: 'color-mix(in srgb, var(--teal) 8%, var(--bg))',
-                  border: '1px solid color-mix(in srgb, var(--teal) 25%, var(--border))',
-                  borderRadius: 'var(--r)',
-                  marginBottom: 14,
-                  display: 'flex',
-                  justifyContent: 'space-between',
-                  alignItems: 'center'
-                }}
-              >
+              <DialogBody style={{ display: 'flex', flexDirection: 'column' }}>
+              {/* Pending Transaction Highlight */}
+              <Banner variant="brand" icon={false} className="mb-3.5" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                 <div>
                   <div style={{ fontSize: 13, fontWeight: 750, color: 'var(--ink)' }}>{pendingLine.description || 'Transaction'}</div>
                   <div style={{ fontSize: 11.5, color: 'var(--ink3)', marginTop: 2 }}>
-                    Date: {new Date(pendingLine.txn_date).toLocaleDateString('en-GB')} · Bank Ref ID: {pendingLine.id.slice(0, 8)}
+                    {new Date(pendingLine.txn_date).toLocaleDateString('en-GB')} · Ref {pendingLine.id.slice(0, 8)}
                   </div>
                 </div>
                 <div style={{ fontSize: 15, fontWeight: 800, color: pendingLine.amount >= 0 ? 'var(--green)' : 'var(--red)' }}>
                   {pendingLine.amount >= 0 ? '+' : ''}
                   {fmt(pendingLine.amount)}
                 </div>
-              </div>
+              </Banner>
 
               {/* Candidate Search */}
               <Input
-                placeholder="Filter candidate entries by description or entry number…"
+                placeholder="Filter by description or entry number…"
                 value={candidateSearch}
                 onChange={e => setCandidateSearch(e.target.value)}
                 style={{ marginBottom: 12 }}
@@ -735,7 +734,7 @@ export function BankReconciliation() {
               <div style={{ overflowY: 'auto', flex: 1, paddingRight: 4 }}>
                 {availableCandidates.length === 0 ? (
                   <div style={{ fontSize: 13, color: 'var(--ink3)', padding: '30px 0', textAlign: 'center' }}>
-                    No open ledger candidates found in this statement date window.
+                    No open ledger candidates in this statement window.
                   </div>
                 ) : (
                   availableCandidates
@@ -783,12 +782,13 @@ export function BankReconciliation() {
                     })
                 )}
               </div>
+              </DialogBody>
 
-              <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: 14 }}>
+              <DialogFooter>
                 <Button variant="outline" size="sm" onClick={() => setPendingLine(null)}>
                   Cancel
                 </Button>
-              </div>
+              </DialogFooter>
             </>
           )}
         </DialogContent>

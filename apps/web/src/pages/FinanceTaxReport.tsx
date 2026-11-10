@@ -1,4 +1,4 @@
-﻿import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Icon } from '../components/Icon.js';
 import { apiFetch, apiFetchBlob } from '../lib/api.js';
 import { useCompany } from '../data/companyStore.js';
@@ -12,6 +12,7 @@ import { DataTable, type TableColumn } from '../components/ui/DataTable.js';
 import { Button } from '../components/ui/button.js';
 import { SectionLoading } from '../components/ui/spinner.js';
 import { SectionCard } from '../components/SectionCard.js';
+import { formatAmount } from '../lib/currency.js';
 
 /**
  * The VAT return.
@@ -87,7 +88,7 @@ export const FinanceTaxReport: React.FC = () => {
   const cur = data?.currency ?? co.currency ?? 'TZS';
   // `|| 0` normalises negative zero: a subtraction row of nothing rendered as
   // "TZS -0", which reads like a real negative.
-  const fmt = (n: number) => `${cur} ${(Math.round(n) || 0).toLocaleString()}`;
+  const fmt = (n: number) => formatAmount(Math.round(n) || 0, cur);
 
   useEffect(() => {
     let alive = true;
@@ -194,32 +195,23 @@ export const FinanceTaxReport: React.FC = () => {
               so its "output tax" is not a return figure — it is a problem, and
               showing a tidy net payable above it would be actively misleading. */}
           {data.registration.advisory && (
-            <div style={{
-              display: 'flex', gap: 10, alignItems: 'flex-start', padding: '12px 14px',
-              background: data.registration.state === 'unknown' ? 'var(--gold-l)' : 'var(--red-l)',
-              border: `1px solid ${data.registration.state === 'unknown' ? 'var(--gold)' : 'var(--red)'}`,
-              borderRadius: 'var(--r)', fontSize: 12.5, color: 'var(--ink2)', lineHeight: 1.55,
-            }}>
-              <Icon name="alertTriangle" size={16}
-                color={data.registration.state === 'unknown' ? 'var(--gold)' : 'var(--red)'} />
-              <div>
-                <strong style={{ color: 'var(--ink)' }}>
-                  {data.registration.state === 'unknown'
-                    ? 'It is not recorded whether this workspace is VAT-registered.'
-                    : 'This workspace should not be charging VAT.'}
-                </strong>{' '}
-                {data.registration.advisory}
-                {data.outputTax > 0 && (
-                  <> There is {fmt(data.outputTax)} of output tax on this period's sales, which
-                  only belongs on a return if the registration exists.</>
-                )}
-                <div style={{ marginTop: 8 }}>
-                  <a href="/finance/tax-codes" className="btn btn-secondary btn-sm">
-                    Record the registration
-                  </a>
-                </div>
-              </div>
-            </div>
+            <Banner
+              variant={data.registration.state === 'unknown' ? 'warning' : 'error'}
+              title={data.registration.state === 'unknown'
+                ? 'VAT registration status is not recorded.'
+                : 'This workspace should not be charging VAT.'}
+              action={
+                <Button type="button" variant="outline" size="sm" asChild>
+                  <a href="/finance/tax-codes">Record registration</a>
+                </Button>
+              }
+            >
+              {data.registration.advisory}
+              {data.outputTax > 0 && (
+                <> There is {fmt(data.outputTax)} of output tax this period, which only
+                belongs on a return if the registration exists.</>
+              )}
+            </Banner>
           )}
 
           <MetricsRow cards={[

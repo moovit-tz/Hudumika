@@ -15,8 +15,10 @@ import { Button } from '../components/ui/button.js';
 import { Input } from '../components/ui/input.js';
 import { Textarea } from '../components/ui/textarea.js';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '../components/ui/select.js';
+import { Banner } from '../components/ui/alert.js';
 import { Combobox } from '../components/ui/combobox.js';
 import { DatePicker, parseDateOnly, toDateOnlyString } from '../components/ui/date-picker.js';
+import { useIsMobile } from '../hooks/useIsMobile.js';
 import { apiFetch, apiViewBlob } from '../lib/api.js';
 import { showAlert } from '../lib/alert.js';
 import { showConfirm } from '../lib/confirm.js';
@@ -206,6 +208,7 @@ function DeliveryDocumentDetailView({ doc, loading, busy, shipmentLabel, onBack,
 }
 
 export function DeliveryDocumentsPage() {
+  const isMobile = useIsMobile();
   const documentRoute=useFinanceDocumentRoute("delivery-documents");
   usePageSEO('Delivery Documents', "Release orders, delivery orders and delivery notes — one combined document, container list or goods table, real PDF, linked to the shipment they're for.");
   const [urlParams] = useSearchParams();
@@ -405,7 +408,7 @@ export function DeliveryDocumentsPage() {
                     <Button size="xs" variant="outline" onClick={() => setContainers(p => [...p, emptyContainer()])}>Add container</Button>
                   </div>
                   {containers.map((c, i) => (
-                    <div key={i} style={{ display: 'grid', gridTemplateColumns: '1.5fr 1fr 1fr 1fr auto', gap: 8, marginBottom: 8 }}>
+                    <div key={i} style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1.5fr 1fr 1fr 1fr auto', gap: 8, marginBottom: 8 }}>
                       <Input placeholder="Container number" value={c.number} onChange={e => setContainers(p => p.map((x, j) => j === i ? { ...x, number: e.target.value.toUpperCase() } : x))} />
                       <Select value={c.size} onValueChange={v => setContainers(p => p.map((x, j) => j === i ? { ...x, size: v as any } : x))}>
                         <SelectTrigger className="input-field"><SelectValue /></SelectTrigger>
@@ -419,7 +422,7 @@ export function DeliveryDocumentsPage() {
                       <Input placeholder="Seal number" value={c.seal_number || ''} onChange={e => setContainers(p => p.map((x, j) => j === i ? { ...x, seal_number: e.target.value } : x))} />
                       <Input type="number" placeholder="Weight (kg)" value={c.weight_kg ?? ''} onChange={e => setContainers(p => p.map((x, j) => j === i ? { ...x, weight_kg: e.target.value ? Number(e.target.value) : undefined } : x))} />
                       {containers.length > 1 && (
-                        <Button size="icon" variant="ghost" onClick={() => setContainers(p => p.filter((_, j) => j !== i))}><Icon name="close" size={14} /></Button>
+                        <Button size="icon" variant="ghost" aria-label={`Remove container ${i + 1}`} onClick={() => setContainers(p => p.filter((_, j) => j !== i))}><Icon name="close" size={14} /></Button>
                       )}
                     </div>
                   ))}
@@ -462,13 +465,13 @@ export function DeliveryDocumentsPage() {
                   </div>
                   <div className="mb-3"><FinanceCatalogPicker onSelect={product=>setLines(previous=>[...previous.filter(line=>line.description?.trim()),{description:[`${product.name} (${product.unit})`,product.billing_description].filter(Boolean).join('\n'),qty_ordered:1}])}/></div>
                   {lines.map((l, i) => (
-                    <div key={i} style={{ display: 'grid', gridTemplateColumns: '2fr 1fr 1fr 1fr auto', gap: 8, marginBottom: 8 }}>
+                    <div key={i} style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '2fr 1fr 1fr 1fr auto', gap: 8, marginBottom: 8 }}>
                       <Input placeholder="Description" value={l.description || ''} onChange={e => setLines(p => p.map((x, j) => j === i ? { ...x, description: e.target.value } : x))} />
                       <Input type="number" placeholder="Qty sent" value={l.qty_ordered ?? ''} onChange={e => setLines(p => p.map((x, j) => j === i ? { ...x, qty_ordered: e.target.value ? Number(e.target.value) : undefined } : x))} />
                       <Input type="number" placeholder="Qty received" value={l.qty_delivered ?? ''} onChange={e => setLines(p => p.map((x, j) => j === i ? { ...x, qty_delivered: e.target.value ? Number(e.target.value) : undefined } : x))} />
                       <Input placeholder="Condition" value={l.condition || ''} onChange={e => setLines(p => p.map((x, j) => j === i ? { ...x, condition: e.target.value } : x))} />
                       {lines.length > 1 && (
-                        <Button size="icon" variant="ghost" onClick={() => setLines(p => p.filter((_, j) => j !== i))}><Icon name="close" size={14} /></Button>
+                        <Button size="icon" variant="ghost" aria-label={`Remove line ${i + 1}`} onClick={() => setLines(p => p.filter((_, j) => j !== i))}><Icon name="close" size={14} /></Button>
                       )}
                     </div>
                   ))}
@@ -481,7 +484,7 @@ export function DeliveryDocumentsPage() {
               </>
             )}
 
-            {error && <div style={{ color: 'var(--red)', fontSize: 12.5, marginBottom: 12 }}>{error}</div>}
+            {error && <Banner variant="error" className="mb-3">{error}</Banner>}
 
           </SectionCard>
   );
@@ -542,16 +545,12 @@ export function DeliveryDocumentsPage() {
 
       <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
         {shipmentFilter && (
-          <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 16px', background: 'var(--teal-l)', border: '1px solid var(--teal-m)', borderRadius: 'var(--r)', fontSize: 12.5, color: 'var(--ink2)' }}>
-            <Icon name="package" size={14} color="var(--teal)" />
-            <span>Showing documents for shipment <strong>{shipmentLabel(shipmentFilter) ?? shipmentFilter}</strong>.</span>
-            <Link to="/finance/delivery-documents" style={{ marginLeft: 'auto', color: 'var(--teal)', fontWeight: 600, fontSize: 12 }}>View all documents</Link>
-          </div>
+          <Banner variant="brand" icon="package" action={<Link to="/finance/delivery-documents" style={{ color: 'var(--teal)', fontWeight: 600, fontSize: 12 }}>View all documents</Link>}>
+            Showing documents for shipment <strong>{shipmentLabel(shipmentFilter) ?? shipmentFilter}</strong>.
+          </Banner>
         )}
 
-        {showForm && (
-          {formContent}
-        )}
+        {showForm && formContent}
 
         <SectionCard title="Documents" padded={false} collapsible={false}>
           {loading ? (

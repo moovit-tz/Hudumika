@@ -12,6 +12,8 @@ import { DatePicker, parseDateOnly, toDateOnlyString } from '../components/ui/da
 import { showPrompt } from '../lib/prompt.js';
 import { Tip } from '../components/ui/tooltip.js';
 import { SectionCard } from '../components/SectionCard.js';
+import { Banner } from '../components/ui/alert.js';
+import { formatAmount } from '../lib/currency.js';
 
 /**
  * Filing periods.
@@ -55,7 +57,7 @@ function monthRange(offset = 0) {
 export function FinanceVatPeriods() {
   const co = useCompany();
   const cur = co.currency ?? 'TZS';
-  const fmt = (n: number) => `${cur} ${(Math.round(n) || 0).toLocaleString()}`;
+  const fmt = (n: number) => formatAmount(Math.round(n) || 0, cur);
 
   const [periods, setPeriods] = useState<Period[]>([]);
   const [loading, setLoading] = useState(true);
@@ -203,19 +205,16 @@ export function FinanceVatPeriods() {
       ]} />
 
       {notice && (
-        <div style={{
-          padding: '10px 14px', margin: '0 0 14px', borderRadius: 'var(--r)',
-          fontSize: 12.5, fontWeight: 600, lineHeight: 1.55,
-          background: notice.kind === 'ok' ? 'var(--green-l)' : notice.kind === 'warn' ? 'var(--gold-l)' : 'var(--red-l)',
-          border: `1px solid ${notice.kind === 'ok' ? 'var(--green)' : notice.kind === 'warn' ? 'var(--gold)' : 'var(--red)'}`,
-          color: notice.kind === 'ok' ? 'var(--green)' : notice.kind === 'warn' ? 'var(--ink2)' : 'var(--red)',
-        }}>
-          {notice.text}
-          {notice.kind === 'warn' && /no tax treatment recorded/i.test(notice.text) && (
-            <div style={{ marginTop: 8, display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+        <div style={{ margin: '0 0 14px' }}>
+          <Banner
+            variant={notice.kind === 'ok' ? 'success' : notice.kind === 'warn' ? 'warning' : 'error'}
+            onDismiss={() => setNotice(null)}
+            action={notice.kind === 'warn' && /no tax treatment recorded/i.test(notice.text) ? (
               <a href="/finance/tax-codes/classify" className="btn btn-secondary btn-sm">Classify them first</a>
-            </div>
-          )}
+            ) : undefined}
+          >
+            {notice.text}
+          </Banner>
         </div>
       )}
 
@@ -288,17 +287,18 @@ export function FinanceVatPeriods() {
           </table>
 
           {open.provisional && gaps > 0 && (
-            <div style={{ padding: '12px 18px', borderTop: '1px solid var(--border)', background: 'var(--gold-l)', fontSize: 12.5, color: 'var(--ink2)', lineHeight: 1.55 }}>
-              <strong style={{ color: 'var(--ink)' }}>{gaps} line(s) cannot be placed in a box.</strong>{' '}
-              Closing freezes them exactly as they are, and the stored snapshot will retain the missing classification.
-              <div style={{ marginTop: 8, display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-                <a href="/finance/tax-codes/classify" className="btn btn-secondary btn-sm">Classify them first</a>
-                <Button type="button" variant="outline" size="sm"
-                  disabled={busy === open.period.id}
-                  onClick={() => close(open.period, true)}>
-                  Close anyway, accepting the gap
-                </Button>
-              </div>
+            <div style={{ padding: '12px 18px', borderTop: '1px solid var(--border)' }}>
+              <Banner variant="warning" title={`${gaps} line(s) cannot be placed in a box`}>
+                Closing freezes them as-is; the snapshot keeps the missing classification.
+                <div style={{ marginTop: 8, display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                  <a href="/finance/tax-codes/classify" className="btn btn-secondary btn-sm">Classify them first</a>
+                  <Button type="button" variant="outline" size="sm"
+                    disabled={busy === open.period.id}
+                    onClick={() => close(open.period, true)}>
+                    Close anyway, accept gap
+                  </Button>
+                </div>
+              </Banner>
             </div>
           )}
         </SectionCard>

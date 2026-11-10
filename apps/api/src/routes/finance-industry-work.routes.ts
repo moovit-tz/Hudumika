@@ -20,7 +20,7 @@ import {
   createConnector, startEvSession, endEvSession, settleEvSession,
 } from '../services/energy.service.js';
 import { createPropertyUnit, listPropertyUnits, createLease, generateLeaseCharges, listLeaseCharges,
-  addBoqItem, listBoqItems, createProgressCertificate,
+  addBoqItem, listBoqItems, createProgressCertificate, approveProgressCertificate, invoiceProgressCertificate, voidProgressCertificate,
   registerVehicle, listVehicles, createJobCard, progressJobCard,
   createPolicy, fileClaim, adjudicateClaim,
   createLoan, generateLoanSchedule, recordLoanRepayment, reverseLoanRepayment, refundLoanCredit,
@@ -386,6 +386,19 @@ export async function financeIndustryWorkRoutes(server: FastifyInstance) {
       measurements: z.array(z.object({ boq_item_id: z.string().uuid(), qty_this_period: z.number().min(0).max(1e12) })).min(1).max(500),
     }).parse(request.body);
     return reply.status(201).send(await createProgressCertificate(request.user.tenant_id, request.user.sub, id, input));
+  });
+  server.post('/progress-certificate/:certId/approve', { preHandler: writers }, async (request, reply) => {
+    const { certId } = z.object({ certId: z.string().uuid() }).parse(request.params);
+    return approveProgressCertificate(request.user.tenant_id, request.user.sub, certId);
+  });
+  server.post('/progress-certificate/:certId/invoice', { preHandler: writers }, async (request, reply) => {
+    const { certId } = z.object({ certId: z.string().uuid() }).parse(request.params);
+    return reply.status(201).send(await invoiceProgressCertificate(request.user.tenant_id, request.user.sub, certId));
+  });
+  server.post('/progress-certificate/:certId/void', { preHandler: writers }, async (request, reply) => {
+    const { certId } = z.object({ certId: z.string().uuid() }).parse(request.params);
+    const { reason } = z.object({ reason: z.string().trim().min(1).max(500) }).parse(request.body);
+    return voidProgressCertificate(request.user.tenant_id, request.user.sub, certId, reason);
   });
 
   // ═══════ AUTOMOTIVE / WORKSHOP ═══════

@@ -47,6 +47,16 @@ export async function ngaoCrudRoutes(fastify: FastifyInstance) {
   // body instead of the real 404/422. Found live while testing the Privacy
   // P0 concurrency fix on /rights-requests/:id/respond.
   fastify.setErrorHandler((error: any, _request, reply) => {
+    // A local setErrorHandler replaces index.ts's global one for every route
+    // in this plugin, not just supplements it — its own ZodError formatting
+    // (real validation failures from every z.object(...).parse() call in
+    // this file) has to be replicated here too, or it silently degrades to
+    // a bare 500 instead of a 400 with the real field errors. Found as the
+    // same latent gap while fixing an identical shape in tuma-parcels.routes.ts.
+    if (error instanceof Error && error.name === 'ZodError') {
+      const zodError = error as unknown as { issues: { path: (string | number)[]; message: string }[] };
+      return reply.status(400).send({ error: 'Validation failed', details: zodError.issues.map(i => ({ field: i.path.join('.'), message: i.message })) });
+    }
     const status = error && typeof error === 'object' && typeof error.statusCode === 'number' ? error.statusCode : 500;
     return reply.status(status).send({ error: status < 500 ? (error.message ?? 'Request failed.') : 'Unable to process the request.' });
   });

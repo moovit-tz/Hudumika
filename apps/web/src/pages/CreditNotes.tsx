@@ -20,6 +20,9 @@ import { Textarea } from '../components/ui/textarea.js';
 import { getCompany } from '../data/companyStore.js';
 import { SearchToolbar } from '../components/ui/filter-dropdown.js';
 import { PaginationBar } from '../components/PaginationBar.js';
+import { Banner } from '../components/ui/alert.js';
+import { SectionLoading } from '../components/ui/spinner.js';
+import { Tip } from '../components/ui/tooltip.js';
 import {
   DocumentDetailShell, DocumentDetailMain, DocumentDetailSidebar,
   DocumentHeaderCard, DocumentActionsCard, DocumentMetaCard, DocumentPartyCard,
@@ -90,9 +93,7 @@ function CreditNoteDetailView({ note, fmt, voiding, onBack, onVoid }: {
             <div style={{ color: 'var(--ink3)', fontSize: 12, marginTop: 2 }}>{fmtDate(note.credit_date)}</div>
           </div>}
           banner={note.status === 'VOID' && note.notes && (
-            <div style={{ padding: '10px 14px', background: 'var(--red-l)', border: '1px solid var(--red)', borderRadius: 'var(--r)', fontSize: 13, color: 'var(--red)' }}>
-              {note.notes}
-            </div>
+            <Banner variant="error">{note.notes}</Banner>
           )}
         />
 
@@ -269,7 +270,7 @@ export function CreditNotes() {
         actions={<FormPageActions onCancel={() => navigate('/finance/credit-notes')} onSave={submit} saving={saving} saveLabel="Issue Credit Note" />}
       >
         <div className="card" style={{ padding: 20 }}>
-          {invoiceId && <div style={{ marginBottom: 14, padding: '8px 12px', background: 'var(--teal-l)', borderRadius: 'var(--r)', fontSize: 12.5, color: 'var(--teal)' }}>Linked to invoice <code style={{ fontFamily: 'var(--font)' }}>{invoiceId}</code></div>}
+          {invoiceId && <Banner variant="brand" style={{ marginBottom: 14 }}>Linked to invoice <code style={{ fontFamily: 'var(--font)' }}>{invoiceId}</code></Banner>}
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 14 }}>
             <div>
               <label style={lbl}>Customer</label>
@@ -282,6 +283,8 @@ export function CreditNotes() {
             <div><label style={lbl}>Reason</label><Input value={reason} onChange={e => setReason(e.target.value)} placeholder="e.g. Returned goods, pricing error" /></div>
           </div>
 
+          <div style={{ overflowX: 'auto' }}>
+          <div style={{ minWidth: 560 }}>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 110px 90px 90px 32px', gap: 8, marginBottom: 6, fontSize: 11, fontWeight: 700, color: 'var(--ink3)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
             <span>Description</span><span style={{ textAlign: 'right' }}>Rate</span><span style={{ textAlign: 'right' }}>Qty</span><span style={{ textAlign: 'right' }}>Tax %</span><span />
           </div>
@@ -291,11 +294,15 @@ export function CreditNotes() {
               <Input className="text-right" type="number" value={l.rate} onChange={e => updateLine(i, { rate: e.target.value })} placeholder="0.00" />
               <Input className="text-right" type="number" value={l.qty} onChange={e => updateLine(i, { qty: e.target.value })} />
               <Input className="text-right" type="number" value={l.tax_pct} onChange={e => updateLine(i, { tax_pct: e.target.value })} />
-              <button type="button" onClick={() => removeLine(i)} disabled={lines.length <= 1} style={{ background: 'none', border: 'none', cursor: lines.length > 1 ? 'pointer' : 'not-allowed', opacity: lines.length > 1 ? 1 : 0.3, padding: "var(--action-py) var(--space-md)" }} data-ui-native-button="">
-                <Icon name="trash" size={14} color="var(--red)" />
-              </button>
+              <Tip label="Remove line">
+                <Button type="button" variant="ghost" size="icon" iconOnly aria-label="Remove line" onClick={() => removeLine(i)} disabled={lines.length <= 1}>
+                  <Icon name="trash" size={14} color="var(--red)" />
+                </Button>
+              </Tip>
             </div>
           ))}
+          </div>
+          </div>
           <Button type="button" variant="outline" size="sm" onClick={addLine} style={{ marginTop: 4, marginBottom: 16 }}>
             <Icon name="plus" size={12} /> Add line
           </Button>
@@ -373,7 +380,7 @@ export function CreditNotes() {
 
       <div className="card" style={{ padding: 0, overflow: 'hidden' }}>
         {loading ? (
-          <div style={{ textAlign: 'center', padding: 40, color: 'var(--ink3)' }}>Loading credit notes…</div>
+          <SectionLoading label="Loading credit notes…" />
         ) : (
           <div className="rtbl-wrap">
             <table className="rtbl" style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12.5 }}>

@@ -166,6 +166,37 @@ describe('POS lifecycle audit — disposable tenants', () => {
     expect(refused.statusCode).toBe(422);
     expect(refused.body).toMatch(/no unexpired batch/i);
   });
+  it('records which batch a sale line was sold from and restocks a refund/void/partial-return back into that exact batch', async () => {
+    const batchProduct = randomUUID();
+    const batchItem = (await withTenant(owner.tenantId, async trx => {
+      await trx.insertInto('products').values({ id: batchProduct, tenant_id: owner.tenantId, code: `BR-${batchProduct.slice(0, 8)}`, name: 'Restock batch item', type: 'product', sale_price: 50, tax_rate: 0, currency: 'TZS', track_inventory: true }).execute();
+      const item = await trx.insertInto('inventory_items').values({ tenant_id: owner.tenantId, sku: `BR-${batchProduct.slice(0, 8)}`, name: 'Restock batch item', product_id: batchProduct, base_uom: 'EA', is_batch_tracked: true }).returning('id').executeTakeFirstOrThrow();
+      const batchNo = `RB-${randomUUID().slice(0, 8)}`;
+      await InventoryService.recordMovement(trx, owner.tenantId, { actorId: owner.userId, movementType: 'receipt', itemId: item.id, toLocationId: location, enteredQty: 10, enteredUom: 'EA', batchNo, expiryDate: '2099-01-01', unitCost: 10 });
+      return { id: item.id, batchNo };
+    }));
+
+    // Whole-sale refund: the line's recorded batch_no must be the exact
+    // batch it was sold from, and restocking must put it back there.
+    const wholeSale = await sale({ inventory_location_id: location, items: [{ product_id: batchProduct, qty: 4 }], payments: [{ method: 'CASH', amount: 200 }] });
+    const wholeSaleLine = await withTenant(owner.tenantId, trx => trx.selectFrom('pos_sale_lines').select('batch_no').where('tenant_id', '=', owner.tenantId).where('sale_id', '=', wholeSale.id).executeTakeFirstOrThrow());
+    expect(wholeSaleLine.batch_no).toBe(batchItem.batchNo);
+    const beforeRefund = await withTenant(owner.tenantId, trx => trx.selectFrom('inventory_stock_levels').select('qty_on_hand').where('tenant_id', '=', owner.tenantId).where('item_id', '=', batchItem.id).where('location_id', '=', location).where('batch_no', '=', batchItem.batchNo).executeTakeFirstOrThrow());
+    const refunded = await call('POST', `/sales/${wholeSale.id}/refund`, { reason: 'Batch restock test' });
+    expect(refunded.statusCode, refunded.body).toBe(200);
+    const afterRefund = await withTenant(owner.tenantId, trx => trx.selectFrom('inventory_stock_levels').select('qty_on_hand').where('tenant_id', '=', owner.tenantId).where('item_id', '=', batchItem.id).where('location_id', '=', location).where('batch_no', '=', batchItem.batchNo).executeTakeFirstOrThrow());
+    expect(Number(afterRefund.qty_on_hand)).toBe(Number(beforeRefund.qty_on_hand) + 4);
+
+    // Item-level partial return: same exact-batch restocking.
+    const partialSale = await sale({ inventory_location_id: location, items: [{ product_id: batchProduct, qty: 3 }], payments: [{ method: 'CASH', amount: 150 }] });
+    const beforePartial = await withTenant(owner.tenantId, trx => trx.selectFrom('inventory_stock_levels').select('qty_on_hand').where('tenant_id', '=', owner.tenantId).where('item_id', '=', batchItem.id).where('location_id', '=', location).where('batch_no', '=', batchItem.batchNo).executeTakeFirstOrThrow());
+    const detail = await call('GET', `/sales/${partialSale.id}`);
+    const line = detail.json().lines[0];
+    const partialReturn = await call('POST', `/sales/${partialSale.id}/refund`, { reason: 'Partial batch restock test', lines: [{ sale_line_id: line.id, qty: 2, disposition: 'restock' }] });
+    expect(partialReturn.statusCode, partialReturn.body).toBe(200);
+    const afterPartial = await withTenant(owner.tenantId, trx => trx.selectFrom('inventory_stock_levels').select('qty_on_hand').where('tenant_id', '=', owner.tenantId).where('item_id', '=', batchItem.id).where('location_id', '=', location).where('batch_no', '=', batchItem.batchNo).executeTakeFirstOrThrow());
+    expect(Number(afterPartial.qty_on_hand)).toBe(Number(beforePartial.qty_on_hand) + 2);
+  });
   it('rolls back insufficient stock including duplicate product lines', async () => {
     const before = (await call('GET', `/availability?location_id=${location}`)).json()[product];
     const result = await call('POST', '/sales', checkout({ inventory_location_id: location, items: [{ product_id: product, qty: 11 }, { product_id: product, qty: 11 }], payments: [{ method: 'CASH', amount: 2200 }] }));

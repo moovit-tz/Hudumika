@@ -7,6 +7,8 @@ import { showConfirm } from '../lib/confirm.js';
 import { PageHeader } from '../components/PageHeader.js';
 import { Badge } from '../components/ui/badge.js';
 import { Button } from '../components/ui/button.js';
+import { Input } from '../components/ui/input.js';
+import { SectionLoading } from '../components/ui/spinner.js';
 import { useIsDarkMode } from '../hooks/useIsDarkMode.js';
 
 /* ── SVG brand marks (vector, no 3D) ─────────────────────────────── */
@@ -174,7 +176,7 @@ export function AccountingIntegrations() {
   const displayed = activeCat === 'All' ? filteredMarketplace : filteredMarketplace.filter(m => m.category === activeCat);
 
   if (loading) {
-    return <div style={{ textAlign: 'center', padding: 40, color: 'var(--ink3)' }}>Loading integrations…</div>;
+    return <SectionLoading label="Loading integrations…" />;
   }
 
   return (
@@ -240,7 +242,7 @@ export function AccountingIntegrations() {
                         )}
                       </div>
                     </div>
-                    <div style={{ padding: '12px 18px', background: 'var(--bg)', borderTop: '1px solid var(--border)', display: 'flex', gap: 10, justifyContent: 'flex-end' }}>
+                    <div style={{ padding: '12px 18px', background: 'var(--bg)', borderTop: '1px solid var(--border)', display: 'flex', gap: 10, justifyContent: 'flex-end', flexWrap: 'wrap' }}>
                       {isConnected ? (
                         <>
                           <Button type="button" variant="outline" size="sm" disabled={testingProvider === p.provider} onClick={() => handleTestConnection(p.provider)}>
@@ -318,11 +320,11 @@ export function AccountingIntegrations() {
             <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 20, flexWrap: 'wrap' }}>
               <div style={{ position: 'relative', flex: '1 1 260px', maxWidth: 380 }}>
                 <Icon name="search" size={14} color="var(--ink3)" style={{ position: 'absolute', left: 11, top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none' }} />
-                <input data-ui-field="input"
+                <Input
                   value={marketplaceSearch}
                   onChange={e => setMarketplaceSearch(e.target.value)}
                   placeholder="Search integrations…"
-                  style={{ width: '100%', paddingLeft: 34, paddingRight: "var(--space-md)", paddingTop: "var(--ds-input-py)", paddingBottom: "var(--ds-input-py)", borderRadius: 'var(--r)', border: '1px solid var(--border)', background: 'var(--white)', color: 'var(--ink)', fontSize: "var(--text-base)", fontFamily: 'var(--font)', outline: 'none', boxSizing: 'border-box' }}
+                  style={{ width: '100%', paddingLeft: 34 }}
                 />
               </div>
               <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>

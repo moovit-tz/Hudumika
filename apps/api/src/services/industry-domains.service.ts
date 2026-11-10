@@ -1,6 +1,9 @@
 import { sql, type Transaction } from 'kysely';
 import { withTenant, type Database } from '../db/client.js';
 import { getIndustryWork, IndustryWorkError } from './finance-industry-work.service.js';
+import { GLService } from './gl.service.js';
+import { getNextDocNumber, getNextCustomerDocNumber } from '../lib/doc-numbering.js';
+import { invoiceJurisdictions, assertPeriodOpenForJurisdictions, reverseDocumentJournals, isPeriodError } from './vat-period.service.js';
 
 type Trx = Transaction<Database>;
 
@@ -168,7 +171,7 @@ export async function createProgressCertificate(tenantId: string, actorId: strin
     const previousCerts = await trx.selectFrom('finance_progress_certificates')
       .select(trx.fn.sum<number>('net_amount').as('total'))
       .where('tenant_id', '=', tenantId).where('work_id', '=', workId)
-      .where('status', '!=', 'draft').executeTakeFirst();
+      .where('status', 'not in', ['draft', 'void']).executeTakeFirst();
     const prevTotal = Number(previousCerts?.total ?? 0);
 
     const cert = await trx.insertInto('finance_progress_certificates').values({
@@ -192,6 +195,145 @@ export async function createProgressCertificate(tenantId: string, actorId: strin
     }
 
     return cert;
+  });
+}
+
+/**
+ * The lifecycle step a progress certificate never had: `createProgressCertificate`
+ * left it in `draft` forever (621_industry_domain_tables.sql's own schema
+ * already modeled status/approved_by/approved_at/invoice_id, but nothing
+ * ever wrote to any of them). Approval is a separate action from creation on
+ * purpose — the person who measures the period's work and the person who
+ * signs off on paying for it are, in a real contract, not always the same
+ * role, and this is the one checkpoint before money moves.
+ */
+export async function approveProgressCertificate(tenantId: string, actorId: string, certId: string) {
+  return withTenant(tenantId, async trx => {
+    const cert = await trx.selectFrom('finance_progress_certificates').selectAll()
+      .where('tenant_id', '=', tenantId).where('id', '=', certId).forUpdate().executeTakeFirst();
+    if (!cert) throw new IndustryWorkError('Certificate not found.', 404);
+    if (cert.status !== 'draft') throw new IndustryWorkError(`Only a draft certificate can be approved (this one is ${cert.status}).`);
+    return trx.updateTable('finance_progress_certificates')
+      .set({ status: 'approved', approved_by: actorId, approved_at: new Date() })
+      .where('tenant_id', '=', tenantId).where('id', '=', certId)
+      .returningAll().executeTakeFirstOrThrow();
+  });
+}
+
+/**
+ * Turns an approved certificate into a real, GL-posted sales invoice — the
+ * "charge" step this flow never had. The client is only invoiced for
+ * `net_amount` (what's actually due now), while the held-back `retention`
+ * is posted to a real Retention Receivable asset (1130, migration 738)
+ * rather than vanishing — it's genuinely collectible later, once the
+ * defects-liability period ends, so losing track of it would be a real
+ * financial gap, not a cosmetic one.
+ */
+export async function invoiceProgressCertificate(tenantId: string, actorId: string, certId: string) {
+  return withTenant(tenantId, async trx => {
+    const cert = await trx.selectFrom('finance_progress_certificates').selectAll()
+      .where('tenant_id', '=', tenantId).where('id', '=', certId).forUpdate().executeTakeFirst();
+    if (!cert) throw new IndustryWorkError('Certificate not found.', 404);
+    if (cert.status !== 'approved') throw new IndustryWorkError(`Only an approved certificate can be invoiced (this one is ${cert.status}).`);
+
+    const work = await getIndustryWork(trx, tenantId, cert.work_id);
+    const customer = await trx.selectFrom('customers').select(['id', 'name']).where('tenant_id', '=', tenantId).where('id', '=', work.customer_id).executeTakeFirst();
+    if (!customer) throw new IndustryWorkError('The linked customer is unavailable.', 400);
+
+    const netAmount    = Number(cert.net_amount);
+    const grossAmount  = Number(cert.gross_amount);
+    const retention    = Number(cert.retention);
+    const currency     = (work.currency || 'TZS').toUpperCase();
+
+    const invoiceNumber = (await getNextCustomerDocNumber(trx, tenantId, customer.id))
+      || await getNextDocNumber(trx, tenantId, 'invoice');
+
+    const inv = await trx.insertInto('sales_invoices').values({
+      tenant_id: tenantId, invoice_number: invoiceNumber,
+      customer_id: customer.id, client_address: JSON.stringify([]),
+      currency, exchange_rate: 1, status: 'Unpaid', received: 0, version: 1,
+      notes: `Progress certificate #${cert.certificate_no} (${cert.period_start} to ${cert.period_end}) for ${work.reference}.`,
+      created_by: actorId,
+    }).returningAll().executeTakeFirstOrThrow();
+
+    await trx.insertInto('sales_invoice_lines').values({
+      invoice_id: inv.id,
+      name: `Progress certificate #${cert.certificate_no} — net due${retention > 0 ? ` after retention of ${retention.toFixed(2)}` : ''}`.slice(0, 300),
+      unit: 'CERT', rate: netAmount, qty: 1, tax_pct: 0, line_group: work.reference, currency, sort_order: 0,
+    }).execute();
+
+    if (grossAmount > 0) {
+      await GLService.post(tenantId, {
+        entryDate: new Date().toISOString(),
+        description: `Progress certificate #${cert.certificate_no}: ${work.reference}`,
+        reference: invoiceNumber,
+        sourceModule: 'AR',
+        sourceId: inv.id,
+        createdBy: actorId,
+        lines: [
+          { accountCode: '1100', debit: netAmount, credit: 0, description: 'Accounts Receivable', currency, exchangeRate: 1 },
+          ...(retention > 0 ? [{ accountCode: '1130', debit: retention, credit: 0, description: 'Retention Receivable', currency, exchangeRate: 1 }] : []),
+          { accountCode: '4000', debit: 0, credit: grossAmount, description: 'Contract Revenue (certified work)', currency, exchangeRate: 1 },
+        ],
+      }, trx);
+    }
+
+    return trx.updateTable('finance_progress_certificates')
+      .set({ status: 'invoiced', invoice_id: inv.id })
+      .where('tenant_id', '=', tenantId).where('id', '=', certId)
+      .returningAll().executeTakeFirstOrThrow();
+  });
+}
+
+/**
+ * The named gap from this backlog's own Construction P0 audit: "no
+ * reversal/reissue capability exists for a posted certificate at all." A
+ * correction never edits a certificate in place — it voids this one
+ * (reversing its real GL entry if it was already invoiced, the same
+ * never-delete-always-reverse convention `GLService.voidEntry()`/invoice
+ * voiding already use elsewhere) and gives back the BOQ quantities it
+ * certified, so a fresh, corrected certificate can be issued for the same
+ * period without double-counting against the BOQ's remaining quantity.
+ */
+export async function voidProgressCertificate(tenantId: string, actorId: string, certId: string, reason: string) {
+  return withTenant(tenantId, async trx => {
+    const cert = await trx.selectFrom('finance_progress_certificates').selectAll()
+      .where('tenant_id', '=', tenantId).where('id', '=', certId).forUpdate().executeTakeFirst();
+    if (!cert) throw new IndustryWorkError('Certificate not found.', 404);
+    if (cert.status === 'void') throw new IndustryWorkError('This certificate is already void.', 409);
+    if (cert.status === 'paid') throw new IndustryWorkError('This certificate has been paid — credit the invoice through FinOps before voiding the certificate.', 409);
+
+    if (cert.status === 'invoiced' && cert.invoice_id) {
+      const inv = await trx.selectFrom('sales_invoices').select(['id', 'received', 'bill_date'])
+        .where('tenant_id', '=', tenantId).where('id', '=', cert.invoice_id).executeTakeFirst();
+      if (inv) {
+        if (Number(inv.received) > 0) {
+          throw new IndustryWorkError('The invoice for this certificate has received payment — credit it through FinOps before voiding the certificate.', 409);
+        }
+        try {
+          await assertPeriodOpenForJurisdictions(trx, tenantId, inv.bill_date, await invoiceJurisdictions(trx, tenantId, inv.id));
+        } catch (e) {
+          if (isPeriodError(e)) throw new IndustryWorkError((e as Error).message, 409);
+          throw e;
+        }
+        await reverseDocumentJournals(trx, tenantId, 'AR', inv.id, actorId, reason);
+        await trx.updateTable('sales_invoices').set({ status: 'Void', updated_at: new Date() } as any)
+          .where('tenant_id', '=', tenantId).where('id', '=', inv.id).execute();
+      }
+    }
+
+    const measurements = await trx.selectFrom('finance_progress_measurements').selectAll()
+      .where('tenant_id', '=', tenantId).where('certificate_id', '=', certId).execute();
+    for (const m of measurements) {
+      await trx.updateTable('finance_boq_items')
+        .set({ certified_qty: sql`certified_qty - ${m.qty_this_period}` })
+        .where('tenant_id', '=', tenantId).where('id', '=', m.boq_item_id).execute();
+    }
+
+    return trx.updateTable('finance_progress_certificates')
+      .set({ status: 'void', voided_at: new Date(), void_reason: reason, voided_by: actorId })
+      .where('tenant_id', '=', tenantId).where('id', '=', certId)
+      .returningAll().executeTakeFirstOrThrow();
   });
 }
 

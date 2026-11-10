@@ -7,6 +7,7 @@ import { hashPassword, verifyPassword, needsRehash } from '../lib/password.js';
 import { enforcePasswordPolicy } from '../lib/password-policy.js';
 import { verifyTotp } from '../lib/totp.js';
 import { MailService } from '../services/mail.service.js';
+import { WhatsAppIntegration } from '../integrations/whatsapp.js';
 import { CommEventsService } from '../services/comm-events.service.js';
 import { env } from '../config/env.js';
 import { PlatformAdminService } from '../services/platform-admin.service.js';
@@ -17,7 +18,7 @@ import { emitDomainEvent } from '../services/domain-events.service.js';
 import { getPlatformSecuritySettings, ipMatchesAllowlist } from '../lib/platform-settings.js';
 import type { LoginInput, CustomerOTPInput, CustomerVerifyInput, SafeUser, JWTPayload, OrgLoginInput, SafeOrgUser } from '@hudumika/types';
 
-// Simple in-memory storage for customer OTPs in dev
+// Customer OTPs stay in process memory only for short-lived authentication attempts.
 const OTP_STORE = new Map<string, { otp: string; expiresAt: number }>();
 
 // Every schema below guards a fully unauthenticated route — no JWT stands
@@ -666,6 +667,9 @@ export async function authRoutes(fastify: FastifyInstance) {
    */
   fastify.post('/customer-otp', { config: { rateLimit: { max: 5, timeWindow: '1 minute' } } }, async (request, reply) => {
     const { phone_wa } = customerOtpSchema.parse(request.body) as CustomerOTPInput;
+    if (env.APP_ENV === 'production' && !WhatsAppIntegration.isConfigured()) {
+      return reply.status(503).send({ error: 'Customer OTP delivery is not configured.' });
+    }
 
     // Pre-tenant: phone-number lookup across all tenants, same reasoning as
     // /login's email lookup.
@@ -683,21 +687,22 @@ export async function authRoutes(fastify: FastifyInstance) {
       return reply.status(403).send({ error: 'The customer portal is currently disabled for this workspace.' });
     }
 
-    // Generate 6-digit OTP
-    const otp = Math.floor(100000 + Math.random() * 900000).toString();
-    OTP_STORE.set(phone_wa, {
-      otp,
-      expiresAt: Date.now() + 5 * 60 * 1000, // 5 min expiry
-    });
-
-    console.log(`📱 [OTP Login] Generated OTP for customer ${customer.name} (${phone_wa}): ${otp}`);
-
-    // In production, we'd send this via WhatsApp Meta API.
-    // For local testing, we simulate it.
-    return {
-      success: true,
-      message: 'OTP sent successfully (Simulated). Check API server terminal output.',
-    };
+    if (env.APP_ENV !== 'production') {
+      return {
+        success: true,
+        delivered: false,
+        mode: 'development',
+        message: 'No message was sent. Use the development-only verification code.',
+      };
+    }
+    const otp = crypto.randomInt(100000, 1000000).toString();
+    OTP_STORE.set(phone_wa, { otp, expiresAt: Date.now() + 5 * 60 * 1000 });
+    const delivery = await WhatsAppIntegration.sendMessage(phone_wa, `Your Hudumika sign-in code is ${otp}. It expires in 5 minutes.`);
+    if (!delivery.success || delivery.simulated) {
+      OTP_STORE.delete(phone_wa);
+      return reply.status(503).send({ error: 'Customer OTP could not be delivered.' });
+    }
+    return reply.status(202).send({ success: true, delivered: true });
   });
 
   /**

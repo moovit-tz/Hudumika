@@ -61,6 +61,8 @@ export async function createTestTenant(role: UserRole = 'TENANT_ADMIN'): Promise
     token: primary.token,
     addUser,
     async cleanup() {
+      // Migration 638's activation checkpoint FK is not ON DELETE CASCADE.
+      await dbPlatform.deleteFrom('tenant_activation_checkpoints').where('tenant_id', '=', tenant.id).execute();
       await dbPlatform.deleteFrom('tenants').where('id', '=', tenant.id).execute();
     },
   };

@@ -77,7 +77,7 @@ export class PaymentsIntegration {
       console.log(`💳 [Simulated Payment] method=mpesa amount=${amount} → DECLINED (invalid mobile number)`);
       return { success: false, tx_ref: txRef, error: 'Invalid mobile money number' };
     }
-    console.log(`💳 [Simulated Payment] method=mpesa amount=${amount} phone=${phone} → APPROVED`);
+    console.log(`💳 [Simulated Payment] method=mpesa amount=${amount} → APPROVED`);
     return { success: true, tx_ref: txRef };
   }
 }

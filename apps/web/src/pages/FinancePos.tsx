@@ -11,6 +11,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '.
 import { Dialog, DialogBody, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '../components/ui/dialog.js';
 import { SectionLoading } from '../components/ui/spinner.js';
 import { apiFetch } from '../lib/api.js';
+import { formatAmount } from '../lib/currency.js';
 import { showAlert } from '../lib/alert.js';
 import { useAuth } from '../hooks/useAuth.js';
 import { useFinanceReadOnly } from '../components/FinanceCapabilityGate.js';
@@ -64,7 +65,7 @@ function categoryIcon(name: string): IconName {
 }
 const QUICK_DENOMINATIONS = [500, 1000, 2000, 5000, 10000, 20000, 50000, 100000];
 
-const cash = (value:number, currency='TZS') => new Intl.NumberFormat(undefined, { style:'currency', currency, maximumFractionDigits:2 }).format(value);
+const cash = (value:number, currency='TZS') => formatAmount(value, currency);
 const fmtDenom = (n:number) => n >= 1000 ? `${Math.round(n / 1000)}K` : String(n);
 
 export function FinancePos() {

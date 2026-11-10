@@ -1,6 +1,7 @@
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { dbPlatform, withTenant } from '../db/client.js';
 import { createTestTenant, type TestTenant } from './helpers.js';
+import { GLService } from '../services/gl.service.js';
 import {
   createPropertyUnit,
   listPropertyUnits,
@@ -10,6 +11,9 @@ import {
   addBoqItem,
   listBoqItems,
   createProgressCertificate,
+  approveProgressCertificate,
+  invoiceProgressCertificate,
+  voidProgressCertificate,
   registerVehicle,
   listVehicles,
   createJobCard,
@@ -272,6 +276,88 @@ describe('Industry Domains Service Layer (Migrations 621 & 622)', () => {
           measurements: [{ boq_item_id: boq1.id, qty_this_period: 5 }],
         })
       ).rejects.toThrow('exceeds BOQ quantity');
+    });
+
+    it('takes a certificate through approve → invoice (real GL, real retention receivable) → void (reverses the GL and gives the BOQ quantity back)', async () => {
+      await withTenant(tenant.tenantId, async trx => { await GLService.seedChartOfAccounts(trx, tenant.tenantId); });
+      const work = await createWork('construction', 'Access Road Resurfacing');
+      const boq = await addBoqItem(tenant.tenantId, work.id, {
+        item_no: '2.01', description: 'Asphalt overlay', unit: 'M2',
+        quantity: 1000, rate: 20000, retention_pct: 10, sort_order: 1,
+      });
+
+      // A fresh certificate cannot be invoiced before it's approved.
+      const cert = await createProgressCertificate(tenant.tenantId, tenant.userId, work.id, {
+        period_start: '2027-01-01', period_end: '2027-01-31',
+        measurements: [{ boq_item_id: boq.id, qty_this_period: 200 }],
+      });
+      expect(cert.status).toBe('draft');
+      await expect(invoiceProgressCertificate(tenant.tenantId, tenant.userId, cert.id)).rejects.toThrow('Only an approved certificate');
+
+      const approved = await approveProgressCertificate(tenant.tenantId, tenant.userId, cert.id);
+      expect(approved.status).toBe('approved');
+      expect(approved.approved_by).toBe(tenant.userId);
+      await expect(approveProgressCertificate(tenant.tenantId, tenant.userId, cert.id)).rejects.toThrow('Only a draft certificate');
+
+      // gross = 200 * 20,000 = 4,000,000; retention 10% = 400,000; net = 3,600,000
+      const invoiced = await invoiceProgressCertificate(tenant.tenantId, tenant.userId, cert.id);
+      expect(invoiced.status).toBe('invoiced');
+      expect(invoiced.invoice_id).toBeTruthy();
+
+      const { invoice, journalLines } = await withTenant(tenant.tenantId, async trx => {
+        const invoice = await trx.selectFrom('sales_invoices').selectAll().where('id', '=', invoiced.invoice_id!).executeTakeFirstOrThrow();
+        const journalLines = await trx.selectFrom('journal_lines as jl')
+          .innerJoin('journal_entries as je', 'je.id', 'jl.journal_entry_id')
+          .innerJoin('chart_of_accounts as coa', 'coa.id', 'jl.account_id')
+          .select(['coa.code', 'jl.debit', 'jl.credit'])
+          .where('je.tenant_id', '=', tenant.tenantId).where('je.source_module', '=', 'AR').where('je.source_id', '=', invoiced.invoice_id!)
+          .where('je.voided_at', 'is', null)
+          .execute();
+        return { invoice, journalLines };
+      });
+      expect(invoice.status).toBe('Unpaid');
+      const ar = journalLines.find(l => l.code === '1100');
+      const retentionReceivable = journalLines.find(l => l.code === '1130');
+      const revenue = journalLines.find(l => l.code === '4000');
+      expect(Number(ar?.debit)).toBe(3600000);
+      expect(Number(retentionReceivable?.debit)).toBe(400000);
+      expect(Number(revenue?.credit)).toBe(4000000);
+
+      // Void reverses the GL (a second, mirror-image journal entry — never
+      // edits the first) and gives the BOQ quantity back for reissue.
+      const voided = await voidProgressCertificate(tenant.tenantId, tenant.userId, cert.id, 'Measurement dispute — remeasuring the section.');
+      expect(voided.status).toBe('void');
+      expect(voided.void_reason).toContain('remeasuring');
+
+      const boqAfterVoid = (await listBoqItems(tenant.tenantId, work.id)).find(b => b.id === boq.id)!;
+      expect(Number(boqAfterVoid.certified_qty)).toBe(0);
+
+      const { invoiceAfterVoid, entries } = await withTenant(tenant.tenantId, async trx => {
+        const invoiceAfterVoid = await trx.selectFrom('sales_invoices').select('status').where('id', '=', invoiced.invoice_id!).executeTakeFirstOrThrow();
+        const entries = await trx.selectFrom('journal_entries')
+          .select(['id', 'voided_at', 'reverses_entry_id'])
+          .where('tenant_id', '=', tenant.tenantId).where('source_module', '=', 'AR').where('source_id', '=', invoiced.invoice_id!)
+          .execute();
+        return { invoiceAfterVoid, entries };
+      });
+      expect(invoiceAfterVoid.status).toBe('Void');
+      // The original entry is marked voided, never deleted; a separate
+      // mirror-image reversal entry exists alongside it — the net GL effect
+      // is zero, but the audit trail of what happened is preserved.
+      const original = entries.find(e => e.reverses_entry_id === null);
+      const reversal = entries.find(e => e.reverses_entry_id !== null);
+      expect(original?.voided_at).toBeTruthy();
+      expect(reversal).toBeTruthy();
+
+      // A fresh, corrected certificate can now be issued for the same BOQ item.
+      const reissued = await createProgressCertificate(tenant.tenantId, tenant.userId, work.id, {
+        period_start: '2027-01-01', period_end: '2027-01-31',
+        measurements: [{ boq_item_id: boq.id, qty_this_period: 200 }],
+      });
+      expect(Number(reissued.gross_amount)).toBe(4000000);
+
+      // An already-void certificate cannot be voided again.
+      await expect(voidProgressCertificate(tenant.tenantId, tenant.userId, cert.id, 'again')).rejects.toThrow('already void');
     });
   });
 

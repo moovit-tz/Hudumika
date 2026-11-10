@@ -9,6 +9,8 @@ import { Button } from '../components/ui/button.js';
 import { Input } from '../components/ui/input.js';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '../components/ui/select.js';
 import { DatePicker, parseDateOnly, toDateOnlyString } from '../components/ui/date-picker.js';
+import { Tabs, TabsList, TabsTrigger } from '../components/ui/tabs.js';
+import { Banner } from '../components/ui/alert.js';
 import { apiFetch } from '../lib/api.js';
 import { showAlert } from '../lib/alert.js';
 import { useIsMobile } from '../hooks/useIsMobile.js';
@@ -176,10 +178,14 @@ export function MultiEntityAccounting() {
         },
       ]} />
 
-      <div style={{ display: 'flex', gap: 8, marginBottom: 16 }}>
-        <Button size="sm" variant={tab === 'entities' ? 'default' : 'outline'} onClick={() => setTab('entities')}>Entities</Button>
-        <Button size="sm" variant={tab === 'intercompany' ? 'default' : 'outline'} onClick={() => setTab('intercompany')}>Intercompany</Button>
-        <Button size="sm" variant={tab === 'consolidated' ? 'default' : 'outline'} onClick={() => setTab('consolidated')}>Consolidated P&L</Button>
+      <div style={{ marginBottom: 16 }}>
+        <Tabs value={tab} onValueChange={v => setTab(v as typeof tab)} variant="pill">
+          <TabsList>
+            <TabsTrigger value="entities">Entities</TabsTrigger>
+            <TabsTrigger value="intercompany">Intercompany</TabsTrigger>
+            <TabsTrigger value="consolidated">Consolidated P&L</TabsTrigger>
+          </TabsList>
+        </Tabs>
       </div>
 
       {tab === 'entities' && (
@@ -207,7 +213,7 @@ export function MultiEntityAccounting() {
                   <Input value={entityForm.currency} onChange={e => setEntityForm(p => ({ ...p, currency: e.target.value.toUpperCase() }))} maxLength={3} />
                 </div>
               </div>
-              {error && <div style={{ color: 'var(--red)', fontSize: 12.5, marginBottom: 12 }}>{error}</div>}
+              {error && <Banner variant="error" style={{ marginBottom: 12 }}>{error}</Banner>}
               <Button disabled={saving} onClick={saveEntity}>{saving ? 'Saving…' : 'Save entity'}</Button>
             </SectionCard>
           )}
@@ -286,7 +292,7 @@ export function MultiEntityAccounting() {
               <div style={{ fontSize: 11.5, color: 'var(--ink3)', marginBottom: 12 }}>
                 Posts two balanced entries: the from-entity is debited to an Intercompany Receivable clearing account and credited on its own account code; the to-entity is debited on its own account code and credited to Intercompany Payable.
               </div>
-              {error && <div style={{ color: 'var(--red)', fontSize: 12.5, marginBottom: 12 }}>{error}</div>}
+              {error && <Banner variant="error" style={{ marginBottom: 12 }}>{error}</Banner>}
               <Button disabled={saving} onClick={saveTxn}>{saving ? 'Posting…' : 'Post transaction'}</Button>
             </SectionCard>
           )}

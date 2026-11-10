@@ -40,19 +40,27 @@ export interface ButtonProps
   extends React.ButtonHTMLAttributes<HTMLButtonElement>,
     VariantProps<typeof buttonVariants> {
   asChild?: boolean
+  /**
+   * Square icon-only control. Forces the `icon` size so the default `px-8`
+   * can't win the class merge, and mirrors `aria-label` into `title` so the
+   * action keeps a hover tooltip once its text label is gone.
+   */
+  iconOnly?: boolean
 }
 
 const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
-  ({ className, variant, size, asChild = false, style, ...props }, ref) => {
+  ({ className, variant, size, asChild = false, iconOnly = false, style, title, ...props }, ref) => {
     const Comp = asChild ? Slot : "button"
-    const padBlock = size === 'xs' ? 'var(--ds-btn-py-xs, 3px)' : size === 'sm' || size === 'icon' ? '0' : 'var(--action-py)'
+    const effectiveSize = iconOnly ? "icon" : size
+    const padBlock = effectiveSize === 'xs' ? 'var(--ds-btn-py-xs, 3px)' : effectiveSize === 'sm' || effectiveSize === 'icon' ? '0' : 'var(--action-py)'
     return (
       <Comp
-        className={cn(buttonVariants({ variant, size, className }))}
+        className={cn(buttonVariants({ variant, size: effectiveSize, className }))}
         style={{ paddingBlock: padBlock, borderWidth: 'var(--border-width, 1px)', ...style }}
         data-ui-button=""
         data-variant={variant ?? 'default'}
-        data-size={size ?? "default"}
+        data-size={effectiveSize ?? "default"}
+        title={title ?? (iconOnly ? props["aria-label"] : undefined)}
         ref={ref}
         {...props}
       />

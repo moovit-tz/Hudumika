@@ -28,6 +28,9 @@ import { showConfirm } from '../lib/confirm.js';
 import { Dialog, DialogContent, DialogTitle } from '../components/ui/dialog.js';
 import { Tip } from '../components/ui/tooltip.js';
 import { PaginationBar } from '../components/PaginationBar.js';
+import { Input } from '../components/ui/input.js';
+import { Textarea } from '../components/ui/textarea.js';
+import { SectionLoading } from '../components/ui/spinner.js';
 import {
   DocumentDetailShell, DocumentDetailMain, DocumentDetailSidebar,
   DocumentHeaderCard, DocumentActionsCard, DocumentMetaCard, DocumentPartyCard,
@@ -178,15 +181,14 @@ function RejectModal({ onConfirm, onCancel }: { onConfirm:(r:string)=>void; onCa
   const [reason, setReason] = useState('');
   return (
     <Dialog open onOpenChange={o => { if (!o) onCancel(); }}>
-      <DialogContent className="max-w-110 gap-0">
-        <DialogTitle style={{ fontSize:16, fontWeight:700, color:'var(--ink)', marginBottom:6 }}>Reject Quotation</DialogTitle>
+      <DialogContent size="sm" className="gap-0">
+        <DialogTitle style={{ fontSize:16, fontWeight:700, color:'var(--ink)', marginBottom:6 }}>Reject quotation</DialogTitle>
         <div style={{ fontSize:13, color:'var(--ink2)', marginBottom:16 }}>Provide a reason. This will be logged on the quote record.</div>
-        <textarea data-ui-field="textarea" title="Rejection reason" placeholder="Enter rejection reason..." value={reason} onChange={e=>setReason(e.target.value)} rows={4}
-          style={{ width:'100%', padding:"var(--ds-input-py) var(--space-md)", border:'1px solid var(--border)', borderRadius: 'var(--r)', fontSize:"var(--text-base)", resize:'vertical', boxSizing:'border-box' as const, fontFamily:"var(--font)", outline:'none' }} />
+        <Textarea aria-label="Rejection reason" placeholder="Enter rejection reason…" value={reason} onChange={e=>setReason(e.target.value)} rows={4} className="resize-y" />
         <div style={{ display:'flex', gap:8, justifyContent:'flex-end', marginTop:16 }}>
-          <button type="button" onClick={onCancel} style={{ padding:'var(--ds-btn-py) 18px', border:'1px solid var(--border)', borderRadius: 'var(--r)', background:'var(--bg)', cursor:'pointer', fontWeight:600, fontSize:"var(--text-base)", color:'var(--ink2)', minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}} data-ui-native-button="">Cancel</button>
+          <Button type="button" variant="outline" onClick={onCancel}>Cancel</Button>
           <Button type="button" variant="destructive" disabled={!reason.trim()} onClick={()=>reason.trim()&&onConfirm(reason.trim())}>
-            Reject Quote
+            Reject quote
           </Button>
         </div>
       </DialogContent>
@@ -250,12 +252,11 @@ function ServicePicker({ onSelect, currency = 'USD' }: {
   return (
     <div style={{ width:480, display:'flex', flexDirection:'column', maxHeight:400 }}>
       <div style={{ padding:'10px 12px', borderBottom:'1px solid var(--border)' }}>
-        <input data-ui-field="input" type="text" title="Search services" placeholder="Search products & services…" value={q} onChange={e=>handleInput(e.target.value)} autoFocus
-          style={{ width:'100%', padding:"var(--ds-input-py) var(--space-md)", border:'1px solid var(--border)', borderRadius: 'var(--r)', fontSize:"var(--text-base)", outline:'none', boxSizing:'border-box' as const }}/>
+        <Input type="text" aria-label="Search services" placeholder="Search products & services…" value={q} onChange={e=>handleInput(e.target.value)} autoFocus />
       </div>
       <div style={{ overflowY:'auto', flex:1, padding:'8px 0' }}>
         {loading ? (
-          <div style={{ padding:20, textAlign:'center', color:'var(--ink3)', fontSize:13 }}>Searching…</div>
+          <SectionLoading label="Searching…" style={{ padding: 20 }} />
         ) : items.length===0 ? (
           <div style={{ padding:20, textAlign:'center', color:'var(--ink3)', fontSize:13 }}>No products found</div>
         ) : (
@@ -1030,7 +1031,7 @@ export const Quotations: React.FC = () => {
 
       <div style={{ background:'var(--white)', borderRadius: 'var(--r)', border:'1px solid var(--border)', overflow:'hidden' }}>
         {loading
-          ? <div style={{ padding:'60px 20px', textAlign:'center', color:'var(--ink3)', fontSize:13 }}>Loading quotations...</div>
+          ? <SectionLoading label="Loading quotations…" style={{ padding: '60px 20px' }} />
           : displayed.length===0
             ? <div style={{ padding:'60px 20px', textAlign:'center' }}>
                 <div style={{ marginBottom:12 }}><Icon name="fileText" size={48} color="var(--border)"/></div>

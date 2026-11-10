@@ -1721,6 +1721,7 @@ export interface ShipmentJobChargesTable {
   cost_local_amount: number | null;
   cost_posted: Generated<boolean>;
   cost_reference: string | null;
+  cost_bill_id: string | null;
   // Sell leg (AR)
   debtor_id: string | null;
   debtor_name: string | null;
@@ -3522,6 +3523,7 @@ export interface PosSaleLinesTable {
   tax_rate: Generated<number>;
   tax_amount: Generated<number>;
   line_total: number;
+  batch_no: string | null;
 }
 
 export interface PosPaymentsTable {
@@ -6077,9 +6079,10 @@ export interface Database {
     certificate_no: number; period_start: string; period_end: string;
     gross_amount: Generated<number>; retention: Generated<number>;
     previous_certs: Generated<number>; net_amount: Generated<number>;
-    status: Generated<'draft' | 'submitted' | 'approved' | 'invoiced' | 'paid'>;
+    status: Generated<'draft' | 'submitted' | 'approved' | 'invoiced' | 'paid' | 'void'>;
     approved_by: string | null; approved_at: Date | null; invoice_id: string | null;
     notes: string | null; created_at: Generated<Date>;
+    voided_at: Date | null; void_reason: string | null; voided_by: string | null;
   };
   finance_progress_measurements: {
     id: Generated<string>; tenant_id: string; certificate_id: string; boq_item_id: string;
@@ -7146,6 +7149,7 @@ export interface Database {
   warehouse_dock_appointments: WarehouseDockAppointmentsTable;
   cargo_manifests: CargoManifestsTable;
   cargo_items: CargoItemsTable;
+  cargo_damage_claims: CargoDamageClaimsTable;
   vehicle_issues: VehicleIssuesTable;
   vehicle_expenses: VehicleExpensesTable;
   vehicle_meter_readings: VehicleMeterReadingsTable;
@@ -7390,6 +7394,9 @@ export interface Database {
     picked_up_date: Date | null; canceled_at: Date | null;
     cancellation_reason: string | null; created_by: string | null;
     created_at: Generated<Date>; updated_at: Generated<Date>;
+    // Nullable cross-system link to a ClearOS shipment_cases row — plain
+    // UUID, no DB FK (shipment_cases is partitioned, see migration 737).
+    shipment_case_id: string | null;
   };
   tuma_parcel_tracking: {
     id: Generated<string>; tenant_id: string; parcel_id: string;
@@ -9665,6 +9672,27 @@ export interface CargoItemsTable {
   color: string | null;
   placements: Generated<{ x: number; y: number; z: number }[]>;
   created_at: Generated<Date>;
+}
+
+export interface CargoDamageClaimsTable {
+  id: Generated<string>;
+  tenant_id: string;
+  manifest_id: string;
+  cargo_item_id: string;
+  customer_id: string | null;
+  damaged_quantity: number;
+  damage_description: string | null;
+  status: Generated<'OPEN' | 'APPROVED' | 'REJECTED'>;
+  claimed_amount: number | null;
+  approved_amount: number | null;
+  currency: Generated<string>;
+  credit_note_id: string | null;
+  resolution_notes: string | null;
+  resolved_by: string | null;
+  resolved_at: Date | null;
+  created_by: string | null;
+  created_at: Generated<Date>;
+  updated_at: Generated<Date>;
 }
 
 export interface FuelLogsTable {

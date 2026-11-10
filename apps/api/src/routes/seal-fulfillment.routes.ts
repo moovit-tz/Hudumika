@@ -213,8 +213,20 @@ export async function sealFulfillmentRoutes(fastify: FastifyInstance) {
         const remaining = Number(line.requested_qty) - Number(line.picked_qty);
         if (b.qty > remaining) throw new Error(`Cannot pick ${b.qty} — only ${remaining} remains requested on this line.`);
 
-        const lot = await trx.selectFrom('seal_lots').select(['id', 'qty_on_hand', 'qty_allocated']).where('tenant_id', '=', request.user.tenant_id).where('id', '=', line.lot_id).forUpdate().executeTakeFirstOrThrow();
+        const lot = await trx.selectFrom('seal_lots').select(['id', 'qty_on_hand', 'qty_allocated', 'expiry_date']).where('tenant_id', '=', request.user.tenant_id).where('id', '=', line.lot_id).forUpdate().executeTakeFirstOrThrow();
         if (b.qty > Number(lot.qty_on_hand) - Number(lot.qty_allocated) + Number(line.reserved_qty)) throw new Error(`Cannot pick ${b.qty} — only ${lot.qty_on_hand} on hand for this lot.`);
+        // `expiry_date`/`batch`/`serial` have been stored on a lot since it
+        // was first built, but nothing anywhere ever enforced expiry —
+        // fulfillment could silently ship stock from a lot that expired
+        // days ago. The operator still chooses which lot to pick from (no
+        // automatic FEFO across lots, a deliberate difference from POS/
+        // pharmacy's auto-selection), but an outright-expired one is
+        // refused rather than quietly shipped — the same floor POS and
+        // pharmacy already enforce, applied here at the one point it was
+        // missing.
+        if (lot.expiry_date && lot.expiry_date < new Date().toISOString().slice(0, 10)) {
+          throw new Error(`This lot expired on ${lot.expiry_date} and cannot be picked for fulfillment.`);
+        }
 
         await SealService.recordMovement(trx, request.user.tenant_id, {
           actorId: request.user.sub, movementType: 'pick', lotId: line.lot_id,

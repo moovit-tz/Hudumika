@@ -9,6 +9,7 @@ import {
   type IndustryProductionRecipe
 } from '@hudumika/types';
 import { apiFetch } from '../lib/api.js';
+import { formatAmount } from '../lib/currency.js';
 import { useAuth } from '../hooks/useAuth.js';
 import { useFinanceCapabilities } from '../hooks/useFinanceCapabilities.js';
 import { useFinanceConfiguration } from '../hooks/useFinanceConfiguration.js';
@@ -412,7 +413,7 @@ function Field({ label, children }: { label: string; children: React.ReactNode }
 }
 
 function money(amount: number | string | undefined, currency = 'TZS') {
-  return new Intl.NumberFormat('en', { style: 'currency', currency, maximumFractionDigits: 2 }).format(Number(amount ?? 0));
+  return formatAmount(Number(amount ?? 0), currency);
 }
 
 const writers = ['SUPER_ADMIN', 'ADMIN', 'TENANT_ADMIN', 'MANAGER', 'FINANCE'];
@@ -686,45 +687,20 @@ export function FinanceIndustries() {
 
           {/* Search & Filter Toolbar */}
           <div className="erp-filter-row">
-            <div style={{ flex: 1, minWidth: 260, maxWidth: 460 }}>
-              <SearchToolbar
-                search={industrySearch}
-                onSearch={setIndustrySearch}
-                placeholder="Search industries, operational fields, or tools…"
-              />
-            </div>
-            <div className="erp-filter-pills">
-              <button data-ui-native-button=""
-                type="button"
-                className={`erp-filter-pill${industryFilter === 'all' ? ' erp-filter-pill--active' : ''}`}
-                onClick={() => setIndustryFilter('all')}
-              >
-                All Profiles ({FINANCE_INDUSTRIES.length})
-              </button>
-              <button data-ui-native-button=""
-                type="button"
-                className={`erp-filter-pill${industryFilter === 'active' ? ' erp-filter-pill--active' : ''}`}
-                onClick={() => setIndustryFilter('active')}
-              >
-                <span
-                  style={{
-                    width: 7,
-                    height: 7,
-                    borderRadius: '50%',
-                    background: 'var(--teal)',
-                    display: 'inline-block'
-                  }}
-                />
-                Active Only ({selectedIndustries.length})
-              </button>
-              <button data-ui-native-button=""
-                type="button"
-                className={`erp-filter-pill${industryFilter === 'inactive' ? ' erp-filter-pill--active' : ''}`}
-                onClick={() => setIndustryFilter('inactive')}
-              >
-                Available ({FINANCE_INDUSTRIES.length - selectedIndustries.length})
-              </button>
-            </div>
+            <SearchToolbar
+              search={industrySearch}
+              onSearch={setIndustrySearch}
+              placeholder="Search industries, operational fields, or tools…"
+              quickFilter={{
+                value: industryFilter === 'all' ? null : industryFilter,
+                onChange: value => setIndustryFilter((value as 'active' | 'inactive') ?? 'all'),
+                allLabel: `All (${FINANCE_INDUSTRIES.length})`,
+                options: [
+                  { value: 'active', label: `Active (${selectedIndustries.length})` },
+                  { value: 'inactive', label: `Available (${FINANCE_INDUSTRIES.length - selectedIndustries.length})` }
+                ]
+              }}
+            />
           </div>
 
           {configuration.error && <Banner variant="error">{configuration.error}</Banner>}
@@ -2357,39 +2333,19 @@ function ProductionSubPanels({ workId, prodId, canWrite }: { workId: string; pro
 function DomainSubPanels({ workId, industry }: { workId: string; industry: string }) {
   const [data, setData] = useState<any>(null);
 
-  useEffect(() => {
-    let live = true;
-    async function load() {
-      try {
-        const work = await apiFetch<any>(`/v1/finance/industries/${workId}`);
-        if (!live) return;
-        setData(work);
-      } catch { /* ignore */ }
-    }
-    load();
-    return () => { live = false; };
+  const load = React.useCallback(async () => {
+    try {
+      const work = await apiFetch<any>(`/v1/finance/industries/${workId}`);
+      setData(work);
+    } catch { /* ignore */ }
   }, [workId]);
+
+  useEffect(() => { load(); }, [load]);
 
   if (!data) return null;
 
-  if (industry === 'construction' && data.boq_items?.length) {
-    return (
-      <details className="industry-sub-panel" style={{ marginTop: 12 }}>
-        <summary><Badge variant="gray">BOQ Items ({data.boq_items.length})</Badge></summary>
-        <div className="industry-records" style={{ marginTop: 8 }}>
-          {data.boq_items.map((item: any) => (
-            <div className="industry-record" key={item.id}>
-              <span style={{ fontWeight: 600 }}>{item.item_no}</span>
-              <span>{item.description}</span>
-              <small>{item.quantity} {item.unit} × {money(item.rate, data.currency)} = {money(item.amount, data.currency)}</small>
-              <Badge variant={Number(item.certified_qty) > 0 ? 'success' : 'gray'}>
-                {Number(item.certified_qty)}/{item.quantity} certified
-              </Badge>
-            </div>
-          ))}
-        </div>
-      </details>
-    );
+  if (industry === 'construction') {
+    return <ConstructionPanels workId={workId} data={data} reload={load} />;
   }
 
   if (industry === 'automotive' && data.job_cards?.length) {
@@ -2508,5 +2464,207 @@ function DomainSubPanels({ workId, industry }: { workId: string; industry: strin
   }
 
   return null;
+}
+
+const CERT_STATUS_VARIANT: Record<string, 'gray' | 'info' | 'success' | 'warning' | 'error'> = {
+  draft: 'gray', submitted: 'info', approved: 'info', invoiced: 'success', paid: 'success', void: 'error',
+};
+
+function ConstructionPanels({ workId, data, reload }: { workId: string; data: any; reload: () => Promise<void> }) {
+  const boqItems: any[] = data.boq_items ?? [];
+  const certificates: any[] = data.progress_certificates ?? [];
+  const [error, setError] = useState<string | null>(null);
+  const [busy, setBusy] = useState<string | null>(null);
+
+  // Add BOQ item
+  const [showAddItem, setShowAddItem] = useState(false);
+  const blankItem = { item_no: '', description: '', unit: '', quantity: '', rate: '', retention_pct: '10' };
+  const [itemForm, setItemForm] = useState(blankItem);
+  async function submitItem(e: React.FormEvent) {
+    e.preventDefault();
+    setError(null); setBusy('add-item');
+    try {
+      await apiFetch(`/v1/finance/industries/${workId}/boq`, {
+        method: 'POST',
+        body: JSON.stringify({
+          item_no: itemForm.item_no, description: itemForm.description,
+          unit: itemForm.unit || undefined,
+          quantity: Number(itemForm.quantity) || 0,
+          rate: Number(itemForm.rate) || 0,
+          retention_pct: Number(itemForm.retention_pct) || 0,
+        }),
+      });
+      setItemForm(blankItem); setShowAddItem(false);
+      await reload();
+    } catch (err: any) { setError(err.message ?? 'Unable to add BOQ item.'); } finally { setBusy(null); }
+  }
+
+  // New progress certificate
+  const [showNewCert, setShowNewCert] = useState(false);
+  const [certPeriod, setCertPeriod] = useState<{ start?: Date; end?: Date }>({});
+  const [certQty, setCertQty] = useState<Record<string, string>>({});
+  async function submitCert(e: React.FormEvent) {
+    e.preventDefault();
+    const measurements = boqItems
+      .map(b => ({ boq_item_id: b.id, qty_this_period: Number(certQty[b.id]) || 0 }))
+      .filter(m => m.qty_this_period > 0);
+    if (!certPeriod.start || !certPeriod.end || measurements.length === 0) {
+      setError('Pick a period and enter a quantity for at least one BOQ item.');
+      return;
+    }
+    setError(null); setBusy('new-cert');
+    try {
+      await apiFetch(`/v1/finance/industries/${workId}/progress-certificate`, {
+        method: 'POST',
+        body: JSON.stringify({
+          period_start: toDateOnlyString(certPeriod.start),
+          period_end: toDateOnlyString(certPeriod.end),
+          measurements,
+        }),
+      });
+      setCertQty({}); setCertPeriod({}); setShowNewCert(false);
+      await reload();
+    } catch (err: any) { setError(err.message ?? 'Unable to issue certificate.'); } finally { setBusy(null); }
+  }
+
+  async function approveCert(certId: string) {
+    setError(null); setBusy(certId);
+    try { await apiFetch(`/v1/finance/industries/progress-certificate/${certId}/approve`, { method: 'POST' }); await reload(); }
+    catch (err: any) { setError(err.message ?? 'Unable to approve certificate.'); } finally { setBusy(null); }
+  }
+  async function invoiceCert(certId: string) {
+    setError(null); setBusy(certId);
+    try { await apiFetch(`/v1/finance/industries/progress-certificate/${certId}/invoice`, { method: 'POST' }); await reload(); }
+    catch (err: any) { setError(err.message ?? 'Unable to invoice certificate.'); } finally { setBusy(null); }
+  }
+
+  const [voidingId, setVoidingId] = useState<string | null>(null);
+  const [voidReason, setVoidReason] = useState('');
+  async function voidCert(certId: string) {
+    if (!voidReason.trim()) { setError('Enter a reason for voiding this certificate.'); return; }
+    setError(null); setBusy(certId);
+    try {
+      await apiFetch(`/v1/finance/industries/progress-certificate/${certId}/void`, { method: 'POST', body: JSON.stringify({ reason: voidReason.trim() }) });
+      setVoidingId(null); setVoidReason('');
+      await reload();
+    } catch (err: any) { setError(err.message ?? 'Unable to void certificate.'); } finally { setBusy(null); }
+  }
+
+  return (
+    <div style={{ marginTop: 12, display: 'flex', flexDirection: 'column', gap: 8 }}>
+      {error && <Banner variant="error" onDismiss={() => setError(null)}>{error}</Banner>}
+
+      {/* BOQ Items */}
+      <details className="industry-sub-panel" open={boqItems.length === 0}>
+        <summary style={{ display: 'flex', alignItems: 'center', gap: 8, justifyContent: 'space-between' }}>
+          <Badge variant="gray">BOQ Items ({boqItems.length})</Badge>
+          <Button type="button" size="sm" variant="outline" onClick={e => { e.preventDefault(); setShowAddItem(s => !s); }}>
+            <Icon name="plus" size={13} /> Add item
+          </Button>
+        </summary>
+        <div className="industry-records" style={{ marginTop: 8 }}>
+          {boqItems.map((item: any) => (
+            <div className="industry-record" key={item.id}>
+              <span style={{ fontWeight: 600 }}>{item.item_no}</span>
+              <span>{item.description}</span>
+              <small>{item.quantity} {item.unit} × {money(item.rate, data.currency)} = {money(item.amount, data.currency)}</small>
+              <Badge variant={Number(item.certified_qty) > 0 ? 'success' : 'gray'}>
+                {Number(item.certified_qty)}/{item.quantity} certified
+              </Badge>
+            </div>
+          ))}
+        </div>
+        {showAddItem && (
+          <form onSubmit={submitItem} style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(110px, 1fr))', gap: 8, marginTop: 10, padding: 10, border: '1px solid var(--border)', borderRadius: 'var(--r)' }}>
+            <div><Label>Item no.</Label><Input value={itemForm.item_no} onChange={e => setItemForm(f => ({ ...f, item_no: e.target.value }))} required /></div>
+            <div style={{ gridColumn: 'span 2' }}><Label>Description</Label><Input value={itemForm.description} onChange={e => setItemForm(f => ({ ...f, description: e.target.value }))} required /></div>
+            <div><Label>Unit</Label><Input value={itemForm.unit} onChange={e => setItemForm(f => ({ ...f, unit: e.target.value }))} placeholder="M3" /></div>
+            <div><Label>Quantity</Label><Input type="number" min="0" step="any" value={itemForm.quantity} onChange={e => setItemForm(f => ({ ...f, quantity: e.target.value }))} required /></div>
+            <div><Label>Rate</Label><Input type="number" min="0" step="any" value={itemForm.rate} onChange={e => setItemForm(f => ({ ...f, rate: e.target.value }))} required /></div>
+            <div><Label>Retention %</Label><Input type="number" min="0" max="100" step="any" value={itemForm.retention_pct} onChange={e => setItemForm(f => ({ ...f, retention_pct: e.target.value }))} /></div>
+            <div style={{ display: 'flex', alignItems: 'flex-end', gap: 6 }}>
+              <Button type="submit" size="sm" disabled={busy === 'add-item'}>{busy === 'add-item' ? 'Adding…' : 'Add'}</Button>
+              <Button type="button" size="sm" variant="ghost" onClick={() => setShowAddItem(false)}>Cancel</Button>
+            </div>
+          </form>
+        )}
+      </details>
+
+      {/* Progress Certificates */}
+      {boqItems.length > 0 && (
+        <details className="industry-sub-panel" open={certificates.length === 0}>
+          <summary style={{ display: 'flex', alignItems: 'center', gap: 8, justifyContent: 'space-between' }}>
+            <Badge variant="gray">Progress Certificates ({certificates.length})</Badge>
+            <Button type="button" size="sm" variant="outline" onClick={e => { e.preventDefault(); setShowNewCert(s => !s); }}>
+              <Icon name="plus" size={13} /> New certificate
+            </Button>
+          </summary>
+          <div className="industry-records" style={{ marginTop: 8 }}>
+            {certificates.map((c: any) => (
+              <div className="industry-record" key={c.id} style={{ flexDirection: 'column', alignItems: 'stretch', gap: 6 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+                  <span style={{ fontWeight: 600 }}>Certificate #{c.certificate_no}</span>
+                  <Badge variant={CERT_STATUS_VARIANT[c.status] ?? 'gray'}>{c.status}</Badge>
+                  <small>{c.period_start} → {c.period_end}</small>
+                </div>
+                <small>
+                  Gross {money(c.gross_amount, data.currency)} · Retention {money(c.retention, data.currency)} · Net {money(c.net_amount, data.currency)}
+                  {c.invoice_id && <> · Invoiced</>}
+                  {c.status === 'void' && c.void_reason && <> · Voided: {c.void_reason}</>}
+                </small>
+                <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+                  {c.status === 'draft' && (
+                    <Button type="button" size="sm" disabled={busy === c.id} onClick={() => approveCert(c.id)}>
+                      {busy === c.id ? 'Approving…' : 'Approve'}
+                    </Button>
+                  )}
+                  {c.status === 'approved' && (
+                    <Button type="button" size="sm" disabled={busy === c.id} onClick={() => invoiceCert(c.id)}>
+                      {busy === c.id ? 'Invoicing…' : 'Invoice'}
+                    </Button>
+                  )}
+                  {!['void', 'paid'].includes(c.status) && voidingId !== c.id && (
+                    <Button type="button" size="sm" variant="outline" onClick={() => { setVoidingId(c.id); setVoidReason(''); }}>
+                      Void
+                    </Button>
+                  )}
+                  {voidingId === c.id && (
+                    <div style={{ display: 'flex', gap: 6, alignItems: 'center', flex: 1, minWidth: 220 }}>
+                      <Input value={voidReason} onChange={e => setVoidReason(e.target.value)} placeholder="Reason for voiding…" style={{ flex: 1 }} />
+                      <Button type="button" size="sm" variant="outline" disabled={busy === c.id} onClick={() => voidCert(c.id)}>
+                        {busy === c.id ? 'Voiding…' : 'Confirm void'}
+                      </Button>
+                      <Button type="button" size="sm" variant="ghost" onClick={() => { setVoidingId(null); setVoidReason(''); }}>Cancel</Button>
+                    </div>
+                  )}
+                </div>
+              </div>
+            ))}
+          </div>
+          {showNewCert && (
+            <form onSubmit={submitCert} style={{ marginTop: 10, padding: 10, border: '1px solid var(--border)', borderRadius: 'var(--r)', display: 'flex', flexDirection: 'column', gap: 10 }}>
+              <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
+                <div><Label>Period start</Label><DatePicker date={certPeriod.start} onChange={d => setCertPeriod(p => ({ ...p, start: d }))} /></div>
+                <div><Label>Period end</Label><DatePicker date={certPeriod.end} onChange={d => setCertPeriod(p => ({ ...p, end: d }))} /></div>
+              </div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                {boqItems.map(b => (
+                  <div key={b.id} style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                    <span style={{ minWidth: 160 }}>{b.item_no} — {b.description}</span>
+                    <small style={{ color: 'var(--ink3)' }}>remaining {(Number(b.quantity) - Number(b.certified_qty)).toFixed(2)} {b.unit}</small>
+                    <Input type="number" min="0" step="any" placeholder="Qty this period" value={certQty[b.id] ?? ''} onChange={e => setCertQty(q => ({ ...q, [b.id]: e.target.value }))} style={{ maxWidth: 140 }} />
+                  </div>
+                ))}
+              </div>
+              <div style={{ display: 'flex', gap: 6 }}>
+                <Button type="submit" size="sm" disabled={busy === 'new-cert'}>{busy === 'new-cert' ? 'Issuing…' : 'Issue certificate'}</Button>
+                <Button type="button" size="sm" variant="ghost" onClick={() => setShowNewCert(false)}>Cancel</Button>
+              </div>
+            </form>
+          )}
+        </details>
+      )}
+    </div>
+  );
 }
 

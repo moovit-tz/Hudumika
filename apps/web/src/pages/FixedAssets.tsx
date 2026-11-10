@@ -14,6 +14,7 @@ import { FormPage, FormPageActions } from '../components/FormPage.js';
 import { useIsMobile } from '../hooks/useIsMobile.js';
 import { useFinanceReadOnly } from '../components/FinanceCapabilityGate.js';
 import { Tip } from '../components/ui/tooltip.js';
+import { PageLoading } from '../components/ui/spinner.js';
 
 const CATEGORIES = ['OFFICE_EQUIPMENT', 'MOTOR_VEHICLE', 'IT_EQUIPMENT', 'FURNITURE', 'MACHINERY', 'OTHER'];
 const CATEGORY_LABEL: Record<string, string> = { OFFICE_EQUIPMENT: 'Office Equipment', MOTOR_VEHICLE: 'Motor Vehicle', IT_EQUIPMENT: 'IT Equipment', FURNITURE: 'Furniture', MACHINERY: 'Machinery', OTHER: 'Other' };
@@ -299,7 +300,7 @@ export function FixedAssets() {
     return <NewAssetForm onSave={handleSave} onClose={() => setShowForm(false)} fmt={fmt} />;
   }
 
-  if (loading) return <div style={{ textAlign: 'center', padding: 40, color: 'var(--ink3)' }}>Loading fixed assets…</div>;
+  if (loading) return <PageLoading label="Loading fixed assets…" />;
 
   const totalCost = faStats?.totalCost ?? assets.reduce((s, a) => s + Number(a.cost), 0);
   const totalNBV = faStats?.totalNBV ?? 0;

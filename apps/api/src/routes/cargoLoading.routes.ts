@@ -9,6 +9,25 @@ import type { Database, CargoManifestStage, CargoManifestStatus } from '../db/cl
 
 const FLEET_ROLES = ['SUPER_ADMIN', 'ADMIN', 'TENANT_ADMIN', 'MANAGER', 'SENIOR', 'JUNIOR'] as const;
 
+// A manifest's customer lives on whichever job it was built from (shipment,
+// freight booking or warehouse release) — cargo_manifests itself has no
+// customer_id of its own. Damage claims need this to know who to credit.
+async function resolveManifestCustomer(trx: Transaction<Database>, tenantId: string, manifest: { shipment_id: string | null; booking_id: string | null; release_doc_id: string | null }): Promise<string | null> {
+  if (manifest.shipment_id) {
+    const s = await trx.selectFrom('shipment_cases').select('customer_id').where('id', '=', manifest.shipment_id).where('tenant_id', '=', tenantId).executeTakeFirst();
+    if (s?.customer_id) return s.customer_id;
+  }
+  if (manifest.booking_id) {
+    const b = await trx.selectFrom('freight_bookings').select('customer_id').where('id', '=', manifest.booking_id).where('tenant_id', '=', tenantId).executeTakeFirst();
+    if (b?.customer_id) return b.customer_id;
+  }
+  if (manifest.release_doc_id) {
+    const r = await trx.selectFrom('delivery_documents').select('customer_id').where('id', '=', manifest.release_doc_id).where('tenant_id', '=', tenantId).executeTakeFirst();
+    if (r?.customer_id) return r.customer_id;
+  }
+  return null;
+}
+
 async function lockManifest(trx: Transaction<Database>, tenantId: string, id: string, allowedStatuses: CargoManifestStatus[] = ['DRAFT', 'PLANNED']) {
   const manifest = await trx.selectFrom('cargo_manifests').selectAll().where('id', '=', id).where('tenant_id', '=', tenantId).forUpdate().executeTakeFirst();
   if (!manifest) throw Object.assign(new Error('Manifest not found'), { statusCode: 404 });
@@ -608,6 +627,7 @@ export async function cargoLoadingRoutes(fastify: FastifyInstance) {
         .selectAll().where('manifest_id', '=', id).where('tenant_id', '=', user.tenant_id).execute();
 
       let hasDiscrepancy = false;
+      let resolvedCustomerId: string | null | undefined; // undefined = not looked up yet
       if (Array.isArray(body.items)) {
         for (const update of body.items) {
           const item = currentItems.find(it => it.id === update.id);
@@ -628,6 +648,45 @@ export async function cargoLoadingRoutes(fastify: FastifyInstance) {
             .where('id', '=', update.id)
             .where('tenant_id', '=', user.tenant_id)
             .execute();
+
+          // Turn a recorded damage note into a real claim the business can
+          // actually resolve (approve a credit note, or reject with a
+          // reason) — previously nothing downstream ever read this field.
+          // The manifest row is already forUpdate()-locked above, so this
+          // loop can't race against a concurrent verify-load on the same
+          // manifest/item.
+          const existingClaim = await trx.selectFrom('cargo_damage_claims')
+            .selectAll().where('cargo_item_id', '=', update.id).where('tenant_id', '=', user.tenant_id).where('status', '=', 'OPEN')
+            .executeTakeFirst();
+
+          if (damagedQty > 0) {
+            if (resolvedCustomerId === undefined) {
+              resolvedCustomerId = await resolveManifestCustomer(trx, user.tenant_id, manifest);
+            }
+            if (existingClaim) {
+              await trx.updateTable('cargo_damage_claims')
+                .set({ damaged_quantity: damagedQty, damage_description: update.damage_description || null, updated_at: new Date() })
+                .where('id', '=', existingClaim.id).where('tenant_id', '=', user.tenant_id)
+                .execute();
+            } else {
+              await trx.insertInto('cargo_damage_claims').values({
+                tenant_id: user.tenant_id,
+                manifest_id: id,
+                cargo_item_id: update.id,
+                customer_id: resolvedCustomerId,
+                damaged_quantity: damagedQty,
+                damage_description: update.damage_description || null,
+                created_by: user.sub,
+              }).execute();
+            }
+          } else if (existingClaim) {
+            // Damage note corrected back to zero before anything was
+            // resolved — nothing left to claim, so drop the open claim
+            // rather than leaving a stale zero-quantity record behind.
+            await trx.deleteFrom('cargo_damage_claims')
+              .where('id', '=', existingClaim.id).where('tenant_id', '=', user.tenant_id)
+              .execute();
+          }
         }
       }
 

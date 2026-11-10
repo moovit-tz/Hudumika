@@ -134,6 +134,15 @@ export const operationsCatalogue: CatalogueGroup[] = [
       "Cash handover certificate|record|Outgoing and incoming custodians;Cash count;Supporting vouchers;Reconciling differences;Sign off",
       "Petty cash policy|policy|Float limits;Eligible spending;Approval authorities;Receipt requirements;Replenishment and review"
     ]
+  },
+  {
+    "apps": [
+      "pos"
+    ],
+    "category": "Point of sale operations",
+    "entries": [
+      "Point-of-sale shift reconciliation record|record|Shift and terminal references;Opening float;Cash card and mobile money totals;Refunds and voids;Expected and counted cash;Variance explanation;Prepared and reviewed by"
+    ]
   }
 ];
 

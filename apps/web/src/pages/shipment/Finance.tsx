@@ -1,4 +1,4 @@
-﻿import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { PersonAvatar } from '../../components/PersonAvatar.js';
 import { ExaminationsQueue } from '../../components/ExaminationsQueue.js';
 import { DangerousGoodsPanel } from '../../components/DangerousGoodsPanel.js';
@@ -59,6 +59,7 @@ export function JobChargesTab({ job, shipmentId, isLive, onRefresh }: { job: Cle
   const [editLine, setEditLine] = useState<JobChargeLine | null>(null);
   const [saving, setSaving]     = useState(false);
   const [deleting, setDeleting] = useState<string | null>(null);
+  const [billing, setBilling]   = useState<string | null>(null); // charge id, or 'sell-all' / 'cost-all'
   const { user } = useAuth();
 
   // Form state
@@ -127,14 +128,22 @@ export function JobChargesTab({ job, shipmentId, isLive, onRefresh }: { job: Cle
     } catch (err: any) { showAlert(err.message || 'Failed to save charge'); } finally { setSaving(false); }
   }
 
-  async function togglePosted(line: JobChargeLine, side: 'cost' | 'sell') {
-    const patch = side === 'cost'
-      ? { cost_posted: !line.cost_posted }
-      : { sell_posted: !line.sell_posted };
+  // Bills one charge (or, with no charge_ids, every still-unbilled charge on
+  // the shipment) through the real bill-sell/bill-cost endpoints — these are
+  // the only way sell_posted/cost_posted can become true now (the old PATCH
+  // toggle was a no-op security hole, silently ignored server-side since the
+  // fields were removed from the PATCH schema; this replaces it with the
+  // actual invoice/bill-creating action).
+  async function billCharges(side: 'cost' | 'sell', chargeIds?: string[]) {
+    const busyKey = chargeIds ? chargeIds[0] : `${side}-all`;
+    setBilling(busyKey);
     try {
-      await apiFetch(`/v1/shipments/${shipmentId}/job-charges/${line.id}`, { method: 'PATCH', body: JSON.stringify(patch) });
-      setLines(ls => ls.map(l => l.id === line.id ? { ...l, ...patch } : l));
-    } catch (err: any) { showAlert(err.message || 'Failed to update'); }
+      await apiFetch(`/v1/shipments/${shipmentId}/job-charges/bill-${side}`, {
+        method: 'POST',
+        body: JSON.stringify(chargeIds ? { charge_ids: chargeIds } : {}),
+      });
+      await loadLines();
+    } catch (err: any) { showAlert(err.message || `Failed to bill ${side}`); } finally { setBilling(null); }
   }
 
   async function handleDelete(lineId: string) {
@@ -174,6 +183,8 @@ export function JobChargesTab({ job, shipmentId, isLive, onRefresh }: { job: Cle
   const totalProfit    = totalSellLocal - totalCostLocal;
   const selectedLine   = lines.find(l => l.id === selectedId) ?? null;
   const localCcy       = 'TZS';
+  const unbilledSell    = lines.filter(l => !l.sell_posted && l.sell_amount > 0);
+  const unbilledCost    = lines.filter(l => !l.cost_posted && l.cost_amount > 0);
 
   const thStyle: React.CSSProperties = {
     padding: '6px 10px', fontSize: 10, fontWeight: 700,
@@ -201,13 +212,41 @@ export function JobChargesTab({ job, shipmentId, isLive, onRefresh }: { job: Cle
             Cost vs. sell per charge — both legs in original currency and {localCcy}.
           </div>
         </div>
-        <button
-          type="button"
-          onClick={() => { setEditLine(null); setForm(blankForm()); setShowForm(true); }}
-          style={{ fontSize: "var(--text-base)", fontWeight: 700, color: 'hsl(var(--primary-foreground))', background: 'hsl(var(--primary))', border: 'none', borderRadius: 'var(--r)', padding: 'var(--ds-btn-py-sm) 16px', cursor: 'pointer', minHeight: 'var(--ctl-h-sm)', boxSizing: 'border-box', lineHeight: 1.25 }}
-         data-ui-native-button="">
-          + Add charge
-        </button>
+        <div style={{ display: 'flex', gap: 8 }}>
+          {unbilledCost.length > 0 && (
+            <button
+              type="button"
+              disabled={billing === 'cost-all'}
+              onClick={async () => {
+                if (!await showConfirm(`Bill ${unbilledCost.length} unbilled cost charge(s) into a real supplier bill? This creates a real AP posting and cannot be undone from here.`)) return;
+                billCharges('cost', undefined);
+              }}
+              style={{ fontSize: "var(--text-base)", fontWeight: 700, color: 'var(--red)', background: 'var(--white)', border: '1px solid var(--red)', borderRadius: 'var(--r)', padding: 'var(--ds-btn-py-sm) 14px', cursor: billing === 'cost-all' ? 'wait' : 'pointer', opacity: billing === 'cost-all' ? 0.6 : 1, minHeight: 'var(--ctl-h-sm)', boxSizing: 'border-box', lineHeight: 1.25 }}
+             data-ui-native-button="">
+              {billing === 'cost-all' ? 'Billing…' : `Bill cost (${unbilledCost.length})`}
+            </button>
+          )}
+          {unbilledSell.length > 0 && (
+            <button
+              type="button"
+              disabled={billing === 'sell-all'}
+              onClick={async () => {
+                if (!await showConfirm(`Bill ${unbilledSell.length} unbilled sell charge(s) into a real sales invoice? This creates a real AR posting and cannot be undone from here.`)) return;
+                billCharges('sell', undefined);
+              }}
+              style={{ fontSize: "var(--text-base)", fontWeight: 700, color: 'var(--green)', background: 'var(--white)', border: '1px solid var(--green)', borderRadius: 'var(--r)', padding: 'var(--ds-btn-py-sm) 14px', cursor: billing === 'sell-all' ? 'wait' : 'pointer', opacity: billing === 'sell-all' ? 0.6 : 1, minHeight: 'var(--ctl-h-sm)', boxSizing: 'border-box', lineHeight: 1.25 }}
+             data-ui-native-button="">
+              {billing === 'sell-all' ? 'Billing…' : `Bill revenue (${unbilledSell.length})`}
+            </button>
+          )}
+          <button
+            type="button"
+            onClick={() => { setEditLine(null); setForm(blankForm()); setShowForm(true); }}
+            style={{ fontSize: "var(--text-base)", fontWeight: 700, color: 'hsl(var(--primary-foreground))', background: 'hsl(var(--primary))', border: 'none', borderRadius: 'var(--r)', padding: 'var(--ds-btn-py-sm) 16px', cursor: 'pointer', minHeight: 'var(--ctl-h-sm)', boxSizing: 'border-box', lineHeight: 1.25 }}
+           data-ui-native-button="">
+            + Add charge
+          </button>
+        </div>
       </div>
 
       {/* Profitability summary */}
@@ -289,14 +328,19 @@ export function JobChargesTab({ job, shipmentId, isLive, onRefresh }: { job: Cle
                       <td style={{ ...numTd, color: 'var(--ink3)', fontSize: 11 }}>{line.cost_exchange_rate != null ? fmtAmt(line.cost_exchange_rate, 2) : '—'}</td>
                       <td style={{ ...numTd, color: 'var(--ink2)' }}>{fmtAmt(line.cost_local_amount, 0)}</td>
                       <td style={{ ...tdStyle, textAlign: 'center' }}>
-                        <button
-                          type="button"
-                          title={line.cost_posted ? 'AP posted — click to unpost' : 'Mark AP as posted'}
-                          onClick={e => { e.stopPropagation(); togglePosted(line, 'cost'); }}
-                          style={{ width: "var(--ctl-h-xs)", height: "var(--ctl-h-xs)", borderRadius: "var(--r-sm)", border: `1.5px solid ${line.cost_posted ? 'var(--green)' : 'var(--border2)'}`, background: line.cost_posted ? 'var(--green)' : 'transparent', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}
-                         data-ui-native-button="">
-                          {line.cost_posted && <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>}
-                        </button>
+                        {line.cost_posted ? (
+                          <span title={`AP posted — bill ${line.cost_reference || ''}`} style={{ width: "var(--ctl-h-xs)", height: "var(--ctl-h-xs)", borderRadius: "var(--r-sm)", border: '1.5px solid var(--green)', background: 'var(--green)', display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}>
+                            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+                          </span>
+                        ) : (
+                          <button
+                            type="button"
+                            title="Bill this cost charge to a real supplier bill"
+                            disabled={!line.cost_amount || billing === line.id}
+                            onClick={e => { e.stopPropagation(); billCharges('cost', [line.id]); }}
+                            style={{ width: "var(--ctl-h-xs)", height: "var(--ctl-h-xs)", borderRadius: "var(--r-sm)", border: '1.5px solid var(--border2)', background: 'transparent', cursor: line.cost_amount ? 'pointer' : 'not-allowed', opacity: line.cost_amount ? 1 : 0.4, display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}
+                           data-ui-native-button="" />
+                        )}
                       </td>
                       {/* Sell */}
                       <td style={{ ...dividerTd, color: 'var(--ink2)' }}>{line.debtor_name || '—'}</td>
@@ -305,14 +349,19 @@ export function JobChargesTab({ job, shipmentId, isLive, onRefresh }: { job: Cle
                       <td style={{ ...numTd, color: 'var(--ink3)', fontSize: 11 }}>{line.sell_exchange_rate != null ? fmtAmt(line.sell_exchange_rate, 2) : '—'}</td>
                       <td style={{ ...numTd, color: 'var(--ink2)' }}>{fmtAmt(line.sell_local_amount, 0)}</td>
                       <td style={{ ...tdStyle, textAlign: 'center' }}>
-                        <button
-                          type="button"
-                          title={line.sell_posted ? 'AR posted — click to unpost' : 'Mark AR as posted'}
-                          onClick={e => { e.stopPropagation(); togglePosted(line, 'sell'); }}
-                          style={{ width: "var(--ctl-h-xs)", height: "var(--ctl-h-xs)", borderRadius: "var(--r-sm)", border: `1.5px solid ${line.sell_posted ? 'var(--green)' : 'var(--border2)'}`, background: line.sell_posted ? 'var(--green)' : 'transparent', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}
-                         data-ui-native-button="">
-                          {line.sell_posted && <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>}
-                        </button>
+                        {line.sell_posted ? (
+                          <span title={`AR posted — invoice ${line.sell_reference || ''}`} style={{ width: "var(--ctl-h-xs)", height: "var(--ctl-h-xs)", borderRadius: "var(--r-sm)", border: '1.5px solid var(--green)', background: 'var(--green)', display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}>
+                            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+                          </span>
+                        ) : (
+                          <button
+                            type="button"
+                            title="Bill this charge to a real sales invoice"
+                            disabled={!line.sell_amount || billing === line.id}
+                            onClick={e => { e.stopPropagation(); billCharges('sell', [line.id]); }}
+                            style={{ width: "var(--ctl-h-xs)", height: "var(--ctl-h-xs)", borderRadius: "var(--r-sm)", border: '1.5px solid var(--border2)', background: 'transparent', cursor: line.sell_amount ? 'pointer' : 'not-allowed', opacity: line.sell_amount ? 1 : 0.4, display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}
+                           data-ui-native-button="" />
+                        )}
                       </td>
                       <td style={{ ...tdStyle, color: 'var(--ink3)', fontSize: 11 }}>{line.invoice_type}</td>
                       <td style={{ ...tdStyle, textAlign: 'center' }}>
@@ -426,8 +475,9 @@ export function JobChargesTab({ job, shipmentId, isLive, onRefresh }: { job: Cle
                 <button
                   type="button"
                   onClick={() => handleDelete(selectedLine.id)}
-                  disabled={deleting === selectedLine.id}
-                  style={{ marginLeft: 'auto', fontSize: "var(--text-base)", color: 'var(--red)', background: 'none', border: '1px solid var(--red)', borderRadius: 'var(--r-sm)', padding: "var(--action-py) var(--space-md)", cursor: 'pointer', opacity: deleting === selectedLine.id ? 0.5 : 1 }}
+                  disabled={deleting === selectedLine.id || selectedLine.sell_posted || selectedLine.cost_posted}
+                  title={(selectedLine.sell_posted || selectedLine.cost_posted) ? 'Already billed — delete the invoice/bill instead of this charge' : undefined}
+                  style={{ marginLeft: 'auto', fontSize: "var(--text-base)", color: 'var(--red)', background: 'none', border: '1px solid var(--red)', borderRadius: 'var(--r-sm)', padding: "var(--action-py) var(--space-md)", cursor: (selectedLine.sell_posted || selectedLine.cost_posted) ? 'not-allowed' : 'pointer', opacity: (deleting === selectedLine.id || selectedLine.sell_posted || selectedLine.cost_posted) ? 0.5 : 1 }}
                  data-ui-native-button="">
                   {deleting === selectedLine.id ? 'Deleting…' : 'Delete charge'}
                 </button>

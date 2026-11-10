@@ -281,15 +281,15 @@ export async function notifyRecipients(
     const signingUrl = `${baseUrl}/sign/public/${r.token}`;
     const { subject, bodyHtml } = signingEmailContent(envelope, r.name, signingUrl, kind);
     await MailService.sendNow(tid, { to: r.email, subject, bodyHtml, sourceApp: 'sign' }).catch(err => {
-      console.error(`[Sign] Failed to email ${kind} to ${r.email}:`, err.message);
+      console.error(`[Sign] Failed to deliver ${kind} by email:`, err.message);
     });
 
     if (r.phone) {
       await WhatsAppIntegration.sendMessage(r.phone, signingWhatsAppText(envelope, r.name, signingUrl, kind)).catch(err => {
-        console.error(`[Sign] Failed to WhatsApp ${kind} to ${r.phone}:`, err.message);
+        console.error(`[Sign] Failed to deliver ${kind} by WhatsApp:`, err.message);
       });
       await SmsIntegration.sendSms(tid, r.phone, signingSmsText(envelope, r.name, signingUrl, kind)).catch(err => {
-        console.error(`[Sign] Failed to SMS ${kind} to ${r.phone}:`, err.message);
+        console.error(`[Sign] Failed to deliver ${kind} by SMS:`, err.message);
       });
     }
 

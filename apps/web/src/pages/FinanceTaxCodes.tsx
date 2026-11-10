@@ -1,4 +1,4 @@
-﻿import React, { useCallback, useState, useEffect, useMemo } from 'react';
+import React, { useCallback, useState, useEffect, useMemo } from 'react';
 import { PageHeader } from '../components/PageHeader.js';
 import { MetricsRow } from '../components/MetricCard.js';
 import { SectionCard } from '../components/SectionCard.js';
@@ -16,6 +16,7 @@ import { Tip } from '../components/ui/tooltip.js';
 import { Checkbox } from '../components/ui/checkbox.js';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '../components/ui/select.js';
 import { DatePicker, parseDateOnly, toDateOnlyString } from '../components/ui/date-picker.js';
+import { useIsMobile } from '../hooks/useIsMobile.js';
 import { showConfirm } from '../lib/confirm.js';
 import { apiFetch } from '../lib/api.js';
 import {
@@ -272,6 +273,7 @@ function TaxCodeForm({ code, onClose, onSaved }: {
   const [form, setForm] = useState<TaxCode>(code ?? { ...EMPTY });
   const [saving, setSaving] = useState(false);
   const [err, setErr] = useState('');
+  const isMobile = useIsMobile();
 
   function set<K extends keyof TaxCode>(k: K, v: TaxCode[K]) {
     setForm(f => ({ ...f, [k]: v }));
@@ -338,7 +340,7 @@ function TaxCodeForm({ code, onClose, onSaved }: {
       actions={<FormPageActions onCancel={onClose} onSave={save} saving={saving}
         saveLabel={code?.id ? 'Save changes' : 'Add tax code'} />}
     >
-      <div className="card" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
+      <div className="card" style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: 14 }}>
         {err && (
           <div style={{ gridColumn: '1 / -1' }}><Banner variant="error">{err}</Banner></div>
         )}
@@ -633,13 +635,9 @@ export function FinanceTaxCodes() {
       </div>
 
       {notice && (
-        <div style={{
-          padding: '10px 14px', margin: '0 0 14px',
-          background: notice.kind === 'ok' ? 'var(--green-l)' : 'var(--red-l)',
-          border: `1px solid ${notice.kind === 'ok' ? 'var(--green)' : 'var(--red)'}`,
-          borderRadius: 'var(--r)', fontSize: 12.5, fontWeight: 600,
-          color: notice.kind === 'ok' ? 'var(--green)' : 'var(--red)',
-        }}>{notice.text}</div>
+        <Banner variant={notice.kind === 'ok' ? 'success' : 'error'} className="mb-3.5" onDismiss={() => setNotice(null)}>
+          {notice.text}
+        </Banner>
       )}
 
       {/* The prior question to every tax code below it. */}

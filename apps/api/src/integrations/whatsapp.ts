@@ -125,8 +125,6 @@ export class WhatsAppIntegration {
       phoneClean = '255' + phoneClean;
     }
 
-    console.log(`💬 WhatsApp simulation [To: +${phoneClean}] — ID: ${waPhoneId || 'DEFAULT'}: ${messageText}`);
-
     // If credentials are placeholder, return success immediately in simulation mode
     if (
       !waToken ||
@@ -134,6 +132,7 @@ export class WhatsAppIntegration {
       !waPhoneId ||
       waPhoneId === 'your-phone-number-id'
     ) {
+      console.info('WhatsApp delivery simulated because provider credentials are unavailable.');
       // `simulated` so callers can tell this apart from a real send. It used to
       // return only `success: true`, and notification.service recorded that as
       // SENT — an audit trail asserting delivery of a message that was never
@@ -163,11 +162,11 @@ export class WhatsAppIntegration {
       const data = (await response.json()) as any;
 
       if (!response.ok) {
-        console.error('❌ Meta API Error:', JSON.stringify(data));
+        console.error('❌ Meta WhatsApp API request failed.');
         return { success: false, error: data?.error?.message || 'Meta API request failed' };
       }
 
-      console.log(`✅ WhatsApp sent successfully to +${phoneClean}. Message ID: ${data?.messages?.[0]?.id}`);
+      console.log(`✅ WhatsApp sent successfully. Message ID: ${data?.messages?.[0]?.id}`);
       return { success: true, messageId: data?.messages?.[0]?.id };
     } catch (err: any) {
       console.error('❌ WhatsApp send network error:', err);

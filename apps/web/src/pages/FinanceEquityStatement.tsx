@@ -13,6 +13,8 @@ import { Input } from '../components/ui/input.js';
 import { DataTable, type TableColumn } from '../components/ui/DataTable.js';
 import { SectionLoading } from '../components/ui/spinner.js';
 import { Banner } from '../components/ui/alert.js';
+import { useIsMobile } from '../hooks/useIsMobile.js';
+import { formatAmount } from '../lib/currency.js';
 
 const YEARS = ['2026', '2025', '2024'];
 
@@ -30,9 +32,10 @@ interface Dividend {
 }
 
 export function FinanceEquityStatement() {
+  const isMobile = useIsMobile();
   const co = useCompany();
   const cur = co.currency ?? 'TZS';
-  const fmt = (n: number) => `${cur} ${Math.round(n).toLocaleString()}`;
+  const fmt = (n: number) => formatAmount(Math.round(n), cur);
 
   const [year, setYear] = useState('2026');
   const [report, setReport] = useState<EquityStatement | null>(null);
@@ -135,13 +138,9 @@ export function FinanceEquityStatement() {
       <div style={{ flex: 1, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 16 }}>
 
         {notice && (
-          <div style={{
-            padding: '10px 16px', borderRadius: 'var(--r)', fontSize: 12, fontWeight: 600,
-            background: notice.kind === 'ok' ? 'var(--green-l)' : 'var(--red-l)',
-            color: notice.kind === 'ok' ? 'var(--green)' : 'var(--red)',
-          }}>
+          <Banner variant={notice.kind === 'ok' ? 'success' : 'error'} onDismiss={() => setNotice(null)}>
             {notice.text}
-          </div>
+          </Banner>
         )}
 
         <MetricsRow cards={[
@@ -195,16 +194,16 @@ export function FinanceEquityStatement() {
           </Button>}
         >
           {showDeclareForm && (
-            <div style={{ padding: '16px 20px', borderBottom: '1px solid var(--border)', background: 'var(--bg)', display: 'flex', gap: 12, alignItems: 'flex-end', flexWrap: 'wrap' }}>
+            <div style={{ padding: '16px 20px', borderBottom: '1px solid var(--border)', background: 'var(--bg)', display: 'flex', flexDirection: isMobile ? 'column' : 'row', gap: 12, alignItems: isMobile ? 'stretch' : 'flex-end', flexWrap: 'wrap' }}>
               <div>
                 <div style={{ fontSize: 11, fontWeight: 600, color: 'var(--ink2)', marginBottom: 5 }}>Declared date</div>
                 <DatePicker date={parseDateOnly(declareDate)} onChange={d => setDeclareDate(toDateOnlyString(d) ?? declareDate)} />
               </div>
               <div>
                 <div style={{ fontSize: 11, fontWeight: 600, color: 'var(--ink2)', marginBottom: 5 }}>Amount ({cur})</div>
-                <Input type="number" min={0} value={declareAmount} onChange={e => setDeclareAmount(e.target.value)} className="w-40" />
+                <Input type="number" min={0} value={declareAmount} onChange={e => setDeclareAmount(e.target.value)} className={isMobile ? 'w-full' : 'w-40'} />
               </div>
-              <div style={{ flex: 1, minWidth: 200 }}>
+              <div style={{ flex: 1, minWidth: isMobile ? '100%' : 200 }}>
                 <div style={{ fontSize: 11, fontWeight: 600, color: 'var(--ink2)', marginBottom: 5 }}>Description (optional)</div>
                 <Input type="text" value={declareDesc} onChange={e => setDeclareDesc(e.target.value)} />
               </div>

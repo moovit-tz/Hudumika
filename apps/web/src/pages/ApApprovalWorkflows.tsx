@@ -10,6 +10,11 @@ import { Combobox } from '../components/ui/combobox.js';
 import { PersonAvatar } from '../components/PersonAvatar.js';
 import { Icon } from '../components/Icon.js';
 import { useFinanceReadOnly } from '../components/FinanceCapabilityGate.js';
+import { Button } from '../components/ui/button.js';
+import { Input } from '../components/ui/input.js';
+import { Badge } from '../components/ui/badge.js';
+import { Tip } from '../components/ui/tooltip.js';
+import { SectionLoading } from '../components/ui/spinner.js';
 
 interface Staff { id: string; name: string; email: string; }
 interface Workflow {
@@ -21,7 +26,6 @@ interface Workflow {
   active: boolean;
 }
 
-const inp: React.CSSProperties = { width: '100%', padding: '9px 12px', border: '1px solid var(--border)', borderRadius: 'var(--r)', fontSize: 13, outline: 'none', background: 'var(--white)', boxSizing: 'border-box', color: 'var(--ink)', fontFamily: 'inherit' };
 const lbl: React.CSSProperties = { fontSize: 12, fontWeight: 600, color: 'var(--ink2)', display: 'block', marginBottom: 5 };
 
 export function ApApprovalWorkflows() {
@@ -135,7 +139,7 @@ export function ApApprovalWorkflows() {
   const staffOptions = staff.map(s => ({ value: s.id, label: s.name, sublabel: s.email }));
   const staffById = new Map(staff.map(s => [s.id, s]));
 
-  if (loading) return <div style={{ textAlign: 'center', padding: 40, color: 'var(--ink3)' }}>Loading approval workflows…</div>;
+  if (loading) return <SectionLoading label="Loading approval workflows…" />;
 
   return (
     <div style={{ flex: 1, display: 'flex', flexDirection: 'column', fontFamily: 'var(--font)' }}>
@@ -157,11 +161,9 @@ export function ApApprovalWorkflows() {
       </div>
 
       {!readOnly && <div style={{ padding: '0 0 16px', display: 'flex', justifyContent: 'flex-end' }}>
-        <button type="button"
-          onClick={openNew}
-          style={{ padding: 'var(--ds-btn-py) 16px', background: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))', border: 'none', borderRadius: 'var(--r)', fontSize: "var(--text-base)", fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 7, fontFamily: 'var(--font)', whiteSpace: 'nowrap', minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25 }} data-ui-native-button="">
-          <Icon name="plus" size={14} color="hsl(var(--primary-foreground))" /> New Workflow
-        </button>
+        <Button type="button" size="sm" onClick={openNew}>
+          <Icon name="plus" size={14} /> New workflow
+        </Button>
       </div>}
 
       <div className="card" style={{ padding: 0, overflow: 'hidden' }}>
@@ -204,15 +206,25 @@ export function ApApprovalWorkflows() {
                       ) : '—'}
                     </td>
                     <td style={{ padding: '9px 12px', textAlign: 'center' }}>
-                      <span style={{ fontSize: 11, padding: '2px 8px', borderRadius: 10, fontWeight: 700, background: w.active ? 'var(--green-l)' : 'var(--bg)', color: w.active ? 'var(--green)' : 'var(--ink3)' }}>
-                        {w.active ? 'ACTIVE' : 'INACTIVE'}
-                      </span>
+                      <Badge variant={w.active ? 'success' : 'gray'}>{w.active ? 'Active' : 'Inactive'}</Badge>
                     </td>
                     <td style={{ padding: '9px 12px', textAlign: 'right' }}>
-                      {!readOnly && <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end' }}>
-                        <button type="button" onClick={() => openEdit(w)} style={{ fontSize: "var(--text-base)", color: 'var(--teal)', background: 'none', border: 'none', cursor: 'pointer', fontWeight: 600 }} data-ui-native-button="">Edit</button>
-                        <button type="button" onClick={() => toggleActive(w)} style={{ fontSize: "var(--text-base)", color: 'var(--ink2)', background: 'none', border: 'none', cursor: 'pointer', fontWeight: 600 }} data-ui-native-button="">{w.active ? 'Deactivate' : 'Activate'}</button>
-                        <button type="button" onClick={() => remove(w)} style={{ fontSize: "var(--text-base)", color: 'var(--red)', background: 'none', border: 'none', cursor: 'pointer', fontWeight: 600 }} data-ui-native-button="">Delete</button>
+                      {!readOnly && <div style={{ display: 'flex', gap: 4, justifyContent: 'flex-end' }}>
+                        <Tip label="Edit">
+                          <Button type="button" variant="ghost" size="icon" iconOnly aria-label="Edit" onClick={() => openEdit(w)}>
+                            <Icon name="edit" size={14} />
+                          </Button>
+                        </Tip>
+                        <Tip label={w.active ? 'Deactivate' : 'Activate'}>
+                          <Button type="button" variant="ghost" size="icon" iconOnly aria-label={w.active ? 'Deactivate' : 'Activate'} onClick={() => toggleActive(w)}>
+                            <Icon name={w.active ? 'pause' : 'play'} size={14} />
+                          </Button>
+                        </Tip>
+                        <Tip label="Delete">
+                          <Button type="button" variant="ghost" size="icon" iconOnly aria-label="Delete" onClick={() => remove(w)}>
+                            <Icon name="trash2" size={14} color="var(--red)" />
+                          </Button>
+                        </Tip>
                       </div>}
                     </td>
                   </tr>
@@ -229,12 +241,12 @@ export function ApApprovalWorkflows() {
 
           <div style={{ marginBottom: 14 }}>
             <label style={lbl}>Name</label>
-            <input data-ui-field="input" style={inp} value={name} onChange={e => setName(e.target.value)} placeholder="e.g. High-value bills" />
+            <Input value={name} onChange={e => setName(e.target.value)} placeholder="e.g. High-value bills" />
           </div>
 
           <div style={{ marginBottom: 14 }}>
             <label style={lbl}>Applies to bills of at least</label>
-            <input data-ui-field="input" type="number" min={0} step="any" style={inp} value={minAmount} onChange={e => setMinAmount(e.target.value)} placeholder="0.00" />
+            <Input type="number" min={0} step="any" value={minAmount} onChange={e => setMinAmount(e.target.value)} placeholder="0.00" />
           </div>
 
           <div style={{ marginBottom: 14 }}>
@@ -254,8 +266,8 @@ export function ApApprovalWorkflows() {
           )}
 
           <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end' }}>
-            <button type="button" className="btn btn-secondary btn-sm" onClick={() => setShowForm(false)} data-ui-native-button="">Cancel</button>
-            <button type="button" className="btn btn-primary btn-sm" disabled={saving} onClick={submit} data-ui-native-button="">{saving ? 'Saving…' : editing ? 'Save' : 'Create'}</button>
+            <Button type="button" variant="outline" size="sm" onClick={() => setShowForm(false)}>Cancel</Button>
+            <Button type="button" size="sm" disabled={saving} onClick={submit}>{saving ? 'Saving…' : editing ? 'Save' : 'Create'}</Button>
           </div>
         </DialogContent>
       </Dialog>

@@ -124,6 +124,7 @@ import { fleetCommsRoutes } from './routes/fleetComms.routes.js';
 import { fleetAnalyticsRoutes } from './routes/fleetAnalytics.routes.js';
 import { warehouseRoutes } from './routes/warehouse.routes.js';
 import { cargoLoadingRoutes } from './routes/cargoLoading.routes.js';
+import { cargoDamageClaimsRoutes } from './routes/cargo-damage-claims.routes.js';
 import { vehicleDetailRoutes } from './routes/vehicleDetail.routes.js';
 import { billRoutes }     from './routes/bills.routes.js';
 import { whtRoutes }      from './routes/wht.routes.js';
@@ -703,6 +704,7 @@ export async function registerApp() {
     await server.register(fleetAnalyticsRoutes, { prefix: '/v1/tracking' });
     await server.register(warehouseRoutes, { prefix: '/v1/tracking' });
     await server.register(cargoLoadingRoutes, { prefix: '/v1/tracking' });
+    await server.register(cargoDamageClaimsRoutes, { prefix: '/v1/tracking/cargo-damage-claims' });
     await server.register(vehicleDetailRoutes, { prefix: '/v1/tracking' });
     await server.register(billRoutes,     { prefix: '/v1/bills' });
     await server.register(whtRoutes,      { prefix: '/v1/wht' });

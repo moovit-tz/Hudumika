@@ -9,6 +9,11 @@ import { Combobox, type ComboboxOption } from '../components/ui/combobox.js';
 import { DatePicker, parseDateOnly, toDateOnlyString } from '../components/ui/date-picker.js';
 import { useFinanceReadOnly } from '../components/FinanceCapabilityGate.js';
 import { useFinanceConfiguration } from '../hooks/useFinanceConfiguration.js';
+import { Button } from '../components/ui/button.js';
+import { Input } from '../components/ui/input.js';
+import { Badge } from '../components/ui/badge.js';
+import { SectionLoading } from '../components/ui/spinner.js';
+import { Tip } from '../components/ui/tooltip.js';
 
 interface AccountNode {
   id: string; code: string; name: string; type: string;
@@ -158,7 +163,7 @@ export function JournalEntries() {
 
   const toggle = (id: string) => setExpanded(prev => { const n = new Set(prev); n.has(id) ? n.delete(id) : n.add(id); return n; });
 
-  if (loading) return <div style={{ textAlign: 'center', padding: 40, color: 'var(--ink3)' }}>Loading journal entries…</div>;
+  if (loading) return <SectionLoading label="Loading journal entries…" />;
 
   const jeStats = jeServerStats ?? {
     total: entries.length, postedCount: 0, draftCount: 0, voidedCount: 0,
@@ -197,10 +202,9 @@ export function JournalEntries() {
       ]} />
 
       {!readOnly && <div style={{ padding: '16px 0', display: 'flex', justifyContent: 'flex-end' }}>
-        <button type="button" onClick={() => setShowForm(s => !s)}
-          style={{ padding: 'var(--ds-btn-py) 16px', background: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))', border: 'none', borderRadius: 'var(--r)', fontSize: "var(--text-base)", fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 7, fontFamily: 'var(--font)', whiteSpace: 'nowrap', minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25 }} data-ui-native-button="">
-          <Icon name={showForm ? 'x' : 'plus'} size={14} color="hsl(var(--primary-foreground))" /> {showForm ? 'Cancel' : 'New entry'}
-        </button>
+        <Button type="button" onClick={() => setShowForm(s => !s)}>
+          <Icon name={showForm ? 'x' : 'plus'} size={14} /> {showForm ? 'Cancel' : 'New entry'}
+        </Button>
       </div>}
 
       {showForm && !readOnly && (
@@ -213,11 +217,11 @@ export function JournalEntries() {
             </div>
             <div>
               <label style={{ display: 'block', fontSize: 11.5, fontWeight: 600, color: 'var(--ink2)', marginBottom: 5 }}>Description</label>
-              <input data-ui-field="input" className="input-field" value={description} onChange={e => setDescription(e.target.value)} placeholder="What is this entry for?" />
+              <Input value={description} onChange={e => setDescription(e.target.value)} placeholder="What is this entry for?" />
             </div>
             <div>
               <label style={{ display: 'block', fontSize: 11.5, fontWeight: 600, color: 'var(--ink2)', marginBottom: 5 }}>Reference (optional)</label>
-              <input data-ui-field="input" className="input-field" value={reference} onChange={e => setReference(e.target.value)} />
+              <Input value={reference} onChange={e => setReference(e.target.value)} />
             </div>
             <div>
               <label style={{ display: 'block', fontSize: 11.5, fontWeight: 600, color: 'var(--ink2)', marginBottom: 5 }}>Business line (optional)</label>
@@ -225,23 +229,29 @@ export function JournalEntries() {
             </div>
           </div>
 
+          <div style={{ overflowX: 'auto' }}>
+          <div style={{ minWidth: 560 }}>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 130px 130px 1fr 32px', gap: 8, marginBottom: 6, fontSize: 11, fontWeight: 700, color: 'var(--ink3)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
             <span>Account</span><span style={{ textAlign: 'right' }}>Debit</span><span style={{ textAlign: 'right' }}>Credit</span><span>Line description</span><span />
           </div>
           {lines.map((l, i) => (
             <div key={i} style={{ display: 'grid', gridTemplateColumns: '1fr 130px 130px 1fr 32px', gap: 8, marginBottom: 8, alignItems: 'center' }}>
               <Combobox options={accountOptions} value={l.accountCode} onChange={v => updateLine(i, { accountCode: v })} placeholder="Select account…" searchPlaceholder="Search accounts…" />
-              <input data-ui-field="input" className="input-field" type="number" min="0" step="0.01" value={l.debit} onChange={e => updateLine(i, { debit: e.target.value, credit: e.target.value ? '' : l.credit })} style={{ textAlign: 'right' }} placeholder="0.00" />
-              <input data-ui-field="input" className="input-field" type="number" min="0" step="0.01" value={l.credit} onChange={e => updateLine(i, { credit: e.target.value, debit: e.target.value ? '' : l.debit })} style={{ textAlign: 'right' }} placeholder="0.00" />
-              <input data-ui-field="input" className="input-field" value={l.description} onChange={e => updateLine(i, { description: e.target.value })} placeholder="Optional" />
-              <button type="button" onClick={() => removeLine(i)} disabled={lines.length <= 2} title="Remove line" style={{ background: 'none', border: 'none', cursor: lines.length > 2 ? 'pointer' : 'not-allowed', opacity: lines.length > 2 ? 1 : 0.3, padding: "var(--action-py) var(--space-md)" }} data-ui-native-button="">
-                <Icon name="trash" size={14} color="var(--red)" />
-              </button>
+              <Input type="number" min="0" step="0.01" value={l.debit} onChange={e => updateLine(i, { debit: e.target.value, credit: e.target.value ? '' : l.credit })} style={{ textAlign: 'right' }} placeholder="0.00" />
+              <Input type="number" min="0" step="0.01" value={l.credit} onChange={e => updateLine(i, { credit: e.target.value, debit: e.target.value ? '' : l.debit })} style={{ textAlign: 'right' }} placeholder="0.00" />
+              <Input value={l.description} onChange={e => updateLine(i, { description: e.target.value })} placeholder="Optional" />
+              <Tip label="Remove line">
+                <Button type="button" variant="ghost" size="icon" iconOnly aria-label="Remove line" onClick={() => removeLine(i)} disabled={lines.length <= 2}>
+                  <Icon name="trash" size={14} color="var(--red)" />
+                </Button>
+              </Tip>
             </div>
           ))}
-          <button type="button" className="btn btn-secondary btn-sm" onClick={addLine} style={{ marginTop: 4, marginBottom: 16, display: 'flex', alignItems: 'center', gap: 6 }} data-ui-native-button="">
+          </div>
+          </div>
+          <Button type="button" variant="secondary" size="sm" onClick={addLine} style={{ marginTop: 4, marginBottom: 16 }}>
             <Icon name="plus" size={12} /> Add line
-          </button>
+          </Button>
 
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', paddingTop: 14, borderTop: '1px solid var(--border)' }}>
             <div style={{ fontSize: 13, fontFamily: 'var(--font)' }}>
@@ -251,9 +261,9 @@ export function JournalEntries() {
               {!totals.balanced && totals.dr + totals.cr > 0 && <span style={{ marginLeft: 12, color: 'var(--red)', fontWeight: 700 }}>Out of balance</span>}
               {totals.balanced && <span style={{ marginLeft: 12, color: 'var(--green)', fontWeight: 700 }}>Balanced</span>}
             </div>
-            <button type="button" className="btn btn-primary btn-sm" disabled={posting || !totals.balanced} onClick={postEntry} data-ui-native-button="">
+            <Button type="button" size="sm" disabled={posting || !totals.balanced} onClick={postEntry}>
               {posting ? 'Posting…' : 'Post entry'}
-            </button>
+            </Button>
           </div>
         </div>
       )}
@@ -287,18 +297,18 @@ export function JournalEntries() {
                       <td style={{ padding: '9px 12px', color: isVoided ? 'var(--ink3)' : 'var(--ink)', textDecoration: isVoided ? 'line-through' : 'none' }}>{e.description}</td>
                       <td style={{ padding: '9px 12px', color: 'var(--ink3)' }}>{e.source_module}</td>
                       <td style={{ padding: '9px 12px', textAlign: 'center' }}>
-                        <span style={{ fontSize: 11, padding: '2px 8px', borderRadius: 10, fontWeight: 700, background: isVoided ? 'var(--red-l)' : 'var(--green-l)', color: isVoided ? 'var(--red)' : 'var(--green)' }}>{e.status}</span>
+                        <Badge variant={isVoided ? 'error' : 'success'}>{e.status}</Badge>
                       </td>
                       <td style={{ padding: '9px 12px', textAlign: 'right' }} onClick={ev => ev.stopPropagation()}>
                         {!readOnly && !isVoided && e.source_module === 'MANUAL' && (
                           voidingId === e.id ? (
-                            <div style={{ display: 'flex', gap: 6, justifyContent: 'flex-end', alignItems: 'center' }}>
-                              <input data-ui-field="input" className="input-field" style={{ width: 160, height: "var(--ctl-h)", fontSize: "var(--text-base)" }} placeholder="Reason for voiding" value={voidReason} onChange={ev => setVoidReason(ev.target.value)} autoFocus />
-                              <button type="button" className="btn btn-secondary btn-sm" onClick={() => { setVoidingId(null); setVoidReason(''); }} data-ui-native-button="">Cancel</button>
-                              <button type="button" className="btn btn-primary btn-sm" onClick={() => confirmVoid(e.id)} data-ui-native-button="">Confirm</button>
+                            <div style={{ display: 'flex', gap: 6, justifyContent: 'flex-end', alignItems: 'center', flexWrap: 'wrap' }}>
+                              <Input style={{ width: 160 }} placeholder="Reason for voiding" value={voidReason} onChange={ev => setVoidReason(ev.target.value)} autoFocus />
+                              <Button type="button" variant="secondary" size="sm" onClick={() => { setVoidingId(null); setVoidReason(''); }}>Cancel</Button>
+                              <Button type="button" size="sm" onClick={() => confirmVoid(e.id)}>Confirm</Button>
                             </div>
                           ) : (
-                            <button type="button" onClick={() => setVoidingId(e.id)} style={{ fontSize: "var(--text-base)", color: 'var(--red)', background: 'none', border: 'none', cursor: 'pointer', fontWeight: 600 }} data-ui-native-button="">Void</button>
+                            <Button type="button" variant="ghost" size="sm" onClick={() => setVoidingId(e.id)} style={{ color: 'var(--red)' }}>Void</Button>
                           )
                         )}
                       </td>
@@ -340,10 +350,10 @@ export function JournalEntries() {
           </table>
         </div>
         {jeTotalPages > 1 && (
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 12, padding: '12px 0', fontSize: 13 }}>
-            <button data-ui-native-button="" disabled={jePage <= 1} onClick={() => setJePage(p => Math.max(1, p - 1))} style={{ padding: "var(--action-py) var(--space-md)", borderRadius: 'var(--r-sm)', border: '1px solid var(--border)', background: 'var(--bg)', cursor: jePage <= 1 ? 'default' : 'pointer', opacity: jePage <= 1 ? 0.4 : 1 }}>Previous</button>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 12, padding: '12px 0', fontSize: 13, flexWrap: 'wrap' }}>
+            <Button type="button" variant="outline" size="sm" disabled={jePage <= 1} onClick={() => setJePage(p => Math.max(1, p - 1))}>Previous</Button>
             <span style={{ color: 'var(--ink2)' }}>Page {jePage} of {jeTotalPages} ({jeTotal} entries)</span>
-            <button data-ui-native-button="" disabled={jePage >= jeTotalPages} onClick={() => setJePage(p => Math.min(jeTotalPages, p + 1))} style={{ padding: "var(--action-py) var(--space-md)", borderRadius: 'var(--r-sm)', border: '1px solid var(--border)', background: 'var(--bg)', cursor: jePage >= jeTotalPages ? 'default' : 'pointer', opacity: jePage >= jeTotalPages ? 0.4 : 1 }}>Next</button>
+            <Button type="button" variant="outline" size="sm" disabled={jePage >= jeTotalPages} onClick={() => setJePage(p => Math.min(jeTotalPages, p + 1))}>Next</Button>
           </div>
         )}
       </div>

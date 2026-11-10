@@ -11,6 +11,8 @@ import { apiFetch } from '../lib/api.js';
 import { showAlert } from '../lib/alert.js';
 import { showConfirm } from '../lib/confirm.js';
 import { Tip } from '../components/ui/tooltip.js';
+import { Badge } from '../components/ui/badge.js';
+import { SectionLoading } from '../components/ui/spinner.js';
 
 interface ProductCategory {
   id: string;
@@ -138,9 +140,9 @@ function CatModal({ initial, categories, onSave, onClose }: {
           </div>
         </DialogBody>
         <DialogFooter>
-          <button type="button" onClick={onClose} className="btn btn-secondary" data-ui-native-button="">Cancel</button>
+          <Button type="button" variant="outline" onClick={onClose}>Cancel</Button>
           <Button type="button" onClick={submit} disabled={saving}>
-            {saving ? 'Saving…' : initial ? 'Update Category' : 'Add Category'}
+            {saving ? 'Saving…' : initial ? 'Update category' : 'Add category'}
           </Button>
         </DialogFooter>
       </DialogContent>
@@ -204,13 +206,8 @@ export const ProductCategoriesPage: React.FC = () => {
   }
 
   function StatusBadge({ status }: { status: string }) {
-    const cfg: Record<string, { bg: string; color: string }> = {
-      active:   { bg: 'var(--green-l)',  color: 'var(--green)'  },
-      inactive: { bg: 'var(--bg)',       color: 'var(--ink3)'   },
-      draft:    { bg: 'var(--gold-l)',   color: 'var(--gold)'   },
-    };
-    const c = cfg[status] ?? cfg.inactive;
-    return <span style={{ padding: '2px 8px', borderRadius: 'var(--r)', fontSize: 11, fontWeight: 700, background: c.bg, color: c.color }}>{status}</span>;
+    const variant = status === 'active' ? 'success' : status === 'draft' ? 'warning' : 'gray';
+    return <Badge variant={variant}>{status}</Badge>;
   }
 
   function CatRow({ cat, depth = 0 }: { cat: ProductCategory; depth?: number }) {
@@ -275,12 +272,12 @@ export const ProductCategoriesPage: React.FC = () => {
         titleEm="categories"
         subtitle="Organise your product catalog into a hierarchy of categories."
         actions={
-          <div style={{ display: 'flex', gap: 8 }}>
-            <button type="button" onClick={() => navigate('/finance/products')} className="btn btn-secondary btn-sm" data-ui-native-button="">
-              <Icon name="arrowLeft" size={13} /> Back to Catalog
-            </button>
+          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+            <Button type="button" onClick={() => navigate('/finance/products')} variant="outline" size="sm">
+              <Icon name="arrowLeft" size={13} /> Back to catalog
+            </Button>
             <Button onClick={() => setEditing('new')}>
-              <Icon name="plus" size={14} /> New Category
+              <Icon name="plus" size={14} /> New category
             </Button>
           </div>
         }
@@ -288,7 +285,7 @@ export const ProductCategoriesPage: React.FC = () => {
 
       <SectionCard padded={false}>
         {loading ? (
-          <div style={{ padding: 60, textAlign: 'center', color: 'var(--ink3)', fontSize: 13 }}>Loading…</div>
+          <SectionLoading label="Loading categories…" />
         ) : cats.length === 0 ? (
           <div style={{ padding: '60px 20px', textAlign: 'center' }}>
             <div style={{ marginBottom: 12, display: 'flex', justifyContent: 'center' }}><Icon name="tag" size={44} color="var(--border)" /></div>

@@ -23,6 +23,10 @@ import { EntityPicker, type PickerItem } from '../components/EntityPicker.js';
 import { Badge } from '../components/ui/badge.js';
 import { DatePicker, parseDateOnly, toDateOnlyString } from '../components/ui/date-picker.js';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '../components/ui/select.js';
+import { Tabs, TabsList, TabsTrigger } from '../components/ui/tabs.js';
+import { Banner } from '../components/ui/alert.js';
+import { Dialog, DialogContent, DialogHeader, DialogBody, DialogTitle } from '../components/ui/dialog.js';
+import { Tip } from '../components/ui/tooltip.js';
 import { Icon } from '../components/Icon.js';
 import { cn } from '../lib/utils.js';
 import './FinanceExpenseReports.css';
@@ -178,23 +182,20 @@ export function FinanceExpenseReports() {
 
       {/* Toolbar: Segmented Status Tabs on Left, Search & View Switcher on Right */}
       <div className="expense-toolbar">
-        <div className="expense-tabs-group">
-          {states.map(tab => (
-            <button data-ui-native-button=""
-              key={tab}
-              type="button"
-              className={cn("expense-tab-btn", status === tab && "active")}
-              onClick={() => { setStatus(tab); setPage(1); }}
-            >
-              <span>{tab.charAt(0).toUpperCase() + tab.slice(1)}</span>
-              {tab !== 'all' && (
-                <span className="expense-tab-pill">
-                  {rows.filter(r => r.status === tab).length}
-                </span>
-              )}
-            </button>
-          ))}
-        </div>
+        <Tabs value={status} onValueChange={v => { setStatus(v); setPage(1); }} variant="pill">
+          <TabsList>
+            {states.map(tab => (
+              <TabsTrigger key={tab} value={tab}>
+                <span>{tab.charAt(0).toUpperCase() + tab.slice(1)}</span>
+                {tab !== 'all' && (
+                  <span className="expense-tab-pill">
+                    {rows.filter(r => r.status === tab).length}
+                  </span>
+                )}
+              </TabsTrigger>
+            ))}
+          </TabsList>
+        </Tabs>
 
         <div className="expense-toolbar-right">
           <div className="expense-search-wrap">
@@ -211,44 +212,34 @@ export function FinanceExpenseReports() {
               className="expense-search-input"
             />
             {search && (
-              <button data-ui-native-button=""
-                type="button"
-                onClick={() => setSearch('')}
-                style={{ position: 'absolute', right: 8, top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', padding: "var(--action-py) var(--space-md)" }}
-              >
-                <Icon name="close" size={12} color="var(--ink3)" />
-              </button>
+              <Tip label="Clear search">
+                <Button type="button" variant="ghost" size="icon" iconOnly aria-label="Clear search" onClick={() => setSearch('')}
+                  style={{ position: 'absolute', right: 4, top: '50%', transform: 'translateY(-50%)' }}>
+                  <Icon name="close" size={12} color="var(--ink3)" />
+                </Button>
+              </Tip>
             )}
           </div>
 
           {!isMobile && (
             <div className="expense-view-toggle">
-              <button data-ui-native-button=""
-                type="button"
-                className={cn("expense-view-btn", viewMode === 'table' && "active")}
-                onClick={() => setViewMode('table')}
-                title="Table view"
-              >
-                <Icon name="list" size={14} />
-              </button>
-              <button data-ui-native-button=""
-                type="button"
-                className={cn("expense-view-btn", viewMode === 'cards' && "active")}
-                onClick={() => setViewMode('cards')}
-                title="Card grid view"
-              >
-                <Icon name="grid" size={14} />
-              </button>
+              <Tip label="Table view">
+                <Button type="button" variant={viewMode === 'table' ? 'default' : 'ghost'} size="icon" iconOnly aria-label="Table view" onClick={() => setViewMode('table')}>
+                  <Icon name="list" size={14} />
+                </Button>
+              </Tip>
+              <Tip label="Card grid view">
+                <Button type="button" variant={viewMode === 'cards' ? 'default' : 'ghost'} size="icon" iconOnly aria-label="Card grid view" onClick={() => setViewMode('cards')}>
+                  <Icon name="grid" size={14} />
+                </Button>
+              </Tip>
             </div>
           )}
         </div>
       </div>
 
       {error && (
-        <div className="flex items-center gap-2 p-3.5 rounded-xl border border-destructive/30 bg-destructive/10 text-destructive text-sm font-medium">
-          <Icon name="alertTriangle" size={16} />
-          <span>{error}</span>
-        </div>
+        <Banner variant="error">{error}</Banner>
       )}
 
       {loading ? (
@@ -453,12 +444,7 @@ export function FinanceExpenseReportNew() {
 
   return (
     <FormPage title="New expense report" subtitle="Start a report, then add receipt-backed claims for approval." onCancel={()=>navigate('/finance/expense-reports')} actions={<><Button variant="outline" disabled={busy} onClick={()=>navigate('/finance/expense-reports')}>Cancel</Button><Button form="finance-report-form" type="submit" disabled={busy||!name.trim()}>{busy?'Saving…':'Create report'}</Button></>}>
-      {error && (
-        <div className="flex items-center gap-2 p-3.5 rounded-xl border border-destructive/30 bg-destructive/10 text-destructive text-sm font-medium">
-          <Icon name="alertTriangle" size={16} />
-          <span>{error}</span>
-        </div>
-      )}
+      {error && <Banner variant="error">{error}</Banner>}
 
       <div className="bg-[var(--card-bg)] border border-[var(--border)] rounded-2xl p-6 shadow-sm flex flex-col gap-6">
         <div className="flex items-center gap-3 pb-4 border-b border-[var(--border)]">
@@ -491,12 +477,9 @@ export function FinanceExpenseReportNew() {
             </span>
           </div>
 
-          <div className="bg-[var(--bg)] border border-[var(--border)] rounded-xl p-4 flex items-start gap-3 text-xs text-[var(--ink2)]">
-            <Icon name="check" size={16} color="var(--teal)" className="shrink-0 mt-0.5" />
-            <div className="leading-relaxed">
-              <strong>Workflow steps:</strong> Once created, you can attach individual receipts, link customers or suppliers, and submit the full bundle for finance review.
-            </div>
-          </div>
+          <Banner variant="gray" icon="check" title="Next steps">
+            Attach receipts, link customers or suppliers, then submit the bundle for finance review.
+          </Banner>
 
         </form>
       </div>
@@ -637,15 +620,7 @@ export function FinanceExpenseReportDetail() {
         }
       />
 
-      {error && (
-        <div className="flex items-center gap-2 p-3.5 rounded-xl border border-destructive/30 bg-destructive/10 text-destructive text-sm font-medium">
-          <Icon name="alertTriangle" size={16} />
-          <span className="flex-1">{error}</span>
-          <button data-ui-native-button="" type="button" onClick={() => setError('')} className="p-1 opacity-70 hover:opacity-100">
-            <Icon name="close" size={14} />
-          </button>
-        </div>
-      )}
+      {error && <Banner variant="error" onDismiss={() => setError('')}>{error}</Banner>}
 
       {report && (
         <>
@@ -728,15 +703,13 @@ export function FinanceExpenseReportDetail() {
 
           {/* Review Remark Banner if rejected or approved with comment */}
           {report.review_note && (
-            <div className={cn("p-4 rounded-xl border text-xs leading-relaxed flex items-start gap-3", report.status === 'rejected' ? "border-destructive/30 bg-destructive/10 text-destructive" : "border-[var(--border)] bg-[var(--bg)] text-[var(--ink2)]")}>
-              <Icon name={report.status === 'rejected' ? "alertTriangle" : "message"} size={16} className="shrink-0 mt-0.5" />
-              <div>
-                <strong className="block font-semibold mb-0.5">
-                  {report.status === 'rejected' ? 'Rejection Reason' : 'Finance Reviewer Remarks'}:
-                </strong>
-                {report.review_note}
-              </div>
-            </div>
+            <Banner
+              variant={report.status === 'rejected' ? 'error' : 'gray'}
+              icon={report.status === 'rejected' ? 'alertTriangle' : 'message'}
+              title={report.status === 'rejected' ? 'Rejection reason' : 'Finance reviewer remarks'}
+            >
+              {report.review_note}
+            </Banner>
           )}
 
           {/* Itemized Claims List */}
@@ -1089,24 +1062,16 @@ export function FinanceExpenseReportDetail() {
           )}
 
           {/* Receipt Lightbox Modal */}
-          {preview && (
-            <div className="expense-receipt-modal" onClick={() => setPreview('')}>
-              <div className="expense-receipt-modal-inner" onClick={e => e.stopPropagation()}>
-                <div className="expense-receipt-modal-hdr">
-                  <span className="text-sm font-bold text-[var(--ink)] flex items-center gap-2">
-                    <Icon name="fileText" size={16} />
-                    <span>Receipt Preview</span>
-                  </span>
-                  <Button variant="ghost" size="sm" onClick={() => setPreview('')}>
-                    <Icon name="close" size={16} />
-                  </Button>
-                </div>
-                <div className="expense-receipt-modal-body">
-                  <img src={preview} alt="Claim receipt" className="expense-receipt-modal-img" />
-                </div>
-              </div>
-            </div>
-          )}
+          <Dialog open={!!preview} onOpenChange={o => { if (!o) setPreview(''); }}>
+            <DialogContent size="lg">
+              <DialogHeader>
+                <DialogTitle className="flex items-center gap-2"><Icon name="fileText" size={16} /><span>Receipt preview</span></DialogTitle>
+              </DialogHeader>
+              <DialogBody className="flex items-center justify-center">
+                {preview && <img src={preview} alt="Claim receipt" style={{ maxWidth: '100%', maxHeight: '100%', borderRadius: 'var(--r)' }} />}
+              </DialogBody>
+            </DialogContent>
+          </Dialog>
         </>
       )}
     </div>

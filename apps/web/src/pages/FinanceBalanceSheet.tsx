@@ -7,6 +7,10 @@ import { DatePicker, parseDateOnly, toDateOnlyString } from '../components/ui/da
 import { PageHeader } from '../components/PageHeader.js';
 import { MetricsRow } from '../components/MetricCard.js';
 import { SectionCard } from '../components/SectionCard.js';
+import { SectionLoading } from '../components/ui/spinner.js';
+import { Banner } from '../components/ui/alert.js';
+import { useIsMobile } from '../hooks/useIsMobile.js';
+import { formatAmount } from '../lib/currency.js';
 
 interface LineItem { label: string; amount: number; sub?: boolean; bold?: boolean; separator?: boolean }
 
@@ -64,7 +68,7 @@ function buildLiabilitiesEquityRows(liabilities: BalanceSheetLine[], equity: Bal
 }
 
 function StatementSection({ rows, highlight, cur }: { rows: LineItem[]; highlight: string; cur: string }) {
-  const fmt = (n: number) => `${cur} ${n.toLocaleString()}`;
+  const fmt = (n: number) => formatAmount(n, cur);
   return (
     <div>
       {rows.map((row, i) => {
@@ -101,6 +105,7 @@ function StatementSection({ rows, highlight, cur }: { rows: LineItem[]; highligh
 }
 
 export const FinanceBalanceSheet: React.FC = () => {
+  const isMobile = useIsMobile();
   const co = useCompany();
   const cur = co.currency ?? 'TZS';
   const [asOf, setAsOf] = useState(todayIso());
@@ -125,7 +130,7 @@ export const FinanceBalanceSheet: React.FC = () => {
   const totalAssets = report?.totals.assets ?? 0;
   const totalLiabilities = report?.totals.liabilities ?? 0;
   const totalEquity = report?.totals.equity ?? 0;
-  const fmt = (n: number) => `${cur} ${n.toLocaleString()}`;
+  const fmt = (n: number) => formatAmount(n, cur);
 
   const currentAssets = (report?.assets ?? []).filter(l => l.subtype === 'CURRENT_ASSET').reduce((s, l) => s + l.balance, 0);
   const nonCurrentAssets = totalAssets - currentAssets;
@@ -165,9 +170,9 @@ export const FinanceBalanceSheet: React.FC = () => {
       />
 
       {loading ? (
-        <div style={{ padding: '48px 0', textAlign: 'center', color: 'var(--ink3)' }}>Loading balance sheet…</div>
+        <SectionLoading label="Loading balance sheet…" />
       ) : error ? (
-        <div style={{ padding: '48px 0', textAlign: 'center', color: 'var(--red)' }}>{error}</div>
+        <Banner variant="error" title="Balance sheet unavailable">{error}</Banner>
       ) : (
       <div style={{ flex: 1, overflowY: 'auto', padding: '0', display: 'flex', flexDirection: 'column', gap: 16 }}>
 
@@ -195,23 +200,22 @@ export const FinanceBalanceSheet: React.FC = () => {
         ]} />
 
         {Math.abs(totalAssets - (totalLiabilities + totalEquity)) > 1 && (
-          <div style={{ display:'flex', alignItems:'center', gap:8, padding:'10px 16px', borderRadius:'var(--r)', background:'var(--red-l)', border:'1px solid var(--red)', fontSize:12, fontWeight:600, color:'var(--red)' }}>
-            <Icon name="alertTriangle" size={14} color="var(--red)" />
-            Assets do not equal Liabilities + Equity — difference of {fmt(Math.abs(totalAssets - (totalLiabilities + totalEquity)))}
-          </div>
+          <Banner variant="error">
+            Assets don't equal Liabilities + Equity — off by {fmt(Math.abs(totalAssets - (totalLiabilities + totalEquity)))}
+          </Banner>
         )}
 
         {/* Statement */}
-        <div style={{ display: 'flex', gap: 14, flexWrap: 'wrap' }}>
+        <div style={{ display: 'flex', flexDirection: isMobile ? 'column' : 'row', gap: 14, flexWrap: 'wrap' }}>
           {/* Assets */}
-          <div style={{ flex: 1, minWidth: 300 }}>
+          <div style={{ flex: 1, minWidth: isMobile ? '100%' : 300 }}>
           <SectionCard title="Assets" action={<span style={{ fontSize: 11, color: 'var(--ink3)' }}>As of {asOf}</span>}>
             <StatementSection rows={assetRows} highlight="var(--teal)" cur={cur} />
           </SectionCard>
           </div>
 
           {/* Liabilities & Equity */}
-          <div style={{ flex: 1, minWidth: 300 }}>
+          <div style={{ flex: 1, minWidth: isMobile ? '100%' : 300 }}>
           <SectionCard title="Liabilities & Equity" action={<span style={{ fontSize: 11, color: 'var(--ink3)' }}>As of {asOf}</span>}>
             <StatementSection rows={liabEquityRows} highlight="var(--blue)" cur={cur} />
           </SectionCard>

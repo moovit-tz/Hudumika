@@ -338,7 +338,7 @@ export async function webhookRoutes(fastify: FastifyInstance) {
       // Neither the receiving number nor the sender's phone resolved a
       // tenant — most likely a misconfigured/unregistered WABA number.
       // Nothing safe to attribute this message to.
-      console.warn(`⚠️ WhatsApp webhook: no tenant resolved for inbound message from +${fromPhone} (phone_number_id=${receivingPhoneNumberId ?? 'none'})`);
+      console.warn(`⚠️ WhatsApp webhook: no tenant resolved for inbound message (phone_number_id=${receivingPhoneNumberId ?? 'none'})`);
       return { success: true };
     }
 

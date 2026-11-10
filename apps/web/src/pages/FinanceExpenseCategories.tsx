@@ -96,7 +96,9 @@ export const FinanceExpenseCategories: React.FC = () => {
                   onChange={e => setNewName(e.target.value)}
                   onKeyDown={e => { if (e.key === 'Enter') doAdd(); if (e.key === 'Escape') setAdding(false); }}
                   className="w-45" />
-                <Button type="button" size="sm" onClick={doAdd}>Add</Button>
+                <Button type="button" size="sm" onClick={doAdd} iconOnly aria-label="Add">
+  <Icon name="plus" size={14} />
+</Button>
                 <Button type="button" variant="outline" size="sm" onClick={() => { setAdding(false); setNewName(''); }}>Cancel</Button>
               </div>
             )}

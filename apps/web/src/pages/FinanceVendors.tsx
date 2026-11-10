@@ -71,6 +71,7 @@ function VendorForm({ vendor, onSave, onClose }: {
 }) {
   const [form, setForm] = useFinanceDraft<Vendor>('form',vendor ?? { ...EMPTY_VENDOR });
   const [saving, setSaving] = useState(false);
+  const isMobile = useIsMobile();
 
   function set(k: keyof Vendor, v: string | number) { setForm(f => ({ ...f, [k]: v })); }
 
@@ -102,7 +103,7 @@ function VendorForm({ vendor, onSave, onClose }: {
         </>
       }
     >
-      <div className="card" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
+      <div className="card" style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: 14 }}>
           <div style={{ gridColumn: '1 / -1' }}>
             <F label="Vendor Name *">
               <Input value={form.name} onChange={e => set('name', e.target.value)} placeholder="e.g. Tanzania Ports Authority" />

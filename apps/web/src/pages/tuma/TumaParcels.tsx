@@ -1,4 +1,5 @@
 import React, { useEffect, useState, useCallback } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { PageHeader } from '../../components/PageHeader.js';
 import { SectionCard } from '../../components/SectionCard.js';
 import { SectionLoading } from '../../components/ui/spinner.js';
@@ -9,6 +10,7 @@ import { SearchToolbar, SingleSelectFilter } from '../../components/ui/filter-dr
 import { Icon } from '../../components/Icon.js';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogBody, DialogFooter } from '../../components/ui/dialog.js';
 import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator } from '../../components/ui/dropdown-menu.js';
+import { EntityPicker, type PickerItem } from '../../components/EntityPicker.js';
 import { apiFetch } from '../../lib/api.js';
 import { showAlert } from '../../lib/alert.js';
 import { formatDate, formatDateTime } from '../../lib/tenantLocale.js';
@@ -20,6 +22,8 @@ interface Parcel {
   origin_office_id: string; dest_office_id: string; vehicle_id: string | null;
   status: string; created_at: string; delivered_date: string | null;
   cancellation_reason: string | null;
+  shipment_case_id: string | null;
+  linked_shipment: { id: string; ref_number: string; stage: string } | null;
 }
 
 interface TrackingEntry {
@@ -44,6 +48,7 @@ const TRANSITIONS: Record<string, string[]> = {
 };
 
 export function TumaParcels() {
+  const navigate = useNavigate();
   const [parcels, setParcels] = useState<Parcel[]>([]);
   const [total, setTotal] = useState(0);
   const [page, setPage] = useState(1);
@@ -57,6 +62,13 @@ export function TumaParcels() {
   const [showCreate, setShowCreate] = useState(false);
   const [saving, setSaving] = useState(false);
   const [form, setForm] = useState({ sender_name: '', sender_phone: '', recipient_name: '', recipient_phone: '', origin_office_id: '', dest_office_id: '', vehicle_id: '', name: '', weight: '', price: '', units: '1' });
+  const [linkedShipment, setLinkedShipment] = useState<PickerItem | null>(null);
+
+  const searchShipments = useCallback(async (query: string): Promise<PickerItem[]> => {
+    const r = await apiFetch(`/v1/shipments?search=${encodeURIComponent(query)}`);
+    const rows: Array<{ id: string; ref_number: string; stage: string }> = r.data ?? [];
+    return rows.slice(0, 20).map(s => ({ id: s.id, label: s.ref_number, sublabel: s.stage }));
+  }, []);
 
   const [expanded, setExpanded] = useState<string | null>(null);
   const [tracking, setTracking] = useState<TrackingEntry[]>([]);
@@ -105,10 +117,12 @@ export function TumaParcels() {
           weight: form.weight ? Number(form.weight) : undefined,
           price: form.price ? Number(form.price) : undefined,
           units: Number(form.units) || 1,
+          shipment_case_id: linkedShipment?.id || undefined,
         }),
       });
       setShowCreate(false);
       setForm({ sender_name: '', sender_phone: '', recipient_name: '', recipient_phone: '', origin_office_id: '', dest_office_id: '', vehicle_id: '', name: '', weight: '', price: '', units: '1' });
+      setLinkedShipment(null);
       reload();
     } catch (err: any) {
       showAlert(err.message || 'Failed to create parcel');
@@ -237,6 +251,19 @@ export function TumaParcels() {
                               {p.weight && <div><strong>Weight:</strong> {p.weight} kg</div>}
                               {p.price && <div><strong>Price:</strong> {p.price}</div>}
                               {p.units > 1 && <div><strong>Units:</strong> {p.units}</div>}
+                              {p.linked_shipment && (
+                                <div style={{ gridColumn: '1/-1' }}>
+                                  <strong>Last-mile leg of:</strong>{' '}
+                                  <button
+                                    type="button"
+                                    onClick={e => { e.stopPropagation(); navigate(`/clearos/clearance/${p.linked_shipment!.id}`); }}
+                                    style={{ color: 'var(--teal)', background: 'none', border: 'none', padding: 0, cursor: 'pointer', textDecoration: 'underline', fontSize: 13 }}
+                                  >
+                                    {p.linked_shipment.ref_number}
+                                  </button>
+                                  {' '}<Badge variant="gray">{p.linked_shipment.stage}</Badge>
+                                </div>
+                              )}
                               {p.cancellation_reason && <div style={{ gridColumn: '1/-1', color: 'var(--red)' }}><strong>Cancellation:</strong> {p.cancellation_reason}</div>}
                             </div>
                             <div style={{ fontSize: 12, fontWeight: 600, marginBottom: 6, color: 'var(--ink2)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Tracking</div>
@@ -333,10 +360,19 @@ export function TumaParcels() {
                   Units
                   <Input type="number" min="1" value={form.units} onChange={e => setForm(f => ({ ...f, units: e.target.value }))} />
                 </label>
+                <label style={{ display: 'flex', flexDirection: 'column', gap: 4, fontSize: 13, gridColumn: '1/-1' }}>
+                  Linked ClearOS shipment (optional)
+                  <EntityPicker
+                    value={linkedShipment}
+                    onChange={setLinkedShipment}
+                    search={searchShipments}
+                    placeholder="Search by ref number…"
+                  />
+                </label>
               </div>
             </DialogBody>
             <DialogFooter>
-              <Button type="button" variant="outline" onClick={() => setShowCreate(false)}>Cancel</Button>
+              <Button type="button" variant="outline" onClick={() => { setShowCreate(false); setLinkedShipment(null); }}>Cancel</Button>
               <Button type="submit" disabled={saving}>{saving ? 'Saving…' : 'Receive Parcel'}</Button>
             </DialogFooter>
           </form>

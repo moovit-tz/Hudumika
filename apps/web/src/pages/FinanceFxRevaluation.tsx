@@ -3,6 +3,7 @@ import { apiFetch } from '../lib/api.js';
 import { PageHeader } from '../components/PageHeader.js';
 import { Icon } from '../components/Icon.js';
 import { Badge } from '../components/ui/badge.js';
+import { Banner } from '../components/ui/alert.js';
 import { Button } from '../components/ui/button.js';
 import { DatePicker, toDateOnlyString } from '../components/ui/date-picker.js';
 import { MetricsRow } from '../components/MetricCard.js';
@@ -94,7 +95,11 @@ export function FinanceFxRevaluation() {
       { title: 'Total gains', value: fmt(summary.gains), comparisonLabel: 'Recognised exchange gains', barHighlight: 'var(--green)', loading },
       { title: 'Total losses', value: fmt(summary.losses), comparisonLabel: 'Recognised exchange losses', barHighlight: 'var(--red)', loading },
     ]} />
-    {lastRun && <section className="finance-fx-result" aria-live="polite"><Icon name="checkCircle" size={18} /><div><strong>Revaluation completed for {lastRun.periodDate}</strong><span>{lastRun.subjectsRevalued} item{lastRun.subjectsRevalued === 1 ? '' : 's'} revalued · Net movement {fmt(lastRun.netMovement)}</span></div><Badge variant="success">Posted</Badge></section>}
+    {lastRun && (
+      <Banner variant="success" aria-live="polite" title={`Revaluation completed for ${lastRun.periodDate}`} action={<Badge variant="success">Posted</Badge>}>
+        {lastRun.subjectsRevalued} item{lastRun.subjectsRevalued === 1 ? '' : 's'} revalued · Net movement {fmt(lastRun.netMovement)}
+      </Banner>
+    )}
     <section className="finance-fx-table-card">
       <header><div><h2>Revaluation history</h2><p>Foreign balances, comparison rates, period rates, and their journal movements.</p></div><Badge variant="gray">Net {fmt(summary.net)}</Badge></header>
       <DataTable

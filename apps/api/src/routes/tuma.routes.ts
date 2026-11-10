@@ -3,6 +3,11 @@ import { withTenant } from '../db/client.js';
 import { requireEntitlement } from '../middleware/entitlement.js';
 
 export async function tumaRoutes(server: FastifyInstance) {
+  // Missing until now: every route below reads request.user directly
+  // (tenant_id in particular) but nothing populated it — requireEntitlement()
+  // itself checks `if (!request.user)` first and 401s, so this whole plugin
+  // was unreachable by any real authenticated caller, not just ungated.
+  server.addHook('preHandler', server.authenticate);
   server.addHook('preHandler', requireEntitlement('tuma'));
 
   // GET /parcels moved to tuma-parcels.routes.ts (full CRUD with filters/pagination)

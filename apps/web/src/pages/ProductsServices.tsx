@@ -15,7 +15,7 @@ import { EntityPicker, PickerItem } from '../components/EntityPicker.js';
 import { Button } from '../components/ui/button.js';
 import { Input } from '../components/ui/input.js';
 import { Textarea } from '../components/ui/textarea.js';
-import { SearchToolbar } from '../components/ui/filter-dropdown.js';
+import { SearchToolbar, SingleSelectFilter } from '../components/ui/filter-dropdown.js';
 import { Tip } from '../components/ui/tooltip.js';
 import { Badge } from '../components/ui/badge.js';
 import { FeaturedIcon } from '../components/ui/featured-icon.js';
@@ -202,9 +202,7 @@ function genCode(name: string, category: string): string {
 
 function fmt(amount: number, currency = 'USD') {
   if (amount === 0) return '—';
-  try {
-    return new Intl.NumberFormat('en-US', { style: 'currency', currency, minimumFractionDigits: 0, maximumFractionDigits: 2 }).format(amount);
-  } catch { return `${currency} ${amount}`; }
+  return formatAmount(amount, currency);
 }
 
 function fmtDate(d: string | null | undefined) {
@@ -1262,22 +1260,17 @@ function ProductTariffImportPage({
                 onChange={e => setQuery(e.target.value)}
               />
             </div>
-            <div className="flex items-center gap-1.5">
-              {(['ALL', 'TPA', 'TASAC', 'TRA'] as const).map(auth => (
-                <button data-ui-native-button=""
-                  key={auth}
-                  type="button"
-                  onClick={() => setAuthorityFilter(auth)}
-                  className={cn(
-                    "px-3 h-9 rounded-(--r-sm) text-xs font-semibold border transition-colors",
-                    authorityFilter !== auth && "bg-background border-border text-muted-foreground hover:bg-muted"
-                  )}
-                  style={authorityFilter === auth ? { background: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))', borderColor: 'hsl(var(--primary))' } : undefined}
-                >
-                  {auth === 'ALL' ? 'All Authorities' : auth}
-                </button>
-              ))}
-            </div>
+            <SingleSelectFilter
+              label="Authority"
+              allLabel="All Authorities"
+              value={authorityFilter === 'ALL' ? null : authorityFilter}
+              onChange={value => setAuthorityFilter((value as 'TPA' | 'TASAC' | 'TRA') ?? 'ALL')}
+              options={[
+                { value: 'TPA', label: 'TPA' },
+                { value: 'TASAC', label: 'TASAC' },
+                { value: 'TRA', label: 'TRA' },
+              ]}
+            />
           </div>
         </SectionCard>
 
@@ -1847,6 +1840,7 @@ export const ProductsServices: React.FC = () => {
                         <DropdownMenuTrigger asChild>
                           <button data-ui-native-button=""
                             type="button"
+                            aria-label="More actions"
                             className="w-7 h-7 inline-flex items-center justify-center rounded text-muted-foreground hover:bg-accent hover:text-foreground transition-colors"
                           >
                             <Icon name="moreHorizontal" size={14} />

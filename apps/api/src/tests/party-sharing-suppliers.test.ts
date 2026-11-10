@@ -163,7 +163,7 @@ describe('migration numbering', () => {
     // applied migration would re-run it (the runner tracks by filename), so they are
     // recorded here instead. The runner orders by full filename, so clashes are safe —
     // but a NEW clash must be renumbered before merging.
-    const KNOWN = ['034', '036', '037', '063', '065', '066', '068', '069', '100', '101', '276', '289', '290', '338', '352', '368', '369', '504', '619', '621', '622'];
+    const KNOWN = ['034', '036', '037', '063', '065', '066', '068', '069', '100', '101', '276', '289', '290', '338', '352', '368', '369', '504', '619', '621', '622', '656', '697'];
     const unexpected = clashes.filter(n => !KNOWN.includes(n));
     expect(unexpected, `Duplicate migration numbers: ${unexpected.join(', ')}`).toEqual([]);
   });

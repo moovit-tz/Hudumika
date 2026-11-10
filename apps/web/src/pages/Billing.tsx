@@ -28,6 +28,8 @@ import { Tip } from '../components/ui/tooltip.js';
 import { Popover, PopoverTrigger, PopoverContent } from '../components/ui/popover.js';
 import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator } from '../components/ui/dropdown-menu.js';
 import { datePresetRange } from '../components/ui/date-filter-row.js';
+import { Banner } from '../components/ui/alert.js';
+import { SectionLoading } from '../components/ui/spinner.js';
 import { cn } from '../lib/utils.js';
 import './Billing.css';
 
@@ -545,6 +547,36 @@ export const Billing: React.FC = () => {
     }
   }
 
+  if (mode === 'create') {
+    return (
+      <div className="inv-shell" style={{ overflowY: 'auto' }}>
+        <InvoiceEditor
+          initial={null}
+          nextId={nextId}
+          onSave={handleSaveInvoice}
+          onCancel={() => { setMode('list'); setSelectedId(null); documentRoute.open('list'); }}
+          isMobile={isMobile}
+          presetCustomer={presetCustomer}
+          presetShipment={presetShipment}
+        />
+      </div>
+    );
+  }
+
+  if (mode === 'edit') {
+    return (
+      <div className="inv-shell" style={{ overflowY: 'auto' }}>
+        <InvoiceEditor
+          initial={selectedInvoice}
+          nextId={nextId}
+          onSave={handleSaveInvoice}
+          onCancel={() => documentRoute.open('detail', selectedInvoice?._dbId)}
+          isMobile={isMobile}
+        />
+      </div>
+    );
+  }
+
   return (
     <div className="inv-shell">
       {mode === 'list' && (
@@ -583,10 +615,8 @@ export const Billing: React.FC = () => {
       )}
 
       {mode==='view' && selectedInvoice && <PageHeader crumbs={[{label:'Finance',to:'/finance'},{label:'Invoices',to:'/finance/invoices'}]} titleEm={selectedInvoice.id} subtitle="Sales invoice"/>}
-      {/* While creating or editing, the form takes the whole body – the list
-          panel is hidden rather than the form being squeezed into the right
-          column beside it, matching how Quotations gives its form the page. */}
-      <div className={`inv-body${isSplit ? ' inv-body--split' : ''}${selectedInvoice || mode === 'create' ? ' inv-body--has-selection' : ''}${mode === 'create' || mode === 'edit' || mode === 'view' ? ' inv-body--form' : ''}`}>
+      {/* While viewing, split layout shows detail panel */}
+      <div className={`inv-body${isSplit ? ' inv-body--split' : ''}${selectedInvoice ? ' inv-body--has-selection' : ''}${mode === 'view' ? ' inv-body--form' : ''}`}>
         {/* List panel */}
         <div className="inv-list-panel">
 
@@ -644,9 +674,11 @@ export const Billing: React.FC = () => {
                     <Button variant="outline" size="xs" onClick={downloadAllSelected} disabled={downloadingAll}>
                       <Icon name="file" size={13} /> {downloadingAll ? 'Downloading…' : 'Download all'}
                     </Button>
-                    <button type="button" className="inv-bulk-clear" onClick={() => setSelectedIds(new Set())} title="Clear selection" data-ui-native-button="">
-                      <Icon name="close" size={12} />
-                    </button>
+                    <Tip label="Clear selection">
+                      <button type="button" className="inv-bulk-clear" onClick={() => setSelectedIds(new Set())} aria-label="Clear selection" data-ui-native-button="">
+                        <Icon name="close" size={12} />
+                      </button>
+                    </Tip>
                   </div>
                 )}
                 <Tip label="Recurring invoice schedules">
@@ -738,9 +770,7 @@ export const Billing: React.FC = () => {
                         isSelected && "inv-row--selected"
                       )}
                       onClick={() => {
-                        if (mode !== 'edit' && mode !== 'create') {
-                          documentRoute.open('detail', inv._dbId);
-                        }
+                        documentRoute.open('detail', inv._dbId);
                       }}
                     >
                       <td className="th--checkbox" onClick={e => e.stopPropagation()}>
@@ -913,7 +943,7 @@ export const Billing: React.FC = () => {
                   );
                 })}
                 {apiLoading && (
-                  <tr><td colSpan={10} className="inv-table-msg">Loading invoices…</td></tr>
+                  <tr><td colSpan={10} className="inv-table-msg"><SectionLoading label="Loading invoices…" /></td></tr>
                 )}
                 {!apiLoading && !loadError && filtered.length === 0 && !search && filterStatus === 'all' && !activeFilterCount && (
                   <tr><td colSpan={10} className="inv-table-msg">
@@ -991,7 +1021,7 @@ export const Billing: React.FC = () => {
                   </button>
                 );
               })}
-              {apiLoading && <div className="inv-board-loading">Loading invoices…</div>}
+              {apiLoading && <div className="inv-board-loading"><SectionLoading label="Loading invoices…" /></div>}
               {!apiLoading && !loadError && filtered.length === 0 && !search && filterStatus === 'all' && !activeFilterCount && (
                 <div className="inv-grid-empty">
                   <div className="inv-empty-title">No invoices yet</div>
@@ -1009,9 +1039,10 @@ export const Billing: React.FC = () => {
 
           {/* Pagination */}
           {loadError && (
-            <div role="alert" className="p-3 text-sm flex items-center justify-between" style={{ color: 'var(--red)' }}>
-              <span>{loadError}</span>
-              <Button variant="outline" size="sm" onClick={() => setRefresh(v => v + 1)}>Retry</Button>
+            <div className="p-3">
+              <Banner variant="error" action={<Button variant="outline" size="sm" onClick={() => setRefresh(v => v + 1)}>Retry</Button>}>
+                {loadError}
+              </Banner>
             </div>
           )}
           <PaginationBar
@@ -1030,12 +1061,6 @@ export const Billing: React.FC = () => {
         <div className="inv-detail-panel" style={{ flex: 1, display: 'flex', overflow: 'hidden', minWidth: 0 }}>
           {mode === 'view' && selectedInvoice && (
             <InvoiceDetailPanel inv={selectedInvoice} onClose={() => { setMode('list'); setSelectedId(null); documentRoute.open('list'); }} onEdit={() => documentRoute.open('edit',selectedInvoice._dbId)} onCopy={handleCopyInvoice} onDelete={handleDeleteInvoice} onRecordPayment={handleRecordPayment} onSubmitTRA={handleSubmitTRA} isMobile={isMobile} />
-          )}
-          {mode === 'edit' && selectedInvoice && (
-            <InvoiceEditor initial={selectedInvoice} nextId={nextId} onSave={handleSaveInvoice} onCancel={() => documentRoute.open('detail',selectedInvoice?._dbId)} isMobile={isMobile} />
-          )}
-          {mode === 'create' && (
-            <InvoiceEditor initial={null} nextId={nextId} onSave={handleSaveInvoice} onCancel={() => { setMode('list'); setSelectedId(null); documentRoute.open('list'); }} isMobile={isMobile} presetCustomer={presetCustomer} presetShipment={presetShipment} />
           )}
         </div>
       </div>

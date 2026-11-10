@@ -1,4 +1,4 @@
-﻿import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { Icon } from '../components/Icon.js';
 import { SectionLoading } from '../components/ui/spinner.js';
 import type { IconName } from '../components/Icon.js';
@@ -9,6 +9,7 @@ import { PageHeader } from '../components/PageHeader.js';
 import { SectionCard } from '../components/SectionCard.js';
 import { Badge } from '../components/ui/badge.js';
 import { Button } from '../components/ui/button.js';
+import { Tip } from '../components/ui/tooltip.js';
 
 const fmtM = (n: number) => `TZS ${(n / 1_000_000).toFixed(1)}M`;
 const fmtFull = (n: number) => `TZS ${Math.round(n).toLocaleString()}`;
@@ -172,7 +173,7 @@ export const FinanceExpensesReport: React.FC = () => {
             { label: 'Largest Category',            value: largestCategory,          icon: 'package',  color: 'var(--purple)', bg: 'var(--purple-l)' },
             { label: 'This Month',                  value: fmtM(thisMonthTotal),      icon: 'calendar', color: 'var(--blue)',   bg: 'var(--blue-l)' },
           ].map(s => (
-            <div key={s.label} style={{ flex: 1, background: 'var(--white)', borderRadius: 'var(--r)', border: '1px solid var(--border)', padding: '16px 18px', display: 'flex', alignItems: 'center', gap: 14 }}>
+            <div key={s.label} style={{ flex: 1, minWidth: 200, background: 'var(--white)', borderRadius: 'var(--r)', border: '1px solid var(--border)', padding: '16px 18px', display: 'flex', alignItems: 'center', gap: 14 }}>
               <div style={{ width: 42, height: 42, borderRadius: 'var(--r)', background: s.bg, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
                 <Icon name={s.icon as IconName} size={18} color={s.color} />
               </div>
@@ -186,7 +187,7 @@ export const FinanceExpensesReport: React.FC = () => {
 
         <div style={{ display: 'flex', gap: 14, flexWrap: 'wrap' }}>
           {/* Monthly chart */}
-          <div style={{ flex: 2 }}>
+          <div style={{ flex: 2, minWidth: 280 }}>
           <SectionCard title="Monthly Expenses">
             <div style={{ fontSize: 11, color: 'var(--ink3)', marginBottom: 16 }}>{period}</div>
             <BarChart labels={monthLabels} values={monthlyTotals} color="var(--red)" />
@@ -194,7 +195,7 @@ export const FinanceExpensesReport: React.FC = () => {
           </div>
 
           {/* Category breakdown */}
-          <div style={{ flex: 1 }}>
+          <div style={{ flex: 1, minWidth: 240 }}>
           <SectionCard padded={false} title="By Category">
             <div style={{ padding: '4px 0' }}>
               {categoryBreakdown.length === 0 ? (
@@ -256,27 +257,35 @@ export const FinanceExpensesReport: React.FC = () => {
                 Showing <strong>{offset + 1}–{Math.min(offset + PAGE_SIZE, expenses.length)}</strong> of <strong>{expenses.length}</strong> expenses
               </div>
               <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  disabled={currentPage <= 1}
-                  onClick={() => setPage(p => Math.max(1, p - 1))}
-                >
-                  <Icon name="chevronLeft" size={13} /> Previous
-                </Button>
+                <Tip label="Previous page">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="icon"
+                    iconOnly
+                    aria-label="Previous page"
+                    disabled={currentPage <= 1}
+                    onClick={() => setPage(p => Math.max(1, p - 1))}
+                  >
+                    <Icon name="chevronLeft" size={14} />
+                  </Button>
+                </Tip>
                 <span style={{ fontSize: 12, color: 'var(--ink2)', fontWeight: 600, padding: '0 6px' }}>
                   Page {currentPage} of {pageCount}
                 </span>
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  disabled={currentPage >= pageCount}
-                  onClick={() => setPage(p => Math.min(pageCount, p + 1))}
-                >
-                  Next <Icon name="chevronRight" size={13} />
-                </Button>
+                <Tip label="Next page">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="icon"
+                    iconOnly
+                    aria-label="Next page"
+                    disabled={currentPage >= pageCount}
+                    onClick={() => setPage(p => Math.min(pageCount, p + 1))}
+                  >
+                    <Icon name="chevronRight" size={14} />
+                  </Button>
+                </Tip>
               </div>
             </div>
           )}

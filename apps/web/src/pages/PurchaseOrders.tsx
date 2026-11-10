@@ -15,6 +15,7 @@ import { PageHeader } from '../components/PageHeader.js';
 import { MetricsRow } from '../components/MetricCard.js';
 import { FormPage } from '../components/FormPage.js';
 import { apiFetch } from '../lib/api.js';
+import { formatAmount } from '../lib/currency.js';
 import { EntityPicker, PickerItem } from '../components/EntityPicker.js';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '../components/ui/select.js';
 import { Combobox } from '../components/ui/combobox.js';
@@ -28,6 +29,7 @@ import { useFinanceReadOnly } from '../components/FinanceCapabilityGate.js';
 import { useFinanceCapabilities } from '../hooks/useFinanceCapabilities.js';
 import { useFinanceConfiguration } from '../hooks/useFinanceConfiguration.js';
 import { SearchToolbar } from '../components/ui/filter-dropdown.js';
+import { Button } from '../components/ui/button.js';
 
 // Types and Interfaces
 // Mirrors the backend's purchase_orders.status CHECK constraint
@@ -164,7 +166,7 @@ const STATUS_THEME: Record<POStatus, { bg: string; color: string }> = {
 
 // Formatting Helper
 const formatUSD = (amount: number) => {
-  return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'TZS', minimumFractionDigits: 0 }).format(amount);
+  return formatAmount(amount, 'TZS');
 };
 
 export const PurchaseOrders: React.FC = () => {
@@ -767,40 +769,16 @@ export const PurchaseOrders: React.FC = () => {
 
                   {/* Grid / List toggle */}
                   <div style={{ display: 'flex', borderRadius: 'var(--r)', border: '1px solid var(--border)', background: 'var(--bg)', overflow: 'hidden', padding: 2 }}>
-                    <button
-                      onClick={() => setIsCardView(false)}
-                      style={{
-                        padding: "var(--action-py) var(--space-md)",
-                        border: 'none',
-                        background: !isCardView ? 'hsl(var(--primary))' : 'transparent',
-                        color: !isCardView ? 'hsl(var(--primary-foreground))' : 'var(--ink3)',
-                        borderRadius: 'var(--r)',
-                        cursor: 'pointer',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center'
-                      }}
-                      title="List View"
-                     data-ui-native-button="">
-                      <Icon name="list" size={14} />
-                    </button>
-                    <button
-                      onClick={() => setIsCardView(true)}
-                      style={{
-                        padding: "var(--action-py) var(--space-md)",
-                        border: 'none',
-                        background: isCardView ? 'hsl(var(--primary))' : 'transparent',
-                        color: isCardView ? 'hsl(var(--primary-foreground))' : 'var(--ink3)',
-                        borderRadius: 'var(--r)',
-                        cursor: 'pointer',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center'
-                      }}
-                      title="Card View"
-                     data-ui-native-button="">
-                      <Icon name="grid" size={14} />
-                    </button>
+                    <Tip label="List view">
+                      <Button type="button" variant={!isCardView ? 'default' : 'ghost'} size="icon" iconOnly aria-label="List view" onClick={() => setIsCardView(false)}>
+                        <Icon name="list" size={14} />
+                      </Button>
+                    </Tip>
+                    <Tip label="Card view">
+                      <Button type="button" variant={isCardView ? 'default' : 'ghost'} size="icon" iconOnly aria-label="Card view" onClick={() => setIsCardView(true)}>
+                        <Icon name="grid" size={14} />
+                      </Button>
+                    </Tip>
                   </div>
 
                   {/* Rows per page */}
@@ -815,31 +793,15 @@ export const PurchaseOrders: React.FC = () => {
                   </Select>
 
                   {/* Filters toggle */}
-                  <button
-                    onClick={() => setShowFiltersPanel(prev => !prev)}
-                    style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: 6,
-                      padding: 'var(--ds-btn-py) 12px',
-                      borderRadius: 'var(--r)',
-                      border: '1px solid var(--border)',
-                      background: showFiltersPanel || filterStatus || filterVendor ? 'var(--teal-l)' : 'var(--white)',
-                      borderColor: showFiltersPanel || filterStatus || filterVendor ? 'var(--teal)' : 'var(--border)',
-                      color: showFiltersPanel || filterStatus || filterVendor ? 'var(--teal)' : 'var(--ink2)',
-                      fontSize: "var(--text-base)",
-                      fontWeight: 600,
-                      cursor: 'pointer', minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}}
-                   data-ui-native-button="">
+                  <Button type="button" variant={showFiltersPanel || filterStatus || filterVendor ? 'default' : 'outline'} onClick={() => setShowFiltersPanel(prev => !prev)}>
                     <Icon name="filter" size={13} />
                     Filters
                     <Icon name={showFiltersPanel ? 'chevronUp' : 'chevronDown'} size={11} />
-                  </button>
+                  </Button>
 
-                  {!readOnly && <button type="button" onClick={handleCreateInit}
-                    style={{ padding: 'var(--ds-btn-py) 16px', background: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))', border: 'none', borderRadius: 'var(--r)', fontSize: "var(--text-base)", fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 7, fontFamily: 'var(--font)', whiteSpace: 'nowrap', minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25 }} data-ui-native-button="">
-                    <Icon name="plus" size={14} color="hsl(var(--primary-foreground))" /> New purchase order
-                  </button>}
+                  {!readOnly && <Button type="button" onClick={handleCreateInit}>
+                    <Icon name="plus" size={14} /> New purchase order
+                  </Button>}
                 </div>
               </div>
 
@@ -877,20 +839,7 @@ export const PurchaseOrders: React.FC = () => {
 
                   {/* Clear Filters Action */}
                   <div style={{ display: 'flex', alignItems: 'flex-end', gap: 8 }}>
-                    <button
-                      onClick={handleClearFilters}
-                      style={{
-                        padding: 'var(--ds-btn-py) 12px',
-                        borderRadius: 'var(--r)',
-                        border: '1px solid var(--border)',
-                        background: 'transparent',
-                        color: 'var(--ink3)',
-                        fontSize: "var(--text-base)",
-                        fontWeight: 600,
-                        cursor: 'pointer', minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}}
-                     data-ui-native-button="">
-                      Reset Filters
-                    </button>
+                    <Button type="button" variant="ghost" onClick={handleClearFilters}>Reset filters</Button>
                   </div>
                 </div>
               )}
@@ -905,24 +854,11 @@ export const PurchaseOrders: React.FC = () => {
                     <Icon name="shoppingCart" size={26} strokeWidth={1.5} color="var(--ink3)" />
                   </div>
                 </div>
-                <h3 style={{ fontSize: 16, fontWeight: 700, color: 'var(--ink)', margin: '0 0 6px 0' }}>No Purchase Orders Found</h3>
+                <h3 style={{ fontSize: 16, fontWeight: 700, color: 'var(--ink)', margin: '0 0 6px 0' }}>No purchase orders found</h3>
                 <p style={{ fontSize: 13, color: 'var(--ink2)', margin: '0 0 20px 0', maxWidth: 360, marginLeft: 'auto', marginRight: 'auto' }}>
-                  There are no purchase orders matching your search queries or filter conditions.
+                  No purchase orders match your search or filters.
                 </p>
-                <button
-                  onClick={handleClearFilters}
-                  style={{
-                    padding: 'var(--ds-btn-py) 16px',
-                    borderRadius: 'var(--r)',
-                    border: '1px solid var(--border)',
-                    background: 'var(--white)',
-                    color: 'var(--ink2)',
-                    fontSize: "var(--text-base)",
-                    fontWeight: 600,
-                    cursor: 'pointer', minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}}
-                 data-ui-native-button="">
-                  Clear Filters
-                </button>
+                <Button type="button" variant="outline" onClick={handleClearFilters}>Clear filters</Button>
               </div>
             ) : isCardView ? (
               // GRID CARD VIEW (WOW Factor)
@@ -1003,99 +939,33 @@ export const PurchaseOrders: React.FC = () => {
                       </div>
 
                       <div style={{ display: 'flex', gap: 6, justifyContent: 'flex-end', marginTop: 6 }}>
-                        <button
-                          onClick={() => handleDownloadPDF(po.id)}
-                          disabled={downloading === po.po_number}
-                          style={{
-                            width: "var(--ctl-h-xs)",
-                            height: "var(--ctl-h-xs)",
-                            borderRadius: 'var(--r)',
-                            border: '1px solid var(--border)',
-                            background: 'var(--white)',
-                            color: 'var(--ink2)',
-                            cursor: 'pointer',
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'center'
-                          }}
-                          title="Download PDF"
-                         data-ui-native-button="">
-                          <Icon name="download" size={13} />
-                        </button>
-                        <Link
-                          to={`/finance/purchase-orders/${po.id}`}
-                          style={{
-                            width: 28,
-                            height: 28,
-                            borderRadius: 'var(--r)',
-                            border: '1px solid var(--border)',
-                            background: 'var(--white)',
-                            color: 'var(--green)',
-                            cursor: 'pointer',
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'center'
-                          }}
-                          title="View Details"
-                         data-ui-native-button="">
-                          <Icon name="eye" size={13} />
-                        </Link>
+                        <Tip label="Download PDF">
+                          <Button type="button" variant="outline" size="icon" iconOnly aria-label="Download PDF" onClick={() => handleDownloadPDF(po.id)} disabled={downloading === po.po_number}>
+                            <Icon name="download" size={13} />
+                          </Button>
+                        </Tip>
+                        <Tip label="View details">
+                          <Button asChild variant="outline" size="icon" iconOnly aria-label="View details">
+                            <Link to={`/finance/purchase-orders/${po.id}`}><Icon name="eye" size={13} color="var(--green)" /></Link>
+                          </Button>
+                        </Tip>
                         {!readOnly && po.status === 'Draft' && (
                           <>
-                            <button
-                              onClick={() => handleDuplicatePO(po.id)}
-                              style={{
-                                width: "var(--ctl-h-xs)",
-                                height: "var(--ctl-h-xs)",
-                                borderRadius: 'var(--r)',
-                                border: '1px solid var(--border)',
-                                background: 'var(--white)',
-                                color: 'var(--ink2)',
-                                cursor: 'pointer',
-                                display: 'flex',
-                                alignItems: 'center',
-                                justifyContent: 'center'
-                              }}
-                              title="Duplicate"
-                             data-ui-native-button="">
-                              <Icon name="copy" size={13} />
-                            </button>
-                            <button
-                              onClick={() => handleEditInit(po.id)}
-                              style={{
-                                width: "var(--ctl-h-xs)",
-                                height: "var(--ctl-h-xs)",
-                                borderRadius: 'var(--r)',
-                                border: '1px solid var(--border)',
-                                background: 'var(--white)',
-                                color: 'var(--blue)',
-                                cursor: 'pointer',
-                                display: 'flex',
-                                alignItems: 'center',
-                                justifyContent: 'center'
-                              }}
-                              title="Edit"
-                             data-ui-native-button="">
-                              <Icon name="edit" size={13} />
-                            </button>
-                            <button
-                              onClick={() => handleDeletePO(po.id)}
-                              style={{
-                                width: "var(--ctl-h-xs)",
-                                height: "var(--ctl-h-xs)",
-                                borderRadius: 'var(--r)',
-                                border: '1px solid var(--border)',
-                                background: 'var(--white)',
-                                color: 'var(--red)',
-                                cursor: 'pointer',
-                                display: 'flex',
-                                alignItems: 'center',
-                                justifyContent: 'center'
-                              }}
-                              title="Delete"
-                             data-ui-native-button="">
-                              <Icon name="trash" size={13} />
-                            </button>
+                            <Tip label="Duplicate">
+                              <Button type="button" variant="outline" size="icon" iconOnly aria-label="Duplicate" onClick={() => handleDuplicatePO(po.id)}>
+                                <Icon name="copy" size={13} />
+                              </Button>
+                            </Tip>
+                            <Tip label="Edit">
+                              <Button type="button" variant="outline" size="icon" iconOnly aria-label="Edit" onClick={() => handleEditInit(po.id)}>
+                                <Icon name="edit" size={13} color="var(--blue)" />
+                              </Button>
+                            </Tip>
+                            <Tip label="Delete">
+                              <Button type="button" variant="outline" size="icon" iconOnly aria-label="Delete" onClick={() => handleDeletePO(po.id)}>
+                                <Icon name="trash" size={13} color="var(--red)" />
+                              </Button>
+                            </Tip>
                           </>
                         )}
                       </div>
@@ -1240,103 +1110,32 @@ export const PurchaseOrders: React.FC = () => {
                             {/* Actions Column */}
                             <td className="po-col-actions" style={{ padding: '10px 14px', textAlign: 'right', whiteSpace: 'nowrap' }}>
                               <div style={{ display: 'inline-flex', gap: 5, justifyContent: 'flex-end', alignItems: 'center' }}>
-                                <Tip label="Download purchase order PDF">
-                                <button
-                                  onClick={() => handleDownloadPDF(po.id)}
-                                  disabled={downloading === po.po_number}
-                                  style={{
-                                    width: "var(--ctl-h-xs)",
-                                    height: "var(--ctl-h-xs)",
-                                    borderRadius: 'var(--r)',
-                                    border: '1px solid var(--border)',
-                                    background: 'var(--white)',
-                                    color: 'var(--ink2)',
-                                    cursor: 'pointer',
-                                    display: 'flex',
-                                    alignItems: 'center',
-                                    justifyContent: 'center'
-                                  }}
-                                 data-ui-native-button="">
-                                  <Icon name="download" size={12.5} />
-                                </button>
+                                <Tip label="Download PDF">
+                                  <Button type="button" variant="outline" size="icon" iconOnly aria-label="Download PDF" onClick={() => handleDownloadPDF(po.id)} disabled={downloading === po.po_number}>
+                                    <Icon name="download" size={12.5} />
+                                  </Button>
                                 </Tip>
-                                <Tip label="View purchase order details">
-                                <Link
-                                  to={`/finance/purchase-orders/${po.id}`}
-                                  style={{
-                                    width: 26,
-                                    height: 26,
-                                    borderRadius: 'var(--r)',
-                                    border: '1px solid var(--border)',
-                                    background: 'var(--white)',
-                                    color: 'var(--green)',
-                                    cursor: 'pointer',
-                                    display: 'flex',
-                                    alignItems: 'center',
-                                    justifyContent: 'center'
-                                  }}
-                                 data-ui-native-button="">
-                                  <Icon name="eye" size={12.5} />
-                                </Link>
+                                <Tip label="View details">
+                                  <Button asChild variant="outline" size="icon" iconOnly aria-label="View details">
+                                    <Link to={`/finance/purchase-orders/${po.id}`}><Icon name="eye" size={12.5} color="var(--green)" /></Link>
+                                  </Button>
                                 </Tip>
                                 {!readOnly && (po.status === 'Draft' ? (
                                   <>
-                                    <Tip label="Duplicate purchase order">
-                                    <button
-                                      onClick={() => handleDuplicatePO(po.id)}
-                                      style={{
-                                        width: "var(--ctl-h-xs)",
-                                        height: "var(--ctl-h-xs)",
-                                        borderRadius: 'var(--r)',
-                                        border: '1px solid var(--border)',
-                                        background: 'var(--white)',
-                                        color: 'var(--ink2)',
-                                        cursor: 'pointer',
-                                        display: 'flex',
-                                        alignItems: 'center',
-                                        justifyContent: 'center'
-                                      }}
-                                     data-ui-native-button="">
-                                      <Icon name="copy" size={12.5} />
-                                    </button>
+                                    <Tip label="Duplicate">
+                                      <Button type="button" variant="outline" size="icon" iconOnly aria-label="Duplicate" onClick={() => handleDuplicatePO(po.id)}>
+                                        <Icon name="copy" size={12.5} />
+                                      </Button>
                                     </Tip>
-                                    <Tip label="Edit purchase order">
-                                    <button
-                                      onClick={() => handleEditInit(po.id)}
-                                      style={{
-                                        width: "var(--ctl-h-xs)",
-                                        height: "var(--ctl-h-xs)",
-                                        borderRadius: 'var(--r)',
-                                        border: '1px solid var(--border)',
-                                        background: 'var(--white)',
-                                        color: 'var(--blue)',
-                                        cursor: 'pointer',
-                                        display: 'flex',
-                                        alignItems: 'center',
-                                        justifyContent: 'center'
-                                      }}
-                                     data-ui-native-button="">
-                                      <Icon name="edit" size={12.5} />
-                                    </button>
+                                    <Tip label="Edit">
+                                      <Button type="button" variant="outline" size="icon" iconOnly aria-label="Edit" onClick={() => handleEditInit(po.id)}>
+                                        <Icon name="edit" size={12.5} color="var(--blue)" />
+                                      </Button>
                                     </Tip>
-                                    <Tip label="Delete purchase order">
-                                    <button
-                                      onClick={() => handleDeletePO(po.id)}
-                                      style={{
-                                        width: "var(--ctl-h-xs)",
-                                        height: "var(--ctl-h-xs)",
-                                        borderRadius: 'var(--r)',
-                                        border: '1px solid var(--border)',
-                                        background: 'var(--white)',
-                                        color: 'var(--red)',
-                                        cursor: 'pointer',
-                                        display: 'flex',
-                                        alignItems: 'center',
-                                        justifyContent: 'center'
-                                      }}
-                                     data-ui-native-button="">
-                                      <Icon name="trash" size={12.5} />
-                                    </button>
+                                    <Tip label="Delete">
+                                      <Button type="button" variant="outline" size="icon" iconOnly aria-label="Delete" onClick={() => handleDeletePO(po.id)}>
+                                        <Icon name="trash" size={12.5} color="var(--red)" />
+                                      </Button>
                                     </Tip>
                                   </>
                                 ) : (
@@ -1358,56 +1157,22 @@ export const PurchaseOrders: React.FC = () => {
               <div style={{ fontSize: 13, color: 'var(--ink3)' }}>
                 Showing {(currentPage - 1) * rowsPerPage + 1} to {Math.min(currentPage * rowsPerPage, processedPOs.length)} of {processedPOs.length} results
               </div>
-              <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
-                <button
-                  disabled={currentPage === 1}
-                  onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
-                  style={{
-                    padding: 'var(--ds-btn-py-sm) 12px',
-                    borderRadius: 'var(--r)',
-                    border: '1px solid var(--border)',
-                    background: 'var(--white)',
-                    color: currentPage === 1 ? 'var(--ink3)' : 'var(--ink)',
-                    fontSize: "var(--text-base)",
-                    fontWeight: 600,
-                    cursor: currentPage === 1 ? 'not-allowed' : 'pointer', minHeight: 'var(--ctl-h-sm)', boxSizing: 'border-box', lineHeight: 1.25}}
-                 data-ui-native-button="">
-                  Previous
-                </button>
+              <div style={{ display: 'flex', gap: 6, alignItems: 'center', flexWrap: 'wrap' }}>
+                <Tip label="Previous page">
+                  <Button type="button" variant="outline" size="icon" iconOnly aria-label="Previous page" disabled={currentPage === 1} onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}>
+                    <Icon name="chevronLeft" size={13} />
+                  </Button>
+                </Tip>
                 {Array.from({ length: totalPages }, (_, i) => i + 1).map(pageNum => (
-                  <button
-                    key={pageNum}
-                    onClick={() => setCurrentPage(pageNum)}
-                    style={{
-                      width: "var(--ctl-h)",
-                      height: "var(--ctl-h)",
-                      borderRadius: 'var(--r)',
-                      border: 'none',
-                      background: currentPage === pageNum ? 'hsl(var(--primary))' : 'transparent',
-                      color: currentPage === pageNum ? 'hsl(var(--primary-foreground))' : 'var(--ink2)',
-                      fontSize: "var(--text-base)",
-                      fontWeight: 600,
-                      cursor: 'pointer'
-                    }}
-                   data-ui-native-button="">
+                  <Button key={pageNum} type="button" variant={currentPage === pageNum ? 'default' : 'ghost'} size="icon" onClick={() => setCurrentPage(pageNum)}>
                     {pageNum}
-                  </button>
+                  </Button>
                 ))}
-                <button
-                  disabled={currentPage === totalPages || totalPages === 0}
-                  onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
-                  style={{
-                    padding: 'var(--ds-btn-py-sm) 12px',
-                    borderRadius: 'var(--r)',
-                    border: '1px solid var(--border)',
-                    background: 'var(--white)',
-                    color: currentPage === totalPages || totalPages === 0 ? 'var(--ink3)' : 'var(--ink)',
-                    fontSize: "var(--text-base)",
-                    fontWeight: 600,
-                    cursor: currentPage === totalPages || totalPages === 0 ? 'not-allowed' : 'pointer', minHeight: 'var(--ctl-h-sm)', boxSizing: 'border-box', lineHeight: 1.25}}
-                 data-ui-native-button="">
-                  Next
-                </button>
+                <Tip label="Next page">
+                  <Button type="button" variant="outline" size="icon" iconOnly aria-label="Next page" disabled={currentPage === totalPages || totalPages === 0} onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}>
+                    <Icon name="chevronRight" size={13} />
+                  </Button>
+                </Tip>
               </div>
             </div>
 
@@ -1550,24 +1315,10 @@ export const PurchaseOrders: React.FC = () => {
                   <FinanceDocumentActions kind="purchase_order" id={currentDetailsPo.id} label={currentDetailsPo.po_number}/>
 
                   {!readOnly && currentDetailsPo.status === 'Draft' && (
-                    <button
-                      onClick={() => handlePostPO(currentDetailsPo.id)}
-                      style={{
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: 6,
-                        padding: 'var(--ds-btn-py) 16px',
-                        borderRadius: 'var(--r)',
-                        border: 'none',
-                        background: 'hsl(var(--primary))',
-                        color: 'hsl(var(--primary-foreground))',
-                        fontSize: "var(--text-base)",
-                        fontWeight: 600,
-                        cursor: 'pointer', minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}}
-                     data-ui-native-button="">
+                    <Button type="button" onClick={() => handlePostPO(currentDetailsPo.id)}>
                       <Icon name="checkCircle" size={13} />
                       Mark as sent
-                    </button>
+                    </Button>
                   )}
                 </div>
 
@@ -1668,8 +1419,8 @@ export const PurchaseOrders: React.FC = () => {
             onCancel={() => documentRoute.open('list')}
             actions={
               <>
-                <button type="button" onClick={() => documentRoute.open('list')} className="btn btn-secondary" data-ui-native-button="">Cancel</button>
-                <button type="submit" form="po-form" className="btn btn-primary" data-ui-native-button="">{viewMode === 'CREATE' ? 'Create' : 'Save Changes'}</button>
+                <Button type="button" variant="outline" onClick={() => documentRoute.open('list')}>Cancel</Button>
+                <Button type="submit" form="po-form">{viewMode === 'CREATE' ? 'Create' : 'Save changes'}</Button>
               </>
             }
           >
@@ -1763,24 +1514,9 @@ export const PurchaseOrders: React.FC = () => {
             <SectionCard
               title="Purchase Order Items"
               action={
-                <button
-                  type="button"
-                  onClick={handleAddFormItem}
-                  style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: 6,
-                    padding: 'var(--ds-btn-py-sm) 12px',
-                    borderRadius: 'var(--r)',
-                    border: 'none',
-                    background: 'hsl(var(--primary))',
-                    color: 'hsl(var(--primary-foreground))',
-                    fontSize: "var(--text-base)",
-                    fontWeight: 600,
-                    cursor: 'pointer', minHeight: 'var(--ctl-h-sm)', boxSizing: 'border-box', lineHeight: 1.25}}
-                 data-ui-native-button="">
-                  <Icon name="plus" size={12} strokeWidth={2.5} /> Add Item
-                </button>
+                <Button type="button" size="sm" onClick={handleAddFormItem}>
+                  <Icon name="plus" size={12} strokeWidth={2.5} /> Add item
+                </Button>
               }
             >
               <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
@@ -1886,24 +1622,11 @@ export const PurchaseOrders: React.FC = () => {
 
                           {/* Delete Action */}
                           <td style={{ padding: '12px 12px', textAlign: 'center' }}>
-                            <button
-                              type="button"
-                              onClick={() => handleRemoveFormItem(idx)}
-                              style={{
-                                border: 'none',
-                                background: 'transparent',
-                                color: 'var(--red)',
-                                cursor: 'pointer',
-                                display: 'flex',
-                                alignItems: 'center',
-                                justifyContent: 'center',
-                                padding: "var(--action-py) var(--space-md)",
-                                borderRadius: 'var(--r)'
-                              }}
-                              title="Remove item"
-                             data-ui-native-button="">
-                              <Icon name="trash" size={15} />
-                            </button>
+                            <Tip label="Remove item">
+                              <Button type="button" variant="ghost" size="icon" iconOnly aria-label="Remove item" onClick={() => handleRemoveFormItem(idx)}>
+                                <Icon name="trash" size={15} color="var(--red)" />
+                              </Button>
+                            </Tip>
                           </td>
                         </tr>
                       );

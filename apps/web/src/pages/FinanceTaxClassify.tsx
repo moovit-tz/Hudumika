@@ -1,4 +1,4 @@
-﻿import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { PageHeader } from '../components/PageHeader.js';
 import { Icon } from '../components/Icon.js';
 import { Badge } from '../components/ui/badge.js';
@@ -7,6 +7,7 @@ import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '.
 import { apiFetch } from '../lib/api.js';
 import { SectionCard } from '../components/SectionCard.js';
 import { SectionLoading } from '../components/ui/spinner.js';
+import { Banner } from '../components/ui/alert.js';
 import {
   useTaxCodes, TAX_CODE_KIND_HINT, TAX_CODE_KIND_VARIANT, TAX_CODE_KIND_LABEL, type TaxCode,
 } from '../data/taxCodeData.js';
@@ -192,13 +193,11 @@ export function FinanceTaxClassify() {
       />
 
       {notice && (
-        <div style={{
-          padding: '10px 14px', margin: '0 0 14px', borderRadius: 'var(--r)',
-          fontSize: 12.5, fontWeight: 600, lineHeight: 1.5,
-          background: notice.kind === 'ok' ? 'var(--green-l)' : notice.kind === 'warn' ? 'var(--gold-l)' : 'var(--red-l)',
-          border: `1px solid ${notice.kind === 'ok' ? 'var(--green)' : notice.kind === 'warn' ? 'var(--gold)' : 'var(--red)'}`,
-          color: notice.kind === 'ok' ? 'var(--green)' : notice.kind === 'warn' ? 'var(--ink2)' : 'var(--red)',
-        }}>{notice.text}</div>
+        <div style={{ margin: '0 0 14px' }}>
+          <Banner variant={notice.kind === 'ok' ? 'success' : notice.kind === 'warn' ? 'warning' : 'error'} onDismiss={() => setNotice(null)}>
+            {notice.text}
+          </Banner>
+        </div>
       )}
 
       {/* Which pile */}
@@ -236,7 +235,8 @@ export function FinanceTaxClassify() {
       {mode === 'grouped' && (
         <div style={{ marginBottom: 16 }}>
         <SectionCard padded={false}>
-          <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12.5 }}>
+          <div style={{ overflowX: 'auto' }}>
+          <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12.5, minWidth: 760 }}>
             <thead>
               <tr style={{ background: 'var(--bg)' }}>
                 <th style={th}>{target === 'sales' ? 'Line group' : 'Category'}</th>
@@ -310,6 +310,7 @@ export function FinanceTaxClassify() {
               })}
             </tbody>
           </table>
+          </div>
         </SectionCard>
         </div>
       )}
@@ -371,7 +372,8 @@ export function FinanceTaxClassify() {
 
       {/* The rows */}
       <SectionCard padded={false}>
-        <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12.5 }}>
+        <div style={{ overflowX: 'auto' }}>
+        <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12.5, minWidth: 640 }}>
           <thead>
             <tr style={{ background: 'var(--bg)' }}>
               <th style={{ ...th, width: 34 }} />
@@ -424,6 +426,7 @@ export function FinanceTaxClassify() {
             })}
           </tbody>
         </table>
+        </div>
       </SectionCard>
 
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10, padding: '12px 2px', flexWrap: 'wrap' }}>

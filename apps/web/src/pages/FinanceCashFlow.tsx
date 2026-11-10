@@ -151,9 +151,9 @@ export const FinanceCashFlow: React.FC = () => {
 
         {/* Breakdown note */}
         <SectionCard title={`Cash Movement Breakdown — ${year}`}>
-          <div style={{ display: 'flex', gap: 14 }}>
+          <div style={{ display: 'flex', gap: 14, flexWrap: 'wrap' }}>
             {sourceBreakdown.map(s => (
-              <div key={s.label} style={{ flex: 1 }}>
+              <div key={s.label} style={{ flex: 1, minWidth: 140 }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}>
                   <span style={{ fontSize: 11, color: 'var(--ink2)' }}>{s.label}</span>
                   <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--ink)' }}>{s.pct}%</span>

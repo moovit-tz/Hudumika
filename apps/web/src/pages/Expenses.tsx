@@ -16,6 +16,7 @@ import { Badge } from '../components/ui/badge.js';
 import { SearchToolbar, SingleSelectFilter } from '../components/ui/filter-dropdown.js';
 import { useFinanceConfiguration } from '../hooks/useFinanceConfiguration.js';
 import { Tip } from '../components/ui/tooltip.js';
+import { Dialog, DialogContent, DialogHeader, DialogBody, DialogFooter, DialogTitle } from '../components/ui/dialog.js';
 import { financeCatalogOptions, financeIndustryName, type FinanceIndustryKey } from '@hudumika/types';
 
 const CATS: Record<string, { label: string; color: string }> = {
@@ -577,9 +578,9 @@ export const Expenses: React.FC = () => {
           filtersOpen={showFilters}
           actions={
             <>
-              <button type="button" className="stb-icon-btn" onClick={() => setShowBulkUpload(true)} title="Bulk Upload" aria-label="Bulk Upload" data-ui-native-button="">
+              <Tip label="Bulk upload"><button type="button" className="stb-icon-btn" onClick={() => setShowBulkUpload(true)} aria-label="Bulk upload" data-ui-native-button="">
                 <Icon name="upload" size={14} />
-              </button>
+              </button></Tip>
               <Tip label="Export page CSV"><button type="button" className="stb-icon-btn" onClick={exportCsv} aria-label="Export page CSV" data-ui-native-button=""><Icon name="download" size={14} /></button></Tip>
             </>
           }
@@ -605,9 +606,9 @@ export const Expenses: React.FC = () => {
         {/* Table Header */}
         <div style={{ display: 'flex', padding: '8px 20px', background: 'var(--bg)', borderBottom: '1px solid var(--border)', flexShrink: 0 }}>
           <div className="th" style={{ flex: 2 }}>Description</div>
-          {!isSplit && <div className="th" style={{ flex: 1 }}>Date</div>}
+          {!isSplit && !isMobile && <div className="th" style={{ flex: 1 }}>Date</div>}
           <div className="th" style={{ flex: 1 }}>Category</div>
-          {!isSplit && <div className="th" style={{ flex: 1 }}>Source</div>}
+          {!isSplit && !isMobile && <div className="th" style={{ flex: 1 }}>Source</div>}
           <div className="th" style={{ flex: 1, textAlign: 'right' }}>Amount (TZS)</div>
         </div>
 
@@ -632,12 +633,12 @@ export const Expenses: React.FC = () => {
                       <span title="Petty cash retirement pending" style={{ fontSize: 10, fontWeight: 700, color: 'var(--gold)', background: 'var(--gold-l)', padding: '1px 6px', borderRadius: 'var(--r-sm)'}}>Retire</span>
                     )}
                   </div>
-                  {isSplit && <div style={{ fontSize: 11, color: 'var(--ink3)', marginTop: 2 }}>{e.date.split('T')[0]}</div>}
+                  {(isSplit || isMobile) && <div style={{ fontSize: 11, color: 'var(--ink3)', marginTop: 2 }}>{e.date.split('T')[0]}</div>}
                   {e.vehicle_label && !isSplit && <div style={{ fontSize: 11, color: 'var(--ink3)', marginTop: 2 }}>{e.vehicle_label}</div>}
                 </div>
 
                 {/* Date */}
-                {!isSplit && <div style={{ flex: 1, fontSize: 12, color: 'var(--ink2)' }}>{e.date.split('T')[0]}</div>}
+                {!isSplit && !isMobile && <div style={{ flex: 1, fontSize: 12, color: 'var(--ink2)' }}>{e.date.split('T')[0]}</div>}
 
                 {/* Category */}
                 <div style={{ flex: 1 }}>
@@ -647,7 +648,7 @@ export const Expenses: React.FC = () => {
                 </div>
 
                 {/* Source */}
-                {!isSplit && (
+                {!isSplit && !isMobile && (
                   <div style={{ flex: 1 }}>
                     {e.source !== 'finance' ? (
                       <Badge variant="info">{SOURCE_LABEL[e.source]}</Badge>
@@ -730,38 +731,33 @@ export const Expenses: React.FC = () => {
         />
       )}
 
-      {/* ── Bulk Upload Modal — bulk CSV paste stays a dialog, unlike single Add Expense ── */}
-      {showBulkUpload && (
-        <div className="modal-overlay" onClick={e => e.target === e.currentTarget && setShowBulkUpload(false)}>
-          <div className="card" style={{ width: '90%', maxWidth: 540, padding: 24, borderRadius: 'var(--r)', boxShadow: 'var(--elev-lg)' }}>
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 18 }}>
-              <h2 style={{ fontSize: 16, fontWeight: 700, color: 'var(--ink)' }}>Bulk Upload Expenses</h2>
-              <button type="button" className="dp-close" onClick={() => setShowBulkUpload(false)} data-ui-native-button="">×</button>
-            </div>
-
-            <form onSubmit={handleBulkUpload} style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-              <div>
-                <label style={{ display: 'block', fontSize: 11.5, fontWeight: 600, color: 'var(--ink2)', marginBottom: 4 }}>Paste CSV Data</label>
-                <div style={{ fontSize: 11, color: 'var(--ink3)', marginBottom: 8 }}>Format: <code style={{ background: 'var(--bg)', padding: '2px 4px', borderRadius: 'var(--r-sm)'}}>Name, Amount, Date, Category, PaymentMode</code></div>
-                <textarea data-ui-field="textarea"
-                  className="input-field"
-                  rows={8}
-                  placeholder={"Port Charges, 250000, 2026-06-14, PORT_CHARGES, Bank Transfer\nLunch, 15000, 2026-06-14, MISCELLANEOUS, Cash"}
-                  required
-                  value={bulkCsv}
-                  onChange={e => setBulkCsv(e.target.value)}
-                  style={{ resize: 'none', fontFamily: "var(--font)", fontSize: "var(--text-base)" }}
-                ></textarea>
-              </div>
-
-              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8, marginTop: 10 }}>
-                <Button type="button" variant="outline" onClick={() => setShowBulkUpload(false)}>Cancel</Button>
-                <Button type="submit" disabled={bulkSaving}>{bulkSaving ? 'Importing…' : 'Import Data'}</Button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
+      {/* ── Bulk Upload Dialog — bulk CSV paste stays a dialog, unlike single Add Expense ── */}
+      <Dialog open={showBulkUpload} onOpenChange={o => { if (!o) setShowBulkUpload(false); }}>
+        <DialogContent size="md">
+          <DialogHeader>
+            <DialogTitle>Bulk upload expenses</DialogTitle>
+          </DialogHeader>
+          <form onSubmit={handleBulkUpload} style={{ display: 'flex', flexDirection: 'column', minHeight: 0, flex: 1 }}>
+            <DialogBody>
+              <label style={{ display: 'block', fontSize: 11.5, fontWeight: 600, color: 'var(--ink2)', marginBottom: 4 }}>Paste CSV data</label>
+              <div style={{ fontSize: 11, color: 'var(--ink3)', marginBottom: 8 }}>Format: <code style={{ background: 'var(--bg)', padding: '2px 4px', borderRadius: 'var(--r-sm)'}}>Name, Amount, Date, Category, PaymentMode</code></div>
+              <textarea data-ui-field="textarea"
+                className="input-field"
+                rows={8}
+                placeholder={"Port Charges, 250000, 2026-06-14, PORT_CHARGES, Bank Transfer\nLunch, 15000, 2026-06-14, MISCELLANEOUS, Cash"}
+                required
+                value={bulkCsv}
+                onChange={e => setBulkCsv(e.target.value)}
+                style={{ width: '100%', boxSizing: 'border-box', resize: 'none', fontFamily: "var(--font)", fontSize: "var(--text-base)" }}
+              ></textarea>
+            </DialogBody>
+            <DialogFooter>
+              <Button type="button" variant="outline" onClick={() => setShowBulkUpload(false)}>Cancel</Button>
+              <Button type="submit" disabled={bulkSaving}>{bulkSaving ? 'Importing…' : 'Import'}</Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
       </div>
     </div>
   );

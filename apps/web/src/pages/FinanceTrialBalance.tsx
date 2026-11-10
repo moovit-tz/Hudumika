@@ -1,4 +1,4 @@
-﻿import React, { useState, useMemo, useEffect } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { Icon } from '../components/Icon.js';
 import { useCompany } from '../data/companyStore.js';
 import { useIsMobile } from '../hooks/useIsMobile.js';
@@ -155,19 +155,11 @@ export const FinanceTrialBalance: React.FC = () => {
       />
 
       {/* Balance status banner */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '12px 18px', borderRadius: 'var(--r)', marginBottom: 20, background: balanced ? 'var(--green-l)' : 'var(--red-l)', border: `1px solid ${balanced ? 'var(--green)' : 'var(--red)'}` }}>
-        <div style={{ width: 32, height: 32, borderRadius: 'var(--r)', background: balanced ? 'var(--green)' : 'var(--red)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-          <Icon name={balanced ? 'check' : 'alertTriangle'} size={16} color="hsl(var(--primary-foreground))" />
-        </div>
-        <div>
-          <div style={{ fontSize: 13, fontWeight: 700, color: balanced ? 'var(--green)' : 'var(--red)' }}>
-            {balanced ? 'Trial Balance is Balanced ✓' : 'Trial Balance Out of Balance ✗'}
-          </div>
-          <div style={{ fontSize: 12, color: 'var(--ink3)', marginTop: 2 }}>
-            Total Debits: <strong>{cur} {totals.debit.toLocaleString()}</strong> &nbsp;·&nbsp; Total Credits: <strong>{cur} {totals.credit.toLocaleString()}</strong>
-            {balanced ? ' — Difference: Nil' : ` — Difference: ${cur} ${Math.abs(totals.debit - totals.credit).toLocaleString()}`}
-          </div>
-        </div>
+      <div style={{ marginBottom: 20 }}>
+        <Banner variant={balanced ? 'success' : 'error'} title={balanced ? 'Balanced' : 'Out of balance'}>
+          Total Debits: <strong>{cur} {totals.debit.toLocaleString()}</strong> &nbsp;·&nbsp; Total Credits: <strong>{cur} {totals.credit.toLocaleString()}</strong>
+          {balanced ? ' — Difference: Nil' : ` — Difference: ${cur} ${Math.abs(totals.debit - totals.credit).toLocaleString()}`}
+        </Banner>
       </div>
 
       {/* Summary — the Tabs below already provide click-to-filter by type,

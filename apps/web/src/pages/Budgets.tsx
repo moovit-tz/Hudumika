@@ -12,6 +12,7 @@ import { Combobox, type ComboboxOption } from '../components/ui/combobox.js';
 import { Dialog, DialogContent, DialogTitle } from '../components/ui/dialog.js';
 import { SectionLoading } from '../components/ui/spinner.js';
 import { useFinanceReadOnly } from '../components/FinanceCapabilityGate.js';
+import { Tip } from '../components/ui/tooltip.js';
 import './Budgets.css';
 
 const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
@@ -355,14 +356,11 @@ export function Budgets() {
                         </td>
                         <td style={{ padding: '8px 6px' }}>
                           {!readOnly && (
-                            <button
-                              type="button"
-                              onClick={() => removeRow(r.account_code)}
-                              style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--red)', padding: "var(--action-py) var(--space-md)" }}
-                              title="Remove account"
-                             data-ui-native-button="">
-                              <Icon name="x" size={13} />
-                            </button>
+                            <Tip label="Remove account">
+                              <Button type="button" variant="ghost" size="icon" iconOnly aria-label="Remove account" onClick={() => removeRow(r.account_code)} style={{ color: 'var(--red)' }}>
+                                <Icon name="x" size={13} />
+                              </Button>
+                            </Tip>
                           )}
                         </td>
                       </tr>
@@ -390,7 +388,7 @@ export function Budgets() {
           ) : (
             <div style={{ overflowX: 'auto', border: '1px solid var(--border)', borderRadius: 'var(--r)', background: 'var(--white)' }}>
               {actualsLoading ? (
-                <div style={{ padding: 28, textAlign: 'center', color: 'var(--ink3)' }}>Loading actuals comparison…</div>
+                <SectionLoading label="Loading actuals comparison…" />
               ) : (
                 <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12.5, textAlign: 'left' }}>
                   <thead>

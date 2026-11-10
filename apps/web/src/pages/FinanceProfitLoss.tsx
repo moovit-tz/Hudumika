@@ -10,6 +10,11 @@ import { MetricsRow } from '../components/MetricCard.js';
 import { SectionCard } from '../components/SectionCard.js';
 import { useFinanceConfiguration } from '../hooks/useFinanceConfiguration.js';
 import { useFinanceCapabilities } from '../hooks/useFinanceCapabilities.js';
+import { SectionLoading } from '../components/ui/spinner.js';
+import { Banner } from '../components/ui/alert.js';
+import { Button } from '../components/ui/button.js';
+import { useIsMobile } from '../hooks/useIsMobile.js';
+import { formatAmount } from '../lib/currency.js';
 
 interface PLRow { label: string; amount: number; sub?: boolean; bold?: boolean; separator?: boolean }
 
@@ -118,7 +123,7 @@ function buildCostsProfitRows(revenueTotal: number, expenses: ProfitLossLine[]) 
 }
 
 function PLSection({ rows, highlightColor, cur }: { rows: PLRow[]; highlightColor: string; cur: string }) {
-  const fmt = (n: number) => `${cur} ${n.toLocaleString()}`;
+  const fmt = (n: number) => formatAmount(n, cur);
   return (
     <div>
       {rows.map((row, i) => {
@@ -170,6 +175,7 @@ function PLSection({ rows, highlightColor, cur }: { rows: PLRow[]; highlightColo
 }
 
 export const FinanceProfitLoss: React.FC = () => {
+  const isMobile = useIsMobile();
   const co = useCompany();
   const { fmtCompact } = useCurrency();
   const cur = co.currency ?? 'TZS';
@@ -257,17 +263,17 @@ export const FinanceProfitLoss: React.FC = () => {
                 {PERIODS.map(p => <SelectItem key={p} value={p}>{p}</SelectItem>)}
               </SelectContent>
             </Select>
-            <button type="button" onClick={exportCsv} className="btn btn-secondary btn-sm" style={{ gap: 6 }} data-ui-native-button="">
+            <Button type="button" onClick={exportCsv} variant="outline" size="sm">
               <Icon name="download" size={13} /> Export
-            </button>
+            </Button>
           </div>
         }
       />
 
       {loading ? (
-        <div style={{ padding: '48px 0', textAlign: 'center', color: 'var(--ink3)' }}>Loading profit &amp; loss…</div>
+        <SectionLoading label="Loading profit & loss…" />
       ) : error ? (
-        <div style={{ padding: '48px 0', textAlign: 'center', color: 'var(--red)' }}>{error}</div>
+        <Banner variant="error" title="Profit & loss unavailable">{error}</Banner>
       ) : (
       <div style={{ flex: 1, overflowY: 'auto', padding: '0', display: 'flex', flexDirection: 'column', gap: 16 }}>
 
@@ -295,14 +301,14 @@ export const FinanceProfitLoss: React.FC = () => {
         ]} />
 
         {/* P&L Statement */}
-        <div style={{ display: 'flex', gap: 14, flexWrap: 'wrap' }}>
-          <div style={{ flex: 1, minWidth: 300 }}>
+        <div style={{ display: 'flex', flexDirection: isMobile ? 'column' : 'row', gap: 14, flexWrap: 'wrap' }}>
+          <div style={{ flex: 1, minWidth: isMobile ? '100%' : 300 }}>
           <SectionCard title="Income" action={<span style={{ fontSize: 11, color: 'var(--ink3)' }}>{report?.business_line?.name ?? period}</span>}>
             <PLSection rows={incomeRows} highlightColor="var(--teal)" cur={cur} />
           </SectionCard>
           </div>
 
-          <div style={{ flex: 1, minWidth: 300 }}>
+          <div style={{ flex: 1, minWidth: isMobile ? '100%' : 300 }}>
           <SectionCard title="Costs & Profit" action={<span style={{ fontSize: 11, color: 'var(--ink3)' }}>{report?.business_line?.name ?? period}</span>}>
             <PLSection rows={costRows} highlightColor="var(--green)" cur={cur} />
           </SectionCard>

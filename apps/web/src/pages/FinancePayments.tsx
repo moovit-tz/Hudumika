@@ -19,6 +19,8 @@ import { SearchToolbar } from '../components/ui/filter-dropdown.js';
 import { Button } from '../components/ui/button.js';
 import { Badge } from '../components/ui/badge.js';
 import { PaginationBar } from '../components/PaginationBar.js';
+import { SectionLoading } from '../components/ui/spinner.js';
+import { Tip } from '../components/ui/tooltip.js';
 
 interface Payment {
   id: string;
@@ -60,9 +62,11 @@ function PaymentDetailPanel({ payment, onClose, isMobile }: { payment: Payment; 
         <h2 style={{ fontSize: 16, fontWeight: 700, color: 'var(--ink)', margin: 0, display: 'flex', alignItems: 'center', gap: 8 }}>
           <Icon name="fileText" size={18} color="var(--blue)" /> Payment
         </h2>
-        <Button type="button" variant="ghost" size="icon" aria-label="Close payment details" onClick={onClose}>
-          <Icon name="x" size={16} strokeWidth={2} />
-        </Button>
+        <Tip label="Close">
+          <Button type="button" variant="ghost" size="icon" iconOnly aria-label="Close payment details" onClick={onClose}>
+            <Icon name="x" size={16} strokeWidth={2} />
+          </Button>
+        </Tip>
       </div>
 
       <div style={{ flex: 1, overflowY: 'auto', padding: '24px 28px' }}>
@@ -417,7 +421,7 @@ export const FinancePayments: React.FC = () => {
             </div>
 
             {loading ? (
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', flex: 1, padding: 48, color: 'var(--ink3)', fontSize: 13 }}>Loading payments…</div>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', flex: 1, padding: 48 }}><SectionLoading label="Loading payments…" /></div>
             ) : !payments.length ? (
               <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', flex: 1, padding: 48, gap: 8 }}>
                 <Icon name="creditCard" size={32} style={{ color: 'var(--ink3)', opacity: 0.5 }} />
@@ -425,8 +429,8 @@ export const FinancePayments: React.FC = () => {
                 <span style={{ color: 'var(--ink3)', fontSize: 13 }}>Customer receipts and supplier payments appear here after they are recorded.</span>
               </div>
             ) : (
-              <div style={{ flex: 1, overflowY: 'auto' }}>
-                <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+              <div style={{ flex: 1, overflowY: 'auto', overflowX: 'auto' }}>
+                <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: 600 }}>
                   <thead>
                     <tr>{paymentColumns.map(col => <th key={col.key} style={{ padding: '10px 14px', textAlign: (col.align as any) || 'left', fontSize: 10, fontWeight: 700, color: 'var(--ink3)', textTransform: 'uppercase', letterSpacing: '.05em', borderBottom: '1px solid var(--border)', background: 'var(--bg)' }}>{col.header}</th>)}</tr>
                   </thead>

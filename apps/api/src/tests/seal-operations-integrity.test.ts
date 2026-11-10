@@ -84,6 +84,24 @@ it('fulfills a received lot through picking, packing and dispatch', async()=>{
   expect((await call('GET',`/lots/${lot.id}/verify-chain`)).json().valid).toBe(true);
 },60000);
 
+it('refuses to pick a fulfillment line from an expired lot', async()=>{
+  // expiryDate (the cargo's own product-expiry date) is only settable via
+  // PATCH — POST /lots only accepts expiresOn, a genuinely different field
+  // (the customs/bond deadline daysRemaining() computes against).
+  const lot=await receive(10);
+  const beforeEdit=(await call('GET',`/lots/${lot.id}`)).json();
+  const setExpiry=await call('PATCH',`/lots/${lot.id}`,{expectedUpdatedAt:beforeEdit.updatedAt,reason:'Backdating for expiry test',expiryDate:'2020-01-01'});
+  expect(setExpiry.statusCode,setExpiry.body).toBe(200);
+  const created=await call('POST','/fulfillment-orders',{compartmentId:warehouse,customerId:owner,lines:[{lotId:lot.id,qty:4}]});
+  expect(created.statusCode,created.body).toBe(200);
+  const order=(await call('GET',`/fulfillment-orders/${created.json().id}`)).json();
+  const picked=await call('POST',`/fulfillment-orders/${created.json().id}/pick`,{lineId:order.lines[0].id,qty:4});
+  expect(picked.statusCode,picked.body).toBe(422);
+  expect(picked.body).toMatch(/expired/i);
+  // Stock stays untouched — a refused pick must not have moved anything.
+  expect((await call('GET',`/lots/${lot.id}`)).json().qtyOnHand).toBe(10);
+},60000);
+
 it('reserves stock for an order, rejects overbooking and releases a cancelled reservation', async()=>{
   const lot=await receive(12);
   const created=await call('POST','/fulfillment-orders',{compartmentId:warehouse,customerId:owner,lines:[{lotId:lot.id,qty:9}]});expect(created.statusCode,created.body).toBe(200);

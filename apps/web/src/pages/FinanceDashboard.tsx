@@ -11,6 +11,7 @@ import { FeaturedIcon } from '../components/ui/featured-icon.js';
 import { Banner } from '../components/ui/alert.js';
 import { SkeletonPage } from '../components/ui/skeleton.js';
 import { Icon } from '../components/Icon.js';
+import { formatAmount } from '../lib/currency.js';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -56,12 +57,7 @@ export function FinanceDashboard() {
   }
 
   const currency = data?.currency || 'TZS';
-  const money = (value: number | undefined) =>
-    new Intl.NumberFormat('en-TZ', {
-      style: 'currency',
-      currency,
-      maximumFractionDigits: 0
-    }).format(value ?? 0);
+  const money = (value: number | undefined) => formatAmount(value ?? 0, currency);
 
   // Profit & Loss Performance Metrics
   const monthRevenue = data?.profitLoss.month.revenue ?? 0;
@@ -131,7 +127,7 @@ export function FinanceDashboard() {
               <DropdownMenuTrigger asChild>
                 <Button variant="default">
                   <Icon name="plus" size={14} />
-                  <span>New Transaction</span>
+                  <span>New</span>
                   <Icon name="chevronDown" size={12} />
                 </Button>
               </DropdownMenuTrigger>
@@ -172,21 +168,20 @@ export function FinanceDashboard() {
             </DropdownMenu>
 
             {isEnabled('finance.pos') && (
-              <Button asChild variant="outline">
+              <Button asChild variant="outline" iconOnly aria-label="POS counter">
                 <Link to="/finance/pos">
                   <Icon name="shoppingCart" size={14} />
-                  <span>POS Counter</span>
                 </Link>
               </Button>
             )}
 
             <Button
               variant="outline"
+              iconOnly
+              aria-label="Refresh"
               onClick={() => setRevision(v => v + 1)}
-              title="Refresh financial data"
             >
               <Icon name="refresh" size={14} />
-              <span>Refresh</span>
             </Button>
           </div>
         }

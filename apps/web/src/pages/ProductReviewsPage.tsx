@@ -13,6 +13,8 @@ import { showConfirm } from '../lib/confirm.js';
 import { PersonAvatar } from '../components/PersonAvatar.js';
 import { SearchToolbar } from '../components/ui/filter-dropdown.js';
 import { Tip } from '../components/ui/tooltip.js';
+import { Badge } from '../components/ui/badge.js';
+import { SectionLoading } from '../components/ui/spinner.js';
 
 interface ProductReview {
   id: string;
@@ -47,13 +49,8 @@ function StarRow({ rating, interactive, onChange }: { rating: number; interactiv
 }
 
 function StatusBadge({ status }: { status: ProductReview['status'] }) {
-  const cfg: Record<string, { bg: string; color: string }> = {
-    pending:  { bg: 'var(--gold-l)',  color: 'var(--gold)'  },
-    approved: { bg: 'var(--green-l)', color: 'var(--green)' },
-    rejected: { bg: 'var(--red-l)',   color: 'var(--red)'   },
-  };
-  const c = cfg[status] ?? cfg.pending;
-  return <span style={{ padding: '2px 8px', borderRadius: 'var(--r)', fontSize: 11, fontWeight: 700, background: c.bg, color: c.color }}>{status}</span>;
+  const variant = status === 'approved' ? 'success' : status === 'rejected' ? 'error' : 'warning';
+  return <Badge variant={variant}>{status}</Badge>;
 }
 
 function ReplyModal({ review, onSave, onClose }: { review: ProductReview; onSave: (reply: string, status: ProductReview['status']) => Promise<void>; onClose: () => void }) {
@@ -113,7 +110,7 @@ function ReplyModal({ review, onSave, onClose }: { review: ProductReview; onSave
           </div>
         </DialogBody>
         <DialogFooter>
-          <button type="button" onClick={onClose} className="btn btn-secondary" data-ui-native-button="">Cancel</button>
+          <Button type="button" variant="outline" onClick={onClose}>Cancel</Button>
           <Button onClick={submit} disabled={saving}>{saving ? 'Saving…' : 'Save'}</Button>
         </DialogFooter>
       </DialogContent>
@@ -198,9 +195,9 @@ export const ProductReviewsPage: React.FC = () => {
         titleEm="reviews"
         subtitle="Moderate customer reviews — approve, reject, or reply on behalf of the store."
         actions={
-          <button type="button" onClick={() => navigate('/finance/products')} className="btn btn-secondary btn-sm" data-ui-native-button="">
-            <Icon name="arrowLeft" size={13} /> Back to Catalog
-          </button>
+          <Button type="button" onClick={() => navigate('/finance/products')} variant="outline" size="sm">
+            <Icon name="arrowLeft" size={13} /> Back to catalog
+          </Button>
         }
       />
 
@@ -230,7 +227,7 @@ export const ProductReviewsPage: React.FC = () => {
 
       <SectionCard padded={false}>
         {loading ? (
-          <div style={{ padding: 60, textAlign: 'center', color: 'var(--ink3)' }}>Loading…</div>
+          <SectionLoading label="Loading reviews…" />
         ) : displayed.length === 0 ? (
           <div style={{ padding: '60px 20px', textAlign: 'center' }}>
             <div style={{ marginBottom: 12, display: 'flex', justifyContent: 'center' }}><Icon name="star" size={44} color="var(--border)" /></div>
@@ -267,24 +264,20 @@ export const ProductReviewsPage: React.FC = () => {
 
                   <div style={{ display: 'flex', gap: 6, flexShrink: 0, flexWrap: 'wrap', justifyContent: 'flex-end' }}>
                     {r.status === 'pending' && (<>
-                      <button type="button" onClick={() => quickStatus(r, 'approved')}
-                        style={{ padding: "var(--action-py) var(--space-md)", fontSize: "var(--text-xs)", fontWeight: 700, border: '1px solid var(--green)', borderRadius: 'var(--r-sm)', background: 'var(--green-l)', color: 'var(--green)', cursor: 'pointer' }} data-ui-native-button="">
+                      <Button type="button" variant="outline" size="xs" style={{ borderColor: 'var(--green)', background: 'var(--green-l)', color: 'var(--green)' }} onClick={() => quickStatus(r, 'approved')}>
                         Approve
-                      </button>
-                      <button type="button" onClick={() => quickStatus(r, 'rejected')}
-                        style={{ padding: "var(--action-py) var(--space-md)", fontSize: "var(--text-xs)", fontWeight: 700, border: '1px solid var(--red)', borderRadius: 'var(--r-sm)', background: 'var(--red-l)', color: 'var(--red)', cursor: 'pointer' }} data-ui-native-button="">
+                      </Button>
+                      <Button type="button" variant="outline" size="xs" style={{ borderColor: 'var(--red)', background: 'var(--red-l)', color: 'var(--red)' }} onClick={() => quickStatus(r, 'rejected')}>
                         Reject
-                      </button>
+                      </Button>
                     </>)}
-                    <button type="button" onClick={() => setModerating(r)}
-                      style={{ padding: "var(--action-py) var(--space-md)", fontSize: "var(--text-xs)", fontWeight: 600, border: '1px solid var(--border)', borderRadius: 'var(--r-sm)', background: 'var(--bg)', color: 'var(--ink3)', cursor: 'pointer' }} data-ui-native-button="">
+                    <Button type="button" variant="outline" size="xs" onClick={() => setModerating(r)}>
                       <Icon name="messageSquare" size={12} /> Reply
-                    </button>
+                    </Button>
                     <Tip label="Delete review">
-                      <button type="button" aria-label="Delete review" onClick={() => handleDelete(r)}
-                        style={{ padding: "var(--action-py) var(--space-md)", fontSize: "var(--text-xs)", border: '1px solid var(--border)', borderRadius: 'var(--r-sm)', background: 'none', color: 'var(--red)', cursor: 'pointer' }} data-ui-native-button="">
-                        <Icon name="trash" size={12} />
-                      </button>
+                      <Button type="button" variant="ghost" size="icon" iconOnly aria-label="Delete review" onClick={() => handleDelete(r)}>
+                        <Icon name="trash" size={13} color="var(--red)" />
+                      </Button>
                     </Tip>
                   </div>
                 </div>

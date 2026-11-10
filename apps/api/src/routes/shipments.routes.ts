@@ -20,6 +20,9 @@ import type { CreateShipmentInput, AdvanceStageInput } from '@hudumika/types';
 import { trackViaShipsGo, trackViaShip24 } from './tracker.routes.js';
 import { sql } from 'kysely';
 import { broadcastToTenant } from '../lib/ws-broadcast.js';
+import { GLService } from '../services/gl.service.js';
+import { getNextDocNumber, getNextCustomerDocNumber } from '../lib/doc-numbering.js';
+import { invoiceGrandTotal, invoiceNetAndTax } from '../services/invoice-totals.js';
 
 // Real values — packages/types/src/core.ts.
 const SHIPMENT_TYPES = ['SEA_FCL', 'SEA_LCL', 'AIR', 'ROAD', 'RAIL', 'BULK'] as const;
@@ -1701,6 +1704,13 @@ export async function shipmentRoutes(fastify: FastifyInstance) {
 
   // ── Job charges (CargoWise-style cost+sell grid) ──────────────────────────
 
+  // sell_posted/cost_posted/sell_invoice_id are deliberately NOT in this
+  // schema — they used to be plain client-settable fields, meaning any
+  // caller could PATCH a charge to claim it was invoiced/posted (and even
+  // point sell_invoice_id at an arbitrary unrelated invoice) with nothing
+  // behind it. The only legitimate way for them to become true now is the
+  // real /job-charges/bill-sell endpoint below, which creates an actual
+  // sales_invoice + GL entry first and only then stamps the charges it billed.
   const jobChargeSchema = z.object({
     charge_code:        z.string().max(20),
     description:        z.string().max(500),
@@ -1712,7 +1722,6 @@ export async function shipmentRoutes(fastify: FastifyInstance) {
     cost_amount:        z.number().optional(),
     cost_exchange_rate: z.number().optional(),
     cost_local_amount:  z.number().optional(),
-    cost_posted:        z.boolean().optional(),
     cost_reference:     z.string().max(200).nullable().optional(),
     debtor_id:          z.string().uuid().nullable().optional(),
     debtor_name:        z.string().max(200).nullable().optional(),
@@ -1720,9 +1729,7 @@ export async function shipmentRoutes(fastify: FastifyInstance) {
     sell_amount:        z.number().optional(),
     sell_exchange_rate: z.number().optional(),
     sell_local_amount:  z.number().optional(),
-    sell_posted:        z.boolean().optional(),
     sell_reference:     z.string().max(200).nullable().optional(),
-    sell_invoice_id:    z.string().uuid().nullable().optional(),
     override_comment:   z.string().nullable().optional(),
   });
 
@@ -1773,7 +1780,7 @@ export async function shipmentRoutes(fastify: FastifyInstance) {
             cost_amount:        body.cost_amount ?? 0,
             cost_exchange_rate: body.cost_exchange_rate ?? null,
             cost_local_amount:  body.cost_local_amount ?? null,
-            cost_posted:        body.cost_posted ?? false,
+            cost_posted:        false,
             cost_reference:     body.cost_reference ?? null,
             debtor_id:          body.debtor_id ?? null,
             debtor_name:        body.debtor_name ?? null,
@@ -1781,9 +1788,9 @@ export async function shipmentRoutes(fastify: FastifyInstance) {
             sell_amount:        body.sell_amount ?? 0,
             sell_exchange_rate: body.sell_exchange_rate ?? null,
             sell_local_amount:  body.sell_local_amount ?? null,
-            sell_posted:        body.sell_posted ?? false,
+            sell_posted:        false,
             sell_reference:     body.sell_reference ?? null,
-            sell_invoice_id:    body.sell_invoice_id ?? null,
+            sell_invoice_id:    null,
             override_comment:   body.override_comment ?? null,
             created_by:         user.sub,
           })
@@ -1823,6 +1830,21 @@ export async function shipmentRoutes(fastify: FastifyInstance) {
       const user = request.user;
       const { id, cid } = request.params as { id: string; cid: string };
       return withTenant(user.tenant_id, async (trx) => {
+        // A sell_posted charge is already reflected in a real, GL-posted
+        // invoice line (see /job-charges/bill-sell below) — deleting it here
+        // would silently detach that invoice from the cost/sell grid that
+        // justified it, with nothing left to show why the invoice total is
+        // what it is.
+        const existing = await trx.selectFrom('shipment_job_charges').select(['sell_posted', 'cost_posted'])
+          .where('tenant_id', '=', user.tenant_id).where('shipment_id', '=', id).where('id', '=', cid)
+          .forUpdate().executeTakeFirst();
+        if (!existing) return reply.status(404).send({ error: 'Job charge not found' });
+        if (existing.sell_posted) {
+          return reply.status(409).send({ error: 'This charge has already been billed to the customer and cannot be deleted. Issue a credit note against the invoice instead.' });
+        }
+        if (existing.cost_posted) {
+          return reply.status(409).send({ error: 'This charge has already been billed from the supplier and cannot be deleted.' });
+        }
         await trx
           .deleteFrom('shipment_job_charges')
           .where('tenant_id', '=', user.tenant_id)
@@ -1832,6 +1854,244 @@ export async function shipmentRoutes(fastify: FastifyInstance) {
         reply.code(204);
         return null;
       });
+    },
+  );
+
+  /**
+   * POST /v1/shipments/:id/job-charges/bill-sell — the real "charge" step of
+   * the quotation→booking→shipment→document→charge→delivery chain. Before
+   * this, sell_posted/sell_invoice_id were plain client-settable fields on
+   * the charge row (see jobChargeSchema above) — a caller could claim a
+   * charge was invoiced, or point it at an arbitrary invoice id, with no
+   * actual invoice or GL entry behind it. This endpoint is now the only way
+   * those fields can become true: it creates a real sales_invoice (with real
+   * lines and a real GL entry, the same posting every other invoice in the
+   * platform gets) from the shipment's own unbilled sell legs, then stamps
+   * exactly the charges it billed.
+   */
+  fastify.post('/:id/job-charges/bill-sell',
+    { preHandler: requireRole('SUPER_ADMIN', 'ADMIN', 'TENANT_ADMIN', 'MANAGER', 'FINANCE') },
+    async (request, reply) => {
+      const user = request.user;
+      const { id } = request.params as { id: string };
+      const { debtor_id, charge_ids } = z.object({
+        debtor_id: z.string().uuid().optional(),
+        charge_ids: z.array(z.string().uuid()).min(1).optional(),
+      }).parse(request.body ?? {});
+
+      const result = await withTenant(user.tenant_id, async (trx) => {
+        const shipment = await trx.selectFrom('shipment_cases').select(['id', 'ref_number', 'customer_id'])
+          .where('id', '=', id).where('tenant_id', '=', user.tenant_id).executeTakeFirst();
+        if (!shipment) return reply.status(404).send({ error: 'Shipment not found' });
+
+        let q = trx.selectFrom('shipment_job_charges').selectAll()
+          .where('tenant_id', '=', user.tenant_id).where('shipment_id', '=', id)
+          .where('sell_posted', '=', false).where('sell_amount', '>', 0)
+          .forUpdate();
+        if (debtor_id) q = q.where('debtor_id', '=', debtor_id);
+        if (charge_ids) q = q.where('id', 'in', charge_ids);
+        const charges = await q.orderBy('display_sequence', 'asc').execute();
+
+        if (charges.length === 0) {
+          return reply.status(400).send({ error: 'No unbilled sell charges found for this shipment.' });
+        }
+
+        const distinctDebtors = [...new Set(charges.map(c => c.debtor_id).filter(Boolean))];
+        if (distinctDebtors.length > 1) {
+          return reply.status(400).send({ error: 'The selected charges have more than one debtor. Pass debtor_id or charge_ids to bill one debtor at a time.' });
+        }
+        const resolvedDebtorId = distinctDebtors[0] || shipment.customer_id || null;
+        if (!resolvedDebtorId) {
+          return reply.status(422).send({ error: 'These charges have no debtor to bill. Set a debtor on each charge first.' });
+        }
+
+        const distinctCurrencies = [...new Set(charges.map(c => (c.sell_currency || 'USD').toUpperCase()))];
+        if (distinctCurrencies.length > 1) {
+          return reply.status(400).send({ error: `The selected charges span more than one currency (${distinctCurrencies.join(', ')}). Bill one currency at a time via charge_ids.` });
+        }
+        const currency = distinctCurrencies[0];
+        const exchangeRates = [...new Set(charges.map(c => Number(c.sell_exchange_rate) || 1))];
+        if (exchangeRates.length > 1) {
+          return reply.status(400).send({ error: 'The selected charges have different exchange rates recorded. Bill them separately via charge_ids so the invoice rate is unambiguous.' });
+        }
+        const exchangeRate = exchangeRates[0];
+
+        const lines = charges.map((c, i) => ({
+          name: `${c.charge_code} — ${c.description}`.slice(0, 300),
+          unit: 'PER BIL',
+          rate: Number(c.sell_amount),
+          qty: 1,
+          tax_pct: 0,
+          line_group: 'other',
+          currency,
+          sort_order: i,
+        }));
+        const grandTotal = invoiceGrandTotal(lines, currency, exchangeRate);
+        const { net, tax } = invoiceNetAndTax(lines, currency, exchangeRate);
+
+        const invoiceNumber = (await getNextCustomerDocNumber(trx, user.tenant_id, resolvedDebtorId))
+          || await getNextDocNumber(trx, user.tenant_id, 'invoice');
+
+        const inv = await trx.insertInto('sales_invoices').values({
+          tenant_id: user.tenant_id,
+          invoice_number: invoiceNumber,
+          shipment_ref: shipment.ref_number,
+          customer_id: resolvedDebtorId,
+          client_address: JSON.stringify([]),
+          currency,
+          exchange_rate: exchangeRate,
+          status: 'Unpaid',
+          received: 0,
+          version: 1,
+          notes: `Billed from shipment ${shipment.ref_number} job charges.`,
+          created_by: user.sub,
+        }).returningAll().executeTakeFirstOrThrow();
+
+        await trx.insertInto('sales_invoice_lines').values(lines.map(l => ({ ...l, invoice_id: inv.id }))).execute();
+
+        if (grandTotal > 0) {
+          await GLService.post(user.tenant_id, {
+            entryDate: new Date().toISOString(),
+            description: `Sales invoice: ${inv.invoice_number} (shipment ${shipment.ref_number})`,
+            reference: inv.invoice_number,
+            sourceModule: 'AR',
+            sourceId: inv.id,
+            createdBy: user.sub,
+            lines: [
+              { accountCode: '1100', debit: grandTotal, credit: 0, description: 'Accounts Receivable', currency, exchangeRate },
+              { accountCode: '4000', debit: 0, credit: net, description: 'Freight Revenue', currency, exchangeRate },
+              ...(tax > 0 ? [{ accountCode: '2200', debit: 0, credit: tax, description: 'VAT output tax', currency, exchangeRate }] : []),
+            ],
+          }, trx);
+        }
+
+        const updatedCharges = await trx.updateTable('shipment_job_charges')
+          .set({ sell_posted: true, sell_invoice_id: inv.id, sell_reference: inv.invoice_number, updated_at: new Date() })
+          .where('tenant_id', '=', user.tenant_id).where('id', 'in', charges.map(c => c.id))
+          .returningAll().execute();
+
+        return { invoice: inv, charges: updatedCharges };
+      });
+      if (!reply.sent) return reply.status(201).send(result);
+    },
+  );
+
+  /**
+   * POST /v1/shipments/:id/job-charges/bill-cost — the AP mirror of
+   * bill-sell above. `cost_posted` was the same client-settable flag shape
+   * as `sell_posted` (removed from jobChargeSchema in the same pass this
+   * route was built), with no backing bill at all. Creates a real
+   * `supplier_bills` row from the shipment's unbilled cost legs and only
+   * then stamps the charges it billed.
+   *
+   * Note on `creditor_id`: shipment_job_charges.creditor_id references
+   * `customers`, not `suppliers` (confirmed by reading migration
+   * 546_shipment_job_charges.sql's own FK — the table that models a bill's
+   * actual vendor). There's no reliable way to resolve a real `suppliers`
+   * row from it, so this bills under `supplier_name` only (free text,
+   * which supplier_bills already supports for exactly this case) rather
+   * than guessing a supplier_id. Linking job-charge creditors to real
+   * supplier records is a separate, pre-existing data-model gap this
+   * endpoint doesn't attempt to fix.
+   */
+  fastify.post('/:id/job-charges/bill-cost',
+    { preHandler: requireRole('SUPER_ADMIN', 'ADMIN', 'TENANT_ADMIN', 'MANAGER', 'FINANCE') },
+    async (request, reply) => {
+      const user = request.user;
+      const { id } = request.params as { id: string };
+      const { charge_ids } = z.object({
+        charge_ids: z.array(z.string().uuid()).min(1).optional(),
+      }).parse(request.body ?? {});
+
+      const result = await withTenant(user.tenant_id, async (trx) => {
+        const shipment = await trx.selectFrom('shipment_cases').select(['id', 'ref_number'])
+          .where('id', '=', id).where('tenant_id', '=', user.tenant_id).executeTakeFirst();
+        if (!shipment) return reply.status(404).send({ error: 'Shipment not found' });
+
+        let q = trx.selectFrom('shipment_job_charges').selectAll()
+          .where('tenant_id', '=', user.tenant_id).where('shipment_id', '=', id)
+          .where('cost_posted', '=', false).where('cost_amount', '>', 0)
+          .forUpdate();
+        if (charge_ids) q = q.where('id', 'in', charge_ids);
+        const charges = await q.orderBy('display_sequence', 'asc').execute();
+
+        if (charges.length === 0) {
+          return reply.status(400).send({ error: 'No unbilled cost charges found for this shipment.' });
+        }
+
+        const distinctCreditors = [...new Set(charges.map(c => (c.creditor_name || '').trim()).filter(Boolean))];
+        if (distinctCreditors.length === 0) {
+          return reply.status(422).send({ error: 'These charges have no creditor name to bill against. Set creditor_name on each charge first.' });
+        }
+        if (distinctCreditors.length > 1) {
+          return reply.status(400).send({ error: `The selected charges have more than one creditor (${distinctCreditors.join(', ')}). Pass charge_ids to bill one creditor at a time.` });
+        }
+        const creditorName = distinctCreditors[0];
+
+        const distinctCurrencies = [...new Set(charges.map(c => (c.cost_currency || 'USD').toUpperCase()))];
+        if (distinctCurrencies.length > 1) {
+          return reply.status(400).send({ error: `The selected charges span more than one currency (${distinctCurrencies.join(', ')}). Bill one currency at a time via charge_ids.` });
+        }
+        const currency = distinctCurrencies[0];
+        const exchangeRates = [...new Set(charges.map(c => Number(c.cost_exchange_rate) || 1))];
+        if (exchangeRates.length > 1) {
+          return reply.status(400).send({ error: 'The selected charges have different exchange rates recorded. Bill them separately via charge_ids so the bill rate is unambiguous.' });
+        }
+        const exchangeRate = exchangeRates[0];
+
+        const total = charges.reduce((s, c) => s + Number(c.cost_amount), 0);
+
+        const billNumber = await getNextDocNumber(trx, user.tenant_id, 'bill');
+
+        const bill = await trx.insertInto('supplier_bills').values({
+          tenant_id: user.tenant_id,
+          bill_number: billNumber,
+          supplier_name: creditorName,
+          shipment_ref: shipment.ref_number,
+          currency,
+          exchange_rate: exchangeRate,
+          status: 'POSTED',
+          subtotal: total,
+          tax_amount: 0,
+          total,
+          paid_amount: 0,
+          notes: `Billed from shipment ${shipment.ref_number} job charges.`,
+          created_by: user.sub,
+        }).returningAll().executeTakeFirstOrThrow();
+
+        await trx.insertInto('supplier_bill_lines').values(charges.map((c, i) => ({
+          bill_id: bill.id,
+          description: `${c.charge_code} — ${c.description}`.slice(0, 500),
+          category: 'OTHER',
+          qty: 1,
+          unit_price: Number(c.cost_amount),
+          tax_rate: 0,
+          sort_order: i,
+        }))).execute();
+
+        if (total > 0) {
+          await GLService.post(user.tenant_id, {
+            entryDate: new Date().toISOString(),
+            description: `Supplier bill: ${bill.bill_number} (shipment ${shipment.ref_number})`,
+            reference: bill.bill_number,
+            sourceModule: 'AP',
+            sourceId: bill.id,
+            createdBy: user.sub,
+            lines: [
+              { accountCode: '5001', debit: total, credit: 0, description: 'Freight Costs', currency, exchangeRate },
+              { accountCode: '2000', debit: 0, credit: total, description: 'Accounts Payable', currency, exchangeRate },
+            ],
+          }, trx);
+        }
+
+        const updatedCharges = await trx.updateTable('shipment_job_charges')
+          .set({ cost_posted: true, cost_bill_id: bill.id, cost_reference: bill.bill_number, updated_at: new Date() })
+          .where('tenant_id', '=', user.tenant_id).where('id', 'in', charges.map(c => c.id))
+          .returningAll().execute();
+
+        return { bill, charges: updatedCharges };
+      });
+      if (!reply.sent) return reply.status(201).send(result);
     },
   );
 

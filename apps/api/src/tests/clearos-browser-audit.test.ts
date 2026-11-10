@@ -2,10 +2,10 @@ import { chromium } from 'playwright';
 import { afterAll, beforeAll, expect, it } from 'vitest';
 import { writeFileSync } from 'node:fs';
 import { resolve } from 'node:path';
-import { authHeaders, createTestTenant, getApp, type TestTenant } from './helpers.js';
+import { authHeaders, createTestTenant, getApp, grantStandaloneProduct, type TestTenant } from './helpers.js';
 import { dbPlatform } from '../db/client.js';
 let tenant: TestTenant;
-beforeAll(async()=>{tenant=await createTestTenant();await dbPlatform.updateTable('tenants').set({plan:'enterprise'}).where('id','=',tenant.tenantId).execute();},240000);
+beforeAll(async()=>{tenant=await createTestTenant();await dbPlatform.updateTable('tenants').set({plan:'enterprise'}).where('id','=',tenant.tenantId).execute();await grantStandaloneProduct(tenant.tenantId,'clearos');},240000);
 afterAll(async()=>tenant?.cleanup(),120000);
 it('renders ClearOS pages through real authenticated API handlers on desktop and mobile',async()=>{
  const app=await getApp(),browser=await chromium.launch({headless:true});const page=await browser.newPage();const results:any[]=[];const errors:string[]=[];page.on('pageerror',error=>errors.push(error.message));

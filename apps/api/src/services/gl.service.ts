@@ -33,6 +33,12 @@ const STANDARD_COA: { code: string; name: string; type: 'ASSET' | 'LIABILITY' | 
   // output-tax liability), which netted the two halves of a VAT return into one
   // balance and made neither reportable. See migration 181.
   { code: '1150', name: 'VAT Input (Recoverable)', type: 'ASSET', subtype: 'CURRENT_ASSET', normalBalance: 'DEBIT' },
+  // Construction progress certificates (M12) — the retention a client holds
+  // back from a certified payment is genuinely collectible later (once the
+  // defects-liability period ends), so it is a real receivable, kept
+  // distinct from 1100 so it doesn't get reported as money due now.
+  // Backfilled to existing tenants by migration 738.
+  { code: '1130', name: 'Retention Receivable', type: 'ASSET', subtype: 'CURRENT_ASSET', normalBalance: 'DEBIT' },
   { code: '1200', name: 'Prepaid Expenses', type: 'ASSET', subtype: 'CURRENT_ASSET', normalBalance: 'DEBIT' },
   // Deferred tax (M3) — fixed-asset timing differences only. Backfilled to
   // existing tenants by migration 333.

@@ -3,6 +3,7 @@ import {Link, useNavigate, useParams, useSearchParams} from 'react-router-dom';
 import type {RenewalFinanceRecordOption, CostLineCategory} from '@hudumika/types';
 import {apiFetch} from '../lib/api.js';
 import {PageHeader} from '../components/PageHeader.js';
+import {Icon} from '../components/Icon.js';
 import {Button} from '../components/ui/button.js';
 import {Input} from '../components/ui/input.js';
 import {Select, SelectTrigger, SelectValue, SelectContent, SelectItem} from '../components/ui/select.js';
@@ -61,7 +62,9 @@ export function ComplyFinanceEntry() {
     }catch(e){setError(e instanceof Error?e.message:'Unable to save.');}finally{setSaving(false);}
   }
   return <div className="comply-page comply-finance-entry">
-    <PageHeader crumbs={['ComplyOS','Renewal Finance']} titlePlain={action==='cost-line'?'Add cost':action==='budget'?'Request':'Link Finance'} titleEm={action==='cost-line'?'line':action==='budget'?'budget':'record'} subtitle={action==='allocation'?'Link an existing posted supplier bill or recorded payment. This does not send money.':action==='budget'?'A different administrator must approve this request. Your existing approved budget stays active until a replacement is approved.':'Record one charge in its original currency. Estimates do not count as payments.'} actions={<Link to={back}><Button variant="outline">Cancel</Button></Link>}/>
+    <PageHeader crumbs={['ComplyOS','Renewal Finance']} titlePlain={action==='cost-line'?'Add cost':action==='budget'?'Request':'Link Finance'} titleEm={action==='cost-line'?'line':action==='budget'?'budget':'record'} subtitle={action==='allocation'?'Link an existing posted supplier bill or recorded payment. This does not send money.':action==='budget'?'A different administrator must approve this request. Your existing approved budget stays active until a replacement is approved.':'Record one charge in its original currency. Estimates do not count as payments.'} actions={<Link to={back}><Button variant="outline" iconOnly aria-label="Cancel">
+  <Icon name="x" size={14} />
+</Button></Link>}/>
     <form onSubmit={submit} className="comply-finance-entry-form">
       {(error||linesError||recordsError)&&<p role="alert" className="comply-finance-error">{error||linesError||recordsError}</p>}
       <label>Currency<Select value={currency} onValueChange={c=>{setCurrency(c);setLineId('');setRecordId('');setRecords([]);}}><SelectTrigger aria-label="Currency"><SelectValue/></SelectTrigger><SelectContent>{[...new Set(['TZS','USD','KES','EUR','GBP',...lines.map(l=>l.currency)])].map(c=><SelectItem key={c} value={c}>{c}</SelectItem>)}</SelectContent></Select></label>

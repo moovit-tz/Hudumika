@@ -196,8 +196,7 @@ function mapApiPayment(d: any): Payment {
 // ── Helpers ────────────────────────────────────────────────────────────────────
 
 function fmt(n: number, cur = 'USD') {
-  try { return new Intl.NumberFormat('en-US', { style:'currency', currency: cur, maximumFractionDigits: cur === 'TZS' ? 0 : 2, minimumFractionDigits: 0 }).format(n); }
-  catch { return `${cur} ${n.toFixed(2)}`; }
+  return formatAmount(n, cur);
 }
 function fmtDate(d?: string | null) { if (!d) return '—'; return new Date(d).toLocaleDateString('en-GB', { day:'2-digit', month:'short', year:'numeric' }); }
 function genId()  { return 'bill-' + Math.random().toString(36).slice(2, 9); }
@@ -425,11 +424,11 @@ function BillFormView({ initial, allBills, suppliers, onSupplierCreated, onSave,
               placeholder="Search suppliers…"
             />
           </div>
-          <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:12, marginBottom:12 }}>
+          <div className="grid grid-cols-1 sm:grid-cols-2" style={{ gap:12, marginBottom:12 }}>
             <div><label style={lbl}>Bill Date *</label><DatePicker date={parseDateOnly(f.bill_date)} onChange={d => setField('bill_date', toDateOnlyString(d))} /></div>
             <div><label style={lbl}>Due Date *</label><DatePicker date={parseDateOnly(f.due_date)} onChange={d => setField('due_date', toDateOnlyString(d))} /></div>
           </div>
-          <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr 1fr', gap:12, marginBottom:16 }}>
+          <div className="grid grid-cols-1 sm:grid-cols-3" style={{ gap:12, marginBottom:16 }}>
             <div>
                 <label style={lbl}>Currency {f.currency === getCompany().currency && <span style={{ fontWeight:400, color:'var(--teal)', fontSize:10.5 }}>· company default</span>}</label>
                 <Select value={f.currency} onValueChange={v => setField('currency', v)}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent>{CURRENCIES.map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}</SelectContent></Select>
@@ -501,12 +500,12 @@ function BillFormView({ initial, allBills, suppliers, onSupplierCreated, onSave,
                       </Select>
                     </td>
                     <td style={{ padding:'7px 6px' }}>
-                      <input data-ui-field="input" type="number" title="Qty" value={ln.qty} min={1} step={1} onChange={e => updateLine(ln._key, 'qty', parseFloat(e.target.value)||1)}
-                        style={{ width:60, padding:"var(--ds-input-py) var(--space-md)", border:'1px solid var(--border)', borderRadius: 'var(--r-sm)', fontSize:"var(--text-base)", outline:'none', textAlign:'right' }} />
+                      <Input type="number" title="Qty" value={ln.qty} min={1} step={1} onChange={e => updateLine(ln._key, 'qty', parseFloat(e.target.value)||1)}
+                        style={{ width:60, textAlign:'right' }} />
                     </td>
                     <td style={{ padding:'7px 6px' }}>
-                      <input data-ui-field="input" type="number" title="Unit price" value={ln.unit_price} min={0} step={0.01} onChange={e => updateLine(ln._key, 'unit_price', parseFloat(e.target.value)||0)}
-                        style={{ width:90, padding:"var(--ds-input-py) var(--space-md)", border:'1px solid var(--border)', borderRadius: 'var(--r-sm)', fontSize:"var(--text-base)", outline:'none', textAlign:'right' }} />
+                      <Input type="number" title="Unit price" value={ln.unit_price} min={0} step={0.01} onChange={e => updateLine(ln._key, 'unit_price', parseFloat(e.target.value)||0)}
+                        style={{ width:90, textAlign:'right' }} />
                     </td>
                     {/* A treatment, not a bare rate. On a purchase the treatment is
                         what decides whether the tax is claimable at all — a blocked
@@ -554,7 +553,7 @@ function BillFormView({ initial, allBills, suppliers, onSupplierCreated, onSave,
             </div>
           </div>
 
-          <div><label style={lbl}>Notes</label><textarea data-ui-field="textarea" title="Notes" placeholder="Payment terms, references, or other notes…" value={f.notes} onChange={e => setField('notes', e.target.value)} rows={3} style={{ ...inp, resize:'vertical' }} /></div>
+          <div><label style={lbl}>Notes</label><Textarea title="Notes" placeholder="Payment terms, references, or other notes…" value={f.notes} onChange={e => setField('notes', e.target.value)} rows={3} style={{ ...inp, resize:'vertical' }} /></div>
         </div>
     </FormPage>
   );
@@ -623,7 +622,7 @@ function RecurFormView({ initial, suppliers, onSupplierCreated, onSave, onClose 
           <div style={{ fontSize:12, color:'var(--ink3)', marginTop:2 }}>Auto-generates bills on schedule</div>
         </SheetHeader>
         <div style={{ flex:1, overflowY:'auto', padding:'18px 22px' }}>
-          <div style={{ marginBottom:14 }}><label style={lbl}>Template Name *</label><input data-ui-field="input" type="text" title="Name" placeholder="e.g. Monthly Retainer" value={f.name} onChange={e => set('name', e.target.value)} style={inp} /></div>
+          <div style={{ marginBottom:14 }}><label style={lbl}>Template Name *</label><Input type="text" title="Name" placeholder="e.g. Monthly Retainer" value={f.name} onChange={e => set('name', e.target.value)} style={inp} /></div>
           <div style={{ marginBottom:14 }}>
             <EntityPicker
               label="Supplier *" value={supplierItem} onChange={handleSupplierChange}
@@ -643,12 +642,12 @@ function RecurFormView({ initial, suppliers, onSupplierCreated, onSave, onClose 
               />
             </div>
           )}
-          <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:12, marginBottom:14 }}>
+          <div className="grid grid-cols-1 sm:grid-cols-2" style={{ gap:12, marginBottom:14 }}>
             <div><label style={lbl}>Frequency</label><Select value={f.frequency} onValueChange={v => set('frequency', v as RecurFreq)}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent>{ALL_FREQS.map(fr => <SelectItem key={fr} value={fr}>{FREQ_CFG[fr].label}</SelectItem>)}</SelectContent></Select></div>
             <div><label style={lbl}>Category</label><Select value={f.category} onValueChange={v => set('category', v as BillCat)}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent>{[...new Set([...financeCatalogOptions(financeConfiguration.data?.industries ?? []).expenses,f.category])].map(c => <SelectItem key={c} value={c}>{CAT_CFG[c]?.label ?? c}</SelectItem>)}</SelectContent></Select></div>
           </div>
-          <div style={{ display:'grid', gridTemplateColumns:'2fr 1fr 1fr', gap:12, marginBottom:14 }}>
-            <div><label style={lbl}>Amount</label><input data-ui-field="input" type="number" title="Amount" value={f.amount} min={0} step={0.01} onChange={e => set('amount', parseFloat(e.target.value)||0)} style={inp} /></div>
+          <div className="grid grid-cols-1 sm:grid-cols-3" style={{ gap:12, marginBottom:14 }}>
+            <div><label style={lbl}>Amount</label><Input type="number" title="Amount" value={f.amount} min={0} step={0.01} onChange={e => set('amount', parseFloat(e.target.value)||0)} style={inp} /></div>
             <div>
                 <label style={lbl}>Currency {f.currency === getCompany().currency && <span style={{ fontWeight:400, color:'var(--teal)', fontSize:10.5 }}>· company default</span>}</label>
                 <Select value={f.currency} onValueChange={v => set('currency', v)}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent>{CURRENCIES.map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}</SelectContent></Select>
@@ -670,8 +669,8 @@ function RecurFormView({ initial, suppliers, onSupplierCreated, onSave, onClose 
               </Select>
             </div>
           </div>
-          <div style={{ marginBottom:14 }}><label style={lbl}>Description</label><textarea data-ui-field="textarea" title="Description" placeholder="Description of the recurring charge…" value={f.description} onChange={e => set('description', e.target.value)} rows={2} style={{ ...inp, resize:'vertical' }} /></div>
-          <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:12, marginBottom:14 }}>
+          <div style={{ marginBottom:14 }}><label style={lbl}>Description</label><Textarea title="Description" placeholder="Description of the recurring charge…" value={f.description} onChange={e => set('description', e.target.value)} rows={2} style={{ ...inp, resize:'vertical' }} /></div>
+          <div className="grid grid-cols-1 sm:grid-cols-2" style={{ gap:12, marginBottom:14 }}>
             <div><label style={lbl}>First / Next Due Date</label><DatePicker date={parseDateOnly(f.next_due)} onChange={d => set('next_due', toDateOnlyString(d))} /></div>
             <div><label style={lbl}>End Date (optional)</label><DatePicker date={parseDateOnly(f.end_date)} onChange={d => set('end_date', toDateOnlyString(d))} /></div>
           </div>
@@ -684,12 +683,11 @@ function RecurFormView({ initial, suppliers, onSupplierCreated, onSave, onClose 
             </div>
           </div>
         </div>
-        <div style={{ padding:'14px 22px', borderTop:'1px solid var(--border)', display:'flex', gap:8, justifyContent:'flex-end' }}>
-          <button type="button" onClick={onClose} style={{ padding:'var(--ds-btn-py) 18px', border:'1px solid var(--border)', borderRadius: 'var(--r)', background:'var(--bg)', cursor:'pointer', fontWeight:600, fontSize:"var(--text-base)", color:'var(--ink2)', minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}} data-ui-native-button="">Cancel</button>
-          <button type="button" onClick={() => { if (!f.name||!f.supplier_id||!f.next_due) { showAlert('Name, supplier and next due date are required.'); return; } onSave(f); }}
-            style={{ display:'flex', alignItems:'center', gap:6, padding:'var(--ds-btn-py) 20px', border:'none', borderRadius: 'var(--r)', background: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))', cursor:'pointer', fontWeight:700, fontSize:"var(--text-base)", minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}} data-ui-native-button="">
+        <div style={{ padding:'14px 22px', borderTop:'1px solid var(--border)', display:'flex', gap:8, justifyContent:'flex-end', flexWrap: 'wrap' }}>
+          <Button type="button" variant="outline" onClick={onClose}>Cancel</Button>
+          <Button type="button" onClick={() => { if (!f.name||!f.supplier_id||!f.next_due) { showAlert('Name, supplier and next due date are required.'); return; } onSave(f); }}>
             <Icon name="save" size={13} /> {initial ? 'Update' : 'Create'}
-          </button>
+          </Button>
         </div>
       </SheetContent>
     </Sheet>
@@ -739,9 +737,9 @@ function DetailView({ bill, payments, supplierMap, onBack, onEdit, onPay, onPost
     <div style={{ flex:1, overflowY:'auto', display:'flex', flexDirection:'column' }}>
       <PageHeader crumbs={['Finance','Bills']} titleEm={bill.bill_number} subtitle={bill.supplier_name || 'Supplier bill'}/>
       <div style={{ padding:'0 0 20px', borderBottom:'1px solid var(--border)', background:'var(--white)' }}>
-        <button type="button" onClick={onBack} style={{ display:'flex', alignItems:'center', gap:6, background:'none', border:'none', cursor:'pointer', color:'var(--ink3)', fontSize:"var(--text-base)", fontWeight:600, marginBottom:14, padding:0 }} data-ui-native-button="">
-          <Icon name="arrowLeft" size={14} /> All Bills
-        </button>
+        <Button type="button" variant="ghost" size="sm" onClick={onBack} style={{ marginBottom:14, paddingLeft:0 }}>
+          <Icon name="arrowLeft" size={14} /> All bills
+        </Button>
         <div style={{ display:'flex', justifyContent:'space-between', alignItems:'flex-start' }}>
           <div>
             <div style={{ display:'flex', alignItems:'center', gap:10, marginBottom:4 }}>
@@ -753,11 +751,11 @@ function DetailView({ bill, payments, supplierMap, onBack, onEdit, onPay, onPost
             <div style={{ fontSize:12.5, color:'var(--ink3)' }}>Billed {fmtDate(bill.bill_date)} · Due {fmtDate(bill.due_date)}{over ? ` — ${daysOverdue(bill.due_date)} days overdue` : ''}</div>
           </div>
           <div style={{ display:'flex', gap:8, flexWrap:'wrap' }}>
-            {(bill.status === 'DRAFT' || bill.status === 'PENDING_APPROVAL') && <button type="button" onClick={onPost} style={{ display:'flex', alignItems:'center', gap:6, padding:'var(--ds-btn-py) 14px', border:'1px solid var(--blue)', borderRadius: 'var(--r)', background:'var(--blue-l)', color:'var(--blue)', cursor:'pointer', fontWeight:700, fontSize:"var(--text-base)", minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}} data-ui-native-button=""><Icon name="send" size={13} /> {bill.status === 'DRAFT' ? 'Submit' : 'Approve'}</button>}
-            {(bill.status === 'POSTED'||bill.status === 'PARTIAL'||bill.status === 'OVERDUE') && <button type="button" onClick={onPay} style={{ display:'flex', alignItems:'center', gap:6, padding:'var(--ds-btn-py) 14px', border:'none', borderRadius: 'var(--r)', background: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))', cursor:'pointer', fontWeight:700, fontSize:"var(--text-base)", minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}} data-ui-native-button=""><Icon name="dollarSign" size={13} /> Pay</button>}
-            <button type="button" onClick={onEdit} style={{ display:'flex', alignItems:'center', gap:6, padding:'var(--ds-btn-py) 14px', border:'1px solid var(--border)', borderRadius: 'var(--r)', background:'var(--bg)', color:'var(--ink2)', cursor:'pointer', fontWeight:600, fontSize:"var(--text-base)", minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}} data-ui-native-button=""><Icon name="edit" size={13} /> Edit</button>
+            {(bill.status === 'DRAFT' || bill.status === 'PENDING_APPROVAL') && <Button type="button" variant="outline" size="sm" onClick={onPost} style={{ borderColor:'var(--blue)', background:'var(--blue-l)', color:'var(--blue)' }}><Icon name="send" size={13} /> {bill.status === 'DRAFT' ? 'Submit' : 'Approve'}</Button>}
+            {(bill.status === 'POSTED'||bill.status === 'PARTIAL'||bill.status === 'OVERDUE') && <Button type="button" size="sm" onClick={onPay}><Icon name="dollarSign" size={13} /> Pay</Button>}
+            <Button type="button" variant="outline" size="sm" onClick={onEdit}><Icon name="edit" size={13} /> Edit</Button>
             <FinanceDocumentActions kind="bill" id={bill.id} label={bill.bill_number}/>
-            {bill.status !== 'VOID' && bill.status !== 'PAID' && <button type="button" onClick={onVoid} style={{ padding:'var(--ds-btn-py) 10px', border:'1px solid var(--red)', borderRadius: 'var(--r)', background:'var(--red-l)', color:'var(--red)', cursor:'pointer', fontWeight:600, fontSize:"var(--text-base)", minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}} data-ui-native-button="">Void</button>}
+            {bill.status !== 'VOID' && bill.status !== 'PAID' && <Button type="button" variant="outline" size="sm" onClick={onVoid} style={{ borderColor:'var(--red)', background:'var(--red-l)', color:'var(--red)' }}>Void</Button>}
           </div>
         </div>
         {over && <Banner variant="error" className="mt-3">Payment overdue by {daysOverdue(bill.due_date)} days. Balance: {fmt(balance, bill.currency)}</Banner>}
@@ -894,15 +892,14 @@ function DetailView({ bill, payments, supplierMap, onBack, onEdit, onPay, onPost
             {bill.efd_receipt_number && (
               <div style={{ fontFamily:'var(--font)', fontSize:11.5, color:'var(--ink3)', marginBottom:8, wordBreak:'break-all' }}>{bill.efd_receipt_number}</div>
             )}
-            <input data-ui-field="input"
+            <Input
               type="text" placeholder="RCTVNUM from supplier's receipt" value={efdInput}
               onChange={e => setEfdInput(e.target.value)}
-              style={{ width:'100%', padding:"var(--ds-input-py) var(--space-md)", borderRadius: 'var(--r-sm)', border:'1px solid var(--border)', background:'var(--white)', color:'var(--ink)', fontSize:"var(--text-base)", fontFamily:'var(--font)', outline:'none', boxSizing:'border-box' as const, marginBottom:8 }}
+              style={{ width:'100%', marginBottom:8 }}
             />
-            <button type="button" onClick={runVerify} disabled={!efdInput.trim() || efdChecking}
-              style={{ width:'100%', padding:'var(--ds-btn-py) 0', borderRadius:'var(--r)', border:'none', background: efdChecking ? 'var(--ink3)' : 'hsl(var(--primary))', color: efdChecking ? 'var(--white)' : 'hsl(var(--primary-foreground))', fontSize:"var(--text-base)", fontWeight:700, cursor: efdChecking ? 'default' : 'pointer', minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}} data-ui-native-button="">
+            <Button type="button" className="w-full" onClick={runVerify} disabled={!efdInput.trim() || efdChecking}>
               {efdChecking ? 'Checking with TRA…' : 'Verify against TRA'}
-            </button>
+            </Button>
             {efdError && <div style={{ marginTop:8, fontSize:11.5, color:'var(--red)' }}>{efdError}</div>}
             {bill.efd_verified_at && <div style={{ marginTop:8, fontSize:11, color:'var(--ink3)' }}>Last checked {fmtDate(bill.efd_verified_at)}</div>}
           </div>
@@ -970,7 +967,7 @@ function RecurringTab({ recurring, summary, onEdit, onToggle, onGenerate, onDele
                     <td style={{ padding:'12px 14px' }}><span style={{ fontSize:11, fontWeight:700, color:CAT_CFG[r.category]?.color ?? 'var(--ink2)' }}>{CAT_CFG[r.category]?.label ?? r.category}</span></td>
                     <td style={{ padding:'12px 14px', color: dueSoon && r.state==='ACTIVE' ? 'var(--gold)' : 'var(--ink2)', fontWeight: dueSoon ? 700 : 400 }}>{fmtDate(r.next_due)}{dueSoon && r.state==='ACTIVE' && <span style={{ fontSize:10, display:'block', color:'var(--gold)' }}>Due soon</span>}</td>
                     <td style={{ padding:'12px 14px', textAlign:'center', fontWeight:700, color:'var(--ink2)' }}>{r.bills_generated}</td>
-                    <td style={{ padding:'12px 14px' }}><span style={{ padding:'2px 9px', borderRadius: 'var(--r)', fontSize:11, fontWeight:700, background: r.state==='ACTIVE'?'var(--green-l)':r.state==='PAUSED'?'var(--gold-l)':'var(--bg)', color: r.state==='ACTIVE'?'var(--green)':r.state==='PAUSED'?'var(--gold)':'var(--ink3)' }}>{r.state}</span></td>
+                    <td style={{ padding:'12px 14px' }}><Badge variant={r.state==='ACTIVE'?'success':r.state==='PAUSED'?'warning':'gray'}>{r.state}</Badge></td>
                     <td style={{ padding:'12px 10px' }}>
                       <div style={{ display:'flex', gap:2 }}>
                         <Tip label="Generate bill now"><span><button type="button" aria-label="Generate bill now" onClick={() => onGenerate(r)} disabled={r.state !== 'ACTIVE'}
@@ -1307,8 +1304,8 @@ export const Bills: React.FC = () => {
               <div style={{ fontSize:13, color:'var(--ink2)', marginBottom:12 }}>Void <strong>{voidTarget.bill_number}</strong>? The related journal entries will be reversed.</div>
               <Textarea value={voidReason} onChange={e => setVoidReason(e.target.value)} placeholder="Reason for voiding" className="mb-5" />
               <div style={{ display:'flex', gap:8, justifyContent:'flex-end' }}>
-                <button type="button" onClick={() => setVoidTarget(null)} style={{ padding:'var(--ds-btn-py) 18px', border:'1px solid var(--border)', borderRadius: 'var(--r)', background:'var(--bg)', cursor:'pointer', fontWeight:600, fontSize:"var(--text-base)", color:'var(--ink2)', minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}} data-ui-native-button="">Cancel</button>
-                <Button type="button" variant="destructive" onClick={() => handleVoid(voidTarget)}>Void Bill</Button>
+                <Button type="button" variant="outline" onClick={() => setVoidTarget(null)}>Cancel</Button>
+                <Button type="button" variant="destructive" onClick={() => handleVoid(voidTarget)}>Void bill</Button>
               </div>
 
             </>

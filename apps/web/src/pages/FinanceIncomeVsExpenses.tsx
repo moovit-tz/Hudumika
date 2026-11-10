@@ -9,6 +9,8 @@ import { SectionCard } from '../components/SectionCard.js';
 import { MetricsRow } from '../components/MetricCard.js';
 import { DataTable, type TableColumn } from '../components/ui/DataTable.js';
 import { Button } from '../components/ui/button.js';
+import { SectionLoading } from '../components/ui/spinner.js';
+import { Banner } from '../components/ui/alert.js';
 
 const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 const YEARS = ['2026', '2025', '2024'];
@@ -132,9 +134,9 @@ export const FinanceIncomeVsExpenses: React.FC = () => {
       />
 
       {loading ? (
-        <div style={{ padding: '48px 0', textAlign: 'center', color: 'var(--ink3)' }}>Loading income vs expenses…</div>
+        <SectionLoading label="Loading income vs expenses…" />
       ) : error ? (
-        <div style={{ padding: '48px 0', textAlign: 'center', color: 'var(--red)' }}>{error}</div>
+        <Banner variant="error">{error}</Banner>
       ) : (
       <div style={{ flex: 1, overflowY: 'auto', padding: '0', display: 'flex', flexDirection: 'column', gap: 16 }}>
 

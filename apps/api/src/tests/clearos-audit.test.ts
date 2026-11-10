@@ -5,7 +5,7 @@ import { performance } from 'node:perf_hooks';
 import { dbPlatform, withTenant } from '../db/client.js';
 import { calculateLandedCost, calculateMultiItemLandedCost, calculatePenalty, getHsCode } from '../services/customs.service.js';
 import { calculateLclAdvanced, calculateAirAdvanced, calculateTransit } from '../services/advanced-calculators.service.js';
-import { authHeaders, createTestTenant, getApp, type TestTenant } from './helpers.js';
+import { authHeaders, createTestTenant, getApp, grantStandaloneProduct, type TestTenant } from './helpers.js';
 import { WorkflowService } from '../services/workflow.service.js';
 import { demurrageService } from '../services/demurrage.service.js';
 
@@ -16,6 +16,7 @@ describe('ClearOS audit matrix', () => {
   beforeAll(async () => {
     tenant = await createTestTenant();
     await dbPlatform.updateTable('tenants').set({ plan: 'enterprise' }).where('id', '=', tenant.tenantId).execute();
+    await grantStandaloneProduct(tenant.tenantId, 'clearos');
   }, 120000);
   afterAll(async () => {
     const folder = resolve(process.cwd(), '../../docs/audits');

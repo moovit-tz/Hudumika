@@ -14,6 +14,8 @@ import { Input } from '../components/ui/input.js';
 import { Textarea } from '../components/ui/textarea.js';
 import { Button } from '../components/ui/button.js';
 import { ButtonSpinner } from '../components/ui/spinner.js';
+import { Banner } from '../components/ui/alert.js';
+import { Tip } from '../components/ui/tooltip.js';
 import { useCurrency } from '../hooks/useCurrency.js';
 import { useFinanceConfiguration } from '../hooks/useFinanceConfiguration.js';
 import { useFinanceCapabilities } from '../hooks/useFinanceCapabilities.js';
@@ -247,13 +249,7 @@ export const FinanceExpenseNew: React.FC = () => {
       </div>
 
       {error && (
-        <div className="expense-error-bar">
-          <Icon name="alertTriangle" size={15} />
-          <span>{error}</span>
-          <button data-ui-native-button="" type="button" onClick={() => setError('')} className="expense-error-dismiss">
-            <Icon name="close" size={13} />
-          </button>
-        </div>
+        <Banner variant="error" onDismiss={() => setError('')}>{error}</Banner>
       )}
 
       <form id="finance-expense-form" onSubmit={submit} className="expense-form">
@@ -416,9 +412,11 @@ export const FinanceExpenseNew: React.FC = () => {
                     <Button type="button" variant="outline" size="sm" asChild><span>Replace</span></Button>
                     <input type="file" accept="image/*,.pdf" style={{ display: 'none' }} onChange={handleFileChange} />
                   </label>
-                  <Button type="button" variant="ghost" size="sm" onClick={() => setAttachment(undefined)} title="Remove">
-                    <Icon name="trash" size={14} />
-                  </Button>
+                  <Tip label="Remove receipt">
+                    <Button type="button" variant="ghost" size="icon" iconOnly aria-label="Remove receipt" onClick={() => setAttachment(undefined)}>
+                      <Icon name="trash" size={14} />
+                    </Button>
+                  </Tip>
                 </div>
               </div>
             ) : (

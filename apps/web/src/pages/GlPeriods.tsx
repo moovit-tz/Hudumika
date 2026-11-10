@@ -11,8 +11,14 @@ import { MetricsRow } from '../components/MetricCard.js';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '../components/ui/select.js';
 import { DatePicker, parseDateOnly, toDateOnlyString } from '../components/ui/date-picker.js';
 import { useIsMobile } from '../hooks/useIsMobile.js';
-import { Dialog, DialogContent, DialogTitle } from '../components/ui/dialog.js';
+import { Dialog, DialogContent, DialogHeader, DialogBody, DialogFooter, DialogTitle } from '../components/ui/dialog.js';
 import { useFinanceReadOnly } from '../components/FinanceCapabilityGate.js';
+import { Input } from '../components/ui/input.js';
+import { Textarea } from '../components/ui/textarea.js';
+import { Label } from '../components/ui/label.js';
+import { Badge } from '../components/ui/badge.js';
+import { SectionLoading } from '../components/ui/spinner.js';
+import { Tip } from '../components/ui/tooltip.js';
 
 interface Period {
   id: string; name: string; period_type: 'MONTH' | 'YEAR'; period_start: string; period_end: string;
@@ -92,7 +98,7 @@ export function GlPeriods() {
     }
   }
 
-  if (loading) return <div style={{ textAlign: 'center', padding: 40, color: 'var(--ink3)' }}>Loading periods…</div>;
+  if (loading) return <SectionLoading label="Loading periods…" />;
 
   return (
     <div style={{ flex: 1, display: 'flex', flexDirection: 'column', fontFamily: 'var(--font)' }}>
@@ -128,11 +134,9 @@ export function GlPeriods() {
       ]} />
 
       {!readOnly && <div style={{ padding: '16px 0', display: 'flex', justifyContent: 'flex-end' }}>
-        <button type="button"
-          onClick={() => setShowNew(true)}
-          style={{ padding: 'var(--ds-btn-py) 16px', background: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))', border: 'none', borderRadius: 'var(--r)', fontSize: "var(--text-base)", fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 7, fontFamily: 'var(--font)', whiteSpace: 'nowrap', minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25 }} data-ui-native-button="">
-          <Icon name="plus" size={14} color="hsl(var(--primary-foreground))" /> New Period
-        </button>
+        <Button type="button" onClick={() => setShowNew(true)}>
+          <Icon name="plus" size={14} /> New period
+        </Button>
       </div>}
 
       <div className="card" style={{ padding: 0, overflow: 'hidden' }}>
@@ -156,16 +160,16 @@ export function GlPeriods() {
                   <td style={{ padding: '9px 12px', color: 'var(--ink3)' }}>{p.period_type === 'YEAR' ? 'Fiscal Year' : 'Month'}</td>
                   <td style={{ padding: '9px 12px' }}>{new Date(p.period_start).toLocaleDateString('en-GB')} – {new Date(p.period_end).toLocaleDateString('en-GB')}</td>
                   <td style={{ padding: '9px 12px', textAlign: 'center' }}>
-                    <span style={{ fontSize: 11, padding: '2px 8px', borderRadius: 10, fontWeight: 700, background: p.status === 'closed' ? 'var(--red-l)' : 'var(--green-l)', color: p.status === 'closed' ? 'var(--red)' : 'var(--green)' }}>{p.status.toUpperCase()}</span>
+                    <Badge variant={p.status === 'closed' ? 'error' : 'success'}>{p.status.toUpperCase()}</Badge>
                   </td>
                   <td style={{ padding: '9px 12px', textAlign: 'right' }}>
                     {!readOnly && (p.status === 'open' ? (
-                      <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end' }}>
-                        <button type="button" onClick={() => closePeriod(p)} style={{ fontSize: "var(--text-base)", color: 'var(--red)', background: 'none', border: 'none', cursor: 'pointer', fontWeight: 600 }} data-ui-native-button="">Close</button>
-                        {!p.closed_at && <button type="button" onClick={() => deletePeriod(p)} style={{ fontSize: "var(--text-base)", color: 'var(--ink3)', background: 'none', border: 'none', cursor: 'pointer', fontWeight: 600 }} data-ui-native-button="">Delete</button>}
+                      <div style={{ display: 'flex', gap: 4, justifyContent: 'flex-end' }}>
+                        <Tip label="Close period"><Button variant="ghost" size="icon" iconOnly aria-label="Close period" onClick={() => closePeriod(p)}><Icon name="lock" size={14} color="var(--red)" /></Button></Tip>
+                        {!p.closed_at && <Tip label="Delete period"><Button variant="ghost" size="icon" iconOnly aria-label="Delete period" onClick={() => deletePeriod(p)}><Icon name="trash2" size={14} color="var(--ink3)" /></Button></Tip>}
                       </div>
                     ) : (
-                      <button type="button" onClick={() => setReopening(p)} style={{ fontSize: "var(--text-base)", color: 'var(--teal)', background: 'none', border: 'none', cursor: 'pointer', fontWeight: 600 }} data-ui-native-button="">Reopen…</button>
+                      <Tip label="Reopen period"><Button variant="ghost" size="icon" iconOnly aria-label="Reopen period" onClick={() => setReopening(p)}><Icon name="unlock" size={14} color="var(--teal)" /></Button></Tip>
                     ))}
                   </td>
                 </tr>
@@ -176,42 +180,45 @@ export function GlPeriods() {
       </div>
 
       <Dialog open={!readOnly && showNew} onOpenChange={o => { if (!o) setShowNew(false); }}>
-        <DialogContent className="max-w-100 gap-0">
-          <DialogTitle style={{ fontWeight: 800, fontSize: 15, marginBottom: 16 }}>New Period</DialogTitle>
-          <label style={{ fontSize: 12, fontWeight: 600, color: 'var(--ink2)', display: 'block', marginBottom: 5 }}>Name</label>
-          <input data-ui-field="input" value={name} onChange={e => setName(e.target.value)} placeholder="e.g. FY2026 or August 2026"
-            style={{ width: '100%', padding: "var(--ds-input-py) var(--space-md)", border: '1px solid var(--border)', borderRadius: 'var(--r)', fontSize: "var(--text-base)", outline: 'none', boxSizing: 'border-box', marginBottom: 14 }} />
-          <label style={{ fontSize: 12, fontWeight: 600, color: 'var(--ink2)', display: 'block', marginBottom: 5 }}>Type</label>
-          <div style={{ marginBottom: 14 }}>
-            <Select value={periodType} onValueChange={v => setPeriodType(v as 'MONTH' | 'YEAR')}>
-              <SelectTrigger><SelectValue /></SelectTrigger>
-              <SelectContent><SelectItem value="MONTH">Month (lock only)</SelectItem><SelectItem value="YEAR">Fiscal Year (lock + closing entries)</SelectItem></SelectContent>
-            </Select>
-          </div>
-          <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: 12, marginBottom: 16 }}>
-            <div><label style={{ fontSize: 12, fontWeight: 600, color: 'var(--ink2)', display: 'block', marginBottom: 5 }}>Start</label><DatePicker date={parseDateOnly(start)} onChange={d => setStart(toDateOnlyString(d) ?? '')} /></div>
-            <div><label style={{ fontSize: 12, fontWeight: 600, color: 'var(--ink2)', display: 'block', marginBottom: 5 }}>End</label><DatePicker date={parseDateOnly(end)} onChange={d => setEnd(toDateOnlyString(d) ?? '')} /></div>
-          </div>
-          <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end' }}>
-            <button type="button" className="btn btn-secondary btn-sm" onClick={() => setShowNew(false)} data-ui-native-button="">Cancel</button>
-            <button type="button" className="btn btn-primary btn-sm" onClick={createPeriod} data-ui-native-button="">Create</button>
-          </div>
+        <DialogContent size="sm">
+          <DialogHeader><DialogTitle>New period</DialogTitle></DialogHeader>
+          <DialogBody className="space-y-3.5">
+            <div className="space-y-1.5"><Label>Name</Label><Input value={name} onChange={e => setName(e.target.value)} placeholder="e.g. FY2026 or August 2026" /></div>
+            <div className="space-y-1.5">
+              <Label>Type</Label>
+              <Select value={periodType} onValueChange={v => setPeriodType(v as 'MONTH' | 'YEAR')}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent><SelectItem value="MONTH">Month (lock only)</SelectItem><SelectItem value="YEAR">Fiscal year (lock + closing entries)</SelectItem></SelectContent>
+              </Select>
+            </div>
+            <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: 12 }}>
+              <div className="space-y-1.5"><Label>Start</Label><DatePicker date={parseDateOnly(start)} onChange={d => setStart(toDateOnlyString(d) ?? '')} /></div>
+              <div className="space-y-1.5"><Label>End</Label><DatePicker date={parseDateOnly(end)} onChange={d => setEnd(toDateOnlyString(d) ?? '')} /></div>
+            </div>
+          </DialogBody>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowNew(false)}>Cancel</Button>
+            <Button onClick={createPeriod}>Create</Button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
 
       <Dialog open={!readOnly && !!reopening} onOpenChange={o => { if (!o) setReopening(null); }}>
-        <DialogContent className="max-w-100 gap-0">
+        <DialogContent size="sm">
           {reopening && (
             <>
-              <DialogTitle style={{ fontWeight: 800, fontSize: 15, marginBottom: 6 }}>Reopen "{reopening.name}"</DialogTitle>
-              <div style={{ fontSize: 12.5, color: 'var(--ink3)', marginBottom: 14 }}>The original close remains on record — reopening doesn't erase it.</div>
-              <label style={{ fontSize: 12, fontWeight: 600, color: 'var(--ink2)', display: 'block', marginBottom: 5 }}>Reason (required)</label>
-              <textarea data-ui-field="textarea" value={reopenReason} onChange={e => setReopenReason(e.target.value)} rows={3}
-                style={{ width: '100%', padding: "var(--ds-input-py) var(--space-md)", border: '1px solid var(--border)', borderRadius: 'var(--r)', fontSize: "var(--text-base)", outline: 'none', boxSizing: 'border-box', resize: 'vertical' }} />
-              <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end', marginTop: 16 }}>
-                <button type="button" className="btn btn-secondary btn-sm" onClick={() => setReopening(null)} data-ui-native-button="">Cancel</button>
-                <button type="button" className="btn btn-primary btn-sm" onClick={reopenPeriod} data-ui-native-button="">Reopen</button>
-              </div>
+              <DialogHeader>
+                <DialogTitle>Reopen "{reopening.name}"</DialogTitle>
+                <p className="text-xs text-muted-foreground">The original close stays on record — reopening doesn't erase it.</p>
+              </DialogHeader>
+              <DialogBody className="space-y-1.5">
+                <Label>Reason (required)</Label>
+                <Textarea value={reopenReason} onChange={e => setReopenReason(e.target.value)} rows={3} />
+              </DialogBody>
+              <DialogFooter>
+                <Button variant="outline" onClick={() => setReopening(null)}>Cancel</Button>
+                <Button onClick={reopenPeriod}>Reopen</Button>
+              </DialogFooter>
             </>
           )}
         </DialogContent>

@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import type { AccountingSyncTaskPage } from '@hudumika/types';
 import { Link } from 'react-router-dom';
 import { apiFetch } from '../lib/api.js';
+import { Icon } from '../components/Icon.js';
 import { formatDateTime } from '../lib/tenantLocale.js';
 import { useAuth } from '../hooks/useAuth.js';
 import { PageHeader } from '../components/PageHeader.js';
@@ -13,6 +14,8 @@ import { SectionLoading } from '../components/ui/spinner.js';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '../components/ui/dialog.js';
 import { Input } from '../components/ui/input.js';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../components/ui/table.js';
+import { Banner } from '../components/ui/alert.js';
+import { Tip } from '../components/ui/tooltip.js';
 
 const states = ['PENDING', 'RUNNING', 'SUCCESS', 'RETRY', 'RECONCILE', 'FAILED'];
 const labels: Record<string, string> = { PENDING: 'Queued', RUNNING: 'Sending', SUCCESS: 'Delivered', RETRY: 'Retry scheduled', RECONCILE: 'Needs review', FAILED: 'Failed' };
@@ -79,7 +82,7 @@ export function AccountingDeliveries() {
     <Card><CardContent className="p-6 text-sm text-muted-foreground">
       Needs review means the provider may already have accepted the export. Check its records before making another entry. Automatic retries stay blocked for these deliveries. QuickBooks supplier exports are currently unavailable.
     </CardContent></Card>
-    {error && <p role="alert" className="text-destructive">{error}</p>}
+    {error && <Banner variant="error">{error}</Banner>}
     <Card><CardContent className="p-0">
       {loading ? <SectionLoading label="Loading deliveries…" /> : <Table>
         <TableHeader><TableRow><TableHead>Source</TableHead><TableHead>Provider</TableHead><TableHead>Status</TableHead><TableHead>Attempts</TableHead><TableHead>Updated</TableHead><TableHead>Details</TableHead><TableHead>Action</TableHead></TableRow></TableHeader>
@@ -94,7 +97,10 @@ export function AccountingDeliveries() {
       </Table>}
       <div className="flex flex-wrap items-center justify-between gap-3 border-t p-4">
         <span className="text-sm text-muted-foreground">{data?.total ?? 0} deliveries · Page {page} of {Math.max(1, Math.ceil((data?.total ?? 0) / 25))}</span>
-        <div className="flex gap-2"><Button variant="outline" disabled={loading || page === 1} onClick={() => setPage(value => value - 1)}>Previous</Button><Button variant="outline" disabled={loading || !data || page * 25 >= data.total} onClick={() => setPage(value => value + 1)}>Next</Button></div>
+        <div className="flex gap-2">
+          <Tip label="Previous page"><Button variant="outline" size="icon" iconOnly aria-label="Previous page" disabled={loading || page === 1} onClick={() => setPage(value => value - 1)}><Icon name="chevronLeft" size={14} /></Button></Tip>
+          <Tip label="Next page"><Button variant="outline" size="icon" iconOnly aria-label="Next page" disabled={loading || !data || page * 25 >= data.total} onClick={() => setPage(value => value + 1)}><Icon name="chevronRight" size={14} /></Button></Tip>
+        </div>
       </div>
     </CardContent></Card>
     <Dialog open={!!reviewId} onOpenChange={open => { if (!open && !busy) setReviewId(null); }}>
@@ -102,7 +108,7 @@ export function AccountingDeliveries() {
         <p className="text-sm text-muted-foreground">Enter the existing invoice ID from Xero. We check its number, contact, currency, total and status before linking it. This does not create another invoice.</p>
         <label htmlFor="xero-invoice-id" className="text-sm font-medium">Xero invoice ID</label>
         <Input id="xero-invoice-id" value={externalId} onChange={event => setExternalId(event.target.value)} disabled={!!busy} />
-        {reviewError && <p role="alert" className="text-destructive">{reviewError}</p>}
+        {reviewError && <Banner variant="error">{reviewError}</Banner>}
         <DialogFooter><Button variant="outline" disabled={!!busy} onClick={() => setReviewId(null)}>Cancel</Button><Button disabled={!!busy || !externalId.trim()} onClick={reconcile}>{busy ? 'Verifying…' : 'Verify and link'}</Button></DialogFooter>
       </DialogContent>
     </Dialog>

@@ -1,7 +1,7 @@
 import type { FastifyInstance } from 'fastify';
 import { z } from 'zod';
-import { withTenant } from '../db/client.js';
-import { sql } from 'kysely';
+import { withTenant, type Database } from '../db/client.js';
+import { sql, type Transaction } from 'kysely';
 import { requireEntitlement } from '../middleware/entitlement.js';
 import { GLService } from '../services/gl.service.js';
 
@@ -15,7 +15,53 @@ const PARCEL_TRANSITIONS: Record<string, string[]> = {
 };
 
 export async function tumaParcelsRoutes(fastify: FastifyInstance) {
+  // Same gap as tuma.routes.ts's sibling fix: requireEntitlement() 401s on
+  // `!request.user` before ever checking the actual entitlement, and
+  // nothing here ever populated request.user — every route in this file
+  // (parcels CRUD, dispatch/offload/deliver/cancel, float settle/replenish)
+  // was unreachable by any real authenticated caller.
+  fastify.addHook('preHandler', fastify.authenticate);
   fastify.addHook('preHandler', requireEntitlement('tuma'));
+
+  // Every `throw { statusCode, message }` below (parcel/float lookups)
+  // relied on being caught as a real HTTP status, but this file never had
+  // its own setErrorHandler and index.ts's global one only reads
+  // `.statusCode` off an actual Error instance, not a plain object literal
+  // — same bug class as ngao-crud.routes.ts's own fix. Every one of these
+  // checks was silently returning HTTP 200 with an error-shaped JSON body
+  // instead of the real 404/422. Found live while verifying the missing
+  // fastify.authenticate hook fix above.
+  fastify.setErrorHandler((error: any, _request, reply) => {
+    // A local setErrorHandler replaces index.ts's global one for every route
+    // in this plugin, not just supplements it — its own ZodError formatting
+    // (real validation failures from every z.object(...).parse() call above)
+    // has to be replicated here too, or it silently degrades to a bare 500.
+    if (error instanceof Error && error.name === 'ZodError') {
+      const zodError = error as unknown as { issues: { path: (string | number)[]; message: string }[] };
+      return reply.status(400).send({ error: 'Validation failed', details: zodError.issues.map(i => ({ field: i.path.join('.'), message: i.message })) });
+    }
+    const status = error && typeof error === 'object' && typeof error.statusCode === 'number' ? error.statusCode : 500;
+    return reply.status(status).send({ error: status < 500 ? (error.message ?? 'Request failed.') : 'Unable to process the request.' });
+  });
+
+  // Resolves the display fields for a parcel's linked ClearOS shipment, if
+  // any — a plain, app-level lookup (no DB FK; see migration 737's comment
+  // on why shipment_cases, being partitioned, can't carry one).
+  async function attachLinkedShipment<T extends { shipment_case_id: string | null }>(
+    trx: Transaction<Database>,
+    tenantId: string,
+    rows: T[],
+  ): Promise<(T & { linked_shipment: { id: string; ref_number: string; stage: string } | null })[]> {
+    const ids = [...new Set(rows.map(r => r.shipment_case_id).filter((v): v is string => !!v))];
+    if (ids.length === 0) return rows.map(r => ({ ...r, linked_shipment: null }));
+    const shipments = await trx.selectFrom('shipment_cases')
+      .where('id', 'in', ids)
+      .where('tenant_id', '=', tenantId)
+      .select(['id', 'ref_number', 'stage'])
+      .execute();
+    const byId = new Map(shipments.map(s => [s.id, { id: s.id, ref_number: s.ref_number, stage: s.stage }]));
+    return rows.map(r => ({ ...r, linked_shipment: r.shipment_case_id ? byId.get(r.shipment_case_id) ?? null : null }));
+  }
 
   // ── List parcels with filters ──
   fastify.get('/parcels', async (request) => {
@@ -31,7 +77,8 @@ export async function tumaParcelsRoutes(fastify: FastifyInstance) {
       if (search) {
         q = q.where(sql<boolean>`(parcel_number ilike ${`%${search}%`} OR sender_name ilike ${`%${search}%`} OR recipient_name ilike ${`%${search}%`})`);
       }
-      const rows = await q.selectAll().limit(l).offset((p - 1) * l).execute();
+      const rawRows = await q.selectAll().limit(l).offset((p - 1) * l).execute();
+      const rows = await attachLinkedShipment(trx, request.user.tenant_id, rawRows);
       const [{ count }] = await trx.selectFrom('tuma_parcels')
         .where('tenant_id', '=', request.user.tenant_id)
         .select(sql<number>`count(*)::int`.as('count'))
@@ -58,7 +105,8 @@ export async function tumaParcelsRoutes(fastify: FastifyInstance) {
         .selectAll()
         .execute();
 
-      return { ...parcel, tracking };
+      const [withLink] = await attachLinkedShipment(trx, request.user.tenant_id, [parcel]);
+      return { ...withLink, tracking };
     });
   });
 
@@ -80,9 +128,22 @@ export async function tumaParcelsRoutes(fastify: FastifyInstance) {
       vehicle_id: z.string().uuid().optional(),
       parcel_type_id: z.string().uuid().optional(),
       travel_date: z.string().optional(),
+      // Optional: this parcel is the last-mile leg of an already-cleared
+      // ClearOS shipment. Validated against the tenant below, not just
+      // shape-checked, since there's no DB FK to enforce it (see mig 737).
+      shipment_case_id: z.string().uuid().optional(),
     });
     const body = schema.parse(request.body);
     return withTenant(request.user.tenant_id, async (trx) => {
+      if (body.shipment_case_id) {
+        const shipment = await trx.selectFrom('shipment_cases')
+          .where('id', '=', body.shipment_case_id)
+          .where('tenant_id', '=', request.user.tenant_id)
+          .select('id')
+          .executeTakeFirst();
+        if (!shipment) throw { statusCode: 422, message: 'Linked shipment not found for this tenant.' };
+      }
+
       const [{ count }] = await trx.selectFrom('tuma_parcels')
         .where('tenant_id', '=', request.user.tenant_id)
         .select(sql<number>`count(*)::int`.as('count'))
@@ -108,6 +169,7 @@ export async function tumaParcelsRoutes(fastify: FastifyInstance) {
           vehicle_id: body.vehicle_id,
           parcel_type_id: body.parcel_type_id,
           travel_date: body.travel_date ? new Date(body.travel_date) : null,
+          shipment_case_id: body.shipment_case_id ?? null,
           created_by: request.user.sub,
           status: 'RECEIVED',
         })

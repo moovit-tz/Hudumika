@@ -319,9 +319,15 @@ async function processItemLevelReturn(
         const item = await trx.selectFrom('inventory_items').select(['id', 'base_uom'])
           .where('tenant_id', '=', tenantId).where('product_id', '=', line.product_id).where('active', '=', true).executeTakeFirst();
         if (item) {
+          // Restocks into the exact same batch this line was originally
+          // sold from (recorded on the line at sale time — one batch per
+          // line, never split, so a partial-qty return still belongs to
+          // it) — undefined for a non-batch-tracked item's line, same as
+          // the sale-side call.
           const movement = await InventoryService.recordMovement(trx, tenantId, {
             actorId, movementType: 'return', itemId: item.id, toLocationId: restockLocationId,
             enteredQty: r.qty, enteredUom: item.base_uom, reasonCode: 'POS_ITEM_RETURN', reference: sale.sale_number,
+            batchNo: line.batch_no ?? undefined,
           });
           movementId = movement.id;
           restockedAny = true;
@@ -1039,11 +1045,17 @@ export async function posRoutes(fastify: FastifyInstance) {
           // belongs to whichever outlet its register was opened at.
           site_id: shift.site_id,
         } as any).returningAll().executeTakeFirstOrThrow();
-        await trx.insertInto('pos_sale_lines').values(lines.map(line => ({
+        // RETURNING preserves the input VALUES list's order (a documented
+        // Postgres guarantee for a single multi-row INSERT), so insertedLines[i]
+        // is always lines[i]'s own row — needed below to record which exact
+        // batch each line was sold from, matched by position rather than
+        // product_id (a cart can legitimately carry the same product twice
+        // as two separate lines).
+        const insertedLines = await trx.insertInto('pos_sale_lines').values(lines.map(line => ({
           tenant_id: user.tenant_id, sale_id: created.id, product_id: line.product.id, product_code: line.product.code,
           product_name: line.product.name, qty: line.qty, unit_price: line.unitPrice, discount: line.discount,
           unit_cost: line.unitCost, cost_total: line.costTotal, tax_rate: Number(line.product.tax_rate), tax_amount: line.tax, line_total: line.total,
-        }))).execute();
+        }))).returning('id').execute();
         // Each tender is rounded to 2dp independently (a client can send a
         // sub-cent amount, e.g. a float-divided split), but their SUM must
         // tie out exactly to amount_paid — otherwise the stored payments
@@ -1103,7 +1115,8 @@ export async function posRoutes(fastify: FastifyInstance) {
         });
 
         if (body.inventory_location_id) {
-          for (const line of lines) {
+          for (let lineIndex = 0; lineIndex < lines.length; lineIndex++) {
+            const line = lines[lineIndex]!;
             if (line.product.type !== 'product') continue;
             const item = itemByProduct.get(line.product.id);
             if (!item) continue;
@@ -1134,6 +1147,10 @@ export async function posRoutes(fastify: FastifyInstance) {
                 .forUpdate().executeTakeFirst();
               if (!batch) throw Object.assign(new Error(`No unexpired batch of ${line.product.name} has enough stock for this sale (insufficient quantity, or only expired batches remain).`), { statusCode: 422 });
               batchNo = batch.batch_no;
+              // Recorded on the line itself so a later refund/return knows
+              // exactly which batch to put stock back into, rather than
+              // guessing or refusing outright (S07's own named follow-up).
+              await trx.updateTable('pos_sale_lines').set({ batch_no: batchNo }).where('id', '=', insertedLines[lineIndex]!.id).execute();
             }
 
             await InventoryService.recordMovement(trx, user.tenant_id, {
@@ -1235,7 +1252,7 @@ export async function posRoutes(fastify: FastifyInstance) {
           return await processItemLevelReturn(trx, user.tenant_id, user.sub, id, sale, body.lines, body.reason, restockLocationId);
         }
 
-        const lines = await trx.selectFrom('pos_sale_lines').select(['product_id', 'qty']).where('tenant_id', '=', user.tenant_id).where('sale_id', '=', id).execute();
+        const lines = await trx.selectFrom('pos_sale_lines').select(['product_id', 'qty', 'batch_no']).where('tenant_id', '=', user.tenant_id).where('sale_id', '=', id).execute();
 
         const reversalId = await GLService.voidEntry(user.tenant_id, sale.journal_entry_id!, user.sub, `POS refund: ${body.reason}`, trx);
         await restoreGiftCardTenders(trx, user.tenant_id, id, user.sub);
@@ -1253,6 +1270,7 @@ export async function posRoutes(fastify: FastifyInstance) {
             await InventoryService.recordMovement(trx, user.tenant_id, {
               actorId: user.sub, movementType: 'return', itemId: item.id, toLocationId: restockLocationId,
               enteredQty: Number(line.qty), enteredUom: item.base_uom, reasonCode: 'POS_REFUND', reference: sale.sale_number,
+              batchNo: line.batch_no ?? undefined,
             });
           }
         }
@@ -1302,7 +1320,7 @@ export async function posRoutes(fastify: FastifyInstance) {
         const shift = await trx.selectFrom('pos_shifts').select('status').where('tenant_id', '=', user.tenant_id).where('id', '=', sale.shift_id).executeTakeFirst();
         if (shift?.status !== 'OPEN') throw Object.assign(new Error('This sale\'s register has already closed — use a refund instead of a void.'), { statusCode: 409 });
         if (!sale.journal_entry_id) throw Object.assign(new Error('This sale has no posted journal entry and cannot be voided automatically.'), { statusCode: 409 });
-        const lines = await trx.selectFrom('pos_sale_lines').select(['product_id', 'qty']).where('tenant_id', '=', user.tenant_id).where('sale_id', '=', id).execute();
+        const lines = await trx.selectFrom('pos_sale_lines').select(['product_id', 'qty', 'batch_no']).where('tenant_id', '=', user.tenant_id).where('sale_id', '=', id).execute();
         const restockLocationId = body.restock_location_id === undefined ? sale.inventory_location_id : body.restock_location_id;
         if (restockLocationId) {
           const location = await trx.selectFrom('inventory_locations').select('id').where('tenant_id', '=', user.tenant_id).where('id', '=', restockLocationId).executeTakeFirst();
@@ -1325,6 +1343,7 @@ export async function posRoutes(fastify: FastifyInstance) {
             await InventoryService.recordMovement(trx, user.tenant_id, {
               actorId: user.sub, movementType: 'return', itemId: item.id, toLocationId: restockLocationId,
               enteredQty: Number(line.qty), enteredUom: item.base_uom, reasonCode: 'POS_VOID', reference: sale.sale_number,
+              batchNo: line.batch_no ?? undefined,
             });
           }
         }

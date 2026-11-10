@@ -4,7 +4,7 @@ import { calculateLandedCost, calculatePenalty, getHsCode } from '../services/cu
 import { calculateAirAdvanced, calculateLclAdvanced } from '../services/advanced-calculators.service.js';
 import { WorkflowService } from '../services/workflow.service.js';
 import type { ShipmentType } from '@hudumika/types';
-import { authHeaders, createTestTenant, getApp, type TestTenant } from './helpers.js';
+import { authHeaders, createTestTenant, getApp, grantStandaloneProduct, type TestTenant } from './helpers.js';
 
 /**
  * Regression tests for ClearOS audit remediation (2026-10-27).
@@ -17,6 +17,7 @@ describe('ClearOS remediation regressions', () => {
   beforeAll(async () => {
     tenant = await createTestTenant();
     await dbPlatform.updateTable('tenants').set({ plan: 'enterprise' }).where('id', '=', tenant.tenantId).execute();
+    await grantStandaloneProduct(tenant.tenantId, 'clearos');
   }, 120000);
   afterAll(async () => tenant?.cleanup(), 120000);
 

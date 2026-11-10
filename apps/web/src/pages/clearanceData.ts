@@ -120,6 +120,7 @@ export interface JobChargeLine {
   cost_local_amount: number | null;
   cost_posted: boolean;
   cost_reference: string | null;
+  cost_bill_id: string | null;
   // Sell leg (AR)
   debtor_id: string | null;
   debtor_name: string | null;

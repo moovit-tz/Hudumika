@@ -3,6 +3,7 @@ import { FinanceDocumentActions } from '../components/FinanceDocumentActions.js'
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { useCurrency } from '../hooks/useCurrency.js';
+import { useIsMobile } from '../hooks/useIsMobile.js';
 import { apiFetch } from '../lib/api.js';
 import { Icon } from '../components/Icon.js';
 import { Badge } from '../components/ui/badge.js';
@@ -15,8 +16,10 @@ import {
   DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator,
 } from '../components/ui/dropdown-menu.js';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '../components/ui/select.js';
+import { SingleSelectFilter } from '../components/ui/filter-dropdown.js';
 import { Input } from '../components/ui/input.js';
 import { Textarea } from '../components/ui/textarea.js';
+import { SectionLoading } from '../components/ui/spinner.js';
 import { getCompany } from '../data/companyStore.js';
 import {
   Vendor, VendorCategory, VendorStatus, PaymentTerms,
@@ -85,6 +88,7 @@ export function VendorProfilePage() {
   const { id, tab: tabParam } = useParams<{ id: string; tab?: string }>();
   const navigate = useNavigate();
   const { fmt } = useCurrency();
+  const isMobile = useIsMobile();
 
   const [vendor, setVendor] = useState<Vendor | null>(null);
   const [loading, setLoading] = useState(true);
@@ -392,8 +396,8 @@ export function VendorProfilePage() {
   /* ── Loading / Error states ── */
   if (loading) {
     return (
-      <div className="vendor-profile-root" style={{ padding: '40px 0', textAlign: 'center' }}>
-        <div style={{ color: 'var(--ink3)', fontSize: 14 }}>Loading vendor profile…</div>
+      <div className="vendor-profile-root">
+        <SectionLoading label="Loading vendor profile…" />
       </div>
     );
   }
@@ -406,7 +410,7 @@ export function VendorProfilePage() {
           <h2 className="vendor-empty-title">Vendor Not Found</h2>
           <p className="vendor-empty-desc">{error || 'The requested supplier record does not exist or has been removed.'}</p>
           <Button onClick={() => navigate('/finance/vendors')} style={{ marginTop: 12 }}>
-            Return to Vendors Directory
+            Back to vendors
           </Button>
         </div>
       </div>
@@ -550,50 +554,26 @@ export function VendorProfilePage() {
 
           {/* Quick Action Buttons */}
           <div className="vendor-hero-actions">
-            <button
-              type="button"
-              onClick={() => handleTabChange('edit')}
-              className="btn btn-secondary btn-sm"
-              data-ui-native-button=""
-              title="Edit vendor profile details"
-            >
+            <Button type="button" variant="outline" size="sm" onClick={() => handleTabChange('edit')} title="Edit vendor profile details">
               <Icon name="edit" size={14} />
-              <span>Edit Profile</span>
-            </button>
+              <span>Edit profile</span>
+            </Button>
 
-            <button
-              type="button"
-              onClick={() => navigate(`/finance/purchase-orders?supplier_id=${v.id}&new=1`)}
-              className="btn btn-secondary btn-sm"
-              data-ui-native-button=""
-              title="Issue a purchase order"
-            >
+            <Button type="button" variant="outline" size="sm" onClick={() => navigate(`/finance/purchase-orders?supplier_id=${v.id}&new=1`)} title="Issue a purchase order">
               <Icon name="shoppingCart" size={14} />
               <span>New PO</span>
-            </button>
+            </Button>
 
-            <button
-              type="button"
-              onClick={() => navigate(`/finance/bills?supplier_id=${v.id}&new=1`)}
-              className="btn btn-primary btn-sm"
-              data-ui-native-button=""
-              title="Record a new supplier bill"
-            >
+            <Button type="button" size="sm" onClick={() => navigate(`/finance/bills?supplier_id=${v.id}&new=1`)} title="Record a new supplier bill">
               <Icon name="plus" size={14} />
-              <span>Record Bill</span>
-            </button>
+              <span>Record bill</span>
+            </Button>
 
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <button
-                  type="button"
-                  className="btn btn-secondary btn-sm"
-                  style={{ padding: '0 10px' }}
-                  data-ui-native-button=""
-                  aria-label="More vendor actions"
-                >
+                <Button type="button" variant="outline" size="icon" iconOnly aria-label="More actions">
                   <Icon name="moreHorizontal" size={16} />
-                </button>
+                </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end">
 
@@ -758,7 +738,7 @@ export function VendorProfilePage() {
                 </div>
               </div>
               <div className="vendor-card-body">
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 14, marginBottom: 18 }}>
+                <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(3, 1fr)', gap: 14, marginBottom: 18 }}>
                   <div style={{ padding: '12px 14px', background: 'var(--bg)', borderRadius: 'var(--r)', border: '1px solid var(--border)' }}>
                     <div style={{ fontSize: 10.5, fontWeight: 700, color: 'var(--ink3)', textTransform: 'uppercase' }}>Current Payable</div>
                     <div style={{ fontSize: 18, fontWeight: 800, color: 'var(--ink)', fontFamily: 'var(--font)', marginTop: 4 }}>
@@ -994,25 +974,12 @@ export function VendorProfilePage() {
                 <span>Supplier Bills ({filteredBills.length})</span>
               </h3>
               <div style={{ display: 'flex', gap: 6 }}>
-                {['ALL', 'OVERDUE', 'UNPAID', 'PAID', 'DRAFT'].map(st => (
-                  <button data-ui-native-button=""
-                    key={st}
-                    type="button"
-                    onClick={() => setBillStatusFilter(st)}
-                    style={{
-                      border: '1px solid var(--border)',
-                      background: billStatusFilter === st ? 'var(--teal-l)' : 'var(--bg)',
-                      color: billStatusFilter === st ? 'var(--teal)' : 'var(--ink2)',
-                      fontSize: "var(--text-xs)",
-                      fontWeight: 700,
-                      padding: "var(--action-py) var(--space-md)",
-                      borderRadius: 'var(--r-sm)',
-                      cursor: 'pointer',
-                    }}
-                  >
-                    {st}
-                  </button>
-                ))}
+                <SingleSelectFilter
+                  label="Status"
+                  options={[{ value: 'OVERDUE', label: 'Overdue' }, { value: 'UNPAID', label: 'Unpaid' }, { value: 'PAID', label: 'Paid' }, { value: 'DRAFT', label: 'Draft' }]}
+                  value={billStatusFilter === 'ALL' ? null : billStatusFilter}
+                  onChange={v => setBillStatusFilter(v ?? 'ALL')}
+                />
               </div>
             </div>
             <Button size="sm" onClick={() => navigate(`/finance/bills?supplier_id=${v.id}&new=1`)}>
@@ -1096,25 +1063,12 @@ export function VendorProfilePage() {
                 <span>Purchase Orders ({filteredPOs.length})</span>
               </h3>
               <div style={{ display: 'flex', gap: 6 }}>
-                {['ALL', 'OPEN', 'RECEIVED', 'CANCELLED'].map(st => (
-                  <button data-ui-native-button=""
-                    key={st}
-                    type="button"
-                    onClick={() => setPoStatusFilter(st)}
-                    style={{
-                      border: '1px solid var(--border)',
-                      background: poStatusFilter === st ? 'var(--blue-l)' : 'var(--bg)',
-                      color: poStatusFilter === st ? 'var(--blue)' : 'var(--ink2)',
-                      fontSize: "var(--text-xs)",
-                      fontWeight: 700,
-                      padding: "var(--action-py) var(--space-md)",
-                      borderRadius: 'var(--r-sm)',
-                      cursor: 'pointer',
-                    }}
-                  >
-                    {st}
-                  </button>
-                ))}
+                <SingleSelectFilter
+                  label="Status"
+                  options={[{ value: 'OPEN', label: 'Open' }, { value: 'RECEIVED', label: 'Received' }, { value: 'CANCELLED', label: 'Cancelled' }]}
+                  value={poStatusFilter === 'ALL' ? null : poStatusFilter}
+                  onChange={v => setPoStatusFilter(v ?? 'ALL')}
+                />
               </div>
             </div>
             <Button size="sm" onClick={() => navigate(`/finance/purchase-orders?supplier_id=${v.id}&new=1`)}>
@@ -1299,8 +1253,8 @@ export function VendorProfilePage() {
           </div>
           <div className="vendor-card-body">
             <form onSubmit={handleSaveProfile} style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 16 }}>
-                <div style={{ gridColumn: '1 / -1' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(2, 1fr)', gap: 16 }}>
+                <div style={{ gridColumn: isMobile ? 'auto' : '1 / -1' }}>
                   <label style={{ fontSize: 11.5, fontWeight: 700, color: 'var(--ink3)', textTransform: 'uppercase', display: 'block', marginBottom: 5 }}>
                     Vendor / Company Name *
                   </label>
@@ -1406,7 +1360,7 @@ export function VendorProfilePage() {
                   <label style={{ fontSize: 11.5, fontWeight: 700, color: 'var(--ink3)', textTransform: 'uppercase', display: 'block', marginBottom: 5 }}>
                     City & Country
                   </label>
-                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+                  <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: 10 }}>
                     <Input
                       value={editForm.city || ''}
                       onChange={e => setEditForm(f => ({ ...f, city: e.target.value }))}
@@ -1420,7 +1374,7 @@ export function VendorProfilePage() {
                   </div>
                 </div>
 
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+                <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: 12 }}>
                   <div>
                     <label style={{ fontSize: 11.5, fontWeight: 700, color: 'var(--ink3)', textTransform: 'uppercase', display: 'block', marginBottom: 5 }}>
                       Reference Code
@@ -1482,7 +1436,7 @@ export function VendorProfilePage() {
                   />
                 </div>
 
-                <div style={{ gridColumn: '1 / -1' }}>
+                <div style={{ gridColumn: isMobile ? 'auto' : '1 / -1' }}>
                   <label style={{ fontSize: 11.5, fontWeight: 700, color: 'var(--ink3)', textTransform: 'uppercase', display: 'block', marginBottom: 5 }}>
                     Internal Procurement Notes & Policy
                   </label>
@@ -1495,24 +1449,14 @@ export function VendorProfilePage() {
                 </div>
               </div>
 
-              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 10, marginTop: 14 }}>
-                <button
-                  type="button"
-                  onClick={() => handleTabChange('overview')}
-                  className="btn btn-secondary"
-                  data-ui-native-button=""
-                >
+              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 10, marginTop: 14, flexWrap: 'wrap' }}>
+                <Button type="button" variant="outline" onClick={() => handleTabChange('overview')}>
                   Cancel
-                </button>
-                <button
-                  type="submit"
-                  disabled={savingEdit || !editForm.name?.trim()}
-                  className="btn btn-primary"
-                  data-ui-native-button=""
-                >
+                </Button>
+                <Button type="submit" disabled={savingEdit || !editForm.name?.trim()}>
                   <Icon name="check" size={14} />
-                  <span>{savingEdit ? 'Saving Changes…' : 'Save Changes'}</span>
-                </button>
+                  <span>{savingEdit ? 'Saving…' : 'Save changes'}</span>
+                </Button>
               </div>
             </form>
           </div>
