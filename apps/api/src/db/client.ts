@@ -7467,6 +7467,10 @@ export interface Database {
     email: string | null; phone: string | null; address: string | null;
     tax_id: string | null; notes: string | null; is_active: Generated<boolean>;
     created_at: Generated<Date>; updated_at: Generated<Date>;
+    // Nullable — a legal client and a platform customer are created
+    // through separate flows; a matter can't be billed until this is set
+    // (migration 739).
+    customer_id: string | null;
   };
   legal_matters: {
     id: Generated<string>; tenant_id: string; matter_number: string; title: string;
@@ -7489,6 +7493,7 @@ export interface Database {
     description: string; is_billable: Generated<boolean>; is_billed: Generated<boolean>;
     invoice_id: string | null; activity_code: string | null;
     created_at: Generated<Date>; updated_at: Generated<Date>;
+    is_approved: Generated<boolean>; approved_by: string | null; approved_at: Date | null;
   };
   legal_trust_accounts: {
     id: Generated<string>; tenant_id: string; account_name: string;
@@ -9514,6 +9519,7 @@ export interface VehicleVendorsTable {
   created_at: Generated<Date>;
   updated_at: Generated<Date>;
   service_capabilities: Generated<string[]>;
+  party_id: string | null;
 }
 
 export interface TripsTable {

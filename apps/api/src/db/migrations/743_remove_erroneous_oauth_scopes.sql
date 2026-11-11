@@ -1,0 +1,15 @@
+-- Undoes migration 742, which was based on a wrong premise: it assumed
+-- contacts/invoices/orders/documents had zero oauth_resource_scopes rows,
+-- but an earlier migration (pre-dating even 741) already seeded all four —
+-- contacts specifically with a deliberate three-way split
+-- (contacts.basic.read / contacts.email.read / contacts.phone.read) rather
+-- than one generic contacts.read. middleware/auth.ts's ownsRequiredScope
+-- check requires EVERY row for a given (resource, operation) at once, so
+-- 742's 'contacts.read' silently added a fourth required scope on top of
+-- that design, making every Ondi-delegated contacts read strictly harder
+-- than intended. ON CONFLICT DO NOTHING meant the other six rows 742 tried
+-- to insert were no-ops against the pre-existing rows; only 'contacts.read'
+-- and 'documents.write' were ever actually inserted, and this migration
+-- removes exactly those two. Both were added and removed within the same
+-- work session, so no consent grant anywhere could reference them.
+DELETE FROM oauth_resource_scopes WHERE scope IN ('contacts.read', 'documents.write');

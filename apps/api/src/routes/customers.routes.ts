@@ -18,6 +18,7 @@ import type { Database } from '../db/client.js';
 import { parse } from 'csv-parse/sync';
 import { hashPassword } from '../lib/password.js';
 import { resolveFieldPolicy } from '../lib/field-policy.js';
+import { env } from '../config/env.js';
 
 // CSV header normalization — accept "Company Name", "company_name", "Company", etc.
 function normalizeHeaders(row: Record<string, unknown>): Record<string, string> {
@@ -130,15 +131,32 @@ export async function customerRoutes(fastify: FastifyInstance) {
       summary: 'List customers',
       description: 'Returns every customer record for the authenticated tenant, ordered by name.',
       response: {
+        400: { type: 'object', properties: { error: { type: 'string' } }, required: ['error'] },
         200: {
           type: 'object',
-          properties: { data: { type: 'array', items: { type: 'object', additionalProperties: true } } },
+          properties: {
+            data: { type: 'array', items: { type: 'object', additionalProperties: true } },
+            _redacted: { type: 'boolean' },
+            total: { type: 'integer' },
+            page: { type: 'integer' },
+            page_size: { type: 'integer' },
+            total_pages: { type: 'integer' },
+          },
         },
       },
     },
   }, async (request, reply) => {
     const user = request.user;
-    const pickerQuery = z.object({ search: z.string().max(160).optional(), limit: z.coerce.number().int().min(1).max(100).optional() }).parse(request.query);
+    const pickerQuery = z.object({
+      search: z.string().max(160).optional(),
+      limit: z.coerce.number().int().min(1).max(100).optional(),
+      page: z.coerce.number().int().min(1).max(100000).optional(),
+      page_size: z.coerce.number().int().min(1).max(100).optional(),
+    }).safeParse(request.query);
+    if (!pickerQuery.success) return reply.status(400).send({ error: 'Invalid customer filters or pagination.' });
+    if (pickerQuery.data.limit !== undefined && (pickerQuery.data.page !== undefined || pickerQuery.data.page_size !== undefined)) {
+      return reply.status(400).send({ error: 'Use either limit or page pagination, not both.' });
+    }
     return withTenant(user.tenant_id, async (trx) => {
       // Explicit tenant filter — RLS alone doesn't apply here because this
       // connection uses a DB role that owns the tables (see db/client.ts),
@@ -161,11 +179,23 @@ export async function customerRoutes(fastify: FastifyInstance) {
         // hard-deleting; without excluding it here a "deleted" customer
         // reappeared on the very next load of this same list.
         .where('customers.deleted_at', 'is', null);
-      if (pickerQuery.search) customerQuery = customerQuery.where('customers.name', 'ilike', `%${pickerQuery.search.replace(/[\\%_]/g, '\\$&')}%`);
-      customerQuery = customerQuery.orderBy('customers.name', 'asc').orderBy('customers.id');
-      const list = await (pickerQuery.limit ? customerQuery.limit(pickerQuery.limit) : customerQuery).execute();
+      if (pickerQuery.data.search) customerQuery = customerQuery.where('customers.name', 'ilike', `%${pickerQuery.data.search.replace(/[\\%_]/g, '\\$&')}%`);
+      const pageRequested = pickerQuery.data.page !== undefined || pickerQuery.data.page_size !== undefined;
+      const page = pickerQuery.data.page ?? 1;
+      const pageSize = pageRequested ? pickerQuery.data.page_size ?? 100 : pickerQuery.data.limit ?? 100;
+      const total = pageRequested
+        ? Number((await trx.selectFrom('customers').select(trx.fn.countAll<string>().as('total'))
+            .where('tenant_id', '=', user.tenant_id).where('is_customer', '=', true).where('deleted_at', 'is', null)
+            .$if(!!pickerQuery.data.search, qb => qb.where('name', 'ilike', `%${pickerQuery.data.search!.replace(/[\\%_]/g, '\\$&')}%`))
+            .executeTakeFirst())?.total ?? 0)
+        : undefined;
+      const list = await customerQuery.orderBy('customers.name', 'asc').orderBy('customers.id')
+        .limit(pageSize).offset(pageRequested ? (page - 1) * pageSize : 0).execute();
       const fp = await resolveFieldPolicy(user.tenant_id, 'customers', user.role);
-      return { data: fp.redactAll(list as Record<string, unknown>[]), _redacted: fp.redactedFields.size > 0 };
+      const response = { data: fp.redactAll(list as Record<string, unknown>[]), _redacted: fp.redactedFields.size > 0 };
+      return pageRequested
+        ? { ...response, total, page, page_size: pageSize, total_pages: Math.ceil((total ?? 0) / pageSize) }
+        : response;
     });
   });
 
@@ -696,7 +726,7 @@ export async function customerRoutes(fastify: FastifyInstance) {
       } as any).execute();
 
       // ── email the invite link ────────────────────────────────────────────
-      const appBase = process.env.APP_BASE_URL || 'https://app.hudumika.com';
+      const appBase = (env.PUBLIC_APP_URL || (env.APP_ENV === 'production' ? 'https://hudumika.tz' : 'http://localhost:5173')).replace(/\/+$/, '');
       const inviteUrl = `${appBase}/accept-customer-invite?token=${token}`;
 
       const tenantInfo = {

@@ -17,7 +17,7 @@ import { sql, type RawBuilder } from 'kysely';
  * The expression references the `parties` table by name, so use it inside a
  * subquery/select that has `parties` in FROM.
  */
-export function partyVisibleSql(actor: { id: string; tenantId: string }): RawBuilder<boolean> {
+export function partyVisibleSql(actor: { id: string | null; tenantId: string }): RawBuilder<boolean> {
   const uid = actor.id;
   const tid = actor.tenantId;
   return sql<boolean>`(
@@ -42,7 +42,7 @@ export function partyVisibleSql(actor: { id: string; tenantId: string }): RawBui
 }
 
 /** Set of party ids the actor may see, as a subquery for `WHERE contacts.party_id IN (...)`. */
-export function visiblePartyIdsSql(actor: { id: string; tenantId: string }): RawBuilder<string> {
+export function visiblePartyIdsSql(actor: { id: string | null; tenantId: string }): RawBuilder<string> {
   return sql<string>`(SELECT parties.id FROM parties WHERE parties.tenant_id = ${actor.tenantId} AND ${partyVisibleSql(actor)})`;
 }
 
@@ -58,7 +58,7 @@ export function visiblePartyIdsSql(actor: { id: string; tenantId: string }): Raw
  *     does not silently widen to the whole team.
  * Use inside a select that has `parties` in FROM, alongside partyVisibleSql.
  */
-export function partyEditableSql(actor: { id: string; tenantId: string }): RawBuilder<boolean> {
+export function partyEditableSql(actor: { id: string | null; tenantId: string }): RawBuilder<boolean> {
   const uid = actor.id;
   const tid = actor.tenantId;
   return sql<boolean>`(

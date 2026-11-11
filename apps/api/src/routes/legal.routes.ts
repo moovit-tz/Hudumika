@@ -3,7 +3,9 @@ import { z } from 'zod';
 import { withTenant } from '../db/client.js';
 import { sql } from 'kysely';
 import { requireEntitlement } from '../middleware/entitlement.js';
+import { requireRole } from '../middleware/rbac.js';
 import { GLService } from '../services/gl.service.js';
+import { getNextDocNumber, getNextCustomerDocNumber } from '../lib/doc-numbering.js';
 
 const MATTER_TYPES = ['litigation', 'corporate', 'real_estate', 'employment', 'ip', 'tax', 'criminal', 'family', 'immigration', 'general'] as const;
 const MATTER_STATUSES = ['open', 'active', 'on_hold', 'closed', 'archived'] as const;
@@ -12,6 +14,10 @@ const COURT_HIERARCHIES = ['COURT_OF_APPEAL', 'HIGH_COURT', 'RESIDENT_MAGISTRATE
 const COURT_EVENT_TYPES = ['MENTION', 'HEARING', 'PTC', 'JUDGMENT', 'RULING', 'EXECUTION', 'FILING'] as const;
 const DEADLINE_TYPES = ['LIMITATION', 'APPEAL_WINDOW', 'STATUTORY', 'COURT_ORDER', 'REMINDER', 'CUSTOM'] as const;
 const DISBURSEMENT_CATEGORIES = ['COURT_FEE', 'STAMP_DUTY', 'BRELA', 'TRAVEL', 'EXPERT', 'COUNSEL_FEE', 'OTHER'] as const;
+
+// Billing/approval actions are financial decisions, gated the same as every
+// other billing action in this codebase — not every lexcore-entitled role.
+const writers = requireRole('SUPER_ADMIN', 'ADMIN', 'TENANT_ADMIN', 'MANAGER', 'FINANCE');
 
 const LEGAL_TRANSITIONS: Record<string, string[]> = {
   open:      ['active', 'on_hold', 'closed'],
@@ -22,7 +28,33 @@ const LEGAL_TRANSITIONS: Record<string, string[]> = {
 };
 
 export async function registerLegalRoutes(fastify: FastifyInstance) {
+    // Same gap this session already found and fixed in ngao-crud.routes.ts
+    // and tuma.routes.ts/tuma-parcels.routes.ts: this file is registered on
+    // its own `server.register(...)` call in index.ts, so a
+    // `fastify.authenticate` hook added anywhere else never reaches it —
+    // without this, `requireEntitlement('lexcore')` below always sees an
+    // unset `request.user` and every route in this file (clients, matters,
+    // time entries, trust accounts/disbursements, conflict checks — all of
+    // it) 401s unconditionally for every tenant. Found while investigating
+    // Legal's billing gap for the Phase 4 acceptance walk-through.
+    fastify.addHook('preHandler', fastify.authenticate);
     fastify.addHook('preHandler', requireEntitlement('lexcore'));
+
+    // Every `throw { statusCode, message }` in this file relied on being
+    // caught as a real HTTP status, but this file never had its own
+    // setErrorHandler — index.ts's global one only reads `.statusCode` off
+    // a real `Error` instance, not a plain object literal, so every one of
+    // those checks was silently returning HTTP 200 with an error-shaped
+    // JSON body instead of the real 404/422 (the same gap already found and
+    // fixed in ngao-crud.routes.ts/tuma-parcels.routes.ts).
+    fastify.setErrorHandler((error: any, _request, reply) => {
+      if (error instanceof Error && error.name === 'ZodError') {
+        const zodError = error as unknown as { issues: { path: (string | number)[]; message: string }[] };
+        return reply.status(400).send({ error: 'Validation failed', details: zodError.issues.map(i => ({ field: i.path.join('.'), message: i.message })) });
+      }
+      const status = error && typeof error === 'object' && typeof error.statusCode === 'number' ? error.statusCode : 500;
+      return reply.status(status).send({ error: status < 500 ? (error.message ?? 'Request failed.') : 'Unable to process the request.' });
+    });
 
     // ── Clients ───────────────────────────────────────────────
     fastify.get('/clients', async (request) => {
@@ -83,6 +115,39 @@ export async function registerLegalRoutes(fastify: FastifyInstance) {
           .where('tenant_id', '=', request.user.tenant_id)
           .selectAll()
           .executeTakeFirst();
+        if (!row) throw { statusCode: 404, message: 'Client not found' };
+        return row;
+      });
+    });
+
+    // A legal client and a platform customer are created through entirely
+    // separate flows (per the business's own resolution of Legal's billing
+    // gap: link legal_clients to customers, not a separate billing table) —
+    // this is the one place that link is made, explicitly, never guessed.
+    fastify.patch('/clients/:id', { preHandler: writers }, async (request) => {
+      const { id } = request.params as { id: string };
+      const schema = z.object({
+        name: z.string().trim().min(1).optional(),
+        client_type: z.enum(['individual', 'company', 'government', 'ngo']).optional(),
+        tax_id: z.string().nullable().optional(),
+        address: z.string().nullable().optional(),
+        phone: z.string().nullable().optional(),
+        email: z.string().email().nullable().optional(),
+        notes: z.string().nullable().optional(),
+        customer_id: z.string().uuid().nullable().optional(),
+      });
+      const body = schema.parse(request.body);
+      return withTenant(request.user.tenant_id, async (trx) => {
+        if (body.customer_id) {
+          const customer = await trx.selectFrom('customers').select('id')
+            .where('id', '=', body.customer_id).where('tenant_id', '=', request.user.tenant_id)
+            .executeTakeFirst();
+          if (!customer) throw { statusCode: 422, message: 'That customer does not exist in this workspace.' };
+        }
+        const [row] = await trx.updateTable('legal_clients')
+          .set({ ...body, updated_at: new Date() })
+          .where('id', '=', id).where('tenant_id', '=', request.user.tenant_id)
+          .returningAll().execute();
         if (!row) throw { statusCode: 404, message: 'Client not found' };
         return row;
       });
@@ -210,6 +275,30 @@ export async function registerLegalRoutes(fastify: FastifyInstance) {
           const allowed = LEGAL_TRANSITIONS[current.status] || [];
           if (!allowed.includes(body.status)) {
             throw { statusCode: 422, message: `Cannot transition from ${current.status} to ${body.status}` };
+          }
+          // "close an auditable file" named two guards neither of which
+          // existed: outstanding trust balance, and unbilled time. Matching
+          // the exact precedent finance-industry-work.routes.ts's own
+          // close guard already uses ("Dispatch or release reserved stock
+          // before completing this work") — refuse, don't silently close
+          // over money still owed or work never invoiced.
+          if (body.status === 'closed') {
+            const unbilled = await trx.selectFrom('legal_time_entries')
+              .select(sql<number>`count(*)::int`.as('count'))
+              .where('tenant_id', '=', request.user.tenant_id).where('matter_id', '=', id)
+              .where('is_billable', '=', true).where('is_billed', '=', false)
+              .executeTakeFirst();
+            if (Number(unbilled?.count ?? 0) > 0) {
+              throw { statusCode: 422, message: `Bill or write off ${unbilled!.count} unbilled time entr${unbilled!.count === 1 ? 'y' : 'ies'} before closing this matter.` };
+            }
+            const trustBalance = await trx.selectFrom('legal_trust_accounts')
+              .select(sql<number>`coalesce(sum(balance), 0)`.as('total'))
+              .where('tenant_id', '=', request.user.tenant_id).where('matter_id', '=', id)
+              .where('status', '=', 'active')
+              .executeTakeFirst();
+            if (Number(trustBalance?.total ?? 0) !== 0) {
+              throw { statusCode: 422, message: 'This matter still holds a non-zero trust balance — disburse or transfer it before closing.' };
+            }
           }
         }
         const [row] = await trx.updateTable('legal_matters')
@@ -393,6 +482,109 @@ export async function registerLegalRoutes(fastify: FastifyInstance) {
         reply.status(201);
         return row;
       });
+    });
+
+    // "record/approve work" — a real checkpoint before billing, not a
+    // formality: the person logging hours and the person who reviews them
+    // for accuracy before a client is billed are, on a real matter, not
+    // always the same person. Approving never edits the logged hours/rate
+    // themselves — only this gate.
+    fastify.patch('/time/:id/approve', { preHandler: writers }, async (request) => {
+      const { id } = request.params as { id: string };
+      return withTenant(request.user.tenant_id, async (trx) => {
+        const entry = await trx.selectFrom('legal_time_entries').selectAll()
+          .where('id', '=', id).where('tenant_id', '=', request.user.tenant_id)
+          .executeTakeFirst();
+        if (!entry) throw { statusCode: 404, message: 'Time entry not found' };
+        if (entry.is_approved) throw { statusCode: 409, message: 'This time entry is already approved.' };
+        if (entry.is_billed) throw { statusCode: 409, message: 'This time entry has already been billed.' };
+        const [row] = await trx.updateTable('legal_time_entries')
+          .set({ is_approved: true, approved_by: request.user.sub, approved_at: new Date(), updated_at: new Date() })
+          .where('id', '=', id).where('tenant_id', '=', request.user.tenant_id)
+          .returningAll().execute();
+        return row;
+      });
+    });
+
+    // "bill/apply funds" — the gap Legal's own acceptance walk-through named
+    // as genuinely absent. Bills every approved, billable, unbilled time
+    // entry on a matter into a real sales_invoice + GL entry, the same
+    // real-document-not-a-flag pattern this session already built for
+    // shipment job-charges and construction progress certificates. Requires
+    // the matter's client to actually be linked to a platform customer
+    // (migration 739) — refuses outright rather than guessing one.
+    fastify.post('/matters/:id/bill', { preHandler: writers }, async (request, reply) => {
+      const { id } = request.params as { id: string };
+      const { entry_ids } = z.object({ entry_ids: z.array(z.string().uuid()).min(1).optional() }).parse(request.body ?? {});
+      const result = await withTenant(request.user.tenant_id, async (trx) => {
+        const matter = await trx.selectFrom('legal_matters').selectAll()
+          .where('id', '=', id).where('tenant_id', '=', request.user.tenant_id)
+          .executeTakeFirst();
+        if (!matter) return reply.status(404).send({ error: 'Matter not found' });
+        if (!matter.client_id) return reply.status(422).send({ error: 'This matter has no client to bill.' });
+
+        const client = await trx.selectFrom('legal_clients').select(['id', 'name', 'customer_id'])
+          .where('id', '=', matter.client_id).where('tenant_id', '=', request.user.tenant_id)
+          .executeTakeFirst();
+        if (!client?.customer_id) {
+          return reply.status(422).send({ error: 'This matter\'s client is not linked to a platform customer yet — link it first (PATCH /legal/clients/:id with customer_id).' });
+        }
+
+        let q = trx.selectFrom('legal_time_entries').selectAll()
+          .where('tenant_id', '=', request.user.tenant_id).where('matter_id', '=', id)
+          .where('is_billable', '=', true).where('is_billed', '=', false).where('is_approved', '=', true)
+          .where('amount', 'is not', null)
+          .forUpdate();
+        if (entry_ids) q = q.where('id', 'in', entry_ids);
+        const entries = await q.orderBy('entry_date', 'asc').execute();
+        if (entries.length === 0) {
+          return reply.status(400).send({ error: 'No approved, billable, unbilled time entries (with a resolved amount) found for this matter.' });
+        }
+
+        const currency = 'TZS';
+        const lines = entries.map((e, i) => ({
+          name: `${e.entry_date} — ${e.description}`.slice(0, 300),
+          unit: 'HRS', rate: Number(e.amount), qty: 1, tax_pct: 0,
+          line_group: matter.matter_number, currency, sort_order: i,
+        }));
+        const grandTotal = lines.reduce((s, l) => s + l.rate, 0);
+
+        const invoiceNumber = (await getNextCustomerDocNumber(trx, request.user.tenant_id, client.customer_id))
+          || await getNextDocNumber(trx, request.user.tenant_id, 'invoice');
+
+        const inv = await trx.insertInto('sales_invoices').values({
+          tenant_id: request.user.tenant_id, invoice_number: invoiceNumber,
+          customer_id: client.customer_id, client_address: JSON.stringify([]),
+          currency, exchange_rate: 1, status: 'Unpaid', received: 0, version: 1,
+          notes: `Legal billing: ${matter.matter_number} — ${matter.title}.`,
+          created_by: request.user.sub,
+        }).returningAll().executeTakeFirstOrThrow();
+
+        await trx.insertInto('sales_invoice_lines').values(lines.map(l => ({ ...l, invoice_id: inv.id }))).execute();
+
+        if (grandTotal > 0) {
+          await GLService.post(request.user.tenant_id, {
+            entryDate: new Date().toISOString(),
+            description: `Legal billing: ${matter.matter_number} (${client.name})`,
+            reference: invoiceNumber,
+            sourceModule: 'AR',
+            sourceId: inv.id,
+            createdBy: request.user.sub,
+            lines: [
+              { accountCode: '1100', debit: grandTotal, credit: 0, description: 'Accounts Receivable', currency, exchangeRate: 1 },
+              { accountCode: '4000', debit: 0, credit: grandTotal, description: 'Legal Services Revenue', currency, exchangeRate: 1 },
+            ],
+          }, trx);
+        }
+
+        const updated = await trx.updateTable('legal_time_entries')
+          .set({ is_billed: true, invoice_id: inv.id, updated_at: new Date() })
+          .where('tenant_id', '=', request.user.tenant_id).where('id', 'in', entries.map(e => e.id))
+          .returningAll().execute();
+
+        return { invoice: inv, entries: updated };
+      });
+      if (!reply.sent) return reply.status(201).send(result);
     });
 
     // ── Trust accounts ────────────────────────────────────────

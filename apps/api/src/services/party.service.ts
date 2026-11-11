@@ -4,7 +4,12 @@ import type { Database } from '../db/client.js';
 import { withTenant } from '../db/client.js';
 import { partyVisibleSql, partyEditableSql } from '../lib/party-visibility.js';
 
-export type PartyActor = { id: string; tenantId: string; role?: string };
+// id is nullable for a service-to-service caller (a scoped x-api-key with no
+// human behind it, e.g. platform-parties.routes.ts) — never a real user id,
+// so it must not be written as one; SQL NULL for owner/created_by, and every
+// ownership comparison below correctly evaluates to not-owned rather than
+// throwing on a non-UUID string.
+export type PartyActor = { id: string | null; tenantId: string; role?: string };
 
 export class PartyError extends Error {
   constructor(public status: number, public code: string, message: string) { super(message); }
@@ -44,6 +49,7 @@ export class PartyService {
   }
 
   private static canManage(actor: PartyActor, party: { owner_user_id: string | null; created_by: string | null }) {
+    if (actor.id === null) return ADMIN_ROLES.includes(actor.role ?? '');
     return party.owner_user_id === actor.id || party.created_by === actor.id || ADMIN_ROLES.includes(actor.role ?? '');
   }
 
@@ -313,7 +319,7 @@ export class PartyService {
 
       // A channel more restrictive than its party (e.g. a PRIVATE number on a
       // tenant-wide person) is shown only to the owner/creator.
-      const isOwner = party.owner_user_id === actor.id || party.created_by === actor.id;
+      const isOwner = actor.id !== null && (party.owner_user_id === actor.id || party.created_by === actor.id);
       const channels = allChannels.filter(c => isOwner || c.visibility === 'TENANT' || c.visibility === party.visibility);
 
       // Relationships/affiliations that point at a party the actor may not see are dropped, not exposed by id.

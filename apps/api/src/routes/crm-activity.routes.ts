@@ -5,6 +5,7 @@ import type { Transaction } from 'kysely';
 import { requireRole } from '../middleware/rbac.js';
 import { requireEntitlement } from '../middleware/entitlement.js';
 import { MailService } from '../services/mail.service.js';
+import { escapeHtml } from '../services/sign-notify.service.js';
 
 const SUBJECT_TYPES = ['lead', 'deal', 'customer'] as const;
 type SubjectType = (typeof SUBJECT_TYPES)[number];
@@ -193,7 +194,7 @@ export async function crmActivityRoutes(fastify: FastifyInstance) {
       const recipient = await resolveRecipientEmail(trx, tenantId, b.subject_type, b.subject_id);
       if (!recipient) return { error: 'no-email' as const };
 
-      const bodyHtml = `<div style="font-family: Arial, sans-serif; font-size: 14px; color: #333; line-height: 1.6; white-space: pre-wrap;">${b.body}</div>`;
+      const bodyHtml = `<div style="font-family: Arial, sans-serif; font-size: 14px; color: #333; line-height: 1.6; white-space: pre-wrap;">${escapeHtml(b.body)}</div>`;
       const sendResult = await MailService.sendNow(tenantId, {
         to: recipient.email, subject: b.subject, bodyHtml, sourceApp: 'crm',
       });

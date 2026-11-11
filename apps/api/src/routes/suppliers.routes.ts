@@ -61,22 +61,32 @@ export async function supplierRoutes(fastify: FastifyInstance) {
   fastify.get('/stats', async (request) => {
     const user = request.user;
     return withTenant(user.tenant_id, async (trx) => {
-      const row = await trx.selectFrom('suppliers')
-        .select([
-          (eb) => eb.fn.count<string>('id').as('total'),
-          (eb) => eb.fn.count<string>('id').filterWhere('status', '=', 'active').as('active_count'),
-          (eb) => eb.fn.count<string>('id').filterWhere('status', '=', 'inactive').as('inactive_count'),
-          (eb) => eb.fn.count<string>('id').filterWhere('status', '=', 'blocked').as('blocked_count'),
-        ])
+      const rows = await trx.selectFrom('suppliers')
+        .select(['status', trx.fn.count<string>('id').as('count')])
         .where('tenant_id', '=', user.tenant_id)
-        .executeTakeFirst();
-      const total = Number(row?.total ?? 0);
+        .groupBy('status')
+        .execute();
+
+      let total = 0;
+      let active = 0;
+      let inactive = 0;
+      let blocked = 0;
+
+      for (const r of rows) {
+        const c = Number(r.count ?? 0);
+        total += c;
+        const st = String(r.status || '').toLowerCase();
+        if (st === 'active') active += c;
+        else if (st === 'inactive') inactive += c;
+        else if (st === 'blocked') blocked += c;
+      }
+
       return {
         total,
-        active: Number(row?.active_count ?? 0),
-        inactive: Number(row?.inactive_count ?? 0),
-        blocked: Number(row?.blocked_count ?? 0),
-        activeRate: total ? Math.round((Number(row?.active_count ?? 0) / total) * 100) : 0,
+        active,
+        inactive,
+        blocked,
+        activeRate: total ? Math.round((active / total) * 100) : 0,
       };
     });
   });
@@ -93,6 +103,7 @@ export async function supplierRoutes(fastify: FastifyInstance) {
             eb('name', 'ilike', s),
             eb('contact_name', 'ilike', s),
             eb('email', 'ilike', s),
+            eb('ref_code', 'ilike', s),
           ]),
         );
       }

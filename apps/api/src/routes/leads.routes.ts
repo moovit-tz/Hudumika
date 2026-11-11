@@ -11,6 +11,7 @@ import { applyAssignmentRules } from './crm-assignment-rules.routes.js';
 import { loadScoringRules, scoreLead } from './crm-lead-scoring.routes.js';
 import { ensurePipelineStages, defaultStageKey } from './crm-pipeline-stages.routes.js';
 import { emitDomainEvent } from '../services/domain-events.service.js';
+import { assertCrmReferencesInTenant } from '../lib/crm-tenant-references.js';
 
 // SENIOR/JUNIOR/OFFICER added alongside the original CRM-pipeline roles —
 // the landed-cost calculators (OPS_ROLES-gated) let clearing staff create a
@@ -67,6 +68,10 @@ const leadPatchSchema = z.object({
   website: z.string().max(500).nullable().optional(),
   territory_id: z.string().uuid().nullable().optional(),
 });
+const leadListQuerySchema = z.object({
+  page: z.coerce.number().int().min(1).max(100000).optional(),
+  page_size: z.coerce.number().int().min(1).max(100).optional(),
+});
 
 function mapLead(row: any) {
   return {
@@ -95,8 +100,8 @@ function mapLead(row: any) {
 
 const leadSelect = (qb: any): any => qb
   .selectFrom('leads')
-  .leftJoin('users', 'users.id', 'leads.assigned_to_id')
-  .leftJoin('crm_territories as lt', 'lt.id', 'leads.territory_id')
+  .leftJoin('users', (join: any) => join.onRef('users.id', '=', 'leads.assigned_to_id').onRef('users.tenant_id', '=', 'leads.tenant_id'))
+  .leftJoin('crm_territories as lt', (join: any) => join.onRef('lt.id', '=', 'leads.territory_id').onRef('lt.tenant_id', '=', 'leads.tenant_id'))
   .selectAll('leads')
   .select(['users.name as assigned_to_name', 'lt.name as territory_name']);
 
@@ -107,23 +112,34 @@ export async function leadsRoutes(fastify: FastifyInstance) {
 
   fastify.get('/', async (request: any, reply) => {
     try {
+      const parsed = leadListQuerySchema.safeParse(request.query);
+      if (!parsed.success) return reply.status(400).send({ error: 'Invalid lead pagination.' });
+      const { page, page_size = 100 } = parsed.data;
       const tenantId = request.user.tenant_id;
-      const { rows, rules, activityCounts } = await withTenant(tenantId, async trx => {
-        const rows = await leadSelect(trx).where('leads.tenant_id', '=', tenantId).orderBy('leads.created_at', 'desc').execute();
+      const { rows, total, rules, activityCounts } = await withTenant(tenantId, async trx => {
+        const totalRow = await trx.selectFrom('leads').select(trx.fn.countAll<string>().as('total'))
+          .where('tenant_id', '=', tenantId).executeTakeFirst();
+        const rows = await leadSelect(trx).where('leads.tenant_id', '=', tenantId)
+          .orderBy('leads.created_at', 'desc').orderBy('leads.id', 'desc')
+          .limit(page_size).offset(((page ?? 1) - 1) * page_size).execute();
         const rules = await loadScoringRules(trx, tenantId);
         // One grouped query for every lead's activity count rather than N.
-        const counts = rules.some(r => r.field === 'activity_count')
+        const counts = rules.some(r => r.field === 'activity_count') && rows.length
           ? await trx.selectFrom('crm_activities')
               .select(['subject_id', trx.fn.countAll<string>().as('n')])
               .where('tenant_id', '=', tenantId).where('subject_type', '=', 'lead')
+              .where('subject_id', 'in', rows.map((row: any) => row.id))
               .groupBy('subject_id').execute()
           : [];
-        return { rows, rules, activityCounts: new Map(counts.map(c => [c.subject_id, Number(c.n)])) };
+        return { rows, total: Number(totalRow?.total ?? 0), rules, activityCounts: new Map(counts.map(c => [c.subject_id, Number(c.n)])) };
       });
-      return rows.map((r: any) => {
+      const items = rows.map((r: any) => {
         const mapped = mapLead(r);
         return rules.length ? { ...mapped, score: scoreLead(rules, mapped, activityCounts.get(r.id) ?? 0) } : mapped;
       });
+      return page === undefined && parsed.data.page_size === undefined
+        ? items
+        : { items, total, page: page ?? 1, page_size, total_pages: Math.ceil(total / page_size) };
     } catch (err: any) {
       return reply.status(500).send({ error: err.message });
     }
@@ -142,6 +158,9 @@ export async function leadsRoutes(fastify: FastifyInstance) {
             .where('parties.id', 'in', linkIds).where(partyVisibleSql(actor)).execute();
           if (ok.length !== new Set(linkIds).size) throw Object.assign(new Error('Linked contact or organization not found.'), { statusCode: 400 });
         }
+        await assertCrmReferencesInTenant(trx, tenantId, [
+          { table: 'users', id: b.assigned_to_id }, { table: 'crm_territories', id: b.territory_id },
+        ]);
         const [row] = await trx.insertInto('leads').values({
           tenant_id: tenantId,
           organization_party_id: b.organization_party_id ?? null,
@@ -197,6 +216,25 @@ export async function leadsRoutes(fastify: FastifyInstance) {
     }
   });
 
+  fastify.get('/:id', async (request: any, reply) => {
+    const { id } = idParamSchema.parse(request.params);
+    const tenantId = request.user.tenant_id;
+    const row = await withTenant(tenantId, async trx => {
+      const [r] = await leadSelect(trx).where('leads.id', '=', id).where('leads.tenant_id', '=', tenantId).execute();
+      if (!r) return null;
+      const rules = await loadScoringRules(trx, tenantId);
+      const activityCount = rules.some(rule => rule.field === 'activity_count')
+        ? await trx.selectFrom('crm_activities').select(trx.fn.countAll<string>().as('n'))
+            .where('tenant_id', '=', tenantId).where('subject_type', '=', 'lead')
+            .where('subject_id', '=', id).executeTakeFirst()
+        : null;
+      const mapped = mapLead(r);
+      return rules.length ? { ...mapped, score: scoreLead(rules, mapped, Number(activityCount?.n ?? 0)) } : mapped;
+    });
+    if (!row) return reply.status(404).send({ error: 'Lead not found' });
+    return row;
+  });
+
   fastify.patch('/:id', async (request: any, reply) => {
     const { id } = idParamSchema.parse(request.params);
     const b = leadPatchSchema.parse(request.body);
@@ -220,6 +258,9 @@ export async function leadsRoutes(fastify: FastifyInstance) {
 
     const tenantId = request.user.tenant_id;
     const notFound = await withTenant(tenantId, async trx => {
+      await assertCrmReferencesInTenant(trx, tenantId, [
+        { table: 'users', id: b.assigned_to_id }, { table: 'crm_territories', id: b.territory_id },
+      ]);
       const needsExisting = b.stage !== undefined || b.assigned_to_id !== undefined;
       let existing: { stage: string; company: string; assigned_to_id: string | null } | undefined;
       if (needsExisting) {

@@ -1,10 +1,13 @@
 import type { FastifyRequest, FastifyReply, FastifyInstance } from 'fastify';
 import type { JWTPayload } from '@hudumika/types';
 import { createHash } from 'crypto';
-import { dbPlatform } from '../db/client.js';
+import { dbPlatform, withTenant } from '../db/client.js';
 import { isMeteredPath, checkUsageLimit } from '../lib/usage.js';
 import { verifyCsrf } from './csrf.js';
 import { getPlatformSecuritySettings, ipMatchesAllowlist } from '../lib/platform-settings.js';
+import { verifyJwt, issuerUrl } from '../lib/oidc.js';
+import { isOauthAccessTokenRevoked } from '../routes/ondi-oauth.routes.js';
+import { oauthOperationForRequest, oauthResourceForPath } from '../lib/ondi-oauth-access.js';
 
 declare module '@fastify/jwt' {
   interface FastifyJWT {
@@ -214,6 +217,86 @@ export const authPlugin = fp(async (fastify: FastifyInstance) => {
       request.apiKeyScopes = row.scopes;
 
       dbPlatform.updateTable('api_keys').set({ last_used_at: new Date() }).where('id', '=', row.id).execute().catch(() => {});
+      if (await enforceTenantSuspension(request, reply)) return;
+      if (await enforceIpAllowlist(request, reply)) return;
+      if (await enforceMaintenanceGate(request, reply)) return;
+      if (await enforceUsageGate(request, reply)) return;
+      return;
+    }
+
+    // Ondi OAuth access tokens are RS256 JWTs, distinct from Hudumika's
+    // session JWTs. Decode only to select the verifier; all claims below are
+    // trusted only after verifyJwt() validates the signature and expiry.
+    const authorization = request.headers.authorization;
+    const bearer = typeof authorization === 'string' && /^Bearer\s/i.test(authorization) ? authorization.slice(7).trim() : '';
+    let oauthCandidate = false;
+    if (bearer) {
+      try {
+        const payload = JSON.parse(Buffer.from(bearer.split('.')[1] ?? '', 'base64url').toString('utf8'));
+        oauthCandidate = payload?.token_use === 'access';
+      } catch { /* The normal JWT verifier will return the standard 401 below. */ }
+    }
+
+    if (oauthCandidate) {
+      const claims = await verifyJwt(bearer);
+      if (!claims || claims.token_use !== 'access' || claims.iss !== issuerUrl() ||
+          typeof claims.sub !== 'string' || typeof claims.tenant_id !== 'string' ||
+          typeof claims.aud !== 'string' || typeof claims.jti !== 'string' ||
+          typeof claims.iat !== 'number' || typeof claims.exp !== 'number') {
+        return reply.status(401).send({ error: 'Unauthorized: Invalid or expired Ondi access token' });
+      }
+
+      const client = await dbPlatform.selectFrom('ondi_oauth_clients').select('client_id')
+        .where('client_id', '=', claims.aud).executeTakeFirst();
+      if (!client) return reply.status(401).send({ error: 'Unauthorized: Unknown Ondi OAuth client' });
+
+      const revoked = await isOauthAccessTokenRevoked(claims.jti);
+      if (revoked === null) return reply.status(503).send({ error: 'OAuth token revocation check is temporarily unavailable' });
+      if (revoked) return reply.status(401).send({ error: 'Unauthorized: Ondi access token has been revoked' });
+
+      // A deleted consent immediately removes API access, including from
+      // already-issued tokens. This closes the gap between consent revocation
+      // and the token's one-hour expiry.
+      const grant = await withTenant(claims.tenant_id, trx => trx.selectFrom('ondi_oauth_consents')
+        .select('scopes').where('user_id', '=', claims.sub).where('client_id', '=', claims.aud).executeTakeFirst());
+      const tokenScopes = String(claims.scope ?? '').split(' ').filter(Boolean);
+      const grantedScopes: string[] = grant
+        ? (Array.isArray(grant.scopes) ? grant.scopes : JSON.parse(String(grant.scopes ?? '[]')))
+        : [];
+      if (!grant || tokenScopes.some(scope => !grantedScopes.includes(scope))) {
+        return reply.status(401).send({ error: 'Unauthorized: Ondi app access has not been granted or has been revoked' });
+      }
+
+      const path = request.routeOptions?.url || request.url;
+      const resource = oauthResourceForPath(path);
+      if (!resource) return reply.status(403).send({ error: 'This API route is not enabled for Ondi app access' });
+      const operation = oauthOperationForRequest(request.method, path);
+      const resourceScopes = await dbPlatform.selectFrom('oauth_resource_scopes')
+        .select(['scope', 'operation', 'is_active', 'requires_tenant_approval', 'requires_hudumika_verification'])
+        .where('resource', '=', resource).execute();
+      const requiredScopes = resourceScopes.filter(row => row.operation === operation);
+      const ownsRequiredScope = requiredScopes.length > 0 && requiredScopes.every(row =>
+        row.is_active && !row.requires_tenant_approval && !row.requires_hudumika_verification &&
+        tokenScopes.includes(row.scope) && grantedScopes.includes(row.scope));
+      if (!ownsRequiredScope) {
+        return reply.status(403).send({ error: 'The Ondi access token does not have all required scopes for this API resource', resource, operation });
+      }
+
+      const user = await withTenant(claims.tenant_id, trx => trx.selectFrom('users')
+        .select(['id', 'tenant_id', 'role', 'email', 'name', 'active'])
+        .where('id', '=', claims.sub).executeTakeFirst());
+      if (!user || !user.active) return reply.status(401).send({ error: 'Unauthorized: Workspace account is inactive' });
+
+      request.user = {
+        sub: user.id,
+        tenant_id: user.tenant_id,
+        role: user.role as JWTPayload['role'],
+        email: user.email,
+        name: user.name,
+        iat: Number(claims.iat),
+        exp: Number(claims.exp),
+      };
+      request.apiKeyScopes = null;
       if (await enforceTenantSuspension(request, reply)) return;
       if (await enforceIpAllowlist(request, reply)) return;
       if (await enforceMaintenanceGate(request, reply)) return;

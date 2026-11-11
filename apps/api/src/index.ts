@@ -38,7 +38,6 @@ import { crmQuotasRoutes } from './routes/crm-quotas.routes.js';
 import { crmAssignmentRulesRoutes } from './routes/crm-assignment-rules.routes.js';
 import { crmTerritoriesRoutes }     from './routes/crm-territories.routes.js';
 import { crmLeadStagesRoutes }      from './routes/crm-lead-stages.routes.js';
-import { crmTerminologyRoutes }     from './routes/crm-terminology.routes.js';
 import { crmCustomFieldsRoutes } from './routes/crm-custom-fields.routes.js';
 import { crmLeadScoringRoutes } from './routes/crm-lead-scoring.routes.js';
 import { crmPipelineStagesRoutes } from './routes/crm-pipeline-stages.routes.js';
@@ -242,6 +241,7 @@ import { financeIndustryWorkRoutes } from './routes/finance-industry-work.routes
 import { posRoutes } from './routes/pos.routes.js';
 import { relatedRecordsRoutes } from './routes/related-records.routes.js';
 import { apiKeysRoutes } from './routes/api-keys.routes.js';
+import { platformPartiesRoutes } from './routes/platform-parties.routes.js';
 import { storeRoutes } from './routes/store.routes.js';
 import { fintechRoutes } from './routes/fintech.routes.js';
 import { searchRoutes } from './routes/search.routes.js';
@@ -572,7 +572,6 @@ export async function registerApp() {
     await server.register(crmAssignmentRulesRoutes, { prefix: '/v1/crm/assignment-rules' });
     await server.register(crmTerritoriesRoutes,     { prefix: '/v1/crm/territories' });
     await server.register(crmLeadStagesRoutes,      { prefix: '/v1/crm/lead-stages' });
-    await server.register(crmTerminologyRoutes,     { prefix: '/v1/crm/terminology' });
     await server.register(crmCustomFieldsRoutes, { prefix: '/v1/crm/custom-fields' });
     await server.register(crmLeadScoringRoutes, { prefix: '/v1/crm/lead-scoring' });
     await server.register(crmPipelineStagesRoutes, { prefix: '/v1/crm/pipeline-stages' });
@@ -805,6 +804,7 @@ export async function registerApp() {
     await server.register(entitlementsRoutes, { prefix: '/v1/entitlements' });
     await server.register(relatedRecordsRoutes, { prefix: '/v1/related' });
     await server.register(apiKeysRoutes, { prefix: '/v1/api-keys' });
+    await server.register(platformPartiesRoutes, { prefix: '/v1/platform/parties' });
     await server.register(storeRoutes, { prefix: '/v1/store' });
     await server.register(fintechRoutes, { prefix: '/v1/fintech' });
     await server.register(searchRoutes, { prefix: '/v1/search' });

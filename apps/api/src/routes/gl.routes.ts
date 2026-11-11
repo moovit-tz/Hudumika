@@ -3,7 +3,7 @@ import { requireFinanceCapability } from '../middleware/finance-capability.js';
 import { requireRole } from '../middleware/rbac.js';
 import type { FastifyInstance } from 'fastify';
 import { z } from 'zod';
-import { NoResultError, sql } from 'kysely';
+import { sql } from 'kysely';
 import { CostPostingService } from '../services/cost-posting.service.js';
 import { GLService } from '../services/gl.service.js';
 import { withTenant } from '../db/client.js';
@@ -789,16 +789,35 @@ export async function glRoutes(fastify: FastifyInstance) {
       const yearStart = `${todayStr.slice(0, 4)}-01-01`;
       const currency = await withTenant(tenantId, trx => reportingCurrency(trx, tenantId));
 
-      const safeBalance = async (code: string): Promise<number> => {
-        try {
-          const r = await GLService.ledger(tenantId, code, yearStart, todayStr);
-          return r.closing_balance;
-        } catch (error) { if (error instanceof NoResultError) return 0; throw error; }
-      };
+      // Resolve all dashboard cash/tax accounts in one tenant-scoped query.
+      // Calling ledger() once per code opened seven concurrent transactions
+      // and repeated the same journal scans on every dashboard load.
+      const accountBalances = await withTenant(tenantId, async (trx) => {
+        const rows = await trx.selectFrom('chart_of_accounts as account')
+          .leftJoin('journal_lines as line', 'line.account_id', 'account.id')
+          .leftJoin('journal_entries as entry', (join) => join
+            .onRef('entry.id', '=', 'line.journal_entry_id')
+            .onRef('entry.tenant_id', '=', 'account.tenant_id')
+            .on('entry.entry_date', '<=', todayStr))
+          .select([
+            'account.code',
+            'account.normal_balance',
+            trx.fn.sum('line.debit' as any).as('debits'),
+            trx.fn.sum('line.credit' as any).as('credits'),
+          ])
+          .where('account.tenant_id', '=', tenantId)
+          .where('account.code', 'in', ['1010', '1011', '1001', '2300', '2400', '1250', '2450'])
+          .groupBy(['account.code', 'account.normal_balance'])
+          .execute();
+        return new Map(rows.map((row) => {
+          const debits = Number(row.debits ?? 0);
+          const credits = Number(row.credits ?? 0);
+          return [row.code, row.normal_balance === 'CREDIT' ? credits - debits : debits - credits] as const;
+        }));
+      });
+      const safeBalance = (code: string): number => accountBalances.get(code) ?? 0;
 
       const [
-        cashTZS, cashUSD, cashOnHand,
-        whtPayable, citPayable, deferredTaxAsset, deferredTaxLiability,
         receivables, payables,
         monthPl, ytdPl,
         vatSnapshot,
@@ -809,8 +828,6 @@ export async function glRoutes(fastify: FastifyInstance) {
         activeFixedAssets,
         latestClosedPeriod,
       ] = await Promise.all([
-        safeBalance('1010'), safeBalance('1011'), safeBalance('1001'),
-        safeBalance('2300'), safeBalance('2400'), safeBalance('1250'), safeBalance('2450'),
         GLService.agedReceivables(tenantId), GLService.agedPayables(tenantId),
         GLService.profitLoss(tenantId, monthStart, todayStr),
         GLService.profitLoss(tenantId, yearStart, todayStr),
@@ -852,6 +869,13 @@ export async function glRoutes(fastify: FastifyInstance) {
           .where('tenant_id', '=', tenantId).where('status', '=', 'closed')
           .orderBy('period_end', 'desc').executeTakeFirst()),
       ]);
+      const cashTZS = safeBalance('1010');
+      const cashUSD = safeBalance('1011');
+      const cashOnHand = safeBalance('1001');
+      const whtPayable = safeBalance('2300');
+      const citPayable = safeBalance('2400');
+      const deferredTaxAsset = safeBalance('1250');
+      const deferredTaxLiability = safeBalance('2450');
 
       return {
         asOf: todayStr,
@@ -888,7 +912,8 @@ export async function glRoutes(fastify: FastifyInstance) {
         glPeriod: latestClosedPeriod ? { name: latestClosedPeriod.name, periodEnd: latestClosedPeriod.period_end, closedAt: latestClosedPeriod.closed_at } : null,
       };
     } catch (err: any) {
-      return reply.status(500).send({ error: err.message });
+      request.log.error({ err }, 'Finance dashboard snapshot query failed');
+      return reply.status(500).send({ error: 'Finance balances are temporarily unavailable. Please retry shortly.' });
     }
   });
 }

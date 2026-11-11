@@ -8,6 +8,7 @@ import { signJwt, verifyJwt, verifyPkce, issuerUrl } from '../lib/oidc.js';
 import { recordAuthEvent } from '../lib/audit-chain.js';
 import { emitDomainEventStandalone } from '../services/domain-events.service.js';
 import { env } from '../config/env.js';
+import { OIDC_IDENTITY_SCOPES } from '../lib/ondi-oauth-access.js';
 
 /**
  * Ondi's OAuth 2.0 / OpenID Connect provider (M6) — authorization code +
@@ -29,6 +30,12 @@ try {
 } catch { redisClient = null; }
 function redisReady(client: Redis | null): client is Redis { return !!client && client.status === 'ready'; }
 
+/** `null` means revocation state could not be checked and callers must fail closed. */
+export async function isOauthAccessTokenRevoked(jti: string): Promise<boolean | null> {
+  if (!redisReady(redisClient)) return null;
+  return (await redisClient.get(revokedKey(jti))) !== null;
+}
+
 const AUTH_CODE_TTL = 120;
 const ACCESS_TOKEN_TTL = 60 * 60;
 const REFRESH_TOKEN_TTL = 30 * 24 * 60 * 60;
@@ -49,6 +56,19 @@ const authorizeQuerySchema = z.object({
 
 async function loadClient(clientId: string) {
   return dbPlatform.selectFrom('ondi_oauth_clients').selectAll().where('client_id', '=', clientId).executeTakeFirst();
+}
+
+async function unavailableApiScope(scopes: string[]): Promise<string | null> {
+  const apiScopes = [...new Set(scopes.filter(s => !OIDC_IDENTITY_SCOPES.has(s)))];
+  if (apiScopes.length === 0) return null;
+  const registered = await dbPlatform.selectFrom('oauth_resource_scopes')
+    .select(['scope', 'requires_tenant_approval', 'requires_hudumika_verification', 'is_active'])
+    .where('scope', 'in', apiScopes).execute();
+  const byScope = new Map(registered.map(row => [row.scope, row]));
+  return apiScopes.find(scopeName => {
+    const row = byScope.get(scopeName);
+    return !row || !row.is_active || row.requires_tenant_approval || row.requires_hudumika_verification;
+  }) ?? null;
 }
 
 function claimsForUser(user: any, scopes: string[]) {
@@ -79,6 +99,8 @@ export async function ondiOauthRoutes(fastify: FastifyInstance) {
     if (!redirectUris.includes(redirect_uri)) return reply.status(400).send({ error: 'redirect_uri is not registered for this client' });
 
     const scopes = scope.split(' ').filter(Boolean);
+    const unavailable = await unavailableApiScope(scopes);
+    if (unavailable) return reply.status(400).send({ error: 'invalid_scope', error_description: `The requested scope is unknown or requires an approval flow that is not available: ${unavailable}` });
     const user = request.user;
     const existingConsent = await withTenant(user.tenant_id, trx => trx.selectFrom('ondi_oauth_consents')
       .select('scopes').where('user_id', '=', user.sub).where('client_id', '=', client_id).executeTakeFirst());
@@ -88,7 +110,10 @@ export async function ondiOauthRoutes(fastify: FastifyInstance) {
     return {
       client: { name: client.name, logo_url: client.logo_url, first_party: client.first_party },
       scopes,
-      auto_approve: client.first_party || alreadyConsented,
+      // First-party apps can skip consent for sign-in identity only. Data/API
+      // scopes require an explicit grant once; a saved grant can then be
+      // reused until the user revokes it.
+      auto_approve: alreadyConsented || (client.first_party && scopes.every(s => OIDC_IDENTITY_SCOPES.has(s))),
     };
   });
 
@@ -120,6 +145,12 @@ export async function ondiOauthRoutes(fastify: FastifyInstance) {
 
     const user = request.user;
     const scopes = scope.split(' ').filter(Boolean);
+
+    // OIDC identity scopes are handled by /userinfo. API scopes must exist in
+    // the platform catalogue and must not depend on approval workflows that
+    // are not yet implemented (for example payroll, identity, or banking).
+    const unavailable = await unavailableApiScope(scopes);
+    if (unavailable) return reply.status(400).send({ error: 'invalid_scope', error_description: `The requested scope is unknown or requires an approval flow that is not available: ${unavailable}` });
 
     await withTenant(user.tenant_id, trx => trx.insertInto('ondi_oauth_consents').values({
       tenant_id: user.tenant_id, user_id: user.sub, client_id, scopes: JSON.stringify(scopes),

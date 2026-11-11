@@ -4,6 +4,7 @@ import { withTenant } from '../db/client.js';
 import { requireRole } from '../middleware/rbac.js';
 import { requireEntitlement } from '../middleware/entitlement.js';
 import { logCrmActivity } from './crm-activity.routes.js';
+import { assertCrmReferencesInTenant } from '../lib/crm-tenant-references.js';
 
 const SUBJECT_TYPES = ['deal', 'lead'] as const;
 const idParamSchema = z.object({ id: z.string().uuid() });
@@ -30,6 +31,7 @@ const listSchema = z.object({
 const CRM_ROLES = ['SUPER_ADMIN', 'ADMIN', 'TENANT_ADMIN', 'MANAGER', 'SALES', 'SENIOR', 'JUNIOR', 'OFFICER'] as const;
 
 export async function crmTasksRoutes(fastify: FastifyInstance) {
+  fastify.addHook('preHandler', fastify.authenticate);
   fastify.addHook('preHandler', requireRole(...CRM_ROLES));
   fastify.addHook('preHandler', requireEntitlement('crm'));
 
@@ -39,7 +41,7 @@ export async function crmTasksRoutes(fastify: FastifyInstance) {
     const tenantId = request.user.tenant_id;
     return withTenant(tenantId, async trx => {
       let query = trx.selectFrom('crm_tasks as t')
-        .leftJoin('users as u', 'u.id', 't.assigned_to')
+        .leftJoin('users as u', join => join.onRef('u.id', '=', 't.assigned_to').onRef('u.tenant_id', '=', 't.tenant_id'))
         .select([
           't.id', 't.subject_type', 't.subject_id', 't.title',
           't.due_at', 't.done', 't.done_at', 't.assigned_to',
@@ -62,6 +64,10 @@ export async function crmTasksRoutes(fastify: FastifyInstance) {
     const b = createSchema.parse(request.body);
     const tenantId = request.user.tenant_id;
     const task = await withTenant(tenantId, async trx => {
+      await assertCrmReferencesInTenant(trx, tenantId, [
+        { table: b.subject_type === 'deal' ? 'deals' : 'leads', id: b.subject_id },
+        { table: 'users', id: b.assigned_to },
+      ]);
       const row = await trx.insertInto('crm_tasks').values({
         tenant_id: tenantId,
         subject_type: b.subject_type,
@@ -98,6 +104,7 @@ export async function crmTasksRoutes(fastify: FastifyInstance) {
     }
 
     const task = await withTenant(tenantId, async trx => {
+      await assertCrmReferencesInTenant(trx, tenantId, [{ table: 'users', id: b.assigned_to }]);
       const existing = await trx.selectFrom('crm_tasks')
         .select(['id', 'subject_type', 'subject_id', 'title', 'done'])
         .where('id', '=', id).where('tenant_id', '=', tenantId).executeTakeFirst();

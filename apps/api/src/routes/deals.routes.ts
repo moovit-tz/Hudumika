@@ -8,6 +8,7 @@ import { emitDomainEvent } from '../services/domain-events.service.js';
 import { ensurePipelineStages, defaultStageKey, type PipelineStage } from './crm-pipeline-stages.routes.js';
 import type { Transaction } from 'kysely';
 import type { Database } from '../db/client.js';
+import { assertCrmReferencesInTenant } from '../lib/crm-tenant-references.js';
 
 // Same roster as leads.routes.ts's LEAD_ROLES — a deal is what a lead
 // becomes, so whoever can touch one can touch the other.
@@ -85,10 +86,10 @@ export function mapDeal(row: any) {
 
 export const dealSelect = (qb: any): any => qb
   .selectFrom('deals')
-  .leftJoin('customers', 'customers.id', 'deals.customer_id')
-  .leftJoin('leads', 'leads.id', 'deals.lead_id')
-  .leftJoin('users', 'users.id', 'deals.owner_id')
-  .leftJoin('crm_territories as dt', 'dt.id', 'deals.territory_id')
+  .leftJoin('customers', (join: any) => join.onRef('customers.id', '=', 'deals.customer_id').onRef('customers.tenant_id', '=', 'deals.tenant_id'))
+  .leftJoin('leads', (join: any) => join.onRef('leads.id', '=', 'deals.lead_id').onRef('leads.tenant_id', '=', 'deals.tenant_id'))
+  .leftJoin('users', (join: any) => join.onRef('users.id', '=', 'deals.owner_id').onRef('users.tenant_id', '=', 'deals.tenant_id'))
+  .leftJoin('crm_territories as dt', (join: any) => join.onRef('dt.id', '=', 'deals.territory_id').onRef('dt.tenant_id', '=', 'deals.tenant_id'))
   .select([
     'deals.id', 'deals.name', 'deals.customer_id', 'deals.lead_id', 'deals.stage',
     'deals.value', 'deals.currency', 'deals.probability', 'deals.owner_id', 'deals.source',
@@ -103,12 +104,31 @@ export async function dealsRoutes(fastify: FastifyInstance) {
   fastify.addHook('preHandler', requireEntitlement('crm'));
   fastify.addHook('preHandler', requireRole(...DEAL_ROLES));
 
-  fastify.get('/', async (request: any) => {
-    const rows = await withTenant<any[]>(request.user.tenant_id, trx =>
-      dealSelect(trx).where('deals.tenant_id', '=', request.user.tenant_id)
-        .orderBy('deals.created_at', 'desc').execute()
-    );
-    return rows.map(mapDeal);
+  fastify.get('/', async (request: any, reply) => {
+    const parsed = z.object({
+      page: z.coerce.number().int().min(1).max(100000).optional(),
+      page_size: z.coerce.number().int().min(1).max(100).optional(),
+      customer_id: z.string().uuid().optional(),
+    }).safeParse(request.query);
+    if (!parsed.success) return reply.status(400).send({ error: 'Invalid deal filters or pagination.' });
+    const { page, page_size = 100, customer_id } = parsed.data;
+    const tenantId = request.user.tenant_id;
+    const result = await withTenant(tenantId, async trx => {
+      let query = dealSelect(trx).where('deals.tenant_id', '=', tenantId);
+      let countQuery = trx.selectFrom('deals').select(trx.fn.countAll<string>().as('total')).where('tenant_id', '=', tenantId);
+      if (customer_id) {
+        query = query.where('deals.customer_id', '=', customer_id);
+        countQuery = countQuery.where('customer_id', '=', customer_id);
+      }
+      const total = Number((await countQuery.executeTakeFirst())?.total ?? 0);
+      const items = await query.orderBy('deals.created_at', 'desc').orderBy('deals.id', 'desc')
+        .limit(page_size).offset(((page ?? 1) - 1) * page_size).execute();
+      return { items, total };
+    });
+    const items = result.items.map(mapDeal);
+    return page === undefined && parsed.data.page_size === undefined
+      ? items
+      : { items, total: result.total, page: page ?? 1, page_size, total_pages: Math.ceil(result.total / page_size) };
   });
 
   // Pipeline metrics for the dashboard header — value by stage, this
@@ -173,6 +193,11 @@ export async function dealsRoutes(fastify: FastifyInstance) {
       return reply.status(400).send({ error: `"${b.stage}" is not one of this tenant's pipeline stages` });
     }
     const id = await withTenant(tenantId, async trx => {
+      await assertCrmReferencesInTenant(trx, tenantId, [
+        { table: 'customers', id: b.customer_id }, { table: 'leads', id: b.lead_id },
+        { table: 'users', id: b.owner_id }, { table: 'quotations', id: b.quotation_id },
+        { table: 'crm_territories', id: b.territory_id },
+      ]);
       const [row] = await trx.insertInto('deals').values({
         tenant_id: tenantId,
         name: b.name,
@@ -226,6 +251,11 @@ export async function dealsRoutes(fastify: FastifyInstance) {
     // stage_changed_at/closed_at — not duplicated here.
 
     const notFound = await withTenant<boolean>(tenantId, async trx => {
+      await assertCrmReferencesInTenant(trx, tenantId, [
+        { table: 'customers', id: b.customer_id }, { table: 'leads', id: b.lead_id },
+        { table: 'users', id: b.owner_id }, { table: 'quotations', id: b.quotation_id },
+        { table: 'crm_territories', id: b.territory_id },
+      ]);
       let existing: { owner_id: string | null; name: string } | undefined;
       if (b.owner_id !== undefined) {
         existing = await trx.selectFrom('deals').select(['owner_id', 'name'])
