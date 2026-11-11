@@ -3,9 +3,9 @@
   "staff": 1000,
   "customers": 200,
   "concurrent_reads": 20,
-  "p50_ms": 5583,
-  "p95_ms": 5591,
-  "max_ms": 5592,
-  "heap_delta_bytes": -46141024,
-  "rss_delta_bytes": 73850880
+  "p50_ms": 2253,
+  "p95_ms": 2258,
+  "max_ms": 2262,
+  "heap_delta_bytes": -34242424,
+  "rss_delta_bytes": 57323520
 }

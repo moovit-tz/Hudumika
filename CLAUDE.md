@@ -45,20 +45,22 @@ The two real bugs these rules fixed (a redirect that broke authenticated fetch; 
 
 Mapping from "what native/ad-hoc thing you'd reach for" → the design-system equivalent:
 
-- Native `<select>`, short static option list → `Select` / `SelectTrigger` / `SelectValue` / `SelectContent` / `SelectItem` (`ui/select.tsx`). Radix `SelectItem` cannot have an empty-string `value` — use a sentinel like `'__none__'` and translate to/from `''` at the value/onChange boundary.
-- Native `<select>` over a long or growing list (vehicles, drivers, staff, customers, shipments — anything from an API `.map()`) → `Combobox` (`ui/combobox.tsx`). No empty-string restriction here.
-- Async "search-as-you-type against an API, with inline create" picker → `EntityPicker` (`apps/web/src/components/EntityPicker.tsx`), built on `Popover` + `PopoverAnchor` (not `Command`, since the input is the anchor/trigger itself, outside the popover).
-- Hand-built action/kebab menu (a `useState` open flag + absolutely-positioned div) → `DropdownMenu` / `DropdownMenuItem` / `DropdownMenuSeparator` / `DropdownMenuCheckboxItem` (`ui/dropdown-menu.tsx`). Radix owns open/close and outside-click — delete the old `useState`/`useRef`/`mousedown`-listener boilerplate when you migrate one.
-- Filter-toolbar pill ("Status: Open ▾") → `SingleSelectFilter` / `MultiSelectFilter` (`ui/filter-dropdown.tsx`).
-- Full-width search bar with active-filter count badge (list pages where search is the dominant control; clicking "Filters ●N" opens a filter panel or reveals filter pills below) → `SearchToolbar` (`ui/filter-dropdown.tsx`). Props: `search`/`onSearch`, `placeholder`, `activeFilterCount` (drives the badge), `onFiltersClick`/`filtersOpen` (toggle the filter panel), `onExpand` (optional expand button), `actions` slot (extra ReactNode for icon buttons or a DropdownMenu in the right action area). **Do not hand-roll a `<div><Icon /><input /></div>` search block on a list page — use `SearchToolbar` instead.**
-- Genuine right-click context menu (x/y positioned, not trigger-anchored) → `ui/context-menu.tsx` (Radix `ContextMenu` primitive).
-- Native `<input type="date">` → `DatePicker` (`ui/date-picker.tsx`) for a single date; `DateRangePicker` (same file) for a from/to range. Both are a styled trigger button + `Popover` + the themed `Calendar` (`ui/calendar.tsx`, built on `react-day-picker`).
-- Collapsible grouped sections (FAQ, checklists, filter groups) → `Accordion` / `AccordionItem` / `AccordionTrigger` / `AccordionContent` (`ui/accordion.tsx`). Card-style items (`rounded-xl border`), so wrap the list in a container with `className="flex flex-col gap-2"` for spacing between items.
-- Checkbox/switch settings row with a label + helper text → `CheckboxRow` / `SwitchRow` (`ui/list-item-row.tsx`).
-- Icon-in-a-colored-circle/square (empty states, document rows, notification lists, card headers) → `FeaturedIcon` (`ui/featured-icon.tsx`). Takes the icon as `children`, `variant` (`brand`/`gray`/`success`/`warning`/`error`/`info`), `size` (`sm`/`md`/`lg`/`xl`), `shape` (`square`/`circle`).
-- Status pill (Cleared / Overdue / Draft / …) → `Badge` (`ui/badge.tsx`) with the soft-tint `variant`s (`brand`/`success`/`warning`/`error`/`info`/`gray`) — background tint + matching-hue text, not a solid fill.
-- Multi-step popup with tabs/steps → `Dialog`/`DialogContent` **must** pass `size` (`sm`/`md`/`lg`/`xl`/`full`) and lay out `DialogHeader`+`DialogBody`+`DialogFooter`, so the dialog doesn't resize as the user moves between steps. Omitting `size` is fine only for a genuinely single-view dialog.
-- Loading state → `SectionLoading`/`PageLoading`/`ButtonSpinner` (`ui/spinner.tsx`) or the shape-matched `Skeleton*` family (`ui/skeleton.tsx`) — never a hand-rolled `<div>Loading…</div>` or spin keyframe.
+- Native `<select>`, short static list → `Select` (`ui/select.tsx`)
+- Native `<select>` over a long/growing list (API `.map()`) → `Combobox` (`ui/combobox.tsx`)
+- Async search-as-you-type picker with inline create → `EntityPicker` (`components/EntityPicker.tsx`)
+- Hand-built action/kebab menu → `DropdownMenu` (`ui/dropdown-menu.tsx`)
+- Filter-toolbar pill ("Status: Open ▾") → `SingleSelectFilter` / `MultiSelectFilter` (`ui/filter-dropdown.tsx`)
+- Full-width search bar with filter-count badge → `SearchToolbar` (`ui/filter-dropdown.tsx`) — never hand-roll this
+- Right-click context menu → `ui/context-menu.tsx`
+- Native `<input type="date">` → `DatePicker` / `DateRangePicker` (`ui/date-picker.tsx`)
+- Collapsible grouped sections → `Accordion` (`ui/accordion.tsx`)
+- Checkbox/switch settings row → `CheckboxRow` / `SwitchRow` (`ui/list-item-row.tsx`)
+- Icon-in-a-colored-circle (empty states, card headers) → `FeaturedIcon` (`ui/featured-icon.tsx`)
+- Status pill → `Badge` (`ui/badge.tsx`), soft-tint variants only
+- Multi-step popup with tabs/steps → `Dialog`, **must** pass an explicit `size`
+- Loading state → `SectionLoading`/`PageLoading`/`Skeleton*` — never a hand-rolled spinner
+
+Per-component gotchas (Radix `SelectItem`'s empty-string restriction, why `EntityPicker` uses `Popover`+`PopoverAnchor` not `Command`, `SearchToolbar`'s full prop list, exact `FeaturedIcon`/`Badge` variants, the `Dialog` resize reasoning): see [`docs/DESIGN_SYSTEM.md`](docs/DESIGN_SYSTEM.md) → **Component mapping (full detail)**.
 
 **Never hardcode a brand colour, corner radius, or control height/padding** — use `var(--teal)` (the *per-app* accent, seeded per tenant/app, not a fixed colour), `--r-sm`/`--r` for corners, and the `--ds-btn-py-*`/`--ctl-h-*` density tokens. A hardcoded value that happens to match today's default isn't a style nit — it's unreachable by the settings (SuperAdmin theme preset, density, shape) that exist to control it, and it silently breaks the moment a tenant or preset changes.
 

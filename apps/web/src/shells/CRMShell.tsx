@@ -18,6 +18,7 @@ import { Leads }              from '../pages/Leads.js';
 import { Pipeline }           from '../pages/Pipeline.js';
 import { Sales }              from '../pages/Sales.js';
 import { CrmChainPartners }     from '../pages/CrmChainPartners.js';
+import { CrmBusinessRelationships } from '../pages/CrmBusinessRelationships.js';
 import { CrmDuplicates }        from '../pages/CrmDuplicates.js';
 import { CrmSmartViews }         from '../pages/CrmSmartViews.js';
 import { CrmCustomFields }        from '../pages/CrmCustomFields.js';
@@ -27,8 +28,17 @@ import { CrmAssignmentRules }       from '../pages/CrmAssignmentRules.js';
 import { CrmQuotaTargets }          from '../pages/CrmQuotaTargets.js';
 import { CrmTerritories }           from '../pages/CrmTerritories.js';
 import { CrmLeadStages }            from '../pages/CrmLeadStages.js';
-import { CrmTerminology }           from '../pages/CrmTerminology.js';
 import { CrmVendors, CrmVendorRecord } from '../pages/CrmVendors.js';
+
+function LegacyPartnerRecordRedirect() {
+  const { id } = useParams<{ id: string }>();
+  return <Navigate to={id ? `/crm/relationships/partners/${id}` : '/crm/relationships?view=partners'} replace />;
+}
+
+function LegacyVendorRecordRedirect() {
+  const { id } = useParams<{ id: string }>();
+  return <Navigate to={id ? `/crm/relationships/vendors/${id}` : '/crm/relationships?view=vendors'} replace />;
+}
 
 /* /crm/leads/:id → /crm/leads?lead=:id (opens the lead profile directly) */
 function LeadsWithId() {
@@ -49,8 +59,7 @@ const NAV: SidebarSection[] = [
         label: 'Customers', icon: 'users', path: '/crm/customers',
         children: [
           { label: 'Customers',          icon: 'users',    path: '/crm/customers'      },
-          { label: 'Partners Directory', icon: 'link',     path: '/crm/chain-partners' },
-          { label: 'Vendors', icon: 'users', path: '/crm/vendors' },
+          { label: 'Business Relationships', icon: 'link', path: '/crm/relationships' },
           { label: 'Leads',              icon: 'userPlus', path: '/crm/leads'          },
         ],
       },
@@ -79,7 +88,6 @@ const NAV: SidebarSection[] = [
       { label: 'Assignment Rules',   icon: 'share',        path: '/crm/assignment-rules'   },
       { label: 'Quota Targets',      icon: 'target',       path: '/crm/quota-targets'      },
       { label: 'Territories',        icon: 'mapPin',       path: '/crm/territories'        },
-      { label: 'Terminology',        icon: 'type',         path: '/crm/terminology'        },
       { label: 'Saved Views',        icon: 'filter',       path: '/crm/saved-views'        },
     ],
   },
@@ -103,14 +111,20 @@ export function CRMShell() {
               <Route path="customers/new"         element={<RequireRoles roles={CRM_ROLES}><CustomerOnboarding /></RequireRoles>} />
               <Route path="customers/:id"         element={<RequireRoles roles={CRM_ROLES}><CustomerDetailPage /></RequireRoles>} />
               <Route path="customers/:id/:tab"    element={<RequireRoles roles={CRM_ROLES}><CustomerDetailPage /></RequireRoles>} />
-              <Route path="chain-partners"        element={<RequireRoles roles={CRM_ROLES}><CrmChainPartners /></RequireRoles>} />
-              <Route path="chain-partners/new"    element={<RequireRoles roles={CRM_ROLES}><CrmChainPartners /></RequireRoles>} />
-              <Route path="chain-partners/:id"    element={<RequireRoles roles={CRM_ROLES}><CrmChainPartners /></RequireRoles>} />
+              <Route path="relationships" element={<RequireRoles roles={CRM_ROLES}><CrmBusinessRelationships /></RequireRoles>} />
+              <Route path="relationships/partners/new" element={<RequireRoles roles={CRM_ROLES}><CrmChainPartners /></RequireRoles>} />
+              <Route path="relationships/partners/:id" element={<RequireRoles roles={CRM_ROLES}><CrmChainPartners /></RequireRoles>} />
+              <Route path="relationships/vendors/new" element={<RequireRoles roles={CRM_ROLES}><CrmVendorRecord /></RequireRoles>} />
+              <Route path="relationships/vendors/:id" element={<RequireRoles roles={CRM_ROLES}><CrmVendorRecord /></RequireRoles>} />
+              <Route path="relationships/vendors/:id/:tab" element={<RequireRoles roles={CRM_ROLES}><CrmVendorRecord /></RequireRoles>} />
+              <Route path="chain-partners" element={<Navigate to="/crm/relationships?view=partners" replace />} />
+              <Route path="chain-partners/new" element={<Navigate to="/crm/relationships/partners/new" replace />} />
+              <Route path="chain-partners/:id" element={<LegacyPartnerRecordRedirect />} />
               <Route path="leads"         element={<RequireRoles roles={[...MGMT_ROLES, 'SALES']}><Leads /></RequireRoles>} />
               <Route path="leads/:id"     element={<RequireRoles roles={[...MGMT_ROLES, 'SALES']}><LeadsWithId /></RequireRoles>} />
-              <Route path="vendors" element={<RequireRoles roles={CRM_ROLES}><CrmVendors /></RequireRoles>} />
-              <Route path="vendors/new" element={<RequireRoles roles={CRM_ROLES}><CrmVendorRecord /></RequireRoles>} />
-              <Route path="vendors/:id" element={<RequireRoles roles={CRM_ROLES}><CrmVendorRecord /></RequireRoles>} />
+              <Route path="vendors" element={<Navigate to="/crm/relationships?view=vendors" replace />} />
+              <Route path="vendors/new" element={<Navigate to="/crm/relationships/vendors/new" replace />} />
+              <Route path="vendors/:id" element={<LegacyVendorRecordRedirect />} />
               <Route path="opportunities" element={<RequireRoles roles={[...MGMT_ROLES, 'SALES']}><Pipeline /></RequireRoles>} />
               <Route path="pipeline"     element={<Navigate to="/crm/opportunities" replace />} />
               <Route path="quotes"       element={<RequireRoles roles={CRM_ROLES}><Sales /></RequireRoles>} />
@@ -123,7 +137,6 @@ export function CRMShell() {
               <Route path="assignment-rules"  element={<RequireRoles roles={MGMT_ROLES}><CrmAssignmentRules /></RequireRoles>} />
               <Route path="quota-targets"     element={<RequireRoles roles={MGMT_ROLES}><CrmQuotaTargets /></RequireRoles>} />
               <Route path="territories"       element={<RequireRoles roles={MGMT_ROLES}><CrmTerritories /></RequireRoles>} />
-              <Route path="terminology"       element={<RequireRoles roles={MGMT_ROLES}><CrmTerminology /></RequireRoles>} />
               <Route path="duplicates"    element={<RequireRoles roles={MGMT_ROLES}><CrmDuplicates /></RequireRoles>} />
             </Route>
 

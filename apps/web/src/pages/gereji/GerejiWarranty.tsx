@@ -1,4 +1,5 @@
 import { useEffect, useState, useCallback } from 'react';
+import { TH, TD } from './shared.js';
 import { PageHeader } from '../../components/PageHeader.js';
 import { SectionCard } from '../../components/SectionCard.js';
 import { Badge } from '../../components/ui/badge.js';
@@ -29,8 +30,6 @@ const WC_BADGE: Record<string, 'info' | 'warning' | 'success' | 'brand' | 'error
   partially_approved: 'brand', rejected: 'error', settled: 'gray',
 };
 
-const TH: React.CSSProperties = { padding: '10px 18px', textAlign: 'left', fontSize: 11, fontWeight: 700, color: 'var(--ink3)', textTransform: 'uppercase', letterSpacing: '0.05em', background: 'var(--card-sunken, var(--bg))', borderBottom: '1px solid var(--border)', whiteSpace: 'nowrap' };
-const TD: React.CSSProperties = { padding: '12px 18px', borderBottom: '1px solid var(--border)', verticalAlign: 'middle', color: 'var(--ink)' };
 
 export function GerejiWarranty() {
   const [rows, setRows] = useState<Claim[]>([]);

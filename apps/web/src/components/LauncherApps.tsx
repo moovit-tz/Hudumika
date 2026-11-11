@@ -58,7 +58,7 @@ export const LAUNCHER_APPS: Array<{ id: string; name: string; color: string; pat
   // (D:\Apps\Ngao) forked from LexCore's scaffold — not an internal route.
   { id: 'ngao',      name: 'Ngao',      color: '#059669', path: import.meta.env.VITE_NGAO_URL?.trim() || (import.meta.env.DEV ? 'http://localhost:5176/sso' : '/ngao/sso') },
   ...(import.meta.env.DEV || import.meta.env.VITE_STRIDE_URL?.trim() ? [{ id: 'stride', name: 'Stride', color: '#4f46e5', path: import.meta.env.VITE_STRIDE_URL?.trim() || 'http://localhost:3101/' }] : []),
-  { id: 'gereji',    name: 'Gereji',    color: '#d97706', path: import.meta.env.VITE_GEREJI_URL?.trim() || (import.meta.env.DEV ? 'http://localhost:3000/' : '/gereji') },
+  { id: 'gereji',    name: 'Gereji',    color: '#d97706', path: '/gereji'    },
 ];
 
 // ── App SVG icons for launcher ─────────────────────────────────

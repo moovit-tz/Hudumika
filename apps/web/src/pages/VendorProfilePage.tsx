@@ -1,7 +1,7 @@
 import { PageHeader } from '../components/PageHeader.js';
 import { FinanceDocumentActions } from '../components/FinanceDocumentActions.js';
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
-import { useParams, useNavigate, Link } from 'react-router-dom';
+import { useParams, useNavigate, useLocation, Link } from 'react-router-dom';
 import { useCurrency } from '../hooks/useCurrency.js';
 import { useIsMobile } from '../hooks/useIsMobile.js';
 import { apiFetch } from '../lib/api.js';
@@ -33,20 +33,20 @@ const STATUSES: VendorStatus[] = ['active', 'inactive', 'blocked'];
 const TERMS: PaymentTerms[] = ['cod', 'net_15', 'net_30', 'net_60', 'net_90', 'prepaid'];
 
 const BILL_STATUS_COLOR: Record<string, { bg: string; color: string }> = {
-  DRAFT:            { bg: 'var(--bg)', color: 'var(--ink3)' },
+  DRAFT: { bg: 'var(--bg)', color: 'var(--ink3)' },
   PENDING_APPROVAL: { bg: 'var(--purple-l)', color: 'var(--purple)' },
-  POSTED:           { bg: 'var(--blue-l)', color: 'var(--blue)' },
-  PARTIAL:          { bg: 'var(--gold-l)', color: 'var(--gold)' },
-  PAID:             { bg: 'var(--green-l)', color: 'var(--green)' },
-  OVERDUE:          { bg: 'var(--red-l)', color: 'var(--red)' },
-  VOID:             { bg: 'var(--bg)', color: 'var(--ink3)' },
+  POSTED: { bg: 'var(--blue-l)', color: 'var(--blue)' },
+  PARTIAL: { bg: 'var(--gold-l)', color: 'var(--gold)' },
+  PAID: { bg: 'var(--green-l)', color: 'var(--green)' },
+  OVERDUE: { bg: 'var(--red-l)', color: 'var(--red)' },
+  VOID: { bg: 'var(--bg)', color: 'var(--ink3)' },
 };
 
 const PO_STATUS_COLOR: Record<string, { bg: string; color: string }> = {
-  DRAFT:     { bg: 'var(--bg)', color: 'var(--ink3)' },
-  SENT:      { bg: 'var(--blue-l)', color: 'var(--blue)' },
-  PARTIAL:   { bg: 'var(--gold-l)', color: 'var(--gold)' },
-  RECEIVED:  { bg: 'var(--green-l)', color: 'var(--green)' },
+  DRAFT: { bg: 'var(--bg)', color: 'var(--ink3)' },
+  SENT: { bg: 'var(--blue-l)', color: 'var(--blue)' },
+  PARTIAL: { bg: 'var(--gold-l)', color: 'var(--gold)' },
+  RECEIVED: { bg: 'var(--green-l)', color: 'var(--green)' },
   CANCELLED: { bg: 'var(--red-l)', color: 'var(--red)' },
 };
 
@@ -87,6 +87,8 @@ function TinChip({ tin }: { tin?: string }) {
 export function VendorProfilePage() {
   const { id, tab: tabParam } = useParams<{ id: string; tab?: string }>();
   const navigate = useNavigate();
+  const location = useLocation();
+  const isCrm = location.pathname.startsWith('/crm');
   const { fmt } = useCurrency();
   const isMobile = useIsMobile();
 
@@ -115,7 +117,8 @@ export function VendorProfilePage() {
 
   const handleTabChange = (t: string) => {
     setActiveTab(t);
-    navigate(`/finance/vendors/${id}/${t}`, { replace: true });
+    const basePath = isCrm ? `/crm/relationships/vendors/${id}` : `/finance/vendors/${id}`;
+    navigate(`${basePath}/${t}`, { replace: true });
   };
 
   // Edit form state
@@ -303,7 +306,7 @@ export function VendorProfilePage() {
     try {
       await apiFetch(`/v1/suppliers/${id}`, { method: 'DELETE' });
       showAlert('Vendor deactivated.', { variant: 'success' });
-      navigate('/finance/vendors');
+      navigate(isCrm ? '/crm/relationships?view=vendors' : '/finance/vendors');
     } catch (err: any) {
       showAlert(err?.message || 'Could not deactivate vendor.');
     }
@@ -409,8 +412,8 @@ export function VendorProfilePage() {
           <div className="vendor-empty-icon"><Icon name="alertCircle" size={28} /></div>
           <h2 className="vendor-empty-title">Vendor Not Found</h2>
           <p className="vendor-empty-desc">{error || 'The requested supplier record does not exist or has been removed.'}</p>
-          <Button onClick={() => navigate('/finance/vendors')} style={{ marginTop: 12 }}>
-            Back to vendors
+          <Button onClick={() => navigate(isCrm ? '/crm/relationships?view=vendors' : '/finance/vendors')} style={{ marginTop: 12 }}>
+            {isCrm ? 'Back to Business Relationships' : 'Back to Vendors'}
           </Button>
         </div>
       </div>
@@ -423,21 +426,143 @@ export function VendorProfilePage() {
 
   return (
     <div className="vendor-profile-root">
-      <FinanceDocumentActions kind="vendor_statement" id={v.id} label={v.name}/>
-      {/* ── Breadcrumbs Bar ── */}
-      <div className="vendor-breadcrumbs-bar">
-        <div className="vendor-breadcrumbs-path">
-          <Link to="/finance">Finance</Link>
-          <span>/</span>
-          <Link to="/finance/vendors">Vendors</Link>
-          <span>/</span>
-          <span className="vendor-breadcrumbs-current">{v.name}</span>
-        </div>
-        <Link to="/finance/vendors" className="vendor-back-btn">
-          <Icon name="arrowLeft" size={13} />
-          <span>All Vendors</span>
-        </Link>
-      </div>
+      {/* ── Page Header with Standard BackButton & Breadcrumbs ── */}
+      <PageHeader
+        onBack={() => navigate(isCrm ? '/crm/relationships?view=vendors' : '/finance/vendors')}
+        backLabel={isCrm ? 'Back to Business Relationships' : 'Back to Vendors'}
+        crumbs={[
+          isCrm ? { label: 'CRM', to: '/crm' } : { label: 'Finance', to: '/finance' },
+          isCrm
+            ? { label: 'Business relationships', to: '/crm/relationships?view=vendors' }
+            : { label: 'Vendors', to: '/finance/vendors' },
+          v.name,
+        ]}
+        titlePlain={v.name}
+        titleEm="profile"
+        subtitle="Procurement vendor & trade supplier master parameters in this workspace."
+        actions={
+          <div className="flex items-center gap-1.5">
+            {/* Quick Communication & Edit Actions (Icons) */}
+            <div className="flex items-center gap-1 bg-muted/40 p-1 rounded-lg border border-border/60">
+              {v.email && (
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon"
+                  iconOnly
+                  onClick={() => { window.location.href = `mailto:${v.email}`; }}
+                  title="Send email"
+                  aria-label="Send email"
+                >
+                  <Icon name="mail" size={15} />
+                </Button>
+              )}
+
+              {v.phone && (
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon"
+                  iconOnly
+                  className="text-emerald-600 dark:text-emerald-400 hover:text-emerald-700 hover:bg-emerald-50 dark:hover:bg-emerald-950/40"
+                  onClick={() => {
+                    const cleanPhone = v.phone.replace(/[^0-9]/g, '');
+                    window.open(`https://wa.me/${cleanPhone}`, '_blank');
+                  }}
+                  title="Chat on WhatsApp"
+                  aria-label="Chat on WhatsApp"
+                >
+                  <Icon name="whatsapp" size={15} />
+                </Button>
+              )}
+
+              <Button
+                type="button"
+                variant="ghost"
+                size="icon"
+                iconOnly
+                onClick={() => handleTabChange('edit')}
+                title="Edit vendor profile details"
+                aria-label="Edit vendor profile details"
+              >
+                <Icon name="edit" size={15} />
+              </Button>
+            </div>
+
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              className="gap-1.5"
+              onClick={() => navigate(`/finance/purchase-orders?supplier_id=${v.id}&new=1`)}
+              title="Issue a purchase order"
+            >
+              <Icon name="shoppingCart" size={14} />
+              <span>New PO</span>
+            </Button>
+
+            <Button
+              type="button"
+              size="sm"
+              className="gap-1.5 shadow-xs"
+              onClick={() => navigate(`/finance/bills?supplier_id=${v.id}&new=1`)}
+              title="Record a new supplier bill"
+            >
+              <Icon name="plus" size={14} />
+              <span>Record bill</span>
+            </Button>
+
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button type="button" variant="outline" size="icon" iconOnly aria-label="More actions">
+                  <Icon name="moreHorizontal" size={16} />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuItem
+                  onClick={async () => {
+                    try {
+                      await navigator.clipboard.writeText(window.location.href);
+                      showAlert('Internal profile link copied. Access requires sign-in.', { variant: 'success' });
+                    } catch {
+                      showAlert('Could not copy link.', { variant: 'error' });
+                    }
+                  }}
+                >
+                  <Icon name="share" size={14} />
+                  <span>Copy Profile Link</span>
+                </DropdownMenuItem>
+                {isCrm && (
+                  <DropdownMenuItem onClick={() => navigate(`/finance/vendors/${v.id}`)}>
+                    <Icon name="receipt" size={14} />
+                    <span>Open Finance Ledger</span>
+                  </DropdownMenuItem>
+                )}
+                <DropdownMenuItem onClick={() => navigate(`/finance/expenses/new?supplier_id=${v.id}`)}>
+                  <Icon name="creditCard" size={14} />
+                  <span>Log Operational Expense</span>
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                {v.status === 'active' ? (
+                  <DropdownMenuItem onClick={() => handleToggleStatus('inactive')} style={{ color: 'var(--ink2)' }}>
+                    <Icon name="pause" size={14} />
+                    <span>Set Inactive</span>
+                  </DropdownMenuItem>
+                ) : (
+                  <DropdownMenuItem onClick={() => handleToggleStatus('active')} style={{ color: 'var(--green)' }}>
+                    <Icon name="check" size={14} />
+                    <span>Reactivate Vendor</span>
+                  </DropdownMenuItem>
+                )}
+                <DropdownMenuItem onClick={handleDeleteVendor} style={{ color: 'var(--red)' }}>
+                  <Icon name="trash" size={14} />
+                  <span>Deactivate Account</span>
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </div>
+        }
+      />
 
       {/* ── Master Vendor Hero Card ── */}
       <div className="vendor-master-hero">
@@ -460,7 +585,7 @@ export function VendorProfilePage() {
 
             <div className="vendor-hero-details">
               <div className="vendor-title-row">
-                <PageHeader crumbs={[]} titlePlain={v.name.split(' ').slice(0,-1).join(' ')} titleEm={v.name.split(' ').slice(-1)[0]} subtitle="Vendor profile"/>
+                <h1 className="vendor-company-title">{v.name}</h1>
                 <Badge
                   style={{
                     background: statusColor.bg,
@@ -477,6 +602,11 @@ export function VendorProfilePage() {
                   <Icon name="briefcase" size={12} />
                   <span>{VENDOR_CATEGORY_LABEL[v.category] || v.category}</span>
                 </span>
+                {v.refCode && (
+                  <span style={{ fontSize: 11, fontWeight: 800, fontFamily: 'var(--font)', color: 'var(--teal)', background: 'var(--teal-l)', border: '1px solid color-mix(in srgb, var(--teal) 25%, transparent)', padding: '2px 8px', borderRadius: 'var(--r-sm)', letterSpacing: '0.05em' }}>
+                    {v.refCode}
+                  </span>
+                )}
                 <span style={{ fontSize: 11.5, fontWeight: 700, color: 'var(--ink3)', background: 'var(--bg)', padding: '2px 8px', borderRadius: 'var(--r-sm)' }}>
                   {v.currency}
                 </span>
@@ -552,66 +682,9 @@ export function VendorProfilePage() {
             </div>
           </div>
 
-          {/* Quick Action Buttons */}
+          {/* Quick Action Buttons / Statement export */}
           <div className="vendor-hero-actions">
-            <Button type="button" variant="outline" size="sm" onClick={() => handleTabChange('edit')} title="Edit vendor profile details">
-              <Icon name="edit" size={14} />
-              <span>Edit profile</span>
-            </Button>
-
-            <Button type="button" variant="outline" size="sm" onClick={() => navigate(`/finance/purchase-orders?supplier_id=${v.id}&new=1`)} title="Issue a purchase order">
-              <Icon name="shoppingCart" size={14} />
-              <span>New PO</span>
-            </Button>
-
-            <Button type="button" size="sm" onClick={() => navigate(`/finance/bills?supplier_id=${v.id}&new=1`)} title="Record a new supplier bill">
-              <Icon name="plus" size={14} />
-              <span>Record bill</span>
-            </Button>
-
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button type="button" variant="outline" size="icon" iconOnly aria-label="More actions">
-                  <Icon name="moreHorizontal" size={16} />
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end">
-
-                <DropdownMenuItem
-                  onClick={async () => {
-                    try {
-                      await navigator.clipboard.writeText(window.location.href);
-                      showAlert('Internal profile link copied. Access requires sign-in.', { variant: 'success' });
-                    } catch {
-                      showAlert('Could not copy the link. Copy the address from your browser.', { variant: 'error' });
-                    }
-                  }}
-                >
-                  <Icon name="share" size={14} />
-                  <span>Copy Profile Link</span>
-                </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => navigate(`/finance/expenses/new?supplier_id=${v.id}`)}>
-                  <Icon name="creditCard" size={14} />
-                  <span>Log Operational Expense</span>
-                </DropdownMenuItem>
-                <DropdownMenuSeparator />
-                {v.status === 'active' ? (
-                  <DropdownMenuItem onClick={() => handleToggleStatus('inactive')} style={{ color: 'var(--ink2)' }}>
-                    <Icon name="pause" size={14} />
-                    <span>Set Inactive</span>
-                  </DropdownMenuItem>
-                ) : (
-                  <DropdownMenuItem onClick={() => handleToggleStatus('active')} style={{ color: 'var(--green)' }}>
-                    <Icon name="check" size={14} />
-                    <span>Reactivate Vendor</span>
-                  </DropdownMenuItem>
-                )}
-                <DropdownMenuItem onClick={handleDeleteVendor} style={{ color: 'var(--red)' }}>
-                  <Icon name="trash" size={14} />
-                  <span>Deactivate Account</span>
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
+            <FinanceDocumentActions kind="vendor_statement" id={v.id} label={v.name} />
           </div>
         </div>
 
@@ -694,12 +767,12 @@ export function VendorProfilePage() {
       {/* ── Navigation Tabs ── */}
       <div className="vendor-tabs-nav">
         {[
-          { key: 'overview',  label: 'Overview',              icon: 'grid'         as const },
-          { key: 'bills',     label: 'Bills & Invoices',      icon: 'receipt'      as const, count: bills.length },
-          { key: 'orders',    label: 'Purchase Orders',       icon: 'shoppingCart' as const, count: purchaseOrders.length },
-          { key: 'expenses',  label: 'Expenses Logged',       icon: 'creditCard'   as const, count: expenses.length },
-          { key: 'payments',  label: 'Payments & Remittance', icon: 'dollarSign'   as const, count: payments.length },
-          { key: 'edit',      label: 'Profile & Settings',    icon: 'settings'     as const },
+          { key: 'overview', label: 'Overview', icon: 'grid' as const },
+          { key: 'bills', label: 'Bills & Invoices', icon: 'receipt' as const, count: bills.length },
+          { key: 'orders', label: 'Purchase Orders', icon: 'shoppingCart' as const, count: purchaseOrders.length },
+          { key: 'expenses', label: 'Expenses Logged', icon: 'creditCard' as const, count: expenses.length },
+          { key: 'payments', label: 'Payments & Remittance', icon: 'dollarSign' as const, count: payments.length },
+          { key: 'edit', label: 'Profile & Settings', icon: 'settings' as const },
         ].map(t => (
           <button data-ui-native-button=""
             key={t.key}

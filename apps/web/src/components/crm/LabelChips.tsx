@@ -87,7 +87,7 @@ export function LabelChips({ subjectType, subjectId }: { subjectType: SubjectTyp
       <Popover open={open} onOpenChange={setOpen}>
         <PopoverTrigger asChild>
           <button type="button" title="Add label" style={{
-            display: 'flex', alignItems: 'center', justifyContent: 'center', width: "var(--ctl-h-xs)", height: "var(--ctl-h-xs)", borderRadius: '50%',
+            display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: 20, height: 20, minWidth: 20, minHeight: 20, borderRadius: '50%',
             border: '1px dashed var(--border)', background: 'none', cursor: 'pointer', color: 'var(--ink3)',
           }} data-ui-native-button="">
             <Icon name="plus" size={11} />

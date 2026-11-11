@@ -1,0 +1,387 @@
+/* ── AI Freight Quote Generator Page ── */
+.fq-page-container {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-lg, 20px);
+  padding-bottom: 40px;
+}
+
+.fq-workstation-grid {
+  display: grid;
+  grid-template-columns: 310px minmax(0, 1fr);
+  gap: var(--space-lg, 20px);
+  align-items: flex-start;
+}
+
+@media (max-width: 980px) {
+  .fq-workstation-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+/* ── Left Column: Transport Mode ── */
+.fq-sidebar-col {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.fq-card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding-bottom: 12px;
+  border-bottom: 1px solid var(--border);
+}
+
+.fq-card-title {
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--ink);
+  letter-spacing: -0.01em;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0;
+}
+
+.fq-mode-options {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.fq-mode-card {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 16px;
+  border-radius: var(--r, 12px);
+  border: 1.5px solid var(--border);
+  background: var(--card-bg, var(--white));
+  cursor: pointer;
+  transition: all var(--dur-fast, 120ms) ease;
+  text-align: left;
+}
+
+.fq-mode-card:hover {
+  border-color: color-mix(in srgb, var(--teal) 50%, var(--border));
+  background: color-mix(in srgb, var(--teal) 3%, var(--card-bg, var(--white)));
+}
+
+.fq-mode-card[data-active="true"] {
+  border-color: var(--teal);
+  background: color-mix(in srgb, var(--teal) 7%, var(--card-bg, var(--white)));
+  box-shadow: 0 0 0 1px var(--teal);
+}
+
+.fq-mode-head {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+}
+
+.fq-mode-text {
+  flex: 1;
+  min-width: 0;
+}
+
+.fq-mode-name {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--ink);
+  margin-bottom: 2px;
+}
+
+.fq-mode-blurb {
+  font-size: 12px;
+  color: var(--ink3);
+  line-height: 1.35;
+}
+
+.fq-submode-select-wrap {
+  padding-top: 8px;
+  border-top: 1px dashed var(--border);
+  margin-top: 2px;
+}
+
+/* ── Right Column: Generator Information Form ── */
+.fq-form-card {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.fq-form-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+}
+
+@media (max-width: 640px) {
+  .fq-form-grid {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 14px;
+  }
+}
+
+.fq-field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.fq-label {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--ink2);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.fq-input-box {
+  position: relative;
+  display: flex;
+  align-items: center;
+  width: 100%;
+}
+
+.fq-input-icon {
+  position: absolute;
+  left: 12px;
+  color: var(--ink3);
+  pointer-events: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.fq-input-with-icon {
+  padding-left: 38px !important;
+  width: 100%;
+}
+
+/* ── AI-Powered Pricing Callout Box ── */
+.fq-ai-box {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 14px 16px;
+  border-radius: var(--r-sm, 8px);
+  background: color-mix(in srgb, var(--teal) 5%, var(--card-bg, var(--white)));
+  border: 1px solid color-mix(in srgb, var(--teal) 24%, var(--border));
+}
+
+.fq-ai-title {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--ink);
+  margin-bottom: 2px;
+}
+
+.fq-ai-desc {
+  font-size: 12px;
+  color: var(--ink2);
+  line-height: 1.45;
+  margin: 0;
+}
+
+/* ── Form Actions ── */
+.fq-form-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 10px;
+  padding-top: 8px;
+  border-top: 1px solid var(--border);
+}
+
+@media (max-width: 480px) {
+  .fq-form-actions {
+    flex-direction: column-reverse;
+  }
+  .fq-form-actions button {
+    width: 100%;
+    justify-content: center;
+  }
+}
+
+/* ── Quote Results Panel ── */
+.fq-results-section {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  margin-top: 8px;
+}
+
+.fq-results-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.fq-results-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+  gap: 16px;
+}
+
+.fq-quote-card {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  border-radius: var(--r, 12px);
+  border: 1.5px solid var(--border);
+  background: var(--card-bg, var(--white));
+  padding: 18px;
+  gap: 16px;
+  transition: all var(--dur-fast, 120ms) ease;
+}
+
+.fq-quote-card:hover {
+  border-color: color-mix(in srgb, var(--teal) 60%, var(--border));
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.05);
+}
+
+.fq-quote-card[data-featured="true"] {
+  border-color: var(--teal);
+  background: color-mix(in srgb, var(--teal) 3%, var(--card-bg, var(--white)));
+}
+
+.fq-qc-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.fq-carrier-name {
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--ink);
+}
+
+.fq-qc-route {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--ink2);
+  margin-top: 6px;
+}
+
+.fq-qc-meta {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  padding: 10px 12px;
+  background: var(--bg);
+  border-radius: var(--r-sm, 8px);
+  border: 1px solid var(--border);
+  font-size: 11.5px;
+}
+
+.fq-meta-item-label {
+  color: var(--ink3);
+  margin-bottom: 2px;
+}
+
+.fq-meta-item-val {
+  font-weight: 700;
+  color: var(--ink);
+}
+
+.fq-qc-price-block {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  padding-top: 10px;
+  border-top: 1px solid var(--border);
+}
+
+.fq-qc-total-label {
+  font-size: 12px;
+  color: var(--ink3);
+  font-weight: 600;
+}
+
+.fq-qc-total-price {
+  font-size: 22px;
+  font-weight: 800;
+  color: var(--ink);
+  letter-spacing: -0.02em;
+}
+
+.fq-qc-total-sub {
+  font-size: 11px;
+  color: var(--ink3);
+  text-align: right;
+}
+
+.fq-qc-actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+
+/* ── Document Upload Modal ── */
+.fq-dropzone {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 32px 20px;
+  border: 2px dashed var(--border);
+  border-radius: var(--r, 12px);
+  background: var(--bg);
+  cursor: pointer;
+  transition: all var(--dur-fast, 120ms) ease;
+  text-align: center;
+  gap: 10px;
+}
+
+.fq-dropzone:hover {
+  border-color: var(--teal);
+  background: color-mix(in srgb, var(--teal) 4%, var(--bg));
+}
+
+/* ── Dark mode enhancements ── */
+[data-theme="dark"] .fq-mode-card {
+  background: var(--card-bg);
+  border-color: var(--border);
+}
+
+[data-theme="dark"] .fq-mode-card:hover {
+  background: color-mix(in srgb, var(--teal) 8%, var(--card-bg));
+  border-color: color-mix(in srgb, var(--teal) 60%, var(--border));
+}
+
+[data-theme="dark"] .fq-mode-card[data-active="true"] {
+  background: color-mix(in srgb, var(--teal) 14%, var(--card-bg));
+  border-color: var(--teal);
+  box-shadow: 0 0 0 1px var(--teal);
+}
+
+[data-theme="dark"] .fq-ai-box {
+  background: color-mix(in srgb, var(--teal) 10%, var(--card-bg));
+  border-color: color-mix(in srgb, var(--teal) 30%, var(--border));
+}
+
+[data-theme="dark"] .fq-quote-card {
+  background: var(--card-bg);
+  border-color: var(--border);
+}
+
+[data-theme="dark"] .fq-quote-card[data-featured="true"] {
+  background: color-mix(in srgb, var(--teal) 10%, var(--card-bg));
+  border-color: var(--teal);
+}
+
+[data-theme="dark"] .fq-dropzone {
+  background: color-mix(in srgb, var(--border) 20%, var(--card-bg));
+}
+

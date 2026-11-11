@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useMemo, useState, useRef } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth.js';
+import { formatAmount } from '../lib/currency.js';
 import { apiFetch } from '../lib/api.js';
 import { Icon, type IconName } from '../components/Icon.js';
 import { SectionCard } from '../components/SectionCard.js';
@@ -59,7 +60,7 @@ function fmtDate(d: string | null): string {
   if (isNaN(dt.getTime())) return '—';
   return dt.toLocaleDateString('en-GB', { day: '2-digit', month: 'short' });
 }
-function money(n: number): string { return `TZS ${Number(n).toLocaleString()}`; }
+function money(n: number): string { return formatAmount(Number(n), 'TZS'); }
 function roleLabel(role?: string): string {
   if (!role) return '';
   return role.split('_').map(w => w[0] + w.slice(1).toLowerCase()).join(' ');

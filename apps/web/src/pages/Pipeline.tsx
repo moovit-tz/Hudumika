@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { apiFetch } from '../lib/api.js';
+import { formatAmount } from '../lib/currency.js';
 import { Icon } from '../components/Icon.js';
 import type { IconName } from '../components/Icon.js';
 import { PageHeader } from '../components/PageHeader.js';
@@ -64,11 +65,7 @@ interface Metrics {
 }
 
 function fmtMoney(v: number, currency: string): string {
-  try {
-    return new Intl.NumberFormat('en-US', { style: 'currency', currency, maximumFractionDigits: 0 }).format(v);
-  } catch {
-    return `${currency} ${v.toLocaleString()}`;
-  }
+  return formatAmount(v, currency);
 }
 
 /* ── Metrics strip ── */

@@ -7711,6 +7711,159 @@ export interface Database {
     settled_at: Date | null; notes: string | null;
     created_at: Generated<Date>; updated_at: Generated<Date>;
   };
+  // ─── Gereji — ANGA PartsOS foundation (Migration 744) ─────────
+  gereji_anga_audit_events: {
+    id: Generated<string>; tenant_id: string; actor_id: string | null;
+    entity_type: string; entity_id: string; action: string;
+    before: unknown | null; after: unknown | null; reason: string | null;
+    created_at: Generated<Date>;
+  };
+  gereji_anga_parts: {
+    id: Generated<string>; tenant_id: string; pn: string; pn_normalized: string;
+    description: string | null; manufacturer: string | null; cage_code: string | null; ata_chapter: string | null;
+    uom: Generated<string>; serialised: Generated<boolean>; rotable: Generated<boolean>;
+    shelf_life_controlled: Generated<boolean>; hazmat_class: string | null;
+    export_controlled: Generated<boolean>; prohibited: Generated<boolean>; hs_code: string | null;
+    duty_suspension_eligible: Generated<boolean>; certificate_required: Generated<boolean>;
+    lead_time_days: number | null; created_at: Generated<Date>; updated_at: Generated<Date>;
+  };
+  gereji_anga_part_alternates: {
+    id: Generated<string>; tenant_id: string; part_id: string; alternate_part_id: string;
+    relation: Generated<string>; created_at: Generated<Date>;
+  };
+  gereji_anga_customers: {
+    id: Generated<string>; tenant_id: string; party_id: string | null;
+    name: string; email: string | null; phone: string | null; address: string | null;
+    currency: Generated<string>; credit_limit_minor: number | null; payment_terms_days: number | null;
+    tax_id: string | null; escalation_contact_name: string | null; escalation_contact_phone: string | null;
+    escalation_contact_email: string | null; notes: string | null; created_by: string | null;
+    created_at: Generated<Date>; updated_at: Generated<Date>;
+  };
+  gereji_anga_aircraft: {
+    id: Generated<string>; tenant_id: string; customer_id: string;
+    registration: string; aircraft_type: string | null; msn: string | null; base: string | null;
+    created_at: Generated<Date>; updated_at: Generated<Date>;
+  };
+  gereji_anga_suppliers: {
+    id: Generated<string>; tenant_id: string; party_id: string | null;
+    name: string; contact_email: string | null; contact_phone: string | null;
+    approval_status: Generated<'pending' | 'approved' | 'suspended' | 'rejected'>;
+    approval_scope: string | null; approval_expiry: Date | null; notes: string | null;
+    created_by: string | null; created_at: Generated<Date>; updated_at: Generated<Date>;
+  };
+  gereji_anga_supplier_certifications: {
+    id: Generated<string>; tenant_id: string; supplier_id: string;
+    type: string; reference: string | null; expiry: Date | null; created_at: Generated<Date>;
+  };
+  gereji_anga_locations: {
+    id: Generated<string>; tenant_id: string; warehouse: Generated<string>;
+    zone: string | null; rack: string | null; shelf: string | null; bin: string | null;
+    customs_zone: Generated<'DUTY_PAID' | 'BONDED' | 'FREE_ZONE'>;
+    is_active: Generated<boolean>; created_at: Generated<Date>; updated_at: Generated<Date>;
+  };
+  // ─── Gereji — ANGA RFQ + quote engine (Migration 745) ─────────
+  gereji_anga_rfqs: {
+    id: Generated<string>; tenant_id: string; number: string; customer_id: string | null;
+    source: Generated<'phone' | 'email' | 'portal' | 'walk_in' | 'other'>;
+    status: Generated<'new' | 'quoted' | 'won' | 'lost' | 'expired'>;
+    aircraft_reg: string | null; required_by: Date | null; aog_flag: Generated<boolean>;
+    notes: string | null; created_by: string | null;
+    created_at: Generated<Date>; updated_at: Generated<Date>;
+  };
+  gereji_anga_rfq_items: {
+    id: Generated<string>; tenant_id: string; rfq_id: string; part_id: string | null;
+    pn_free_text: string | null; quantity: Generated<number>; condition_acceptable: string | null;
+    created_at: Generated<Date>;
+  };
+  gereji_anga_quotes: {
+    id: Generated<string>; tenant_id: string; number: string; rfq_id: string | null; customer_id: string | null;
+    version: Generated<number>; previous_version_id: string | null;
+    status: Generated<'draft' | 'sent' | 'accepted' | 'rejected' | 'expired' | 'superseded' | 'converted'>;
+    currency: Generated<string>; fx_rate: number | null; fx_buffer_percent: Generated<number>;
+    valid_until: Date | null; subtotal_minor: Generated<number>; margin_total_minor: Generated<number>;
+    total_minor: Generated<number>; notes: string | null; created_by: string | null;
+    created_at: Generated<Date>; updated_at: Generated<Date>;
+  };
+  gereji_anga_quote_items: {
+    id: Generated<string>; tenant_id: string; quote_id: string; part_id: string | null;
+    pn_free_text: string | null; description: string | null; quantity: Generated<number>;
+    part_cost_minor: Generated<number>; freight_minor: Generated<number>; duty_vat_minor: Generated<number>;
+    clearance_fee_minor: Generated<number>; handling_minor: Generated<number>; margin_percent: Generated<number>;
+    line_cost_minor: Generated<number>; margin_minor: Generated<number>; sell_price_minor: Generated<number>;
+    created_at: Generated<Date>;
+  };
+  // ─── Gereji — ANGA AOG case + SLA engine (Migration 746) ───────
+  gereji_anga_aog_cases: {
+    id: Generated<string>; tenant_id: string; rfq_id: string | null; customer_id: string | null;
+    aircraft_reg: string | null; aircraft_type: string | null; operator: string | null; station: string | null;
+    pn_required: string | null; criticality: Generated<'low' | 'medium' | 'high' | 'critical'>;
+    assigned_officer_id: string | null;
+    current_milestone: Generated<'REQUEST_RECEIVED' | 'PART_LOCATED' | 'QUOTE_ISSUED' | 'CUSTOMER_APPROVED' | 'PO_PLACED' | 'COLLECTED' | 'IN_FLIGHT' | 'LANDED' | 'CUSTOMS_CLEARED' | 'DELIVERED'>;
+    opened_at: Generated<Date>; target_resolution_at: Date | null; notes: string | null; created_by: string | null;
+    created_at: Generated<Date>; updated_at: Generated<Date>;
+  };
+  gereji_anga_aog_milestone_events: {
+    id: Generated<string>; tenant_id: string; case_id: string; milestone: string;
+    reached_at: Generated<Date>; created_at: Generated<Date>;
+  };
+  gereji_anga_aog_pause_events: {
+    id: Generated<string>; tenant_id: string; case_id: string;
+    reason: 'AWAITING_CUSTOMER' | 'PUBLIC_HOLIDAY' | 'CARRIER_DELAY' | 'CUSTOMS_QUERY';
+    paused_at: Generated<Date>; resumed_at: Date | null; created_at: Generated<Date>;
+  };
+  // ─── Gereji — ANGA inventory, certificates, rental (Migration 747) ───
+  gereji_anga_goods_receipts: {
+    id: Generated<string>; tenant_id: string; supplier_id: string | null; po_reference: string | null;
+    received_at: Generated<Date>; received_by: string | null; notes: string | null;
+    created_at: Generated<Date>; updated_at: Generated<Date>;
+  };
+  gereji_anga_stock_units: {
+    id: Generated<string>; tenant_id: string; part_id: string; serial: string | null; lot_number: string | null;
+    quantity: Generated<number>; shelf_life_expiry: Date | null; location_id: string | null;
+    condition: Generated<'NE' | 'NS' | 'OH' | 'SV' | 'IN' | 'RP' | 'AR' | 'US' | 'SCRAP'>;
+    ownership: Generated<'OWNED' | 'CONSIGNMENT' | 'CUSTOMER_OWNED' | 'LOANED_IN'>;
+    customs_status: Generated<'DUTY_PAID' | 'BONDED' | 'FREE_ZONE'>;
+    availability: Generated<'AVAILABLE' | 'RESERVED' | 'ALLOCATED' | 'ON_LOAN' | 'IN_REPAIR' | 'QUARANTINE' | 'SOLD' | 'SCRAPPED'>;
+    tsn_hours: number | null; csn_cycles: number | null; tso_hours: number | null; cso_cycles: number | null;
+    last_shop_visit_at: Date | null; warranty_expires_at: Date | null; notes: string | null;
+    created_at: Generated<Date>; updated_at: Generated<Date>;
+  };
+  gereji_anga_goods_receipt_lines: {
+    id: Generated<string>; tenant_id: string; receipt_id: string; stock_unit_id: string;
+    inspection_outcome: Generated<'pending' | 'accepted' | 'quarantined' | 'rejected'>;
+    inspected_by: string | null; inspected_at: Date | null; inspection_notes: string | null;
+    putaway_location_id: string | null; putaway_at: Date | null;
+    created_at: Generated<Date>; updated_at: Generated<Date>;
+  };
+  gereji_anga_certificates: {
+    id: Generated<string>; tenant_id: string; stock_unit_id: string;
+    type: 'FAA_8130_3' | 'EASA_FORM_1' | 'UK_CAA_FORM_1' | 'TCCA_FORM_ONE' | 'CASA_FORM_1' | 'ANAC_F100' | 'COFC' | 'ATA_106' | 'TEARDOWN_REPORT' | 'NON_INCIDENT_STATEMENT';
+    issuing_authority: string | null; issuing_org_approval_ref: string | null; form_number: string | null;
+    issue_date: Date | null; tag_date: Date | null; expiry_date: Date | null; document_url: string | null;
+    created_at: Generated<Date>; updated_at: Generated<Date>;
+  };
+  gereji_anga_trace_chain_links: {
+    id: Generated<string>; tenant_id: string; stock_unit_id: string; sequence: Generated<number>;
+    from_party: string | null; to_party: string | null; hop_type: string | null;
+    occurred_at: Date | null; document_url: string | null; notes: string | null; created_at: Generated<Date>;
+  };
+  gereji_anga_rate_cards: {
+    id: Generated<string>; tenant_id: string; name: string; part_id: string | null; part_class: string | null;
+    currency: Generated<string>; daily_rate_minor: Generated<number>; weekly_rate_minor: number | null; monthly_rate_minor: number | null;
+    min_rental_days: Generated<number>; min_charge_minor: Generated<number>;
+    tier_7_discount_percent: Generated<number>; tier_30_discount_percent: Generated<number>; tier_90_discount_percent: Generated<number>;
+    is_active: Generated<boolean>; created_at: Generated<Date>; updated_at: Generated<Date>;
+  };
+  gereji_anga_rate_card_charges: {
+    id: Generated<string>; tenant_id: string; rate_card_id: string; component_type: string;
+    amount_minor: Generated<number>; is_per_day: Generated<boolean>; created_at: Generated<Date>;
+  };
+  gereji_anga_hire_reservations: {
+    id: Generated<string>; tenant_id: string; stock_unit_id: string; customer_id: string | null;
+    status: Generated<'held' | 'confirmed' | 'out' | 'returned' | 'cancelled'>;
+    start_date: Date; end_date: Date; hold_expires_at: Date | null; notes: string | null;
+    created_at: Generated<Date>; updated_at: Generated<Date>;
+  };
 }
 
 // ─── Shared Org Model Tables (Migration 641) ─────────────────────────────────

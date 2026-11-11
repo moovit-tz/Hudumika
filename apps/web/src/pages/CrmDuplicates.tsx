@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { CheckCircle2, GitMerge, SearchCheck } from 'lucide-react';
 import { apiFetch } from '../lib/api.js';
+import { formatAmount } from '../lib/currency.js';
 import { PageHeader } from '../components/PageHeader.js';
 import { Badge } from '../components/ui/badge.js';
 import { Button } from '../components/ui/button.js';
@@ -18,7 +19,7 @@ interface LeadDup { id: string; company: string; contact_name: string; value: nu
 interface CustomerDup { id: string; name: string; email?: string; created_at: string }
 
 function fmtValue(value: number): string {
-  return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'TZS', maximumFractionDigits: 0 }).format(value);
+  return formatAmount(value, 'TZS');
 }
 
 function DupGroup<T extends { id: string; created_at: string }>({ items, renderLabel, renderSub, onMerge, busy }: {

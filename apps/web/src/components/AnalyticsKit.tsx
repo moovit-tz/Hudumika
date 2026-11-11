@@ -2,12 +2,13 @@
 import { Bar } from 'react-chartjs-2';
 import { Icon } from './Icon.js';
 import { Button } from './ui/button.js';
+import { formatAmount } from '../lib/currency.js';
 
 /* ── Shared building blocks for the analytics/reporting dashboards
      (Operations Metrics, Carbon Portfolio, …) — CSV export, stat tiles,
      a generic sortable/paginated table, and a clickable bar chart. ── */
 
-export function fmtTZS(n: number) { return 'TZS ' + Math.round(n).toLocaleString('en'); }
+export function fmtTZS(n: number) { return formatAmount(Math.round(n), 'TZS'); }
 
 export function exportCsv(filename: string, headers: string[], rows: (string | number)[][]) {
   const csv = [headers, ...rows]

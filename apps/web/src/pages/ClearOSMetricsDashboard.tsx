@@ -10,6 +10,7 @@ import { Banner } from '../components/ui/alert.js';
 import type { IconName } from '../components/Icon.js';
 import { MetricsRow } from '../components/MetricCard.js';
 import { exportCsv, ExportButton, StatTile, DataTable } from '../components/AnalyticsKit.js';
+import { formatAmount } from '../lib/currency.js';
 import type { ColumnDef } from '../components/AnalyticsKit.js';
 import type { StageBottleneck, OfficerPerformance, KPIResponse } from '@hudumika/types';
 import { Button } from '../components/ui/button.js';
@@ -21,7 +22,7 @@ import './ClearOSDashboard.css';
 
 ChartJS.register(CategoryScale, LinearScale, BarElement, Tooltip);
 
-function fmtTZS(n: number) { return 'TZS ' + Math.round(n).toLocaleString('en'); }
+function fmtTZS(n: number) { return formatAmount(Math.round(n), 'TZS'); }
 
 function StageCycleAreaChart({ rows, onSelect }: { rows: StageBottleneck[]; onSelect: (row: StageBottleneck) => void }) {
   const data = rows.map(row => ({ ...row, label: row.stage_label.length > 14 ? `${row.stage_label.slice(0, 13)}…` : row.stage_label }));

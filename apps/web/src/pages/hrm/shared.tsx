@@ -4,6 +4,7 @@ import type { IconName } from '../../components/Icon.js';
 import { Button } from '../../components/ui/button.js';
 import { PersonAvatar } from '../../components/PersonAvatar.js';
 import { PageHeader as SharedPageHeader } from '../../components/PageHeader.js';
+import { formatAmount } from '../../lib/currency.js';
 
 export function mapAttStatus(s: string) {
   switch (s) {
@@ -32,7 +33,7 @@ export const leaveTypeColor = (code: string) => LEAVE_TYPE_COLORS[String(code ||
 export const AVATAR_COLORS = ['#e8461a','#0891b2','#7c3aed','var(--green)','var(--gold)','#9333ea'];
 export function avatarColor(n: string) { return AVATAR_COLORS[[...(n ?? '?')].reduce((a,c) => a + c.charCodeAt(0), 0) % AVATAR_COLORS.length]; }
 export function ini(n: string) { return n.split(' ').slice(0,2).map(w => w[0]).join('').toUpperCase(); }
-export function fmtTZS(n: number) { return 'TZS ' + n.toLocaleString(); }
+export function fmtTZS(n: number) { return formatAmount(n, 'TZS'); }
 
 export function Avatar({ name, size = 32, src, userId }: { name: string; size?: number; src?: string | null; userId?: string | null }) {
   return <PersonAvatar name={name} size={size} src={src} userId={userId} />;

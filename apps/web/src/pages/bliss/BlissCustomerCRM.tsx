@@ -10,6 +10,7 @@ import { Icon } from '../../components/Icon.js';
 import { useMediaQuery } from '../../hooks/useMediaQuery.js';
 import { SectionLoading } from '../../components/ui/spinner.js';
 import { apiFetch } from '../../lib/api.js';
+import { formatAmount } from '../../lib/currency.js';
 
 /** Real customer directory — this used to be 3 hand-invented records with
  *  fake lifetime values and fake account managers. Every field here now
@@ -46,7 +47,7 @@ interface ShipmentSummary {
   id: string; ref_number: string; goods_desc?: string; stage: string; type?: string; updated_at?: string;
 }
 
-const money = (n: number) => new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 }).format(n);
+const money = (n: number) => formatAmount(n, 'USD');
 
 const STATUS_CFG: Record<string, { variant: 'success' | 'gray' | 'warning' }> = {
   Active: { variant: 'success' }, Inactive: { variant: 'gray' }, Suspended: { variant: 'warning' },

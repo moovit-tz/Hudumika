@@ -114,12 +114,14 @@ export function conversionIsLive(from: string, to: string): boolean {
   return !!(_rates && _rates[from] != null && _rates[to] != null);
 }
 
-export function formatAmount(amount: number, currency: string): string {
+/** Exact currency text for contexts where the full amount must be visible,
+ * such as printable invoices, statements, and payment confirmation details. */
+export function formatExactAmount(amount: number, currency: string): string {
   // Currencies whose smallest circulating unit is the unit itself — printing
   // "TZS 1,500.00" implies a precision the money does not have.
   const noDecimal = ['TZS', 'KES', 'UGX'].includes(currency);
   try {
-    return new Intl.NumberFormat('en-US', {
+    return new Intl.NumberFormat('en-TZ', {
       style: 'currency',
       currency,
       minimumFractionDigits: noDecimal ? 0 : 2,
@@ -131,31 +133,65 @@ export function formatAmount(amount: number, currency: string): string {
   }
 }
 
-const COMPACT_TIERS: [number, string][] = [
-  [1e15, 'Q'], [1e12, 'T'], [1e9, 'B'], [1e6, 'M'],
+// Shared short-scale suffixes keep large values legible in fixed-width cards
+// across every app. Beyond the named common tiers, suffixes continue through
+// the supported JS number range; scientific notation is the final fallback.
+const COMPACT_SUFFIXES = [
+  '', 'K', 'M', 'B', 'T', 'Qa', 'Qi', 'Sx', 'Sp', 'Oc', 'No', 'Dc',
+  'Ud', 'Dd', 'Td', 'Qad', 'Qid', 'Sxd', 'Spd', 'Ocd', 'Nod', 'Vg',
 ];
 
-export function formatCompact(amount: number, currency: string): string {
-  const abs = Math.abs(amount);
-  const sym = getCurrencySymbol(currency);
-  for (const [limit, suffix] of COMPACT_TIERS) {
-    if (abs >= limit) {
-      const scaled = amount / limit;
-      return `${sym}${scaled.toFixed(Math.abs(scaled) >= 100 ? 0 : 1)}${suffix}`;
-    }
+function compactNumber(value: number, firstTier = 1): string {
+  if (!Number.isFinite(value)) return String(value);
+  const abs = Math.abs(value);
+  if (abs < 1_000) return new Intl.NumberFormat('en-US', { maximumFractionDigits: 2 }).format(value);
+  let tier = Math.floor(Math.log10(abs) / 3);
+  if (tier >= COMPACT_SUFFIXES.length) return value.toExponential(2).replace(/(\.\d*?[1-9])0+e/, '$1e').replace(/\.0+e/, 'e');
+  let scale = 10 ** (tier * 3);
+  let scaled = value / scale;
+  if (Math.abs(Number(scaled.toPrecision(3))) >= 1_000 && tier + 1 < COMPACT_SUFFIXES.length) {
+    tier += 1;
+    scale *= 1_000;
+    scaled = value / scale;
   }
-  if (abs >= 1_000) return `${sym}${(amount / 1_000).toFixed(0)}k`;
-  return formatAmount(amount, currency);
+  const text = new Intl.NumberFormat('en-US', { maximumFractionDigits: 2 }).format(scaled);
+  return `${text}${COMPACT_SUFFIXES[Math.max(firstTier, tier)]}`;
 }
 
 function getCurrencySymbol(code: string): string {
   try {
-    const formatted = formatAmount(1, code);
+    const formatted = new Intl.NumberFormat('en-TZ', { style: 'currency', currency: code, maximumFractionDigits: 0 }).format(1);
     const m = formatted.match(/^[^0-9,.]+/);
     return m ? m[0].trimEnd() : code;
   } catch {
     return code;
   }
+}
+
+/** Global default for money shown in app screens: switch to a compact suffix
+ * at 1 billion so large totals fit cards on desktop and mobile. */
+export function formatAmount(amount: number, currency: string): string {
+  if (Number.isFinite(amount) && Math.abs(amount) >= 1e9) {
+    return `${getCurrencySymbol(currency)} ${compactNumber(amount, 3)}`;
+  }
+  return formatExactAmount(amount, currency);
+}
+
+export function formatCompact(amount: number, currency: string): string {
+  if (!Number.isFinite(amount) || Math.abs(amount) < 1_000) return formatExactAmount(amount, currency);
+  return `${getCurrencySymbol(currency)} ${compactNumber(amount)}`;
+}
+
+/** Compact large non-currency values while leaving ordinary figures familiar. */
+export function formatCompactNumber(value: number): string {
+  return compactNumber(value);
+}
+
+/** Global display rule for non-currency figures: preserve the familiar full
+ * value until it reaches 1 billion, then compact it to protect fixed layouts. */
+export function formatDisplayNumber(value: number): string {
+  if (Number.isFinite(value) && Math.abs(value) >= 1e9) return compactNumber(value, 3);
+  return new Intl.NumberFormat('en-US', { maximumFractionDigits: 2 }).format(value);
 }
 
 /**

@@ -9,6 +9,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogBody, DialogFoo
 import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem } from '../../components/ui/dropdown-menu.js';
 import { Icon } from '../../components/Icon.js';
 import { apiFetch } from '../../lib/api.js';
+import { formatAmount } from '../../lib/currency.js';
 import { showAlert } from '../../lib/alert.js';
 
 interface FloatAccount {
@@ -58,7 +59,7 @@ export function TumaFloat() {
     } catch (err: any) { showAlert(err.message); } finally { setSaving(false); }
   }
 
-  const fmt = (n: number) => new Intl.NumberFormat('en', { style: 'currency', currency: 'TZS', minimumFractionDigits: 0 }).format(n);
+  const fmt = (n: number) => formatAmount(n, 'TZS');
 
   return (
     <div className="page-layout">

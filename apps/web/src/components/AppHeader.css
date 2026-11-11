@@ -1249,49 +1249,15 @@
   color: var(--red) !important;
 }
 
-/* ── Mode Switcher Pill in AppHeader (Normal ↔ Agentic) ── */
-.app-header-mode-pill {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  height: 32px;
-  padding: 0 11px;
-  border-radius: 9999px;
-  font-family: var(--font);
-  font-size: 12px;
-  font-weight: 600;
+/* ── Compact Normal ↔ Agentic mode icon ── */
+.app-header-mode-icon {
   color: hsl(var(--primary));
-  background: hsl(var(--primary) / 0.08);
-  border: 1px solid hsl(var(--primary) / 0.25);
-  cursor: pointer;
-  transition: all 0.15s ease;
-  white-space: nowrap;
-  flex-shrink: 0;
-  outline: none;
+  background: hsl(var(--primary) / 0.06);
+  box-shadow: inset 0 0 0 1px hsl(var(--primary) / 0.24);
 }
 
-.app-header-mode-pill:hover {
+.app-header-mode-icon:hover {
   background: hsl(var(--primary) / 0.16);
-  border-color: hsl(var(--primary) / 0.45);
-  transform: translateY(-1px);
-  box-shadow: 0 2px 8px hsl(var(--primary) / 0.15);
-}
-
-.app-header-mode-pill:active {
-  transform: translateY(0);
-}
-
-.app-header-mode-pill-text {
-  line-height: 1;
-}
-
-@media (max-width: 640px) {
-  .app-header-mode-pill-text {
-    display: none;
-  }
-  .app-header-mode-pill {
-    padding: 0 8px;
-  }
 }
 
 /* Mobile header keeps every action reachable without squeezing touch targets. */
@@ -1302,7 +1268,7 @@
  .app-header-mobile-brand-container { display:flex; min-width:0; }
  .app-header-mobile-name { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
  .app-header-actions { grid-column:1/-1; width:100%; min-width:0; flex-wrap:wrap; justify-content:flex-end; gap:var(--space-1,4px); }
- .app-header-icon-btn,.app-header-hamburger,.app-header-avatar-trigger,.app-header-mode-pill { min-width:44px; min-height:44px; width:44px; height:44px; box-sizing:border-box; }
+ .app-header-icon-btn,.app-header-hamburger,.app-header-avatar-trigger,.app-header-mode-icon { min-width:44px; min-height:44px; width:44px; height:44px; box-sizing:border-box; }
  .app-header-actions .app-header-rel { min-width:0; }
  .app-header-clock-card { max-width:calc(100vw - 32px); }
  .app-header-profile-menu { max-width:calc(100vw - 32px); }

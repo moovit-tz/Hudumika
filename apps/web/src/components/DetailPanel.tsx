@@ -5,6 +5,7 @@ import type { ClearanceStage } from '@hudumika/types';
 import { CLEARANCE_STAGES, STAGE_LABELS } from '@hudumika/types';
 import { apiFetch } from '../lib/api.js';
 import { Icon } from './Icon.js';
+import { formatAmount } from '../lib/currency.js';
 
 interface DetailPanelProps {
   shipmentId: string | null;
@@ -24,7 +25,7 @@ function relTime(iso?: string | null): string {
 }
 
 function fmtTZS(n: number): string {
-  return 'TZS ' + n.toLocaleString('en-TZ');
+  return formatAmount(n, 'TZS');
 }
 
 // The local palette and hash are gone: seven colours and a shift-hash here

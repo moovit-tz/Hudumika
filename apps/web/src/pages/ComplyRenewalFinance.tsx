@@ -14,13 +14,12 @@ import { SearchToolbar } from '../components/ui/filter-dropdown.js';
 import { Button } from '../components/ui/button.js';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '../components/ui/select.js';
 import { useRenewalFinanceOverview, useRenewalRegister } from '../hooks/useRenewalFinance.js';
+import { formatAmount } from '../lib/currency.js';
 import './ComplyOS.css';
 import './ComplyRenewalFinance.css';
 
 function fmt(n: number, currency = 'TZS') {
-  return new Intl.NumberFormat('en-TZ', {
-    style: 'currency', currency, minimumFractionDigits: 2, maximumFractionDigits: 2,
-  }).format(n);
+  return formatAmount(n, currency);
 }
 
 export function ComplyRenewalFinance() {

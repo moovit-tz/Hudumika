@@ -3,6 +3,11 @@ import { withTenant } from '../db/client.js';
 import { requireEntitlement } from '../middleware/entitlement.js';
 
 export async function gerejiRoutes(server: FastifyInstance) {
+  // Was missing entirely — every Gereji route (this file and gereji-crud)
+  // has returned 401 for everyone, always, since request.user was never
+  // set before requireEntitlement() checked it. Same bug class found and
+  // fixed in ngao-crud/tuma-parcels/legal/crm-tasks this session.
+  server.addHook('preHandler', server.authenticate);
   server.addHook('preHandler', requireEntitlement('gereji'));
 
   server.get('/job-cards', async (request) => {
@@ -48,6 +53,33 @@ export async function gerejiRoutes(server: FastifyInstance) {
         .where('tenant_id', '=', request.user.tenant_id)
         .orderBy('created_at', 'desc')
         .limit(100)
+        .execute();
+      return { claims: rows };
+    });
+  });
+
+  server.get('/insurance/policies', async (request) => {
+    return withTenant(request.user.tenant_id, async (trx) => {
+      const rows = await trx.selectFrom('finance_insurance_policies')
+        .selectAll()
+        .where('tenant_id', '=', request.user.tenant_id)
+        .where('policy_type', '=', 'motor')
+        .orderBy('created_at', 'desc')
+        .limit(100)
+        .execute();
+      return { policies: rows };
+    });
+  });
+
+  server.get('/insurance/claims', async (request) => {
+    return withTenant(request.user.tenant_id, async (trx) => {
+      const rows = await trx.selectFrom('finance_insurance_claims as c')
+        .innerJoin('finance_insurance_policies as p', 'p.id', 'c.policy_id')
+        .where('c.tenant_id', '=', request.user.tenant_id)
+        .where('p.policy_type', '=', 'motor')
+        .orderBy('c.created_at', 'desc')
+        .limit(100)
+        .selectAll('c')
         .execute();
       return { claims: rows };
     });

@@ -7,6 +7,7 @@ import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '.
 import { Button } from '../ui/button.js';
 import { showAlert } from '../../lib/alert.js';
 import { showConfirm } from '../../lib/confirm.js';
+import './ActivityTimeline.css';
 
 type SubjectType = 'lead' | 'deal' | 'customer';
 type ActivityType = 'call' | 'email' | 'meeting' | 'note' | 'stage_change' | 'created';
@@ -91,32 +92,26 @@ export function ActivityTimeline({ subjectType, subjectId, currentUserId }: {
   }
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-      <div style={{ display: 'flex', gap: 8, alignItems: 'flex-start' }}>
+    <div className="crm-activity-timeline">
+      <div className="crm-activity-composer">
         <Select value={type} onValueChange={v => setType(v as ActivityType)}>
-          <SelectTrigger style={{ width: 118, height: "var(--ctl-h)", flexShrink: 0 }}><SelectValue /></SelectTrigger>
+          <SelectTrigger className="crm-activity-type"><SelectValue /></SelectTrigger>
           <SelectContent>
             {MANUAL_TYPES.map(t => <SelectItem key={t} value={t}>{TYPE_CFG[t].label}</SelectItem>)}
           </SelectContent>
         </Select>
-        <textarea data-ui-field="textarea"
+        <textarea className="crm-activity-input" data-ui-field="textarea"
           value={body}
           onChange={e => setBody(e.target.value)}
           placeholder={`Log a ${TYPE_CFG[type].label.toLowerCase()}…`}
           rows={2}
           onKeyDown={e => { if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) submit(); }}
-          style={{
-            flex: 1, resize: 'vertical', minHeight: 36,
-            border: '1px solid var(--border)', borderRadius: 'var(--r-sm)',
-            padding: "var(--ds-input-py) var(--space-md)", fontSize: "var(--text-base)", fontFamily: 'var(--font)',
-            color: 'var(--ink)', background: 'var(--card-bg, var(--white))',
-            outline: 'none', lineHeight: 1.5,
-          }}
         />
-        <Button variant="default" size="sm" disabled={saving || !body.trim()} onClick={submit} style={{ flexShrink: 0, alignSelf: 'flex-start' }}>
+        <Button variant="default" size="sm" disabled={saving || !body.trim()} onClick={submit} className="crm-activity-submit">
           {saving ? <Icon name="clock" size={13} /> : <Icon name="check" size={13} />}
-          <span>Log</span>
+          <span>Log activity</span>
         </Button>
+        <span className="crm-activity-hint">Ctrl + Enter to save</span>
       </div>
 
       <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>

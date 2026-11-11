@@ -794,17 +794,17 @@ export function AppHeader({
               </Tip>
             )}
 
-            {/* Landing style mode switcher pill (Normal ↔ Agentic) */}
+            {/* Landing style mode toggle: icon-only in the compact header */}
             <Tip label={isAgentic ? 'Switch to Normal Workspace View' : 'Switch to Agentic View (AI workspace with Agent Flow, Automations & Controls)'} side="bottom">
               <button data-ui-native-button=""
                 type="button"
-                className="app-header-mode-pill"
+                className={`app-header-icon-btn app-header-mode-icon${isAgentic ? ' app-header-icon-btn--active' : ''}`}
                 onClick={() => setLandingStyle(isAgentic ? 'advanced' : 'basic')}
                 disabled={landingStyleSaving}
                 aria-label={isAgentic ? 'Switch to Normal View' : 'Switch to Agentic View'}
+                aria-pressed={isAgentic}
                data-ui-chrome-button="">
-                <Icon name={isAgentic ? 'layoutDashboard' : 'sparkle'} size={13} />
-                <span className="app-header-mode-pill-text">{isAgentic ? 'Normal View' : 'Agentic View'}</span>
+                <Icon name={isAgentic ? 'layoutDashboard' : 'sparkle'} size={18} />
               </button>
             </Tip>
 

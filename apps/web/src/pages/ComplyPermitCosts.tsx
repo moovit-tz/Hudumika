@@ -8,6 +8,7 @@ import {Select, SelectTrigger, SelectValue, SelectContent, SelectItem} from '../
 import { useParams, Link } from 'react-router-dom';
 import { Icon } from '../components/Icon.js';
 import { PageHeader } from '../components/PageHeader.js';
+import { formatAmount } from '../lib/currency.js';
 
 import { Badge } from '../components/ui/badge.js';
 
@@ -17,9 +18,7 @@ import { useCycleCostLines, useCycleBudgets, useCycleAllocations, useCycleAudit,
 import './ComplyOS.css';
 
 function fmt(n: number, currency = 'TZS') {
-  return new Intl.NumberFormat('en-TZ', {
-    style: 'currency', currency, minimumFractionDigits: 0, maximumFractionDigits: 0,
-  }).format(n);
+  return formatAmount(n, currency);
 }
 
 function categoryLabel(cat: string): string {

@@ -129,7 +129,7 @@ function partnerCategory(partner: Partner) {
   return { label: partner.partner_role, variant: 'gray' as const };
 }
 
-export function CrmChainPartners() {
+export function CrmChainPartners({ embedded = false }: { embedded?: boolean }) {
   const { user } = useAuth();
   const canDelete = DELETE_ROLES.includes((user?.role ?? '') as UserRole);
 
@@ -168,15 +168,15 @@ export function CrmChainPartners() {
 
   /* Navigation helpers */
   const goToDirectory = useCallback(() => {
-    navigate('/crm/chain-partners');
+    navigate('/crm/relationships?view=partners');
   }, [navigate]);
 
   const goToNewPartner = useCallback(() => {
-    navigate('/crm/chain-partners/new');
+    navigate('/crm/relationships/partners/new');
   }, [navigate]);
 
   const goToPartner = useCallback((id: string) => {
-    navigate(`/crm/chain-partners/${id}`);
+    navigate(`/crm/relationships/partners/${id}`);
   }, [navigate]);
 
   /* Partner delete / remove actions */
@@ -263,8 +263,8 @@ export function CrmChainPartners() {
   return (
     <div className="partner-page-container">
       {/* Page Header */}
-      <PageHeader
-        crumbs={['CRM', 'Partners directory']}
+      {!embedded && <PageHeader
+        crumbs={[{ label: 'CRM', to: '/crm/overview' }, { label: 'Business relationships', to: '/crm/relationships?view=partners' }, 'Partners']}
         titlePlain="Partners"
         titleEm="directory"
         subtitle={`${totalCount} ICD, CFS, bonded warehouse, and logistics partners registered.`}
@@ -274,11 +274,11 @@ export function CrmChainPartners() {
             Add Partner
           </Button>
         }
-      />
+      />}
 
       <div className="flex flex-col gap-5">
         <MetricsRow cards={[
-          { title: 'PARTNERS DIRECTORY', value: String(partnerStats?.total ?? totalCount), loading: !partnerStats && loading, icon: 'link', sub1Label: `${partnerStats?.withContact ?? withContact} with contact person` },
+          { title: 'PARTNERS', value: String(partnerStats?.total ?? totalCount), loading: !partnerStats && loading, icon: 'link', sub1Label: `${partnerStats?.withContact ?? withContact} with contact person` },
           { title: 'WITH EMAIL', value: String(partnerStats?.withEmail ?? withEmail), loading: !partnerStats && loading, icon: 'mail', sub1Label: `${(partnerStats?.total ?? totalCount) > 0 ? Math.round(((partnerStats?.withEmail ?? withEmail) / (partnerStats?.total ?? totalCount)) * 100) : 0}% email coverage` },
           { title: 'WITH PHONE', value: String(partnerStats?.withPhone ?? withPhone), loading: !partnerStats && loading, icon: 'phone', sub1Label: `${(partnerStats?.total ?? totalCount) > 0 ? Math.round(((partnerStats?.withPhone ?? withPhone) / (partnerStats?.total ?? totalCount)) * 100) : 0}% phone coverage` },
           { title: 'FULLY CONNECTED', value: String(fullyLinked), loading: loading, icon: 'checkCircle', sub1Label: 'Contact + email + phone' },
@@ -584,7 +584,7 @@ function PartnerDetailPageView({
   if (loading) {
     return (
       <div className="partner-page-container">
-        <BackButton onClick={onBack} label="Back to Partners Directory" />
+        <BackButton onClick={onBack} label="Back to Business Relationships" />
         <div className="flex min-h-60 items-center justify-center"><SectionLoading /></div>
       </div>
     );
@@ -593,7 +593,7 @@ function PartnerDetailPageView({
   if (!partner) {
     return (
       <div className="partner-page-container">
-        <BackButton onClick={onBack} label="Back to Partners Directory" />
+        <BackButton onClick={onBack} label="Back to Business Relationships" />
         <Card>
           <CardContent className="flex flex-col items-center justify-center px-6 py-12 text-center">
             <FeaturedIcon variant="warning" size="xl" shape="square" className="mx-auto mb-3">
@@ -616,14 +616,14 @@ function PartnerDetailPageView({
   return (
     <div className="partner-page-container">
       {/* Back Button */}
-      <BackButton onClick={onBack} label="Back to Partners Directory" />
+      <BackButton onClick={onBack} label="Back to Business Relationships" />
 
       {/* Page Header */}
       <PageHeader
-        crumbs={['CRM', 'Partners directory', partner.name]}
+        crumbs={[{ label: 'CRM', to: '/crm/overview' }, { label: 'Business relationships', to: '/crm/relationships?view=partners' }, partner.name]}
         titlePlain={partner.name}
         titleEm="profile"
-        subtitle={`Partner in the logistics & trade chain directory.`}
+        subtitle="Partner in this workspace’s business network."
         actions={
           <div className="flex items-center gap-2">
             <Button variant="outline" size="sm" onClick={() => setShowEditDialog(true)}>
@@ -1196,11 +1196,11 @@ function NewPartnerPageView({ onBack, onCreated }: NewPartnerPageProps) {
   return (
     <div className="partner-page-container">
       {/* Back Button */}
-      <BackButton onClick={onBack} label="Back to Partners Directory" />
+      <BackButton onClick={onBack} label="Back to Business Relationships" />
 
       {/* Page Header */}
       <PageHeader
-        crumbs={['CRM', 'Partners directory', 'New partner']}
+        crumbs={[{ label: 'CRM', to: '/crm/overview' }, { label: 'Business relationships', to: '/crm/relationships?view=partners' }, 'New partner']}
         titlePlain="Register"
         titleEm="partner"
         subtitle="Add an ICD, CFS operator, bonded warehouse, or logistics partner to the directory."

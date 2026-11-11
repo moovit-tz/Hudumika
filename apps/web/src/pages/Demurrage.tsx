@@ -3,6 +3,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate, Link, useSearchParams } from 'react-router-dom';
 import { ConsignmentDemurrage } from '../components/ConsignmentDemurrage.js';
 import { apiFetch } from '../lib/api.js';
+import { formatAmount } from '../lib/currency.js';
 import { useAuth } from '../hooks/useAuth.js';
 import { MGMT_ROLES } from '../lib/permissions.js';
 import { useIsMobile } from '../hooks/useIsMobile.js';
@@ -240,7 +241,7 @@ export const Demurrage: React.FC = () => {
   };
 
   const formatCurrency = (amount: number, currency: string = 'USD') => {
-    return new Intl.NumberFormat('en-US', { style: 'currency', currency, minimumFractionDigits: 0 }).format(amount);
+    return formatAmount(amount, currency);
   };
 
   return (

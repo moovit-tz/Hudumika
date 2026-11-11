@@ -45,7 +45,7 @@ const supplierSchema = z.object({
 
 export async function supplierRoutes(fastify: FastifyInstance) {
   fastify.addHook('preHandler', fastify.authenticate);
-  fastify.addHook('preHandler', requireAnyEntitlement(['crm', 'finops']));
+  fastify.addHook('preHandler', requireAnyEntitlement(['crm', 'finops', 'clearos', 'contacts']));
 
   // GET /v1/suppliers — list, optionally filtered by ?search=
   // HUD-0024 continuation: internal tenant-business data (finance ledgers,
@@ -93,7 +93,12 @@ export async function supplierRoutes(fastify: FastifyInstance) {
 
   fastify.get('/', async (request) => {
     const user = request.user;
-    const { search, page, status, limit } = z.object({ search: z.string().max(160).optional(), page: z.coerce.number().int().min(1).max(100000).optional(), limit: z.coerce.number().int().min(1).max(100).optional(), status: z.enum(['active','inactive','blocked']).optional() }).parse(request.query);
+    const { search, page, status, limit } = z.object({
+      search: z.string().trim().max(160).optional(),
+      page: z.coerce.number().int().min(1).max(100000).optional(),
+      limit: z.coerce.number().int().min(1).max(100).optional(),
+      status: z.preprocess((val) => (val === 'all' || val === '' ? undefined : val), z.enum(['active', 'inactive', 'blocked']).optional()),
+    }).parse(request.query);
     return withTenant(user.tenant_id, async (trx) => {
       let q = trx.selectFrom('suppliers').selectAll().where('tenant_id', '=', user.tenant_id);
       if (search) {

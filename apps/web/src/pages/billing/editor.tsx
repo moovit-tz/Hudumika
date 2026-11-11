@@ -606,40 +606,396 @@ export function InvoiceEditor({ initial, nextId, onSave, onCancel, isMobile = fa
     finally { saveInFlight.current = false; setSaving(false); }
   }
 
+  const totalSub = Math.round(allItems.reduce((sum, item) => {
+    const lineSub = item.qty * item.rate;
+    return sum + ((item.currency || documentCurrency) === documentCurrency ? lineSub : lineSub * exRateNum);
+  }, 0) * 100) / 100;
+
+  const totalTax = Math.round(allItems.reduce((sum, item) => {
+    const lineSub = item.qty * item.rate;
+    const lineTax = (lineSub * item.taxPct) / 100;
+    return sum + ((item.currency || documentCurrency) === documentCurrency ? lineTax : lineTax * exRateNum);
+  }, 0) * 100) / 100;
+
+  const computedGrandTotal = Math.round((totalSub + totalTax) * 100) / 100;
+
   return (
-    <FormPage title={initial ? `Edit ${initial.id}` : 'New invoice'} subtitle="Choose a customer, add products or services, then review and save."
+    <FormPage
+      title={initial ? `Edit ${initial.id}` : 'New invoice'}
+      subtitle="Choose a customer, add products or services, then review and save."
+      crumbs={[{ label: 'Finance', to: '/finance' }, { label: 'Invoices', to: '/finance/invoices' }, initial ? `Edit ${initial.id}` : 'New invoice']}
       onCancel={() => { if (!saveInFlight.current) onCancel(); }}
-      actions={<><Button variant="outline" disabled={saving} onClick={() => void handleSave(true)}>Save draft</Button><Button disabled={saving} onClick={() => void handleSave(false)}>{saving ? 'Saving…' : 'Issue invoice'}</Button></>}
+      actions={
+        <div className="flex items-center gap-2">
+          <Button variant="outline" size="sm" disabled={saving} onClick={() => void handleSave(true)}>
+            <Icon name="bookmark" size={14} />
+            <span>Save draft</span>
+          </Button>
+          <Button size="sm" disabled={saving} onClick={() => void handleSave(false)}>
+            <Icon name="check" size={14} />
+            <span>{saving ? 'Saving…' : 'Issue invoice'}</span>
+          </Button>
+        </div>
+      }
     >
       <div className="min-w-0 space-y-6">
-        {saveError && <div role="alert" className="rounded-lg border border-destructive bg-background p-4 text-destructive">{saveError}</div>}
+        {saveError && (
+          <div role="alert" className="rounded-[var(--r)] border border-destructive bg-destructive/10 p-4 text-sm font-medium text-destructive">
+            {saveError}
+          </div>
+        )}
+
+        {/* Top 2-Column: Customer and Invoice Details */}
         <div className="grid min-w-0 gap-6 lg:grid-cols-2">
-          <Card><CardHeader><CardTitle>Customer</CardTitle></CardHeader><CardContent className="space-y-4">
-            <EntityPicker label="Customer or company" value={customer ?? (client ? {id:'',label:client}:null)} onChange={handleCustomerChange} search={searchCustomers} onCreate={createCustomer} createLabel={query=>`Create customer “${query}”`} placeholder="Search CRM customers…" />
-            <label className="block text-sm font-medium" htmlFor="invoice-address">Billing address</label><Textarea id="invoice-address" value={addr} onChange={event=>setAddr(event.target.value)} rows={4} placeholder="Street, city and tax details" />
-            {canUseBusinessLines && <div><label className="mb-2 block text-sm font-medium">Business line</label><Combobox options={financeConfiguration.data?.businessLines.filter(line=>line.active || line.id===businessLineId).map(line=>({value:line.id,label:`${line.name} · ${line.code}`})) ?? []} value={businessLineId} onChange={setBusinessLineId} placeholder="Choose a business line" disabled={Boolean(initial && initial.status!=='Draft')} /></div>}
-          </CardContent></Card>
-          <Card><CardHeader><CardTitle>Invoice details</CardTitle></CardHeader><CardContent className="grid gap-4 sm:grid-cols-2">
-            <FormField label="Invoice number" value={initial?.id || 'Assigned when saved'} disabled />
-            <div><label className="mb-2 block text-sm font-medium">Sales agent</label><EntityPicker value={agentPick} onChange={handleAgentChange} search={searchStaff} placeholder="Search staff…" /></div>
-            <div><label className="mb-2 block text-sm font-medium">Invoice date</label><DatePicker date={parseDateOnly(billDate.split('-').reverse().join('-'))} onChange={date=>setBillDate(toDateOnlyString(date).split('-').reverse().join('-'))} /></div>
-            <div><label className="mb-2 block text-sm font-medium">Due date</label><DatePicker date={parseDateOnly(dueDate.split('-').reverse().join('-'))} onChange={date=>setDueDate(toDateOnlyString(date).split('-').reverse().join('-'))} /></div>
-            <div><label className="mb-2 block text-sm font-medium">Invoice currency</label><Select value={documentCurrency} onValueChange={setDocumentCurrency} disabled={Boolean(initial && initial.status!=='Draft')}><SelectTrigger><SelectValue/></SelectTrigger><SelectContent>{Array.from(new Set([documentCurrency,'TZS','USD','EUR','GBP','KES','ZAR','AED'])).map(code=><SelectItem key={code} value={code}>{code}</SelectItem>)}</SelectContent></Select></div>
-            <FormField label="Foreign line exchange rate" value={exRate} onChange={setExRate} placeholder="Foreign amount → invoice currency" />
-            <p className="text-sm text-muted-foreground sm:col-span-2">All foreign lines use this recorded conversion rate. Use one foreign currency per invoice.</p>
-          </CardContent></Card>
+          {/* Card 1: Customer */}
+          <Card className="rounded-[var(--r)] border border-[var(--border)] bg-[var(--card-bg,var(--white))] shadow-xs">
+            <CardHeader className="border-b border-[var(--border)] px-5 py-3.5 bg-[var(--card-bg,var(--white))] rounded-t-[var(--r)]">
+              <CardTitle className="text-sm font-semibold tracking-tight text-[var(--ink)] flex items-center gap-2">
+                <Icon name="users" size={16} color="var(--teal)" />
+                <span>Customer & Billing Address</span>
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="p-5 space-y-4">
+              <div>
+                <label className="block text-xs font-semibold uppercase tracking-wider text-[var(--ink3)] mb-1.5">
+                  Customer / Company *
+                </label>
+                <EntityPicker
+                  value={customer ?? (client ? { id: '', label: client } : null)}
+                  onChange={handleCustomerChange}
+                  search={searchCustomers}
+                  onCreate={createCustomer}
+                  createLabel={query => `Create customer “${query}”`}
+                  placeholder="Search CRM customers…"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold uppercase tracking-wider text-[var(--ink3)] mb-1.5" htmlFor="invoice-address">
+                  Billing Address
+                </label>
+                <Textarea
+                  id="invoice-address"
+                  value={addr}
+                  onChange={event => setAddr(event.target.value)}
+                  rows={4}
+                  placeholder="Street, city, country, tax / VAT details"
+                  className="rounded-[var(--r-sm)] border-[var(--border)] bg-[var(--card-bg,var(--white))] text-xs"
+                />
+              </div>
+
+              {canUseBusinessLines && (
+                <div>
+                  <label className="block text-xs font-semibold uppercase tracking-wider text-[var(--ink3)] mb-1.5">
+                    Business Line
+                  </label>
+                  <Combobox
+                    options={
+                      financeConfiguration.data?.businessLines
+                        .filter(line => line.active || line.id === businessLineId)
+                        .map(line => ({ value: line.id, label: `${line.name} · ${line.code}` })) ?? []
+                    }
+                    value={businessLineId}
+                    onChange={setBusinessLineId}
+                    placeholder="Choose a business line"
+                    disabled={Boolean(initial && initial.status !== 'Draft')}
+                  />
+                </div>
+              )}
+            </CardContent>
+          </Card>
+
+          {/* Card 2: Invoice Details */}
+          <Card className="rounded-[var(--r)] border border-[var(--border)] bg-[var(--card-bg,var(--white))] shadow-xs">
+            <CardHeader className="border-b border-[var(--border)] px-5 py-3.5 bg-[var(--card-bg,var(--white))] rounded-t-[var(--r)]">
+              <CardTitle className="text-sm font-semibold tracking-tight text-[var(--ink)] flex items-center gap-2">
+                <Icon name="receipt" size={16} color="var(--teal)" />
+                <span>Invoice Terms & Currency</span>
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="p-5 grid gap-4 sm:grid-cols-2">
+              <div>
+                <label className="block text-xs font-semibold uppercase tracking-wider text-[var(--ink3)] mb-1.5">
+                  Invoice Number
+                </label>
+                <Input
+                  value={initial?.id || 'Assigned when saved'}
+                  disabled
+                  className="bg-[var(--bg)] font-mono text-xs text-[var(--ink2)]"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold uppercase tracking-wider text-[var(--ink3)] mb-1.5">
+                  Sales Agent
+                </label>
+                <EntityPicker
+                  value={agentPick}
+                  onChange={handleAgentChange}
+                  search={searchStaff}
+                  placeholder="Search staff…"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold uppercase tracking-wider text-[var(--ink3)] mb-1.5">
+                  Invoice Date *
+                </label>
+                <DatePicker
+                  date={parseDateOnly(billDate.split('-').reverse().join('-'))}
+                  onChange={date => setBillDate(toDateOnlyString(date).split('-').reverse().join('-'))}
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold uppercase tracking-wider text-[var(--ink3)] mb-1.5">
+                  Due Date
+                </label>
+                <DatePicker
+                  date={parseDateOnly(dueDate.split('-').reverse().join('-'))}
+                  onChange={date => setDueDate(toDateOnlyString(date).split('-').reverse().join('-'))}
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold uppercase tracking-wider text-[var(--ink3)] mb-1.5">
+                  Invoice Currency *
+                </label>
+                <Select
+                  value={documentCurrency}
+                  onValueChange={setDocumentCurrency}
+                  disabled={Boolean(initial && initial.status !== 'Draft')}
+                >
+                  <SelectTrigger className="font-semibold">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {Array.from(new Set([documentCurrency, 'TZS', 'USD', 'EUR', 'GBP', 'KES', 'ZAR', 'AED'])).map(code => (
+                      <SelectItem key={code} value={code}>
+                        {code}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold uppercase tracking-wider text-[var(--ink3)] mb-1.5">
+                  Foreign Exchange Rate
+                </label>
+                <Input
+                  value={exRate}
+                  onChange={e => setExRate(e.target.value)}
+                  placeholder="Foreign amount → invoice currency"
+                  className="font-mono text-xs"
+                />
+                {todayFxRate && documentCurrency !== 'USD' && (
+                  <button
+                    type="button"
+                    onClick={() => setExRate(String(todayFxRate.rate))}
+                    className="text-[11px] text-[var(--teal)] font-medium hover:underline inline-flex items-center gap-1 mt-1"
+                  >
+                    <Icon name="sparkle" size={11} />
+                    <span>Use live rate: 1 USD = {todayFxRate.rate.toLocaleString()} {tenantCurrency}</span>
+                  </button>
+                )}
+              </div>
+
+              <p className="text-xs text-muted-foreground sm:col-span-2 mt-1">
+                All foreign lines use this recorded conversion rate. Use one foreign currency per invoice.
+              </p>
+            </CardContent>
+          </Card>
         </div>
-        {(financeConfiguration.data?.industries.includes('logistics') || includeShipment) && <div className="flex items-center gap-3"><Checkbox id="invoice-shipment" checked={includeShipment} onCheckedChange={value=>setIncludeShipment(value===true)} /><label htmlFor="invoice-shipment" className="text-sm font-medium">Include shipment details</label></div>}
-        {includeShipment && <Card><CardHeader><CardTitle>Shipment</CardTitle></CardHeader><CardContent className="space-y-4">
-          <EntityPicker label="Linked shipment" value={shipment} onChange={handleShipmentChange} search={searchShipments} onCreate={createShipment} createLabel={()=>'Create shipment'} placeholder="Search shipment reference…" />
-          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4"><FormField label="BL or AWB" value={blNo} onChange={setBlNo}/><FormField label="Origin" value={origin} onChange={setOrigin}/><FormField label="Destination" value={dest} onChange={setDest}/><div><label className="mb-2 block text-sm font-medium">Mode</label><Select value={mode} onValueChange={value=>setMode(value as Invoice['mode'])}><SelectTrigger><SelectValue/></SelectTrigger><SelectContent>{['SEA','AIR','ROAD'].map(value=><SelectItem key={value} value={value}>{value}</SelectItem>)}</SelectContent></Select></div></div>
-        </CardContent></Card>}
-        <Card><CardHeader><CardTitle>Products and services</CardTitle></CardHeader><CardContent>
-          <InvoiceLinesEditor items={[...clearing,...shipping,...other]} currency={documentCurrency} customerId={customer?.id || undefined} onChange={items=>{setClearing(items.filter(item=>item.group==='clearing'));setShipping(items.filter(item=>item.group==='shipping'));setOther(items.filter(item=>item.group==='other'));}} />
-          {activeShipmentFull && <Button className="mt-4" variant="outline" onClick={()=>setShowTimesheets(true)}>Import unbilled time</Button>}
-        </CardContent></Card>
-        {showTimesheets && activeShipmentFull && <ImportTimesheetsModal shipmentId={activeShipmentFull.id} shipmentRef={activeShipmentFull.ref_number} sectionCurrency={documentCurrency} onClose={()=>setShowTimesheets(false)} onImport={lines=>{setOther(previous=>[...previous,...lines.map(line=>({...line,uid:crypto.randomUUID()}))]);setShowTimesheets(false);}} />}
-        <div className="grid gap-6 lg:grid-cols-2"><Card><CardHeader><CardTitle>Terms and payment instructions</CardTitle></CardHeader><CardContent><Textarea aria-label="Terms and payment instructions" value={terms} onChange={event=>setTerms(event.target.value)} rows={5}/></CardContent></Card><Card><CardHeader><CardTitle>Summary</CardTitle></CardHeader><CardContent><div className="flex justify-between gap-4 text-lg font-semibold"><span>Total · {documentCurrency}</span><span>{formatAmount(Math.round(allItems.reduce((sum,item)=>{const gross=Math.round(item.qty*item.rate*(1+item.taxPct/100)*100)/100;return sum+((item.currency || documentCurrency)===documentCurrency?gross:Math.round(gross*exRateNum*100)/100);},0)*100)/100,documentCurrency)}</span></div><p className="mt-4 text-sm text-muted-foreground">Totals include line taxes. Invoice numbers are assigned by the server when saved.</p></CardContent></Card></div>
+
+        {/* Logistics / Shipment details toggle */}
+        {(financeConfiguration.data?.industries.includes('logistics') || includeShipment) && (
+          <div className="rounded-[var(--r)] border border-[var(--border)] bg-[var(--card-bg,var(--white))] p-4 flex items-center justify-between shadow-xs">
+            <div className="flex items-center gap-3">
+              <Checkbox
+                id="invoice-shipment"
+                checked={includeShipment}
+                onCheckedChange={value => setIncludeShipment(value === true)}
+              />
+              <div>
+                <label htmlFor="invoice-shipment" className="text-sm font-semibold text-[var(--ink)] cursor-pointer block">
+                  Link Shipment & Transport Logistics
+                </label>
+                <span className="text-xs text-muted-foreground">
+                  Attach Master BL, Port of Loading, Port of Discharge and haulage mode to this invoice.
+                </span>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Shipment Card */}
+        {includeShipment && (
+          <Card className="rounded-[var(--r)] border border-[var(--border)] bg-[var(--card-bg,var(--white))] shadow-xs">
+            <CardHeader className="border-b border-[var(--border)] px-5 py-3.5 bg-[var(--card-bg,var(--white))] rounded-t-[var(--r)]">
+              <CardTitle className="text-sm font-semibold tracking-tight text-[var(--ink)] flex items-center gap-2">
+                <Icon name="ship" size={16} color="var(--teal)" />
+                <span>Shipment & Transit Information</span>
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="p-5 space-y-4">
+              <div>
+                <label className="block text-xs font-semibold uppercase tracking-wider text-[var(--ink3)] mb-1.5">
+                  Linked Shipment Record
+                </label>
+                <EntityPicker
+                  value={shipment}
+                  onChange={handleShipmentChange}
+                  search={searchShipments}
+                  onCreate={createShipment}
+                  createLabel={() => 'Create new shipment'}
+                  placeholder="Search shipment reference number…"
+                />
+              </div>
+
+              <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+                <div>
+                  <label className="block text-xs font-semibold uppercase tracking-wider text-[var(--ink3)] mb-1.5">
+                    BL or AWB #
+                  </label>
+                  <Input value={blNo} onChange={e => setBlNo(e.target.value)} placeholder="e.g. MSKU1234567" className="text-xs" />
+                </div>
+                <div>
+                  <label className="block text-xs font-semibold uppercase tracking-wider text-[var(--ink3)] mb-1.5">
+                    Origin Port / City
+                  </label>
+                  <Input value={origin} onChange={e => setOrigin(e.target.value)} placeholder="e.g. Shanghai" className="text-xs" />
+                </div>
+                <div>
+                  <label className="block text-xs font-semibold uppercase tracking-wider text-[var(--ink3)] mb-1.5">
+                    Destination Port / City
+                  </label>
+                  <Input value={dest} onChange={e => setDest(e.target.value)} placeholder="e.g. Dar es Salaam" className="text-xs" />
+                </div>
+                <div>
+                  <label className="block text-xs font-semibold uppercase tracking-wider text-[var(--ink3)] mb-1.5">
+                    Transport Mode
+                  </label>
+                  <Select value={mode} onValueChange={value => setMode(value as Invoice['mode'])}>
+                    <SelectTrigger className="text-xs font-semibold">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {['SEA', 'AIR', 'ROAD'].map(value => (
+                        <SelectItem key={value} value={value}>
+                          {value}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Card 3: Products and Services Line Items */}
+        <Card className="rounded-[var(--r)] border border-[var(--border)] bg-[var(--card-bg,var(--white))] shadow-xs">
+          <CardHeader className="border-b border-[var(--border)] px-5 py-3.5 bg-[var(--card-bg,var(--white))] rounded-t-[var(--r)] flex flex-row items-center justify-between flex-wrap gap-2">
+            <CardTitle className="text-sm font-semibold tracking-tight text-[var(--ink)] flex items-center gap-2">
+              <Icon name="package" size={16} color="var(--teal)" />
+              <span>Products and Services</span>
+            </CardTitle>
+            <span className="text-xs font-semibold text-[var(--teal)] bg-[var(--teal-l)] px-2.5 py-0.5 rounded-full">
+              {allItems.length} {allItems.length === 1 ? 'line item' : 'line items'}
+            </span>
+          </CardHeader>
+          <CardContent className="p-5">
+            <InvoiceLinesEditor
+              items={[...clearing, ...shipping, ...other]}
+              currency={documentCurrency}
+              customerId={customer?.id || undefined}
+              onChange={items => {
+                setClearing(items.filter(item => item.group === 'clearing'));
+                setShipping(items.filter(item => item.group === 'shipping'));
+                setOther(items.filter(item => item.group === 'other'));
+              }}
+            />
+            {activeShipmentFull && (
+              <Button className="mt-4" variant="outline" size="sm" onClick={() => setShowTimesheets(true)}>
+                <Icon name="clock" size={14} />
+                <span>Import unbilled time</span>
+              </Button>
+            )}
+          </CardContent>
+        </Card>
+
+        {showTimesheets && activeShipmentFull && (
+          <ImportTimesheetsModal
+            shipmentId={activeShipmentFull.id}
+            shipmentRef={activeShipmentFull.ref_number}
+            sectionCurrency={documentCurrency}
+            onClose={() => setShowTimesheets(false)}
+            onImport={lines => {
+              setOther(previous => [...previous, ...lines.map(line => ({ ...line, uid: crypto.randomUUID() }))]);
+              setShowTimesheets(false);
+            }}
+          />
+        )}
+
+        {/* Bottom 2-Column: Terms and Summary */}
+        <div className="grid gap-6 lg:grid-cols-2">
+          {/* Terms Card */}
+          <Card className="rounded-[var(--r)] border border-[var(--border)] bg-[var(--card-bg,var(--white))] shadow-xs">
+            <CardHeader className="border-b border-[var(--border)] px-5 py-3.5 bg-[var(--card-bg,var(--white))] rounded-t-[var(--r)]">
+              <CardTitle className="text-sm font-semibold tracking-tight text-[var(--ink)] flex items-center gap-2">
+                <Icon name="fileText" size={16} color="var(--teal)" />
+                <span>Terms & Payment Instructions</span>
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="p-5">
+              <Textarea
+                aria-label="Terms and payment instructions"
+                value={terms}
+                onChange={event => setTerms(event.target.value)}
+                rows={5}
+                placeholder="Payment instructions, bank account details, and contractual terms printed at the bottom of the invoice…"
+                className="rounded-[var(--r-sm)] border-[var(--border)] text-xs"
+              />
+            </CardContent>
+          </Card>
+
+          {/* Summary Card */}
+          <Card className="rounded-[var(--r)] border border-[var(--border)] bg-[var(--card-bg,var(--white))] shadow-xs">
+            <CardHeader className="border-b border-[var(--border)] px-5 py-3.5 bg-[var(--card-bg,var(--white))] rounded-t-[var(--r)]">
+              <CardTitle className="text-sm font-semibold tracking-tight text-[var(--ink)] flex items-center gap-2">
+                <Icon name="calculator" size={16} color="var(--teal)" />
+                <span>Invoice Financial Summary</span>
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="p-5 space-y-3">
+              <div className="flex justify-between items-center text-sm text-[var(--ink2)]">
+                <span>Subtotal (Net)</span>
+                <span className="font-semibold text-[var(--ink)] tabular-nums">
+                  {formatAmount(totalSub, documentCurrency)}
+                </span>
+              </div>
+              <div className="flex justify-between items-center text-sm text-[var(--ink2)]">
+                <span>Total Tax / VAT</span>
+                <span className="font-semibold text-[var(--ink)] tabular-nums">
+                  {formatAmount(totalTax, documentCurrency)}
+                </span>
+              </div>
+              <div className="border-t border-[var(--border)] pt-3 flex justify-between items-baseline">
+                <div>
+                  <div className="text-base font-bold text-[var(--ink)]">Total Payable</div>
+                  <div className="text-xs text-muted-foreground">Currency: {documentCurrency}</div>
+                </div>
+                <div className="text-2xl font-extrabold text-[var(--teal)] tabular-nums">
+                  {formatAmount(computedGrandTotal, documentCurrency)}
+                </div>
+              </div>
+              <p className="mt-3 text-xs text-muted-foreground pt-1 border-t border-dashed border-[var(--border)]">
+                Totals include applicable line taxes. Real invoice number will be assigned by the server upon issuance.
+              </p>
+            </CardContent>
+          </Card>
+        </div>
       </div>
     </FormPage>
   );

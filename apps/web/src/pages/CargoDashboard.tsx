@@ -8,6 +8,7 @@ import { MetricsRow } from '../components/MetricCard.js';
 import { SectionCard } from '../components/SectionCard.js';
 import { SectionLoading } from '../components/ui/spinner.js';
 import { apiFetch } from '../lib/api.js';
+import { formatAmount } from '../lib/currency.js';
 import { DataTable, type TableColumn } from '../components/ui/DataTable.js';
 
 interface Summary {
@@ -119,8 +120,7 @@ export function CargoDashboard() {
 
   useEffect(() => { loadDashboard(); }, [loadDashboard]);
 
-  const formatCurrency = (amount: number) =>
-    new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', minimumFractionDigits: 0 }).format(amount);
+  const formatCurrency = (amount: number) => formatAmount(amount, 'USD');
 
   const maxLaneShipments = Math.max(1, ...lanes.map(l => l.shipments));
   const maxRegionShipments = Math.max(1, ...regions.map(r => r.shipments));

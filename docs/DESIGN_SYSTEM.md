@@ -35,6 +35,19 @@ The live design system is `apps/web/src/components/ui/`, backed by the
 runtime tokens written by `useDesignSystem()` and scoped per app by
 `WorkspaceApp`.
 
+## Large number and currency display
+
+App screens use the shared formatter in `apps/web/src/lib/currency.ts` for
+currency (`formatAmount`) and large plain figures (`formatDisplayNumber`).
+Values below 1,000,000,000 retain their normal full display; at 1,000,000,000
+and above they use compact short-scale suffixes (`B`, `T`, then `Qa`, `Qi`,
+and higher) so cards and tables keep their responsive width. The compact form
+is presentation only: calculations, API payloads, stored amounts, form values,
+CSV exports, and printable financial documents retain the exact source value.
+Use `formatCompact` / `formatCompactNumber` for deliberately compact KPI tiles
+that may switch to `K` or `M` earlier. Do not truncate numeric text with CSS
+ellipsis as a substitute for compact formatting.
+
 ## Rules for new UI
 
 - Use a primitive from `components/ui` before building markup by hand.
@@ -577,6 +590,21 @@ Badges and chips run on two steps: `--badge-py`/`-px`/`-fs`/`-min-h` and the `-s
 - **Search placement:** In table, card, and page headers, primary section tabs / filter triggers belong on the left side of the toolbar header, while the search input sits right-aligned on the right side (`justify-content: space-between` / `margin-left: auto`).
 - **Margin consistency:** All page elements — `PageHeader`, `MetricsRow`, tab headers, and data table containers — must follow identical left and right margin boundaries set by `.page-layout` (and `.app-shell-content`). Inner list page wrappers must not apply arbitrary extra horizontal padding (e.g. `padding: 24px 28px`) that indents data tables inwards relative to top metrics cards and headers.
 
+### Per-component caveats
+
+The gotchas behind CLAUDE.md's mapping table (moved here so that file stays a quick lookup, not a list of caveats):
+
+- **`Select`**: Radix `SelectItem` cannot have an empty-string `value` — use a sentinel like `'__none__'` and translate to/from `''` at the value/onChange boundary.
+- **`Combobox`**: no empty-string restriction (unlike `Select`) — use it for anything sourced from an API `.map()` (vehicles, drivers, staff, customers, shipments) rather than a short static list.
+- **`EntityPicker`** (`apps/web/src/components/EntityPicker.tsx`): built on `Popover` + `PopoverAnchor`, not `Command` — the input is the anchor/trigger itself, outside the popover.
+- **`DropdownMenu`**: Radix owns open/close and outside-click — delete the old `useState`/`useRef`/`mousedown`-listener boilerplate when migrating a hand-built kebab menu to it.
+- **`SearchToolbar`** (`ui/filter-dropdown.tsx`) props: `search`/`onSearch`, `placeholder`, `activeFilterCount` (drives the badge), `onFiltersClick`/`filtersOpen` (toggle the filter panel), `onExpand` (optional expand button), `actions` slot (extra ReactNode for icon buttons or a DropdownMenu in the right action area). Do not hand-roll a `<div><Icon /><input /></div>` search block on a list page.
+- **`Accordion`**: card-style items (`rounded-xl border`) — wrap the list in a container with `className="flex flex-col gap-2"` for spacing between items.
+- **`FeaturedIcon`** (`ui/featured-icon.tsx`): takes the icon as `children`, `variant` (`brand`/`gray`/`success`/`warning`/`error`/`info`), `size` (`sm`/`md`/`lg`/`xl`), `shape` (`square`/`circle`).
+- **`Badge`** (`ui/badge.tsx`): the soft-tint `variant`s (`brand`/`success`/`warning`/`error`/`info`/`gray`) are background tint + matching-hue text, never a solid fill.
+- **`Dialog`/`DialogContent`**: must pass `size` (`sm`/`md`/`lg`/`xl`/`full`) and lay out `DialogHeader`+`DialogBody`+`DialogFooter` whenever the dialog is multi-step/tabbed, so it doesn't resize as the user moves between steps. Omitting `size` is fine only for a genuinely single-view dialog.
+- **`DatePicker`/`DateRangePicker`** (`ui/date-picker.tsx`): both are a styled trigger button + `Popover` + the themed `Calendar` (`ui/calendar.tsx`, built on `react-day-picker`).
+- **Loading states**: `SectionLoading`/`PageLoading`/`ButtonSpinner` (`ui/spinner.tsx`) or the shape-matched `Skeleton*` family (`ui/skeleton.tsx`) — never a hand-rolled `<div>Loading…</div>` or spin keyframe.
 
 ## Register and till patterns — 23 October 2026
 

@@ -319,7 +319,14 @@
   border: 1px solid var(--border);
   border-radius: var(--r);
   overflow-x: auto;
+  max-width: 100%;
   scrollbar-width: none;
+  -webkit-overflow-scrolling: touch;
+  touch-action: pan-x pan-y;
+  overscroll-behavior-x: contain;
+  scroll-snap-type: x proximity;
+  scroll-behavior: smooth;
+  scroll-padding: 0 12px;
   min-height: 48px;
 }
 
@@ -340,6 +347,9 @@
   border-bottom: 2px solid transparent;
   cursor: pointer;
   white-space: nowrap;
+  flex: 0 0 auto;
+  flex-shrink: 0;
+  scroll-snap-align: start;
   transition: all var(--dur-fast, 120ms) ease;
 }
 
@@ -365,11 +375,110 @@
   font-weight: 700;
   background: var(--bg);
   color: var(--ink2);
+  flex-shrink: 0;
 }
 
 .cust-nav-btn[data-active="true"] .cust-nav-badge {
   background: var(--teal-l);
   color: var(--teal);
+}
+
+/* ── Commercial & Finance Subtab Navigation ── */
+.cust-finance-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 12px;
+  width: 100%;
+}
+
+.cust-subtab-strip {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: var(--card-bg, var(--white));
+  padding: 4px;
+  border-radius: var(--r);
+  border: 1px solid var(--border);
+  overflow-x: auto;
+  max-width: 100%;
+  scrollbar-width: none;
+  -webkit-overflow-scrolling: touch;
+  touch-action: pan-x pan-y;
+  overscroll-behavior-x: contain;
+  scroll-snap-type: x proximity;
+  scroll-behavior: smooth;
+  scroll-padding: 0 8px;
+}
+
+.cust-subtab-strip::-webkit-scrollbar {
+  display: none;
+}
+
+.cust-subtab-btn {
+  flex: 0 0 auto !important;
+  flex-shrink: 0 !important;
+  white-space: nowrap !important;
+  scroll-snap-align: start;
+}
+
+.cust-finance-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+@media (max-width: 640px) {
+  .cust-tab-nav {
+    padding: 0 8px;
+    gap: 4px;
+    min-height: 44px;
+    scroll-padding: 0 8px;
+  }
+
+  .cust-nav-btn {
+    padding: 10px 11px;
+    gap: 6px;
+    font-size: 12.5px;
+  }
+
+  .cust-nav-badge {
+    min-width: 16px;
+    height: 16px;
+    font-size: 9.5px;
+    padding: 0 4px;
+  }
+
+  .cust-finance-toolbar {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 10px;
+  }
+
+  .cust-subtab-strip {
+    width: 100%;
+    padding: 4px 6px;
+    gap: 5px;
+  }
+
+  .cust-subtab-btn {
+    font-size: 12px;
+    padding: 6px 10px;
+  }
+
+  .cust-finance-actions {
+    width: 100%;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+  }
+
+  .cust-finance-actions > button {
+    width: 100%;
+    justify-content: center;
+  }
 }
 
 /* ── Workstation Layout (Overview Tab) ── */

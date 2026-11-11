@@ -217,6 +217,8 @@ export function ClearOSShell() {
                 <Route path="reference"       element={<CustomsReference />} />
                 <Route path="rate-card"       element={<RequireRoles roles={OPS_ROLES}><RateCardPage /></RequireRoles>} />
                 {/* Freight Booking moved to CargoTracker — see nav comment above. */}
+                <Route path="freight-quote"              element={<Navigate to="/cargotracker/quotes/new" replace />} />
+                <Route path="freight-booking/quotes"     element={<Navigate to="/cargotracker/quotes/new" replace />} />
                 <Route path="freight-booking/bookings"   element={<Navigate to="/cargotracker/bookings" replace />} />
                 <Route path="freight-booking/new"        element={<Navigate to="/cargotracker/bookings/new" replace />} />
                 <Route path="freight-booking/rate-cards" element={<Navigate to="/cargotracker/rate-cards" replace />} />

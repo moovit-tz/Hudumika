@@ -6,8 +6,9 @@ export const quotationService = {
   async list(tenantId: string, filters?: { status?: string; customer_id?: string; search?: string; page?: number; page_size?: number }) {
     return withTenant(tenantId, async (trx) => {
       const cols = [
-        'quotations.id', 'quotations.quote_number', 'quotations.title',
-        'quotations.shipment_type', 'quotations.origin_port', 'quotations.destination_port',
+        'quotations.id', 'quotations.quote_number', 'quotations.customer_id', 'quotations.title',
+        'quotations.shipment_type', 'quotations.origin_port', 'quotations.origin_city',
+        'quotations.destination_port', 'quotations.destination_city',
         'quotations.subtotal', 'quotations.tax_amount', 'quotations.total_amount',
         'quotations.currency', 'quotations.status', 'quotations.valid_until',
         'quotations.created_at', 'customers.name as customer_name',

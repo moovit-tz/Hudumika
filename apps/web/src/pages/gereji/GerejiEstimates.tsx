@@ -1,4 +1,5 @@
 import React, { useEffect, useState, useCallback } from 'react';
+import { TH, TD } from './shared.js';
 import { useNavigate } from 'react-router-dom';
 import { PageHeader } from '../../components/PageHeader.js';
 import { SectionCard } from '../../components/SectionCard.js';
@@ -34,8 +35,6 @@ const EST_BADGE: Record<string, 'gray' | 'info' | 'success' | 'error' | 'warning
 };
 const LINE_TYPES = ['labour', 'part', 'sublet', 'misc'] as const;
 
-const TH: React.CSSProperties = { padding: '10px 18px', textAlign: 'left', fontSize: 11, fontWeight: 700, color: 'var(--ink3)', textTransform: 'uppercase', letterSpacing: '0.05em', background: 'var(--card-sunken, var(--bg))', borderBottom: '1px solid var(--border)', whiteSpace: 'nowrap' };
-const TD: React.CSSProperties = { padding: '12px 18px', borderBottom: '1px solid var(--border)', verticalAlign: 'middle', color: 'var(--ink)' };
 
 export function GerejiEstimates() {
   const navigate = useNavigate();

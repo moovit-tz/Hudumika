@@ -21,18 +21,14 @@ const SelectTrigger = React.forwardRef<
     data-field-appearance={/\bborder-(?:0|none)\b/.test(className ?? '') ? 'bare' : undefined}
     ref={ref}
     className={cn(
-      // Same floor as Combobox and Button: --ctl-h, the density ladder,
-      // rather than a fixed min-h-9. These two primitives sit side by side all
-      // over the app, so fixing one and not the other would make them disagree
-      // at any density where the floor actually binds.
-      "flex min-h-(--ctl-h) w-full items-center justify-between whitespace-nowrap rounded-(--radius) border border-input bg-transparent px-3 py-[var(--ds-input-py,8px)] text-sm font-medium shadow-sm ring-offset-background transition-colors data-[placeholder]:text-muted-foreground hover:border-primary/40 focus:outline-none focus:border-foreground/30 disabled:cursor-not-allowed disabled:opacity-50 [&>span]:line-clamp-1",
+      "flex min-h-(--ctl-h) h-(--ctl-h) w-full items-center justify-between whitespace-nowrap rounded-(--radius) border border-[var(--border)] bg-[var(--card-bg,var(--white))] px-3 py-[var(--ds-input-py,8px)] text-sm font-medium text-[var(--ink)] shadow-sm ring-offset-background transition-colors data-[placeholder]:text-muted-foreground hover:border-[var(--teal)]/40 focus:outline-none focus:border-[var(--teal)] disabled:cursor-not-allowed disabled:opacity-50 [&>span]:line-clamp-1",
       className
     )}
     {...props}
   >
     {children}
     <SelectPrimitive.Icon asChild>
-      <ChevronDown className="h-4 w-4 opacity-50" />
+      <ChevronDown className="h-4 w-4 opacity-50 text-[var(--ink3)]" />
     </SelectPrimitive.Icon>
   </SelectPrimitive.Trigger>
 ))
@@ -81,7 +77,7 @@ const SelectContent = React.forwardRef<
     <SelectPrimitive.Content
       ref={ref}
       className={cn(
-        "relative z-3000 max-h-(--radix-select-content-available-height) w-(--radix-select-trigger-width) min-w-[8rem] overflow-y-auto overflow-x-hidden rounded-xl border border-border/50 bg-popover/95 p-1.5 text-popover-foreground shadow-[0_8px_28px_rgba(0,0,0,0.14),0_2px_6px_rgba(0,0,0,0.06)] backdrop-blur-md ring-1 ring-black/5 dark:ring-white/10 data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 data-[side=bottom]:slide-in-from-top-2 data-[side=left]:slide-in-from-right-2 data-[side=right]:slide-in-from-left-2 data-[side=top]:slide-in-from-bottom-2 origin-(--radix-select-content-transform-origin)",
+        "relative z-3000 max-h-80 w-(--radix-select-trigger-width) min-w-[8rem] overflow-y-auto overflow-x-hidden rounded-[var(--r)] border border-[var(--border)] bg-[var(--card-bg,var(--white))] p-1 text-[var(--ink)] shadow-xl ring-1 ring-black/5 dark:ring-white/10 data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 data-[side=bottom]:slide-in-from-top-2 data-[side=left]:slide-in-from-right-2 data-[side=right]:slide-in-from-left-2 data-[side=top]:slide-in-from-bottom-2 origin-(--radix-select-content-transform-origin)",
         position === "popper" &&
           "data-[side=bottom]:translate-y-1 data-[side=left]:-translate-x-1 data-[side=right]:translate-x-1 data-[side=top]:-translate-y-1",
         className
@@ -92,8 +88,9 @@ const SelectContent = React.forwardRef<
       <SelectScrollUpButton />
       <SelectPrimitive.Viewport
         className={cn(
+          "p-1",
           position === "popper" &&
-            "h-(--radix-select-trigger-height) w-full min-w-(--radix-select-trigger-width)"
+            "w-full min-w-(--radix-select-trigger-width)"
         )}
       >
         {children}

@@ -1,4 +1,4 @@
-﻿import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { FormPage } from '../components/FormPage.js';
 import { Icon } from '../components/Icon.js';
 import { useCurrency } from '../hooks/useCurrency.js';

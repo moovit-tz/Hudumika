@@ -17,6 +17,7 @@ import type { IconName } from '../../components/Icon.js';
 import { apiFetch, apiDownload, apiViewBlob, apiFetchBlob } from '../../lib/api.js';
 import { HUDUMIKA_FOOTER_HTML } from '../../lib/watermark.js';
 import { useCompany, getCompany } from '../../data/companyStore.js';
+import { formatAmount } from '../../lib/currency.js';
 import { useAuth } from '../../hooks/useAuth.js';
 import { MGMT_ROLES } from '../../lib/permissions.js';
 import { useClockIn } from '../../contexts/ClockInContext.js';
@@ -141,10 +142,9 @@ export function apiTimeEntryToInternal(t: any): TimeEntry {
 export function fdate(d: Date) { return d.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }); }
 export function ftime(d: Date) { return d.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' }); }
 export function fdatetime(d: Date) { return `${fdate(d)}, ${ftime(d)}`; }
-export function fmtTZS(n: number) { return 'TZS ' + n.toLocaleString('en'); }
+export function fmtTZS(n: number) { return formatAmount(n, 'TZS'); }
 export function fmtServiceRate(amount: number, currency: string) {
-  try { return new Intl.NumberFormat('en-US', { style: 'currency', currency, minimumFractionDigits: 0, maximumFractionDigits: 2 }).format(amount); }
-  catch { return `${currency} ${amount.toLocaleString('en')}`; }
+  return formatAmount(amount, currency);
 }
 export function avatarBg(name: string) {
   const c = ['#e8461a', '#2563eb', 'var(--green)', '#7c3aed', 'var(--gold)', '#0891b2'];

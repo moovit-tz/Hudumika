@@ -8,6 +8,7 @@ import {Banner} from '../components/ui/alert.js';
 import {Badge} from '../components/ui/badge.js';
 import {Tabs,TabsList,TabsTrigger} from '../components/ui/tabs.js';
 import {SectionLoading} from '../components/ui/spinner.js';
+import { formatAmount } from '../lib/currency.js';
 
 export function ComplyPortfolio({revision=0}:{revision?:number}) {
   const [currency,setCurrency]=useState('TZS');
@@ -22,7 +23,7 @@ export function ComplyPortfolio({revision=0}:{revision?:number}) {
   const entities=new Map(register.data.map(r=>[r.entity_id??'unassigned',r.entity_name??'Unassigned entity']));
   const sites=new Map(register.data.filter(r=>entity==='all'||(r.entity_id??'unassigned')===entity).map(r=>[r.site_id??'unassigned',r.site_name??'Unassigned branch / site']));
   const jurisdictions=new Set(register.data.map(r=>r.jurisdiction||'unassigned'));
-  const money=(amount:number)=>new Intl.NumberFormat('en-GB',{style:'currency',currency,minimumFractionDigits:2,maximumFractionDigits:2}).format(amount);
+  const money=(amount:number)=>formatAmount(amount,currency);
   const sum=(key:'estimated_cost'|'approved_budget'|'net_paid'|'remaining_forecast'|'committed')=>rows.reduce((total,r)=>total+Number(r[key]),0);
   const unpriced=rows.filter(r=>r.cost_line_count===undefined?r.estimated_cost===0:r.cost_line_count===0).length;
   const scope=new URLSearchParams({currency});

@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { useIsMobile } from '../../hooks/useIsMobile.js';
 import { apiFetch } from '../../lib/api.js';
@@ -202,6 +202,20 @@ export const CustomerDetailPage: React.FC = () => {
   });
   const [financeTab, setFinanceTab] = useState('invoices');
   const [shipTab, setShipTab] = useState('all');
+
+  const activeMainTabRef = useRef<HTMLButtonElement | null>(null);
+  const activeFinanceTabRef = useRef<HTMLButtonElement | null>(null);
+
+  // Auto-scroll active tabs into view smoothly on mobile sliding navigation
+  useEffect(() => {
+    activeMainTabRef.current?.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
+  }, [mainTab]);
+
+  useEffect(() => {
+    if (mainTab === 'finance') {
+      activeFinanceTabRef.current?.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
+    }
+  }, [financeTab, mainTab]);
 
   useEffect(() => {
     if (!tabParam) return;
@@ -772,11 +786,13 @@ export const CustomerDetailPage: React.FC = () => {
           return (
             <button
               key={t.key}
+              ref={isActive ? activeMainTabRef : undefined}
               type="button"
               className="cust-nav-btn"
               data-active={isActive ? 'true' : undefined}
               onClick={() => handleTabChange(t.key)}
-             data-ui-native-button="">
+              data-ui-native-button=""
+            >
               <Icon name={t.icon} size={15} />
               <span>{t.label}</span>
               {badgeCount !== null && badgeCount > 0 && (
@@ -1074,27 +1090,32 @@ export const CustomerDetailPage: React.FC = () => {
       {/* ── TAB CONTENT 2: COMMERCIAL & FINANCE ── */}
       {mainTab === 'finance' && canSee('financial') && (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 12 }}>
-            <div style={{ display: 'flex', gap: 6, background: 'var(--card-bg, var(--white))', padding: 4, borderRadius: 'var(--r)', border: '1px solid var(--border)' }}>
+          <div className="cust-finance-toolbar">
+            <div className="cust-subtab-strip" data-ds-tabs-exempt="crm-customers-finance">
               {[
                 { id: 'invoices', label: `Invoices (${custInvoices.length})` },
                 { id: 'payments', label: `Payments (${custPayments.length})` },
                 { id: 'statement', label: 'Statement of Account' },
                 { id: 'quotes', label: `Quotes (${custQuotations.length})` },
                 { id: 'credit', label: `Credit Notes (${custCreditNotes.length})` },
-              ].map(st => (
-                <Button
-                  key={st.id}
-                  variant={financeTab === st.id ? 'default' : 'ghost'}
-                  size="xs"
-                  onClick={() => setFinanceTab(st.id)}
-                >
-                  {st.label}
-                </Button>
-              ))}
+              ].map(st => {
+                const isSubActive = financeTab === st.id;
+                return (
+                  <Button
+                    key={st.id}
+                    ref={isSubActive ? activeFinanceTabRef : undefined}
+                    variant={isSubActive ? 'default' : 'ghost'}
+                    size="xs"
+                    onClick={() => setFinanceTab(st.id)}
+                    className="cust-subtab-btn"
+                  >
+                    {st.label}
+                  </Button>
+                );
+              })}
             </div>
 
-            <div style={{ display: 'flex', gap: 8 }}>
+            <div className="cust-finance-actions">
               <Button variant="outline" size="sm" onClick={() => openStatementPrintWindow(sel, statementTransactions, customerFinancials)}>
                 <Icon name="printer" size={14} />
                 <span>Export Statement PDF</span>

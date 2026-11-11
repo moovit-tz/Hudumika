@@ -83,9 +83,9 @@ export function LockScreen() {
             <PersonAvatar
               userId={(user as any)?.id}
               name={user?.name ?? 'User'}
-              size={76}
+              size={82}
               hideStatus
-              style={{ display: 'block', borderRadius: '50%' }}
+              style={{ borderRadius: '50%' }}
             />
           </div>
           <div className="ls-avatar-emblem">
@@ -96,7 +96,7 @@ export function LockScreen() {
         {/* User Identity */}
         <div className="ls-identity">
           <div className="ls-name">{user?.name || 'Workspace User'}</div>
-          <div className="ls-subtitle">Enter your password to unlock your workspace</div>
+          <div className="ls-subtitle">Enter your password to unlock</div>
         </div>
 
         {/* Error Display */}
@@ -179,6 +179,8 @@ export function LockScreen() {
               size="lg"
               onClick={logout}
               className="ls-btn-logout"
+              aria-label="Log out"
+              title="Log out"
             >
               <Icon name="logOut" size={14} />
               <span>Log out</span>

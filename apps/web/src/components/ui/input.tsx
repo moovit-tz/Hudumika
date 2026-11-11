@@ -10,7 +10,7 @@ const Input = React.forwardRef<HTMLInputElement, React.ComponentProps<"input">>(
         data-field-appearance={/\bborder-(?:0|none)\b/.test(className ?? '') ? 'bare' : undefined}
         type={type}
         className={cn(
-          "flex min-h-(--ctl-h) w-full rounded-(--radius) border border-input bg-transparent px-3 py-[var(--ds-input-py,8px)] text-base shadow-sm transition-colors hover:border-primary/40 file:border-0 file:bg-transparent file:text-sm file:font-medium file:text-foreground placeholder:text-muted-foreground focus-visible:outline-none focus-visible:border-foreground/30 disabled:cursor-not-allowed disabled:opacity-50 md:text-sm",
+          "flex min-h-[var(--ctl-h)] w-full rounded-[var(--radius)] border border-[var(--border)] bg-[var(--bg)] px-2 py-1 text-sm placeholder:text-[var(--ink3)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--brand)] focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50",
           className
         )}
         style={{ paddingBlock: 'var(--ds-input-py)', borderWidth: 'var(--border-width, 1px)', ...style }}

@@ -19,7 +19,9 @@ import { assertCrmReferencesInTenant } from '../lib/crm-tenant-references.js';
 // calculator needs to be able to search/create leads, not just Sales/Mgmt.
 const LEAD_ROLES = ['SUPER_ADMIN', 'ADMIN', 'TENANT_ADMIN', 'MANAGER', 'SALES', 'SENIOR', 'JUNIOR', 'OFFICER'] as const;
 // Real values — 128_crm_leads.sql's CHECK constraints.
-const LEAD_STAGES = ['NEW', 'CONTACTED', 'QUALIFIED', 'PROPOSAL', 'NEGOTIATION', 'WON', 'LOST'] as const;
+// Keep accepting the original values for existing integrations while the
+// tenant-configured CRM stages use their own row UUIDs.
+const LEGACY_LEAD_STAGES = ['NEW', 'CONTACTED', 'QUALIFIED', 'PROPOSAL', 'NEGOTIATION', 'WON', 'LOST'] as const;
 const LEAD_PRIORITIES = ['HIGH', 'MEDIUM', 'LOW'] as const;
 const leadCreateSchema = z.object({
   // Optional links to an existing canonical organization / person. The lead keeps its own
@@ -31,7 +33,7 @@ const leadCreateSchema = z.object({
   contact_email: z.string().max(320).optional(),
   contact_phone: z.string().max(50).optional(),
   source: z.string().max(100).optional(),
-  stage: z.enum(LEAD_STAGES).optional(),
+  stage: z.string().trim().min(1).max(100).optional(),
   value: z.number().optional(),
   priority: z.enum(LEAD_PRIORITIES).optional(),
   assigned_to: z.string().optional(),
@@ -56,7 +58,7 @@ const leadPatchSchema = z.object({
   contact_email: z.string().max(320).nullable().optional(),
   contact_phone: z.string().max(50).nullable().optional(),
   source: z.string().max(100).optional(),
-  stage: z.enum(LEAD_STAGES).optional(),
+  stage: z.string().trim().min(1).max(100).optional(),
   value: z.number().optional(),
   priority: z.enum(LEAD_PRIORITIES).optional(),
   assigned_to: z.string().nullable().optional(),
@@ -96,6 +98,20 @@ function mapLead(row: any) {
     territory_id: row.territory_id ?? undefined,
     territory_name: row.territory_name ?? undefined,
   };
+}
+
+async function assertLeadStageInTenant(trx: any, tenantId: string, stage: string): Promise<void> {
+  if ((LEGACY_LEAD_STAGES as readonly string[]).includes(stage)) return;
+  const configured = await trx.selectFrom('crm_lead_stages').select('id')
+    .where('id', '=', stage).where('tenant_id', '=', tenantId).executeTakeFirst();
+  if (!configured) throw Object.assign(new Error('Select a valid stage for this workspace.'), { statusCode: 400 });
+}
+
+async function leadStageLabel(trx: any, tenantId: string, stage: string): Promise<string> {
+  const configured = await trx.selectFrom('crm_lead_stages').select('label')
+    .where('id', '=', stage).where('tenant_id', '=', tenantId).executeTakeFirst();
+  if (configured) return configured.label;
+  return ({ NEW: 'New', CONTACTED: 'Contacted', QUALIFIED: 'Qualified', PROPOSAL: 'Proposal', NEGOTIATION: 'Negotiation', WON: 'Won', LOST: 'Lost' } as Record<string, string>)[stage] ?? stage;
 }
 
 const leadSelect = (qb: any): any => qb
@@ -150,6 +166,7 @@ export async function leadsRoutes(fastify: FastifyInstance) {
     try {
       const tenantId = request.user.tenant_id;
       const id = await withTenant(tenantId, async trx => {
+        if (b.stage) await assertLeadStageInTenant(trx, tenantId, b.stage);
         // A linked party must exist here AND be visible to this user — an id alone grants nothing.
         const linkIds = [b.organization_party_id, b.contact_party_id].filter(Boolean) as string[];
         if (linkIds.length) {
@@ -258,6 +275,7 @@ export async function leadsRoutes(fastify: FastifyInstance) {
 
     const tenantId = request.user.tenant_id;
     const notFound = await withTenant(tenantId, async trx => {
+      if (b.stage !== undefined) await assertLeadStageInTenant(trx, tenantId, b.stage);
       await assertCrmReferencesInTenant(trx, tenantId, [
         { table: 'users', id: b.assigned_to_id }, { table: 'crm_territories', id: b.territory_id },
       ]);
@@ -275,10 +293,12 @@ export async function leadsRoutes(fastify: FastifyInstance) {
         .where('tenant_id', '=', tenantId).executeTakeFirst();
       if (result.numUpdatedRows === 0n) return true;
       if (b.stage !== undefined && existing && existing.stage !== b.stage) {
+        const fromLabel = await leadStageLabel(trx, tenantId, existing.stage);
+        const toLabel = await leadStageLabel(trx, tenantId, b.stage);
         await logCrmActivity(trx, {
           tenantId, subjectType: 'lead', subjectId: id, type: 'stage_change',
-          body: `Stage moved from ${existing.stage} to ${b.stage}`,
-          meta: { from: existing.stage, to: b.stage },
+          body: `Stage moved from ${fromLabel} to ${toLabel}`,
+          meta: { from: existing.stage, to: b.stage, from_label: fromLabel, to_label: toLabel },
           actorId: request.user.sub, actorName: request.user.name,
         });
         await emitDomainEvent(trx, tenantId, {

@@ -18,16 +18,18 @@ import { PageHeader } from '../components/PageHeader.js';
 import { PersonAvatar } from '../components/PersonAvatar.js';
 import { AvatarPicker } from '../components/AvatarPicker.js';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '../components/ui/select.js';
+import { Tabs, TabsList, TabsTrigger, TabsContent } from '../components/ui/tabs.js';
 import { Combobox } from '../components/ui/combobox.js';
 import { SingleSelectFilter } from '../components/ui/filter-dropdown.js';
 import { Checkbox } from '../components/ui/checkbox.js';
-import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem } from '../components/ui/dropdown-menu.js';
+import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator } from '../components/ui/dropdown-menu.js';
 import { DatePicker, parseDateOnly, toDateOnlyString } from '../components/ui/date-picker.js';
 import { showAlert } from '../lib/alert.js';
 import { showConfirm } from '../lib/confirm.js';
 import { SectionCard } from '../components/SectionCard.js';
 import { Tip } from '../components/ui/tooltip.js';
 import { ActivityTimeline } from '../components/crm/ActivityTimeline.js';
+import { PaginationBar } from '../components/PaginationBar.js';
 import { LabelChips } from '../components/crm/LabelChips.js';
 import { ComposeEmailButton } from '../components/crm/ComposeEmailButton.js';
 import { StartCallButton } from '../components/crm/StartCallButton.js';
@@ -279,12 +281,7 @@ function exportLeadsCSV(rows: Lead[]) {
   document.body.removeChild(a); URL.revokeObjectURL(url);
 }
 
-/* ── Stage pipeline bar ──
-   One row, not two: each pill IS the "move to this stage" control (past
-   stages jump back, future stages jump forward), so the pipeline no longer
-   repeats every stage name a second time as a separate row of "→ Stage"
-   buttons underneath. Completed stages carry a check so progress reads at a
-   glance without comparing colour saturation. */
+/* ── Stage pipeline bar (Chevron ribbon matching Sample 1 & Sample 3) ── */
 function StagePipeline({ current, onSelect, interactive }: { current: string; onSelect: (stage: string) => void; interactive: boolean }) {
   const { stageIds, stageCfg, lostIds } = React.useContext(LeadStagesContext);
   const activeStages = stageIds.filter(s => !lostIds.has(s));
@@ -295,40 +292,46 @@ function StagePipeline({ current, onSelect, interactive }: { current: string; on
 
   if (isLost) {
     return (
-      <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '5px 14px', borderRadius: 'var(--badge-radius)', fontSize: 12.5, fontWeight: 700, background: lostCfg.bg, color: lostCfg.color, border: `1.5px solid ${lostCfg.color}` }}>
-        <Icon name="x" size={12} strokeWidth={3} />
-        {lostCfg.label}
+      <div className="lead-chevron-pipeline is-terminal-lost" role="tablist" aria-label="Sales pipeline stages">
+        {activeStages.map((s) => {
+          const cfg = stageCfg[s] || { color: 'var(--ink3)', bg: 'var(--bg)', label: s };
+          return (
+            <div key={s} className="lead-chevron-step is-past" title={cfg.label}>
+              <span className="lead-chevron-text">{cfg.label}</span>
+            </div>
+          );
+        })}
+        <div className="lead-chevron-step is-lost" title={lostCfg.label}>
+          <Icon name="x" size={12} strokeWidth={2.5} className="shrink-0" />
+          <span className="lead-chevron-text">{lostCfg.label}</span>
+        </div>
       </div>
     );
   }
 
   return (
-    <div style={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap', rowGap: 8 }}>
+    <div className="lead-chevron-pipeline" role="tablist" aria-label="Sales pipeline stages">
       {activeStages.map((s, i) => {
         const cfg = stageCfg[s] || { color: 'var(--ink3)', bg: 'var(--bg)', label: s };
         const done = i < active;
         const cur = i === active;
         const clickable = interactive && !cur;
+        const stateClass = cur ? 'is-current' : done ? 'is-done' : 'is-future';
+
         return (
-          <React.Fragment key={s}>
-            <Tip label={clickable ? `Move to ${cfg.label}` : cfg.label}>
-            <Button variant={cur ? 'default' : done ? 'secondary' : 'outline'}
+          <Tip key={s} label={clickable ? `Advance to ${cfg.label}` : cur ? `Current stage: ${cfg.label}` : cfg.label}>
+            <button
               type="button"
+              className={`lead-chevron-step ${stateClass}`}
               aria-current={cur ? 'step' : undefined}
               disabled={!clickable}
               onClick={() => clickable && onSelect(s)}
-
-
-
             >
-              {done && <Icon name="check" size={12} strokeWidth={3} />}
-              {cfg.label}
-            </Button>
-            </Tip>
-            {i < activeStages.length - 1 && (
-              <div style={{ width: 18, height: 2, borderRadius: 'var(--badge-radius)', background: i < active ? 'var(--teal)' : 'var(--border)', flexShrink: 0, margin: '0 2px' }} />
-            )}
-          </React.Fragment>
+              {done && <Icon name="check" size={12} strokeWidth={2.5} className="shrink-0" />}
+              {cur && <span className="lead-chevron-dot shrink-0" />}
+              <span className="lead-chevron-text">{cfg.label}</span>
+            </button>
+          </Tip>
         );
       })}
     </div>
@@ -439,10 +442,18 @@ export const Leads: React.FC = () => {
      without that page's extra "customer folder" auto-resolution — files
      here are tagged to the lead and dropped in the tenant's default drive. */
   const [linkedFiles, setLinkedFiles] = useState<any[]>([]);
+  const [filesPage, setFilesPage] = useState(1);
+  const [filesPageSize, setFilesPageSize] = useState(10);
   const [filesLoading, setFilesLoading] = useState(false);
   const [fileUploading, setFileUploading] = useState(false);
   const profileFileInput = useRef<HTMLInputElement>(null);
   const [defaultDriveId, setDefaultDriveId] = useState<string | null>(null);
+  const visibleLinkedFiles = useMemo(() => {
+    const pageCount = Math.max(1, Math.ceil(linkedFiles.length / filesPageSize));
+    const safePage = Math.min(filesPage, pageCount);
+    const start = (safePage - 1) * filesPageSize;
+    return linkedFiles.slice(start, start + filesPageSize);
+  }, [linkedFiles, filesPage, filesPageSize]);
 
   const loadLeads = useCallback(async () => {
     setLoading(true);
@@ -633,6 +644,7 @@ export const Leads: React.FC = () => {
 
   const loadLinkedFiles = useCallback(async (leadId: string) => {
     setFilesLoading(true);
+    setFilesPage(1);
     try {
       const res = await apiFetch(`/v1/files?entity_type=lead&entity_id=${leadId}`).catch(() => []);
       setLinkedFiles(Array.isArray(res) ? res : []);
@@ -697,9 +709,15 @@ export const Leads: React.FC = () => {
 
   useEffect(() => {
     const id = searchParams.get('lead');
-    if (!id || loading || selected?.id === id) return;
+    if (!id || selected?.id === id) return;
     const match = leads.find(lead => lead.id === id);
-    if (match) openProfile(match);
+    if (match) {
+      openProfile(match);
+    } else if (!loading) {
+      apiFetch<Lead>(`/v1/leads/${id}`)
+        .then(lead => { if (lead) openProfile(lead); })
+        .catch(() => {});
+    }
   }, [leads, loading, searchParams, selected?.id]);
 
   function openEdit(lead: Lead) {
@@ -719,110 +737,236 @@ export const Leads: React.FC = () => {
     const stageCfg = liveStageCfg[sel.stage] || STAGE_CFG.NEW;
     const priCfg   = PRIORITY_CFG[sel.priority] || PRIORITY_CFG.LOW;
     const days     = daysInPipeline(sel.created_at);
+    const activeStages = stageIds.filter(s => !lostIds.has(s));
 
     const PROF_TABS = [
-      { key: 'overview',  label: 'Overview',  icon: 'grid'         as IconName },
-      { key: 'contact',   label: 'Contact',   icon: 'user'         as IconName },
-      { key: 'tasks',     label: 'Tasks',     icon: 'checkCircle'  as IconName },
-      { key: 'activity',  label: 'Activity',  icon: 'activity'     as IconName },
-      { key: 'notes',     label: 'Notes',     icon: 'edit'         as IconName },
-      { key: 'documents', label: 'Documents', icon: 'folder'       as IconName },
+      { key: 'overview',  label: 'Overview',            icon: 'grid'         as IconName },
+      { key: 'activity',  label: 'Activity Timeline',   icon: 'activity'     as IconName },
+      { key: 'tasks',     label: 'Tasks',               icon: 'checkCircle'  as IconName, count: leadTasks.filter(u => !u.done).length },
+      { key: 'notes',     label: 'Team Notes',          icon: 'edit'         as IconName },
+      { key: 'contact',   label: 'Contact & Company',   icon: 'user'         as IconName },
+      { key: 'documents', label: 'Documents Vault',     icon: 'folder'       as IconName, count: linkedFiles.length },
     ];
 
     return (
       <div className="lead-lp-root">
-        {/* Breadcrumbs */}
-        <div className="lead-lp-crumbs-bar">
-          <div className="lead-lp-crumbs-path">
-            <a href="/crm/leads" onClick={e => { e.preventDefault(); closeProfile(); }}>CRM · Leads</a>
-            <span>/</span>
-            <span className="lead-lp-crumbs-current">{sel.company}</span>
-          </div>
-          <button className="lead-lp-back-btn" onClick={closeProfile} data-ui-native-button="">
-            <Icon name="arrowLeft" size={13} />
-            All Leads
-          </button>
-        </div>
+        {/* Page Header */}
+        <PageHeader
+          onBack={closeProfile}
+          backLabel="Back to Leads"
+          crumbs={[
+            { label: 'CRM', to: '/crm' },
+            { label: 'Leads', to: '/crm/leads' },
+            sel.company,
+          ]}
+          title={sel.company}
+          subtitle="Sales progress, contact details, and team activity."
+        />
 
-        {/* Hero */}
+        {/* Hero Card with Sample 1 / 3 Compressed Architecture */}
         <div className="lead-lp-hero">
+          {/* Identity & Quick Actions Header */}
           <div className="lead-lp-hero-header">
             <div className="lead-lp-identity">
               <div className="lead-lp-avatar-frame">
-                <AvatarPicker id={sel.id} kind="leads" name={sel.company} size={64} shape="square" controls="default" />
+                <AvatarPicker id={sel.id} kind="leads" name={sel.company} size={48} shape="square" controls="compact" />
               </div>
               <div className="lead-lp-details">
                 <div className="lead-lp-title-row">
                   <h1 className="lead-lp-company-name">{sel.company}</h1>
-                  <Badge variant={wonIds.has(sel.stage) ? 'success' : lostIds.has(sel.stage) ? 'error' : 'brand'}>{stageCfg.label}</Badge>
-                  <Badge variant={sel.priority === 'HIGH' ? 'error' : sel.priority === 'MEDIUM' ? 'warning' : 'gray'}>{priCfg.label}</Badge>
-                  {sel.score != null && <Badge variant="gray">Score {sel.score}</Badge>}
+                  <Badge variant={wonIds.has(sel.stage) ? 'success' : lostIds.has(sel.stage) ? 'destructive' : 'brand'}>{stageCfg.label}</Badge>
+                  <Badge variant={sel.priority === 'HIGH' ? 'destructive' : sel.priority === 'MEDIUM' ? 'warning' : 'outline'}>{priCfg.label}</Badge>
+                  {sel.score != null && <Badge variant="outline" className="font-mono text-xs font-bold text-emerald-600 dark:text-emerald-400">Score {sel.score}/100</Badge>}
                 </div>
                 <div className="lead-lp-subtitle-row">
                   {sel.contact_name && (
                     <span className="lead-lp-contact-chip">
-                      <PersonAvatar name={sel.contact_name} size={18} />
+                      <PersonAvatar name={sel.contact_name} size={16} />
                       <span>{sel.contact_name}</span>
                     </span>
                   )}
-                  {(sel.assigned_to_name || sel.assigned_to) ? (
+                  {sel.source && (
                     <>
                       <span>·</span>
-                      <span className="lead-lp-contact-chip">
-                        <PersonAvatar userId={sel.assigned_to_id} name={sel.assigned_to_name || sel.assigned_to || ''} size={18} />
-                        <span>Owner: {sel.assigned_to_name || sel.assigned_to}</span>
-                      </span>
+                      <span>Source: <strong style={{ color: 'var(--ink)' }}>{sel.source}</strong></span>
                     </>
-                  ) : null}
-                  {sel.source && <><span>·</span><span>Source: <strong style={{ color: 'var(--ink)' }}>{sel.source}</strong></span></>}
-                </div>
-                <div className="lead-lp-meta-chips">
-                  {sel.contact_email && (
-                    <span className="lead-lp-meta-chip"><Icon name="mail" size={13} /><a href={`mailto:${sel.contact_email}`}>{sel.contact_email}</a></span>
                   )}
-                  {sel.contact_phone && (
-                    <span className="lead-lp-meta-chip"><Icon name="phone" size={13} /><a href={`tel:${sel.contact_phone}`}>{sel.contact_phone}</a></span>
-                  )}
-                  {sel.location && <span className="lead-lp-meta-chip"><Icon name="mapPin" size={13} /><span>{sel.location}</span></span>}
-                  {sel.industry && <span className="lead-lp-meta-chip"><Icon name="briefcase" size={13} /><span>{sel.industry}</span></span>}
-                </div>
-                <div style={{ marginTop: 10 }}>
-                  <LabelChips subjectType="lead" subjectId={sel.id} />
                 </div>
               </div>
             </div>
-            <div className="lead-lp-hero-actions">
-              <ComposeEmailButton subjectType="lead" subjectId={sel.id} onSent={() => setProfileTab('activity')}>
-                <Button variant="outline" size="sm"><Icon name="mail" size={14} /><span>Email</span></Button>
-              </ComposeEmailButton>
-              <StartCallButton subjectType="lead" subjectId={sel.id} phone={sel.contact_phone} onLogged={() => setProfileTab('activity')}>
-                <Button variant="outline" size="sm" disabled={!sel.contact_phone}><Icon name="phone" size={14} /><span>Call</span></Button>
-              </StartCallButton>
-              {sel.contact_phone && (
-                <Button variant="outline" size="sm"
-                  onClick={() => { const phone = sel.contact_phone?.replace(/\D/g, ''); if (phone) window.open(`https://wa.me/${phone}`, '_blank', 'noopener,noreferrer'); }}>
-                  <Icon name="send" size={14} /><span>WhatsApp</span>
-                </Button>
-              )}
-              <Button variant="outline" size="sm" onClick={() => { setProfileForm({ ...sel }); setEditMode(true); setProfileTab('contact'); }}>
-                <Icon name="edit" size={14} /><span>Edit</span>
+
+            {/* Circular Quick Actions (Sample 1 & Sample 3) */}
+            <div className="lead-lp-page-actions">
+              <div className="lead-lp-action-cluster" aria-label="Lead communication and editing">
+                <ComposeEmailButton subjectType="lead" subjectId={sel.id} onSent={() => setProfileTab('activity')}>
+                  <Tip label="Send Email">
+                    <Button variant="outline" size="icon" iconOnly aria-label="Send Email" className="lead-lp-circle-btn">
+                      <Icon name="mail" size={14} />
+                    </Button>
+                  </Tip>
+                </ComposeEmailButton>
+
+                <StartCallButton subjectType="lead" subjectId={sel.id} phone={sel.contact_phone} onLogged={() => setProfileTab('activity')}>
+                  <Tip label={sel.contact_phone ? `Call ${sel.contact_phone}` : 'No phone number available'}>
+                    <Button variant="outline" size="icon" iconOnly disabled={!sel.contact_phone} aria-label="Call Contact" className="lead-lp-circle-btn">
+                      <Icon name="phone" size={14} />
+                    </Button>
+                  </Tip>
+                </StartCallButton>
+
+                {sel.contact_phone && (
+                  <Tip label="Chat on WhatsApp">
+                    <Button
+                      variant="outline"
+                      size="icon"
+                      iconOnly
+                      className="lead-lp-circle-btn text-emerald-600 dark:text-emerald-400 hover:text-emerald-700 hover:bg-emerald-50 dark:hover:bg-emerald-950/40"
+                      onClick={() => { const phone = sel.contact_phone?.replace(/\D/g, ''); if (phone) window.open(`https://wa.me/${phone}`, '_blank', 'noopener,noreferrer'); }}
+                      aria-label="Chat on WhatsApp"
+                    >
+                      <Icon name="whatsapp" size={14} />
+                    </Button>
+                  </Tip>
+                )}
+
+                <Tip label="Edit Lead Details">
+                  <Button
+                    variant="outline"
+                    size="icon"
+                    iconOnly
+                    className="lead-lp-circle-btn"
+                    onClick={() => { setProfileForm({ ...sel }); setEditMode(true); setProfileTab('contact'); }}
+                    aria-label="Edit Lead Details"
+                  >
+                    <Icon name="edit" size={14} />
+                  </Button>
+                </Tip>
+
+              </div>
+
+              <Button size="sm" className="lead-lp-convert-action font-semibold gap-1.5" onClick={convertToDeal}>
+                <Icon name="briefcase" size={13} />
+                <span>Convert to Deal</span>
               </Button>
+
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                  <Button variant="ghost" size="sm" style={{ padding: '0 8px' }}>
-                    <Icon name="moreHorizontal" size={16} />
+                  <Button variant="outline" size="icon" iconOnly aria-label="More actions" className="lead-lp-circle-btn lead-lp-more-action">
+                    <Icon name="moreHorizontal" size={14} />
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end">
-                  <DropdownMenuItem onClick={convertToDeal}><Icon name="briefcase" size={14} /><span>Convert to Deal</span></DropdownMenuItem>
-                  {!isTerminal(sel.stage) && <DropdownMenuItem onClick={() => updateStage(wonStageId)}><Icon name="check" size={14} /><span>Mark Won</span></DropdownMenuItem>}
-                  {!isTerminal(sel.stage) && <DropdownMenuItem onClick={() => updateStage(lostStageId)}><Icon name="x" size={14} /><span>Mark Lost</span></DropdownMenuItem>}
-                  <DropdownMenuItem onClick={() => handleDelete(sel.id, sel.company)} style={{ color: 'var(--red)' }}><Icon name="trash" size={14} /><span>Delete Lead</span></DropdownMenuItem>
+                  <DropdownMenuItem onClick={async () => {
+                    try { await navigator.clipboard.writeText(window.location.href); showAlert('Lead link copied.', { variant: 'success' }); }
+                    catch { showAlert('Could not copy link.', { variant: 'error' }); }
+                  }}>
+                    <Icon name="share" size={14} />
+                    <span>Copy Link</span>
+                  </DropdownMenuItem>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem onClick={() => handleDelete(sel.id, sel.company)} style={{ color: 'var(--red)' }}>
+                    <Icon name="trash" size={14} />
+                    <span>Delete Lead</span>
+                  </DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>
             </div>
           </div>
-          {/* KPI bar */}
+
+          {/* Compressed Metadata Grid (Sample 1 Pattern) */}
+          <div className="lead-lp-meta-grid">
+            <div className="lead-lp-meta-cell">
+              <span className="lead-lp-meta-label">Email</span>
+              <span className="lead-lp-meta-value">
+                {sel.contact_email ? (
+                  <a href={`mailto:${sel.contact_email}`} className="text-primary hover:underline flex items-center gap-1 truncate">
+                    <Icon name="mail" size={11} className="shrink-0 text-muted-foreground" />
+                    <span className="truncate">{sel.contact_email}</span>
+                  </a>
+                ) : '—'}
+              </span>
+            </div>
+            <div className="lead-lp-meta-cell">
+              <span className="lead-lp-meta-label">Phone</span>
+              <span className="lead-lp-meta-value">
+                {sel.contact_phone ? (
+                  <a href={`tel:${sel.contact_phone}`} className="text-foreground hover:text-primary flex items-center gap-1 truncate">
+                    <Icon name="phone" size={11} className="shrink-0 text-muted-foreground" />
+                    <span className="truncate">{sel.contact_phone}</span>
+                  </a>
+                ) : '—'}
+              </span>
+            </div>
+            <div className="lead-lp-meta-cell">
+              <span className="lead-lp-meta-label">Location</span>
+              <span className="lead-lp-meta-value truncate">{sel.location || '—'}</span>
+            </div>
+            <div className="lead-lp-meta-cell">
+              <span className="lead-lp-meta-label">Industry</span>
+              <span className="lead-lp-meta-value truncate">{sel.industry || '—'}</span>
+            </div>
+            <div className="lead-lp-meta-cell">
+              <span className="lead-lp-meta-label">Sales Owner</span>
+              <span className="lead-lp-meta-value flex items-center gap-1.5">
+                {(sel.assigned_to_name || sel.assigned_to) ? (
+                  <>
+                    <PersonAvatar userId={sel.assigned_to_id} name={sel.assigned_to_name || sel.assigned_to || ''} size={15} />
+                    <span className="truncate">{sel.assigned_to_name || sel.assigned_to}</span>
+                  </>
+                ) : 'Unassigned'}
+              </span>
+            </div>
+            <div className="lead-lp-meta-cell">
+              <span className="lead-lp-meta-label">Tags / Labels</span>
+              <div className="lead-lp-meta-value flex items-center min-w-0">
+                <LabelChips subjectType="lead" subjectId={sel.id} />
+              </div>
+            </div>
+          </div>
+
+          {/* Connected Chevron Pipeline Stepper (Sample 1 & Sample 3) */}
+          <LeadStagesContext.Provider value={stagesCtx}>
+            <div className="lead-lp-pipeline-box">
+              <div className="lead-lp-pipeline-hdr">
+                <div className="lead-lp-pipeline-title-group">
+                  <span className="lead-lp-pipeline-title">
+                    <Icon name="trendingUp" size={13} className="text-primary" />
+                    <span>Sales Pipeline</span>
+                  </span>
+                  <span className="lead-lp-pipeline-stage-badge">
+                    Current stage: <strong className="text-foreground font-semibold">{stageCfg.label}</strong>
+                  </span>
+                </div>
+                <div className="lead-lp-pipeline-actions">
+                  {!isTerminal(sel.stage) && (
+                    <>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => updateStage(wonStageId)}
+                        className="lead-lp-stage-action text-xs px-2.5 text-emerald-600 hover:text-emerald-700 hover:bg-emerald-50 dark:hover:bg-emerald-950/40 border-emerald-200 dark:border-emerald-800 gap-1"
+                      >
+                        <Icon name="check" size={12} strokeWidth={2.5} />
+                        <span>Mark Won</span>
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => updateStage(lostStageId)}
+                        className="lead-lp-stage-action text-xs px-2.5 text-destructive hover:bg-destructive/10 hover:border-destructive/30 gap-1 border-border/80"
+                      >
+                        <Icon name="x" size={12} strokeWidth={2.5} />
+                        <span>Mark Lost</span>
+                      </Button>
+                    </>
+                  )}
+                </div>
+              </div>
+              <StagePipeline current={sel.stage} onSelect={updateStage} interactive={!isTerminal(sel.stage)} />
+            </div>
+          </LeadStagesContext.Provider>
+
+          {/* KPI Bar */}
           <div className="lead-lp-kpi-bar">
             <div className="lead-lp-kpi-item">
               <div className="lead-lp-kpi-top"><span className="lead-lp-kpi-label">Deal Value</span><Icon name="dollarSign" size={14} /></div>
@@ -859,89 +1003,222 @@ export const Leads: React.FC = () => {
         </div>
 
         {/* Tab navigation strip */}
-        <div className="lead-lp-tab-nav" data-ds-tabstrip="">
-          {PROF_TABS.map(t => (
-            <button key={t.key} type="button" className="lead-lp-nav-btn"
-              data-active={profileTab === t.key ? 'true' : undefined}
-              onClick={() => { setProfileTab(t.key); setEditMode(false); }} data-ds-selected={profileTab === t.key} data-ui-native-button="" aria-pressed={profileTab === t.key}>
-              <Icon name={t.icon} size={15} />
-              <span>{t.label}</span>
-              {t.key === 'tasks' && leadTasks.filter(u => !u.done).length > 0 && (
-                <span className="lead-lp-nav-badge">{leadTasks.filter(u => !u.done).length}</span>
-              )}
-            </button>
-          ))}
+        <div className="lead-lp-tabs-scroll" aria-label="Lead profile sections">
+          <Tabs value={profileTab} onValueChange={(val) => { setProfileTab(val); setEditMode(false); }}>
+            <TabsList className="lead-lp-tabs-list" aria-label="Lead profile sections">
+              {PROF_TABS.map(t => (
+                <TabsTrigger
+                  key={t.key}
+                  value={t.key}
+                  className="lead-lp-tab-trigger"
+                >
+                  <Icon name={t.icon} size={13} />
+                  <span className="ds-tabs-trigger-label">{t.label}</span>
+                  {t.count !== undefined && t.count > 0 && (
+                    <span className="ml-1 px-1.5 py-0.2 text-[10px] font-bold rounded-full bg-primary/10 text-primary">
+                      {t.count}
+                    </span>
+                  )}
+                </TabsTrigger>
+              ))}
+            </TabsList>
+          </Tabs>
         </div>
 
         <LeadStagesContext.Provider value={stagesCtx}>
         <div className="lead-lp-content">
 
-          {/* OVERVIEW */}
+          {/* OVERVIEW (Sample 1 & Sample 2 2-column layout) */}
           {profileTab === 'overview' && (
             <div className="lead-lp-overview-grid">
+              {/* Main Feed Column */}
               <div className="lead-lp-main-col">
+                {/* Activity & Timeline (Sample 3) */}
                 <div className="lead-lp-card">
-                  <div className="lead-lp-card-hdr">
-                    <h3 className="lead-lp-card-title"><Icon name="trendingUp" size={15} /><span>Sales Pipeline</span></h3>
-                    {!isTerminal(sel.stage) && <Button variant="outline" size="sm" onClick={() => updateStage(lostStageId)}>Mark lost</Button>}
+                  <div className="lead-lp-card-hdr flex items-center justify-between p-3 sm:px-4">
+                    <h3 className="lead-lp-card-title text-xs sm:text-sm font-bold flex items-center gap-2 text-foreground">
+                      <Icon name="activity" size={15} className="text-primary" />
+                      <span>Activity Timeline</span>
+                    </h3>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => setProfileTab('activity')}
+                      className="text-xs text-primary hover:text-primary gap-1"
+                    >
+                      <span>View full timeline</span>
+                      <Icon name="arrowRight" size={12} />
+                    </Button>
                   </div>
                   <div className="lead-lp-card-body">
-                    <div className="lead-lp-pipeline"><StagePipeline current={sel.stage} onSelect={updateStage} interactive={!isTerminal(sel.stage)} /></div>
+                    <ActivityTimeline subjectType="lead" subjectId={sel.id} />
                   </div>
                 </div>
+
+                {/* Team Notes (Sample 3) */}
                 <div className="lead-lp-card">
-                  <div className="lead-lp-card-hdr">
-                    <h3 className="lead-lp-card-title"><Icon name="user" size={15} /><span>Contact &amp; Company</span></h3>
-                    <Button variant="ghost" size="sm" onClick={() => { setProfileTab('contact'); setEditMode(false); }}><Icon name="edit" size={13} /><span>Edit</span></Button>
+                  <div className="lead-lp-card-hdr flex items-center justify-between p-3 sm:px-4">
+                    <h3 className="lead-lp-card-title text-xs sm:text-sm font-bold flex items-center gap-2 text-foreground">
+                      <Icon name="edit" size={15} className="text-primary" />
+                      <span>Team Notes</span>
+                    </h3>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setProfileTab('notes')}
+                      className="text-xs gap-1 h-7 px-2.5"
+                    >
+                      <Icon name="plus" size={12} />
+                      <span>Add Note</span>
+                    </Button>
+                  </div>
+                  <div className="lead-lp-card-body">
+                    {sel.notes ? (
+                      <p className="lead-lp-notes-body text-xs sm:text-sm text-foreground/90 whitespace-pre-wrap leading-relaxed m-0 p-3 bg-muted/20 rounded-lg border border-border/40">
+                        {sel.notes}
+                      </p>
+                    ) : (
+                      <div className="text-center py-6 text-muted-foreground text-xs">
+                        <Icon name="fileText" size={24} className="mx-auto mb-2 opacity-40" />
+                        <p className="m-0">No notes yet — add context for your sales team.</p>
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                {/* Open Tasks */}
+                <div className="lead-lp-card">
+                  <div className="lead-lp-card-hdr flex items-center justify-between p-3 sm:px-4">
+                    <h3 className="lead-lp-card-title text-xs sm:text-sm font-bold flex items-center gap-2 text-foreground">
+                      <Icon name="checkCircle" size={15} className="text-primary" />
+                      <span>Open Tasks ({leadTasks.filter(t => !t.done).length})</span>
+                    </h3>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => setProfileTab('tasks')}
+                      className="text-xs text-primary gap-1"
+                    >
+                      <span>Manage all tasks</span>
+                      <Icon name="arrowRight" size={12} />
+                    </Button>
                   </div>
                   <div className="lead-lp-card-body is-flush">
-                    <div className="lead-lp-kv-list">
-                      {[
-                        { label: 'Email',     value: sel.contact_email,  icon: 'mail'      as IconName },
-                        { label: 'Phone',     value: sel.contact_phone,  icon: 'phone'     as IconName },
-                        { label: 'Location',  value: sel.location,       icon: 'mapPin'    as IconName },
-                        { label: 'Industry',  value: sel.industry,       icon: 'briefcase' as IconName },
-                        { label: 'Website',   value: sel.website,        icon: 'globe'     as IconName },
-                        { label: 'Source',    value: sel.source,         icon: 'target'    as IconName },
-                        { label: 'Territory', value: sel.territory_name, icon: 'mapPin'    as IconName },
-                      ].filter(item => item.value).map(item => (
-                        <div key={item.label} className="lead-lp-kv-row" style={{ padding: '10px var(--page-pad-x, 16px)' }}>
-                          <span className="lead-lp-kv-label" style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                            <Icon name={item.icon} size={13} />{item.label}
-                          </span>
-                          <span className="lead-lp-kv-val">{item.value}</span>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                </div>
-                <div className="lead-lp-card">
-                  <div className="lead-lp-card-hdr">
-                    <h3 className="lead-lp-card-title"><Icon name="edit" size={15} /><span>Team Notes</span></h3>
-                    <Button variant="ghost" size="sm" onClick={() => setProfileTab('notes')}><Icon name="edit" size={13} /><span>Edit</span></Button>
-                  </div>
-                  <div className="lead-lp-card-body">
-                    {sel.notes
-                      ? <p className="lead-lp-notes-body">{sel.notes}</p>
-                      : <p className="lead-lp-notes-body" style={{ color: 'var(--ink3)', fontStyle: 'italic' }}>No notes yet — add context for your team.</p>
-                    }
+                    {leadTasks.filter(t => !t.done).length === 0 ? (
+                      <div className="text-center py-6 text-muted-foreground text-xs">
+                        <Icon name="checkCircle" size={24} className="mx-auto mb-2 text-emerald-500 opacity-60" />
+                        <p className="m-0">All tasks completed! Great work.</p>
+                      </div>
+                    ) : (
+                      <div className="divide-y divide-border/60">
+                        {leadTasks.filter(t => !t.done).slice(0, 5).map(t => (
+                          <div key={t.id} className="lead-lp-task-row flex items-start gap-2.5 p-3 hover:bg-muted/20 transition-colors">
+                            <Checkbox checked={t.done} className="mt-0.5"
+                              onCheckedChange={async () => {
+                                const updated = { ...t, done: !t.done };
+                                setLeadTasks(prev => prev.map(x => x.id === t.id ? updated : x));
+                                await apiFetch(`/v1/crm/tasks/${t.id}`, { method: 'PATCH', body: JSON.stringify({ done: !t.done }) }).catch(() => {});
+                              }}
+                            />
+                            <div className="flex-1 min-w-0">
+                              <div className="text-xs font-medium text-foreground">{t.title}</div>
+                              {t.due_at && (
+                                <div className={`text-[11px] mt-0.5 ${new Date(t.due_at) < new Date() ? 'text-destructive font-semibold' : 'text-muted-foreground'}`}>
+                                  {new Date(t.due_at) < new Date() ? '⚠ Overdue · ' : ''}Due {new Date(t.due_at).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
                   </div>
                 </div>
               </div>
+
+              {/* Sidebar Widgets Column */}
               <aside className="lead-lp-side-col">
+                {/* Next Steps (Sample 2) */}
                 <div className="lead-lp-card">
-                  <div className="lead-lp-card-hdr">
-                    <h3 className="lead-lp-card-title"><Icon name="zap" size={15} /><span>Next Steps</span></h3>
+                  <div className="lead-lp-card-hdr p-3 sm:px-4">
+                    <h3 className="lead-lp-card-title text-xs sm:text-sm font-bold flex items-center gap-2 text-foreground">
+                      <Icon name="zap" size={15} className="text-amber-500" />
+                      <span>Next Steps</span>
+                    </h3>
                   </div>
-                  <div className="lead-lp-card-body">
-                    <div className="lead-lp-next-steps">
-                      <Button size="sm" onClick={convertToDeal} style={{ width: '100%', justifyContent: 'flex-start' }}><Icon name="briefcase" size={14} /><span>Convert to Deal</span></Button>
-                      <Button variant="outline" size="sm" onClick={() => setProfileTab('tasks')} style={{ width: '100%', justifyContent: 'flex-start' }}><Icon name="checkCircle" size={14} /><span>View Tasks</span></Button>
-                      <Button variant="outline" size="sm" onClick={() => setProfileTab('activity')} style={{ width: '100%', justifyContent: 'flex-start' }}><Icon name="activity" size={14} /><span>Log Activity</span></Button>
-                      {!isTerminal(sel.stage) && <Button variant="outline" size="sm" onClick={() => updateStage(wonStageId)} style={{ width: '100%', justifyContent: 'flex-start' }}><Icon name="check" size={14} /><span>Mark Won</span></Button>}
+                  <div className="lead-lp-card-body p-3">
+                    <div className="lead-lp-next-steps flex flex-col gap-2">
+                      <Button variant="outline" size="sm" onClick={() => setProfileTab('tasks')} className="w-full justify-start text-xs font-semibold gap-2 h-9">
+                        <Icon name="checkCircle" size={14} className="text-primary" />
+                        <span>View / Add Tasks</span>
+                      </Button>
+                      <Button variant="outline" size="sm" onClick={() => setProfileTab('activity')} className="w-full justify-start text-xs font-semibold gap-2 h-9">
+                        <Icon name="activity" size={14} className="text-blue-500" />
+                        <span>Log Activity / Meeting</span>
+                      </Button>
                     </div>
                   </div>
                 </div>
+
+                {/* Deal Opportunity (Sample 1) */}
+                <div className="lead-lp-card">
+                  <div className="lead-lp-card-hdr p-3 sm:px-4">
+                    <h3 className="lead-lp-card-title text-xs sm:text-sm font-bold flex items-center gap-2 text-foreground">
+                      <Icon name="dollarSign" size={15} className="text-emerald-500" />
+                      <span>Deal Opportunity</span>
+                    </h3>
+                  </div>
+                  <div className="lead-lp-card-body p-3 flex flex-col gap-3">
+                    <div className="p-3 bg-muted/30 rounded-lg border border-border/50">
+                      <div className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">Opportunity Value</div>
+                      <div className="text-base sm:text-lg font-extrabold text-foreground mt-0.5">{fmtValue(sel.value)}</div>
+                      <div className="text-[11px] text-muted-foreground mt-1 flex items-center justify-between">
+                        <span>Win Probability:</span>
+                        <span className="font-bold text-foreground">{sel.score != null ? `${sel.score}%` : 'Not scored'}</span>
+                      </div>
+                    </div>
+                    <div className="text-xs space-y-2">
+                      <div className="flex items-center justify-between py-1 border-b border-border/40">
+                        <span className="text-muted-foreground">Target Close</span>
+                        <span className="font-medium text-foreground">{sel.expected_close ? fmtShort(sel.expected_close) : 'Not specified'}</span>
+                      </div>
+                      <div className="flex items-center justify-between py-1 border-b border-border/40">
+                        <span className="text-muted-foreground">Lead Owner</span>
+                        <span className="font-medium text-foreground">{sel.assigned_to_name || sel.assigned_to || 'Unassigned'}</span>
+                      </div>
+                      <div className="flex items-center justify-between py-1">
+                        <span className="text-muted-foreground">Pipeline Stage</span>
+                        <Badge variant="outline" className="text-[10px] font-bold">{stageCfg.label}</Badge>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* CRM Checklist (Sample 2) */}
+                <div className="lead-lp-card">
+                  <div className="lead-lp-card-hdr p-3 sm:px-4">
+                    <h3 className="lead-lp-card-title text-xs sm:text-sm font-bold flex items-center gap-2 text-foreground">
+                      <Icon name="shield" size={15} className="text-primary" />
+                      <span>Lead Readiness</span>
+                    </h3>
+                  </div>
+                  <div className="lead-lp-card-body lead-lp-readiness-list p-3">
+                    {[
+                      { key: 'contact', label: 'Contact details captured', complete: !!(sel.contact_name && (sel.contact_email || sel.contact_phone)) },
+                      { key: 'needs', label: 'Requirements documented', complete: !!sel.notes },
+                      { key: 'value', label: 'Opportunity value estimated', complete: sel.value > 0 },
+                      { key: 'stakeholders', label: 'Qualified conversation reached', complete: activeStages.indexOf(sel.stage) >= 2 },
+                      { key: 'proposal', label: 'Proposal stage reached', complete: activeStages.indexOf(sel.stage) >= 3 },
+                    ].map(item => (
+                      <div key={item.key} className="lead-lp-readiness-item">
+                        <Icon name={item.complete ? 'checkCircle' : 'circle'} size={14} className={item.complete ? 'text-emerald-600 dark:text-emerald-400' : 'text-muted-foreground'} />
+                        <span>{item.label}</span>
+                        <span className="lead-lp-readiness-state">{item.complete ? 'Done' : 'To do'}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
                 <CustomFieldsPanel entityType="lead" subjectId={sel.id} />
               </aside>
             </div>
@@ -960,7 +1237,9 @@ export const Leads: React.FC = () => {
                         <div style={{ fontSize: 12, color: 'var(--ink3)' }}>{sel.company}</div>
                       </div>
                     </div>
-                    <Button variant="outline" size="sm" onClick={() => setEditMode(true)}><Icon name="edit" size={13} /><span>Edit</span></Button>
+                    <Button variant="outline" size="icon" iconOnly title="Edit Contact Details" aria-label="Edit Contact Details" onClick={() => setEditMode(true)}>
+                      <Icon name="edit" size={14} />
+                    </Button>
                   </div>
                   <div className="lead-lp-card-body">
                     <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: '16px 32px' }}>
@@ -1149,7 +1428,7 @@ export const Leads: React.FC = () => {
                 <div className="lead-lp-card-body"><SectionLoading /></div>
               ) : linkedFiles.length > 0 ? (
                 <div>
-                  {linkedFiles.map((f: any) => (
+                  {visibleLinkedFiles.map((f: any) => (
                     <div key={f.id} className="lead-lp-file-row">
                       <div className="lead-lp-file-icon"><Icon name="file" size={16} color="var(--ink3)" strokeWidth={1.75} /></div>
                       <div style={{ flex: 1, minWidth: 0 }}>
@@ -1158,16 +1437,28 @@ export const Leads: React.FC = () => {
                           {f.size != null ? `${(f.size / 1024).toFixed(1)} KB · ` : ''}{new Date(f.created_at).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}
                         </div>
                       </div>
-                      <Button variant="outline" size="sm" type="button" onClick={() => apiDownload(`/v1/files/${f.id}/download`, f.name).catch((err: any) => showAlert(err.message || 'Download failed'))}>
-                        <Icon name="download" size={13} /> Download
-                      </Button>
+                      <Tip label="Download file">
+                        <Button variant="ghost" size="icon" iconOnly type="button" onClick={() => apiDownload(`/v1/files/${f.id}/download`, f.name).catch((err: any) => showAlert(err.message || 'Download failed'))}>
+                          <Icon name="download" size={14} />
+                        </Button>
+                      </Tip>
                       <Tip label="Remove from this lead (file stays in Drive)">
-                        <Button variant="outline" size="sm" type="button" onClick={() => unlinkFile(f.id, f.name)} aria-label={`Remove ${f.name} from this lead`}>
-                          <Icon name="x" size={13} />
+                        <Button variant="ghost" size="icon" iconOnly type="button" onClick={() => unlinkFile(f.id, f.name)} aria-label={`Remove ${f.name} from this lead`} className="text-destructive">
+                          <Icon name="trash" size={14} />
                         </Button>
                       </Tip>
                     </div>
                   ))}
+                  <PaginationBar
+                    page={filesPage}
+                    pageSize={filesPageSize}
+                    total={linkedFiles.length}
+                    onPageChange={setFilesPage}
+                    onPageSizeChange={size => { setFilesPageSize(size); setFilesPage(1); }}
+                    pageSizeOptions={[10, 20, 50]}
+                    itemLabel="file"
+                    className="lead-lp-doc-pagination"
+                  />
                 </div>
               ) : (
                 <div className="lead-lp-card-body">

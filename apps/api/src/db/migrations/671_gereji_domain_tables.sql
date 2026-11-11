@@ -1,4 +1,4 @@
--- Migration 658: Gereji — automotive workshop extension tables
+-- Migration 671: Gereji — automotive workshop extension tables
 -- Extends finance_vehicle_records + finance_job_cards (migration 621)
 -- with repair estimates and warranty claim tracking.
 

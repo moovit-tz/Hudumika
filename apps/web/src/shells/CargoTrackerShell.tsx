@@ -21,6 +21,7 @@ import { CarrierContractsPage } from '../pages/CarrierContractsPage.js';
 import { ContainerDetailPage } from '../pages/ContainerDetailPage.js';
 import { ContainerListPage } from '../pages/ContainerListPage.js';
 import { RecordContainerPage } from '../pages/RecordContainerPage.js';
+import { FreightQuoteGeneratorPage } from '../pages/FreightQuoteGeneratorPage.js';
 
 const NAV: SidebarSection[] = [
   {
@@ -40,6 +41,7 @@ const NAV: SidebarSection[] = [
   {
     title: 'FREIGHT BOOKING',
     items: [
+      { label: 'Generate Quote',     icon: 'sparkle',  path: '/cargotracker/quotes/new' },
       { label: 'Bookings',           icon: 'ship',     path: '/cargotracker/bookings' },
       { label: 'Freight Rate Cards', icon: 'sliders',  path: '/cargotracker/rate-cards' },
       { label: 'Carriers',           icon: 'anchor',   path: '/cargotracker/carriers' },
@@ -70,6 +72,8 @@ export function CargoTrackerShell() {
                 <Route path="containers/:number/edit" element={<RecordContainerPage />} />
                 <Route path="demurrage" element={<Demurrage />} />
                 <Route path="carriers" element={<CarriersPage />} />
+                <Route path="quotes" element={<Navigate to="/cargotracker/quotes/new" replace />} />
+                <Route path="quotes/new" element={<RequireRoles roles={OPS_ROLES}><FreightQuoteGeneratorPage /></RequireRoles>} />
                 <Route path="bookings" element={<RequireRoles roles={OPS_ROLES}><FreightBookingsPage /></RequireRoles>} />
                 <Route path="bookings/new" element={<RequireRoles roles={OPS_ROLES}><CreateFreightBookingPage /></RequireRoles>} />
                 <Route path="rate-cards" element={<RequireRoles roles={OPS_ROLES}><FreightRateCardsPage /></RequireRoles>} />

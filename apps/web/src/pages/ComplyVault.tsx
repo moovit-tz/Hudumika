@@ -4,6 +4,7 @@ import {Sheet, SheetContent, SheetTitle} from '../components/ui/sheet.js';
 import { Textarea } from '../components/ui/textarea.js';
 import { Input } from '../components/ui/input.js';
 import { complyBadgeVariant } from '../lib/complyPresentation.js';
+import { formatAmount } from '../lib/currency.js';
 import { Badge } from '../components/ui/badge.js';
 import { Card } from '../components/ui/card.js';
 import { SectionLoading } from '../components/ui/spinner.js';
@@ -356,7 +357,7 @@ export function ComplyVault() {
                   ...(selected.external_ref ? [{ label: 'Agency Reference', val: selected.external_ref, mono: true }] : []),
                   ...(selected.metadata?.source==='tausi_reviewed_import' ? [
                     {label:'Import source',val:selected.metadata.capture_method==='tab_capture'?'Tausi · reviewed tab capture':'Tausi · reviewed document',mono:false},
-                    {label:'Reported licence cost',val:typeof selected.metadata.reported_cost==='number'?new Intl.NumberFormat('en-GB',{style:'currency',currency:'TZS'}).format(selected.metadata.reported_cost):'Not recorded',mono:false},
+                    {label:'Reported licence cost',val:typeof selected.metadata.reported_cost==='number'?formatAmount(selected.metadata.reported_cost,'TZS'):'Not recorded',mono:false},
                     {label:'Authority verification',val:'Not independently verified',mono:false},
                   ]:[]),
                   ...(selected.last_synced_at ? [{ label: 'Last Synced', val: new Date(selected.last_synced_at).toLocaleString(), mono: false }] : []),
