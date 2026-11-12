@@ -93,7 +93,7 @@ function AddReminderModal({ vehicles, drivers, onClose, onAdded }: {
           {error && <div style={{ fontSize: 12, color: 'var(--red)' }}>{error}</div>}
           <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end', marginTop: 4 }}>
             <Button type="button" variant="outline" onClick={onClose}>Cancel</Button>
-            <Button type="submit" disabled={saving || !title || !dueDate}>{saving ? 'Saving…' : 'Add reminder'}</Button>
+            <Button type="submit" loading={saving} disabled={!title || !dueDate} loadingText="Saving…">Add reminder</Button>
           </div>
         </form>
       </DialogContent>

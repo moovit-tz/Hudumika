@@ -1,4 +1,4 @@
-﻿import React, { useState, useEffect, useRef, useCallback, createContext, useContext, useMemo } from 'react';
+import React, { useState, useEffect, useRef, useCallback, createContext, useContext, useMemo } from 'react';
 import { useSearchParams, Link } from 'react-router-dom';
 import { useIsMobile } from '../../hooks/useIsMobile.js';
 import { Icon } from '../../components/Icon.js';
@@ -37,87 +37,662 @@ import { AI_PROVIDERS } from '../../lib/aiProviders.js';
 import { SettingsCtx, Toggle, Field, ToggleRow, Card, SaveRow, useFields, useSettingsFields } from './shared.js';
 import { Button } from '../../components/ui/button.js';
 import { Input } from '../../components/ui/input.js';
+import { Dialog, DialogContent, DialogHeader, DialogBody, DialogFooter, DialogTitle, DialogDescription } from '../../components/ui/dialog.js';
+import { SlidersHorizontal, X } from 'lucide-react';
+import '../OndiPages.css';
 
 // -- section: Locations ------------------------------------------------------
 
 interface LocationRow {
-  id: string; name: string; code: string; type: string; city: string; country: string;
+  id: string;
+  name: string;
+  code: string;
+  type: string;
+  city: string;
+  country: string;
+  created_at?: string;
 }
 
-/** Tenant business locations (migration 001's `locations` table), plan-limit
- *  governed by checkLocationLimit (lib/plan-limits.ts) — see LENS-53. Kept
- *  deliberately plain: one list, one add row, no dialog, since the whole
- *  record is five short fields. */
+const FACILITY_TYPES = [
+  { value: 'branch', label: 'Commercial Branch', icon: 'mapPin', color: 'var(--teal)', bg: 'var(--teal-l)' },
+  { value: 'warehouse', label: 'Warehouse & Storage', icon: 'warehouse', color: 'var(--gold)', bg: 'var(--gold-l)' },
+  { value: 'headquarters', label: 'Headquarters (HQ)', icon: 'building', color: '#7c3aed', bg: '#f1f0fb' },
+  { value: 'office', label: 'Regional Office', icon: 'globe', color: 'var(--blue)', bg: 'var(--blue-l)' },
+  { value: 'hub', label: 'Distribution Hub', icon: 'zap', color: 'var(--gold)', bg: 'var(--gold-l)' },
+  { value: 'store', label: 'Retail Store', icon: 'mapPin', color: 'var(--green)', bg: 'var(--green-l)' },
+];
+
+function getFacilityCfg(typeStr: string) {
+  const norm = (typeStr || '').toLowerCase();
+  for (const t of FACILITY_TYPES) {
+    if (norm.includes(t.value)) return t;
+  }
+  return { value: norm, label: norm ? (norm.charAt(0).toUpperCase() + norm.slice(1)) : 'Facility', icon: 'building', color: 'var(--ink2)', bg: 'var(--bg)' };
+}
+
 export const LocationsSection: React.FC = () => {
   const [rows, setRows] = useState<LocationRow[] | null>(null);
-  const [adding, setAdding] = useState(false);
-  const [error, setError] = useState('');
-  const [f, set] = useFields({ name: '', code: '', type: 'branch', city: '', country: '' });
+  const [loading, setLoading] = useState(true);
+  const [search, setSearch] = useState('');
+  const [typeFilter, setTypeFilter] = useState<string>('all');
+  const [compactRows, setCompactRows] = useState(true);
 
-  const load = () => apiFetch('/v1/locations').then((r: LocationRow[]) => setRows(r)).catch(() => setRows([]));
-  useEffect(() => { load(); }, []);
+  // Dialog State
+  const [modalOpen, setModalOpen] = useState(false);
+  const [modalMode, setModalMode] = useState<'create' | 'edit'>('create');
+  const [activeLocation, setActiveLocation] = useState<LocationRow | null>(null);
+  const [form, setForm] = useState({ name: '', code: '', type: 'branch', city: '', country: '' });
+  const [formSaving, setFormSaving] = useState(false);
+  const [formError, setFormError] = useState('');
 
-  const add = async () => {
-    setError('');
-    if (!f.name.trim() || !f.code.trim() || !f.city.trim() || !f.country.trim()) {
-      setError('Name, code, city and country are required.');
+  const load = useCallback(async () => {
+    setLoading(true);
+    try {
+      const r: LocationRow[] = await apiFetch('/v1/locations');
+      setRows(r || []);
+    } catch {
+      setRows([]);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => { load(); }, [load]);
+
+  const totalCount = rows?.length ?? 0;
+  const branchCount = useMemo(() => rows?.filter(r => {
+    const t = (r.type || '').toLowerCase();
+    return t.includes('branch') || t.includes('store');
+  }).length ?? 0, [rows]);
+  const warehouseCount = useMemo(() => rows?.filter(r => {
+    const t = (r.type || '').toLowerCase();
+    return t.includes('warehouse') || t.includes('hub') || t.includes('depot');
+  }).length ?? 0, [rows]);
+  const officeCount = useMemo(() => rows?.filter(r => {
+    const t = (r.type || '').toLowerCase();
+    return t.includes('office') || t.includes('headquarters') || t.includes('hq');
+  }).length ?? 0, [rows]);
+
+  const filtered = useMemo(() => {
+    if (!rows) return [];
+    return rows.filter(r => {
+      if (typeFilter !== 'all') {
+        const t = (r.type || '').toLowerCase();
+        if (typeFilter === 'branch' && !t.includes('branch') && !t.includes('store')) return false;
+        if (typeFilter === 'warehouse' && !t.includes('warehouse') && !t.includes('hub') && !t.includes('depot')) return false;
+        if (typeFilter === 'office' && !t.includes('office') && !t.includes('headquarters') && !t.includes('hq')) return false;
+      }
+      const q = search.trim().toLowerCase();
+      if (q) {
+        const match =
+          r.name.toLowerCase().includes(q) ||
+          r.code.toLowerCase().includes(q) ||
+          r.city.toLowerCase().includes(q) ||
+          r.country.toLowerCase().includes(q) ||
+          (r.type || '').toLowerCase().includes(q);
+        if (!match) return false;
+      }
+      return true;
+    });
+  }, [rows, search, typeFilter]);
+
+  function openAdd() {
+    setModalMode('create');
+    setActiveLocation(null);
+    setForm({ name: '', code: '', type: 'branch', city: '', country: '' });
+    setFormError('');
+    setModalOpen(true);
+  }
+
+  function openEdit(loc: LocationRow) {
+    setModalMode('edit');
+    setActiveLocation(loc);
+    setForm({
+      name: loc.name,
+      code: loc.code,
+      type: loc.type || 'branch',
+      city: loc.city,
+      country: loc.country,
+    });
+    setFormError('');
+    setModalOpen(true);
+  }
+
+  const saveLocation = async () => {
+    setFormError('');
+    if (!form.name.trim() || !form.code.trim() || !form.city.trim() || !form.country.trim()) {
+      setFormError('Name, code, city and country are required fields.');
       return;
     }
-    setAdding(true);
+
+    setFormSaving(true);
     try {
-      await apiFetch('/v1/locations', { method: 'POST', body: JSON.stringify(f) });
-      set('name', ''); set('code', ''); set('city', ''); set('country', '');
+      if (modalMode === 'create') {
+        await apiFetch('/v1/locations', {
+          method: 'POST',
+          body: JSON.stringify(form),
+        });
+        showAlert('Location registered successfully.', { variant: 'success' });
+      } else if (activeLocation) {
+        await apiFetch(`/v1/locations/${activeLocation.id}`, {
+          method: 'PATCH',
+          body: JSON.stringify(form),
+        });
+        showAlert('Location updated successfully.', { variant: 'success' });
+      }
+      setModalOpen(false);
       await load();
     } catch (e: any) {
-      setError(e?.message || 'Could not add location — check your plan’s location limit.');
+      setFormError(e?.message || 'Could not save location — check your plan’s location limit.');
     } finally {
-      setAdding(false);
+      setFormSaving(false);
     }
   };
 
-  const remove = async (id: string) => {
-    const ok = await showConfirm('Remove this location?');
+  const remove = async (id: string, name: string) => {
+    const ok = await showConfirm(`Remove location "${name}"? Operations or stock records referencing this site may be affected.`);
     if (!ok) return;
     try {
       await apiFetch(`/v1/locations/${id}`, { method: 'DELETE' });
+      showAlert('Location removed.', { variant: 'success' });
       await load();
     } catch {
-      showAlert('Could not remove location');
+      showAlert('Could not remove location', { variant: 'error' });
     }
   };
 
   return (
-    <div className="sett-section">
-      <Card title="Business locations" desc="Branches, warehouses, or offices registered to this workspace. Your plan sets how many you can add.">
-        {rows === null ? (
-          <SectionLoading />
+    <div className="sett-section" style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+      {/* Top Executive KPI Deck */}
+      <div className="ondi-kpi-grid" style={{ marginBottom: 4 }}>
+        <div
+          role="button"
+          tabIndex={0}
+          onClick={() => { setTypeFilter('all'); setSearch(''); }}
+          onKeyDown={e => { if (e.key === 'Enter') { setTypeFilter('all'); setSearch(''); } }}
+          className={`ondi-kpi-card ${typeFilter === 'all' && !search ? 'is-active' : ''}`}
+        >
+          <div className="ondi-kpi-header">
+            <span className="ondi-kpi-title">Total Facilities</span>
+            <div className="ondi-kpi-icon-box purple">
+              <Icon name="building" size={18} />
+            </div>
+          </div>
+          <div className="ondi-kpi-body">
+            <span className="ondi-kpi-num">{totalCount}</span>
+            <span className="ondi-kpi-sub">registered workspace sites</span>
+          </div>
+        </div>
+
+        <div
+          role="button"
+          tabIndex={0}
+          onClick={() => setTypeFilter(typeFilter === 'branch' ? 'all' : 'branch')}
+          onKeyDown={e => { if (e.key === 'Enter') setTypeFilter(typeFilter === 'branch' ? 'all' : 'branch'); }}
+          className={`ondi-kpi-card ${typeFilter === 'branch' ? 'is-active' : ''}`}
+        >
+          <div className="ondi-kpi-header">
+            <span className="ondi-kpi-title">Branches & Stores</span>
+            <div className="ondi-kpi-icon-box green">
+              <Icon name="mapPin" size={18} />
+            </div>
+          </div>
+          <div className="ondi-kpi-body">
+            <span className="ondi-kpi-num" style={{ color: 'var(--green)' }}>{branchCount}</span>
+            <span className="ondi-kpi-sub">commercial retail branches</span>
+          </div>
+        </div>
+
+        <div
+          role="button"
+          tabIndex={0}
+          onClick={() => setTypeFilter(typeFilter === 'warehouse' ? 'all' : 'warehouse')}
+          onKeyDown={e => { if (e.key === 'Enter') setTypeFilter(typeFilter === 'warehouse' ? 'all' : 'warehouse'); }}
+          className={`ondi-kpi-card ${typeFilter === 'warehouse' ? 'is-active' : ''}`}
+        >
+          <div className="ondi-kpi-header">
+            <span className="ondi-kpi-title">Warehouses & Hubs</span>
+            <div className="ondi-kpi-icon-box gold">
+              <Icon name="warehouse" size={18} />
+            </div>
+          </div>
+          <div className="ondi-kpi-body">
+            <span className="ondi-kpi-num" style={{ color: 'var(--gold)' }}>{warehouseCount}</span>
+            <span className="ondi-kpi-sub">inventory & depot sites</span>
+          </div>
+        </div>
+
+        <div
+          role="button"
+          tabIndex={0}
+          onClick={() => setTypeFilter(typeFilter === 'office' ? 'all' : 'office')}
+          onKeyDown={e => { if (e.key === 'Enter') setTypeFilter(typeFilter === 'office' ? 'all' : 'office'); }}
+          className={`ondi-kpi-card ${typeFilter === 'office' ? 'is-active' : ''}`}
+        >
+          <div className="ondi-kpi-header">
+            <span className="ondi-kpi-title">Offices & HQ</span>
+            <div className="ondi-kpi-icon-box blue">
+              <Icon name="globe" size={18} />
+            </div>
+          </div>
+          <div className="ondi-kpi-body">
+            <span className="ondi-kpi-num" style={{ color: 'var(--blue)' }}>{officeCount}</span>
+            <span className="ondi-kpi-sub">corporate & regional offices</span>
+          </div>
+        </div>
+      </div>
+
+      {/* Search & Actions Toolbar */}
+      <div style={{ marginBottom: 4 }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10, flexWrap: 'wrap' }}>
+          <div style={{ flex: 1, minWidth: 260 }}>
+            <div className="ondi-search-input" style={{ width: '100%', position: 'relative' }}>
+              <Icon name="search" size={14} />
+              <input
+                value={search}
+                onChange={e => setSearch(e.target.value)}
+                placeholder="Search location by name, code, city, country or type…"
+                aria-label="Search locations"
+              />
+              {search && (
+                <button
+                  type="button"
+                  onClick={() => setSearch('')}
+                  style={{ position: 'absolute', right: 10, top: '50%', transform: 'translateY(-50%)', background: 'transparent', border: 'none', cursor: 'pointer', color: 'var(--ink3)' }}
+                  aria-label="Clear search"
+                >
+                  <Icon name="x" size={13} />
+                </button>
+              )}
+            </div>
+          </div>
+
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+            <Tip label={compactRows ? "Currently in compressed rows view (compact). Click for standard." : "Switch to compressed rows view."}>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => setCompactRows(v => !v)}
+                className="h-8 gap-1.5 text-xs font-semibold"
+              >
+                <Icon name="list" size={13} />
+                <span>{compactRows ? 'Dense Rows' : 'Standard Rows'}</span>
+              </Button>
+            </Tip>
+
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={load}
+              className="h-8 gap-1.5 text-xs font-semibold"
+            >
+              <Icon name="refresh" size={13} />
+              <span>Refresh</span>
+            </Button>
+
+            <Button
+              type="button"
+              size="sm"
+              onClick={openAdd}
+              className="h-8 gap-1.5 text-xs font-bold shadow-xs"
+            >
+              <Icon name="plus" size={14} />
+              <span>Add Location</span>
+            </Button>
+          </div>
+        </div>
+
+        {/* Active Filter Chips */}
+        {(typeFilter !== 'all' || Boolean(search.trim())) && (
+          <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap', marginTop: 10, paddingLeft: 2 }}>
+            <span style={{ fontSize: 11.5, color: 'var(--ink3)', fontWeight: 600 }}>Active filters:</span>
+            {search.trim() && (
+              <span
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: 6,
+                  padding: '2px 8px',
+                  borderRadius: 6,
+                  fontSize: 11,
+                  background: 'var(--bg)',
+                  border: '1px solid var(--border)',
+                  color: 'var(--ink)',
+                }}
+              >
+                Search: <strong>&ldquo;{search}&rdquo;</strong>
+                <button
+                  type="button"
+                  onClick={() => setSearch('')}
+                  style={{ background: 'transparent', border: 'none', cursor: 'pointer', padding: 0, color: 'var(--ink3)', display: 'inline-flex', alignItems: 'center' }}
+                  title="Clear search"
+                >
+                  <X size={12} />
+                </button>
+              </span>
+            )}
+            {typeFilter !== 'all' && (
+              <span
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: 6,
+                  padding: '2px 8px',
+                  borderRadius: 6,
+                  fontSize: 11,
+                  background: 'var(--bg)',
+                  border: '1px solid var(--border)',
+                  color: 'var(--ink)',
+                }}
+              >
+                Type: <strong style={{ textTransform: 'capitalize' }}>{typeFilter}</strong>
+                <button
+                  type="button"
+                  onClick={() => setTypeFilter('all')}
+                  style={{ background: 'transparent', border: 'none', cursor: 'pointer', padding: 0, color: 'var(--ink3)', display: 'inline-flex', alignItems: 'center' }}
+                  title="Clear type filter"
+                >
+                  <X size={12} />
+                </button>
+              </span>
+            )}
+            <button
+              type="button"
+              onClick={() => { setSearch(''); setTypeFilter('all'); }}
+              style={{
+                fontSize: 11,
+                fontWeight: 600,
+                color: 'hsl(var(--primary))',
+                background: 'transparent',
+                border: 'none',
+                cursor: 'pointer',
+                padding: '2px 6px',
+              }}
+              className="hover:underline"
+            >
+              Reset all
+            </button>
+          </div>
+        )}
+      </div>
+
+      {/* Main Table Card */}
+      <div className="sa-analytics-card">
+        {loading && rows === null ? (
+          <div style={{ padding: '40px 0', textAlign: 'center' }}>
+            <SectionLoading label="Loading locations…" />
+          </div>
         ) : (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-            {rows.length === 0 && <p className="s-fld-hint">No additional locations yet.</p>}
-            {rows.map(loc => (
-              <div key={loc.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, padding: '10px 12px', border: '1px solid var(--border)', borderRadius: 'var(--r)' }}>
-                <div>
-                  <div style={{ fontWeight: 600 }}>{loc.name} <span className="s-fld-hint" style={{ display: 'inline' }}>({loc.code})</span></div>
-                  <div className="s-fld-hint">{loc.type} · {loc.city}, {loc.country}</div>
-                </div>
-                <Button variant="ghost" size="sm" onClick={() => remove(loc.id)}>Remove</Button>
-              </div>
-            ))}
+          <div className="overflow-x-auto">
+            <table className="ondi-table" data-compact={compactRows ? "true" : undefined}>
+              <thead>
+                <tr>
+                  <th>Location &amp; Facility</th>
+                  <th>Code</th>
+                  <th>Facility Type</th>
+                  <th>City</th>
+                  <th>Country</th>
+                  <th style={{ textAlign: 'right' }}>Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {filtered.map(loc => {
+                  const cfg = getFacilityCfg(loc.type);
+                  return (
+                    <tr key={loc.id}>
+                      <td>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                          <div
+                            style={{
+                              width: compactRows ? 26 : 32,
+                              height: compactRows ? 26 : 32,
+                              borderRadius: 'var(--r-sm, 6px)',
+                              background: cfg.bg,
+                              color: cfg.color,
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              flexShrink: 0,
+                            }}
+                          >
+                            <Icon name={cfg.icon as any} size={compactRows ? 13 : 15} />
+                          </div>
+                          <div style={{ minWidth: 0 }}>
+                            <div style={{ fontWeight: 650, fontSize: compactRows ? 12.5 : 13, color: 'var(--ink)' }}>
+                              {loc.name}
+                            </div>
+                            {!compactRows && (
+                              <div style={{ fontSize: 11, color: 'var(--ink3)', marginTop: 1 }}>
+                                Registered business facility
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      </td>
+                      <td>
+                        <span
+                          style={{
+                            fontFamily: 'monospace',
+                            fontSize: compactRows ? 11 : 11.5,
+                            fontWeight: 700,
+                            padding: '2px 6px',
+                            borderRadius: 4,
+                            background: 'var(--bg)',
+                            border: '1px solid var(--border)',
+                            color: 'var(--ink)',
+                            letterSpacing: '0.04em',
+                          }}
+                        >
+                          {loc.code}
+                        </span>
+                      </td>
+                      <td>
+                        <span
+                          style={{
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: 5,
+                            padding: compactRows ? '2px 8px' : '3px 10px',
+                            borderRadius: 100,
+                            fontSize: compactRows ? 11 : 11.5,
+                            fontWeight: 600,
+                            background: cfg.bg,
+                            color: cfg.color,
+                          }}
+                        >
+                          <span style={{ width: 6, height: 6, borderRadius: '50%', background: cfg.color }} />
+                          {cfg.label}
+                        </span>
+                      </td>
+                      <td>
+                        <div style={{ display: 'inline-flex', alignItems: 'center', gap: 5, fontSize: compactRows ? 12 : 12.5, color: 'var(--ink)' }}>
+                          <Icon name="mapPin" size={12} style={{ color: 'var(--ink3)' }} />
+                          <span>{loc.city}</span>
+                        </div>
+                      </td>
+                      <td>
+                        <div style={{ display: 'inline-flex', alignItems: 'center', gap: 5, fontSize: compactRows ? 12 : 12.5, color: 'var(--ink2)' }}>
+                          <Icon name="globe" size={12} style={{ color: 'var(--ink3)' }} />
+                          <span>{loc.country}</span>
+                        </div>
+                      </td>
+                      <td style={{ textAlign: 'right' }}>
+                        <div style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'flex-end', gap: 4 }}>
+                          <Tip label="Edit location">
+                            <button
+                              type="button"
+                              onClick={() => openEdit(loc)}
+                              style={{
+                                background: 'transparent',
+                                border: '1px solid transparent',
+                                padding: compactRows ? '3px 6px' : '5px 8px',
+                                borderRadius: 'var(--r-sm)',
+                                cursor: 'pointer',
+                                color: 'var(--ink3)',
+                                display: 'inline-flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                              }}
+                              className="hover:text-foreground hover:bg-muted"
+                            >
+                              <Icon name="edit" size={compactRows ? 13 : 15} />
+                            </button>
+                          </Tip>
+
+                          <Tip label="Remove location">
+                            <button
+                              type="button"
+                              onClick={() => remove(loc.id, loc.name)}
+                              style={{
+                                background: 'transparent',
+                                border: '1px solid transparent',
+                                padding: compactRows ? '3px 6px' : '5px 8px',
+                                borderRadius: 'var(--r-sm)',
+                                cursor: 'pointer',
+                                color: 'var(--red)',
+                                display: 'inline-flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                              }}
+                              className="hover:bg-red-50 dark:hover:bg-red-950/40"
+                            >
+                              <Icon name="trash" size={compactRows ? 13 : 15} />
+                            </button>
+                          </Tip>
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
           </div>
         )}
 
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: 12, marginTop: 16 }}>
-          <Field label="Name"><Input value={f.name} onChange={e => set('name', e.target.value)} placeholder="Mwanza Branch" /></Field>
-          <Field label="Code"><Input value={f.code} onChange={e => set('code', e.target.value)} placeholder="MWZ" /></Field>
-          <Field label="Type"><Input value={f.type} onChange={e => set('type', e.target.value)} placeholder="branch" /></Field>
-          <Field label="City"><Input value={f.city} onChange={e => set('city', e.target.value)} placeholder="Mwanza" /></Field>
-          <Field label="Country"><Input value={f.country} onChange={e => set('country', e.target.value)} placeholder="Tanzania" /></Field>
-        </div>
-        {error && <p className="s-fld-hint" style={{ color: 'var(--red)' }}>{error}</p>}
-        <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: 12 }}>
-          <Button onClick={add} disabled={adding}>{adding ? 'Adding…' : 'Add location'}</Button>
-        </div>
-      </Card>
+        {!loading && filtered.length === 0 && (
+          <div style={{ padding: '48px 20px', textAlign: 'center' }}>
+            <div style={{ width: 44, height: 44, borderRadius: '50%', background: 'var(--bg)', color: 'var(--ink3)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 12px' }}>
+              <Icon name="mapPin" size={20} />
+            </div>
+            <div style={{ fontWeight: 700, fontSize: 14, color: 'var(--ink)' }}>No locations found</div>
+            <div style={{ fontSize: 12.5, color: 'var(--ink3)', marginTop: 4, maxWidth: 360, margin: '4px auto 16px' }}>
+              {search || typeFilter !== 'all'
+                ? 'No registered facilities match your search query or type filter.'
+                : 'No branches, warehouses or offices added to this workspace yet.'}
+            </div>
+            <Button size="sm" onClick={openAdd} className="gap-1.5">
+              <Icon name="plus" size={13} />
+              <span>Add First Location</span>
+            </Button>
+          </div>
+        )}
+      </div>
+
+      {/* Modal Dialog for Add / Edit Location */}
+      <Dialog open={modalOpen} onOpenChange={setModalOpen}>
+        <DialogContent size="sm">
+          <DialogHeader>
+            <DialogTitle>
+              {modalMode === 'edit' ? 'Edit Business Location' : 'Register New Location'}
+            </DialogTitle>
+            <DialogDescription>
+              Configure facility details, operational codes, and geographic jurisdiction for this workspace.
+            </DialogDescription>
+          </DialogHeader>
+
+          <DialogBody>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+              <div>
+                <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: 'var(--ink)', marginBottom: 6 }}>
+                  Facility / Location Name *
+                </label>
+                <Input
+                  value={form.name}
+                  onChange={e => setForm(p => ({ ...p, name: e.target.value }))}
+                  placeholder="e.g. Mwanza Port Depot, Dar Central Branch"
+                />
+              </div>
+
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 12 }}>
+                <div>
+                  <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: 'var(--ink)', marginBottom: 6 }}>
+                    Facility Code *
+                  </label>
+                  <Input
+                    value={form.code}
+                    onChange={e => setForm(p => ({ ...p, code: e.target.value.toUpperCase() }))}
+                    placeholder="e.g. MWZ-01, DAR"
+                    style={{ fontFamily: 'monospace' }}
+                  />
+                </div>
+
+                <div>
+                  <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: 'var(--ink)', marginBottom: 6 }}>
+                    Facility Type *
+                  </label>
+                  <Select
+                    value={form.type}
+                    onValueChange={v => setForm(p => ({ ...p, type: v }))}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select type…" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="branch">Commercial Branch</SelectItem>
+                      <SelectItem value="warehouse">Warehouse &amp; Logistics Depot</SelectItem>
+                      <SelectItem value="headquarters">Headquarters (HQ)</SelectItem>
+                      <SelectItem value="office">Regional Office</SelectItem>
+                      <SelectItem value="hub">Distribution Hub</SelectItem>
+                      <SelectItem value="store">Retail Store / Outlet</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 12 }}>
+                <div>
+                  <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: 'var(--ink)', marginBottom: 6 }}>
+                    City *
+                  </label>
+                  <Input
+                    value={form.city}
+                    onChange={e => setForm(p => ({ ...p, city: e.target.value }))}
+                    placeholder="e.g. Dar es Salaam, Mwanza, Nairobi"
+                  />
+                </div>
+
+                <div>
+                  <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: 'var(--ink)', marginBottom: 6 }}>
+                    Country *
+                  </label>
+                  <Input
+                    value={form.country}
+                    onChange={e => setForm(p => ({ ...p, country: e.target.value }))}
+                    placeholder="e.g. Tanzania, Kenya, Uganda"
+                  />
+                </div>
+              </div>
+
+              {formError && (
+                <div style={{ padding: '8px 12px', borderRadius: 'var(--r-sm)', background: '#fef2f2', border: '1px solid #fecaca', color: 'var(--red)', fontSize: 12 }}>
+                  {formError}
+                </div>
+              )}
+            </div>
+          </DialogBody>
+
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setModalOpen(false)}>
+              Cancel
+            </Button>
+            <Button onClick={saveLocation} loading={formSaving} loadingText={modalMode === 'edit' ? 'Updating…' : 'Creating…'}>
+              {modalMode === 'edit' ? 'Save Changes' : 'Create Location'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
@@ -758,9 +1333,9 @@ export const EmailSection: React.FC = () => {
                 style={{ width: 220 }}
               />
             )}
-            <button type="button" className="btn btn-secondary" onClick={handleTestEmail} disabled={testing} data-ui-native-button="">
-              {testing ? 'Sending…' : 'Send Test Email'}
-            </button>
+            <Button variant="outline" type="button" onClick={handleTestEmail} loading={testing} loadingText="Sending…">
+              Send Test Email
+            </Button>
             {testResult && (
               <span style={{ fontSize: 12, fontWeight: 600, color: testResult.ok ? 'var(--green)' : 'var(--red)' }}>
                 {testResult.ok ? '✓ Sent' : testResult.msg}

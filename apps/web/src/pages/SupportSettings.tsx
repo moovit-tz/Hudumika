@@ -13,6 +13,7 @@ import { Switch } from '../components/ui/switch.js';
 import { Badge } from '../components/ui/badge.js';
 import { Tip } from '../components/ui/tooltip.js';
 import { showConfirm } from '../lib/confirm.js';
+import { Button } from '../components/ui/button.js';
 
 type RuleType = 'auto_assign' | 'sla_escalation' | 'status_automation' | 'notification_trigger' | 'whatsapp_keyword';
 
@@ -194,9 +195,9 @@ function RuleForm({ type, agents, onCancel, onSave, saving }: {
 
       <div className="ssg-form-actions">
         <button type="button" className="btn btn-secondary btn-sm" onClick={onCancel} data-ui-native-button="">Cancel</button>
-        <button type="button" className="btn btn-primary btn-sm" disabled={!name.trim() || saving} onClick={handleSave} data-ui-native-button="">
-          {saving ? 'Saving…' : 'Create rule'}
-        </button>
+        <Button size="sm" type="button" onClick={handleSave} loading={saving} disabled={!name.trim()} loadingText="Saving…">
+          Create rule
+        </Button>
       </div>
     </div>
   );

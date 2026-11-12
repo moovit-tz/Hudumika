@@ -15,6 +15,7 @@ import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuSep
 import { showAlert } from '../../lib/alert.js';
 import type { ChannelId, StatusKey, PriorityKey, Ticket, SupportGroup } from './shared.js';
 import { PRIORITY_CFG, STATUS_CFG, CHANNEL_CFG, CATEGORIES, COMPLYOS_AGENCIES, relTime, ticketOrigin, Av, PBadge, SBadge, ChPill, parseUserAgent } from './shared.js';
+import { Button } from '../../components/ui/button.js';
 
 /** Bliss → ComplyOS bridge modal */
 function SendToComplyOSModal({ ticket, onClose }: { ticket: Ticket; onClose: () => void }) {
@@ -66,9 +67,9 @@ function SendToComplyOSModal({ ticket, onClose }: { ticket: Ticket; onClose: () 
         </div>
         <DialogFooter style={{ padding: '14px 22px', borderTop: '1px solid var(--border)' }}>
           <button type="button" className="btn btn-secondary" onClick={onClose} data-ui-native-button="">Cancel</button>
-          <button type="button" className="btn btn-primary" disabled={sending} onClick={handleSend} data-ui-native-button="">
-            {sending ? 'Opening…' : 'Open Application'}
-          </button>
+          <Button type="button" onClick={handleSend} loading={sending} loadingText="Opening…">
+            Open Application
+          </Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>
@@ -243,9 +244,9 @@ function EditAttributesDialog({ open, onClose, ticket, onSave }: {
         </div>
         <DialogFooter style={{ padding: '14px 20px', borderTop: '1px solid var(--border)' }}>
           <button type="button" className="btn btn-secondary" onClick={onClose} disabled={saving} data-ui-native-button="">Cancel</button>
-          <button type="button" className="btn btn-primary" disabled={saving} onClick={handleSave} data-ui-native-button="">
-            {saving ? 'Saving…' : 'Save changes'}
-          </button>
+          <Button type="button" onClick={handleSave} loading={saving} loadingText="Saving…">
+            Save changes
+          </Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>

@@ -7,6 +7,7 @@ import { apiFetch } from '../lib/api.js';
 import { showConfirm } from '../lib/confirm.js';
 import { showAlert } from '../lib/alert.js';
 import type { CmsRevision, CmsRevisionResourceType } from '@hudumika/types';
+import { Button } from './ui/button.js';
 
 const RESOURCE_ROUTE: Record<CmsRevisionResourceType, string> = {
   page: '/v1/cms/pages', post: '/v1/cms/posts', entry: '/v1/cms/content-entries',
@@ -152,9 +153,9 @@ export function RevisionHistory({ open, onOpenChange, resourceType, resourceId, 
         </DialogBody>
         <DialogFooter>
           {selected ? (
-            <button className="btn btn-primary btn-sm" disabled={restoring} onClick={() => handleRestore(selected)} data-ui-native-button="">
-              {restoring ? 'Restoring…' : 'Restore this version'}
-            </button>
+            <Button size="sm" onClick={() => handleRestore(selected)} loading={restoring} loadingText="Restoring…">
+              Restore this version
+            </Button>
           ) : (
             <button className="btn btn-secondary btn-sm" onClick={() => onOpenChange(false)} data-ui-native-button="">Close</button>
           )}

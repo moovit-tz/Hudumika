@@ -275,7 +275,7 @@ export function TasksTab({ job, isMobile, shipmentId, isLive, onRefresh }: { job
             />
           </div>
           <div style={{ display: 'flex', gap: 8 }}>
-            <button type="submit" className="btn btn-primary btn-sm" disabled={addSaving} data-ui-native-button="">{addSaving ? 'Saving…' : 'Add Task'}</button>
+            <Button size="sm" type="submit" loading={addSaving} loadingText="Saving…">Add Task</Button>
             <button type="button" onClick={() => setShowAdd(false)} className="btn btn-secondary btn-sm" data-ui-native-button="">Cancel</button>
           </div>
         </form>
@@ -509,7 +509,7 @@ export function TimesheetsTab({ job, isMobile, shipmentId, isLive, onRefresh }: 
             <input data-ui-field="input" value={logNote} onChange={e => setLogNote(e.target.value)} className="input-field" placeholder="What was worked on…" style={{ width: '100%' }} />
           </div>
           <div style={{ display: 'flex', gap: 8 }}>
-            <button type="submit" className="btn btn-primary btn-sm" disabled={logSaving} data-ui-native-button="">{logSaving ? 'Saving…' : 'Save Entry'}</button>
+            <Button size="sm" type="submit" loading={logSaving} loadingText="Saving…">Save Entry</Button>
             <button type="button" onClick={() => setShowLog(false)} className="btn btn-secondary btn-sm" data-ui-native-button="">Cancel</button>
           </div>
         </form>

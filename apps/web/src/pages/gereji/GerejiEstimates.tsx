@@ -249,7 +249,7 @@ export function GerejiEstimates() {
           </DialogBody>
           <DialogFooter>
             <Button variant="outline" onClick={() => { setShowNew(false); resetForm(); }}>Cancel</Button>
-            <Button onClick={handleCreate} disabled={saving}>{saving ? 'Creating...' : 'Create Estimate'}</Button>
+            <Button onClick={handleCreate} loading={saving} loadingText="Creating…">Create Estimate</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

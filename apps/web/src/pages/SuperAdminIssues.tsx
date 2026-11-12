@@ -7,6 +7,7 @@ import { Badge } from '../components/ui/badge.js';
 import { SectionLoading } from '../components/ui/spinner.js';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '../components/ui/select.js';
 import { apiFetch, BASE_URL } from '../lib/api.js';
+import { Button } from '../components/ui/button.js';
 
 /**
  * The platform's bug list: everything every tenant has reported, in one queue.
@@ -369,10 +370,10 @@ export const SuperAdminIssues: React.FC = () => {
                 <textarea data-ui-field="textarea" className="input-field" rows={3} value={reply} onChange={e => setReply(e.target.value)}
                   placeholder="They see this in their own Report an issue page."
                   style={{ width: '100%', boxSizing: 'border-box', fontSize: "var(--text-base)", resize: 'vertical' }} />
-                <button type="button" className="btn btn-secondary" disabled={saving || !reply.trim()}
-                  style={{ marginTop: 8, fontSize: "var(--text-base)" }} onClick={sendReply} data-ui-native-button="">
-                  {saving ? 'Sending…' : 'Send reply'}
-                </button>
+                <Button variant="outline" type="button"
+                  style={{ marginTop: 8, fontSize: "var(--text-base)" }} onClick={sendReply} loading={saving} disabled={!reply.trim()} loadingText="Sending…">
+                  Send reply
+                </Button>
               </div>
 
               <div style={{ marginTop: 18 }}>

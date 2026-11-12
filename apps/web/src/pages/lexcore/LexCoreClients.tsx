@@ -101,7 +101,7 @@ export function LexCoreClients() {
                 <div className="lc-field lc-field-full"><label>Address</label><Input value={address} onChange={e => setAddress(e.target.value)} placeholder="Physical address" /></div>
               </div>
             </DialogBody>
-            <DialogFooter><Button type="submit" disabled={saving || !name.trim()}>{saving ? 'Saving…' : 'Create'}</Button></DialogFooter>
+            <DialogFooter><Button type="submit" loading={saving} disabled={!name.trim()} loadingText="Saving…">Create</Button></DialogFooter>
           </form>
         </DialogContent>
       </Dialog>

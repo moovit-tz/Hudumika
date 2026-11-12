@@ -7,6 +7,7 @@ import { Badge } from '../components/ui/badge.js';
 import { SectionLoading } from '../components/ui/spinner.js';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '../components/ui/select.js';
 import { Tip } from '../components/ui/tooltip.js';
+import { Button } from '../components/ui/button.js';
 
 /**
  * Writing the notices that appear in every workspace's header pill.
@@ -163,9 +164,9 @@ export const SuperAdminAnnouncements: React.FC = () => {
         {error && <div style={{ fontSize: 12.5, color: 'var(--red)' }}>{error}</div>}
 
         <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-          <button type="submit" className="btn btn-primary btn-sm" disabled={saving || !form.title.trim()} data-ui-native-button="">
-            {saving ? 'Publishing…' : 'Publish'}
-          </button>
+          <Button size="sm" type="submit" loading={saving} disabled={!form.title.trim()} loadingText="Publishing…">
+            Publish
+          </Button>
           <span style={{ fontSize: 12, color: 'var(--ink3)' }}>
             {form.tenant_id
               ? `Only ${tenants.find(t => t.id === form.tenant_id)?.name ?? 'that workspace'} will see this.`

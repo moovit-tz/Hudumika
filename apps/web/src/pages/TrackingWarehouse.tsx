@@ -95,7 +95,7 @@ function AddLocationModal({ onClose, onAdded }: { onClose: () => void; onAdded: 
           </div>
           <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end', marginTop: 4 }}>
             <Button type="button" variant="outline" onClick={onClose}>Cancel</Button>
-            <Button type="submit" disabled={saving}>{saving ? 'Saving…' : 'Add location'}</Button>
+            <Button type="submit" loading={saving} loadingText="Saving…">Add location</Button>
           </div>
         </form>
       </DialogContent>
@@ -160,7 +160,7 @@ function AddAppointmentModal({ vehicles, onClose, onAdded }: { vehicles: Vehicle
           <div><label style={labelStyle}>Scheduled at *</label><DateTimePicker date={scheduledAt ? new Date(scheduledAt) : undefined} onChange={d => setScheduledAt(d ? toLocalDateTimeString(d) : '')} triggerClassName="w-full" /></div>
           <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end', marginTop: 4 }}>
             <Button type="button" variant="outline" onClick={onClose}>Cancel</Button>
-            <Button type="submit" disabled={saving}>{saving ? 'Saving…' : 'Schedule'}</Button>
+            <Button type="submit" loading={saving} loadingText="Saving…">Schedule</Button>
           </div>
         </form>
       </DialogContent>

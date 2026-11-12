@@ -4,6 +4,7 @@ import { showConfirm } from '../lib/confirm.js';
 import { PageHeader, type Crumb } from './PageHeader.js';
 import { BackButton } from './ui/BackButton.js';
 import { useIsMobile } from '../hooks/useIsMobile.js';
+import { Button } from './ui/button.js';
 
 /**
  * Full-page create/edit form chrome.
@@ -68,9 +69,9 @@ export function FormPageActions({ onCancel, onSave, saving, saveLabel = 'Save', 
       <button type="button" onClick={onCancel} disabled={saving} className="btn btn-secondary" data-ui-native-button="">
         Cancel
       </button>
-      <button type="button" onClick={onSave} disabled={saving} className="btn btn-primary" data-ui-native-button="">
-        {saving ? 'Saving…' : saveLabel}
-      </button>
+      <Button type="button" onClick={onSave} loading={saving} loadingText="Saving…">
+        {saveLabel}
+      </Button>
     </>
   );
 }

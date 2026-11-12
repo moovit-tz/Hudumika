@@ -119,7 +119,7 @@ export function GerejiAngaLocations() {
           </DialogBody>
           <DialogFooter>
             <Button variant="outline" onClick={() => setOpen(false)}>Cancel</Button>
-            <Button onClick={create} disabled={saving}>{saving ? 'Creating...' : 'Create location'}</Button>
+            <Button onClick={create} loading={saving} loadingText="Creating…">Create location</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

@@ -753,7 +753,7 @@ export const Expenses: React.FC = () => {
             </DialogBody>
             <DialogFooter>
               <Button type="button" variant="outline" onClick={() => setShowBulkUpload(false)}>Cancel</Button>
-              <Button type="submit" disabled={bulkSaving}>{bulkSaving ? 'Importing…' : 'Import'}</Button>
+              <Button type="submit" loading={bulkSaving} loadingText="Importing…">Import</Button>
             </DialogFooter>
           </form>
         </DialogContent>

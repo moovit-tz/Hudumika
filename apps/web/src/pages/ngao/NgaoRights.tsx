@@ -125,7 +125,7 @@ export function NgaoRights() {
             </DialogBody>
             <DialogFooter>
               <Button type="button" variant="outline" onClick={() => setShowNew(false)}>Cancel</Button>
-              <Button type="submit" disabled={saving || !subName.trim() || !subEmail.trim() || !desc.trim()}>{saving ? 'Submitting…' : 'Submit'}</Button>
+              <Button type="submit" loading={saving} disabled={!subName.trim() || !subEmail.trim() || !desc.trim()} loadingText="Submitting…">Submit</Button>
             </DialogFooter>
           </form>
         </DialogContent>

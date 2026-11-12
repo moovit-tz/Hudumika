@@ -81,7 +81,7 @@ function AddPartModal({ vendors, onClose, onAdded }: { vendors: Vendor[]; onClos
           {error && <div style={{ fontSize: 12, color: 'var(--red)' }}>{error}</div>}
           <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end', marginTop: 4 }}>
             <Button type="button" variant="outline" onClick={onClose}>Cancel</Button>
-            <Button type="submit" disabled={saving || !partName}>{saving ? 'Saving…' : 'Add part'}</Button>
+            <Button type="submit" loading={saving} disabled={!partName} loadingText="Saving…">Add part</Button>
           </div>
         </form>
       </DialogContent>

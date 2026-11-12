@@ -286,7 +286,7 @@ export const TrackingTripDetail: React.FC = () => {
                 <div className="trip-detail-wide"><Label htmlFor="trip-border-name">Border name</Label><Input id="trip-border-name" required placeholder="e.g. Tunduma" value={crossingForm.border_name} onChange={event => setCrossingForm(form => ({ ...form, border_name: event.target.value }))} /></div>
                 <div><Label htmlFor="trip-country-from">From country</Label><Input id="trip-country-from" maxLength={3} placeholder="e.g. TZ" value={crossingForm.country_from} onChange={event => setCrossingForm(form => ({ ...form, country_from: event.target.value.toUpperCase() }))} /></div>
                 <div><Label htmlFor="trip-country-to">To country</Label><Input id="trip-country-to" maxLength={3} placeholder="e.g. ZM" value={crossingForm.country_to} onChange={event => setCrossingForm(form => ({ ...form, country_to: event.target.value.toUpperCase() }))} /></div>
-                <div className="trip-detail-wide"><Button type="submit" size="sm" disabled={crossingSaving || !crossingForm.border_name.trim()}>{crossingSaving ? 'Saving…' : 'Save crossing'}</Button></div>
+                <div className="trip-detail-wide"><Button type="submit" size="sm" loading={crossingSaving} disabled={!crossingForm.border_name.trim()} loadingText="Saving…">Save crossing</Button></div>
               </form>
             )}
             {crossLoading ? <SectionLoading /> : crossingError ? <Banner variant="error">{crossingError}</Banner> : crossings.length === 0 ? (

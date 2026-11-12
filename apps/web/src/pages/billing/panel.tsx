@@ -623,7 +623,7 @@ export function InvoiceDetailPanel({ inv, onClose, onEdit, onCopy, onDelete, onR
             </div>
             <div>
               <label className="block text-[10.5px] font-bold text-muted-foreground uppercase tracking-wider mb-1">Payment Date</label>
-              <Input disabled={paymentSaving} aria-label="Payment Date" type="date" value={payDate} onChange={e => setPayDate(e.target.value)} />
+              <DatePicker disabled={paymentSaving} aria-label="Payment Date" date={parseDateOnly(payDate) ?? null} onChange={d => setPayDate(toDateOnlyString(d))} />
             </div>
             <div>
               <label className="block text-[10.5px] font-bold text-muted-foreground uppercase tracking-wider mb-1">Method</label>

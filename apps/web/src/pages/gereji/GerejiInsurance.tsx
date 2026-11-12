@@ -5,6 +5,7 @@ import { SectionCard } from '../../components/SectionCard.js';
 import { Badge } from '../../components/ui/badge.js';
 import { Button } from '../../components/ui/button.js';
 import { Input } from '../../components/ui/input.js';
+import { DatePicker, parseDateOnly, toDateOnlyString } from '../../components/ui/date-picker.js';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '../../components/ui/select.js';
 import { SectionLoading } from '../../components/ui/spinner.js';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogBody, DialogFooter } from '../../components/ui/dialog.js';
@@ -229,16 +230,16 @@ export function GerejiInsurance() {
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
                 <div><label style={LABEL}>Policy number</label><Input value={policyNumber} onChange={e => setPolicyNumber(e.target.value)} /></div>
                 <div><label style={LABEL}>Holder name</label><Input value={holderName} onChange={e => setHolderName(e.target.value)} /></div>
-                <div><label style={LABEL}>Coverage start</label><Input type="date" value={coverageStart} onChange={e => setCoverageStart(e.target.value)} /></div>
-                <div><label style={LABEL}>Coverage end</label><Input type="date" value={coverageEnd} onChange={e => setCoverageEnd(e.target.value)} /></div>
+                <div><label style={LABEL}>Coverage start</label><DatePicker date={parseDateOnly(coverageStart) ?? null} onChange={d => setCoverageStart(toDateOnlyString(d))} /></div>
+                <div><label style={LABEL}>Coverage end</label><DatePicker date={parseDateOnly(coverageEnd) ?? null} onChange={d => setCoverageEnd(toDateOnlyString(d))} /></div>
                 <div><label style={LABEL}>Sum insured</label><Input type="number" min={0} value={sumInsured} onChange={e => setSumInsured(e.target.value)} /></div>
                 <div><label style={LABEL}>Premium</label><Input type="number" min={0} value={premium} onChange={e => setPremium(e.target.value)} /></div>
               </div>
             </div>
           </DialogBody>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setShowNewPolicy(false)}>Cancel</Button>
-            <Button onClick={createPolicy} disabled={saving}>{saving ? 'Creating...' : 'Create policy'}</Button>
+            <Button variant="outline" onClick={() => { setShowNewPolicy(false); resetPolicyForm(); }}>Cancel</Button>
+            <Button onClick={createPolicy} loading={saving} loadingText="Creating…">Create policy</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
@@ -255,14 +256,14 @@ export function GerejiInsurance() {
                   <SelectContent>{policies.map(p => <SelectItem key={p.id} value={p.id}>{p.policy_number} — {p.holder_name}</SelectItem>)}</SelectContent>
                 </Select>
               </div>
-              <div><label style={LABEL}>Incident date</label><Input type="date" value={incidentDate} onChange={e => setIncidentDate(e.target.value)} /></div>
+              <div><label style={LABEL}>Incident date</label><DatePicker date={parseDateOnly(incidentDate) ?? null} onChange={d => setIncidentDate(toDateOnlyString(d))} /></div>
               <div><label style={LABEL}>Description</label><Input value={claimDesc} onChange={e => setClaimDesc(e.target.value)} placeholder="What happened" /></div>
               <div><label style={LABEL}>Claim amount</label><Input type="number" min={0} value={claimAmount} onChange={e => setClaimAmount(e.target.value)} /></div>
             </div>
           </DialogBody>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setShowNewClaim(false)}>Cancel</Button>
-            <Button onClick={createClaim} disabled={saving}>{saving ? 'Submitting...' : 'Submit claim'}</Button>
+            <Button variant="outline" onClick={() => { setShowNewClaim(false); resetClaimForm(); }}>Cancel</Button>
+            <Button onClick={createClaim} loading={saving} loadingText="Submitting…">Submit claim</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

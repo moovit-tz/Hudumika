@@ -106,7 +106,7 @@ export function CreateFreightBookingPage() {
           <Textarea rows={3} value={form.cargo_desc} onChange={e => setForm(p => ({ ...p, cargo_desc: e.target.value }))} />
         </div>
         {error && <Banner variant="error" onDismiss={() => setError(null)}>{error}</Banner>}
-        <Button type="button" onClick={submit} disabled={saving || !!customersError}>{saving ? 'Creating…' : 'Create booking request'}</Button>
+        <Button type="button" onClick={submit} loading={saving} disabled={!!customersError} loadingText="Creating…">Create booking request</Button>
       </SectionCard>
       </div>
     </div>

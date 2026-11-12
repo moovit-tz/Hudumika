@@ -111,7 +111,7 @@ export function NgaoVendors() {
             </DialogBody>
             <DialogFooter>
               <Button type="button" variant="outline" onClick={() => setShowNew(false)}>Cancel</Button>
-              <Button type="submit" disabled={saving || !name.trim()}>{saving ? 'Adding…' : 'Add Vendor'}</Button>
+              <Button type="submit" loading={saving} disabled={!name.trim()} loadingText="Adding…">Add Vendor</Button>
             </DialogFooter>
           </form>
         </DialogContent>

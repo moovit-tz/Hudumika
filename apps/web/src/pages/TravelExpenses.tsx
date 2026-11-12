@@ -14,6 +14,7 @@ import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogBody, DialogFooter,
 } from '../components/ui/dialog.js';
 import { Input } from '../components/ui/input.js';
+import { DatePicker, parseDateOnly, toDateOnlyString } from '../components/ui/date-picker.js';
 import './Travel.css';
 
 interface Expense {
@@ -266,7 +267,7 @@ function AddExpenseDialog({ open, onOpenChange, trips, onCreated }: { open: bool
             </label>
             <label className="tv-form-field">
               <span>Date</span>
-              <Input type="date" value={expenseDate} onChange={e => setExpenseDate(e.target.value)} />
+              <DatePicker date={parseDateOnly(expenseDate) ?? null} onChange={d => setExpenseDate(toDateOnlyString(d))} />
             </label>
             {trips.length > 0 && (
               <label className="tv-form-field">

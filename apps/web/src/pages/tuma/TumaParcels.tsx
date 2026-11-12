@@ -6,6 +6,8 @@ import { SectionLoading } from '../../components/ui/spinner.js';
 import { Badge } from '../../components/ui/badge.js';
 import { Button } from '../../components/ui/button.js';
 import { Input } from '../../components/ui/input.js';
+import { Combobox } from '../../components/ui/combobox.js';
+import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '../../components/ui/select.js';
 import { SearchToolbar, SingleSelectFilter } from '../../components/ui/filter-dropdown.js';
 import { Icon } from '../../components/Icon.js';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogBody, DialogFooter } from '../../components/ui/dialog.js';
@@ -100,7 +102,8 @@ export function TumaParcels() {
 
   async function handleCreate(e: React.FormEvent) {
     e.preventDefault();
-    if (!form.sender_name.trim() || !form.recipient_name.trim() || !form.origin_office_id || !form.dest_office_id) return;
+    if (!form.origin_office_id || !form.dest_office_id) { showAlert('Choose the origin and destination offices.'); return; }
+    if (!form.sender_name.trim() || !form.recipient_name.trim()) return;
     setSaving(true);
     try {
       await apiFetch('/v1/tuma/parcels', {
@@ -325,24 +328,21 @@ export function TumaParcels() {
                 </label>
                 <label style={{ display: 'flex', flexDirection: 'column', gap: 4, fontSize: 13 }}>
                   Origin Office *
-                  <select data-ui-field="select" value={form.origin_office_id} onChange={e => setForm(f => ({ ...f, origin_office_id: e.target.value }))} required className="login-input" style={{ height: "var(--ctl-h)" }}>
-                    <option value="">Select office…</option>
-                    {offices.map(o => <option key={o.id} value={o.id}>{o.name}</option>)}
-                  </select>
+                  <Combobox value={form.origin_office_id} onChange={v => setForm(f => ({ ...f, origin_office_id: v }))} placeholder="Select office…" options={offices.map(o => ({ value: o.id, label: o.name }))} />
                 </label>
                 <label style={{ display: 'flex', flexDirection: 'column', gap: 4, fontSize: 13 }}>
                   Destination Office *
-                  <select data-ui-field="select" value={form.dest_office_id} onChange={e => setForm(f => ({ ...f, dest_office_id: e.target.value }))} required className="login-input" style={{ height: "var(--ctl-h)" }}>
-                    <option value="">Select office…</option>
-                    {offices.map(o => <option key={o.id} value={o.id}>{o.name}</option>)}
-                  </select>
+                  <Combobox value={form.dest_office_id} onChange={v => setForm(f => ({ ...f, dest_office_id: v }))} placeholder="Select office…" options={offices.map(o => ({ value: o.id, label: o.name }))} />
                 </label>
                 <label style={{ display: 'flex', flexDirection: 'column', gap: 4, fontSize: 13 }}>
                   Vehicle (optional)
-                  <select data-ui-field="select" value={form.vehicle_id} onChange={e => setForm(f => ({ ...f, vehicle_id: e.target.value }))} className="login-input" style={{ height: "var(--ctl-h)" }}>
-                    <option value="">None</option>
-                    {vehicles.map(v => <option key={v.id} value={v.id}>{v.registration_number}</option>)}
-                  </select>
+                  <Select value={form.vehicle_id || 'none'} onValueChange={v => setForm(f => ({ ...f, vehicle_id: v === 'none' ? '' : v }))}>
+                    <SelectTrigger><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="none">None</SelectItem>
+                      {vehicles.map(v => <SelectItem key={v.id} value={v.id}>{v.registration_number}</SelectItem>)}
+                    </SelectContent>
+                  </Select>
                 </label>
                 <label style={{ display: 'flex', flexDirection: 'column', gap: 4, fontSize: 13 }}>
                   Parcel Name
@@ -373,7 +373,7 @@ export function TumaParcels() {
             </DialogBody>
             <DialogFooter>
               <Button type="button" variant="outline" onClick={() => { setShowCreate(false); setLinkedShipment(null); }}>Cancel</Button>
-              <Button type="submit" disabled={saving}>{saving ? 'Saving…' : 'Receive Parcel'}</Button>
+              <Button type="submit" loading={saving} loadingText="Saving…">Receive Parcel</Button>
             </DialogFooter>
           </form>
         </DialogContent>
@@ -386,10 +386,7 @@ export function TumaParcels() {
           <DialogBody>
             <label style={{ display: 'flex', flexDirection: 'column', gap: 4, fontSize: 13 }}>
               Assign Vehicle
-              <select data-ui-field="select" value={dispatchVehicle} onChange={e => setDispatchVehicle(e.target.value)} className="login-input" style={{ height: "var(--ctl-h)" }}>
-                <option value="">Select vehicle…</option>
-                {vehicles.map(v => <option key={v.id} value={v.id}>{v.registration_number}</option>)}
-              </select>
+              <Combobox value={dispatchVehicle} onChange={setDispatchVehicle} placeholder="Select vehicle…" options={vehicles.map(v => ({ value: v.id, label: v.registration_number }))} />
             </label>
           </DialogBody>
           <DialogFooter>

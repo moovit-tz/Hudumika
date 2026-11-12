@@ -547,7 +547,7 @@ export function PettiDashboard() {
             </div>
             <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8, marginTop: 4 }}>
               <Button type="button" variant="outline" onClick={() => setDepositModalOpen(false)}>Cancel</Button>
-              <Button type="submit" disabled={depositSaving}>{depositSaving ? 'Depositing…' : 'Confirm Deposit'}</Button>
+              <Button type="submit" loading={depositSaving} loadingText="Depositing…">Confirm Deposit</Button>
             </div>
           </form>
         </DialogContent>
@@ -586,7 +586,7 @@ export function PettiDashboard() {
             </div>
             <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8, marginTop: 4 }}>
               <Button type="button" variant="outline" onClick={() => setTransferModalOpen(false)}>Cancel</Button>
-              <Button type="submit" disabled={transferSaving}>{transferSaving ? 'Transferring…' : 'Execute Transfer'}</Button>
+              <Button type="submit" loading={transferSaving} loadingText="Transferring…">Execute Transfer</Button>
             </div>
           </form>
         </DialogContent>
@@ -634,7 +634,7 @@ export function PettiDashboard() {
             </div>
             <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8, marginTop: 4 }}>
               <Button type="button" variant="outline" onClick={() => setRequestModalOpen(false)}>Cancel</Button>
-              <Button type="submit" disabled={requestSaving}>{requestSaving ? 'Submitting…' : 'Submit Claim'}</Button>
+              <Button type="submit" loading={requestSaving} loadingText="Submitting…">Submit Claim</Button>
             </div>
           </form>
         </DialogContent>

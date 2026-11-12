@@ -69,10 +69,6 @@
 .be-format-toolbar button:last-child:not(:only-child) { width: auto; padding: 0 8px; font-size: 11px; }
 
 .be-heading-row { display: flex; gap: 8px; align-items: center; }
-.be-select {
-  border: 1px solid var(--border); border-radius: var(--r-sm); padding: 6px 8px;
-  font-size: 12px; font-family: var(--font); background: var(--white); color: var(--ink);
-}
 
 .be-stack { display: flex; flex-direction: column; gap: 8px; }
 

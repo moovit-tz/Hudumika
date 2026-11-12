@@ -1267,7 +1267,7 @@ export const Leads: React.FC = () => {
                     <h3 className="lead-lp-card-title"><Icon name="edit" size={14} /><span>Edit Lead Details</span></h3>
                     <div style={{ display: 'flex', gap: 8 }}>
                       <Button variant="outline" size="sm" type="button" onClick={() => { setProfileForm({ ...sel }); setEditMode(false); }}>Discard</Button>
-                      <Button size="sm" type="submit" disabled={saving}>{saving ? 'Saving…' : 'Save'}</Button>
+                      <Button size="sm" type="submit" loading={saving} loadingText="Saving…">Save</Button>
                     </div>
                   </div>
                   <div className="lead-lp-card-body">
@@ -1402,7 +1402,7 @@ export const Leads: React.FC = () => {
                   value={notes} onChange={e => setNotes(e.target.value)} />
                 <div style={{ marginTop: 12, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                   <span style={{ fontSize: 12, color: 'var(--ink3)' }}>{notes.length} characters</span>
-                  <Button type="button" size="sm" onClick={handleSaveNote} disabled={noteSaving}>{noteSaving ? 'Saving…' : 'Save Notes'}</Button>
+                  <Button type="button" size="sm" onClick={handleSaveNote} loading={noteSaving} loadingText="Saving…">Save Notes</Button>
                 </div>
               </div>
             </div>
@@ -1568,7 +1568,7 @@ export const Leads: React.FC = () => {
                 </div>
                 <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8, marginTop: 20 }}>
                   <button type="button" className="btn btn-secondary btn-md" onClick={() => { setShowAdd(false); setAddForm({ ...EMPTY_FORM }); setEditingId(null); }} data-ui-native-button="">Cancel</button>
-                  <button type="submit" className="btn btn-primary btn-md" disabled={addSaving} data-ui-native-button="">{addSaving ? 'Saving…' : editingId ? 'Save Changes' : 'Add Lead'}</button>
+                  <Button type="submit" loading={addSaving} loadingText="Saving…">{editingId ? 'Save Changes' : 'Add Lead'}</Button>
                 </div>
               </form>
             </div>
@@ -1912,7 +1912,7 @@ export const Leads: React.FC = () => {
               </div>
               <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8, marginTop: 20 }}>
                 <button type="button" className="btn btn-secondary btn-md" onClick={() => { setShowAdd(false); setAddForm({ ...EMPTY_FORM }); setEditingId(null); }} data-ui-native-button="">Cancel</button>
-                <button type="submit" className="btn btn-primary btn-md" disabled={addSaving} data-ui-native-button="">{addSaving ? 'Saving…' : editingId ? 'Save Changes' : 'Add Lead'}</button>
+                <Button type="submit" loading={addSaving} loadingText="Saving…">{editingId ? 'Save Changes' : 'Add Lead'}</Button>
               </div>
             </form>
           </div>

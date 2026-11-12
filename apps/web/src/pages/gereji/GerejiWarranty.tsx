@@ -5,6 +5,7 @@ import { SectionCard } from '../../components/SectionCard.js';
 import { Badge } from '../../components/ui/badge.js';
 import { Button } from '../../components/ui/button.js';
 import { Input } from '../../components/ui/input.js';
+import { DatePicker, parseDateOnly, toDateOnlyString } from '../../components/ui/date-picker.js';
 import { Textarea } from '../../components/ui/textarea.js';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '../../components/ui/select.js';
 import { SearchToolbar } from '../../components/ui/filter-dropdown.js';
@@ -197,18 +198,18 @@ export function GerejiWarranty() {
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
                 <div>
                   <label style={{ fontSize: 12, fontWeight: 600, color: 'var(--ink3)', display: 'block', marginBottom: 4 }}>Warranty Start</label>
-                  <Input type="date" value={wStart} onChange={e => setWStart(e.target.value)} />
+                  <DatePicker date={parseDateOnly(wStart) ?? null} onChange={d => setWStart(toDateOnlyString(d))} />
                 </div>
                 <div>
                   <label style={{ fontSize: 12, fontWeight: 600, color: 'var(--ink3)', display: 'block', marginBottom: 4 }}>Warranty End</label>
-                  <Input type="date" value={wEnd} onChange={e => setWEnd(e.target.value)} />
+                  <DatePicker date={parseDateOnly(wEnd) ?? null} onChange={d => setWEnd(toDateOnlyString(d))} />
                 </div>
               </div>
             </div>
           </DialogBody>
           <DialogFooter>
             <Button variant="outline" onClick={() => { setShowNew(false); resetForm(); }}>Cancel</Button>
-            <Button onClick={handleCreate} disabled={saving}>{saving ? 'Submitting...' : 'Submit Claim'}</Button>
+            <Button onClick={handleCreate} loading={saving} loadingText="Submitting…">Submit Claim</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

@@ -8,6 +8,7 @@ import { apiFetch } from '../../lib/api.js';
 import { useAuth } from '../../hooks/useAuth.js';
 import type { StepProps } from './types.js';
 import { SectionCard } from '../../components/SectionCard.js';
+import { Button } from '../../components/ui/button.js';
 
 // Same height/padding box-model as .btn.btn-sm (index.css), so the kind
 // badge lines up with the "Source" link button next to it instead of
@@ -238,9 +239,9 @@ export function StepResults({ draft, onBack }: StepProps) {
                 {postError && <div style={{ color: 'var(--red)', fontSize: 12.5 }}>{postError}</div>}
                 <div style={{ display: 'flex', gap: 8 }}>
                   <button type="button" className="btn btn-secondary" onClick={() => setShowRequestForm(false)} data-ui-native-button="">Cancel</button>
-                  <button type="button" className="btn btn-primary" onClick={requestConsultation} disabled={posting} data-ui-native-button="">
-                    {posting ? 'Creating…' : 'Send Request'}
-                  </button>
+                  <Button type="button" onClick={requestConsultation} loading={posting} loadingText="Creating…">
+                    Send Request
+                  </Button>
                 </div>
               </div>
             )}

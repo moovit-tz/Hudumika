@@ -11,6 +11,7 @@ import { SealWarehouse3D } from '../components/SealWarehouse3D.js';
 import { useIsMobile } from '../hooks/useIsMobile.js';
 import { PageHeader } from '../components/PageHeader.js';
 import './Seal.css';
+import { Button } from '../components/ui/button.js';
 
 interface TierLot { id: string; description: string; qtyOnHand: number; uom: string; }
 interface Tier { tier: number; lotCount: number; capacityUnits: number; occupancyPct: number; lots: TierLot[]; }
@@ -306,7 +307,7 @@ export function SealWarehouseLayout() {
                       <SelectContent>{ZONE_TYPES.map(t => <SelectItem key={t} value={t}>{t.replace(/_/g, ' ')}</SelectItem>)}</SelectContent>
                     </Select>
                   </div>
-                  <button type="submit" className="btn btn-primary" disabled={creatingZone} data-ui-native-button="">{creatingZone ? 'Creating…' : 'Create Zone'}</button>
+                  <Button type="submit" loading={creatingZone} loadingText="Creating…">Create Zone</Button>
                 </div>
               </form>
             ) : (
@@ -368,9 +369,9 @@ export function SealWarehouseLayout() {
                 </div>
                 <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 10 }}>
                   <button type="button" className="btn btn-secondary" onClick={() => setShowAddForm(false)} data-ui-native-button="">Cancel</button>
-                  <button type="submit" className="btn btn-primary" disabled={addingLoc || !newLocZoneId || !newLocCode.trim()} data-ui-native-button="">
-                    {addingLoc ? 'Adding…' : 'Add to Layout'}
-                  </button>
+                  <Button type="submit" loading={addingLoc} disabled={!newLocZoneId || !newLocCode.trim()} loadingText="Adding…">
+                    Add to Layout
+                  </Button>
                 </div>
               </form>
             )}
@@ -600,7 +601,7 @@ export function SealWarehouseLayout() {
                     </div>
                     <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 10 }}>
                       <button type="button" className="btn btn-secondary" onClick={() => setEditingLoc(false)} data-ui-native-button="">Cancel</button>
-                      <button type="button" className="btn btn-primary" onClick={handleSaveEditLoc} disabled={savingEdit} data-ui-native-button="">{savingEdit ? 'Saving…' : 'Save Changes'}</button>
+                      <Button type="button" onClick={handleSaveEditLoc} loading={savingEdit} loadingText="Saving…">Save Changes</Button>
                     </div>
                   </div>
                 ) : (

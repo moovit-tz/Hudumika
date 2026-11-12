@@ -207,7 +207,7 @@ export function GerejiAngaGoodsReceipts() {
           </DialogBody>
           <DialogFooter>
             <Button variant="outline" onClick={() => setOpen(false)}>Cancel</Button>
-            <Button onClick={create} disabled={saving}>{saving ? 'Creating...' : 'Create receipt'}</Button>
+            <Button onClick={create} loading={saving} loadingText="Creating…">Create receipt</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

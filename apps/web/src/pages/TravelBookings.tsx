@@ -13,6 +13,7 @@ import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogBody, DialogFooter,
 } from '../components/ui/dialog.js';
 import { Input } from '../components/ui/input.js';
+import { DatePicker, parseDateOnly, toDateOnlyString } from '../components/ui/date-picker.js';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '../components/ui/select.js';
 import './Travel.css';
 
@@ -237,7 +238,7 @@ function AddBookingDialog({ open, onOpenChange, trips, onCreated }: { open: bool
             )}
             <label className="tv-form-field">
               <span>Date</span>
-              <Input type="date" value={startDate} onChange={e => setStartDate(e.target.value)} />
+              <DatePicker date={parseDateOnly(startDate) ?? null} onChange={d => setStartDate(toDateOnlyString(d))} />
             </label>
             <label className="tv-form-field">
               <span>Cost</span>

@@ -5,6 +5,7 @@ import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '.
 import { Checkbox } from './ui/checkbox.js';
 import { DatePicker, parseDateOnly, toDateOnlyString } from './ui/date-picker.js';
 import { showAlert } from '../lib/alert.js';
+import { Button } from './ui/button.js';
 
 /**
  * A person's contracts, and the people to ring if something happens.
@@ -126,10 +127,10 @@ export function StaffContracts({ userId, canEdit }: { userId: string; canEdit: b
             )}
           </div>
           <div style={{ gridColumn: '1 / -1', display: 'flex', justifyContent: 'flex-end' }}>
-            <button type="button" className="btn btn-primary btn-sm" disabled={saving || !form.start_date}
-              style={{ background: 'hsl(var(--primary))', borderColor: 'var(--teal)', color: 'hsl(var(--primary-foreground))' }} onClick={add} data-ui-native-button="">
-              {saving ? 'Saving…' : 'Add contract'}
-            </button>
+            <Button size="sm" type="button"
+              style={{ background: 'hsl(var(--primary))', borderColor: 'var(--teal)', color: 'hsl(var(--primary-foreground))' }} onClick={add} loading={saving} disabled={!form.start_date} loadingText="Saving…">
+              Add contract
+            </Button>
           </div>
         </div>
       )}
@@ -237,10 +238,10 @@ export function StaffEmergencyContacts({ userId, canEdit }: { userId: string; ca
             </label>
           </div>
           <div style={{ gridColumn: '1 / -1', display: 'flex', justifyContent: 'flex-end' }}>
-            <button type="button" className="btn btn-primary btn-sm" disabled={saving || !form.name || !form.phone}
-              style={{ background: 'hsl(var(--primary))', borderColor: 'var(--teal)', color: 'hsl(var(--primary-foreground))' }} onClick={add} data-ui-native-button="">
-              {saving ? 'Saving…' : 'Add contact'}
-            </button>
+            <Button size="sm" type="button"
+              style={{ background: 'hsl(var(--primary))', borderColor: 'var(--teal)', color: 'hsl(var(--primary-foreground))' }} onClick={add} loading={saving} disabled={!form.name || !form.phone} loadingText="Saving…">
+              Add contact
+            </Button>
           </div>
         </div>
       )}

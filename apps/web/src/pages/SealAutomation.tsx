@@ -188,7 +188,7 @@ export function SealAutomation() {
             )}
           </div>
           <div style={{ padding: '0 20px 20px' }}>
-            <Button type="submit" disabled={saving || !newName.trim()}>{saving ? 'Creating…' : 'Create Rule'}</Button>
+            <Button type="submit" loading={saving} disabled={!newName.trim()} loadingText="Creating…">Create Rule</Button>
           </div>
         </form>
       )}

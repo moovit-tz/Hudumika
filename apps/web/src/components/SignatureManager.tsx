@@ -4,6 +4,7 @@ import { showAlert } from '../lib/alert.js';
 import { Icon } from './Icon.js';
 import { Badge } from './ui/badge.js';
 import { RichTextEditor } from './RichTextEditor.js';
+import { Button } from './ui/button.js';
 
 export interface EmailSignature {
   id: string;
@@ -269,9 +270,9 @@ export function SignatureManager({ onChange }: { onChange?: (sigs: EmailSignatur
             </div>
 
             <div className="em-form-actions">
-              <button type="button" className="btn btn-primary btn-sm" onClick={saveDraft} disabled={saving} data-ui-native-button="">
-                {saving ? 'Saving…' : 'Save Signature'}
-              </button>
+              <Button size="sm" type="button" onClick={saveDraft} loading={saving} loadingText="Saving…">
+                Save Signature
+              </Button>
               <button type="button" className="btn btn-secondary btn-sm" onClick={() => setEditingId(null)} data-ui-native-button="">
                 Cancel
               </button>

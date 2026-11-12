@@ -88,7 +88,7 @@ export const TrackingFuelNew: React.FC = () => {
         {error && <div style={{ fontSize: 12, color: 'var(--red)' }}>{error}</div>}
         <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end', marginTop: 6 }}>
           <Button type="button" variant="outline" asChild><Link to="/tracking/fuel">Cancel</Link></Button>
-          <Button type="submit" disabled={saving || !vehicleId || !liters}>{saving ? 'Saving…' : 'Log fuel entry'}</Button>
+          <Button type="submit" loading={saving} disabled={!vehicleId || !liters} loadingText="Saving…">Log fuel entry</Button>
         </div>
       </form>
       </SectionCard>

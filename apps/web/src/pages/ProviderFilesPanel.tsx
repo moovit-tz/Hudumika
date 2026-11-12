@@ -7,6 +7,7 @@ import { useCloud, StorageProvider } from '../shells/cloud-context.js';
 import { STORAGE_PROVIDERS } from '../shells/ConnectedAppsModal.js';
 import { fmtSize, fmtDate } from './cloud/lib/format.js';
 import { fileTypeStyle } from './cloud/lib/fileTypeStyle.js';
+import { Button } from '../components/ui/button.js';
 
 interface ExternalFile {
   id: string;
@@ -115,9 +116,9 @@ export function ProviderFilesPanel({ provider }: { provider: StorageProvider }) 
             className="input-field"
             style={{ flex: 1, fontSize:'var(--text-base)' }}
           />
-          <button onClick={handleConnect} className="btn btn-primary btn-sm" disabled={!emailInput.trim() || busy} data-ui-native-button="">
-            {busy ? 'Connecting…' : 'Connect'}
-          </button>
+          <Button size="sm" onClick={handleConnect} loading={busy} disabled={!emailInput.trim()} loadingText="Connecting…">
+            Connect
+          </Button>
         </div>
         {error && <div style={{ fontSize:'var(--text-sm)', color: 'var(--red)' }}>{error}</div>}
       </div>

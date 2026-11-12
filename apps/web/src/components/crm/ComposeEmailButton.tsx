@@ -3,6 +3,7 @@ import { apiFetch } from '../../lib/api.js';
 import { Icon } from '../Icon.js';
 import { Dialog, DialogContent, DialogHeader, DialogBody, DialogFooter, DialogTitle } from '../ui/dialog.js';
 import { showAlert } from '../../lib/alert.js';
+import { Button } from '../ui/button.js';
 
 type SubjectType = 'lead' | 'deal' | 'customer';
 
@@ -61,9 +62,9 @@ export function ComposeEmailButton({ subjectType, subjectId, onSent, children }:
           </DialogBody>
           <DialogFooter>
             <button type="button" className="btn btn-secondary btn-sm" disabled={sending} onClick={() => setOpen(false)} data-ui-native-button="">Cancel</button>
-            <button type="button" className="btn btn-primary btn-sm" disabled={sending || !subject.trim() || !body.trim()} onClick={send} data-ui-native-button="">
-              {sending ? 'Sending…' : 'Send'}
-            </button>
+            <Button size="sm" type="button" onClick={send} loading={sending} disabled={!subject.trim() || !body.trim()} loadingText="Sending…">
+              Send
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

@@ -2,6 +2,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { apiFetch } from '../../lib/api.js';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '../ui/select.js';
 import { showAlert } from '../../lib/alert.js';
+import { Button } from '../ui/button.js';
 
 type EntityType = 'lead' | 'deal' | 'customer';
 interface FieldDef { id: string; field_key: string; label: string; type: 'text' | 'number' | 'date' | 'select' | 'checkbox'; options: string[] }
@@ -85,9 +86,9 @@ export function CustomFieldsPanel({ entityType, subjectId, heading }: { entityTy
         );
       })}
       {dirty && (
-        <button type="button" className="btn btn-primary btn-sm" style={{ alignSelf: 'flex-start' }} disabled={saving} onClick={save} data-ui-native-button="">
-          {saving ? 'Saving…' : 'Save custom fields'}
-        </button>
+        <Button size="sm" type="button" style={{ alignSelf: 'flex-start' }} onClick={save} loading={saving} loadingText="Saving…">
+          Save custom fields
+        </Button>
       )}
     </div>
   );

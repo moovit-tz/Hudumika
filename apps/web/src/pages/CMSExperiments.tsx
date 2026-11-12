@@ -9,6 +9,7 @@ import { showAlert } from '../lib/alert.js';
 import { showConfirm } from '../lib/confirm.js';
 import { showPrompt } from '../lib/prompt.js';
 import type { CmsExperiment, CmsBlock } from '@hudumika/types';
+import { Button } from '../components/ui/button.js';
 
 function FL({ label, children }: { label: string; children: React.ReactNode }) {
   return (
@@ -68,7 +69,7 @@ export function CMSExperimentsList() {
                 <input data-ui-field="input" className="input-field" value={name} placeholder="e.g. Homepage hero" onChange={e => setName(e.target.value)} autoFocus />
               </FL>
               <div style={{ display: 'flex', gap: 8 }}>
-                <button className="btn btn-primary btn-sm" disabled={saving} onClick={handleCreate} data-ui-native-button="">{saving ? 'Creating…' : 'Create experiment'}</button>
+                <Button size="sm" onClick={handleCreate} loading={saving} loadingText="Creating…">Create experiment</Button>
                 <button className="btn btn-secondary btn-sm" onClick={() => setCreating(false)} data-ui-native-button="">Cancel</button>
               </div>
             </div>
@@ -195,7 +196,7 @@ export function CMSExperimentDetail() {
           <div style={{ display: 'flex', gap: 8 }}>
             <button className="btn btn-secondary btn-sm" onClick={handleRename} data-ui-native-button="">Rename</button>
             <button className="btn btn-secondary btn-sm" onClick={handleToggleStatus} data-ui-native-button="">{experiment.status === 'running' ? 'Stop' : 'Resume'}</button>
-            <button className="btn btn-primary btn-sm" disabled={saving || !dirty} onClick={handleSave} data-ui-native-button="">{saving ? 'Saving…' : dirty ? 'Save changes' : 'Saved'}</button>
+            <Button size="sm" onClick={handleSave} loading={saving} disabled={!dirty} loadingText="Saving…">{dirty ? 'Save changes' : 'Saved'}</Button>
           </div>
         }
       />

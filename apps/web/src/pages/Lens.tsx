@@ -12,6 +12,7 @@ import { SectionCard } from '../components/SectionCard.js';
 import { Dialog, DialogContent, DialogTitle } from '../components/ui/dialog.js';
 import { Sheet, SheetContent, SheetTitle } from '../components/ui/sheet.js';
 import { KanbanBoard, type KanbanCardData } from '../components/ui/kanban-board.js';
+import { Button } from '../components/ui/button.js';
 
 type Kind = 'BUG' | 'FEATURE' | 'DEBT' | 'DECISION' | 'QUESTION' | 'RISK';
 type Status = 'OPEN' | 'IN_PROGRESS' | 'BLOCKED' | 'DONE' | 'WONTFIX';
@@ -522,9 +523,9 @@ function Compose({ areas, onClose, onSaved }: {
 
         <div style={{ gridColumn: '1 / -1', display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
           <button type="button" className="btn btn-secondary" onClick={onClose} data-ui-native-button="">Cancel</button>
-          <button type="button" className="btn btn-primary" disabled={saving || !f.title.trim()} onClick={save} data-ui-native-button="">
-            {saving ? 'Saving…' : 'Open item'}
-          </button>
+          <Button type="button" onClick={save} loading={saving} disabled={!f.title.trim()} loadingText="Saving…">
+            Open item
+          </Button>
         </div>
       </div>
     </div>

@@ -1,4 +1,4 @@
-﻿import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import { Icon } from '../../components/Icon.js';
 import type { IconName } from '../../components/Icon.js';
@@ -8,8 +8,11 @@ import { Combobox } from '../../components/ui/combobox.js';
 import { SearchToolbar } from '../../components/ui/filter-dropdown.js';
 import { Input } from '../../components/ui/input.js';
 import { Button } from '../../components/ui/button.js';
+import { Tip } from '../../components/ui/tooltip.js';
+import { SlidersHorizontal, X } from 'lucide-react';
 import { showAlert } from '../../lib/alert.js';
 import { PaginationBar } from '../../components/PaginationBar.js';
+import '../OndiPages.css';
 import {
   Badge, PLAN_CFG, DOM_CFG, TX_CFG, METHOD_LABELS,
   type Company, type Package, type Domain, type Transaction,
@@ -272,25 +275,32 @@ export function TransactionsView() {
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState<TxStatus|'all'>('all');
   const [selected, setSelected] = useState<Set<string>>(new Set());
+  const [compactRows, setCompactRows] = useState(true);
   const [txPage, setTxPage] = useState(1);
   const [txPageSize, setTxPageSize] = useState(25);
 
-  // Real platform_transactions. This screen previously rendered the hardcoded
-  // TRANSACTIONS sample array — eleven 2025 payments for companies that do not
-  // exist, $43,346 of revenue that was never collected.
   const [rows, setRows] = useState<any[]>([]);
   const [totals, setTotals] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState('');
 
-  useEffect(() => {
-    let alive = true;
-    apiFetch('/v1/superadmin/transactions?limit=500')
-      .then((r: any) => { if (alive) { setRows(r?.data ?? []); setTotals(r?.totals ?? null); } })
-      .catch((e: any) => { if (alive) setLoadError(e?.message ?? 'Could not load transactions.'); })
-      .finally(() => { if (alive) setLoading(false); });
-    return () => { alive = false; };
+  const loadTransactions = useCallback(async () => {
+    setLoading(true);
+    setLoadError('');
+    try {
+      const r: any = await apiFetch('/v1/superadmin/transactions?limit=500');
+      setRows(r?.data ?? []);
+      setTotals(r?.totals ?? null);
+    } catch (e: any) {
+      setLoadError(e?.message ?? 'Could not load transactions.');
+    } finally {
+      setLoading(false);
+    }
   }, []);
+
+  useEffect(() => {
+    loadTransactions();
+  }, [loadTransactions]);
 
   const filtered = useMemo(()=>
     rows.filter(t=>{
@@ -309,6 +319,7 @@ export function TransactionsView() {
   const txAccessor = (col: string, t: any) => ({
     'Ref': t.txRef, 'Company': t.companyName ?? '', 'Package': t.packageCode ?? '',
     'Amount': Number(t.amount), 'Date': t.created, 'Method': t.method ?? '', 'Status': t.status,
+    'Actions': '',
   }[col]);
   const txPaginated = useMemo(() => {
     const sorted = sortedRows(filtered, txSortBy, txSortDir, txAccessor);
@@ -330,86 +341,361 @@ export function TransactionsView() {
 
   return (
     <div>
-      <PageHdr title="Purchase Transactions" sub="All billing transactions across the platform"
-        action={<button className="btn btn-secondary btn-sm" style={{gap:6}} onClick={exportCsv} disabled={filtered.length===0} data-ui-native-button=""><Icon name="download" size={13}/>Export CSV</button>}
+      <PageHdr
+        title="Purchase Transactions"
+        sub={loading ? 'Loading…' : `${rows.length} platform billing transactions recorded`}
+        action={
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <button
+              type="button"
+              className="btn btn-secondary btn-sm"
+              style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}
+              onClick={loadTransactions}
+              data-ui-native-button=""
+            >
+              <Icon name="refresh" size={12} />
+              Refresh
+            </button>
+            <button
+              type="button"
+              className="btn btn-secondary btn-sm"
+              style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}
+              onClick={exportCsv}
+              disabled={filtered.length === 0}
+              data-ui-native-button=""
+            >
+              <Icon name="download" size={13} />
+              Export CSV
+            </button>
+          </div>
+        }
       />
 
-      {loadError && <div style={{ color:'var(--red)', fontSize:13, marginBottom:14 }}>{loadError}</div>}
+      {loadError && <div style={{ color: 'var(--red)', fontSize: 13, marginBottom: 14 }}>{loadError}</div>}
 
-      {/* Counts are over the whole table, not the filtered page. */}
-      <div style={{ display:'grid', gridTemplateColumns:'repeat(4,1fr)', gap:14, marginBottom:22 }}>
-        <StatCard label="Revenue Collected" value={fmtCurrency(totals?.completed ?? 0)} color="var(--teal)"  />
-        <StatCard label="Completed"         value={totals?.completedCount ?? 0}         color="var(--green)" />
-        <StatCard label="Pending"           value={totals?.pendingCount ?? 0}           color="var(--gold)"  />
-        <StatCard label="Failed"            value={totals?.failedCount ?? 0}            color="var(--red)"   />
+      {/* Top Executive KPI Deck */}
+      <div className="ondi-kpi-grid" style={{ marginBottom: 16 }}>
+        <div
+          role="button"
+          tabIndex={0}
+          onClick={() => setStatusFilter('all')}
+          onKeyDown={e => { if (e.key === 'Enter') setStatusFilter('all'); }}
+          className={`ondi-kpi-card ${statusFilter === 'all' ? 'is-active' : ''}`}
+        >
+          <div className="ondi-kpi-header">
+            <span className="ondi-kpi-title">Revenue Collected</span>
+            <div className="ondi-kpi-icon-box purple">
+              <Icon name="dollarSign" size={18} />
+            </div>
+          </div>
+          <div className="ondi-kpi-body">
+            <span className="ondi-kpi-num" style={{ color: 'var(--teal)' }}>{fmtCurrency(totals?.completed ?? 0)}</span>
+            <span className="ondi-kpi-sub">{totals?.completedCount ?? 0} settled payments</span>
+          </div>
+        </div>
+
+        <div
+          role="button"
+          tabIndex={0}
+          onClick={() => setStatusFilter(statusFilter === 'completed' ? 'all' : 'completed')}
+          onKeyDown={e => { if (e.key === 'Enter') setStatusFilter(statusFilter === 'completed' ? 'all' : 'completed'); }}
+          className={`ondi-kpi-card ${statusFilter === 'completed' ? 'is-active' : ''}`}
+        >
+          <div className="ondi-kpi-header">
+            <span className="ondi-kpi-title">Completed</span>
+            <div className="ondi-kpi-icon-box green">
+              <Icon name="checkCircle" size={18} />
+            </div>
+          </div>
+          <div className="ondi-kpi-body">
+            <span className="ondi-kpi-num" style={{ color: 'var(--green)' }}>{totals?.completedCount ?? 0}</span>
+            <span className="ondi-kpi-sub">successful payments</span>
+          </div>
+        </div>
+
+        <div
+          role="button"
+          tabIndex={0}
+          onClick={() => setStatusFilter(statusFilter === 'pending' ? 'all' : 'pending')}
+          onKeyDown={e => { if (e.key === 'Enter') setStatusFilter(statusFilter === 'pending' ? 'all' : 'pending'); }}
+          className={`ondi-kpi-card ${statusFilter === 'pending' ? 'is-active' : ''}`}
+        >
+          <div className="ondi-kpi-header">
+            <span className="ondi-kpi-title">Pending</span>
+            <div className="ondi-kpi-icon-box gold">
+              <Icon name="clock" size={18} />
+            </div>
+          </div>
+          <div className="ondi-kpi-body">
+            <span className="ondi-kpi-num" style={{ color: 'var(--gold)' }}>{totals?.pendingCount ?? 0}</span>
+            <span className="ondi-kpi-sub">awaiting clearance</span>
+          </div>
+        </div>
+
+        <div
+          role="button"
+          tabIndex={0}
+          onClick={() => setStatusFilter(statusFilter === 'failed' ? 'all' : 'failed')}
+          onKeyDown={e => { if (e.key === 'Enter') setStatusFilter(statusFilter === 'failed' ? 'all' : 'failed'); }}
+          className={`ondi-kpi-card ${statusFilter === 'failed' ? 'is-active' : ''}`}
+        >
+          <div className="ondi-kpi-header">
+            <span className="ondi-kpi-title">Failed / Issues</span>
+            <div className="ondi-kpi-icon-box red">
+              <Icon name="alertTriangle" size={18} />
+            </div>
+          </div>
+          <div className="ondi-kpi-body">
+            <span className="ondi-kpi-num" style={{ color: 'var(--red)' }}>{(totals?.failedCount ?? 0) + (totals?.refundedCount ?? 0)}</span>
+            <span className="ondi-kpi-sub">{totals?.failedCount ?? 0} failed · {totals?.refundedCount ?? 0} refunded</span>
+          </div>
+        </div>
       </div>
 
-      <div style={{ marginBottom: 16 }}>
-        <SearchToolbar
-          search={search}
-          onSearch={v => { setSearch(v); setTxPage(1); }}
-          placeholder="Search company or Ref…"
-          quickFilter={{
-            value: statusFilter === 'all' ? null : statusFilter,
-            onChange: v => setStatusFilter((v ?? 'all') as TxStatus | 'all'),
-            allLabel: 'All Status',
-            columns: 2,
-            options: (Object.keys(TX_CFG) as TxStatus[]).map(k => ({
-              value: k,
-              label: TX_CFG[k].label,
-              icon: <span style={{ width:7, height:7, borderRadius:'50%', background: TX_CFG[k].color, display:'inline-block' }} />,
-            })),
-          }}
-          activeFilterCount={statusFilter !== 'all' ? 1 : 0}
-        />
+      {/* Filter and Density Toolbar */}
+      <div style={{ marginBottom: 14 }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10, flexWrap: 'wrap' }}>
+          <div style={{ flex: 1, minWidth: 260 }}>
+            <SearchToolbar
+              search={search}
+              onSearch={v => { setSearch(v); setTxPage(1); }}
+              placeholder="Search company, Ref or payer…"
+              quickFilter={{
+                value: statusFilter === 'all' ? null : statusFilter,
+                onChange: v => setStatusFilter((v ?? 'all') as TxStatus | 'all'),
+                allLabel: 'All Status',
+                columns: 2,
+                options: (Object.keys(TX_CFG) as TxStatus[]).map(k => ({
+                  value: k,
+                  label: TX_CFG[k].label,
+                  icon: <span style={{ width: 7, height: 7, borderRadius: '50%', background: TX_CFG[k].color, display: 'inline-block' }} />,
+                })),
+              }}
+              activeFilterCount={statusFilter !== 'all' ? 1 : 0}
+            />
+          </div>
+
+          {/* Density toggle and Export toolbar action */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <Tip label={compactRows ? "Currently in compressed rows view (compact). Click for standard." : "Switch to compressed rows view."}>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => setCompactRows(v => !v)}
+                className="h-8 gap-1.5 text-xs font-semibold"
+              >
+                <Icon name="list" size={13} />
+                <span>{compactRows ? 'Dense Rows' : 'Standard Rows'}</span>
+              </Button>
+            </Tip>
+
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={exportCsv}
+              disabled={filtered.length === 0}
+              className="h-8 gap-1.5 text-xs font-semibold"
+            >
+              <Icon name="download" size={13} />
+              <span>{selected.size > 0 ? `Export (${selected.size})` : 'Export CSV'}</span>
+            </Button>
+          </div>
+        </div>
+
+        {/* Active Filter Chips */}
+        {((statusFilter !== 'all' ? 1 : 0) > 0 || Boolean(search.trim())) && (
+          <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap', marginTop: 10, paddingLeft: 2 }}>
+            <span style={{ fontSize: 11.5, color: 'var(--ink3)', fontWeight: 600 }}>Active filters:</span>
+            {search.trim() && (
+              <span
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: 6,
+                  padding: '2px 8px',
+                  borderRadius: 6,
+                  fontSize: 11,
+                  background: 'var(--bg)',
+                  border: '1px solid var(--border)',
+                  color: 'var(--ink)',
+                }}
+              >
+                Search: <strong>&ldquo;{search}&rdquo;</strong>
+                <button
+                  type="button"
+                  onClick={() => setSearch('')}
+                  style={{ background: 'transparent', border: 'none', cursor: 'pointer', padding: 0, color: 'var(--ink3)', display: 'inline-flex', alignItems: 'center' }}
+                  title="Clear search"
+                  data-ui-native-button=""
+                >
+                  <X size={12} />
+                </button>
+              </span>
+            )}
+            {statusFilter !== 'all' && (
+              <span
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: 6,
+                  padding: '2px 8px',
+                  borderRadius: 6,
+                  fontSize: 11,
+                  background: 'var(--bg)',
+                  border: '1px solid var(--border)',
+                  color: 'var(--ink)',
+                }}
+              >
+                Status: <strong style={{ color: TX_CFG[statusFilter]?.color }}>{TX_CFG[statusFilter]?.label ?? statusFilter}</strong>
+                <button
+                  type="button"
+                  onClick={() => setStatusFilter('all')}
+                  style={{ background: 'transparent', border: 'none', cursor: 'pointer', padding: 0, color: 'var(--ink3)', display: 'inline-flex', alignItems: 'center' }}
+                  title="Clear status filter"
+                  data-ui-native-button=""
+                >
+                  <X size={12} />
+                </button>
+              </span>
+            )}
+            <button
+              type="button"
+              onClick={() => { setSearch(''); setStatusFilter('all'); }}
+              style={{
+                fontSize: 11,
+                fontWeight: 600,
+                color: 'hsl(var(--primary))',
+                background: 'transparent',
+                border: 'none',
+                cursor: 'pointer',
+                padding: '2px 6px',
+              }}
+              className="hover:underline"
+              data-ui-native-button=""
+            >
+              Reset all
+            </button>
+          </div>
+        )}
       </div>
 
       {loading ? (
-        <div style={{ textAlign:'center', padding:'40px 0', color:'var(--ink3)', fontSize:13 }}>Loading transactions…</div>
+        <div style={{ textAlign: 'center', padding: '40px 0', color: 'var(--ink3)', fontSize: 13 }}>Loading transactions…</div>
       ) : filtered.length === 0 ? (
-        <div className="card" style={{ padding:'34px 22px', textAlign:'center' }}>
-          <div style={{ fontSize:14, fontWeight:650, color:'var(--ink)' }}>
+        <div className="card" style={{ padding: '34px 22px', textAlign: 'center' }}>
+          <div style={{ fontSize: 14, fontWeight: 650, color: 'var(--ink)' }}>
             {rows.length === 0 ? 'No platform payments recorded yet.' : 'No transactions match these filters.'}
           </div>
-          <div style={{ fontSize:12.5, color:'var(--ink3)', marginTop:5 }}>
+          <div style={{ fontSize: 12.5, color: 'var(--ink3)', marginTop: 5 }}>
             {rows.length === 0 ? 'Payments appear here as tenants subscribe.' : 'Try clearing the search or status filter.'}
           </div>
         </div>
       ) : (
       <>
         {selected.size > 0 && (
-          <div style={{ display:'flex', alignItems:'center', gap:12, padding:'0 14px', minHeight:'var(--ctl-h)', marginBottom:8, background:'color-mix(in srgb, var(--teal) 8%, var(--white))', border:'1px solid color-mix(in srgb, var(--teal) 25%, transparent)', borderRadius:'var(--r)', fontSize:13, boxShadow:'0 1px 2px 0 rgba(0,0,0,0.03)' }}>
-            <span style={{ fontWeight:600, color:'var(--teal)' }}>{selected.size} {selected.size === 1 ? 'transaction' : 'transactions'} selected</span>
-            <div style={{ flex:1 }} />
-            <button type="button" className="btn btn-secondary btn-sm" onClick={exportCsv} data-ui-native-button=""><Icon name="download" size={12} style={{ marginRight:5 }}/>Export selected</button>
-            <button type="button" className="btn btn-sm" style={{ color:'var(--ink3)' }} onClick={()=>setSelected(new Set())} data-ui-native-button="">Clear</button>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '0 14px', minHeight: 'var(--ctl-h)', marginBottom: 8, background: 'color-mix(in srgb, var(--teal) 8%, var(--white))', border: '1px solid color-mix(in srgb, var(--teal) 25%, transparent)', borderRadius: 'var(--r)', fontSize: 13, boxShadow: '0 1px 2px 0 rgba(0,0,0,0.03)' }}>
+            <span style={{ fontWeight: 600, color: 'var(--teal)' }}>{selected.size} {selected.size === 1 ? 'transaction' : 'transactions'} selected</span>
+            <div style={{ flex: 1 }} />
+            <button type="button" className="btn btn-secondary btn-sm" onClick={exportCsv} data-ui-native-button=""><Icon name="download" size={12} style={{ marginRight: 5 }} />Export selected</button>
+            <button type="button" className="btn btn-sm" style={{ color: 'var(--ink3)' }} onClick={() => setSelected(new Set())} data-ui-native-button="">Clear</button>
           </div>
         )}
 
         <DataTable
-          headers={['Ref','Company','Package','Amount','Date','Method','Status']}
+          compact={compactRows}
+          headers={['Ref', 'Company', 'Package', 'Amount', 'Date', 'Method', 'Status', 'Actions']}
           selectAll={selected.size === txPaginated.length && txPaginated.length > 0}
           selectAllIndeterminate={selected.size > 0 && selected.size < txPaginated.length}
           onSelectAll={() => {
             if (selected.size === txPaginated.length) setSelected(new Set());
-            else setSelected(new Set(txPaginated.map((t:any) => t.id)));
+            else setSelected(new Set(txPaginated.map((t: any) => t.id)));
           }}
           sortBy={txSortBy} sortDir={txSortDir} onSort={txHandleSort}
         >
-          {txPaginated.map(tx=>(
-            <TR key={tx.id} selected={selected.has(tx.id)} onSelect={() => setSelected(prev => {
+          {txPaginated.map(tx => (
+            <TR key={tx.id} compact={compactRows} selected={selected.has(tx.id)} onSelect={() => setSelected(prev => {
               const next = new Set(prev); if (next.has(tx.id)) next.delete(tx.id); else next.add(tx.id); return next;
             })}>
-              <TD><span style={{ fontFamily:'var(--font)', fontSize:12, color:'var(--ink3)' }}>{tx.txRef}</span></TD>
-              <TD>
-                <span style={{ fontWeight:600, fontSize:13 }}>{tx.companyName || 'Deleted company'}</span>
-                {tx.payerName && <span style={{ display:'block', fontSize:11, color:'var(--ink3)' }}>{tx.payerName}</span>}
+              <TD nowrap compact={compactRows}>
+                <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+                  <span style={{ fontFamily: 'monospace', fontSize: compactRows ? 11.5 : 12, fontWeight: 600, color: 'var(--ink2)' }}>
+                    {tx.txRef}
+                  </span>
+                  <Tip label="Copy reference">
+                    <button
+                      type="button"
+                      onClick={async (e) => {
+                        e.stopPropagation();
+                        try {
+                          await navigator.clipboard.writeText(tx.txRef);
+                          showAlert(`Copied: ${tx.txRef}`, { variant: 'success' });
+                        } catch {
+                          showAlert('Could not copy reference.', { variant: 'error' });
+                        }
+                      }}
+                      style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 2, color: 'var(--ink3)', display: 'inline-flex', alignItems: 'center' }}
+                      data-ui-native-button=""
+                    >
+                      <Icon name="copy" size={11} />
+                    </button>
+                  </Tip>
+                </div>
               </TD>
-              <TD><span style={{ fontSize:12, color:'var(--ink2)' }}>{tx.packageCode ?? '—'}{tx.billingCycle ? ` · ${tx.billingCycle}` : ''}</span></TD>
-              <TD right><span style={{ fontWeight:700, fontFamily:'var(--font)' }}>{tx.currency} {Number(tx.amount).toLocaleString()}</span></TD>
-              <TD nowrap><span style={{ fontSize:12, color:'var(--ink3)' }}>{fmtDate(tx.created)}</span></TD>
-              <TD><span style={{ fontSize:12, color:'var(--ink2)' }}>{METHOD_LABELS[tx.method as PayMethod] ?? tx.method ?? '—'}</span></TD>
-              <TD><Badge cfg={TX_CFG[tx.status as TxStatus] ?? TX_CFG.completed} /></TD>
+              <TD compact={compactRows}>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
+                  <span style={{ fontWeight: 650, fontSize: compactRows ? 12.5 : 13, color: 'var(--ink)' }}>
+                    {tx.companyName || 'Deleted company'}
+                  </span>
+                  {tx.payerName && <span style={{ fontSize: 11, color: 'var(--ink3)' }}>{tx.payerName}</span>}
+                </div>
+              </TD>
+              <TD compact={compactRows}>
+                <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
+                  <span style={{ fontSize: compactRows ? 11.5 : 12, fontWeight: 600, color: 'var(--ink)' }}>
+                    {tx.packageCode ?? '—'}
+                  </span>
+                  {tx.billingCycle && (
+                    <span style={{ fontSize: 10, padding: '1px 5px', borderRadius: 4, background: 'var(--bg)', color: 'var(--ink3)', textTransform: 'capitalize', border: '1px solid var(--border)', fontWeight: 500 }}>
+                      {tx.billingCycle}
+                    </span>
+                  )}
+                </div>
+              </TD>
+              <TD right nowrap compact={compactRows}>
+                <span style={{ fontWeight: 750, fontFamily: 'var(--font)', fontSize: compactRows ? 12.5 : 13, color: tx.status === 'completed' ? 'var(--green, #10b981)' : 'var(--ink)' }}>
+                  {tx.currency} {Number(tx.amount).toLocaleString()}
+                </span>
+              </TD>
+              <TD nowrap compact={compactRows}>
+                <span style={{ fontSize: compactRows ? 11.5 : 12, color: 'var(--ink3)' }}>
+                  {fmtDate(tx.created)}
+                </span>
+              </TD>
+              <TD nowrap compact={compactRows}>
+                <span style={{ fontSize: compactRows ? 11.5 : 12, color: 'var(--ink2)' }}>
+                  {METHOD_LABELS[tx.method as PayMethod] ?? tx.method ?? '—'}
+                </span>
+              </TD>
+              <TD nowrap compact={compactRows}>
+                <Badge cfg={TX_CFG[tx.status as TxStatus] ?? TX_CFG.completed} />
+              </TD>
+              <TD nowrap right compact={compactRows}>
+                <div style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+                  <Tip label="Copy transaction ID">
+                    <ActBtn
+                      icon="copy"
+                      title="Copy ID"
+                      size={12}
+                      onClick={() => {
+                        navigator.clipboard.writeText(tx.id);
+                        showAlert('Transaction ID copied', { variant: 'success' });
+                      }}
+                    />
+                  </Tip>
+                </div>
+              </TD>
             </TR>
           ))}
         </DataTable>

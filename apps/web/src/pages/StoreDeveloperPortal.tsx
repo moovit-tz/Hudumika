@@ -6,6 +6,7 @@ import { apiFetch } from '../lib/api.js';
 import { PageHeader } from '../components/PageHeader.js';
 import './Store.css';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '../components/ui/select.js';
+import { Button } from '../components/ui/button.js';
 
 export const StoreDeveloperPortal: React.FC = () => {
   const navigate = useNavigate();
@@ -141,9 +142,9 @@ export const StoreDeveloperPortal: React.FC = () => {
 
           <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '12px' }}>
             <button type="button" className="btn btn-secondary" onClick={() => navigate('/store')} data-ui-native-button="">Cancel</button>
-            <button type="submit" className="btn btn-primary" disabled={loading} data-ui-native-button="">
-              {loading ? 'Submitting...' : 'Submit App for Review'}
-            </button>
+            <Button type="submit" loading={loading} loadingText="Submitting…">
+              Submit App for Review
+            </Button>
           </div>
         </form>
       </div>

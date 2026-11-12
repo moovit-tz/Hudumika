@@ -467,7 +467,7 @@ export const ProjectPortfolios: React.FC<ProjectPortfoliosProps> = ({
 
             <DialogFooter style={{ padding: '14px 24px', borderTop: '1px solid var(--border)', display: 'flex', justifyContent: 'flex-end', gap: 10 }}>
               <Button type="button" variant="outline" onClick={() => setShowCreatePortfolioModal(false)}>Cancel</Button>
-              <Button type="submit" disabled={saving}>{saving ? 'Creating…' : 'Create Portfolio'}</Button>
+              <Button type="submit" loading={saving} loadingText="Creating…">Create Portfolio</Button>
             </DialogFooter>
           </form>
         </DialogContent>
@@ -563,7 +563,7 @@ export const ProjectPortfolios: React.FC<ProjectPortfoliosProps> = ({
 
             <DialogFooter style={{ padding: '14px 24px', borderTop: '1px solid var(--border)', display: 'flex', justifyContent: 'flex-end', gap: 10 }}>
               <Button type="button" variant="outline" onClick={() => setShowCreateProgramModal(false)}>Cancel</Button>
-              <Button type="submit" disabled={saving}>{saving ? 'Creating…' : 'Create Program'}</Button>
+              <Button type="submit" loading={saving} loadingText="Creating…">Create Program</Button>
             </DialogFooter>
           </form>
         </DialogContent>

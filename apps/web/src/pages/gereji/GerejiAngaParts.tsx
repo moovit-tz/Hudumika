@@ -125,7 +125,7 @@ export function GerejiAngaParts() {
           </DialogBody>
           <DialogFooter>
             <Button variant="outline" onClick={() => setOpen(false)}>Cancel</Button>
-            <Button onClick={create} disabled={saving}>{saving ? 'Creating...' : 'Create part'}</Button>
+            <Button onClick={create} loading={saving} loadingText="Creating…">Create part</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

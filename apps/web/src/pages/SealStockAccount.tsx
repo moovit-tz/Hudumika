@@ -139,7 +139,7 @@ export function SealStockAccount() {
           </div>
           <div style={{ padding: '0 20px 20px', display: 'flex', gap: 10 }}>
             <Button type="button" variant="outline" onClick={() => setShowNew(false)}>Cancel</Button>
-            <Button type="submit" disabled={generating || !newCompartmentId}>{generating ? 'Generating…' : 'Generate from Ledger'}</Button>
+            <Button type="submit" loading={generating} disabled={!newCompartmentId} loadingText="Generating…">Generate from Ledger</Button>
           </div>
         </form>
       )}

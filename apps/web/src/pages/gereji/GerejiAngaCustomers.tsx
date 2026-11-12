@@ -161,7 +161,7 @@ export function GerejiAngaCustomers() {
           </DialogBody>
           <DialogFooter>
             <Button variant="outline" onClick={() => setOpen(false)}>Cancel</Button>
-            <Button onClick={create} disabled={saving}>{saving ? 'Creating...' : 'Create customer'}</Button>
+            <Button onClick={create} loading={saving} loadingText="Creating…">Create customer</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

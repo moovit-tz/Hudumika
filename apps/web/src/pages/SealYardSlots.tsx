@@ -97,7 +97,7 @@ export function SealYardSlots() {
           </div>
           <div style={{ padding: '0 20px 20px', display: 'flex', gap: 10 }}>
             <Button type="button" variant="outline" onClick={() => setShowNew(false)}>Cancel</Button>
-            <Button type="submit" disabled={saving || !newCompartmentId || !newCode.trim()}>{saving ? 'Creating…' : 'Create Slot'}</Button>
+            <Button type="submit" loading={saving} disabled={!newCompartmentId || !newCode.trim()} loadingText="Creating…">Create Slot</Button>
           </div>
         </form>
       )}

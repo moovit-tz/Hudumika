@@ -293,7 +293,7 @@ export const FinancePayments: React.FC = () => {
         actions={
           <>
             <Button type="button" variant="outline" onClick={() => setShowAdd(false)} disabled={saving}>Cancel</Button>
-            <Button type="submit" form="payment-form" disabled={saving || !fInvoice || !Number.isFinite(Number(fAmount)) || Number(fAmount) <= 0}>{saving ? 'Saving…' : 'Save payment'}</Button>
+            <Button type="submit" form="payment-form" loading={saving} disabled={!fInvoice || !Number.isFinite(Number(fAmount)) || Number(fAmount) <= 0} loadingText="Saving…">Save payment</Button>
           </>
         }
       >

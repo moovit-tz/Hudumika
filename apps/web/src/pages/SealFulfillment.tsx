@@ -151,7 +151,7 @@ export function SealFulfillment() {
             </div>
           </div>
           <div style={{ padding: '0 20px 20px' }}>
-            <Button type="submit" disabled={saving || !newCustomerId || newLines.length === 0}>{saving ? 'Creating…' : `Create Order (${newLines.length} line${newLines.length === 1 ? '' : 's'})`}</Button>
+            <Button type="submit" loading={saving} disabled={!newCustomerId || newLines.length === 0} loadingText="Creating…">{`Create Order (${newLines.length} line${newLines.length === 1 ? '' : 's'})`}</Button>
           </div>
         </form>
       )}

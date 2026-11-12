@@ -73,7 +73,7 @@ function EditPlanDialog({ row, onClose, onSaved }: { row: PlanRow; onClose: () =
           </div>
           <DialogFooter>
             <Button type="button" variant="outline" onClick={onClose}>Cancel</Button>
-            <Button type="submit" disabled={saving}>{saving ? 'Saving…' : 'Save plan'}</Button>
+            <Button type="submit" loading={saving} loadingText="Saving…">Save plan</Button>
           </DialogFooter>
         </form>
       </DialogContent>

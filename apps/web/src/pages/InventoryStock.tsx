@@ -219,7 +219,7 @@ export function InventoryStock() {
             </div>
           </div>
           <div style={{ padding: '0 20px 20px' }}>
-            <Button type="submit" disabled={saving || !itemId || !enteredQty || !enteredUom}>{saving ? 'Recording…' : 'Record Movement'}</Button>
+            <Button type="submit" loading={saving} disabled={!itemId || !enteredQty || !enteredUom} loadingText="Recording…">Record Movement</Button>
           </div>
         </SectionCard>
         </form>

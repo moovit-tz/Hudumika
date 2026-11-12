@@ -114,7 +114,7 @@ export function NgaoRegisters() {
             </DialogBody>
             <DialogFooter>
               <Button type="button" variant="outline" onClick={() => setShowNew(false)}>Cancel</Button>
-              <Button type="submit" disabled={saving || !name.trim() || !purpose.trim()}>{saving ? 'Creating…' : 'Create'}</Button>
+              <Button type="submit" loading={saving} disabled={!name.trim() || !purpose.trim()} loadingText="Creating…">Create</Button>
             </DialogFooter>
           </form>
         </DialogContent>

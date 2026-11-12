@@ -77,7 +77,7 @@ function AddGeofenceModal({ onClose, onAdded }: { onClose: () => void; onAdded: 
           {error && <div style={{ fontSize: 12, color: 'var(--red)' }}>{error}</div>}
           <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end', marginTop: 4 }}>
             <Button type="button" variant="outline" onClick={onClose}>Cancel</Button>
-            <Button type="submit" disabled={saving || !name}>{saving ? 'Saving…' : 'Create geofence'}</Button>
+            <Button type="submit" loading={saving} disabled={!name} loadingText="Saving…">Create geofence</Button>
           </div>
         </form>
       </DialogContent>

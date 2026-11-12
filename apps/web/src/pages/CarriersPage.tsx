@@ -287,7 +287,7 @@ export function CarriersPage() {
             </div>
           </div>
           {error && <div style={{ color: 'var(--red)', fontSize: 12.5, marginBottom: 12 }}>{error}</div>}
-          <Button type="button" onClick={saveCarrier} disabled={saving}>{saving ? 'Saving…' : 'Save carrier'}</Button>
+          <Button type="button" onClick={saveCarrier} loading={saving} loadingText="Saving…">Save carrier</Button>
         </SectionCard>
         </div>
       )}

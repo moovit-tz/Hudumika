@@ -174,7 +174,7 @@ export function LexCoreTrustAccounts() {
                 <div className="lc-field"><label>Currency</label><Input value={currency} onChange={e => setCurrency(e.target.value)} placeholder="TZS" /></div>
               </div>
             </DialogBody>
-            <DialogFooter><Button type="submit" disabled={saving || !name.trim()}>{saving ? 'Saving…' : 'Create'}</Button></DialogFooter>
+            <DialogFooter><Button type="submit" loading={saving} disabled={!name.trim()} loadingText="Saving…">Create</Button></DialogFooter>
           </form>
         </DialogContent>
       </Dialog>

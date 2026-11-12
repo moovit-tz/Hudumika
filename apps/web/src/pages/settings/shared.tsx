@@ -202,9 +202,9 @@ export const SaveRow: React.FC<{ extra?: React.ReactNode; onSave?: () => void; s
   <div className="s-save-row">
     {saved && <span className="s-save-ok"><Icon name="check" size={13} color="var(--green)" /> Saved</span>}
     {extra}
-    <button type="button" className="btn btn-primary" onClick={onSave} disabled={saving} data-ui-native-button="">
-      {saving ? 'Saving…' : 'Save Changes'}
-    </button>
+    <Button type="button" onClick={onSave} loading={saving} loadingText="Saving…">
+      Save Changes
+    </Button>
   </div>
 );
 

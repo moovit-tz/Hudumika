@@ -6,6 +6,7 @@ import { apiFetch } from '../../lib/api.js';
 import { showAlert } from '../../lib/alert.js';
 import { showConfirm } from '../../lib/confirm.js';
 import type { CmsPage, CmsPost, CmsComment, CmsMedia } from '@hudumika/types';
+import { Button } from '../../components/ui/button.js';
 
 /* ── Types ── */
 export interface Post {
@@ -190,9 +191,9 @@ export function MediaPicker({ open, onClose, onSelect }: { open: boolean; onClos
           <button type="button" onClick={onClose} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink3)' }} data-ui-native-button=""><Icon name="x" size={16} /></button>
         </div>
         <div style={{ padding: '12px 18px', borderBottom: '1px solid var(--border)' }}>
-          <button type="button" className="btn btn-primary btn-sm" disabled={uploading} onClick={() => fileRef.current?.click()} data-ui-native-button="">
-            {uploading ? 'Uploading…' : 'Upload image'}
-          </button>
+          <Button size="sm" type="button" onClick={() => fileRef.current?.click()} loading={uploading} loadingText="Uploading…">
+            Upload image
+          </Button>
           <input ref={fileRef} type="file" accept="image/*" style={{ display: 'none' }}
             onChange={e => { const f = e.target.files?.[0]; if (f) handleUpload(f); e.target.value = ''; }} />
         </div>

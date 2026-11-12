@@ -204,7 +204,7 @@ function CreateJobModal({ onClose, onCreated }: { onClose: () => void; onCreated
           </div>
           <DialogFooter style={{ marginTop: 6 }}>
             <Button type="button" variant="outline" onClick={onClose}>Cancel</Button>
-            <Button type="submit" disabled={saving || !title.trim()}>{saving ? 'Creating…' : 'Create opening'}</Button>
+            <Button type="submit" loading={saving} disabled={!title.trim()} loadingText="Creating…">Create opening</Button>
           </DialogFooter>
         </form>
       </DialogContent>
@@ -261,7 +261,7 @@ function AddCandidateModal({ jobOpeningId, jobTitle, onClose, onCreated }: { job
           </div>
           <DialogFooter style={{ marginTop: 6 }}>
             <Button type="button" variant="outline" onClick={onClose}>Cancel</Button>
-            <Button type="submit" disabled={saving || !name.trim()}>{saving ? 'Adding…' : 'Add candidate'}</Button>
+            <Button type="submit" loading={saving} disabled={!name.trim()} loadingText="Adding…">Add candidate</Button>
           </DialogFooter>
         </form>
       </DialogContent>
@@ -327,7 +327,7 @@ function ScheduleInterviewModal({ application, staff, onClose, onScheduled }: {
           </div>
           <DialogFooter style={{ marginTop: 6 }}>
             <Button type="button" variant="outline" onClick={onClose}>Cancel</Button>
-            <Button type="submit" disabled={saving || !when}>{saving ? 'Scheduling…' : 'Schedule'}</Button>
+            <Button type="submit" loading={saving} disabled={!when} loadingText="Scheduling…">Schedule</Button>
           </DialogFooter>
         </form>
       </DialogContent>
@@ -478,7 +478,7 @@ function CreateRequisitionModal({ staff, onClose, onCreated }: {
           </div>
           <DialogFooter style={{ marginTop: 6 }}>
             <Button type="button" variant="outline" onClick={onClose}>Cancel</Button>
-            <Button type="submit" disabled={saving || !title.trim()}>{saving ? 'Saving…' : 'Save as draft'}</Button>
+            <Button type="submit" loading={saving} disabled={!title.trim()} loadingText="Saving…">Save as draft</Button>
           </DialogFooter>
         </form>
       </DialogContent>
@@ -559,7 +559,7 @@ function CreateOfferModal({ applicationId, positionTitle, supersedesOfferId, onC
           </div>
           <DialogFooter style={{ marginTop: 6 }}>
             <Button type="button" variant="outline" onClick={onClose}>Cancel</Button>
-            <Button type="submit" disabled={saving || !title.trim()}>{saving ? 'Saving…' : 'Save as draft'}</Button>
+            <Button type="submit" loading={saving} disabled={!title.trim()} loadingText="Saving…">Save as draft</Button>
           </DialogFooter>
         </form>
       </DialogContent>
@@ -719,7 +719,7 @@ function ScreeningDialog({ application, onClose, onSaved }: { application: Appli
           )}
           <DialogFooter>
             <Button type="button" variant="outline" onClick={onClose}>Cancel</Button>
-            <Button type="submit" disabled={saving}>{saving ? 'Saving…' : 'Save result'}</Button>
+            <Button type="submit" loading={saving} loadingText="Saving…">Save result</Button>
           </DialogFooter>
         </form>
       </DialogContent>

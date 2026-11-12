@@ -5,6 +5,7 @@ import { Badge } from '../components/ui/badge.js';
 import { Tabs, TabsList, TabsTrigger } from '../components/ui/tabs.js';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '../components/ui/select.js';
 import { Checkbox } from '../components/ui/checkbox.js';
+import { DatePicker, parseDateOnly, toDateOnlyString } from '../components/ui/date-picker.js';
 import { Tip } from '../components/ui/tooltip.js';
 import { SectionLoading } from '../components/ui/spinner.js';
 import { PageHeader } from '../components/PageHeader.js';
@@ -80,7 +81,7 @@ function FieldInput({ field, value, onChange, components, componentBlocks, relat
     case 'boolean':
       return <label style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 13 }}><Checkbox checked={Boolean(value)} onCheckedChange={checked => onChange(Boolean(checked))} /> {field.label}</label>;
     case 'date':
-      return <input data-ui-field="input" {...common} type="date" value={value ? String(value).slice(0, 10) : ''} onChange={e => onChange(e.target.value ? new Date(e.target.value).toISOString() : null)} />;
+      return <DatePicker date={parseDateOnly(value ? String(value).slice(0, 10) : '') ?? null} onChange={d => onChange(d ? new Date(toDateOnlyString(d)).toISOString() : null)} />;
     case 'datetime':
       return <input data-ui-field="input" {...common} type="datetime-local" value={toLocalInput((value as string) ?? null)} onChange={e => onChange(e.target.value ? new Date(e.target.value).toISOString() : null)} />;
     case 'email':

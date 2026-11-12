@@ -359,9 +359,9 @@ export const ApiKeysSection: React.FC = () => {
                 </div>
                 <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end' }}>
                   <button type="button" className="btn btn-secondary btn-sm" onClick={() => setShowCreate(false)} data-ui-native-button="">Cancel</button>
-                  <button type="button" className="btn btn-primary btn-sm" disabled={creating || !newName.trim() || newScopes.length === 0} onClick={createKey} data-ui-native-button="">
-                    {creating ? 'Creating…' : 'Create Key'}
-                  </button>
+                  <Button size="sm" type="button" onClick={createKey} loading={creating} disabled={!newName.trim() || newScopes.length === 0} loadingText="Creating…">
+                    Create Key
+                  </Button>
                 </div>
               </>
             )}

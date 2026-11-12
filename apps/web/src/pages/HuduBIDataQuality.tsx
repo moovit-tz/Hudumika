@@ -60,7 +60,7 @@ export function HuduBIDataQuality() {
         titlePlain="Data"
         titleEm="quality"
         subtitle="Real checks over domain_events and the tables the Metric Registry reads from — timestamp ordering, un-deduplicated retries, volume anomalies."
-        actions={<Button variant="default" size="sm" onClick={runNow} disabled={running}>{running ? 'Running…' : 'Run checks now'}</Button>}
+        actions={<Button variant="default" size="sm" onClick={runNow} loading={running} loadingText="Running…">Run checks now</Button>}
       />
 
       <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>

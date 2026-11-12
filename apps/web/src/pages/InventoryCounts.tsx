@@ -85,7 +85,7 @@ export function InventoryCounts() {
             </div>
           </div>
           <div style={{ padding: '0 20px 20px' }}>
-            <Button type="submit" disabled={saving || !newWarehouseId}>{saving ? 'Starting…' : 'Start Count'}</Button>
+            <Button type="submit" loading={saving} disabled={!newWarehouseId} loadingText="Starting…">Start Count</Button>
           </div>
         </form>
       )}

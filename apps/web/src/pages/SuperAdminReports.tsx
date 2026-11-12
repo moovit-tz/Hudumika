@@ -275,7 +275,7 @@ export function SuperAdminReports() {
                   className="sar-filter-combobox"
                 />
                 <DateRangePicker range={dateRange} onChange={setDateRange} placeholder="All time" />
-                <Button size="sm" onClick={applyFilters} disabled={loading}>{loading ? 'Running…' : 'Apply'}</Button>
+                <Button size="sm" onClick={applyFilters} loading={loading} loadingText="Running…">Apply</Button>
                 <ExportButton onClick={() => exportCsv(
                   `${activeMetric.key}.csv`,
                   ['Tenant', activeMetric.dimension, activeMetric.agg === 'sum' ? 'Total' : 'Count'],

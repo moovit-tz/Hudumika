@@ -3,7 +3,9 @@ import { apiFetch } from '../lib/api.js';
 import { showAlert } from '../lib/alert.js';
 import { Icon } from './Icon.js';
 import { Badge } from './ui/badge.js';
+import { Combobox } from './ui/combobox.js';
 import type { AdvancedSearchQuery } from './AdvancedEmailSearch.js';
+import { Button } from './ui/button.js';
 
 interface EmailFilterActions {
   skipInbox?: boolean;
@@ -145,9 +147,7 @@ export function FilterManager({ labelDefs, pendingCriteria, onConsumePending }: 
               Apply the label:
             </label>
             {actions.label !== undefined && (
-              <select data-ui-field="select" className="em-compose-input em-settings-input" value={actions.label} onChange={e => setActions({ ...actions, label: e.target.value })}>
-                {labelDefs.map(l => <option key={l.name} value={l.name}>{l.name}</option>)}
-              </select>
+              <Combobox value={actions.label} onChange={v => setActions({ ...actions, label: v })} placeholder="Choose a label…" options={labelDefs.map(l => ({ value: l.name, label: l.name }))} />
             )}
           </div>
           <label className="em-compose-receipt-row">
@@ -155,7 +155,7 @@ export function FilterManager({ labelDefs, pendingCriteria, onConsumePending }: 
             Also apply to matching conversations already in your mailbox
           </label>
           <div style={{ display: 'flex', gap: 8 }}>
-            <button type="button" className="btn btn-primary" onClick={save} disabled={saving} data-ui-native-button="">{saving ? 'Saving…' : 'Create filter'}</button>
+            <Button type="button" onClick={save} loading={saving} loadingText="Saving…">Create filter</Button>
             <button type="button" className="em-text-btn" onClick={() => { setAdding(false); setCriteria({}); setActions(EMPTY_ACTIONS); }} data-ui-native-button="">Cancel</button>
           </div>
         </div>

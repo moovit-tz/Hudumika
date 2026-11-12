@@ -339,8 +339,8 @@ function DealModal({ deal, onClose, onSaved }: { deal: Deal | null; onClose: () 
                   }}
                   style={{ flex: 1 }}
                 />
-                <input data-ui-field="input" type="date" className="input-field" value={newTaskDue} onChange={e => setNewTaskDue(e.target.value)} style={{ width: 130 }} />
-                <button type="button" className="btn btn-secondary btn-sm" disabled={!newTaskTitle.trim() || addingTask}
+                <div style={{ width: 160, flexShrink: 0 }}><DatePicker aria-label="Due date" placeholder="Due date" date={parseDateOnly(newTaskDue) ?? null} onChange={d => setNewTaskDue(toDateOnlyString(d))} /></div>
+                <Button variant="outline" size="sm" type="button"
                   onClick={async () => {
                     if (!newTaskTitle.trim()) return;
                     setAddingTask(true);
@@ -350,9 +350,9 @@ function DealModal({ deal, onClose, onSaved }: { deal: Deal | null; onClose: () 
                       setNewTaskTitle(''); setNewTaskDue('');
                     } catch (err: any) { showAlert(err.message || 'Failed to add task'); }
                     finally { setAddingTask(false); }
-                  }} data-ui-native-button="">
-                  {addingTask ? '…' : 'Add'}
-                </button>
+                  }} loading={addingTask} disabled={!newTaskTitle.trim()} loadingText="…">
+                  Add
+                </Button>
               </div>
             </div>
           )}
@@ -386,9 +386,9 @@ function DealModal({ deal, onClose, onSaved }: { deal: Deal | null; onClose: () 
             </button>
           )}
           <button type="button" className="btn btn-secondary btn-sm" onClick={onClose} data-ui-native-button="">Cancel</button>
-          <button type="button" className="btn btn-primary btn-sm" disabled={saving || !name.trim()} onClick={save} data-ui-native-button="">
-            {saving ? 'Saving…' : deal ? 'Save changes' : 'Create deal'}
-          </button>
+          <Button size="sm" type="button" onClick={save} loading={saving} disabled={!name.trim()} loadingText="Saving…">
+            {deal ? 'Save changes' : 'Create deal'}
+          </Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>

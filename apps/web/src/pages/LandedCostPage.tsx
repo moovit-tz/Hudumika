@@ -15,6 +15,7 @@ import { apiFetch } from '../lib/api.js';
 import { showAlert } from '../lib/alert.js';
 import { readXlsxSheets } from '../lib/xlsx-read.js';
 import { Tip } from '../components/ui/tooltip.js';
+import { Button } from '../components/ui/button.js';
 
 import {
   HsResult, LandedCostResult, ShipmentMode, HsSuggestion, HsMemoryHit, HsRecommendation, AiPick,
@@ -1763,9 +1764,9 @@ export const LandedCostPage: React.FC = () => {
             ? <>Suggestions ready on <strong>{suggestedCount}</strong> line{suggestedCount === 1 ? '' : 's'}. They match words in the tariff text — they are not a classification, so check each before accepting.</>
             : <>{needsHsCount} line{needsHsCount === 1 ? '' : 's'} still need an HS code. Match them against the tariff database from the description and model.</>}
         </span>
-        <button type="button" className="btn btn-secondary" style={{ fontSize: "var(--text-base)" }} disabled={suggesting || needsHsCount === 0} onClick={fetchHsSuggestions} data-ui-native-button="">
-          {suggesting ? 'Matching…' : suggestedCount > 0 ? 'Refresh suggestions' : 'Suggest HS codes'}
-        </button>
+        <Button variant="outline" type="button" style={{ fontSize: "var(--text-base)" }} onClick={fetchHsSuggestions} loading={suggesting} disabled={needsHsCount === 0} loadingText="Matching…">
+          {suggestedCount > 0 ? 'Refresh suggestions' : 'Suggest HS codes'}
+        </Button>
         {/* Offered only when word matching genuinely tied, because that is the
             only case it can improve on — and every line sent costs tokens. */}
         {tiedCount > 0 && (

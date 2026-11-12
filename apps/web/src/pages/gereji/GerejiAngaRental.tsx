@@ -5,6 +5,7 @@ import { SectionCard } from '../../components/SectionCard.js';
 import { Badge } from '../../components/ui/badge.js';
 import { Button } from '../../components/ui/button.js';
 import { Input } from '../../components/ui/input.js';
+import { DatePicker, parseDateOnly, toDateOnlyString } from '../../components/ui/date-picker.js';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '../../components/ui/select.js';
 import { SectionLoading } from '../../components/ui/spinner.js';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogBody, DialogFooter } from '../../components/ui/dialog.js';
@@ -196,7 +197,7 @@ export function GerejiAngaRental() {
           </DialogBody>
           <DialogFooter>
             <Button variant="outline" onClick={() => setShowCard(false)}>Cancel</Button>
-            <Button onClick={createCard} disabled={saving}>{saving ? 'Creating...' : 'Create rate card'}</Button>
+            <Button onClick={createCard} loading={saving} loadingText="Creating…">Create rate card</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
@@ -221,14 +222,14 @@ export function GerejiAngaRental() {
                 </Select>
               </div>
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
-                <div><label style={LABEL}>Start date</label><Input type="date" value={startDate} onChange={e => setStartDate(e.target.value)} /></div>
-                <div><label style={LABEL}>End date</label><Input type="date" value={endDate} onChange={e => setEndDate(e.target.value)} /></div>
+                <div><label style={LABEL}>Start date</label><DatePicker date={parseDateOnly(startDate) ?? null} onChange={d => setStartDate(toDateOnlyString(d))} /></div>
+                <div><label style={LABEL}>End date</label><DatePicker date={parseDateOnly(endDate) ?? null} onChange={d => setEndDate(toDateOnlyString(d))} /></div>
               </div>
             </div>
           </DialogBody>
           <DialogFooter>
             <Button variant="outline" onClick={() => setShowReservation(false)}>Cancel</Button>
-            <Button onClick={createReservation} disabled={saving}>{saving ? 'Booking...' : 'Book reservation'}</Button>
+            <Button onClick={createReservation} loading={saving} loadingText="Booking…">Book reservation</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

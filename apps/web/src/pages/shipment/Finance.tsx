@@ -46,6 +46,7 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle } from '../../components/u
 import { clockGate, entryAmount, fmtServiceRate, fmtTZS, fdate, Card } from './utils.js';
 import { EstimateVarianceCard } from './Declaration.js';
 import { CHARGE_CODE_DEFAULTS } from './DocsFiles.js';
+import { Button } from '../../components/ui/button.js';
 export function fmtAmt(v: number | null | undefined, dp = 2) {
   if (v == null) return '—';
   return v.toLocaleString('en-US', { minimumFractionDigits: dp, maximumFractionDigits: dp });
@@ -812,7 +813,7 @@ export function LedgerTab({ job, shipmentId, isLive, onRefresh }: { job: Clearan
               <input data-ui-field="input" type="text" value={ref} onChange={e => setRef(e.target.value)} className="input-field" placeholder="Invoice / receipt number" style={{ width: '100%', fontFamily: 'var(--font)' }} />
             </div>
             <div style={{ display: 'flex', gap: 8 }}>
-              <button type="submit" className="btn btn-primary btn-sm" style={{ flex: 1 }} disabled={ledgSaving} data-ui-native-button="">{ledgSaving ? 'Saving…' : 'Add Entry'}</button>
+              <Button size="sm" type="submit" style={{ flex: 1 }} loading={ledgSaving} loadingText="Saving…">Add Entry</Button>
               <button type="button" onClick={() => setShowForm(false)} className="btn btn-secondary btn-sm" data-ui-native-button="">Cancel</button>
             </div>
           </form>

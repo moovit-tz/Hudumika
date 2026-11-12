@@ -2,6 +2,8 @@ import React, { useState, useRef, useMemo, useEffect } from 'react';
 import { Icon } from './Icon.js';
 import { BlockPreview, applyComponentOverrides, isSlottableBlockType, listComponentSlots, describeVisibility } from './BlockPreview.js';
 import { Banner } from './ui/alert.js';
+import { Combobox } from './ui/combobox.js';
+import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from './ui/select.js';
 import { auditBlocksAccessibility } from '../lib/blockAccessibility.js';
 import { apiFetch } from '../lib/api.js';
 import { showAlert } from '../lib/alert.js';
@@ -261,9 +263,12 @@ function PersonalizeControl({ visibility, onChange }: { visibility?: CmsBlockVis
         <span><Icon name="target" size={11} /> Personalize</span>
         <button type="button" onClick={() => { onChange(undefined); setOpen(false); }} data-ui-native-button="">Remove</button>
       </div>
-      <select data-ui-field="select" className="be-select" value={visibility?.visitorType || ''} onChange={e => set({ visitorType: (e.target.value || undefined) as CmsBlockVisibility['visitorType'] })}>
-        {VISITOR_TYPE_OPTIONS.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
-      </select>
+      <Select value={visibility?.visitorType || 'everyone'} onValueChange={v => set({ visitorType: (v === 'everyone' ? undefined : v) as CmsBlockVisibility['visitorType'] })}>
+        <SelectTrigger aria-label="Visitor type"><SelectValue /></SelectTrigger>
+        <SelectContent>
+          {VISITOR_TYPE_OPTIONS.map(o => <SelectItem key={o.value || 'everyone'} value={o.value || 'everyone'}>{o.label}</SelectItem>)}
+        </SelectContent>
+      </Select>
       <input data-ui-field="input" className="be-input" placeholder="Only if referrer contains… (e.g. google)" value={visibility?.referrerContains || ''} onChange={e => set({ referrerContains: e.target.value })} />
       <input data-ui-field="input" className="be-input" placeholder="Only if ?utm_source= contains… (e.g. newsletter)" value={visibility?.utmSource || ''} onChange={e => set({ utmSource: e.target.value })} />
       <p className="be-personalize-note">Evaluated on the real public site only — this canvas always shows the block so you can keep editing it.</p>
@@ -390,10 +395,13 @@ function BlockContent({ block, onChange, onSlash, components, componentBlocks, i
       return (
         <>
           <div className="be-heading-row">
-            <select data-ui-field="select" className="be-select" value={p.level ?? 2} onChange={e => onChange({ level: Number(e.target.value) })}>
-              <option value={2}>H2</option>
-              <option value={3}>H3</option>
-            </select>
+            <Select value={String(p.level ?? 2)} onValueChange={v => onChange({ level: Number(v) })}>
+              <SelectTrigger aria-label="Heading level" className="w-24"><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="2">H2</SelectItem>
+                <SelectItem value="3">H3</SelectItem>
+              </SelectContent>
+            </Select>
             <input data-ui-field="input" className="be-input" autoFocus style={{ fontSize: p.level === 3 ? 17 : 20, fontWeight: 700 }} placeholder="Heading text" value={p.text || ''} onChange={e => onChange({ text: e.target.value })} />
           </div>
           {slotField}
@@ -468,10 +476,7 @@ function BlockContent({ block, onChange, onSlash, components, componentBlocks, i
         return <div className="be-empty-hint">No forms yet — create one under CMS → Forms, then come back to place it here.</div>;
       }
       return (
-        <select data-ui-field="select" className="be-select" style={{ width: '100%' }} value={p.formKey || ''} onChange={e => onChange({ formKey: e.target.value })}>
-          <option value="" disabled>Choose a form…</option>
-          {opts.map(f => <option key={f.key} value={f.key}>{f.name}</option>)}
-        </select>
+        <Combobox value={p.formKey || ''} onChange={v => onChange({ formKey: v })} placeholder="Choose a form…" options={opts.map(f => ({ value: f.key, label: f.name }))} />
       );
     }
     // §35 — an experiment block is just a picker over the tenant's own
@@ -484,10 +489,7 @@ function BlockContent({ block, onChange, onSlash, components, componentBlocks, i
         return <div className="be-empty-hint">No experiments yet — create one under CMS → Experiments, then come back to place it here.</div>;
       }
       return (
-        <select data-ui-field="select" className="be-select" style={{ width: '100%' }} value={p.experimentKey || ''} onChange={e => onChange({ experimentKey: e.target.value })}>
-          <option value="" disabled>Choose an experiment…</option>
-          {opts.map(x => <option key={x.key} value={x.key}>{x.name}</option>)}
-        </select>
+        <Combobox value={p.experimentKey || ''} onChange={v => onChange({ experimentKey: v })} placeholder="Choose an experiment…" options={opts.map(x => ({ value: x.key, label: x.name }))} />
       );
     }
     case 'component': {
@@ -504,10 +506,7 @@ function BlockContent({ block, onChange, onSlash, components, componentBlocks, i
       const overrides = (p.overrides ?? {}) as Record<string, string>;
       return (
         <div className="be-stack">
-          <select data-ui-field="select" className="be-select" style={{ width: '100%' }} value={p.componentId || ''} onChange={e => onChange({ componentId: e.target.value, overrides: {} })}>
-            <option value="" disabled>Choose a component…</option>
-            {opts.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
-          </select>
+          <Combobox value={p.componentId || ''} onChange={v => onChange({ componentId: v, overrides: {} })} placeholder="Choose a component…" options={opts.map(c => ({ value: c.id, label: c.name }))} />
           {slots.length > 0 && (
             <div className="be-stack" style={{ marginTop: 2 }}>
               <div style={{ fontSize: 10.5, fontWeight: 700, color: 'var(--ink3)', textTransform: 'uppercase', letterSpacing: '.04em' }}>Overrides for this placement</div>

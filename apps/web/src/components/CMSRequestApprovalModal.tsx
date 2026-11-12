@@ -4,6 +4,7 @@ import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '.
 import { SectionLoading } from './ui/spinner.js';
 import { apiFetch } from '../lib/api.js';
 import { showAlert } from '../lib/alert.js';
+import { Button } from './ui/button.js';
 
 interface Reviewer {
   id: string;
@@ -208,9 +209,9 @@ export function CMSRequestApprovalModal({
                 <button type="button" onClick={onClose} className="btn btn-secondary btn-sm" disabled={submitting} data-ui-native-button="">
                   Cancel
                 </button>
-                <button type="submit" className="btn btn-primary btn-sm" disabled={submitting || !assignedTo} data-ui-native-button="">
-                  {submitting ? 'Submitting…' : 'Submit for Review'}
-                </button>
+                <Button size="sm" type="submit" loading={submitting} disabled={!assignedTo} loadingText="Submitting…">
+                  Submit for Review
+                </Button>
               </div>
             </>
           )}

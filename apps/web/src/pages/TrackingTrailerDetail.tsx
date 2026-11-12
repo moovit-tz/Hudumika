@@ -5,6 +5,7 @@ import { Icon } from '../components/Icon.js';
 import { Badge } from '../components/ui/badge.js';
 import { Button } from '../components/ui/button.js';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../components/ui/select.js';
+import { DatePicker, parseDateOnly, toDateOnlyString } from '../components/ui/date-picker.js';
 import { PageHeader } from '../components/PageHeader.js';
 import { SectionCard } from '../components/SectionCard.js';
 import { showAlert } from '../lib/alert.js';
@@ -112,7 +113,7 @@ export const TrackingTrailerDetail: React.FC = () => {
                 </SelectContent>
               </Select>
               <input data-ui-field="input" placeholder="Document number" value={docNumber} onChange={e => setDocNumber(e.target.value)} style={{ padding: "var(--ds-input-py) var(--space-md)", borderRadius: 'var(--r)', border: '1px solid var(--border)', fontFamily: 'var(--font)', fontSize: "var(--text-base)", flex: 1, minWidth: 120 }} />
-              <input data-ui-field="input" type="date" value={docExpiry} onChange={e => setDocExpiry(e.target.value)} style={{ padding: "var(--ds-input-py) var(--space-md)", borderRadius: 'var(--r)', border: '1px solid var(--border)', fontFamily: 'var(--font)', fontSize: "var(--text-base)" }} />
+              <div style={{ width: 180 }}><DatePicker aria-label="Expiry date" placeholder="Expiry date" date={parseDateOnly(docExpiry) ?? null} onChange={d => setDocExpiry(toDateOnlyString(d))} /></div>
               <Button type="submit" size="sm">Save</Button>
             </form>
           )}

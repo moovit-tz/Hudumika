@@ -11,6 +11,7 @@ import { showAlert } from '../lib/alert.js';
 import { showConfirm } from '../lib/confirm.js';
 import { showPrompt } from '../lib/prompt.js';
 import type { CmsForm, CmsFormField, CmsFormFieldType, CmsFormSubmission } from '@hudumika/types';
+import { Button } from '../components/ui/button.js';
 
 function FL({ label, children }: { label: string; children: React.ReactNode }) {
   return (
@@ -72,7 +73,7 @@ export function CMSFormsList() {
                 <input data-ui-field="input" className="input-field" value={name} placeholder="e.g. Contact us" onChange={e => setName(e.target.value)} autoFocus />
               </FL>
               <div style={{ display: 'flex', gap: 8 }}>
-                <button className="btn btn-primary btn-sm" disabled={saving} onClick={handleCreate} data-ui-native-button="">{saving ? 'Creating…' : 'Create form'}</button>
+                <Button size="sm" onClick={handleCreate} loading={saving} loadingText="Creating…">Create form</Button>
                 <button className="btn btn-secondary btn-sm" onClick={() => setCreating(false)} data-ui-native-button="">Cancel</button>
               </div>
             </div>
@@ -217,7 +218,7 @@ export function CMSFormDetail() {
         actions={
           <div style={{ display: 'flex', gap: 8 }}>
             <button className="btn btn-secondary btn-sm" onClick={handleRename} data-ui-native-button="">Rename</button>
-            {tab === 'fields' && <button className="btn btn-primary btn-sm" disabled={saving || !dirty} onClick={handleSave} data-ui-native-button="">{saving ? 'Saving…' : dirty ? 'Save changes' : 'Saved'}</button>}
+            {tab === 'fields' && <Button size="sm" onClick={handleSave} loading={saving} disabled={!dirty} loadingText="Saving…">{dirty ? 'Save changes' : 'Saved'}</Button>}
           </div>
         }
       />

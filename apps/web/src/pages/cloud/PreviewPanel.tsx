@@ -13,6 +13,7 @@ import { fmtSize, fmtDate } from './lib/format.js';
 import { fileTypeStyle, previewKind } from './lib/fileTypeStyle.js';
 import { usePreviewBlob } from './lib/usePreviewBlob.js';
 import { PersonAvatar } from './components/PersonAvatar.js';
+import { Button } from '../../components/ui/button.js';
 
 interface ActivityEvent {
   id: string | number;
@@ -463,9 +464,9 @@ export function PreviewPanel({ item, onClose, onStar, onDownload, onDelete, onSh
               placeholder="Add a comment…"
               style={{ fontSize: "var(--text-base)", padding: "var(--ds-input-py) var(--space-md)", borderRadius: 'var(--r-sm)', border: '1px solid var(--border)', resize: 'vertical', minHeight: 60, fontFamily: "var(--font)" }}
             />
-            <button onClick={postComment} disabled={!newComment.trim() || posting} className="btn btn-primary btn-sm" style={{ alignSelf: 'flex-end' }} data-ui-native-button="">
-              {posting ? 'Posting…' : 'Comment'}
-            </button>
+            <Button size="sm" onClick={postComment} style={{ alignSelf: 'flex-end' }} loading={posting} disabled={!newComment.trim()} loadingText="Posting…">
+              Comment
+            </Button>
           </div>
         </div>
       )}

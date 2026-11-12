@@ -503,7 +503,7 @@ function DeveloperProjectsTab({
               </div>
               <div className="dev-modal-ftr">
                 <Button type="button" variant="outline" size="sm" onClick={() => setIsModalOpen(false)}>Cancel</Button>
-                <Button type="submit" size="sm" disabled={creating}>{creating ? 'Creating…' : 'Create Project'}</Button>
+                <Button type="submit" size="sm" loading={creating} loadingText="Creating…">Create Project</Button>
               </div>
             </form>
           </div>
@@ -715,7 +715,7 @@ function DeveloperCredentialsTab({
                 </div>
                 <div className="dev-modal-ftr">
                   <Button type="button" variant="outline" size="sm" onClick={() => setIsCreateOpen(false)}>Cancel</Button>
-                  <Button type="submit" size="sm" disabled={generating}>{generating ? 'Generating…' : 'Generate Key'}</Button>
+                  <Button type="submit" size="sm" loading={generating} loadingText="Generating…">Generate Key</Button>
                 </div>
               </form>
             )}
@@ -1156,7 +1156,7 @@ function DeveloperBillingTab({ account }: { account: DeveloperAccount }) {
               </div>
               <div className="dev-modal-ftr">
                 <Button type="button" variant="outline" size="sm" onClick={() => setIsTopUpOpen(false)}>Cancel</Button>
-                <Button type="submit" size="sm" disabled={processing}>{processing ? 'Processing…' : 'Confirm Payment'}</Button>
+                <Button type="submit" size="sm" loading={processing} loadingText="Processing…">Confirm Payment</Button>
               </div>
             </form>
           </div>
@@ -1293,7 +1293,7 @@ function DeveloperOrganizationTab({ account }: { account: DeveloperAccount }) {
               </div>
               <div className="dev-modal-ftr">
                 <Button type="button" variant="outline" size="sm" onClick={() => setIsInviteOpen(false)}>Cancel</Button>
-                <Button type="submit" size="sm" disabled={inviting}>{inviting ? 'Adding…' : 'Add Member'}</Button>
+                <Button type="submit" size="sm" loading={inviting} loadingText="Adding…">Add Member</Button>
               </div>
             </form>
           </div>

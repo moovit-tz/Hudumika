@@ -11,6 +11,7 @@ import { Switch } from '../components/ui/switch.js';
 import { Badge } from '../components/ui/badge.js';
 import { Button } from '../components/ui/button.js';
 import { Input } from '../components/ui/input.js';
+import { DatePicker, parseDateOnly, toDateOnlyString } from '../components/ui/date-picker.js';
 import { Banner } from '../components/ui/alert.js';
 import { Tabs, TabsList, TabsTrigger } from '../components/ui/tabs.js';
 import { useCompany, setCompany } from '../data/companyStore.js';
@@ -1411,8 +1412,8 @@ function FreightUsageStatement({ pilotStart }: { pilotStart: string | null }) {
           <SelectItem value="pilot">Accepted pilot rates</SelectItem>
         </SelectContent>
       </Select>}
-      <label className="text-sm">From (inclusive, UTC)<Input name="from" type="date" min={mode === 'pilot' ? pilotStart ?? undefined : undefined} required /></label>
-      <label className="text-sm">To (exclusive, UTC)<Input name="to" type="date" required /></label>
+      <label className="text-sm">From (inclusive, UTC)<DatePicker name="from" required min={mode === 'pilot' ? parseDateOnly(pilotStart?.slice(0, 10)) : undefined} /></label>
+      <label className="text-sm">To (exclusive, UTC)<DatePicker name="to" required /></label>
       <Button type="submit">{pending ? 'Calculating…' : 'Estimate usage'}</Button>
     </fieldset>
     {pilotStart && <div className="space-y-2 text-sm">

@@ -78,6 +78,13 @@ try {
         h(Switch, { 'aria-label': 'Compact', labeled: false, 'data-probe': 'switch-compact' }),
         h(RadioGroup, { defaultValue: 'x', 'aria-label': 'Choice' }, h(RadioGroupItem, { value: 'x', 'aria-label': 'X', 'data-probe': 'radio' })),
         h(Button, { type: 'button', variant: 'outline', onClick: () => setOpen(true), 'data-probe': 'open-dialog' }, 'Open dialog'),
+        // Not in the Tab-order probes; exercised separately below.
+        h('form', { onSubmit: (e) => { e.preventDefault(); window.__busySubmits = (window.__busySubmits || 0) + 1; } },
+          h(Input, { 'aria-label': 'Busy form field', 'data-probe': 'busy-form-input' }),
+          h(Button, { type: 'submit', loading: true, 'data-probe': 'busy-form-submit' }, 'Save')),
+        h('form', { onSubmit: (e) => { e.preventDefault(); window.__idleSubmits = (window.__idleSubmits || 0) + 1; } },
+          h(Input, { 'aria-label': 'Idle form field', 'data-probe': 'idle-form-input' }),
+          h(Button, { type: 'submit', 'data-probe': 'idle-form-submit' }, 'Save')),
         h(Dialog, { open, onOpenChange: setOpen }, h(DialogContent, null, h(DialogTitle, null, 'Title'), h(DialogDescription, null, 'Body'), h(Button, { type: 'button', 'data-probe': 'dialog-action' }, 'OK'))),
       );
     }
@@ -192,6 +199,18 @@ try {
   if (!busy.focused) failures.push('button-loading: lost keyboard focus');
   if (busy.ariaBusy !== 'true' || busy.ariaDisabled !== 'true') failures.push(`button-loading: aria-busy=${busy.ariaBusy} aria-disabled=${busy.ariaDisabled}`);
   if (!busy.spinner) failures.push('button-loading: no spinner rendered');
+
+  // Most save buttons are type="submit". Enter in a field submits through the
+  // form's default button, so a loading one must stop that too — and an idle
+  // one must still submit, or the guard has simply broken forms.
+  await page.locator('[data-probe="busy-form-input"]').focus();
+  await page.keyboard.press('Enter');
+  await page.locator('[data-probe="busy-form-submit"]').click({ force: true });
+  await page.locator('[data-probe="idle-form-input"]').focus();
+  await page.keyboard.press('Enter');
+  const submits = await page.evaluate(() => ({ busy: window.__busySubmits || 0, idle: window.__idleSubmits || 0 }));
+  if (submits.busy) failures.push(`loading submit button: form submitted ${submits.busy} time(s) while loading`);
+  if (submits.idle !== 1) failures.push(`idle submit button: Enter in a field submitted ${submits.idle} time(s), expected 1`);
 
   // The dialog's close control only exists while it is open; Radix moves
   // focus inside, so Tab from there until the close button has it.

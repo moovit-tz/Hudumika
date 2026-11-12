@@ -620,7 +620,7 @@ export const ProjectProcurement: React.FC<ProjectProcurementProps> = ({
               </div>
               <div className="flex justify-end gap-2">
                 <Button type="button" variant="outline" onClick={() => setShowAddPoModal(false)}>Cancel</Button>
-                <Button type="submit" disabled={saving || !poSupplier || !poNumber.trim()}>{saving ? 'Saving…' : 'Save Draft'}</Button>
+                <Button type="submit" loading={saving} disabled={!poSupplier || !poNumber.trim()} loadingText="Saving…">Save Draft</Button>
               </div>
             </form>
           </CardContent>
@@ -642,7 +642,7 @@ export const ProjectProcurement: React.FC<ProjectProcurementProps> = ({
             <label className="block">Carrier delivery note<Input aria-label="Carrier delivery note" value={grnCarrierNote} onChange={e => setGrnCarrierNote(e.target.value)} /></label>
             <label className="block">Inspection notes<Textarea aria-label="Inspection notes" value={grnNotes} onChange={e => setGrnNotes(e.target.value)} /></label>
             <p className="text-sm text-muted-foreground">This records receipt evidence. Order completion requires reconciliation of delivered quantities.</p>
-            <div className="flex justify-end gap-2"><Button type="button" variant="outline" onClick={() => setShowAddGrnModal(false)}>Cancel</Button><Button type="submit" disabled={saving || !grnPoId}>{saving ? 'Saving…' : 'Save Receipt'}</Button></div>
+            <div className="flex justify-end gap-2"><Button type="button" variant="outline" onClick={() => setShowAddGrnModal(false)}>Cancel</Button><Button type="submit" loading={saving} disabled={!grnPoId} loadingText="Saving…">Save Receipt</Button></div>
           </form>
         </CardContent></Card>
       )}

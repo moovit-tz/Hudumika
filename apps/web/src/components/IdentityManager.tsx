@@ -4,6 +4,7 @@ import { showAlert } from '../lib/alert.js';
 import { Icon } from './Icon.js';
 import { Badge } from './ui/badge.js';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from './ui/select.js';
+import { Button } from './ui/button.js';
 
 export interface EmailSendIdentity {
   id: string;
@@ -153,7 +154,7 @@ export function IdentityManager({ onChange }: { onChange?: (ids: EmailSendIdenti
             <input data-ui-field="input" className="em-compose-input em-settings-input" type="password" value={draft.smtpPass} onChange={e => setDraft({ ...draft, smtpPass: e.target.value })} />
           </div>
           <div style={{ display: 'flex', gap: 8 }}>
-            <button type="button" className="btn btn-primary" onClick={saveDraft} disabled={saving} data-ui-native-button="">{saving ? 'Saving…' : 'Add address'}</button>
+            <Button type="button" onClick={saveDraft} loading={saving} loadingText="Saving…">Add address</Button>
             <button type="button" className="em-text-btn" onClick={() => { setAdding(false); setDraft(EMPTY_DRAFT); }} data-ui-native-button="">Cancel</button>
           </div>
         </div>

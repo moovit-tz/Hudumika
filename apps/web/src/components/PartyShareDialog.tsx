@@ -147,7 +147,7 @@ export function PartyShareDialog({ open, onOpenChange, partyId, name }: {
         </DialogBody>
         <DialogFooter>
           <Button variant="outline" onClick={() => onOpenChange(false)}>{denied ? 'Close' : 'Cancel'}</Button>
-          {!denied && <Button onClick={save} disabled={saving || loading}>{saving ? 'Saving…' : 'Save sharing'}</Button>}
+          {!denied && <Button onClick={save} loading={saving} disabled={loading} loadingText="Saving…">Save sharing</Button>}
         </DialogFooter>
       </DialogContent>
     </Dialog>

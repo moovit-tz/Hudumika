@@ -111,7 +111,7 @@ function ReplyModal({ review, onSave, onClose }: { review: ProductReview; onSave
         </DialogBody>
         <DialogFooter>
           <Button type="button" variant="outline" onClick={onClose}>Cancel</Button>
-          <Button onClick={submit} disabled={saving}>{saving ? 'Saving…' : 'Save'}</Button>
+          <Button onClick={submit} loading={saving} loadingText="Saving…">Save</Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>

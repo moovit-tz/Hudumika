@@ -286,7 +286,7 @@ export function SuperAdminQueryBuilder() {
                       </>
                     )}
                     <Input type="number" value={limit} onChange={e => setLimit(e.target.value)} className="qb-limit-input" title="Row limit (max 2000)" />
-                    <Button size="sm" onClick={runVisual} disabled={visualLoading}>{visualLoading ? 'Running…' : 'Run Query'}</Button>
+                    <Button size="sm" onClick={runVisual} loading={visualLoading} loadingText="Running…">Run Query</Button>
                   </div>
 
                   {visualError && <p className="qb-error">{visualError}</p>}
@@ -313,7 +313,7 @@ export function SuperAdminQueryBuilder() {
                   <Icon name="lock" size={22} />
                   <p>Raw SQL mode is off. Enabling it requires a one-time code sent to your account email.</p>
                   {!otpRequested ? (
-                    <Button size="sm" onClick={requestOtp} disabled={otpSending}>{otpSending ? 'Sending…' : 'Request OTP to Enable'}</Button>
+                    <Button size="sm" onClick={requestOtp} loading={otpSending} loadingText="Sending…">Request OTP to Enable</Button>
                   ) : (
                     <div className="qb-otp-row">
                       <Input value={otpCode} onChange={e => setOtpCode(e.target.value)} placeholder="6-digit code" className="qb-otp-input" />
@@ -330,7 +330,7 @@ export function SuperAdminQueryBuilder() {
                   </div>
                   <Textarea value={rawSqlText} onChange={e => setRawSqlText(e.target.value)} className="qb-sql-textarea" spellCheck={false} />
                   <div className="qb-result-actions">
-                    <Button size="sm" onClick={runRaw} disabled={rawLoading}>{rawLoading ? 'Running…' : 'Run Query'}</Button>
+                    <Button size="sm" onClick={runRaw} loading={rawLoading} loadingText="Running…">Run Query</Button>
                     {rawResult && <ExportButton onClick={() => exportCsv('query.csv', rawColumns.map(c => c.label), rawResult.rows.map(r => rawColumns.map(c => r[c.key])))} />}
                   </div>
                   {rawError && <p className="qb-error">{rawError}</p>}

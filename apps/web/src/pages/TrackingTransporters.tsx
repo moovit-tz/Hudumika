@@ -98,7 +98,7 @@ export const TrackingTransporters: React.FC = () => {
             <div><label style={{ fontSize: 11.5, fontWeight: 600, color: 'var(--ink2)', display: 'block', marginBottom: 4 }}>Phone</label><Input value={phone} onChange={e => setPhone(e.target.value)} style={{ width: 140 }} /></div>
             <div><label style={{ fontSize: 11.5, fontWeight: 600, color: 'var(--ink2)', display: 'block', marginBottom: 4 }}>Email</label><Input type="email" value={email} onChange={e => setEmail(e.target.value)} style={{ width: 180 }} /></div>
             <div><label style={{ fontSize: 11.5, fontWeight: 600, color: 'var(--ink2)', display: 'block', marginBottom: 4 }}>Contract ref</label><Input value={contractRef} onChange={e => setContractRef(e.target.value)} style={{ width: 140 }} /></div>
-            <Button type="submit" size="sm" disabled={saving || !name}>{saving ? 'Saving…' : 'Save'}</Button>
+            <Button type="submit" size="sm" loading={saving} disabled={!name} loadingText="Saving…">Save</Button>
           </form>
         </SectionCard>
       )}

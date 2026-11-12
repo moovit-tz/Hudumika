@@ -105,13 +105,13 @@ function Calendar({
           defaultClassNames.day
         ),
         range_start: cn(
-          "bg-teal-600 text-white rounded-l-md",
+          "bg-primary text-primary-foreground rounded-l-md",
           defaultClassNames.range_start
         ),
-        range_middle: cn("bg-teal-500/15 rounded-none", defaultClassNames.range_middle),
-        range_end: cn("bg-teal-600 text-white rounded-r-md", defaultClassNames.range_end),
+        range_middle: cn("bg-primary/15 rounded-none", defaultClassNames.range_middle),
+        range_end: cn("bg-primary text-primary-foreground rounded-r-md", defaultClassNames.range_end),
         today: cn(
-          "font-bold text-teal-600 underline underline-offset-2",
+          "font-bold text-(--teal) underline underline-offset-2",
           defaultClassNames.today
         ),
         outside: cn(
@@ -188,6 +188,7 @@ function CalendarDayButton({
     <button
       ref={ref}
       type="button"
+      data-ui-focus=""
       data-day={day.date.toLocaleDateString()}
       data-selected-single={
         modifiers.selected &&
@@ -199,11 +200,11 @@ function CalendarDayButton({
       data-range-end={modifiers.range_end}
       data-range-middle={modifiers.range_middle}
       className={cn(
-        "inline-flex h-(--cell-size) w-(--cell-size) items-center justify-center rounded-md text-xs font-medium transition-colors border-0 bg-transparent text-foreground hover:bg-accent hover:text-accent-foreground outline-none cursor-pointer",
-        "data-[selected-single=true]:bg-teal-600 data-[selected-single=true]:text-white data-[selected-single=true]:font-bold",
-        "data-[range-start=true]:bg-teal-600 data-[range-start=true]:text-white data-[range-start=true]:font-bold data-[range-start=true]:rounded-l-md data-[range-start=true]:rounded-r-none",
-        "data-[range-end=true]:bg-teal-600 data-[range-end=true]:text-white data-[range-end=true]:font-bold data-[range-end=true]:rounded-r-md data-[range-end=true]:rounded-l-none",
-        "data-[range-middle=true]:bg-teal-500/15 data-[range-middle=true]:text-teal-950 data-[range-middle=true]:rounded-none",
+        "inline-flex h-(--cell-size) w-(--cell-size) items-center justify-center rounded-md text-xs font-medium transition-colors border-0 bg-transparent text-foreground hover:bg-accent hover:text-accent-foreground cursor-pointer",
+        "data-[selected-single=true]:bg-primary data-[selected-single=true]:text-primary-foreground data-[selected-single=true]:font-bold",
+        "data-[range-start=true]:bg-primary data-[range-start=true]:text-primary-foreground data-[range-start=true]:font-bold data-[range-start=true]:rounded-l-md data-[range-start=true]:rounded-r-none",
+        "data-[range-end=true]:bg-primary data-[range-end=true]:text-primary-foreground data-[range-end=true]:font-bold data-[range-end=true]:rounded-r-md data-[range-end=true]:rounded-l-none",
+        "data-[range-middle=true]:bg-primary/15 data-[range-middle=true]:text-foreground data-[range-middle=true]:rounded-none",
         modifiers.outside && "text-muted-foreground/35",
         modifiers.disabled && "opacity-30 pointer-events-none",
         className

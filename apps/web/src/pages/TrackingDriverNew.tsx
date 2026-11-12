@@ -107,7 +107,7 @@ export const TrackingDriverNew: React.FC = () => {
         </fieldset>
         <div className="driver-registration-actions">
           <Button type="button" variant="ghost" asChild disabled={saving}><Link to="/tracking/drivers">Cancel</Link></Button>
-          <div>{step > 0 && <Button type="button" variant="outline" disabled={saving} onClick={() => moveTo(step - 1)}>Back</Button>}<Button type="submit" disabled={saving}>{saving ? 'Creating…' : step === 3 ? 'Create driver' : 'Continue'}</Button></div>
+          <div>{step > 0 && <Button type="button" variant="outline" disabled={saving} onClick={() => moveTo(step - 1)}>Back</Button>}<Button type="submit" loading={saving} loadingText="Creating…">{step === 3 ? 'Create driver' : 'Continue'}</Button></div>
         </div>
       </form>
     </SectionCard>

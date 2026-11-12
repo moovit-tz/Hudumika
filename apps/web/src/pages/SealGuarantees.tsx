@@ -116,7 +116,7 @@ export function SealGuarantees() {
             </div>
             <div style={{ display: 'flex', alignItems: 'flex-end', gap: 10 }}>
               <Button type="button" variant="outline" onClick={() => setShowNew(false)}>Cancel</Button>
-              <Button type="submit" disabled={saving}>{saving ? 'Creating…' : 'Create'}</Button>
+              <Button type="submit" loading={saving} loadingText="Creating…">Create</Button>
             </div>
           </div>
         </form>

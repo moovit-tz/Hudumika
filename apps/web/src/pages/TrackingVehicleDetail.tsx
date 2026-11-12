@@ -342,7 +342,7 @@ export const TrackingVehicleDetail: React.FC = () => {
             {canEdit && (editing ? (
               <>
                 <Button size="sm" variant="outline" onClick={() => setEditing(false)}>Cancel</Button>
-                <Button size="sm" onClick={saveEdit} disabled={saving}>{saving ? 'Saving…' : 'Save changes'}</Button>
+                <Button size="sm" onClick={saveEdit} loading={saving} loadingText="Saving…">Save changes</Button>
               </>
             ) : (
               <Button size="sm" variant="outline" onClick={startEdit}>
@@ -1191,7 +1191,7 @@ function QuickFuelModal({ vehicleId, onClose, onSuccess }: { vehicleId: string; 
           </div>
           <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 10, marginTop: 10 }}>
             <Button type="button" variant="outline" onClick={onClose}>Close</Button>
-            <Button type="submit" disabled={saving || !liters}>{saving ? 'Saving…' : 'Record Fuel'}</Button>
+            <Button type="submit" loading={saving} disabled={!liters} loadingText="Saving…">Record Fuel</Button>
           </div>
         </form>
       </DialogContent>
@@ -1264,7 +1264,7 @@ function QuickExpenseModal({ vehicleId, onClose, onSuccess }: { vehicleId: strin
           </div>
           <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 10, marginTop: 10 }}>
             <Button type="button" variant="outline" onClick={onClose}>Close</Button>
-            <Button type="submit" disabled={saving || !amount}>{saving ? 'Saving…' : 'Save Expense'}</Button>
+            <Button type="submit" loading={saving} disabled={!amount} loadingText="Saving…">Save Expense</Button>
           </div>
         </form>
       </DialogContent>
@@ -1334,7 +1334,7 @@ function QuickIssueModal({ vehicleId, onClose, onSuccess }: { vehicleId: string;
           </div>
           <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 10, marginTop: 10 }}>
             <Button type="button" variant="outline" onClick={onClose}>Close</Button>
-            <Button type="submit" disabled={saving || !title.trim()}>{saving ? 'Saving…' : 'Report Issue'}</Button>
+            <Button type="submit" loading={saving} disabled={!title.trim()} loadingText="Saving…">Report Issue</Button>
           </div>
         </form>
       </DialogContent>
@@ -1378,7 +1378,7 @@ function QuickMeterModal({ vehicleId, currentKm, onClose, onSuccess }: { vehicle
           </div>
           <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 10, marginTop: 10 }}>
             <Button type="button" variant="outline" onClick={onClose}>Close</Button>
-            <Button type="submit" disabled={saving || !km}>{saving ? 'Saving…' : 'Update Meter'}</Button>
+            <Button type="submit" loading={saving} disabled={!km} loadingText="Saving…">Update Meter</Button>
           </div>
         </form>
       </DialogContent>
@@ -1444,7 +1444,7 @@ function QuickDriverAssignModal({
           </div>
           <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 10, marginTop: 10 }}>
             <Button type="button" variant="outline" onClick={onClose}>Close</Button>
-            <Button type="submit" disabled={saving}>{saving ? 'Saving…' : 'Confirm Assignment'}</Button>
+            <Button type="submit" loading={saving} loadingText="Saving…">Confirm Assignment</Button>
           </div>
         </form>
       </DialogContent>

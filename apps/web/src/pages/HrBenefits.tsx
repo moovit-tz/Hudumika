@@ -270,7 +270,7 @@ function NewPlanModal({ onClose, onCreated }: { onClose: () => void; onCreated: 
           {error && <div style={{ fontSize: 12.5, color: 'var(--red)' }}>{error}</div>}
           <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end' }}>
             <Button type="button" variant="outline" onClick={onClose}>Cancel</Button>
-            <Button type="submit" disabled={saving}>{saving ? 'Creating…' : 'Create plan'}</Button>
+            <Button type="submit" loading={saving} loadingText="Creating…">Create plan</Button>
           </div>
         </div>
       </form>

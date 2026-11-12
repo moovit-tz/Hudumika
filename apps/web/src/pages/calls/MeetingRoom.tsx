@@ -1264,9 +1264,9 @@ export function MeetingRoom({ meetingId, title, kind, role, iceServers, initialA
                 </div>
                 <div style={{ padding: 16, display: 'flex', flexDirection: 'column', gap: 14 }}>
                   {canModerate && (
-                    <button onClick={generateSummary} disabled={summaryLoading} className="btn btn-primary" style={{ width: '100%' }} data-ui-native-button="">
-                      {summaryLoading ? 'Generating…' : summary ? 'Regenerate summary' : 'Generate summary'}
-                    </button>
+                    <Button onClick={generateSummary} style={{ width: '100%' }} loading={summaryLoading} loadingText="Generating…">
+                      {summary ? 'Regenerate summary' : 'Generate summary'}
+                    </Button>
                   )}
                   {summaryError && <div style={{ fontSize: 12, color: 'var(--red)' }}>{summaryError}</div>}
                   {!summary && !summaryLoading && (

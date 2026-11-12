@@ -15,6 +15,7 @@ import { PageHeader } from '../components/PageHeader.js';
 import { MetricsRow } from '../components/MetricCard.js';
 import { SectionCard } from '../components/SectionCard.js';
 import { useFinanceCapabilities } from '../hooks/useFinanceCapabilities.js';
+import { Button } from '../components/ui/button.js';
 
 /** Top-level accounts per page. Matches the rest of the platform's lists
  *  (products, landed-cost history, Bliss notifications). */
@@ -348,7 +349,7 @@ export const ChartOfAccounts: React.FC = () => {
         actions={
           <>
             <button type="button" className="btn btn-secondary" onClick={() => setShowForm(false)} disabled={saving} data-ui-native-button="">Cancel</button>
-            <button type="button" className="btn btn-primary" onClick={handleSaveAccount} disabled={saving} data-ui-native-button="">{saving ? 'Saving…' : 'Save Account'}</button>
+            <Button type="button" onClick={handleSaveAccount} loading={saving} loadingText="Saving…">Save Account</Button>
           </>
         }
       >

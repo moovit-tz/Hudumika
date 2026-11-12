@@ -159,7 +159,7 @@ export function FreightRateCardsPage() {
             </div>
           </div>
           {error && <div style={{ color: 'var(--red)', fontSize: 12.5, marginBottom: 12 }}>{error}</div>}
-          <Button type="button" onClick={saveCard} disabled={saving}>{saving ? 'Saving…' : 'Save rate card'}</Button>
+          <Button type="button" onClick={saveCard} loading={saving} loadingText="Saving…">Save rate card</Button>
         </SectionCard>
         </div>
       )}

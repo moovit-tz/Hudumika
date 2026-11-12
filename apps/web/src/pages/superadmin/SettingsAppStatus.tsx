@@ -13,6 +13,7 @@ import { SectionCard } from '../../components/SectionCard.js';
 import { Switch } from '../../components/ui/switch.js';
 import { FeaturedIcon } from '../../components/ui/featured-icon.js';
 import { Input } from '../../components/ui/input.js';
+import { DatePicker, parseDateOnly, toDateOnlyString } from '../../components/ui/date-picker.js';
 import { Button } from '../../components/ui/button.js';
 import { Tip } from '../../components/ui/tooltip.js';
 import { Badge as UiBadge } from '../../components/ui/badge.js';
@@ -1108,34 +1109,30 @@ export function SettingsView() {
 
             {sampleMode === '2d' ? (
               <Field label="Camera Angle">
-                <select data-ui-field="select"
-                  value={sampleView}
-                  onChange={e => setSampleView(e.target.value as any)}
-                  className="input-field"
-                  style={{ width: '100%', fontSize: "var(--text-base)" }}
-                >
-                  <option value="3-4">3/4 Front Studio</option>
-                  <option value="side">Direct Side</option>
-                  <option value="front">Direct Front</option>
-                  <option value="rear">Direct Rear</option>
-                  <option value="top">Top Down</option>
-                </select>
+                <Select value={sampleView} onValueChange={value => setSampleView(value as any)}>
+                  <SelectTrigger aria-label="Camera angle"><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="3-4">3/4 Front Studio</SelectItem>
+                    <SelectItem value="side">Direct Side</SelectItem>
+                    <SelectItem value="front">Direct Front</SelectItem>
+                    <SelectItem value="rear">Direct Rear</SelectItem>
+                    <SelectItem value="top">Top Down</SelectItem>
+                  </SelectContent>
+                </Select>
               </Field>
             ) : (
               <Field label="Backdrop Studio">
-                <select data-ui-field="select"
-                  value={sampleBackdrop}
-                  onChange={e => setSampleBackdrop(e.target.value as any)}
-                  className="input-field"
-                  style={{ width: '100%', fontSize: "var(--text-base)" }}
-                >
-                  <option value="graphite">Graphite Studio</option>
-                  <option value="dark">Dark Minimal</option>
-                  <option value="slate">Slate Industrial</option>
-                  <option value="sand">Sand Warm</option>
-                  <option value="mint">Mint Clean</option>
-                  <option value="light">Light Crisp</option>
-                </select>
+                <Select value={sampleBackdrop} onValueChange={value => setSampleBackdrop(value as any)}>
+                  <SelectTrigger aria-label="Backdrop studio"><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="graphite">Graphite Studio</SelectItem>
+                    <SelectItem value="dark">Dark Minimal</SelectItem>
+                    <SelectItem value="slate">Slate Industrial</SelectItem>
+                    <SelectItem value="sand">Sand Warm</SelectItem>
+                    <SelectItem value="mint">Mint Clean</SelectItem>
+                    <SelectItem value="light">Light Crisp</SelectItem>
+                  </SelectContent>
+                </Select>
               </Field>
             )}
           </div>
@@ -1418,16 +1415,14 @@ curl "https://carimagesapi.com/api/v1/signed-url?api_key=${carimages.apiKey}&mak
           </Field>
 
           <Field label="Default Map Style" hint="Basemap style preset for tracking and vehicle routes">
-            <select data-ui-field="select"
-              value={mapbox.defaultStyle}
-              onChange={e => setMapbox(p => ({ ...p, defaultStyle: e.target.value }))}
-              className="input-field"
-              style={{ width: '100%', fontSize: "var(--text-base)" }}
-            >
-              <option value="mapbox/streets-v12">Mapbox Streets (streets-v12)</option>
-              <option value="mapbox/dark-v11">Mapbox Dark (dark-v11)</option>
-              <option value="mapbox/satellite-streets-v12">Mapbox Satellite Streets (satellite-streets-v12)</option>
-            </select>
+            <Select value={mapbox.defaultStyle} onValueChange={value => setMapbox(p => ({ ...p, defaultStyle: value }))}>
+              <SelectTrigger aria-label="Default map style"><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="mapbox/streets-v12">Mapbox Streets (streets-v12)</SelectItem>
+                <SelectItem value="mapbox/dark-v11">Mapbox Dark (dark-v11)</SelectItem>
+                <SelectItem value="mapbox/satellite-streets-v12">Mapbox Satellite Streets (satellite-streets-v12)</SelectItem>
+              </SelectContent>
+            </Select>
           </Field>
         </div>
 
@@ -1797,8 +1792,8 @@ function FreightTenantPreview({ revision, onTested }: { revision: number; onTest
           </SelectContent>
         </Select>
         <div className="grid gap-2 sm:grid-cols-2">
-          <label className="text-sm">From, inclusive<Input type="date" name="from" required /></label>
-          <label className="text-sm">To, exclusive<Input type="date" name="to" required /></label>
+          <label className="text-sm">From, inclusive<DatePicker name="from" required /></label>
+          <label className="text-sm">To, exclusive<DatePicker name="to" required /></label>
         </div>
         <div className="flex flex-wrap gap-2">
           <Button type="submit" disabled={!tenantId || pending}>Test tenant usage</Button>
@@ -1934,7 +1929,7 @@ function FreightPublish({ draft }: { draft: FreightPricingDraft }) {
     {!draft.tested && <p className="text-sm">Test this saved revision against a tenant before publishing.</p>}
     {scheduled && <p className="text-sm">One rate card is already scheduled.</p>}
     <fieldset disabled={!draft.tested || scheduled || published || pending} className="flex flex-wrap items-end gap-3">
-      <label className="text-sm">Effective date (UTC)<Input type="date" name="effective_on" required /></label>
+      <label className="text-sm">Effective date (UTC)<DatePicker name="effective_on" required /></label>
       <Button type="submit">{pending ? 'Scheduling…' : 'Schedule publication'}</Button>
     </fieldset>
     {error && <p role="alert">{error}</p>}

@@ -5,6 +5,7 @@ import { SectionLoading } from './ui/spinner.js';
 import { apiFetch } from '../lib/api.js';
 import { showAlert } from '../lib/alert.js';
 import type { CmsRelease } from '@hudumika/types';
+import { Button } from './ui/button.js';
 
 interface CMSAddToReleaseModalProps {
   open: boolean;
@@ -260,9 +261,9 @@ export function CMSAddToReleaseModal({
                 <button type="button" onClick={onClose} className="btn btn-secondary btn-sm" disabled={submitting} data-ui-native-button="">
                   Cancel
                 </button>
-                <button type="submit" className="btn btn-primary btn-sm" disabled={submitting} data-ui-native-button="">
-                  {submitting ? 'Adding…' : 'Add to Release'}
-                </button>
+                <Button size="sm" type="submit" loading={submitting} loadingText="Adding…">
+                  Add to Release
+                </Button>
               </div>
             </>
           )}

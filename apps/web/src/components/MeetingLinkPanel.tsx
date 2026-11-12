@@ -146,7 +146,7 @@ export function MeetingLinkPanel({ title, value, onChange, disabled }: {
         </p>
       )}
       <div style={{ display: 'flex', gap: 8, marginTop: 4 }}>
-        <Button type="button" onClick={createMeeting} disabled={creating}>{creating ? 'Creating…' : 'Create'}</Button>
+        <Button type="button" onClick={createMeeting} loading={creating} loadingText="Creating…">Create</Button>
         <Button type="button" variant="outline" onClick={() => setConfiguring(false)} disabled={creating}>Cancel</Button>
       </div>
     </div>

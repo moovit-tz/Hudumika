@@ -6,6 +6,8 @@ import { PageHeader } from '../components/PageHeader.js';
 import { SectionCard } from '../components/SectionCard.js';
 import { Dialog, DialogContent, DialogTitle } from '../components/ui/dialog.js';
 import { Input } from '../components/ui/input.js';
+import { Combobox } from '../components/ui/combobox.js';
+import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '../components/ui/select.js';
 import { Button } from '../components/ui/button.js';
 import { Badge } from '../components/ui/badge.js';
 import { Banner } from '../components/ui/alert.js';
@@ -407,26 +409,16 @@ function CargoUnitDialog({
               <label style={{ fontSize: 12, fontWeight: 700, color: 'var(--ink2)', display: 'block', marginBottom: 4 }}>
                 Unit Type
               </label>
-              <select data-ui-field="select"
-                value={unitType}
-                onChange={(e) => setUnitType(e.target.value)}
-                style={{
-                  width: '100%',
-                  height: "var(--ctl-h)",
-                  padding: '0 10px',
-                  borderRadius: "var(--r-sm)",
-                  border: '1px solid var(--border)',
-                  background: 'var(--card-bg)',
-                  fontSize: "var(--text-base)",
-                  color: 'var(--ink)',
-                }}
-              >
-                <option value="PALLET">Standard Pallet (120×80)</option>
-                <option value="CRATE">Wooden Crate</option>
-                <option value="CARTON">Corrugated Carton</option>
-                <option value="DRUM">Steel/Poly Drum</option>
-                <option value="LOOSE">Loose / Irregular</option>
-              </select>
+              <Select value={unitType} onValueChange={setUnitType}>
+                <SelectTrigger aria-label="Unit type"><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="PALLET">Standard Pallet (120×80)</SelectItem>
+                  <SelectItem value="CRATE">Wooden Crate</SelectItem>
+                  <SelectItem value="CARTON">Corrugated Carton</SelectItem>
+                  <SelectItem value="DRUM">Steel/Poly Drum</SelectItem>
+                  <SelectItem value="LOOSE">Loose / Irregular</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
             <div>
               <label style={{ fontSize: 12, fontWeight: 700, color: 'var(--ink2)', display: 'block', marginBottom: 4 }}>
@@ -1449,60 +1441,31 @@ export const TrackingCargoLoading: React.FC = () => {
                   <label style={{ fontSize: 12, fontWeight: 700, color: 'var(--ink2)', display: 'block', marginBottom: 4 }}>
                     Trailer Unit (Optional)
                   </label>
-                  <select data-ui-field="select"
-                    value={selectedTrailerId}
-                    onChange={(e) => {
-                      setSelectedTrailerId(e.target.value);
-                      persistManifest({ trailer_id: e.target.value || undefined });
-                    }}
-                    style={{
-                      width: '100%',
-                      height: "var(--ctl-h)",
-                      padding: '0 10px',
-                      borderRadius: "var(--r-sm)",
-                      border: '1px solid var(--border)',
-                      background: 'var(--card-bg)',
-                      fontSize: "var(--text-base)",
-                      color: 'var(--ink)',
-                    }}
-                  >
-                    <option value="">No Trailer / Rigid Body Only</option>
-                    {trailers.map(t => (
-                      <option key={t.id} value={t.id}>
-                        {t.name} ({t.registration_number}) — {t.trailer_type || 'FLATBED'}
-                      </option>
-                    ))}
-                  </select>
+                  <Select value={selectedTrailerId || 'none'} onValueChange={v => {
+                    const id = v === 'none' ? '' : v;
+                    setSelectedTrailerId(id);
+                    persistManifest({ trailer_id: id || undefined });
+                  }}>
+                    <SelectTrigger aria-label="Trailer unit"><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="none">No Trailer / Rigid Body Only</SelectItem>
+                      {trailers.map(t => (
+                        <SelectItem key={t.id} value={t.id}>{t.name} ({t.registration_number}) — {t.trailer_type || 'FLATBED'}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 </div>
 
                 <div>
                   <label style={{ fontSize: 12, fontWeight: 700, color: 'var(--ink2)', display: 'block', marginBottom: 4 }}>
                     Warehouse Facility
                   </label>
-                  <select data-ui-field="select"
+                  <Combobox
                     value={selectedLocationId}
-                    onChange={(e) => {
-                      setSelectedLocationId(e.target.value);
-                      persistManifest({ location_id: e.target.value || undefined });
-                    }}
-                    style={{
-                      width: '100%',
-                      height: "var(--ctl-h)",
-                      padding: '0 10px',
-                      borderRadius: "var(--r-sm)",
-                      border: '1px solid var(--border)',
-                      background: 'var(--card-bg)',
-                      fontSize: "var(--text-base)",
-                      color: 'var(--ink)',
-                    }}
-                  >
-                    <option value="">Select facility...</option>
-                    {locations.map(loc => (
-                      <option key={loc.id} value={loc.id}>
-                        {loc.name} ({loc.code})
-                      </option>
-                    ))}
-                  </select>
+                    onChange={v => { setSelectedLocationId(v); persistManifest({ location_id: v || undefined }); }}
+                    placeholder="Select facility..."
+                    options={locations.map(loc => ({ value: loc.id, label: `${loc.name} (${loc.code})` }))}
+                  />
                 </div>
 
                 <div>

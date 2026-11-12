@@ -4,6 +4,7 @@ import { apiFetch } from '../lib/api.js';
 import { Icon } from './Icon.js';
 import { Badge } from './ui/badge.js';
 import { Switch } from './ui/switch.js';
+import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from './ui/select.js';
 import { PersonAvatar } from './PersonAvatar.js';
 import type { IconName } from './Icon.js';
 import './Customer360Sidebar.css';
@@ -301,18 +302,15 @@ export function Customer360Sidebar({
               <label style={{ display: 'block', fontSize: 11, fontWeight: 800, color: 'var(--ink2)', textTransform: 'uppercase', letterSpacing: '0.04em', marginBottom: 6 }}>
                 Assigned Team Router
               </label>
-              <select data-ui-field="select"
-                value={teamRouter}
-                onChange={e => setTeamRouter(e.target.value)}
-                style={{
-                  width: '100%', padding: "var(--ds-input-py) var(--space-md)", borderRadius: 'var(--r)', border: '1px solid var(--border)',
-                  background: 'var(--white)', color: 'var(--ink)', fontSize: "var(--text-base)", fontWeight: 600, outline: 'none'
-                }}>
-                <option value="Customer Success & Support">Customer Success & Support</option>
-                <option value="Technical Operations">Technical Operations</option>
-                <option value="Billing & Financials">Billing & Financials</option>
-                <option value="Logistics & Customs">Logistics & Customs</option>
-              </select>
+              <Select value={teamRouter} onValueChange={setTeamRouter}>
+                <SelectTrigger aria-label="Team"><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="Customer Success & Support">Customer Success &amp; Support</SelectItem>
+                  <SelectItem value="Technical Operations">Technical Operations</SelectItem>
+                  <SelectItem value="Billing & Financials">Billing &amp; Financials</SelectItem>
+                  <SelectItem value="Logistics & Customs">Logistics &amp; Customs</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
 
             {/* 3. CRM Information Form */}
@@ -346,19 +344,16 @@ export function Customer360Sidebar({
 
                 <div>
                   <label style={{ display: 'block', fontSize: 11, fontWeight: 700, color: 'var(--ink3)', marginBottom: 4 }}>Lifecycle Stage</label>
-                  <select data-ui-field="select"
-                    value={lifecycleStage}
-                    onChange={e => setLifecycleStage(e.target.value)}
-                    style={{
-                      width: '100%', padding: "var(--ds-input-py) var(--space-md)", borderRadius: 'var(--r)', border: '1px solid var(--border)',
-                      background: 'var(--white)', color: 'var(--ink)', fontSize: "var(--text-base)", fontWeight: 600, outline: 'none'
-                    }}>
-                    <option value="Customer">Customer</option>
-                    <option value="Lead">Lead</option>
-                    <option value="Prospect">Prospect</option>
-                    <option value="VIP">VIP Enterprise</option>
-                    <option value="Subscriber">Subscriber</option>
-                  </select>
+                  <Select value={lifecycleStage} onValueChange={setLifecycleStage}>
+                    <SelectTrigger aria-label="Lifecycle stage"><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="Customer">Customer</SelectItem>
+                      <SelectItem value="Lead">Lead</SelectItem>
+                      <SelectItem value="Prospect">Prospect</SelectItem>
+                      <SelectItem value="VIP">VIP Enterprise</SelectItem>
+                      <SelectItem value="Subscriber">Subscriber</SelectItem>
+                    </SelectContent>
+                  </Select>
                 </div>
 
                 <button

@@ -5,6 +5,7 @@ import { SectionCard } from '../../components/SectionCard.js';
 import { Badge } from '../../components/ui/badge.js';
 import { Button } from '../../components/ui/button.js';
 import { Input } from '../../components/ui/input.js';
+import { DatePicker, parseDateOnly, toDateOnlyString } from '../../components/ui/date-picker.js';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '../../components/ui/select.js';
 import { SingleSelectFilter } from '../../components/ui/filter-dropdown.js';
 import { SectionLoading } from '../../components/ui/spinner.js';
@@ -171,7 +172,7 @@ export function GerejiAngaStockUnits() {
                   <SelectContent>{CERT_TYPES.map(t => <SelectItem key={t} value={t}>{t.replace(/_/g, ' ')}</SelectItem>)}</SelectContent>
                 </Select>
               </div>
-              <div><label style={LABEL}>Expiry (optional)</label><Input type="date" value={certExpiry} onChange={e => setCertExpiry(e.target.value)} /></div>
+              <div><label style={LABEL}>Expiry (optional)</label><DatePicker date={parseDateOnly(certExpiry) ?? null} onChange={d => setCertExpiry(toDateOnlyString(d))} /></div>
             </div>
           </DialogBody>
           <DialogFooter>

@@ -171,7 +171,7 @@ export function GerejiAngaSuppliers() {
           </DialogBody>
           <DialogFooter>
             <Button variant="outline" onClick={() => setOpen(false)}>Cancel</Button>
-            <Button onClick={create} disabled={saving}>{saving ? 'Creating...' : 'Create supplier'}</Button>
+            <Button onClick={create} loading={saving} loadingText="Creating…">Create supplier</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

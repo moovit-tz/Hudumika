@@ -8,6 +8,7 @@ import { apiFetch } from '../lib/api.js';
 import { showAlert } from '../lib/alert.js';
 import { showConfirm } from '../lib/confirm.js';
 import type { CmsWebhook, CmsWebhookEvent } from '@hudumika/types';
+import { Button } from '../components/ui/button.js';
 
 const EVENTS: { value: CmsWebhookEvent; label: string; description: string }[] = [
   { value: 'page.published', label: 'Page published', description: 'A page is created or edited while set to Published.' },
@@ -119,9 +120,9 @@ export function CMSWebhooks() {
               ))}
             </div>
           </div>
-          <button className="btn btn-primary btn-sm" disabled={saving} onClick={handleCreate} style={{ alignSelf: 'flex-start' }} data-ui-native-button="">
-            {saving ? 'Adding…' : 'Add webhook'}
-          </button>
+          <Button size="sm" onClick={handleCreate} style={{ alignSelf: 'flex-start' }} loading={saving} loadingText="Adding…">
+            Add webhook
+          </Button>
         </div>
 
         {revealedSecret && (

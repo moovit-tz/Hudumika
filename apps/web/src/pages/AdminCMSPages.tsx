@@ -8,6 +8,7 @@ import { showAlert } from '../lib/alert.js';
 import { PageHeader } from '../components/PageHeader.js';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '../components/ui/select.js';
 import { SectionCard } from '../components/SectionCard.js';
+import { Button } from '../components/ui/button.js';
 
 function PageHdr({ title, sub, action }: { title: string; sub: string; action?: React.ReactNode }) {
   return (
@@ -133,9 +134,9 @@ export function AdminCMSPages() {
             />
           </div>
           <div style={{ display: 'flex', gap: 8 }}>
-            <button type="button" className="btn btn-primary btn-sm" disabled={saving} onClick={handleCreate} data-ui-native-button="">
-              {saving ? 'Creating…' : 'Create & Edit'}
-            </button>
+            <Button size="sm" type="button" onClick={handleCreate} loading={saving} loadingText="Creating…">
+              {'Create & Edit'}
+            </Button>
             <button type="button" className="btn btn-secondary btn-sm" onClick={() => setCreating(false)} data-ui-native-button="">Cancel</button>
           </div>
         </SectionCard>
@@ -155,9 +156,9 @@ export function AdminCMSPages() {
                   <SelectItem value="published">Published</SelectItem>
                 </SelectContent>
               </Select>
-              <button type="button" className="btn btn-primary btn-sm" disabled={saving} onClick={() => handleSave(editing)} data-ui-native-button="">
-                {saving ? 'Saving…' : 'Save Changes'}
-              </button>
+              <Button size="sm" type="button" onClick={() => handleSave(editing)} loading={saving} loadingText="Saving…">
+                Save Changes
+              </Button>
               <button type="button" className="btn btn-secondary btn-sm" onClick={() => setEditing(null)} data-ui-native-button="">Close</button>
             </div>
           }

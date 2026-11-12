@@ -176,7 +176,7 @@ export function LexCoreMatters() {
                 <div className="lc-field lc-field-full"><label>Description</label><Textarea value={desc} onChange={e => setDesc(e.target.value)} rows={3} placeholder="Brief description…" /></div>
               </div>
             </DialogBody>
-            <DialogFooter><Button type="submit" disabled={saving || !title.trim() || !clientId}>{saving ? 'Saving…' : 'Create'}</Button></DialogFooter>
+            <DialogFooter><Button type="submit" loading={saving} disabled={!title.trim() || !clientId} loadingText="Saving…">Create</Button></DialogFooter>
           </form>
         </DialogContent>
       </Dialog>

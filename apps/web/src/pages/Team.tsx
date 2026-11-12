@@ -9,6 +9,7 @@ import { showConfirm } from '../lib/confirm.js';
 import { useAuth } from '../hooks/useAuth.js';
 import { formatDate, formatDateTime } from '../lib/tenantLocale.js';
 import './Team.css';
+import { Button } from '../components/ui/button.js';
 
 /**
  * Who is in this workspace, and what each role may do.
@@ -307,9 +308,9 @@ function NoticesTab({ canManage }: { canManage: boolean }) {
             <input data-ui-field="input" id="notice-body" value={body} onChange={e => setBody(e.target.value)}
               placeholder="Clearance desk reopens Monday at 8am" />
           </div>
-          <button type="submit" className="btn btn-primary" disabled={posting} data-ui-native-button="">
-            {posting ? 'Posting…' : 'Post to the workspace'}
-          </button>
+          <Button type="submit" loading={posting} loadingText="Posting…">
+            Post to the workspace
+          </Button>
         </form>
       )}
 

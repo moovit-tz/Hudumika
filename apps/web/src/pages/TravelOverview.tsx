@@ -15,6 +15,7 @@ import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogBody, DialogFooter,
 } from '../components/ui/dialog.js';
 import { Input } from '../components/ui/input.js';
+import { DatePicker, parseDateOnly, toDateOnlyString } from '../components/ui/date-picker.js';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '../components/ui/select.js';
 import { showAlert } from '../lib/alert.js';
 import { Tip } from '../components/ui/tooltip.js';
@@ -567,11 +568,11 @@ function NewTripDialog({ open, onOpenChange, onCreated }: { open: boolean; onOpe
             </label>
             <label className="tv-form-field">
               <span>Start date</span>
-              <Input type="date" value={startDate} onChange={e => setStartDate(e.target.value)} />
+              <DatePicker date={parseDateOnly(startDate) ?? null} onChange={d => setStartDate(toDateOnlyString(d))} />
             </label>
             <label className="tv-form-field">
               <span>End date</span>
-              <Input type="date" value={endDate} onChange={e => setEndDate(e.target.value)} />
+              <DatePicker date={parseDateOnly(endDate) ?? null} onChange={d => setEndDate(toDateOnlyString(d))} />
             </label>
             <label className="tv-form-field">
               <span>Budget</span>

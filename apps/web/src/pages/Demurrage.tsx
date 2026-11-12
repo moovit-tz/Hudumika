@@ -568,9 +568,9 @@ export const Demurrage: React.FC = () => {
           )}
           <DialogFooter>
             <button type="button" className="btn btn-secondary" onClick={() => setRechargeContainer(null)} data-ui-native-button="">Cancel</button>
-            <button type="button" className="btn btn-primary" disabled={!rechargeInvoiceId || rechargeSaving} onClick={submitRecharge} data-ui-native-button="">
-              {rechargeSaving ? 'Recharging…' : 'Recharge'}
-            </button>
+            <Button type="button" onClick={submitRecharge} loading={rechargeSaving} disabled={!rechargeInvoiceId} loadingText="Recharging…">
+              Recharge
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

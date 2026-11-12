@@ -99,7 +99,7 @@ export function InventoryWarehouses() {
             </div>
           </div>
           <div style={{ padding: '0 20px 20px' }}>
-            <Button type="submit" disabled={saving || !newCode.trim() || !newName.trim()}>{saving ? 'Creating…' : 'Create Warehouse'}</Button>
+            <Button type="submit" loading={saving} disabled={!newCode.trim() || !newName.trim()} loadingText="Creating…">Create Warehouse</Button>
           </div>
         </form>
       )}

@@ -92,7 +92,7 @@ function CreateCourseDialog({ onClose, onCreated }: { onClose: () => void; onCre
           </div>
           <DialogFooter>
             <Button type="button" variant="outline" onClick={onClose}>Cancel</Button>
-            <Button type="submit" disabled={saving || !title.trim()}>{saving ? 'Creating…' : 'Create course'}</Button>
+            <Button type="submit" loading={saving} disabled={!title.trim()} loadingText="Creating…">Create course</Button>
           </DialogFooter>
         </form>
       </DialogContent>

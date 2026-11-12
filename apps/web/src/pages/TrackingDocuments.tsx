@@ -92,7 +92,7 @@ function AddDocModal({ vehicles, onClose, onAdded }: { vehicles: Vehicle[]; onCl
           {error && <div style={{ fontSize: 12, color: 'var(--red)' }}>{error}</div>}
           <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end', marginTop: 4 }}>
             <Button type="button" variant="outline" onClick={onClose}>Cancel</Button>
-            <Button type="submit" disabled={saving || !vehicleId}>{saving ? 'Saving…' : 'Add document'}</Button>
+            <Button type="submit" loading={saving} disabled={!vehicleId} loadingText="Saving…">Add document</Button>
           </div>
         </form>
       </DialogContent>

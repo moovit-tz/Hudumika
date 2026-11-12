@@ -267,7 +267,7 @@ export const TrackingVehicleAddEntry: React.FC = () => {
         {error && <Banner variant="error" title="Couldn’t save entry" onDismiss={() => setError('')}>{error}</Banner>}
         <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end', marginTop: 6 }}>
           <Button type="button" variant="outline" asChild><Link to={`/tracking/vehicles/${id}`}>Cancel</Link></Button>
-          <Button type="submit" disabled={saving}>{saving ? 'Saving…' : config.submitLabel}</Button>
+          <Button type="submit" loading={saving} loadingText="Saving…">{config.submitLabel}</Button>
         </div>
       </form>
       </SectionCard>

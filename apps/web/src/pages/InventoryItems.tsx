@@ -189,7 +189,7 @@ export function InventoryItems() {
             </label>
           </div>
           <div style={{ padding: '0 20px 20px' }}>
-            <Button type="submit" disabled={saving || !newSku.trim() || !newName.trim()}>{saving ? 'Creating…' : 'Create Item'}</Button>
+            <Button type="submit" loading={saving} disabled={!newSku.trim() || !newName.trim()} loadingText="Creating…">Create Item</Button>
           </div>
           </form>
         </SectionCard>

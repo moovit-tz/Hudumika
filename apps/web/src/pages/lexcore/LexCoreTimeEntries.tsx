@@ -4,6 +4,7 @@ import { SectionCard } from '../../components/SectionCard.js';
 import { Badge } from '../../components/ui/badge.js';
 import { Button } from '../../components/ui/button.js';
 import { Input } from '../../components/ui/input.js';
+import { DatePicker, parseDateOnly, toDateOnlyString } from '../../components/ui/date-picker.js';
 import { Textarea } from '../../components/ui/textarea.js';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '../../components/ui/select.js';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogBody, DialogFooter } from '../../components/ui/dialog.js';
@@ -91,7 +92,7 @@ export function LexCoreTimeEntries() {
                 <div className="lc-field"><label>Matter</label>
                   <Select value={matterId} onValueChange={setMatterId}><SelectTrigger><SelectValue placeholder="Select matter…" /></SelectTrigger><SelectContent>{matters.map(m => <SelectItem key={m.id} value={m.id}>{m.matter_number} — {m.title}</SelectItem>)}</SelectContent></Select>
                 </div>
-                <div className="lc-field"><label>Date</label><Input type="date" value={date} onChange={e => setDate(e.target.value)} /></div>
+                <div className="lc-field"><label>Date</label><DatePicker date={parseDateOnly(date) ?? null} onChange={d => setDate(toDateOnlyString(d))} /></div>
                 <div className="lc-field"><label>Hours</label><Input type="number" step="0.25" min="0.25" value={hours} onChange={e => setHours(e.target.value)} placeholder="1.5" /></div>
                 <div className="lc-field"><label>Rate (optional)</label><Input type="number" step="any" min="0" value={rate} onChange={e => setRate(e.target.value)} placeholder="Rate per hour" /></div>
                 <div className="lc-field"><label>Billable</label>
@@ -100,7 +101,7 @@ export function LexCoreTimeEntries() {
                 <div className="lc-field lc-field-full"><label>Description</label><Textarea value={desc} onChange={e => setDesc(e.target.value)} rows={3} placeholder="Work performed…" /></div>
               </div>
             </DialogBody>
-            <DialogFooter><Button type="submit" disabled={saving || !matterId || !desc.trim() || !hours}>{saving ? 'Saving…' : 'Log Entry'}</Button></DialogFooter>
+            <DialogFooter><Button type="submit" loading={saving} disabled={!matterId || !desc.trim() || !hours} loadingText="Saving…">Log Entry</Button></DialogFooter>
           </form>
         </DialogContent>
       </Dialog>

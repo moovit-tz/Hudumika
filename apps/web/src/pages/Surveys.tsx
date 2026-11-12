@@ -271,7 +271,7 @@ function NewSurveyModal({ onClose, onCreated }: { onClose: () => void; onCreated
 
           <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end', marginTop: 4 }}>
             <Button type="button" variant="outline" onClick={onClose}>Cancel</Button>
-            <Button type="submit" disabled={saving}>{saving ? 'Launching…' : 'Launch survey'}</Button>
+            <Button type="submit" loading={saving} loadingText="Launching…">Launch survey</Button>
           </div>
         </div>
       </form>
@@ -331,7 +331,7 @@ function AnswerModal({ survey, onClose, onSubmitted }: { survey: SurveyInstance;
           {error && <div style={{ fontSize: 12.5, color: 'var(--red)' }}>{error}</div>}
           <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end' }}>
             <Button type="button" variant="outline" onClick={onClose}>Cancel</Button>
-            <Button type="submit" disabled={saving}>{saving ? 'Submitting…' : 'Submit response'}</Button>
+            <Button type="submit" loading={saving} loadingText="Submitting…">Submit response</Button>
           </div>
         </div>
       </form>

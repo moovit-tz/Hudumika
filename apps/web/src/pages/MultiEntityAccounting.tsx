@@ -337,7 +337,7 @@ export function MultiEntityAccounting() {
                 <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: 'var(--ink2)', marginBottom: 6 }}>To</label>
                 <DatePicker date={parseDateOnly(plTo)} onChange={d => setPlTo(toDateOnlyString(d))} />
               </div>
-              <Button onClick={loadConsolidated} disabled={consolidatedLoading}>{consolidatedLoading ? 'Loading…' : 'Refresh'}</Button>
+              <Button onClick={loadConsolidated} loading={consolidatedLoading} loadingText="Loading…">Refresh</Button>
             </div>
           </SectionCard>
 

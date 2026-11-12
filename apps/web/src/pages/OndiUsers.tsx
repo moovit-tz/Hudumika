@@ -28,6 +28,9 @@ import {
   DialogFooter,
 } from '../components/ui/dialog.js';
 import { Input } from '../components/ui/input.js';
+import { Tip } from '../components/ui/tooltip.js';
+import { PaginationBar } from '../components/PaginationBar.js';
+import { SlidersHorizontal, X } from 'lucide-react';
 
 interface OndiUser {
   id: string;
@@ -344,11 +347,22 @@ export const OndiUsers: React.FC = () => {
   const [filterStatus, setFilterStatus] = useState('All');
   const [filterRole, setFilterRole] = useState('All');
 
+  // Compact rows / row density state
+  const [compactRows, setCompactRows] = useState(true);
+
+  // Pagination state for users table
+  const [userPage, setUserPage] = useState(1);
+  const [userPageSize, setUserPageSize] = useState(25);
+
   // Checkbox selection state
   const [selectedUsers, setSelectedUsers] = useState<Set<string>>(new Set());
 
   // Email copy confirmation state
   const [copiedEmailId, setCopiedEmailId] = useState<string | null>(null);
+
+  useEffect(() => {
+    setUserPage(1);
+  }, [search, filterPermission, filterStatus, filterRole]);
 
   const reload = useCallback(() => {
     setLoading(true);
@@ -464,6 +478,10 @@ export const OndiUsers: React.FC = () => {
     });
   }, [users, search, filterPermission, filterStatus, filterRole]);
 
+  const paginatedUsers = useMemo(() => {
+    return filteredUsers.slice((userPage - 1) * userPageSize, userPage * userPageSize);
+  }, [filteredUsers, userPage, userPageSize]);
+
   const hasActiveFilters = search.trim() !== '' || filterPermission !== 'All' || filterStatus !== 'All' || filterRole !== 'All';
 
   function resetFilters() {
@@ -482,10 +500,10 @@ export const OndiUsers: React.FC = () => {
   }
 
   function toggleSelectAll() {
-    if (selectedUsers.size === filteredUsers.length) {
+    if (selectedUsers.size === paginatedUsers.length && paginatedUsers.length > 0) {
       setSelectedUsers(new Set());
     } else {
-      setSelectedUsers(new Set(filteredUsers.map(u => u.id)));
+      setSelectedUsers(new Set(paginatedUsers.map(u => u.id)));
     }
   }
 
@@ -517,7 +535,7 @@ export const OndiUsers: React.FC = () => {
   const pendingInvitesCount = invites.filter(i => i.status === 'PENDING').length;
 
   return (
-    <div className="ondi-page-container">
+    <div className="ondi-page-container ondi-users-page">
       <InviteModal
         open={showInvite}
         onOpenChange={setShowInvite}
@@ -741,15 +759,18 @@ export const OndiUsers: React.FC = () => {
                 options={assignableRoles(canGrantSuperAdmin).map(r => ({ value: r, label: r }))}
               />
 
-              {hasActiveFilters && (
-                <button
+              <Tip label={compactRows ? "Currently in compressed rows view (compact). Click for standard." : "Switch to compressed rows view."}>
+                <Button
                   type="button"
-                  onClick={resetFilters}
-                  className="text-xs font-semibold text-muted-foreground hover:text-foreground inline-flex items-center gap-1 px-2.5 py-1.5 rounded-md hover:bg-muted transition-colors"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setCompactRows(v => !v)}
+                  className="h-8 gap-1.5 text-xs font-semibold"
                 >
-                  <Icon name="x" size={12} /> Clear filters
-                </button>
-              )}
+                  <Icon name="list" size={13} />
+                  <span>{compactRows ? 'Dense Rows' : 'Standard Rows'}</span>
+                </Button>
+              </Tip>
 
               <Button
                 type="button"
@@ -763,6 +784,129 @@ export const OndiUsers: React.FC = () => {
               </Button>
             </div>
           </div>
+
+          {/* Active Filter Chips */}
+          {hasActiveFilters && (
+            <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap', padding: '8px 16px', background: 'var(--bg)', borderBottom: '1px solid var(--border)' }}>
+              <span style={{ fontSize: 11.5, color: 'var(--ink3)', fontWeight: 600 }}>Active filters:</span>
+              {search.trim() && (
+                <span
+                  style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: 6,
+                    padding: '2px 8px',
+                    borderRadius: 6,
+                    fontSize: 11,
+                    background: 'var(--white)',
+                    border: '1px solid var(--border)',
+                    color: 'var(--ink)',
+                  }}
+                >
+                  Search: <strong>&ldquo;{search}&rdquo;</strong>
+                  <button
+                    type="button"
+                    onClick={() => setSearch('')}
+                    style={{ background: 'transparent', border: 'none', cursor: 'pointer', padding: 0, color: 'var(--ink3)', display: 'inline-flex', alignItems: 'center' }}
+                    title="Clear search"
+                  >
+                    <X size={12} />
+                  </button>
+                </span>
+              )}
+              {filterPermission !== 'All' && (
+                <span
+                  style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: 6,
+                    padding: '2px 8px',
+                    borderRadius: 6,
+                    fontSize: 11,
+                    background: 'var(--white)',
+                    border: '1px solid var(--border)',
+                    color: 'var(--ink)',
+                  }}
+                >
+                  Permissions: <strong>{filterPermission}</strong>
+                  <button
+                    type="button"
+                    onClick={() => setFilterPermission('All')}
+                    style={{ background: 'transparent', border: 'none', cursor: 'pointer', padding: 0, color: 'var(--ink3)', display: 'inline-flex', alignItems: 'center' }}
+                    title="Clear permissions filter"
+                  >
+                    <X size={12} />
+                  </button>
+                </span>
+              )}
+              {filterStatus !== 'All' && (
+                <span
+                  style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: 6,
+                    padding: '2px 8px',
+                    borderRadius: 6,
+                    fontSize: 11,
+                    background: 'var(--white)',
+                    border: '1px solid var(--border)',
+                    color: 'var(--ink)',
+                  }}
+                >
+                  Status: <strong style={{ color: filterStatus === 'Seated' ? 'var(--green)' : 'var(--gold)' }}>{filterStatus}</strong>
+                  <button
+                    type="button"
+                    onClick={() => setFilterStatus('All')}
+                    style={{ background: 'transparent', border: 'none', cursor: 'pointer', padding: 0, color: 'var(--ink3)', display: 'inline-flex', alignItems: 'center' }}
+                    title="Clear status filter"
+                  >
+                    <X size={12} />
+                  </button>
+                </span>
+              )}
+              {filterRole !== 'All' && (
+                <span
+                  style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: 6,
+                    padding: '2px 8px',
+                    borderRadius: 6,
+                    fontSize: 11,
+                    background: 'var(--white)',
+                    border: '1px solid var(--border)',
+                    color: 'var(--ink)',
+                  }}
+                >
+                  Role: <strong>{filterRole}</strong>
+                  <button
+                    type="button"
+                    onClick={() => setFilterRole('All')}
+                    style={{ background: 'transparent', border: 'none', cursor: 'pointer', padding: 0, color: 'var(--ink3)', display: 'inline-flex', alignItems: 'center' }}
+                    title="Clear role filter"
+                  >
+                    <X size={12} />
+                  </button>
+                </span>
+              )}
+              <button
+                type="button"
+                onClick={resetFilters}
+                style={{
+                  fontSize: 11,
+                  fontWeight: 600,
+                  color: 'hsl(var(--primary))',
+                  background: 'transparent',
+                  border: 'none',
+                  cursor: 'pointer',
+                  padding: '2px 6px',
+                }}
+                className="hover:underline"
+              >
+                Reset all
+              </button>
+            </div>
+          )}
 
           {/* Bulk Selection Banner */}
           {selectedUsers.size > 0 && (
@@ -819,13 +963,13 @@ export const OndiUsers: React.FC = () => {
 
           {/* Table Container */}
           <div className="overflow-x-auto">
-            <table className="ondi-table">
+            <table className="ondi-table" data-compact={compactRows ? 'true' : undefined}>
               <thead>
                 <tr>
-                  <th style={{ width: 44, textAlign: 'center' }}>
+                  <th style={{ width: compactRows ? 36 : 44, textAlign: 'center' }}>
                     <Checkbox
                       className="mx-auto"
-                      checked={filteredUsers.length > 0 && selectedUsers.size === filteredUsers.length}
+                      checked={paginatedUsers.length > 0 && selectedUsers.size === paginatedUsers.length}
                       onCheckedChange={toggleSelectAll}
                       aria-label="Select all users"
                     />
@@ -839,7 +983,7 @@ export const OndiUsers: React.FC = () => {
                 </tr>
               </thead>
               <tbody>
-                {!loading && filteredUsers.map(u => {
+                {!loading && paginatedUsers.map(u => {
                   const isSelected = selectedUsers.has(u.id);
                   const isCurrentUser = u.id === me?.id;
 
@@ -856,32 +1000,34 @@ export const OndiUsers: React.FC = () => {
 
                       {/* User Cell */}
                       <td>
-                        <div className="flex items-center gap-3">
-                          <div className="relative">
+                        <div className="flex items-center gap-2.5">
+                          <div className="relative shrink-0">
                             <PersonAvatar
                               userId={u.id}
                               name={u.name}
-                              size={34}
+                              size={compactRows ? 26 : 34}
                               style={{ border: '1px solid var(--border)' }}
                             />
                             <span
-                              className="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 rounded-full border-2 border-white dark:border-slate-900"
+                              className="absolute -bottom-0.5 -right-0.5 w-2 h-2 rounded-full border-2 border-white dark:border-slate-900"
                               style={{ background: u.active ? 'var(--green)' : 'var(--ink3)' }}
                               title={u.active ? 'Seated member' : 'Suspended member'}
                             />
                           </div>
-                          <div>
-                            <div className="font-bold text-foreground flex items-center gap-1.5">
-                              <span>{u.name}</span>
+                          <div className="min-w-0">
+                            <div className={`font-bold text-foreground flex items-center gap-1.5 ${compactRows ? 'text-xs' : 'text-sm'}`}>
+                              <span className="truncate">{u.name}</span>
                               {isCurrentUser && (
                                 <span className="text-[10px] font-bold px-1.5 py-0.2 rounded bg-teal-50 dark:bg-teal-950 text-teal-700 dark:text-teal-300 border border-teal-200 dark:border-teal-800">
                                   You
                                 </span>
                               )}
                             </div>
-                            <div className="text-[11px] text-muted-foreground mt-0.5">
-                              {u.phone || 'No phone set'}
-                            </div>
+                            {(!compactRows || u.phone) && (
+                              <div className="text-[11px] text-muted-foreground mt-0.5 truncate">
+                                {u.phone || 'No phone set'}
+                              </div>
+                            )}
                           </div>
                         </div>
                       </td>
@@ -889,7 +1035,7 @@ export const OndiUsers: React.FC = () => {
                       {/* Email Cell */}
                       <td>
                         <div className="flex items-center gap-1.5 text-muted-foreground">
-                          <span className="font-mono text-xs">{u.email}</span>
+                          <span className={`font-mono ${compactRows ? 'text-[11.5px]' : 'text-xs'}`}>{u.email}</span>
                           <button
                             type="button"
                             onClick={() => copyEmail(u.id, u.email)}
@@ -937,12 +1083,12 @@ export const OndiUsers: React.FC = () => {
                                 border: '1px solid transparent',
                                 cursor: 'pointer',
                                 color: 'var(--ink3)',
-                                padding: '6px 8px',
+                                padding: compactRows ? '3px 6px' : '6px 8px',
                                 borderRadius: 'var(--r-sm)',
                               }}
                               aria-label="User actions"
                             >
-                              <Icon name="moreVertical" size={16} />
+                              <Icon name="moreVertical" size={compactRows ? 14 : 16} />
                             </button>
                           </DropdownMenuTrigger>
                           <DropdownMenuContent align="end" className="w-52">
@@ -997,6 +1143,18 @@ export const OndiUsers: React.FC = () => {
                 })}
               </tbody>
             </table>
+
+            {filteredUsers.length > userPageSize && (
+              <PaginationBar
+                page={userPage}
+                pageSize={userPageSize}
+                total={filteredUsers.length}
+                onPageChange={setUserPage}
+                onPageSizeChange={p => { setUserPageSize(p); setUserPage(1); }}
+                itemLabel="members"
+                bordered
+              />
+            )}
 
             {/* Empty State */}
             {!loading && filteredUsers.length === 0 && (
@@ -1053,7 +1211,7 @@ export const OndiUsers: React.FC = () => {
           </div>
 
           <div className="overflow-x-auto">
-            <table className="ondi-table">
+            <table className="ondi-table" data-compact={compactRows ? 'true' : undefined}>
               <thead>
                 <tr>
                   <th>Email</th>
@@ -1165,7 +1323,7 @@ export const OndiUsers: React.FC = () => {
           </div>
 
           <div className="overflow-x-auto">
-            <table className="ondi-table">
+            <table className="ondi-table" data-compact={compactRows ? 'true' : undefined}>
               <thead>
                 <tr>
                   <th>Applicant</th>

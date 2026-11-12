@@ -196,7 +196,7 @@ export function GerejiAngaAog() {
           </DialogBody>
           <DialogFooter>
             <Button variant="outline" onClick={() => setOpen(false)}>Cancel</Button>
-            <Button onClick={create} disabled={saving}>{saving ? 'Opening...' : 'Open case'}</Button>
+            <Button onClick={create} loading={saving} loadingText="Opening…">Open case</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

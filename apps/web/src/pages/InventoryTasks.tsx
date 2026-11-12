@@ -145,7 +145,7 @@ export function InventoryTasks() {
             </div>
           </div>
           <div style={{ padding: '0 20px 20px' }}>
-            <Button type="submit" disabled={saving || !newTitle.trim()}>{saving ? 'Creating…' : 'Create Task'}</Button>
+            <Button type="submit" loading={saving} disabled={!newTitle.trim()} loadingText="Creating…">Create Task</Button>
           </div>
         </form>
       )}

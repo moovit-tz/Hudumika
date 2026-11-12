@@ -23,6 +23,7 @@ import { apiFetch } from '../lib/api.js';
 import { showAlert } from '../lib/alert.js';
 import { showPrompt } from '../lib/prompt.js';
 import { buildLabelForest, flattenForest, invalidParentIds, type LabelNode } from '../pages/contacts/labelTree.js';
+import { Button } from '../components/ui/button.js';
 
 const GOOGLE_OAUTH_STATE_KEY = 'hudumika_google_contacts_oauth_state';
 const MICROSOFT_OAUTH_STATE_KEY = 'hudumika_outlook_contacts_oauth_state';
@@ -119,9 +120,9 @@ function GoogleSyncItem({ collapsed, onSynced }: { collapsed: boolean; onSynced:
         ) : !status.connected ? (
           <>
             <div className="text-xs text-muted-foreground mb-3">Import your contacts from your real Google account. This is a one-time or on-demand import — it doesn't keep running in the background.</div>
-            <button type="button" className="btn btn-primary btn-sm w-full" disabled={busy} onClick={handleConnect}>
-              {busy ? 'Redirecting…' : 'Connect Google Account'}
-            </button>
+            <Button size="sm" className="w-full" type="button" onClick={handleConnect} loading={busy} loadingText="Redirecting…">
+              Connect Google Account
+            </Button>
           </>
         ) : (
           <>
@@ -136,9 +137,9 @@ function GoogleSyncItem({ collapsed, onSynced }: { collapsed: boolean; onSynced:
             )}
             <div className="text-xs text-muted-foreground mt-2">Fetches the latest from Google right now — this doesn't run automatically.</div>
             <div className="flex gap-2 mt-3">
-              <button type="button" className="btn btn-primary btn-sm" disabled={busy} onClick={handleSync}>
-                {busy ? 'Importing…' : 'Refresh Imported Contacts'}
-              </button>
+              <Button size="sm" type="button" onClick={handleSync} loading={busy} loadingText="Importing…">
+                Refresh Imported Contacts
+              </Button>
               <button type="button" className="btn btn-secondary btn-sm" disabled={busy} onClick={handleDisconnect}>
                 Disconnect
               </button>
@@ -243,9 +244,9 @@ function OutlookSyncItem({ collapsed, onSynced }: { collapsed: boolean; onSynced
         ) : !status.connected ? (
           <>
             <div className="text-xs text-muted-foreground mb-3">Import your contacts from your real Microsoft 365/Outlook account. This is a one-time or on-demand import — it doesn't keep running in the background.</div>
-            <button type="button" className="btn btn-primary btn-sm w-full" disabled={busy} onClick={handleConnect}>
-              {busy ? 'Redirecting…' : 'Connect Outlook Account'}
-            </button>
+            <Button size="sm" className="w-full" type="button" onClick={handleConnect} loading={busy} loadingText="Redirecting…">
+              Connect Outlook Account
+            </Button>
           </>
         ) : (
           <>
@@ -260,9 +261,9 @@ function OutlookSyncItem({ collapsed, onSynced }: { collapsed: boolean; onSynced
             )}
             <div className="text-xs text-muted-foreground mt-2">Fetches the latest from Outlook right now — this doesn't run automatically.</div>
             <div className="flex gap-2 mt-3">
-              <button type="button" className="btn btn-primary btn-sm" disabled={busy} onClick={handleSync}>
-                {busy ? 'Importing…' : 'Refresh Imported Contacts'}
-              </button>
+              <Button size="sm" type="button" onClick={handleSync} loading={busy} loadingText="Importing…">
+                Refresh Imported Contacts
+              </Button>
               <button type="button" className="btn btn-secondary btn-sm" disabled={busy} onClick={handleDisconnect}>
                 Disconnect
               </button>

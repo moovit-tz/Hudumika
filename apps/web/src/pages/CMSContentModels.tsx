@@ -10,6 +10,7 @@ import { showAlert } from '../lib/alert.js';
 import { showConfirm } from '../lib/confirm.js';
 import { showPrompt } from '../lib/prompt.js';
 import type { CmsContentModel, CmsContentField, CmsFieldType } from '@hudumika/types';
+import { Button } from '../components/ui/button.js';
 
 function FL({ label, children }: { label: string; children: React.ReactNode }) {
   return (
@@ -90,7 +91,7 @@ export function CMSContentModelsList() {
                 </Select>
               </FL>
               <div style={{ display: 'flex', gap: 8 }}>
-                <button className="btn btn-primary btn-sm" disabled={saving} onClick={handleCreate} data-ui-native-button="">{saving ? 'Creating…' : 'Create model'}</button>
+                <Button size="sm" onClick={handleCreate} loading={saving} loadingText="Creating…">Create model</Button>
                 <button className="btn btn-secondary btn-sm" onClick={() => setCreating(false)} data-ui-native-button="">Cancel</button>
               </div>
             </div>
@@ -375,7 +376,7 @@ export function CMSContentModelDetail() {
               </label>
             )}
             <div style={{ display: 'flex', gap: 8 }}>
-              <button className="btn btn-primary btn-sm" disabled={saving} onClick={handleAddField} data-ui-native-button="">{saving ? 'Adding…' : 'Add field'}</button>
+              <Button size="sm" onClick={handleAddField} loading={saving} loadingText="Adding…">Add field</Button>
               <button className="btn btn-secondary btn-sm" onClick={() => setAddingField(false)} data-ui-native-button="">Cancel</button>
             </div>
           </div>

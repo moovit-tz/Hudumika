@@ -8,6 +8,7 @@ import { SectionCard } from '../components/SectionCard.js';
 import { Badge } from '../components/ui/badge.js';
 import { Button } from '../components/ui/button.js';
 import { Input } from '../components/ui/input.js';
+import { DatePicker, parseDateOnly, toDateOnlyString } from '../components/ui/date-picker.js';
 import { Checkbox } from '../components/ui/checkbox.js';
 import { Dialog, DialogContent, DialogTitle } from '../components/ui/dialog.js';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '../components/ui/select.js';
@@ -374,7 +375,7 @@ function QuickExpenseModal({
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
             <div>
               <label style={labelStyle}>Expense Date *</label>
-              <Input type="date" value={expenseDate} onChange={e => setExpenseDate(e.target.value)} required />
+              <DatePicker required date={parseDateOnly(expenseDate) ?? null} onChange={d => setExpenseDate(toDateOnlyString(d))} />
             </div>
             <div style={{ display: 'flex', alignItems: 'center', paddingTop: 20 }}>
               <label style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 13, cursor: 'pointer' }}>
@@ -499,11 +500,11 @@ function QuickMaintenanceModal({
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
             <div>
               <label style={labelStyle}>Service Date *</label>
-              <Input type="date" value={serviceDate} onChange={e => setServiceDate(e.target.value)} required />
+              <DatePicker required date={parseDateOnly(serviceDate) ?? null} onChange={d => setServiceDate(toDateOnlyString(d))} />
             </div>
             <div>
               <label style={labelStyle}>Next PM Due Date</label>
-              <Input type="date" value={nextDueDate} onChange={e => setNextDueDate(e.target.value)} />
+              <DatePicker date={parseDateOnly(nextDueDate) ?? null} onChange={d => setNextDueDate(toDateOnlyString(d))} />
             </div>
           </div>
 

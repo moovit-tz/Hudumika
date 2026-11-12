@@ -266,7 +266,7 @@ export function GerejiAngaQuotes() {
           </DialogBody>
           <DialogFooter>
             <Button variant="outline" onClick={() => setOpen(false)}>Cancel</Button>
-            <Button onClick={create} disabled={saving}>{saving ? 'Creating...' : 'Create quote'}</Button>
+            <Button onClick={create} loading={saving} loadingText="Creating…">Create quote</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

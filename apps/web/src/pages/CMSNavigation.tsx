@@ -7,6 +7,7 @@ import { apiFetch } from '../lib/api.js';
 import { showAlert } from '../lib/alert.js';
 import { showConfirm } from '../lib/confirm.js';
 import type { CmsNavItem } from '@hudumika/types';
+import { Button } from '../components/ui/button.js';
 
 const NONE = '__none__';
 
@@ -116,9 +117,9 @@ export function CMSNavigation() {
               {topLevel.map(i => <SelectItem key={i.id} value={i.id}>Nested under "{i.label}"</SelectItem>)}
             </SelectContent>
           </Select>
-          <button className="btn btn-primary btn-sm" disabled={saving} onClick={handleCreate} style={{ alignSelf: 'flex-start' }} data-ui-native-button="">
-            {saving ? 'Adding…' : 'Add item'}
-          </button>
+          <Button size="sm" onClick={handleCreate} style={{ alignSelf: 'flex-start' }} loading={saving} loadingText="Adding…">
+            Add item
+          </Button>
         </div>
 
         {items === null ? <SectionLoading /> : items.length === 0 ? (

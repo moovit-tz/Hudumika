@@ -192,7 +192,7 @@ export function GerejiVehicles() {
           </DialogBody>
           <DialogFooter>
             <Button variant="outline" onClick={() => setOpen(false)}>Cancel</Button>
-            <Button onClick={save} disabled={saving}>{saving ? 'Saving...' : editingId ? 'Save changes' : 'Create vehicle'}</Button>
+            <Button onClick={save} loading={saving} loadingText="Saving…">{editingId ? 'Save changes' : 'Create vehicle'}</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

@@ -11,6 +11,7 @@ import { SealDocumentPanel } from '../../components/SealDocumentPanel.js';
 import { RaiseSealTicketButton } from '../../components/RaiseSealTicketButton.js';
 import { SEAL_DECLARATION_STATUS_LABELS, SEAL_DECLARATION_PROCEDURE_LABELS, type SealDeclarationStatus } from '@hudumika/types';
 import '../Seal.css';
+import { Button } from '../../components/ui/button.js';
 
 const STATUS_VARIANT: Record<SealDeclarationStatus, 'brand' | 'success' | 'warning' | 'error' | 'info' | 'gray'> = {
   DRAFT: 'gray', SUBMITTED: 'info', QUERIED: 'warning', ASSESSED: 'brand', PAID: 'success', RELEASED: 'success', CANCELLED: 'error',
@@ -174,7 +175,7 @@ export function SealExWarehouseEntryDetail() {
                           <SelectItem value="RED">RED — physical exam</SelectItem>
                         </SelectContent>
                       </Select>
-                      <button type="button" className="btn btn-primary" disabled={busy || !submissionReference.trim() || !selectivityChannel} onClick={handleSubmitDeclaration} data-ui-native-button="">{busy ? 'Submitting…' : 'Confirm Submission'}</button>
+                      <Button type="button" onClick={handleSubmitDeclaration} loading={busy} disabled={!submissionReference.trim() || !selectivityChannel} loadingText="Submitting…">Confirm Submission</Button>
                       <button type="button" className="btn btn-secondary" onClick={() => setShowSubmit(false)} data-ui-native-button="">Cancel</button>
                     </div>
                   </div>
@@ -203,7 +204,7 @@ export function SealExWarehouseEntryDetail() {
               showPay ? (
                 <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'flex-end' }}>
                   <input data-ui-field="input" type="text" className="input-field" style={{ width: 220 }} value={paymentReference} onChange={e => setPaymentReference(e.target.value)} placeholder="Payment reference" />
-                  <button type="button" className="btn btn-primary" disabled={busy || !paymentReference.trim()} onClick={() => handleAdvance('PAID', paymentReference.trim())} data-ui-native-button="">{busy ? 'Recording…' : 'Confirm Payment'}</button>
+                  <Button type="button" onClick={() => handleAdvance('PAID', paymentReference.trim())} loading={busy} disabled={!paymentReference.trim()} loadingText="Recording…">Confirm Payment</Button>
                   <button type="button" className="btn btn-secondary" onClick={() => setShowPay(false)} data-ui-native-button="">Cancel</button>
                 </div>
               ) : (
@@ -296,7 +297,7 @@ export function SealExWarehouseEntryDetail() {
                         </SelectContent>
                       </Select>
                       <input data-ui-field="input" type="text" className="input-field" style={{ width: 240 }} value={examFindings} onChange={e => setExamFindings(e.target.value)} placeholder="Officer's notes" />
-                      <button type="button" className="btn btn-primary" disabled={busy} onClick={() => handleCompleteExamination(ex.id)} data-ui-native-button="">{busy ? 'Recording…' : 'Complete Examination'}</button>
+                      <Button type="button" onClick={() => handleCompleteExamination(ex.id)} loading={busy} loadingText="Recording…">Complete Examination</Button>
                       <button type="button" className="btn btn-secondary" onClick={() => setCompletingExamId(null)} data-ui-native-button="">Cancel</button>
                     </div>
                   ) : (
