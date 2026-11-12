@@ -19,6 +19,7 @@ import { Badge as UiBadge } from '../../components/ui/badge.js';
 import { showAlert } from '../../lib/alert.js';
 import { showConfirm } from '../../lib/confirm.js';
 import { PaginationBar } from '../../components/PaginationBar.js';
+import '../OndiPages.css';
 import { type FinanceCapabilitySummary, type FinanceConfiguration } from '@hudumika/types';
 import {
   Badge, CoAv, PLAN_CFG, CO_CFG, TX_CFG,
