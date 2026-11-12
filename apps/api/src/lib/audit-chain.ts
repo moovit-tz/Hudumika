@@ -22,7 +22,9 @@ import { dispatchSiemExport } from './siem-export.js';
  * out to a tenant's configured SIEM webhook, if any — see siem-export.ts.
  */
 export type OndiEventType =
-  | 'login_success' | 'login_failed'
+  | 'login_success' | 'login_failed' | 'saml_logout'
+  | 'saml_sp_client_created' | 'saml_sp_client_updated' | 'saml_sp_client_deleted'
+  | 'saml_idp_key_rotated' | 'saml_idp_key_revoked'
   | 'otp_issued' | 'otp_verified'
   | 'totp_verified'
   | 'phone_otp_issued' | 'phone_verified'

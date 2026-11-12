@@ -12,6 +12,7 @@ import { authRoutes } from './routes/auth.routes.js';
 import { ondiRoutes } from './routes/ondi.routes.js';
 import { ondiAuthRoutes } from './routes/ondi-auth.routes.js';
 import { ondiSamlRoutes } from './routes/ondi-saml.routes.js';
+import { ondiSamlIdpRoutes } from './routes/ondi-saml-idp.routes.js';
 import { ondiOauthRoutes } from './routes/ondi-oauth.routes.js';
 import { oidcDiscoveryRoutes } from './routes/oidc-discovery.routes.js';
 
@@ -112,6 +113,7 @@ async function main() {
   await server.register(ondiRoutes, { prefix: '/v1/ondi' });
   await server.register(ondiAuthRoutes, { prefix: '/v1/ondi/auth' });
   await server.register(ondiSamlRoutes, { prefix: '/v1/ondi/auth/saml' });
+  await server.register(ondiSamlIdpRoutes, { prefix: '/v1/ondi/saml/idp' });
   await server.register(ondiOauthRoutes, { prefix: '/v1/ondi/oauth' });
   await server.register(oidcDiscoveryRoutes);
 
@@ -130,6 +132,11 @@ async function main() {
     const qs = new URLSearchParams(request.query as Record<string, string>);
     qs.set('api_base', process.env.ONDI_ISSUER_OVERRIDE!);
     return reply.redirect(`${webOrigin}/ondi/authorize?${qs.toString()}`);
+  });
+  server.get('/ondi/saml/idp/authorize', async (request, reply) => {
+    const qs = new URLSearchParams(request.query as Record<string, string>);
+    qs.set('api_base', process.env.ONDI_ISSUER_OVERRIDE!);
+    return reply.redirect(`${webOrigin}/ondi/saml/idp/authorize?${qs.toString()}`);
   });
 
   server.get('/health', async () => ({

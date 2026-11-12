@@ -7,6 +7,7 @@ import {
   Sparkles, ShoppingBag, BarChart3, Wallet, FileCheck2,
 } from 'lucide-react';
 import { Tip } from '../components/ui/tooltip.js';
+import { Button } from '../components/ui/button.js';
 import {
   Select, SelectTrigger, SelectValue, SelectContent, SelectItem,
 } from '../components/ui/select.js';
@@ -97,6 +98,8 @@ export default function ComponentShowcase() {
   const [singleDate, setSingleDate] = useState<Date | undefined>(new Date());
   const [dateRange, setDateRange] = useState<DateRange | undefined>();
   const [swatchColor, setSwatchColor] = useState(PLATFORM_SWATCHES[0]);
+  const [demoSaving, setDemoSaving] = useState(false);
+  const runDemoSave = () => { setDemoSaving(true); setTimeout(() => setDemoSaving(false), 1800); };
 
   return (
     <div>
@@ -105,6 +108,39 @@ export default function ComponentShowcase() {
       </p>
 
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+
+        {/* Button */}
+        <section className={`${SECTION} lg:col-span-2`}>
+          <div className={SECTION_TITLE}>Button</div>
+          <div className={SECTION_DESC}>
+            Six variants, five sizes. Tab through them: every button shows the same 2px focus ring, floored to 3:1 against the page for any tenant accent.
+            Pass <code>loading</code> while an action is in flight — it shows a spinner, blocks a second click and keeps keyboard focus, so don't swap the label for "Saving…" by hand.
+          </div>
+          <div className="flex flex-col gap-4">
+            <div className="flex flex-wrap items-center gap-3">
+              <Button type="button">Primary</Button>
+              <Button type="button" variant="secondary">Secondary</Button>
+              <Button type="button" variant="outline">Outline</Button>
+              <Button type="button" variant="ghost">Ghost</Button>
+              <Button type="button" variant="link">Link</Button>
+              <Button type="button" variant="destructive">Delete</Button>
+              <Button type="button" disabled>Disabled</Button>
+            </div>
+            <div className="flex flex-wrap items-center gap-3">
+              <Button type="button" variant="outline" size="xs">xs · table row</Button>
+              <Button type="button" variant="outline" size="sm">sm · toolbar</Button>
+              <Button type="button" variant="outline">default · page action</Button>
+              <Button type="button" variant="outline" iconOnly aria-label="Download"><Download /></Button>
+            </div>
+            <div className="flex flex-wrap items-center gap-3">
+              <Button type="button" loading={demoSaving} loadingText="Saving" onClick={runDemoSave}>Save changes</Button>
+              <Button type="button" variant="outline" loading>Outline, loading</Button>
+              <Button type="button" variant="destructive" loading>Deleting</Button>
+              <Button type="button" variant="outline" iconOnly loading aria-label="Refreshing" />
+              <span className="text-xs text-muted-foreground">Click "Save changes" to see the transition.</span>
+            </div>
+          </div>
+        </section>
 
         {/* Select + Combobox */}
         <section className={SECTION}>

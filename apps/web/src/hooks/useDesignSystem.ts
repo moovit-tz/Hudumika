@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { apiFetch } from '../lib/api.js';
-import { parseHex, lightenHex, tintRgba, hexToHslTriplet, pickForegroundHsl, enforceContrastFloor, enforceTextContrast } from '../lib/color.js';
+import { parseHex, lightenHex, tintRgba, hexToHslTriplet, pickForegroundHsl, enforceContrastFloor, enforceTextContrast, focusRingHex } from '../lib/color.js';
 import { themeFromSourceColor, argbFromHex, hexFromArgb } from '@material/material-color-utilities';
 
 // ── Types ─────────────────────────────────────────────────────────────────────
@@ -867,6 +867,9 @@ export function applyDesignTokens(tokens: DesignTokens): void {
     '--primary': primaryHslLight,
     '--primary-foreground': primaryFgLight,
     '--ring': primaryHslLight,
+    // Floored against the page, not the fill — see focusRingHex. --bg is the
+    // darker of the two light surfaces, so clearing it clears --white too.
+    '--focus-ring-color': focusRingHex(primarySurfaceLight.hex, tokens.neutral.light.bg),
     '--sidebar-primary': primaryHslLight,
     '--sidebar-primary-foreground': primaryFgLight,
     '--sidebar-ring': primaryHslLight,
@@ -1019,6 +1022,8 @@ export function applyDesignTokens(tokens: DesignTokens): void {
     '--primary': primaryHslDark,
     '--primary-foreground': primaryFgDark,
     '--ring': primaryHslDark,
+    // #1e1e1e: the lightest neutral dark surface a control sits on here.
+    '--focus-ring-color': focusRingHex(primarySurfaceDark.hex, '#1e1e1e'),
     '--sidebar-primary': primaryHslDark,
     '--sidebar-primary-foreground': primaryFgDark,
     '--sidebar-ring': primaryHslDark,

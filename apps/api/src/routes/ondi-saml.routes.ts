@@ -332,7 +332,7 @@ export async function ondiSamlRoutes(fastify: FastifyInstance) {
   });
 
   /**
-   * GET /v1/ondi/auth/saml/lookup?email=
+   * POST /v1/ondi/auth/saml/lookup
    * Discovery for the frontend's "Company SSO" entry point — resolves an
    * email to its tenant's enabled SAML provider, if any. Deliberately not
    * enumeration-safe the way /forgot-password is: a false result collapses
@@ -342,11 +342,11 @@ export async function ondiSamlRoutes(fastify: FastifyInstance) {
    * email" flow (Slack, Notion, GitHub Enterprise) already reveals by
    * necessity, not individual account existence.
    */
-  fastify.get<{ Querystring: { email?: string } }>('/lookup', {
+  fastify.post<{ Body: { email?: string } }>('/lookup', {
     config: { rateLimit: { max: 10, timeWindow: '1 minute' } },
   }, async (request, reply) => {
-    const email = (request.query.email || '').trim().toLowerCase();
-    if (!email || !email.includes('@')) return reply.status(400).send({ error: 'A valid email is required.' });
+    const email = (request.body?.email || '').trim().toLowerCase();
+    if (email.length > 320 || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return reply.status(400).send({ error: 'A valid email is required.' });
 
     // Email is only unique within a tenant. Resolve it together with a usable
     // SAML provider instead of taking an arbitrary matching user first (which

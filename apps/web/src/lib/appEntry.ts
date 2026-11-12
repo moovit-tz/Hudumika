@@ -69,7 +69,7 @@ const SINGLE_APP_HOSTS: Record<string, string> = {
 // src/ondi-standalone-server.ts, ONDI_STANDALONE_PORT) is the only entry
 // today; a real deployment adds its real identity subdomain here, never a
 // pattern or wildcard.
-export const TRUSTED_ONDI_ISSUERS = new Set(['http://localhost:3010']);
+export const TRUSTED_ONDI_ISSUERS = new Set(['http://localhost:3010', 'https://id.hudumika.tz']);
 
 // The only app IDs the ?app_entry= dev override may ever select — an
 // arbitrary string here would persist to localStorage and silently hijack

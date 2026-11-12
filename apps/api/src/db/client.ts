@@ -6895,6 +6895,9 @@ export interface Database {
   ondi_oidc_signing_keys: OndiOidcSigningKeysTable;
   ondi_oauth_clients: OndiOauthClientsTable;
   ondi_oauth_consents: OndiOauthConsentsTable;
+  ondi_saml_sp_clients: OndiSamlSpClientsTable;
+  ondi_saml_idp_signing_keys: OndiSamlIdpSigningKeysTable;
+  ondi_saml_idp_sessions: OndiSamlIdpSessionsTable;
   ondi_wallet_items: OndiWalletItemsTable;
   ondi_wallet_shares: OndiWalletSharesTable;
   ondi_recovery_contacts: OndiRecoveryContactsTable;
@@ -10686,6 +10689,42 @@ export interface OndiOauthConsentsTable {
   client_id: string;
   scopes: Generated<any>;
   granted_at: Generated<Date>;
+}
+
+export interface OndiSamlSpClientsTable {
+  id: Generated<string>;
+  tenant_id: string;
+  name: string;
+  entity_id: string;
+  acs_url: string;
+  slo_url: string | null;
+  signing_certificate: string;
+  enabled: Generated<boolean>;
+  created_by: string | null;
+  created_at: Generated<Date>;
+  updated_at: Generated<Date>;
+}
+
+export interface OndiSamlIdpSigningKeysTable {
+  id: Generated<string>;
+  kid: string;
+  certificate_pem: string;
+  encrypted_private_key: string;
+  status: 'active' | 'previous' | 'revoked';
+  created_at: Generated<Date>;
+  retired_at: Date | null;
+}
+
+export interface OndiSamlIdpSessionsTable {
+  id: Generated<string>;
+  tenant_id: string;
+  client_id: string;
+  user_id: string;
+  name_id: string;
+  session_index: string;
+  expires_at: Date;
+  revoked_at: Date | null;
+  created_at: Generated<Date>;
 }
 
 /** Personal ▸ Wallet (368_ondi_wallet.sql) — secret_cipher is

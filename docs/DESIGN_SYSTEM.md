@@ -211,6 +211,8 @@ For a feature kill-switch row with an icon (e.g. SuperAdmin app toggles), use `F
 | Elevation | `--elev-sm`, `--elev`, `--elev-lg` |
 | Tabs | `data-tabs` on the root; `--tab-radius`, `--tab-height`, `--tab-size` |
 | Spacing | `--space-xs` through `--space-xl`, `--content-gap`, `--page-pad-x` |
+| Keyboard focus | `--focus-ring-width`, `--focus-ring-offset`, `--focus-ring-color` |
+| Pointer target floor | `--target-min` (24px, WCAG 2.5.8) |
 
 `--teal` is an accent for text, borders, and tints. It is not a guaranteed
 contrast-safe filled surface. Use the `--primary` pair for a labelled filled
@@ -226,6 +228,20 @@ action.
   `FormField` / `FormControl` where React Hook Form is used.
 - Do not use native `<select>` or date controls for new work; use `Select`,
   `Combobox`, `DatePicker`, or `DateRangePicker` as appropriate.
+- **Focus ring.** Every shared control draws one indicator, defined once in
+  `components/ui/control-contract.css`: a `--focus-ring-width` outline in
+  `--focus-ring-color`. Do not add `focus-visible:outline-none` or a per-file
+  `ring-*` to a primitive; a custom focusable element opts in with
+  `data-ui-focus=""`. `--focus-ring-color` is not `--teal`: it is the accent
+  passed through `focusRingHex()` (`lib/color.ts`), which floors it to 3:1
+  against the page, so a pale tenant brand still produces a visible ring.
+- **Target size.** A control drawn smaller than 24px (checkbox, radio, compact
+  switch) carries `data-ui-target=""`, which extends its hit area to
+  `--target-min` without changing how it looks. The element must be
+  positioned (`relative` or `absolute`) for the extender to anchor.
+- Both properties are checked in a real browser, light and dark, by
+  `node scripts/check-ui-focus-targets.mjs` (needs the web dev server).
+  Run it after touching any primitive in `components/ui/`.
 
 ## HeaderPill — announcement & event ticker
 
@@ -400,8 +416,15 @@ transparent` spin. `apps/web/src/components/ui/spinner.tsx` and
 | --- | --- |
 | A panel/card/tab/popover's content while it loads | `SectionLoading` |
 | A whole page's first load | `PageLoading` |
-| Inside a solid-fill button (primary, danger, …) | `ButtonSpinner` |
+| A `Button` whose action is in flight | `<Button loading>` (optionally `loadingText`) |
+| Inside a hand-styled solid-fill button on the pre-auth pages | `ButtonSpinner` |
 | A list/table/cards/detail view whose final shape you already know | `SkeletonTable` / `SkeletonCardsGrid` / `SkeletonDetail` / `SkeletonPage` |
+
+`<Button loading>` draws its own spinner in the label colour, sets
+`aria-busy`, and ignores clicks and implicit form submits until it clears. It
+uses `aria-disabled` rather than `disabled` so keyboard focus stays on the
+button for the length of the save. Do not pair it with a hand-written
+`{saving ? 'Saving…' : 'Save'}` label or a separate `disabled={saving}`.
 
 Skeletons are for content whose shape is known; use `SectionLoading` /
 `PageLoading` for everything else. Never a full-screen spinner for a partial

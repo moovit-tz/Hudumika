@@ -254,8 +254,10 @@ export function PageHdr({ title, sub, action }: { title:string; sub:string; acti
   );
 }
 
+export const TableCompactContext = React.createContext(false);
+
 /* ── Table wrapper ── */
-export function DataTable({ headers, children, selectAll, selectAllIndeterminate, onSelectAll, sortBy, sortDir, onSort }: {
+export function DataTable({ headers, children, selectAll, selectAllIndeterminate, onSelectAll, sortBy, sortDir, onSort, compact }: {
   headers: string[];
   children: React.ReactNode;
   selectAll?: boolean;
@@ -264,52 +266,55 @@ export function DataTable({ headers, children, selectAll, selectAllIndeterminate
   sortBy?: string;
   sortDir?: 'asc' | 'desc';
   onSort?: (col: string) => void;
+  compact?: boolean;
 }) {
   return (
-    <div className="rtbl-wrap">
-      <table className="rtbl">
-        <thead>
-          <tr style={{ background:'var(--bg)' }}>
-            {onSelectAll !== undefined && (
-              <th style={{ padding:'10px 14px', width:40, borderBottom:'1px solid var(--border)' }}>
-                <Checkbox
-                  checked={selectAllIndeterminate ? 'indeterminate' : !!selectAll}
-                  onCheckedChange={onSelectAll}
-                  aria-label="Select all"
-                />
-              </th>
-            )}
-            {headers.map(h => {
-              const active = onSort && sortBy === h;
-              return (
-                <th key={h}
-                  onClick={() => onSort?.(h)}
-                  style={{
-                    padding:'10px 14px', textAlign:'left', fontSize:11, fontWeight:700,
-                    color: active ? 'hsl(var(--primary))' : 'var(--ink3)',
-                    textTransform:'uppercase', letterSpacing:'0.05em',
-                    borderBottom:'1px solid var(--border)', whiteSpace:'nowrap',
-                    cursor: onSort ? 'pointer' : undefined,
-                    userSelect: 'none',
-                    transition: 'color .12s',
-                  }}
-                >
-                  <span style={{ display:'inline-flex', alignItems:'center', gap:4 }}>
-                    {h}
-                    {onSort && (
-                      <span style={{ fontSize:9, lineHeight:1, color: active ? 'hsl(var(--primary))' : 'var(--ink3)', opacity: active ? 1 : 0.4 }}>
-                        {active && sortDir === 'desc' ? '▼' : '▲'}
-                      </span>
-                    )}
-                  </span>
+    <TableCompactContext.Provider value={!!compact}>
+      <div className="rtbl-wrap" data-compact={compact ? "true" : undefined}>
+        <table className="rtbl">
+          <thead>
+            <tr style={{ background:'var(--bg)' }}>
+              {onSelectAll !== undefined && (
+                <th style={{ padding: compact ? '7px 10px' : '10px 14px', width: compact ? 36 : 40, borderBottom:'1px solid var(--border)' }}>
+                  <Checkbox
+                    checked={selectAllIndeterminate ? 'indeterminate' : !!selectAll}
+                    onCheckedChange={onSelectAll}
+                    aria-label="Select all"
+                  />
                 </th>
-              );
-            })}
-          </tr>
-        </thead>
-        <tbody>{children}</tbody>
-      </table>
-    </div>
+              )}
+              {headers.map(h => {
+                const active = onSort && sortBy === h;
+                return (
+                  <th key={h}
+                    onClick={() => onSort?.(h)}
+                    style={{
+                      padding: compact ? '7px 10px' : '10px 14px', textAlign:'left', fontSize: compact ? 10.5 : 11, fontWeight:700,
+                      color: active ? 'hsl(var(--primary))' : 'var(--ink3)',
+                      textTransform:'uppercase', letterSpacing:'0.05em',
+                      borderBottom:'1px solid var(--border)', whiteSpace:'nowrap',
+                      cursor: onSort ? 'pointer' : undefined,
+                      userSelect: 'none',
+                      transition: 'color .12s',
+                    }}
+                  >
+                    <span style={{ display:'inline-flex', alignItems:'center', gap:4 }}>
+                      {h}
+                      {onSort && (
+                        <span style={{ fontSize:9, lineHeight:1, color: active ? 'hsl(var(--primary))' : 'var(--ink3)', opacity: active ? 1 : 0.4 }}>
+                          {active && sortDir === 'desc' ? '▼' : '▲'}
+                        </span>
+                      )}
+                    </span>
+                  </th>
+                );
+              })}
+            </tr>
+          </thead>
+          <tbody>{children}</tbody>
+        </table>
+      </div>
+    </TableCompactContext.Provider>
   );
 }
 
@@ -335,13 +340,15 @@ export function sortedRows<T>(rows: T[], sortBy: string, sortDir: 'asc'|'desc', 
 }
 
 /* ── Table row hover ── */
-export function TR({ children, onClick, selected, onSelect }: { children:React.ReactNode; onClick?:()=>void; selected?:boolean; onSelect?:()=>void }) {
+export function TR({ children, onClick, selected, onSelect, compact }: { children:React.ReactNode; onClick?:()=>void; selected?:boolean; onSelect?:()=>void; compact?:boolean }) {
+  const isCompactContext = React.useContext(TableCompactContext);
+  const isCompact = compact ?? isCompactContext;
   const [hov, setHov] = useState(false);
   return (
     <tr onMouseEnter={()=>setHov(true)} onMouseLeave={()=>setHov(false)} onClick={onClick}
       style={{ background: selected ? 'color-mix(in srgb, var(--teal) 6%, var(--white))' : hov?'var(--bg)':'transparent', transition:'background .1s', cursor:onClick?'pointer':undefined }}>
       {onSelect !== undefined && (
-        <td style={{ padding:'11px 14px', borderBottom:'1px solid var(--border)', width:40 }} onClick={e=>e.stopPropagation()}>
+        <td style={{ padding: isCompact ? '7px 10px' : '11px 14px', borderBottom:'1px solid var(--border)', width: isCompact ? 36 : 40 }} onClick={e=>e.stopPropagation()}>
           <Checkbox checked={!!selected} onCheckedChange={onSelect} aria-label="Select row" />
         </td>
       )}
@@ -351,23 +358,25 @@ export function TR({ children, onClick, selected, onSelect }: { children:React.R
 }
 
 /* ── TD ── */
-export function TD({ children, right, nowrap }: { children:React.ReactNode; right?:boolean; nowrap?:boolean }) {
+export function TD({ children, right, nowrap, compact, style }: { children:React.ReactNode; right?:boolean; nowrap?:boolean; compact?:boolean; style?:React.CSSProperties }) {
+  const isCompactContext = React.useContext(TableCompactContext);
+  const isCompact = compact ?? isCompactContext;
   return (
-    <td style={{ padding:'11px 14px', borderBottom:'1px solid var(--border)', fontSize:13, color:'var(--ink)', textAlign:right?'right':undefined, whiteSpace:nowrap?'nowrap':undefined }}>
+    <td style={{ padding: isCompact ? '6px 10px' : '11px 14px', borderBottom:'1px solid var(--border)', fontSize: isCompact ? 12 : 13, color:'var(--ink)', textAlign:right?'right':undefined, whiteSpace:nowrap?'nowrap':undefined, ...style }}>
       {children}
     </td>
   );
 }
 
 /* ── Action menu button ── */
-export function ActBtn({ icon, color, title, onClick }: { icon:IconName; color?:string; title:string; onClick:()=>void }) {
+export function ActBtn({ icon, color, title, onClick, size=13 }: { icon:IconName; color?:string; title:string; onClick:()=>void; size?:number }) {
   return (
     <Tip label={title}>
       <button onClick={e=>{e.stopPropagation();onClick();}}
-        style={{ background:'none', border:'none', borderRadius:'var(--r)', padding:"var(--action-py) var(--space-md)", cursor:'pointer', color:color||'var(--ink3)', display:'inline-flex', alignItems:'center', transition:'background .1s' }}
+        style={{ background:'none', border:'none', borderRadius:'var(--r-sm)', padding: size <= 13 ? '3px 5px' : "var(--action-py) var(--space-md)", cursor:'pointer', color:color||'var(--ink3)', display:'inline-flex', alignItems:'center', justifyContent: 'center', transition:'background .1s' }}
         onMouseEnter={e => { (e.currentTarget as HTMLButtonElement).style.background = color ? `color-mix(in srgb, ${color} 12%, var(--hover-bg))` : 'var(--hover-bg)'; }}
         onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.background = 'none'; }} data-ui-native-button="">
-        <Icon name={icon} size={14} color={color||'var(--ink3)'} />
+        <Icon name={icon} size={size} color={color||'var(--ink3)'} />
       </button>
     </Tip>
   );

@@ -5,7 +5,7 @@ import { cva, type VariantProps } from "class-variance-authority"
 import { cn } from "@/lib/utils"
 
 const buttonVariants = cva(
-  "inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-[var(--r-sm,6px)] text-[13px] font-semibold transition-colors cursor-pointer focus-visible:outline-none disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0",
+  "inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-[var(--r-sm,6px)] text-[13px] font-semibold transition-colors cursor-pointer disabled:pointer-events-none disabled:opacity-50 aria-busy:cursor-progress aria-busy:opacity-70 [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0",
   {
     variants: {
       variant: {
@@ -46,13 +46,35 @@ export interface ButtonProps
    * action keeps a hover tooltip once its text label is gone.
    */
   iconOnly?: boolean
+  /**
+   * The action is in flight. Shows a spinner, sets `aria-busy`, and swallows
+   * clicks (including a form's implicit submit) so it can't fire twice.
+   *
+   * Deliberately `aria-disabled`, not `disabled`: a natively disabled button
+   * drops keyboard focus to <body> the moment a save starts, and the user has
+   * to Tab back from the top of the page once it finishes.
+   */
+  loading?: boolean
+  /** Label shown while `loading`; defaults to the button's own children. */
+  loadingText?: React.ReactNode
 }
 
 const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
-  ({ className, variant, size, asChild = false, iconOnly = false, style, title, ...props }, ref) => {
+  ({ className, variant, size, asChild = false, iconOnly = false, loading = false, loadingText, style, title, children, onClick, ...props }, ref) => {
     const Comp = asChild ? Slot : "button"
     const effectiveSize = iconOnly ? "icon" : size
     const padBlock = effectiveSize === 'xs' ? 'var(--ds-btn-py-xs, 3px)' : effectiveSize === 'sm' || effectiveSize === 'icon' ? '0' : 'var(--action-py)'
+    // Slot needs exactly one child element, so an asChild button gets the
+    // busy semantics and click guard but keeps its child untouched.
+    const content = loading && !asChild ? (
+      <>
+        <span
+          aria-hidden="true"
+          className="ds-spinner size-3.5 shrink-0 rounded-full border-2 border-current/30 border-t-current"
+        />
+        {iconOnly ? null : (loadingText ?? children)}
+      </>
+    ) : children
     return (
       <Comp
         className={cn(buttonVariants({ variant, size: effectiveSize, className }))}
@@ -63,7 +85,12 @@ const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
         title={title ?? (iconOnly ? props["aria-label"] : undefined)}
         ref={ref}
         {...props}
-      />
+        aria-busy={loading || undefined}
+        aria-disabled={loading || props["aria-disabled"]}
+        onClick={loading ? (event: React.MouseEvent<HTMLButtonElement>) => event.preventDefault() : onClick}
+      >
+        {content}
+      </Comp>
     )
   }
 )

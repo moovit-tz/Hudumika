@@ -342,7 +342,11 @@ export const authPlugin = fp(async (fastify: FastifyInstance) => {
     if ((request.user as any).typ === 'twofa_setup') {
       const url = request.routeOptions?.url;
       const allowed = TWOFA_SETUP_ALLOWED_ROUTES.some(r => r.method === request.method && r.url === url);
-      if (!allowed) return reply.status(401).send({ error: 'Unauthorized: finish setting up two-factor authentication first', code: 'TWOFA_SETUP_REQUIRED' });
+      // The token is valid and identifies the user; it simply is not
+      // authorized for this route until enrollment is complete. Returning
+      // 401 makes the SPA treat this restricted setup session as expired,
+      // attempt refresh, then clear the user's login state.
+      if (!allowed) return reply.status(403).send({ error: 'Finish setting up two-factor authentication before accessing this page', code: 'TWOFA_SETUP_REQUIRED' });
     }
 
     // See ORG_ALLOWED_ROUTES above — an org token has no tenant_id claim and
@@ -350,7 +354,9 @@ export const authPlugin = fp(async (fastify: FastifyInstance) => {
     if ((request.user.role as string) === 'ORG') {
       const url = request.routeOptions?.url;
       const allowed = ORG_ALLOWED_ROUTES.some(r => r.method === request.method && r.url === url);
-      if (!allowed) return reply.status(401).send({ error: 'Not available for this account type' });
+      // ORG credentials are valid but intentionally limited to the org
+      // portal. This is authorization failure, not an expired session.
+      if (!allowed) return reply.status(403).send({ error: 'Not available for this account type' });
     }
 
     // Access tokens now expire, but expiry alone cannot end a session early —

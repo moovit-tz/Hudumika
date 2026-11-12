@@ -29,11 +29,11 @@ const LOGIN_BG_MAP: Record<string, string> = {
   white:    '#f0f4f9',
 };
 
-function toCompleteInput(draft: OnboardingDraft, referralCode: string | null, locale: string): OnboardingCompleteInput {
+function toCompleteInput(draft: OnboardingDraft, referralCode: string | null, locale: string, accountPassword: string): OnboardingCompleteInput {
   return {
     referral_code: referralCode || undefined,
     onboarding_journey: draft.onboarding_journey || undefined,
-    account: { name: draft.name, email: draft.email, ondi_ticket: draft.ondi_ticket },
+    account: { name: draft.name, email: draft.email, ondi_ticket: draft.ondi_ticket, password: draft.ondi_ticket ? undefined : accountPassword },
     company: {
       name: draft.companyName,
       industry: draft.industry || undefined,
@@ -88,6 +88,9 @@ export const OnboardingWizard: React.FC = () => {
   const [furthestStep, setFurthestStep] = useState(1);
   useEffect(() => { setFurthestStep(previous => Math.max(previous, step)); }, [step]);
   const [draft, setDraft]   = useState<OnboardingDraft>(EMPTY_DRAFT);
+  // Passwords stay in memory only: never include them in draft autosave,
+  // URL state, or localStorage.
+  const [accountPassword, setAccountPassword] = useState('');
   const [packages, setPackages] = useState<Package[]>([]);
   // Whether a real payment gateway is configured — decides whether the
   // final step collects card/mobile details itself (simulated path,
@@ -306,7 +309,7 @@ export const OnboardingWizard: React.FC = () => {
     setSubmitting(true);
     setSubmitError(null);
     try {
-      const input = toCompleteInput(draft, referralCodeRef.current, language);
+      const input = toCompleteInput(draft, referralCodeRef.current, language, accountPassword);
       const pkg = packages.find(p => p.code === draft.package_code);
       const amount = draft.package_code === 'workspace-free' ? 0
         : pkg ? signupPackageAmount(pkg, draft.billing_cycle) : 0;
@@ -356,6 +359,7 @@ export const OnboardingWizard: React.FC = () => {
 
   const stepProps = {
     draft, update, onNext: handleNext, onBack: handleBack, packages, journeys, industries, industriesLoading, industriesError, onRetryIndustries: loadIndustries, onEditStep: (target: number) => { setSubmitError(null); setStep(target); }, submitting, submitError,
+    accountPassword, setAccountPassword,
     onRequestJoin: handleRequestJoin, joinRequestSubmitting, joinRequestError, gatewayConfigured,
   };
 

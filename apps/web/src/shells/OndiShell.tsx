@@ -36,6 +36,7 @@ import { OndiIntegrations } from '../pages/OndiIntegrations.js';
 import { OndiBusinessVerification } from '../pages/OndiBusinessVerification.js';
 import { OndiItAdmin } from '../pages/OndiItAdmin.js';
 import { OndiAuthorize } from '../pages/OndiAuthorize.js';
+import { OndiSamlAuthorize } from '../pages/OndiSamlAuthorize.js';
 
 const ADMIN_ROLES = ['SUPER_ADMIN', 'ADMIN', 'TENANT_ADMIN'] as const;
 
@@ -315,6 +316,7 @@ export function OndiShell() {
                     is a people-management task, not an identity/access one. */}
                 <Route path="groups" element={<Navigate to="/nexushr/groups" replace />} />
                 <Route path="authorize" element={<OndiAuthorize />} />
+                <Route path="saml/idp/authorize" element={<OndiSamlAuthorize />} />
                 <Route path="sso" element={<RequireRoles roles={[...ADMIN_ROLES]} permissions={['sso_providers.manage']}><OndiSSO /></RequireRoles>} />
                 <Route path="it-admin" element={<RequireRoles roles={[...ADMIN_ROLES]}><OndiItAdmin /></RequireRoles>} />
                 <Route path="sessions" element={<RequireRoles roles={[...ADMIN_ROLES]}><OndiSessions /></RequireRoles>} />

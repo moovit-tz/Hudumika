@@ -72,8 +72,8 @@ export type PaymentMethod = 'card' | 'mpesa';
 export interface OnboardingAccountInput {
   name: string;
   email: string;
-  /** Legacy path — being phased out in favor of ondi_ticket (full SSO
-   *  registration). Exactly one of password/ondi_ticket must be set. */
+  /** Local account signup path. Password is accepted only in the completion
+   *  request, hashed server-side, and excluded from resumable drafts. */
   password?: string;
   /** Proves this account's identity was verified by Ondi (Google/
    *  Microsoft/Apple sign-in with no matching existing account) —

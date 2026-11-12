@@ -105,6 +105,24 @@ export function enforceTextContrast(foreground: string, background: string, floo
   return current;
 }
 
+/** WCAG 1.4.11 floor for a non-text indicator such as a focus ring. */
+export const AA_NON_TEXT = 3;
+
+/**
+ * The keyboard focus ring colour for an accent, guaranteed visible against
+ * the page.
+ *
+ * --primary's floor (enforceContrastFloor below) only promises that a label
+ * reads *on* the fill. A pale brand passes it by taking a dark label, and is
+ * then still pale: used as-is for a ring around a control on a white card it
+ * can sit near 1:1. The ring is drawn on the page, so it is floored against
+ * the page — pass the surface with the least headroom (the darkest light
+ * surface, or the lightest dark one).
+ */
+export function focusRingHex(accentHex: string, surfaceHex: string): string {
+  return enforceTextContrast(accentHex, surfaceHex, AA_NON_TEXT);
+}
+
 /**
  * Nudges a brand colour until its best foreground clears an AA floor.
  *

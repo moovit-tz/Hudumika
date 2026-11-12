@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth.js';
 import { apiFetch } from '../lib/api.js';
@@ -13,108 +13,330 @@ import {
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuSeparator,
+  DropdownMenuLabel,
 } from '../components/ui/dropdown-menu.js';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '../components/ui/select.js';
 import { Checkbox } from '../components/ui/checkbox.js';
 import { SingleSelectFilter } from '../components/ui/filter-dropdown.js';
+import { FeaturedIcon } from '../components/ui/featured-icon.js';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+} from '../components/ui/dialog.js';
+import { Input } from '../components/ui/input.js';
 
 interface OndiUser {
-  id: string; name: string; email: string; phone: string | null;
-  role: string; active: boolean; created_at: string; last_login_at: string | null;
+  id: string;
+  name: string;
+  email: string;
+  phone: string | null;
+  role: string;
+  active: boolean;
+  created_at: string;
+  last_login_at: string | null;
 }
+
 interface Invitation {
-  id: string; email: string; role: string; status: string;
-  expires_at: string; created_at: string; invited_by_name: string | null;
+  id: string;
+  email: string;
+  role: string;
+  status: string;
+  expires_at: string;
+  created_at: string;
+  invited_by_name: string | null;
 }
+
 interface JoinRequest {
-  id: string; name: string; email: string; status: string;
-  created_at: string; reviewed_at: string | null; deny_reason: string | null;
+  id: string;
+  name: string;
+  email: string;
+  status: string;
+  created_at: string;
+  reviewed_at: string | null;
+  deny_reason: string | null;
 }
 
 const ROLES = ['ADMIN', 'MANAGER', 'FINANCE', 'SALES', 'SENIOR', 'JUNIOR', 'CUSTOMER'];
+
+const ROLE_DESCRIPTIONS: Record<string, string> = {
+  SUPER_ADMIN: 'Complete administrative authority, tenant settings & master role delegation.',
+  ADMIN: 'Platform configuration, seated user management, and workspace administration.',
+  MANAGER: 'Operations lead, workflow approvals, and department management.',
+  FINANCE: 'Invoicing, tax codes, payments, and financial landed-cost reconciliation.',
+  SALES: 'CRM deals, leads, quotes, quota targets, and pipeline tracking.',
+  SENIOR: 'Advanced operational workflows, compliance processing, and task management.',
+  JUNIOR: 'Standard operational execution, assigned tasks, and document entry.',
+  CUSTOMER: 'External portal viewer with read-only visibility into tracking and invoices.',
+};
+
+function assignableRoles(canGrantSuperAdmin: boolean): string[] {
+  return canGrantSuperAdmin ? [...ROLES, 'SUPER_ADMIN'] : ROLES;
+}
 
 function fmt(iso: string | null): string {
   if (!iso) return '—';
   return new Date(iso).toLocaleDateString('en-TZ', { day: '2-digit', month: '2-digit', year: 'numeric' });
 }
 
-function InviteModal({ onClose, onInvited }: { onClose: () => void; onInvited: () => void }) {
+function getRolePillClass(role: string): string {
+  switch (role) {
+    case 'SUPER_ADMIN': return 'ondi-role-pill super-admin';
+    case 'ADMIN': return 'ondi-role-pill admin';
+    case 'MANAGER': return 'ondi-role-pill manager';
+    case 'FINANCE': return 'ondi-role-pill finance';
+    case 'SALES': return 'ondi-role-pill sales';
+    case 'SENIOR': return 'ondi-role-pill senior';
+    case 'JUNIOR': return 'ondi-role-pill junior';
+    case 'CUSTOMER': return 'ondi-role-pill customer';
+    default: return 'ondi-role-pill';
+  }
+}
+
+function InviteModal({
+  open,
+  onOpenChange,
+  onInvited,
+  canGrantSuperAdmin,
+}: {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  onInvited: () => void;
+  canGrantSuperAdmin: boolean;
+}) {
+  const [mode, setMode] = useState<'invite' | 'direct'>('invite');
   const [email, setEmail] = useState('');
+  const [name, setName] = useState('');
+  const [password, setPassword] = useState('');
   const [role, setRole] = useState('JUNIOR');
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
 
+  function resetForm() {
+    setEmail(''); setName(''); setPassword(''); setRole('JUNIOR'); setError('');
+  }
+
   async function submit(e: React.FormEvent) {
     e.preventDefault();
+    if (!email.trim()) return;
     setSaving(true);
     setError('');
     try {
-      await apiFetch('/v1/ondi/invitations', { method: 'POST', body: JSON.stringify({ email, role }) });
+      if (mode === 'invite') {
+        await apiFetch('/v1/ondi/invitations', {
+          method: 'POST',
+          body: JSON.stringify({ email: email.trim(), role }),
+        });
+      } else {
+        await apiFetch('/v1/ondi/users/direct', {
+          method: 'POST',
+          body: JSON.stringify({ email: email.trim(), name: name.trim(), role, password }),
+        });
+      }
       onInvited();
-      onClose();
+      onOpenChange(false);
+      resetForm();
     } catch (err: any) {
-      setError(err.message || 'Failed to send invite');
+      setError(err.message || (mode === 'invite' ? 'Failed to send invite' : 'Failed to add user'));
     } finally {
       setSaving(false);
     }
   }
 
-  const inputStyle = { width: '100%', padding: '9px 12px', borderRadius: 'var(--r)', border: '1px solid var(--border)', fontFamily: 'var(--font)', fontSize: 13, background: 'var(--bg)', color: 'var(--ink)', boxSizing: 'border-box' as const };
-
   return (
-    <div className="ondi-modal-backdrop" onClick={onClose}>
-      <div className="ondi-modal-box" onClick={e => e.stopPropagation()}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
-          <div>
-            <div style={{ fontSize: 16, fontWeight: 800, color: 'var(--ink)' }}>Invite a New Team Member</div>
-            <div style={{ fontSize: 12, color: 'var(--ink3)', marginTop: 2 }}>An invitation link will be sent to their email.</div>
+    <Dialog open={open} onOpenChange={o => { onOpenChange(o); if (!o) resetForm(); }}>
+      <DialogContent size="md" className="p-0 overflow-hidden">
+        <DialogHeader className="p-6 pb-4 border-b border-border bg-card">
+          <div className="flex items-center gap-3">
+            <FeaturedIcon variant="brand" size="md">
+              <Icon name="userPlus" size={20} />
+            </FeaturedIcon>
+            <div>
+              <DialogTitle className="text-base font-bold text-foreground">
+                Add a New Team Member
+              </DialogTitle>
+              <DialogDescription className="text-xs text-muted-foreground mt-0.5">
+                {mode === 'invite'
+                  ? 'An invitation link will be sent to their email to join your workspace.'
+                  : 'Creates the account immediately — share the password with them yourself.'}
+              </DialogDescription>
+            </div>
           </div>
-          <button type="button" className="ondi-icon-action" onClick={onClose} style={{ background: 'none', border: '1px solid transparent', borderRadius: 'var(--r-sm)', padding: "var(--action-py) var(--space-md)", cursor: 'pointer', color: 'var(--ink3)' }} data-ui-native-button="">
-            <Icon name="x" size={18} />
-          </button>
-        </div>
 
-        <form onSubmit={submit} style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-          <div>
-            <label style={{ fontSize: 12, fontWeight: 700, color: 'var(--ink2)', display: 'block', marginBottom: 6 }}>Email Address</label>
-            <input data-ui-field="input" type="email" required value={email} onChange={e => setEmail(e.target.value)} placeholder="colleague@company.com" style={inputStyle} />
-          </div>
-          <div>
-            <label style={{ fontSize: 12, fontWeight: 700, color: 'var(--ink2)', display: 'block', marginBottom: 6 }}>Assigned Role</label>
-            <Select value={role} onValueChange={setRole}>
-              <SelectTrigger style={inputStyle}><SelectValue /></SelectTrigger>
-              <SelectContent>
-                {ROLES.map(r => <SelectItem key={r} value={r}>{r}</SelectItem>)}
-              </SelectContent>
-            </Select>
-          </div>
-          {error && <div style={{ fontSize: 12, color: 'var(--red)', background: 'var(--red-l)', padding: '8px 12px', borderRadius: 'var(--r-sm)'}}>{error}</div>}
-          <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end', marginTop: 10 }}>
-            <Button type="button" variant="outline" onClick={onClose}>Cancel</Button>
-            <Button type="submit" disabled={saving}>
-              {saving ? 'Sending…' : 'Send Invitation'}
+          <div className="mt-4 flex w-full gap-2" role="group" aria-label="Add method">
+            <Button
+              type="button"
+              variant={mode === 'invite' ? 'default' : 'outline'}
+              size="sm"
+              aria-pressed={mode === 'invite'}
+              className="flex-1"
+              onClick={() => setMode('invite')}
+            >
+              <Icon name="mail" size={14} />
+              Send Invite
+            </Button>
+            <Button
+              type="button"
+              variant={mode === 'direct' ? 'default' : 'outline'}
+              size="sm"
+              aria-pressed={mode === 'direct'}
+              className="flex-1"
+              onClick={() => setMode('direct')}
+            >
+              <Icon name="userPlus" size={14} />
+              Add Directly
             </Button>
           </div>
+        </DialogHeader>
+
+        <form onSubmit={submit} className="min-h-0 flex-1 overflow-y-auto p-6 space-y-4">
+          <div className="space-y-1.5">
+            <label className="text-xs font-bold text-foreground/85 block">
+              Email Address <span className="text-red-500">*</span>
+            </label>
+            <Input
+              type="email"
+              required
+              value={email}
+              onChange={e => setEmail(e.target.value)}
+              placeholder="colleague@company.com"
+              className="text-sm"
+              autoFocus
+            />
+          </div>
+
+          {mode === 'direct' && (
+            <div className="space-y-1.5">
+              <label className="text-xs font-bold text-foreground/85 block">
+                Full Name <span className="text-red-500">*</span>
+              </label>
+              <Input
+                type="text"
+                required
+                value={name}
+                onChange={e => setName(e.target.value)}
+                placeholder="Jane Doe"
+                className="text-sm"
+              />
+            </div>
+          )}
+
+          <div className="space-y-1.5">
+            <label className="text-xs font-bold text-foreground/85 block">
+              Assigned Role <span className="text-red-500">*</span>
+            </label>
+            <Select value={role} onValueChange={setRole}>
+              <SelectTrigger className="w-full text-sm">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {assignableRoles(canGrantSuperAdmin).map(r => (
+                  <SelectItem key={r} value={r}>
+                    <div className="flex items-center gap-2">
+                      <span className={getRolePillClass(r)}>{r}</span>
+                      <span className="text-xs text-muted-foreground line-clamp-1 max-w-[220px]">
+                        {ROLE_DESCRIPTIONS[r] || ''}
+                      </span>
+                    </div>
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <p className="text-[11px] text-muted-foreground mt-1">
+              {ROLE_DESCRIPTIONS[role] || 'Assigned workspace permissions for this user.'}
+            </p>
+          </div>
+
+          {mode === 'direct' && (
+            <div className="space-y-1.5">
+              <label className="text-xs font-bold text-foreground/85 block">
+                Password <span className="text-red-500">*</span>
+              </label>
+              <Input
+                type="text"
+                required
+                value={password}
+                onChange={e => setPassword(e.target.value)}
+                placeholder="Set a password to share with them"
+                className="text-sm"
+              />
+            </div>
+          )}
+
+          {error && (
+            <div className="p-3 text-xs rounded-md bg-destructive/10 text-destructive border border-destructive/20 flex items-center gap-2">
+              <Icon name="alertCircle" size={14} className="shrink-0" />
+              <span>{error}</span>
+            </div>
+          )}
+
+          <DialogFooter className="pt-2 gap-2">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => onOpenChange(false)}
+              disabled={saving}
+            >
+              Cancel
+            </Button>
+            <Button type="submit" disabled={saving || !email.trim() || (mode === 'direct' && (!name.trim() || !password))}>
+              {saving ? (
+                <>
+                  <Icon name="refresh" size={14} className="animate-spin mr-1.5" />
+                  {mode === 'invite' ? 'Sending…' : 'Adding…'}
+                </>
+              ) : mode === 'invite' ? (
+                <>
+                  <Icon name="send" size={14} className="mr-1.5" />
+                  Send Invitation
+                </>
+              ) : (
+                <>
+                  <Icon name="userPlus" size={14} className="mr-1.5" />
+                  Add User
+                </>
+              )}
+            </Button>
+          </DialogFooter>
         </form>
-      </div>
-    </div>
+      </DialogContent>
+    </Dialog>
   );
 }
 
 export const OndiUsers: React.FC = () => {
   const { user: me } = useAuth();
   const canManage = me?.role === 'ADMIN' || me?.role === 'TENANT_ADMIN' || me?.role === 'SUPER_ADMIN';
+  const canGrantSuperAdmin = me?.role === 'SUPER_ADMIN';
+
   const [users, setUsers] = useState<OndiUser[]>([]);
   const [invites, setInvites] = useState<Invitation[]>([]);
   const [joinRequests, setJoinRequests] = useState<JoinRequest[]>([]);
   const [loading, setLoading] = useState(true);
   const [showInvite, setShowInvite] = useState(false);
 
-  const [searchParams] = useSearchParams();
+  const [searchParams, setSearchParams] = useSearchParams();
   const initialTab = searchParams.get('tab');
   const [activeTab, setActiveTab] = useState<'users' | 'invites' | 'join-requests'>(
     initialTab === 'invites' || initialTab === 'join-requests' ? initialTab : 'users'
   );
+
+  // Sync tab with URL
+  const handleTabChange = (tab: 'users' | 'invites' | 'join-requests') => {
+    setActiveTab(tab);
+    setSearchParams(prev => {
+      const next = new URLSearchParams(prev);
+      if (tab === 'users') {
+        next.delete('tab');
+      } else {
+        next.set('tab', tab);
+      }
+      return next;
+    });
+  };
 
   // Search & Filter State
   const [search, setSearch] = useState('');
@@ -124,6 +346,9 @@ export const OndiUsers: React.FC = () => {
 
   // Checkbox selection state
   const [selectedUsers, setSelectedUsers] = useState<Set<string>>(new Set());
+
+  // Email copy confirmation state
+  const [copiedEmailId, setCopiedEmailId] = useState<string | null>(null);
 
   const reload = useCallback(() => {
     setLoading(true);
@@ -142,21 +367,43 @@ export const OndiUsers: React.FC = () => {
 
   async function changeRole(id: string, role: string) {
     setUsers(prev => prev.map(u => u.id === id ? { ...u, role } : u));
-    try { await apiFetch(`/v1/ondi/users/${id}/role`, { method: 'PATCH', body: JSON.stringify({ role }) }); }
-    catch { reload(); }
+    try {
+      await apiFetch(`/v1/ondi/users/${id}/role`, { method: 'PATCH', body: JSON.stringify({ role }) });
+    } catch {
+      reload();
+    }
   }
 
   async function toggleActive(u: OndiUser) {
     const active = !u.active;
     setUsers(prev => prev.map(x => x.id === u.id ? { ...x, active } : x));
-    try { await apiFetch(`/v1/ondi/users/${u.id}/status`, { method: 'PATCH', body: JSON.stringify({ active }) }); }
-    catch { reload(); }
+    try {
+      await apiFetch(`/v1/ondi/users/${u.id}/status`, { method: 'PATCH', body: JSON.stringify({ active }) });
+    } catch {
+      reload();
+    }
+  }
+
+  async function handleBulkStatus(active: boolean) {
+    const ids = Array.from(selectedUsers);
+    if (ids.length === 0) return;
+    setUsers(prev => prev.map(u => ids.includes(u.id) ? { ...u, active } : u));
+    try {
+      await Promise.all(
+        ids.map(id => apiFetch(`/v1/ondi/users/${id}/status`, { method: 'PATCH', body: JSON.stringify({ active }) }))
+      );
+    } catch {
+      reload();
+    }
   }
 
   async function revokeInvite(id: string) {
     setInvites(prev => prev.map(i => i.id === id ? { ...i, status: 'REVOKED' } : i));
-    try { await apiFetch(`/v1/ondi/invitations/${id}`, { method: 'DELETE' }); }
-    catch { reload(); }
+    try {
+      await apiFetch(`/v1/ondi/invitations/${id}`, { method: 'DELETE' });
+    } catch {
+      reload();
+    }
   }
 
   const [resent, setResent] = useState<string | null>(null);
@@ -180,6 +427,7 @@ export const OndiUsers: React.FC = () => {
       reload();
     }
   }
+
   async function denyJoinRequest(id: string) {
     setJoinActionErr(null);
     setJoinRequests(prev => prev.filter(r => r.id !== id));
@@ -192,27 +440,38 @@ export const OndiUsers: React.FC = () => {
   }
 
   // Filter computation
-  const filteredUsers = users.filter(u => {
-    const q = search.toLowerCase();
-    const matchesSearch = u.name.toLowerCase().includes(q) || u.email.toLowerCase().includes(q);
-    if (!matchesSearch) return false;
+  const filteredUsers = useMemo(() => {
+    return users.filter(u => {
+      const q = search.trim().toLowerCase();
+      const matchesSearch = !q || u.name.toLowerCase().includes(q) || u.email.toLowerCase().includes(q);
+      if (!matchesSearch) return false;
 
-    if (filterPermission !== 'All') {
-      if (filterPermission === 'Admin' && u.role !== 'ADMIN' && u.role !== 'SUPER_ADMIN') return false;
-      if (filterPermission === 'Member' && (u.role === 'ADMIN' || u.role === 'SUPER_ADMIN')) return false;
-    }
+      if (filterPermission !== 'All') {
+        if (filterPermission === 'Admin' && u.role !== 'ADMIN' && u.role !== 'SUPER_ADMIN') return false;
+        if (filterPermission === 'Member' && (u.role === 'ADMIN' || u.role === 'SUPER_ADMIN')) return false;
+      }
 
-    if (filterStatus !== 'All') {
-      const status = u.active ? 'Seated' : 'Suspended';
-      if (status !== filterStatus) return false;
-    }
+      if (filterStatus !== 'All') {
+        const status = u.active ? 'Seated' : 'Suspended';
+        if (status !== filterStatus) return false;
+      }
 
-    if (filterRole !== 'All') {
-      if (u.role !== filterRole) return false;
-    }
+      if (filterRole !== 'All') {
+        if (u.role !== filterRole) return false;
+      }
 
-    return true;
-  });
+      return true;
+    });
+  }, [users, search, filterPermission, filterStatus, filterRole]);
+
+  const hasActiveFilters = search.trim() !== '' || filterPermission !== 'All' || filterStatus !== 'All' || filterRole !== 'All';
+
+  function resetFilters() {
+    setSearch('');
+    setFilterPermission('All');
+    setFilterStatus('All');
+    setFilterRole('All');
+  }
 
   function toggleSelectUser(id: string) {
     setSelectedUsers(prev => {
@@ -231,8 +490,12 @@ export const OndiUsers: React.FC = () => {
   }
 
   function exportCSV() {
+    const listToExport = selectedUsers.size > 0
+      ? filteredUsers.filter(u => selectedUsers.has(u.id))
+      : filteredUsers;
+
     const headers = ['Name', 'Email', 'Status', 'Role', 'Created At'];
-    const rows = filteredUsers.map(u => [u.name, u.email, u.active ? 'Seated' : 'Suspended', u.role, fmt(u.created_at)]);
+    const rows = listToExport.map(u => [u.name, u.email, u.active ? 'Seated' : 'Suspended', u.role, fmt(u.created_at)]);
     const csvContent = "data:text/csv;charset=utf-8," + [headers.join(','), ...rows.map(e => e.map(val => `"${val}"`).join(','))].join('\n');
     const link = document.createElement("a");
     link.setAttribute("href", encodeURI(csvContent));
@@ -242,32 +505,77 @@ export const OndiUsers: React.FC = () => {
     document.body.removeChild(link);
   }
 
+  function copyEmail(id: string, email: string) {
+    navigator.clipboard.writeText(email);
+    setCopiedEmailId(id);
+    setTimeout(() => {
+      setCopiedEmailId(prev => (prev === id ? null : prev));
+    }, 2000);
+  }
+
   const activeCount = users.filter(u => u.active).length;
   const pendingInvitesCount = invites.filter(i => i.status === 'PENDING').length;
 
   return (
     <div className="ondi-page-container">
-      {showInvite && <InviteModal onClose={() => setShowInvite(false)} onInvited={reload} />}
+      <InviteModal
+        open={showInvite}
+        onOpenChange={setShowInvite}
+        onInvited={reload}
+        canGrantSuperAdmin={canGrantSuperAdmin}
+      />
 
       <PageHeader
         crumbs={['Ondi', 'Users']}
-        titlePlain="User"
-        titleEm="directory"
+        titlePlain="User "
+        titleEm="directory."
         subtitle="Manage seated members, assigned administrative roles, and pending tenant invitations."
-        actions={canManage ? (
-          <button type="button" className="ondi-primary-action" onClick={() => setShowInvite(true)}
-            style={{ display: 'flex', alignItems: 'center', gap: 8, background: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))', border: 'none', borderRadius: 'var(--r)', padding: "var(--action-py) var(--space-md)", fontFamily: 'var(--font)', fontWeight: 700, fontSize: "var(--text-base)", cursor: 'pointer', boxShadow: '0 2px 8px var(--teal-m)' }} data-ui-native-button="">
-            <Icon name="userPlus" size={15} /> Invite User
-          </button>
-        ) : undefined}
+        actions={
+          <div className="flex items-center gap-2.5">
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={reload}
+              disabled={loading}
+              className="h-9 px-3 gap-1.5"
+              title="Refresh directory"
+            >
+              <Icon name="refresh" size={14} className={loading ? 'animate-spin text-teal-600' : ''} />
+              <span className="hidden sm:inline">Refresh</span>
+            </Button>
+            {canManage && (
+              <Button
+                type="button"
+                onClick={() => setShowInvite(true)}
+                className="h-9 gap-1.5 shadow-sm"
+              >
+                <Icon name="userPlus" size={15} />
+                <span>Invite User</span>
+              </Button>
+            )}
+          </div>
+        }
       />
 
       {/* KPI Stats Bar */}
       <div className="ondi-kpi-grid">
-        <div className="ondi-kpi-card">
+        {/* Total Users */}
+        <div
+          role="button"
+          tabIndex={0}
+          onClick={() => {
+            handleTabChange('users');
+            resetFilters();
+          }}
+          onKeyDown={e => { if (e.key === 'Enter') { handleTabChange('users'); resetFilters(); } }}
+          className={`ondi-kpi-card ${activeTab === 'users' && !hasActiveFilters ? 'is-active' : ''}`}
+        >
           <div className="ondi-kpi-header">
             <span className="ondi-kpi-title">Total Users</span>
-            <div className="ondi-kpi-icon-box"><Icon name="users" size={18} /></div>
+            <div className="ondi-kpi-icon-box purple">
+              <Icon name="users" size={18} />
+            </div>
           </div>
           <div className="ondi-kpi-body">
             <span className="ondi-kpi-num">{users.length}</span>
@@ -275,10 +583,22 @@ export const OndiUsers: React.FC = () => {
           </div>
         </div>
 
-        <div className="ondi-kpi-card">
+        {/* Active Seated */}
+        <div
+          role="button"
+          tabIndex={0}
+          onClick={() => {
+            handleTabChange('users');
+            setFilterStatus('Seated');
+          }}
+          onKeyDown={e => { if (e.key === 'Enter') { handleTabChange('users'); setFilterStatus('Seated'); } }}
+          className={`ondi-kpi-card ${activeTab === 'users' && filterStatus === 'Seated' ? 'is-active' : ''}`}
+        >
           <div className="ondi-kpi-header">
             <span className="ondi-kpi-title">Active Seated</span>
-            <div className="ondi-kpi-icon-box" style={{ background: 'var(--green-l)', color: 'var(--green)' }}><Icon name="checkCircle" size={18} /></div>
+            <div className="ondi-kpi-icon-box green">
+              <Icon name="checkCircle" size={18} />
+            </div>
           </div>
           <div className="ondi-kpi-body">
             <span className="ondi-kpi-num" style={{ color: 'var(--green)' }}>{activeCount}</span>
@@ -286,10 +606,19 @@ export const OndiUsers: React.FC = () => {
           </div>
         </div>
 
-        <div className="ondi-kpi-card">
+        {/* Pending Invites */}
+        <div
+          role="button"
+          tabIndex={0}
+          onClick={() => handleTabChange('invites')}
+          onKeyDown={e => { if (e.key === 'Enter') handleTabChange('invites'); }}
+          className={`ondi-kpi-card ${activeTab === 'invites' ? 'is-active' : ''}`}
+        >
           <div className="ondi-kpi-header">
             <span className="ondi-kpi-title">Pending Invites</span>
-            <div className="ondi-kpi-icon-box" style={{ background: 'var(--gold-l)', color: 'var(--gold)' }}><Icon name="mail" size={18} /></div>
+            <div className="ondi-kpi-icon-box gold">
+              <Icon name="mail" size={18} />
+            </div>
           </div>
           <div className="ondi-kpi-body">
             <span className="ondi-kpi-num" style={{ color: 'var(--gold)' }}>{pendingInvitesCount}</span>
@@ -297,10 +626,19 @@ export const OndiUsers: React.FC = () => {
           </div>
         </div>
 
-        <div className="ondi-kpi-card">
+        {/* Join Requests */}
+        <div
+          role="button"
+          tabIndex={0}
+          onClick={() => { if (canManage) handleTabChange('join-requests'); }}
+          onKeyDown={e => { if (e.key === 'Enter' && canManage) handleTabChange('join-requests'); }}
+          className={`ondi-kpi-card ${activeTab === 'join-requests' ? 'is-active' : ''}`}
+        >
           <div className="ondi-kpi-header">
             <span className="ondi-kpi-title">Join Requests</span>
-            <div className="ondi-kpi-icon-box" style={{ background: 'var(--blue-l)', color: 'var(--blue)' }}><Icon name="userCheck" size={18} /></div>
+            <div className="ondi-kpi-icon-box blue">
+              <Icon name="userCheck" size={18} />
+            </div>
           </div>
           <div className="ondi-kpi-body">
             <span className="ondi-kpi-num" style={{ color: 'var(--blue)' }}>{joinRequests.length}</span>
@@ -309,32 +647,73 @@ export const OndiUsers: React.FC = () => {
         </div>
       </div>
 
-      {/* Tabs Header Bar */}
+      {/* Segmented Tabstrip */}
       <div className="ondi-nav-tabstrip" role="tablist" aria-label="People administration">
-        <button role="tab" aria-selected={activeTab === 'users'} className={`ondi-tab-btn ${activeTab === 'users' ? 'active' : ''}`} onClick={() => setActiveTab('users')} data-ui-native-button="">
-          <Icon name="users" size={14} /> Users <span className="ondi-tab-badge">{users.length}</span>
+        <button
+          type="button"
+          role="tab"
+          aria-selected={activeTab === 'users'}
+          className={`ondi-tab-btn ${activeTab === 'users' ? 'active' : ''}`}
+          onClick={() => handleTabChange('users')}
+        >
+          <Icon name="users" size={14} />
+          <span>Users</span>
+          <span className="ondi-tab-badge">{users.length}</span>
         </button>
-        <button role="tab" aria-selected={activeTab === 'invites'} className={`ondi-tab-btn ${activeTab === 'invites' ? 'active' : ''}`} onClick={() => setActiveTab('invites')} data-ui-native-button="">
-          <Icon name="mail" size={14} /> Invites {invites.length > 0 && <span className="ondi-tab-badge">{invites.length}</span>}
+
+        <button
+          type="button"
+          role="tab"
+          aria-selected={activeTab === 'invites'}
+          className={`ondi-tab-btn ${activeTab === 'invites' ? 'active' : ''}`}
+          onClick={() => handleTabChange('invites')}
+        >
+          <Icon name="mail" size={14} />
+          <span>Invites</span>
+          {invites.length > 0 && <span className="ondi-tab-badge">{invites.length}</span>}
         </button>
+
         {canManage && (
-          <button role="tab" aria-selected={activeTab === 'join-requests'} className={`ondi-tab-btn ${activeTab === 'join-requests' ? 'active' : ''}`} onClick={() => setActiveTab('join-requests')} data-ui-native-button="">
-            <Icon name="userCheck" size={14} /> Join Requests {joinRequests.length > 0 && <span className="ondi-tab-badge">{joinRequests.length}</span>}
+          <button
+            type="button"
+            role="tab"
+            aria-selected={activeTab === 'join-requests'}
+            className={`ondi-tab-btn ${activeTab === 'join-requests' ? 'active' : ''}`}
+            onClick={() => handleTabChange('join-requests')}
+          >
+            <Icon name="userCheck" size={14} />
+            <span>Join Requests</span>
+            {joinRequests.length > 0 && <span className="ondi-tab-badge">{joinRequests.length}</span>}
           </button>
         )}
       </div>
 
       {/* ── Tab 1: Users Table ───────────────────────────────────────────────── */}
       {activeTab === 'users' && (
-        <SectionCard padded={false}>
+        <SectionCard padded={false} className="overflow-hidden border border-border shadow-sm">
           {/* Header & Filter Toolbar */}
           <div className="ondi-toolbar">
             <div className="ondi-search-input">
               <Icon name="search" size={14} />
-              <input data-ui-field="input" value={search} onChange={e => setSearch(e.target.value)} placeholder="Search name or email…" />
+              <input
+                value={search}
+                onChange={e => setSearch(e.target.value)}
+                placeholder="Search name or email…"
+                aria-label="Search users"
+              />
+              {search && (
+                <button
+                  type="button"
+                  onClick={() => setSearch('')}
+                  className="absolute right-2.5 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground p-0.5 rounded"
+                  aria-label="Clear search"
+                >
+                  <Icon name="x" size={13} />
+                </button>
+              )}
             </div>
 
-            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10, alignItems: 'center' }}>
+            <div className="flex flex-wrap gap-2.5 items-center">
               <SingleSelectFilter
                 label="Permissions"
                 value={filterPermission === 'All' ? null : filterPermission}
@@ -359,23 +738,97 @@ export const OndiUsers: React.FC = () => {
                 label="Role"
                 value={filterRole === 'All' ? null : filterRole}
                 onChange={v => setFilterRole(v ?? 'All')}
-                options={ROLES.map(r => ({ value: r, label: r }))}
+                options={assignableRoles(canGrantSuperAdmin).map(r => ({ value: r, label: r }))}
               />
 
-              <button type="button" className="ondi-secondary-action" onClick={exportCSV}
-                style={{ display: 'flex', alignItems: 'center', gap: 6, background: 'var(--bg)', border: '1px solid var(--border)', borderRadius: 'var(--r)', padding: "var(--action-py) var(--space-md)", fontSize: "var(--text-base)", fontWeight: 700, cursor: 'pointer', color: 'var(--ink)' }} data-ui-native-button="">
-                <Icon name="download" size={14} /> Export CSV
-              </button>
+              {hasActiveFilters && (
+                <button
+                  type="button"
+                  onClick={resetFilters}
+                  className="text-xs font-semibold text-muted-foreground hover:text-foreground inline-flex items-center gap-1 px-2.5 py-1.5 rounded-md hover:bg-muted transition-colors"
+                >
+                  <Icon name="x" size={12} /> Clear filters
+                </button>
+              )}
+
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={exportCSV}
+                className="h-8 gap-1.5 text-xs font-bold"
+              >
+                <Icon name="download" size={13} />
+                <span>{selectedUsers.size > 0 ? `Export (${selectedUsers.size})` : 'Export CSV'}</span>
+              </Button>
             </div>
           </div>
 
-          {/* Table */}
-          <div style={{ overflowX: 'auto' }}>
+          {/* Bulk Selection Banner */}
+          {selectedUsers.size > 0 && (
+            <div className="px-5 py-2.5 bg-teal-50 dark:bg-teal-950/40 border-b border-teal-200 dark:border-teal-800 flex flex-wrap items-center justify-between gap-3">
+              <div className="flex items-center gap-2 text-xs font-bold text-teal-800 dark:text-teal-200">
+                <span className="w-5 h-5 rounded-full bg-teal-600 text-white flex items-center justify-center text-[10px] font-extrabold">
+                  {selectedUsers.size}
+                </span>
+                <span>{selectedUsers.size === 1 ? '1 user selected' : `${selectedUsers.size} users selected`}</span>
+              </div>
+              <div className="flex items-center gap-2">
+                {canManage && (
+                  <>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="h-7 text-xs font-semibold bg-white dark:bg-slate-900 shadow-xs"
+                      onClick={() => handleBulkStatus(true)}
+                    >
+                      <Icon name="checkCircle" size={12} className="mr-1 text-green-600" />
+                      Set Seated
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="h-7 text-xs font-semibold bg-white dark:bg-slate-900 shadow-xs"
+                      onClick={() => handleBulkStatus(false)}
+                    >
+                      <Icon name="shield" size={12} className="mr-1 text-amber-600" />
+                      Suspend
+                    </Button>
+                  </>
+                )}
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="h-7 text-xs font-semibold bg-white dark:bg-slate-900 shadow-xs"
+                  onClick={exportCSV}
+                >
+                  <Icon name="download" size={12} className="mr-1" />
+                  Export
+                </Button>
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  className="h-7 text-xs text-muted-foreground hover:text-foreground"
+                  onClick={() => setSelectedUsers(new Set())}
+                >
+                  Deselect all
+                </Button>
+              </div>
+            </div>
+          )}
+
+          {/* Table Container */}
+          <div className="overflow-x-auto">
             <table className="ondi-table">
               <thead>
                 <tr>
-                  <th style={{ width: 40, textAlign: 'center' }}>
-                    <Checkbox className="mx-auto" checked={selectedUsers.size === filteredUsers.length && filteredUsers.length > 0} onCheckedChange={toggleSelectAll} />
+                  <th style={{ width: 44, textAlign: 'center' }}>
+                    <Checkbox
+                      className="mx-auto"
+                      checked={filteredUsers.length > 0 && selectedUsers.size === filteredUsers.length}
+                      onCheckedChange={toggleSelectAll}
+                      aria-label="Select all users"
+                    />
                   </th>
                   <th>User</th>
                   <th>Email</th>
@@ -388,47 +841,154 @@ export const OndiUsers: React.FC = () => {
               <tbody>
                 {!loading && filteredUsers.map(u => {
                   const isSelected = selectedUsers.has(u.id);
+                  const isCurrentUser = u.id === me?.id;
+
                   return (
                     <tr key={u.id} className={isSelected ? 'selected' : ''}>
                       <td style={{ textAlign: 'center' }}>
-                        <Checkbox className="mx-auto" checked={isSelected} onCheckedChange={() => toggleSelectUser(u.id)} />
+                        <Checkbox
+                          className="mx-auto"
+                          checked={isSelected}
+                          onCheckedChange={() => toggleSelectUser(u.id)}
+                          aria-label={`Select ${u.name}`}
+                        />
                       </td>
-                      <td style={{ fontWeight: 700, color: 'var(--ink)' }}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                          <PersonAvatar userId={u.id} name={u.name} size={32} style={{ border: '1px solid var(--border)' }} />
-                          {u.name}
+
+                      {/* User Cell */}
+                      <td>
+                        <div className="flex items-center gap-3">
+                          <div className="relative">
+                            <PersonAvatar
+                              userId={u.id}
+                              name={u.name}
+                              size={34}
+                              style={{ border: '1px solid var(--border)' }}
+                            />
+                            <span
+                              className="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 rounded-full border-2 border-white dark:border-slate-900"
+                              style={{ background: u.active ? 'var(--green)' : 'var(--ink3)' }}
+                              title={u.active ? 'Seated member' : 'Suspended member'}
+                            />
+                          </div>
+                          <div>
+                            <div className="font-bold text-foreground flex items-center gap-1.5">
+                              <span>{u.name}</span>
+                              {isCurrentUser && (
+                                <span className="text-[10px] font-bold px-1.5 py-0.2 rounded bg-teal-50 dark:bg-teal-950 text-teal-700 dark:text-teal-300 border border-teal-200 dark:border-teal-800">
+                                  You
+                                </span>
+                              )}
+                            </div>
+                            <div className="text-[11px] text-muted-foreground mt-0.5">
+                              {u.phone || 'No phone set'}
+                            </div>
+                          </div>
                         </div>
                       </td>
-                      <td style={{ color: 'var(--ink2)' }}>{u.email}</td>
+
+                      {/* Email Cell */}
+                      <td>
+                        <div className="flex items-center gap-1.5 text-muted-foreground">
+                          <span className="font-mono text-xs">{u.email}</span>
+                          <button
+                            type="button"
+                            onClick={() => copyEmail(u.id, u.email)}
+                            className="ondi-copy-btn"
+                            title={copiedEmailId === u.id ? 'Copied!' : 'Copy email address'}
+                          >
+                            <Icon
+                              name={copiedEmailId === u.id ? 'check' : 'copy'}
+                              size={12}
+                              style={copiedEmailId === u.id ? { color: 'var(--green)' } : undefined}
+                            />
+                          </button>
+                        </div>
+                      </td>
+
+                      {/* Status Cell */}
                       <td>
                         <span className={`ondi-status-pill ${u.active ? 'success' : 'warning'}`}>
                           <span className="ondi-status-dot" />
                           {u.active ? 'Seated' : 'Suspended'}
                         </span>
                       </td>
+
+                      {/* Role Cell */}
                       <td>
-                        <span style={{ fontSize: 11.5, fontWeight: 700, background: 'var(--bg)', border: '1px solid var(--border)', padding: '3px 8px', borderRadius: 'var(--r-sm)', color: 'var(--ink)' }}>
+                        <span className={getRolePillClass(u.role)}>
                           {u.role}
                         </span>
                       </td>
-                      <td style={{ color: 'var(--ink3)', fontSize: 12 }}>{fmt(u.created_at)}</td>
+
+                      {/* Created Cell */}
+                      <td className="text-xs text-muted-foreground whitespace-nowrap">
+                        {fmt(u.created_at)}
+                      </td>
+
+                      {/* Actions Dropdown */}
                       <td style={{ textAlign: 'right' }}>
                         <DropdownMenu>
                           <DropdownMenuTrigger asChild>
-                            <button type="button" className="ondi-icon-action" style={{ background: 'none', border: '1px solid transparent', cursor: 'pointer', color: 'var(--ink3)', padding: "var(--action-py) var(--space-md)", borderRadius: 'var(--r-sm)'}} data-ui-native-button="">
+                            <button
+                              type="button"
+                              className="ondi-icon-action"
+                              style={{
+                                background: 'none',
+                                border: '1px solid transparent',
+                                cursor: 'pointer',
+                                color: 'var(--ink3)',
+                                padding: '6px 8px',
+                                borderRadius: 'var(--r-sm)',
+                              }}
+                              aria-label="User actions"
+                            >
                               <Icon name="moreVertical" size={16} />
                             </button>
                           </DropdownMenuTrigger>
-                          <DropdownMenuContent align="end">
-                            <DropdownMenuItem onClick={() => toggleActive(u)}>
-                              <Icon name="shield" size={14} /> {u.active ? 'Suspend User' : 'Activate User'}
-                            </DropdownMenuItem>
-                            <DropdownMenuSeparator />
-                            {ROLES.map(r => (
-                              <DropdownMenuItem key={r} onClick={() => changeRole(u.id, r)} disabled={u.role === r}>
-                                Set role to {r}
+                          <DropdownMenuContent align="end" className="w-52">
+                            <DropdownMenuLabel className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider">
+                              Member Actions
+                            </DropdownMenuLabel>
+
+                            {canManage && (
+                              <DropdownMenuItem
+                                onClick={() => toggleActive(u)}
+                                className="cursor-pointer gap-2"
+                              >
+                                <Icon name="shield" size={14} className={u.active ? 'text-amber-600' : 'text-green-600'} />
+                                <span>{u.active ? 'Suspend User' : 'Activate User'}</span>
                               </DropdownMenuItem>
-                            ))}
+                            )}
+
+                            <DropdownMenuItem
+                              onClick={() => copyEmail(u.id, u.email)}
+                              className="cursor-pointer gap-2"
+                            >
+                              <Icon name="copy" size={14} />
+                              <span>Copy Email</span>
+                            </DropdownMenuItem>
+
+                            {canManage && (
+                              <>
+                                <DropdownMenuSeparator />
+                                <DropdownMenuLabel className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider">
+                                  Assign Role
+                                </DropdownMenuLabel>
+                                {assignableRoles(canGrantSuperAdmin).map(r => (
+                                  <DropdownMenuItem
+                                    key={r}
+                                    onClick={() => changeRole(u.id, r)}
+                                    disabled={u.role === r}
+                                    className="cursor-pointer flex items-center justify-between"
+                                  >
+                                    <div className="flex items-center gap-1.5">
+                                      <span className={getRolePillClass(r)}>{r}</span>
+                                    </div>
+                                    {u.role === r && <Icon name="check" size={14} className="text-teal-600" />}
+                                  </DropdownMenuItem>
+                                ))}
+                              </>
+                            )}
                           </DropdownMenuContent>
                         </DropdownMenu>
                       </td>
@@ -437,8 +997,31 @@ export const OndiUsers: React.FC = () => {
                 })}
               </tbody>
             </table>
+
+            {/* Empty State */}
             {!loading && filteredUsers.length === 0 && (
-              <div style={{ padding: '36px 20px', textAlign: 'center', color: 'var(--ink3)', fontSize: 13 }}>No users found matching current filters.</div>
+              <div className="py-16 px-4 text-center">
+                <div className="w-12 h-12 rounded-full bg-muted flex items-center justify-center text-muted-foreground mx-auto mb-3">
+                  <Icon name="search" size={20} />
+                </div>
+                <div className="text-sm font-bold text-foreground">No members found</div>
+                <p className="text-xs text-muted-foreground mt-1 max-w-sm mx-auto">
+                  {hasActiveFilters
+                    ? 'No registered users match your search or filter criteria.'
+                    : 'Your workspace has no registered users yet.'}
+                </p>
+                {hasActiveFilters && (
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={resetFilters}
+                    className="mt-4 text-xs font-semibold"
+                  >
+                    Clear All Filters
+                  </Button>
+                )}
+              </div>
             )}
           </div>
         </SectionCard>
@@ -446,17 +1029,35 @@ export const OndiUsers: React.FC = () => {
 
       {/* ── Tab 2: Invites Table ─────────────────────────────────────────────── */}
       {activeTab === 'invites' && (
-        <SectionCard padded={false}>
-          <div style={{ padding: '16px 20px', borderBottom: '1px solid var(--border)', fontSize: 15, fontWeight: 800, color: 'var(--ink)' }}>
-            Pending Invitations ({invites.length})
+        <SectionCard padded={false} className="overflow-hidden border border-border shadow-sm">
+          <div className="p-4 px-5 border-b border-border flex items-center justify-between">
+            <div>
+              <div className="text-sm font-bold text-foreground">
+                Pending Invitations ({invites.length})
+              </div>
+              <div className="text-xs text-muted-foreground mt-0.5">
+                Invitations delivered via email awaiting candidate sign-up.
+              </div>
+            </div>
+            {canManage && (
+              <Button
+                type="button"
+                size="sm"
+                onClick={() => setShowInvite(true)}
+                className="h-8 gap-1.5 text-xs font-bold"
+              >
+                <Icon name="userPlus" size={14} />
+                <span>Invite Member</span>
+              </Button>
+            )}
           </div>
 
-          <div style={{ overflowX: 'auto' }}>
+          <div className="overflow-x-auto">
             <table className="ondi-table">
               <thead>
                 <tr>
                   <th>Email</th>
-                  <th>Role</th>
+                  <th>Assigned Role</th>
                   <th>Status</th>
                   <th>Invited By</th>
                   <th>Expires</th>
@@ -468,34 +1069,49 @@ export const OndiUsers: React.FC = () => {
                   const statusClass = i.status === 'REVOKED' ? 'error' : i.status === 'ACCEPTED' ? 'success' : 'warning';
                   return (
                     <tr key={i.id}>
-                      <td style={{ fontWeight: 700, color: 'var(--ink)' }}>{i.email}</td>
-                      <td><span style={{ fontSize: 11.5, fontWeight: 700, background: 'var(--bg)', border: '1px solid var(--border)', padding: '3px 8px', borderRadius: 'var(--r-sm)'}}>{i.role}</span></td>
+                      <td>
+                        <div className="flex items-center gap-2 font-bold text-foreground">
+                          <Icon name="mail" size={15} className="text-muted-foreground" />
+                          <span>{i.email}</span>
+                        </div>
+                      </td>
+                      <td>
+                        <span className={getRolePillClass(i.role)}>
+                          {i.role}
+                        </span>
+                      </td>
                       <td>
                         <span className={`ondi-status-pill ${statusClass}`}>
                           <span className="ondi-status-dot" />
                           {i.status}
                         </span>
                       </td>
-                      <td style={{ color: 'var(--ink3)' }}>{i.invited_by_name || '—'}</td>
-                      <td style={{ color: 'var(--ink3)', fontSize: 12 }}>{fmt(i.expires_at)}</td>
+                      <td className="text-xs text-muted-foreground">{i.invited_by_name || '—'}</td>
+                      <td className="text-xs text-muted-foreground">{fmt(i.expires_at)}</td>
                       <td style={{ textAlign: 'right' }}>
                         {i.status === 'PENDING' && (
-                          <DropdownMenu>
-                            <DropdownMenuTrigger asChild>
-                              <button type="button" className="ondi-icon-action" style={{ background: 'none', border: '1px solid transparent', borderRadius: 'var(--r-sm)', cursor: 'pointer', color: 'var(--ink3)', padding: "var(--action-py) var(--space-md)" }} data-ui-native-button="">
-                                <Icon name="moreVertical" size={16} />
-                              </button>
-                            </DropdownMenuTrigger>
-                            <DropdownMenuContent align="end">
-                              <DropdownMenuItem onClick={() => resendInvite(i.id)}>
-                                <Icon name="send" size={14} /> {resent === i.id ? 'Sent ✓' : 'Resend Invite'}
-                              </DropdownMenuItem>
-                              <DropdownMenuSeparator />
-                              <DropdownMenuItem onClick={() => revokeInvite(i.id)}>
-                                <Icon name="x" size={14} style={{ color: 'var(--red)' }} /> Revoke Invite
-                              </DropdownMenuItem>
-                            </DropdownMenuContent>
-                          </DropdownMenu>
+                          <div className="flex items-center justify-end gap-1.5">
+                            <Button
+                              type="button"
+                              variant="outline"
+                              size="sm"
+                              onClick={() => resendInvite(i.id)}
+                              className="h-7 px-2.5 text-xs font-semibold"
+                            >
+                              <Icon name="send" size={12} className="mr-1" />
+                              {resent === i.id ? 'Sent ✓' : 'Resend'}
+                            </Button>
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => revokeInvite(i.id)}
+                              className="h-7 px-2 text-xs text-destructive hover:text-destructive hover:bg-destructive/10"
+                              title="Revoke invitation"
+                            >
+                              <Icon name="x" size={14} />
+                            </Button>
+                          </div>
                         )}
                       </td>
                     </tr>
@@ -503,8 +1119,28 @@ export const OndiUsers: React.FC = () => {
                 })}
               </tbody>
             </table>
+
             {invites.length === 0 && (
-              <div style={{ padding: '36px 20px', textAlign: 'center', color: 'var(--ink3)', fontSize: 13 }}>No pending invitations.</div>
+              <div className="py-16 px-4 text-center">
+                <div className="w-12 h-12 rounded-full bg-muted flex items-center justify-center text-muted-foreground mx-auto mb-3">
+                  <Icon name="mail" size={20} />
+                </div>
+                <div className="text-sm font-bold text-foreground">No pending invitations</div>
+                <p className="text-xs text-muted-foreground mt-1 max-w-sm mx-auto">
+                  All invited members have already joined or no invitations have been issued.
+                </p>
+                {canManage && (
+                  <Button
+                    type="button"
+                    size="sm"
+                    onClick={() => setShowInvite(true)}
+                    className="mt-4 text-xs font-bold gap-1.5"
+                  >
+                    <Icon name="userPlus" size={14} />
+                    <span>Send Invitation</span>
+                  </Button>
+                )}
+              </div>
             )}
           </div>
         </SectionCard>
@@ -512,62 +1148,93 @@ export const OndiUsers: React.FC = () => {
 
       {/* ── Tab 3: Join Requests ─────────────────────────────────────────────── */}
       {activeTab === 'join-requests' && canManage && (
-        <SectionCard padded={false}>
-          <div style={{ padding: '16px 20px', borderBottom: '1px solid var(--border)' }}>
-            <div style={{ fontSize: 15, fontWeight: 800, color: 'var(--ink)' }}>Auto-Domain Join Requests ({joinRequests.length})</div>
-            <div style={{ fontSize: 12, color: 'var(--ink3)', marginTop: 2 }}>
-              People who registered with an email on this workspace's domain requesting account access.
+        <SectionCard padded={false} className="overflow-hidden border border-border shadow-sm">
+          <div className="p-4 px-5 border-b border-border">
+            <div className="text-sm font-bold text-foreground">
+              Auto-Domain Join Requests ({joinRequests.length})
             </div>
-            {joinActionErr && <div style={{ fontSize: 12, color: 'var(--red)', marginTop: 6 }}>{joinActionErr}</div>}
+            <div className="text-xs text-muted-foreground mt-0.5">
+              People who registered with an email on this workspace&apos;s corporate domain requesting account access.
+            </div>
+            {joinActionErr && (
+              <div className="mt-2.5 p-2.5 text-xs rounded bg-destructive/10 text-destructive border border-destructive/20 flex items-center gap-2">
+                <Icon name="alertCircle" size={14} />
+                <span>{joinActionErr}</span>
+              </div>
+            )}
           </div>
 
-          <div style={{ overflowX: 'auto' }}>
+          <div className="overflow-x-auto">
             <table className="ondi-table">
               <thead>
                 <tr>
-                  <th>Name</th>
-                  <th>Email</th>
-                  <th>Requested</th>
+                  <th>Applicant</th>
+                  <th>Corporate Email</th>
+                  <th>Requested Date</th>
                   <th style={{ textAlign: 'right' }}>Actions</th>
                 </tr>
               </thead>
               <tbody>
                 {joinRequests.map(r => (
                   <tr key={r.id}>
-                    <td style={{ fontWeight: 700, color: 'var(--ink)' }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                    <td>
+                      <div className="flex items-center gap-2.5 font-bold text-foreground">
                         <PersonAvatar name={r.name} size={30} style={{ border: '1px solid var(--border)' }} />
-                        {r.name}
+                        <span>{r.name}</span>
                       </div>
                     </td>
-                    <td style={{ color: 'var(--ink2)' }}>{r.email}</td>
-                    <td style={{ color: 'var(--ink3)', fontSize: 12 }}>{fmt(r.created_at)}</td>
+                    <td className="text-xs text-muted-foreground font-mono">{r.email}</td>
+                    <td className="text-xs text-muted-foreground">{fmt(r.created_at)}</td>
                     <td style={{ textAlign: 'right' }}>
-                      <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
+                      <div className="flex items-center justify-end gap-2">
                         <DropdownMenu>
                           <DropdownMenuTrigger asChild>
-                            <Button size="sm">Approve as…</Button>
+                            <Button size="sm" className="h-7 text-xs font-bold gap-1">
+                              <span>Approve as…</span>
+                            </Button>
                           </DropdownMenuTrigger>
-                          <DropdownMenuContent align="end">
-                            {ROLES.map(role => (
-                              <DropdownMenuItem key={role} onClick={() => approveJoinRequest(r.id, role)}>
-                                Approve as {role}
+                          <DropdownMenuContent align="end" className="w-48">
+                            <DropdownMenuLabel className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider">
+                              Choose Role
+                            </DropdownMenuLabel>
+                            {assignableRoles(canGrantSuperAdmin).map(role => (
+                              <DropdownMenuItem
+                                key={role}
+                                onClick={() => approveJoinRequest(r.id, role)}
+                                className="cursor-pointer"
+                              >
+                                <span className={getRolePillClass(role)}>{role}</span>
                               </DropdownMenuItem>
                             ))}
                           </DropdownMenuContent>
                         </DropdownMenu>
-                        <button type="button" className="ondi-secondary-action" onClick={() => denyJoinRequest(r.id)}
-                          style={{ background: 'var(--bg)', border: '1px solid var(--border)', color: 'var(--red)', borderRadius: 'var(--r-sm)', padding: "var(--action-py) var(--space-md)", fontSize: "var(--text-base)", fontWeight: 700, cursor: 'pointer' }} data-ui-native-button="">
+
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          onClick={() => denyJoinRequest(r.id)}
+                          className="h-7 text-xs font-bold text-destructive hover:text-destructive hover:bg-destructive/10 border-border"
+                        >
                           Deny
-                        </button>
+                        </Button>
                       </div>
                     </td>
                   </tr>
                 ))}
               </tbody>
             </table>
+
             {joinRequests.length === 0 && (
-              <div style={{ padding: '36px 20px', textAlign: 'center', color: 'var(--ink3)', fontSize: 13 }}>No pending join requests.</div>
+              <div className="py-16 px-4 text-center">
+                <div className="w-12 h-12 rounded-full bg-muted flex items-center justify-center text-muted-foreground mx-auto mb-3">
+                  <Icon name="userCheck" size={20} />
+                </div>
+                <div className="text-sm font-bold text-foreground">No pending join requests</div>
+                <p className="text-xs text-muted-foreground mt-1 max-w-sm mx-auto">
+                  There are no unreviewed auto-domain registration requests at this time.
+                </p>
+              </div>
             )}
           </div>
         </SectionCard>

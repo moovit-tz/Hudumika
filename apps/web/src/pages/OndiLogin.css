@@ -366,7 +366,8 @@
 }
 .ondi-signin-choice .ondi-google-pill,
 .ondi-signin-choice .ondi-pill--google-visual,
-.ondi-signin-choice .ondi-signin-choice-sso {
+.ondi-signin-choice .ondi-signin-choice-sso,
+.ondi-signin-choice .ondi-signin-choice-email {
   height: auto;
   min-height: var(--action-h, 52px);
   border: 0;
@@ -381,6 +382,18 @@
 .ondi-signin-choice .ondi-pill--google-visual { padding-block: var(--action-py, 12px); gap: 8px; }
 .ondi-signin-choice .ondi-signin-choice-sso { border-left: 1px solid var(--lp-row-border, var(--border)); padding-inline: var(--space-sm, 12px); gap: 8px; }
 .ondi-signin-choice .ondi-signin-choice-sso:hover { background: color-mix(in srgb, var(--lp-ink) 5%, transparent); }
+.ondi-signin-choice .ondi-signin-choice-email {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-width: 0;
+  padding: var(--action-py, 12px) var(--space-sm, 12px);
+  border-left: 1px solid var(--lp-row-border, var(--border));
+  cursor: pointer;
+}
+.ondi-signin-choice .ondi-signin-choice-email:hover { background: color-mix(in srgb, var(--lp-ink) 5%, transparent); }
+.ondi-signin-choice .ondi-signin-choice-email span { min-width: 0; }
 .ondi-signin-choice .ondi-signin-choice-or {
   position: absolute;
   z-index: 2;
@@ -401,5 +414,6 @@
   pointer-events: none;
 }
 .ondi-signin-choice:not(:has(.ondi-google-pill)) { grid-template-columns: minmax(0, 1fr); }
-.ondi-signin-choice:not(:has(.ondi-google-pill)) .ondi-signin-choice-or { display: none; }
 .ondi-signin-choice:not(:has(.ondi-google-pill)) .ondi-signin-choice-sso { border-left: 0; }
+.ondi-signin-choice:not(:has(.ondi-google-pill)) .ondi-signin-choice-email { border-left: 0; }
+.ondi-signin-choice:not(:has(.ondi-google-pill)) .ondi-signin-choice-or { display: none; }

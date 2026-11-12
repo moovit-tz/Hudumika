@@ -11,7 +11,7 @@ import { extractKycDocument, extractKybDocument } from '../lib/kyc-ocr.js';
 import { recordAuthEvent } from '../lib/audit-chain.js';
 import { requireRoleOrOrgPermission, hasOrgPermission, ORG_PERMISSIONS } from '../lib/org-rbac.js';
 import { computeOrgTrust } from '../lib/trust-score.js';
-import { DEFAULT_PASSWORD_POLICY } from '../lib/password-policy.js';
+import { DEFAULT_PASSWORD_POLICY, enforcePasswordPolicy } from '../lib/password-policy.js';
 import { hashPassword } from '../lib/password.js';
 import { webauthnOrigin } from '../lib/webauthn-config.js';
 import { computeComplianceRollup } from '../lib/compliance-rollup.js';
@@ -109,7 +109,10 @@ export async function ondiRoutes(fastify: FastifyInstance) {
     });
   });
 
-  fastify.patch('/users/:id/role', { preHandler: requireRole('ADMIN', 'TENANT_ADMIN') }, async (req, reply) => {
+  // Was ADMIN/TENANT_ADMIN-only, same gap as /users/:id/status below before
+  // its own fix — a SUPER_ADMIN couldn't call their own role-management
+  // route. Added here too.
+  fastify.patch('/users/:id/role', { preHandler: requireRole('SUPER_ADMIN', 'ADMIN', 'TENANT_ADMIN') }, async (req, reply) => {
     const user = req.user;
     const { id } = req.params as { id: string };
     // Same fix as hr.routes.ts PATCH /staff/:id/role — this route is
@@ -121,6 +124,15 @@ export async function ondiRoutes(fastify: FastifyInstance) {
       return reply.status(403).send({ error: 'Only a SUPER_ADMIN can grant SUPER_ADMIN' });
     }
     return withTenant(user.tenant_id, async (trx) => {
+      // Mirrors hr.routes.ts's own /staff/:id/role guard — granting was
+      // checked above, but demoting an existing SUPER_ADMIN is just as real
+      // a privilege action and was not checked at all: an ADMIN could strip
+      // another user's SUPER_ADMIN through this route.
+      const target = await trx.selectFrom('users').select('role')
+        .where('id', '=', id).where('tenant_id', '=', user.tenant_id).executeTakeFirst();
+      if (target?.role === 'SUPER_ADMIN' && user.role !== 'SUPER_ADMIN') {
+        return reply.status(403).send({ error: "Only a SUPER_ADMIN can change a SUPER_ADMIN's role" });
+      }
       const updated = await trx.updateTable('users').set({ role, updated_at: new Date() })
         .where('id', '=', id).where('tenant_id', '=', user.tenant_id)
         .returning(['id', 'name', 'email', 'role'])
@@ -175,7 +187,8 @@ export async function ondiRoutes(fastify: FastifyInstance) {
     });
   });
 
-  fastify.post('/invitations', { preHandler: requireRole('MANAGER', 'ADMIN', 'TENANT_ADMIN') }, async (req, reply) => {
+  // Same SUPER_ADMIN-excluded-from-its-own-gate bug as /users/:id/role above.
+  fastify.post('/invitations', { preHandler: requireRole('SUPER_ADMIN', 'MANAGER', 'ADMIN', 'TENANT_ADMIN') }, async (req, reply) => {
     const user = req.user;
     // Same fix as hr.routes.ts POST /invitations — the invite's role becomes
     // the accepted user's real role, so this needed the identical guard.
@@ -210,10 +223,76 @@ export async function ondiRoutes(fastify: FastifyInstance) {
     });
   });
 
+  // Direct add, bypassing the email-invite flow entirely — for when SMTP
+  // isn't configured or delivery is failing (found live: dev SMTP
+  // credentials rejected by Gmail, which would otherwise have left no way
+  // to seat anyone). Creates the real user row immediately, active, with
+  // a password the admin sets and must relay out-of-band themselves — there
+  // is deliberately no "auto-generate and show once" step, since this route
+  // exists precisely because this tenant can't be assumed to have working
+  // outbound email to send a generated password through either.
+  fastify.post('/users/direct', { preHandler: requireRole('SUPER_ADMIN', 'ADMIN', 'TENANT_ADMIN') }, async (req, reply) => {
+    const user = req.user;
+    const body = z.object({
+      email: z.string().trim().email().max(320),
+      name: z.string().trim().min(1).max(200),
+      role: z.enum(STAFF_ROLES),
+      password: z.string().min(1).max(200),
+    }).parse(req.body);
+    // Same grant guard as invitations — the role set here is immediately
+    // real, not provisional like an invite's, so this is the only check
+    // standing between an ADMIN and self-granting SUPER_ADMIN.
+    if (body.role === 'SUPER_ADMIN' && user.role !== 'SUPER_ADMIN') {
+      return reply.status(403).send({ error: 'Only a SUPER_ADMIN can grant SUPER_ADMIN' });
+    }
+    if ((body.role as string) !== 'CUSTOMER') {
+      const { checkSeatLimit } = await import('../lib/plan-limits.js');
+      const check = await checkSeatLimit(user.tenant_id);
+      if (!check.allowed) return reply.status(403).send({ error: check.message });
+    }
+    const policyCheck = await enforcePasswordPolicy(user.tenant_id, body.password);
+    if (!policyCheck.ok) return reply.status(400).send({ error: policyCheck.reason });
+
+    return withTenant(user.tenant_id, async (trx) => {
+      // users.email is unique platform-wide, not per-tenant (same check
+      // join-request approval above makes) — a tenant-scoped uniqueness
+      // check here would let this insert collide and 500 on the real
+      // constraint instead of giving a clean 409.
+      const existing = await trx.selectFrom('users').select('id').where('email', '=', body.email).executeTakeFirst();
+      if (existing) return reply.status(409).send({ error: 'A user with this email already exists.' });
+
+      const now = new Date();
+      const newUser = await trx.insertInto('users').values({
+        tenant_id: user.tenant_id,
+        email: body.email,
+        password_hash: hashPassword(body.password),
+        password_changed_at: now,
+        role: body.role,
+        name: body.name,
+        active: true,
+        created_at: now,
+        updated_at: now,
+      }).returning(['id', 'name', 'email', 'role', 'active', 'created_at']).executeTakeFirstOrThrow();
+
+      // Mirrors auth.routes.ts's accept-invite emit of the same event type,
+      // except with an actorId — this is the admin acting on the new user's
+      // behalf, not the user's own signup, so Ondi's joiner automation
+      // attributes it correctly instead of looking self-initiated.
+      await emitDomainEvent(trx, user.tenant_id, {
+        type: 'user.joined', sourceApp: 'ondi', entityType: 'user', entityId: newUser.id,
+        payload: { userId: newUser.id, name: newUser.name, email: newUser.email, role: newUser.role, method: 'direct' },
+        actorId: user.sub,
+      }).catch(err => console.error('[Ondi] user.joined emit failed:', err?.message));
+
+      return newUser;
+    });
+  });
+
   // HR's own invitations page (hr.routes.ts POST /invitations/:id/resend)
   // used to be the only place this action existed; now that Ondi is the
   // one live home for invitations, it needs its own copy of the same call.
-  fastify.post('/invitations/:id/resend', { preHandler: requireRole('MANAGER', 'ADMIN', 'TENANT_ADMIN') }, async (req) => {
+  // Same SUPER_ADMIN-excluded-from-its-own-gate bug as the routes above.
+  fastify.post('/invitations/:id/resend', { preHandler: requireRole('SUPER_ADMIN', 'MANAGER', 'ADMIN', 'TENANT_ADMIN') }, async (req) => {
     const user = req.user;
     const { id } = req.params as { id: string };
     return withTenant(user.tenant_id, async (trx) => {
@@ -227,7 +306,7 @@ export async function ondiRoutes(fastify: FastifyInstance) {
     });
   });
 
-  fastify.delete('/invitations/:id', { preHandler: requireRole('MANAGER', 'ADMIN', 'TENANT_ADMIN') }, async (req) => {
+  fastify.delete('/invitations/:id', { preHandler: requireRole('SUPER_ADMIN', 'MANAGER', 'ADMIN', 'TENANT_ADMIN') }, async (req) => {
     const user = req.user;
     const { id } = req.params as { id: string };
     return withTenant(user.tenant_id, async (trx) => {
@@ -242,7 +321,7 @@ export async function ondiRoutes(fastify: FastifyInstance) {
 
   // ── Login history (already populated by auth.routes.ts on every login) ─
 
-  fastify.get('/login-history', { preHandler: requireRole('ADMIN', 'TENANT_ADMIN') }, async (req) => {
+  fastify.get('/login-history', { preHandler: requireRole('SUPER_ADMIN', 'ADMIN', 'TENANT_ADMIN') }, async (req) => {
     const user = req.user;
     return withTenant(user.tenant_id, async (trx) => {
       return trx.selectFrom('hr_login_history as l')
@@ -255,7 +334,7 @@ export async function ondiRoutes(fastify: FastifyInstance) {
     });
   });
 
-  fastify.get('/devices', { preHandler: requireRole('ADMIN', 'TENANT_ADMIN') }, async (req) => {
+  fastify.get('/devices', { preHandler: requireRole('SUPER_ADMIN', 'ADMIN', 'TENANT_ADMIN') }, async (req) => {
     const user = req.user;
     return withTenant(user.tenant_id, async (trx) => {
       return trx.selectFrom('hr_devices as d')
@@ -267,7 +346,7 @@ export async function ondiRoutes(fastify: FastifyInstance) {
     });
   });
 
-  fastify.patch('/devices/:id', { preHandler: requireRole('ADMIN', 'TENANT_ADMIN') }, async (req, reply) => {
+  fastify.patch('/devices/:id', { preHandler: requireRole('SUPER_ADMIN', 'ADMIN', 'TENANT_ADMIN') }, async (req, reply) => {
     const user = req.user;
     const { id } = req.params as { id: string };
     const { trusted } = req.body as { trusted: boolean };

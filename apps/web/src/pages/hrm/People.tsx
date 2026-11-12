@@ -26,6 +26,8 @@ import { Tip } from '../../components/ui/tooltip.js';
 export function EmployeesPage() {
   const isMobile = useIsMobile();
   const navigate = useNavigate();
+  const { user: me } = useAuth();
+  const canInviteSuperAdmin = me?.role === 'SUPER_ADMIN';
   const [search,    setSearch]    = useState('');
   const [deptF,     setDeptF]     = useState('');
   const [statusF,   setStatusF]   = useState('');
@@ -254,6 +256,7 @@ export function EmployeesPage() {
                     <SelectItem value="FINANCE">Finance</SelectItem>
                     <SelectItem value="ADMIN">Admin</SelectItem>
                     <SelectItem value="TENANT_ADMIN">Tenant Admin</SelectItem>
+                    {canInviteSuperAdmin && <SelectItem value="SUPER_ADMIN">Super Admin (platform-wide)</SelectItem>}
                   </SelectContent>
                 </Select>
               </div>

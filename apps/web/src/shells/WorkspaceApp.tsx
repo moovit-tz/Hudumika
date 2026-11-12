@@ -6,7 +6,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import type { AppId } from '@hudumika/types';
 import { useBranding } from '../hooks/useBranding.js';
 import { RequireAppEnabled } from '../components/RequireAppEnabled.js';
-import { parseHex, darkenHex, lightenHex, hexToHslTriplet, pickForegroundHsl, enforceContrastFloor } from '../lib/color.js';
+import { parseHex, darkenHex, lightenHex, hexToHslTriplet, pickForegroundHsl, enforceContrastFloor, focusRingHex } from '../lib/color.js';
 import { SkeletonPage } from '../components/ui/skeleton.js';
 import { ActivityMonitorIndicator } from '../components/ActivityMonitorIndicator.js';
 import { recordRecentApp } from '../lib/recentApps.js';
@@ -254,6 +254,11 @@ export function WorkspaceApp({ appId, children, bypassGatePaths, freeAccessPaths
       '--primary': primaryHsl,
       '--primary-foreground': fgHsl,
       '--ring': primaryHsl,
+      // Per-app like the rest of this map (and written to :root with it, so
+      // portalled menus and dialogs draw the same ring). #f4f7fb is the
+      // default light page background; the dark branch below re-floors this
+      // against the app's own tinted surface.
+      '--focus-ring-color': focusRingHex(surface.hex, '#f4f7fb'),
       '--sidebar-primary': primaryHsl,
       '--sidebar-primary-foreground': fgHsl,
       '--sidebar-ring': primaryHsl,
@@ -303,6 +308,7 @@ export function WorkspaceApp({ appId, children, bypassGatePaths, freeAccessPaths
       const accentHsl = hexToHslTriplet(accentHex);
       vars['--bg']              = bgHex;
       vars['--white']           = cardHex;
+      vars['--focus-ring-color'] = focusRingHex(surface.hex, accentHex);
       vars['--nav-header-bg']   = mix(0.02, [8, 8, 8]);
       vars['--background']      = bgHsl;
       vars['--card']            = cardHsl;

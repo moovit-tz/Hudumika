@@ -18,6 +18,7 @@ import { dbPlatform } from '../db/client.js';
 import { PaymentGateway } from '../integrations/payment-gateway.js';
 import { hashPassword } from '../lib/password.js';
 import { env } from '../config/env.js';
+import { getPlatformSecuritySettings } from '../lib/platform-settings.js';
 import type { JWTPayload, TenantPlan } from '@hudumika/types';
 import { SIGNUP_BASE_PLAN_CODES, signupPackageAmount } from '@hudumika/types';
 
@@ -309,6 +310,12 @@ export async function onboardingRoutes(fastify: FastifyInstance) {
 
     const ticket = resolveOndiSignupTicket(fastify, input.account);
     if (!ticket.ok) return reply.status(ticket.status).send({ error: ticket.error });
+    if (!ticket.passwordAlreadyHashed) {
+      const minimum = Math.max(8, (await getPlatformSecuritySettings()).minPasswordLength);
+      if ((input.account.password?.length ?? 0) < minimum) {
+        return reply.status(400).send({ error: `Password must be at least ${minimum} characters.` });
+      }
+    }
 
     try {
       const result = await OnboardingService.completeOnboarding(fastify, input as any, { passwordAlreadyHashed: ticket.passwordAlreadyHashed });
@@ -404,6 +411,12 @@ export async function onboardingRoutes(fastify: FastifyInstance) {
     }
     const ticket = resolveOndiSignupTicket(fastify, input.account);
     if (!ticket.ok) return reply.status(ticket.status).send({ error: ticket.error });
+    if (!ticket.passwordAlreadyHashed) {
+      const minimum = Math.max(8, (await getPlatformSecuritySettings()).minPasswordLength);
+      if ((input.account.password?.length ?? 0) < minimum) {
+        return reply.status(400).send({ error: `Password must be at least ${minimum} characters.` });
+      }
+    }
     try {
       const pkg = await dbPlatform.selectFrom('packages')
         .select(['annual_price', 'monthly_price', 'price_flat_monthly', 'price_flat_annual', 'currency'])

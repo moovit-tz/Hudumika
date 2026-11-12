@@ -116,6 +116,7 @@ import { lensRoutes } from './routes/lens.routes.js';
 import { ondiRoutes }     from './routes/ondi.routes.js';
 import { ondiAuthRoutes } from './routes/ondi-auth.routes.js';
 import { ondiSamlRoutes } from './routes/ondi-saml.routes.js';
+import { ondiSamlIdpRoutes } from './routes/ondi-saml-idp.routes.js';
 import { ondiOauthRoutes } from './routes/ondi-oauth.routes.js';
 import { oidcDiscoveryRoutes } from './routes/oidc-discovery.routes.js';
 import { trackingRoutes } from './routes/tracking.routes.js';
@@ -700,6 +701,7 @@ export async function registerApp() {
     await server.register(ondiRoutes,     { prefix: '/v1/ondi' });
     await server.register(ondiAuthRoutes, { prefix: '/v1/ondi/auth' });
     await server.register(ondiSamlRoutes, { prefix: '/v1/ondi/auth/saml' });
+    await server.register(ondiSamlIdpRoutes, { prefix: '/v1/ondi/saml/idp' });
     await server.register(ondiOauthRoutes, { prefix: '/v1/ondi/oauth' });
     await server.register(oidcDiscoveryRoutes);
     await server.register(trackingRoutes, { prefix: '/v1/tracking' });

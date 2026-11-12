@@ -18,12 +18,9 @@ export interface OnboardingIndustry {
 }
 
 export interface OnboardingDraft {
-  // Step 1 — Account. Full SSO: identity is verified by Ondi (Google/
-  // Microsoft/Apple — the only methods that can verify someone with no
-  // Hudumika account yet, since phone/email OTP both require an existing
-  // tenant to send through). name/email are populated FROM that verified
-  // identity, not typed by hand; ondi_ticket is what proves it server-side
-  // at POST /v1/onboarding/complete. No password anywhere in this flow.
+  // Step 1 — Account. Federated identity is proven by ondi_ticket. Manual
+  // Email signup uses separate transient password state in the wizard;
+  // passwords must never be written into resumable drafts.
   name: string;
   email: string;
   ondi_ticket: string;
@@ -101,6 +98,8 @@ export const ACCEPTED_REGISTRY_INDUSTRIES: OnboardingIndustry[] = [
 export interface StepProps {
   draft: OnboardingDraft;
   update: (patch: Partial<OnboardingDraft>) => void;
+  accountPassword?: string;
+  setAccountPassword?: (password: string) => void;
   onNext: () => void;
   onBack: () => void;
   packages: Package[];

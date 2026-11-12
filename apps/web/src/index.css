@@ -275,6 +275,18 @@
   --dur-slow: 300ms;
   --ease:     cubic-bezier(0.4, 0, 0.2, 1);
 
+  /* Keyboard focus indicator, consumed by control-contract.css. The colour
+     is --ring, not --teal: --ring is written from the contrast-floored
+     --primary by useDesignSystem/WorkspaceApp, so it stays >=3:1 against the
+     page for any tenant accent, where the raw brand hex has no such floor. */
+  --focus-ring-width:  2px;
+  --focus-ring-offset: 2px;
+  --focus-ring-color:  hsl(var(--ring));
+  /* WCAG 2.5.8 floor for a pointer target. Small controls (checkbox, radio,
+     switch, a dialog's close) keep their drawn size and extend their hit
+     area to this instead. */
+  --target-min: 24px;
+
   --text-xs:   11px;
   --text-sm:   12px;
   --text-base: 13px;

@@ -27,12 +27,57 @@
 }
 [data-ui-field][data-field-appearance="bare"] { font-family: var(--font); color: var(--ink); }
 [data-ui-field]::placeholder { font-family: inherit; color: var(--ink3); opacity: 1; }
+/* The ring was a 38% tint of --teal: measured 1.76:1 against the page, under
+   the 3:1 a focus indicator needs, and it disappeared entirely for a pale
+   tenant accent. It now uses the same solid, contrast-floored token as every
+   other control below. */
 [data-ui-field]:not([data-field-appearance="bare"]):focus-visible {
   border-color: var(--teal);
-  outline: 2px solid color-mix(in srgb, var(--teal) 38%, transparent);
+  outline: var(--focus-ring-width) solid var(--focus-ring-color);
   outline-offset: 1px;
 }
 [data-ui-field][aria-invalid="true"], [data-ui-field][data-invalid="true"] { border-color: var(--red); }
+
+/* One keyboard focus indicator for the shared interactive primitives. Button,
+   Checkbox and Switch each carried `focus-visible:outline-none` with nothing
+   in its place, so Tab moved through 3,000+ buttons with no visible position
+   at all. This file is imported unlayered, so the rule wins over any Tailwind
+   utility left on a call site without needing !important.
+   The role selectors are deliberately element-agnostic: a hand-rolled
+   role="switch"/"checkbox" gets the same indicator as the Radix one. */
+[data-ui-button]:focus-visible,
+[role="checkbox"]:focus-visible,
+[role="switch"]:focus-visible,
+[role="radio"]:focus-visible,
+[data-ui-focus]:focus-visible {
+  outline: var(--focus-ring-width) solid var(--focus-ring-color);
+  outline-offset: var(--focus-ring-offset);
+}
+@media (forced-colors: active) {
+  /* Windows High Contrast replaces author colours; a system colour keeps the
+     indicator present instead of resolving to the canvas colour. */
+  [data-ui-button]:focus-visible,
+  [data-ui-field]:focus-visible,
+  [role="checkbox"]:focus-visible,
+  [role="switch"]:focus-visible,
+  [role="radio"]:focus-visible,
+  [data-ui-focus]:focus-visible { outline-color: Highlight; }
+}
+
+/* Extends a small control's hit area to --target-min without changing what
+   is drawn. The pseudo-element belongs to the control, so a click on it is a
+   click on the control. The control must already be positioned (relative or
+   absolute) — this rule does not set `position`, because doing so here would
+   override an absolutely placed control such as a dialog's close button. */
+[data-ui-target]::before {
+  content: "";
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: max(100%, var(--target-min));
+  height: max(100%, var(--target-min));
+  transform: translate(-50%, -50%);
+}
 [data-ui-field]:not([data-field-appearance="bare"]):not([data-ds-control-exempt]):not([aria-invalid="true"]):not([data-invalid="true"]):not([class*="error"]):not([class*="invalid"]):not([style*="border-color"]):not([data-entity-status]) { border-color: var(--border) !important; }
 [data-ui-field]:not([data-field-appearance="bare"]):not([data-ds-control-exempt]):focus-visible { border-color: var(--teal) !important; }
 [data-ui-field][aria-invalid="true"]:focus-visible { border-color: var(--red) !important; }

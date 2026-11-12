@@ -7,7 +7,6 @@ import { Icon } from './Icon.js';
 import { Button } from './ui/button.js';
 import { apiFetch, BASE_URL } from '../lib/api.js';
 import { GoogleSignInButton } from './GoogleSignInButton.js';
-import { MicrosoftSignInButton } from './MicrosoftSignInButton.js';
 import { AppleSignInButton } from './AppleSignInButton.js';
 import { Tip } from './ui/tooltip.js';
 import type { FederatedSignupTicket } from '@hudumika/types';
@@ -42,8 +41,8 @@ const MAGIC_LINK_LOGIN_ENABLED = false;
 // the UI until one of these flips back to true.
 const PHONE_LOGIN_ENABLED = false;
 const TOTP_LOGIN_ENABLED = false;
-// Company SSO is a real, first-class sign-in option, not a hidden/dead
-// flag: any tenant can configure its own SAML identity provider through
+// Company SSO is a real, first-class sign-in option for registered
+// workspaces: any tenant can configure its own SAML identity provider through
 // the guided setup wizard at Ondi ▸ SSO (OndiSSO.tsx →
 // POST/PATCH /v1/ondi/sso-providers), and /v1/ondi/auth/saml/lookup
 // resolves an entered email against every tenant that actually has an
@@ -61,27 +60,22 @@ const VISIBLE_METHODS = (Object.keys(METHOD_META) as Array<keyof typeof METHOD_M
 // (below) — neither belongs a second time as one more icon in the
 // secondary "more ways to sign in" row.
 const SECONDARY_METHODS = VISIBLE_METHODS.filter(key => key !== 'phone' && key !== 'company-sso');
-// Microsoft/Apple handlers (handleMicrosoftCredential etc.) stay fully
-// wired below — only the buttons are hidden, both for login and signup —
-// so re-enabling multi-provider sign-in later is flipping this back on,
-// not rebuilding it.
-const ONDI_SSO_MULTI_PROVIDER_SIGNUP = false;
-
 interface OndiSignInPanelProps {
   /** 'login' (default): the platform's own phone-OTP/authenticator/passkey/
    *  company-SSO methods — no Google, by explicit product decision (a
    *  separate federated option read as competing with "sign in with Ondi"
    *  rather than being part of it). 'signup': brand-new workspace creation
-   *  — only Google/Microsoft/Apple and company SSO render; phone-OTP/
+   *  — Google verifies a new administrator; company SSO is reserved for
+   *  people joining an already-registered workspace.
+   *  Phone-OTP/
    *  magic-link/authenticator all require an existing tenant's own SMS
    *  gateway/mail sender to verify through, which doesn't exist yet for
-   *  someone who isn't registered. OAuth doesn't have that problem — the
-   *  provider does the verifying, Hudumika never sends anything. Company
-   *  SSO doesn't either — it signs into an EXISTING workspace that already
-   *  has SAML configured (see StepAccount's own "already have an account"
-   *  link), never creates a new one, so it belongs here too. */
+   *  someone who isn't registered. Google OAuth verifies the initial
+   *  administrator without requiring an existing workspace. */
   intent?: 'login' | 'signup';
-  /** signup intent only: fires when Google/Microsoft/Apple verified a real
+  /** Optional second signup choice, displayed beside Google in the provider row. */
+  signupEmailAction?: React.ReactNode;
+  /** signup intent only: fires when Google verified a real
    *  identity with no existing Hudumika account and no company to join —
    *  genuinely new. The host (StepAccount) carries this into company-
    *  details collection instead of a password field. */
@@ -106,7 +100,7 @@ interface OndiSignInPanelProps {
  * hosting it. SIGNUP intent never creates a session itself — see
  * onSignupTicket above.
  */
-export function OndiSignInPanel({ intent = 'login', onSignupTicket }: OndiSignInPanelProps) {
+export function OndiSignInPanel({ intent = 'login', onSignupTicket, signupEmailAction }: OndiSignInPanelProps) {
   const { t } = useLocale();
   const { login, requestOtpLogin, verifyOtpLogin, requestMagicLink, requestPasskeyLoginOptions, verifyPasskeyLogin, loginWithGoogle, loginWithMicrosoft, loginWithApple } = useAuth();
   const navigate = useNavigate();
@@ -166,7 +160,7 @@ export function OndiSignInPanel({ intent = 'login', onSignupTicket }: OndiSignIn
   // Login.tsx's own ?expired=.
   useEffect(() => {
     if (searchParams.get('samlError')) {
-      if (COMPANY_SSO_LOGIN_ENABLED) {
+      if (!isSignup && COMPANY_SSO_LOGIN_ENABLED) {
         setMode('company-sso');
         setError("Your company sign-on didn't complete. Try again, or check with your IT administrator.");
       }
@@ -258,13 +252,20 @@ export function OndiSignInPanel({ intent = 'login', onSignupTicket }: OndiSignIn
     if (!ssoEmail.trim()) { setError('Enter your work email.'); return; }
     setError(null); setInfo(null); setSsoChecking(true);
     try {
-      const res = await apiFetch(`/v1/ondi/auth/saml/lookup?email=${encodeURIComponent(ssoEmail.trim())}`);
+      const res = await apiFetch('/v1/ondi/auth/saml/lookup', {
+        method: 'POST',
+        body: JSON.stringify({ email: ssoEmail.trim() }),
+      });
       if (res.found) {
         // A real cross-origin navigation to the IdP, not a fetch — SAML
         // can't be driven through the SPA's own request layer.
         window.location.href = `${BASE_URL}/v1/ondi/auth/saml/${res.providerId}/login`;
       } else {
-        setError(t('onboarding.companySsoNotConfigured'));
+        // Do not leave users at a dead-end or silently start a disabled auth
+        // method. Return to supported sign-in choices and explain the missing
+        // corporate federation setup.
+        setInfo(t('onboarding.companySsoEmailFallback'));
+        setMode(null);
         setSsoChecking(false);
       }
     } catch (err: any) {
@@ -363,9 +364,15 @@ export function OndiSignInPanel({ intent = 'login', onSignupTicket }: OndiSignIn
     <div className="ondi-panel">
       {mode === null ? (
         <>
-          <div className="ondi-signin-choice" role="group" aria-label="Sign-in method">
+          <div className="ondi-signin-choice" role="group" aria-label={isSignup ? 'Sign-up method' : 'Sign-in method'}>
             <GoogleSignInButton onCredential={handleGoogleCredential} onError={setError} variant="choice" />
-            {COMPANY_SSO_LOGIN_ENABLED && (
+            {isSignup && signupEmailAction && (
+              <>
+                <span className="ondi-signin-choice-or" aria-hidden="true">{t('onboarding.or')}</span>
+                {signupEmailAction}
+              </>
+            )}
+            {!isSignup && COMPANY_SSO_LOGIN_ENABLED && (
               <>
                 <span className="ondi-signin-choice-or" aria-hidden="true">{t('onboarding.or')}</span>
                 <Button type="button" variant="ghost" size="sm" className="ondi-signin-choice-sso" aria-label="Sign in with company SSO" onClick={() => switchMode('company-sso')}>

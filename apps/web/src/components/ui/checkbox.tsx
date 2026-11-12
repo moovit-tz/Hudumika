@@ -25,9 +25,8 @@ const Checkbox = React.forwardRef<
       // exactly the "unreachable by the settings that exist to control it"
       // case CLAUDE.md calls out; the shape/density SuperAdmin setting has
       // to reach this control the same as every button and input does.
-      "peer grid h-4 w-4 shrink-0 place-content-center rounded-(--r-sm) border-2 border-(--border2) bg-transparent transition-colors",
+      "peer relative grid h-4 w-4 shrink-0 place-content-center rounded-(--r-sm) border-2 border-(--border2) bg-transparent transition-colors",
       "hover:border-primary/50",
-      "focus-visible:outline-none",
       "disabled:cursor-not-allowed disabled:opacity-50",
       // "Some but not all" (checked="indeterminate", e.g. a select-all
       // header checkbox with a partial selection below it) used to render
@@ -44,6 +43,7 @@ const Checkbox = React.forwardRef<
       "aria-invalid:border-(--red) aria-invalid:data-[state=unchecked]:bg-(--red-l)",
       className
     )}
+    data-ui-target=""
     {...props}
   >
     <CheckboxPrimitive.Indicator

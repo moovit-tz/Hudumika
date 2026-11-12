@@ -283,6 +283,161 @@
   background: currentColor;
 }
 
+/* KPI Card State Overrides & Icon Themes */
+.ondi-kpi-card.is-active {
+  border-color: var(--teal) !important;
+  background: color-mix(in srgb, var(--teal) 4%, var(--white)) !important;
+  box-shadow: 0 0 0 2px var(--teal-l), 0 6px 18px rgba(0, 0, 0, 0.05) !important;
+}
+
+.ondi-kpi-icon-box.purple {
+  background: #f1f0fb;
+  color: #7c3aed;
+}
+
+.ondi-kpi-icon-box.green {
+  background: #e8f7ee;
+  color: #10b981;
+}
+
+.ondi-kpi-icon-box.gold {
+  background: #fef6e6;
+  color: #f59e0b;
+}
+
+.ondi-kpi-icon-box.blue {
+  background: #eaf3ff;
+  color: #2563eb;
+}
+
+[data-theme="dark"] .ondi-kpi-card.is-active {
+  background: color-mix(in srgb, var(--teal) 12%, var(--ondi-night-raised)) !important;
+  border-color: var(--teal) !important;
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--teal) 30%, transparent), 0 8px 24px rgba(0, 0, 0, 0.3) !important;
+}
+
+[data-theme="dark"] .ondi-kpi-icon-box.purple { background: rgba(124, 58, 237, 0.18); color: #a78bfa; }
+[data-theme="dark"] .ondi-kpi-icon-box.green { background: rgba(16, 185, 129, 0.18); color: #34d399; }
+[data-theme="dark"] .ondi-kpi-icon-box.gold { background: rgba(245, 158, 11, 0.18); color: #fbbf24; }
+[data-theme="dark"] .ondi-kpi-icon-box.blue { background: rgba(37, 99, 235, 0.18); color: #60a5fa; }
+
+/* Role Pill Badges */
+.ondi-role-pill {
+  display: inline-flex;
+  align-items: center;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  padding: 3px 8px;
+  border-radius: var(--r-sm, 6px);
+  border: 1px solid var(--border);
+  background: var(--bg);
+  color: var(--ink);
+  line-height: 1.2;
+}
+
+.ondi-role-pill.super-admin {
+  background: #f5f3ff;
+  color: #6d28d9;
+  border-color: #ddd6fe;
+}
+
+.ondi-role-pill.admin {
+  background: #eef2ff;
+  color: #4338ca;
+  border-color: #c7d2fe;
+}
+
+.ondi-role-pill.manager {
+  background: #eff6ff;
+  color: #1d4ed8;
+  border-color: #bfdbfe;
+}
+
+.ondi-role-pill.finance {
+  background: #ecfdf5;
+  color: #047857;
+  border-color: #a7f3d0;
+}
+
+.ondi-role-pill.sales {
+  background: #ecfeff;
+  color: #0e7490;
+  border-color: #a5f3fc;
+}
+
+.ondi-role-pill.senior {
+  background: #fffbeb;
+  color: #b45309;
+  border-color: #fde68a;
+}
+
+.ondi-role-pill.junior {
+  background: #f8fafc;
+  color: #475569;
+  border-color: #e2e8f0;
+}
+
+.ondi-role-pill.customer {
+  background: #fafafa;
+  color: #71717a;
+  border-color: #e4e4e7;
+}
+
+[data-theme="dark"] .ondi-role-pill.super-admin { background: rgba(109, 40, 217, 0.2); color: #c4b5fd; border-color: rgba(109, 40, 217, 0.4); }
+[data-theme="dark"] .ondi-role-pill.admin { background: rgba(67, 56, 202, 0.2); color: #a5b4fc; border-color: rgba(67, 56, 202, 0.4); }
+[data-theme="dark"] .ondi-role-pill.manager { background: rgba(29, 78, 216, 0.2); color: #93c5fd; border-color: rgba(29, 78, 216, 0.4); }
+[data-theme="dark"] .ondi-role-pill.finance { background: rgba(4, 120, 87, 0.2); color: #6ee7b7; border-color: rgba(4, 120, 87, 0.4); }
+[data-theme="dark"] .ondi-role-pill.sales { background: rgba(14, 116, 144, 0.2); color: #67e8f9; border-color: rgba(14, 116, 144, 0.4); }
+[data-theme="dark"] .ondi-role-pill.senior { background: rgba(180, 83, 9, 0.2); color: #fcd34d; border-color: rgba(180, 83, 9, 0.4); }
+[data-theme="dark"] .ondi-role-pill.junior { background: rgba(71, 85, 105, 0.2); color: #cbd5e1; border-color: rgba(71, 85, 105, 0.4); }
+[data-theme="dark"] .ondi-role-pill.customer { background: rgba(113, 113, 122, 0.2); color: #a1a1aa; border-color: rgba(113, 113, 122, 0.4); }
+
+/* Bulk Action Banner */
+.ondi-bulk-banner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 18px;
+  background: color-mix(in srgb, var(--teal) 10%, var(--white));
+  border: 1px solid color-mix(in srgb, var(--teal) 35%, transparent);
+  border-radius: var(--r);
+  margin-bottom: 14px;
+  animation: ondiFadeIn 0.15s ease;
+}
+
+[data-theme="dark"] .ondi-bulk-banner {
+  background: color-mix(in srgb, var(--teal) 15%, var(--ondi-night-raised));
+  border-color: color-mix(in srgb, var(--teal) 40%, transparent);
+}
+
+/* Email inline copy action */
+.ondi-copy-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  border-radius: 4px;
+  color: var(--ink3);
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  opacity: 0;
+  transition: opacity 0.15s ease, color 0.15s ease, background 0.15s ease;
+}
+
+tr:hover .ondi-copy-btn,
+.ondi-copy-btn:focus-visible {
+  opacity: 1;
+}
+
+.ondi-copy-btn:hover {
+  background: var(--bg);
+  color: var(--teal);
+}
+
 /* Card Grids for Roles / Groups / Devices */
 .ondi-card-grid {
   display: grid;
@@ -499,6 +654,96 @@
 
 [data-theme="dark"] .ondi-modal-backdrop {
   background: rgba(2, 6, 15, 0.78);
+}
+
+/* SSO & Provider Badges */
+.ondi-provider-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11.5px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  padding: 3px 9px;
+  border-radius: var(--r-sm, 6px);
+  border: 1px solid var(--border);
+  background: var(--bg);
+  color: var(--ink);
+}
+
+.ondi-provider-badge.google {
+  background: #fef2f2;
+  color: #dc2626;
+  border-color: #fecaca;
+}
+
+.ondi-provider-badge.microsoft {
+  background: #eff6ff;
+  color: #2563eb;
+  border-color: #bfdbfe;
+}
+
+.ondi-provider-badge.saml {
+  background: #f0fdf4;
+  color: #16a34a;
+  border-color: #bbf7d0;
+}
+
+.ondi-provider-badge.oidc {
+  background: #faf5ff;
+  color: #9333ea;
+  border-color: #e9d5ff;
+}
+
+[data-theme="dark"] .ondi-provider-badge.google { background: rgba(220, 38, 38, 0.15); color: #f87171; border-color: rgba(220, 38, 38, 0.35); }
+[data-theme="dark"] .ondi-provider-badge.microsoft { background: rgba(37, 99, 235, 0.15); color: #60a5fa; border-color: rgba(37, 99, 235, 0.35); }
+[data-theme="dark"] .ondi-provider-badge.saml { background: rgba(22, 163, 74, 0.15); color: #4ade80; border-color: rgba(22, 163, 74, 0.35); }
+[data-theme="dark"] .ondi-provider-badge.oidc { background: rgba(147, 51, 234, 0.15); color: #c084fc; border-color: rgba(147, 51, 234, 0.35); }
+
+/* OAuth2 Architecture Flow Deck */
+.ondi-flow-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 12px;
+  margin-bottom: 20px;
+}
+
+.ondi-flow-step-card {
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: var(--r);
+  padding: 16px 14px;
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  transition: all 0.18s ease;
+}
+
+.ondi-flow-step-card:hover {
+  background: var(--white);
+  border-color: var(--teal);
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.05);
+}
+
+.ondi-flow-step-badge {
+  font-size: 10px;
+  font-weight: 800;
+  color: var(--teal);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.ondi-flow-step-title {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--ink);
+}
+
+.ondi-flow-step-desc {
+  font-size: 11.5px;
+  color: var(--ink3);
+  line-height: 1.4;
 }
 
 /* Responsive Overrides */

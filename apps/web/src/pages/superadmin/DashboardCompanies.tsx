@@ -1,4 +1,4 @@
-﻿import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import { Icon } from '../../components/Icon.js';
 import { PersonAvatar } from '../../components/PersonAvatar.js';
@@ -10,7 +10,7 @@ import { SectionLoading } from '../../components/ui/spinner.js';
 import { SearchToolbar } from '../../components/ui/filter-dropdown.js';
 import { SlidersHorizontal, X } from 'lucide-react';
 import { Switch } from '../../components/ui/switch.js';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '../../components/ui/dialog.js';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription, DialogBody } from '../../components/ui/dialog.js';
 import { Checkbox } from '../../components/ui/checkbox.js';
 import { Input } from '../../components/ui/input.js';
 import { Button } from '../../components/ui/button.js';
@@ -249,6 +249,7 @@ export function CompaniesView() {
   const [search, setSearch]       = useState('');
   const [planFilter, setPlanFilter] = useState<PlanId|'all'>('all');
   const [statusFilter, setStatusFilter] = useState<'all'|'active'|'inactive'>('all');
+  const [compactRows, setCompactRows] = useState(true);
   const [showAdd, setShowAdd] = useState(false);
   const [showEdit, setShowEdit] = useState(false);
   const [form, setForm] = useState<CoForm>(CO_FORM_DEFAULT);
@@ -294,13 +295,6 @@ export function CompaniesView() {
   useEffect(() => { load(); }, [load]);
 
   const displayed = useMemo(() => {
-    // The mock COMPANIES fixture (including a fabricated "suspended" tenant)
-    // is only an honest stand-in when the real list genuinely couldn't be
-    // fetched — the subtitle below says "(mock — API offline)" for that case.
-    // It used to also cover a real, successful, genuinely-empty result (a
-    // fresh platform with zero tenants), silently presenting fake companies
-    // as real ones with no disclosure at all. A truly empty tenant list now
-    // renders as an empty table instead.
     if (apiError) return COMPANIES;
     return tenants.map(t => {
       const mock = COMPANIES.find(c => c.name === t.name) ?? null;
@@ -502,13 +496,6 @@ export function CompaniesView() {
     }
   }
 
-  // A generic yes/no dialog was the only thing standing between a misclick
-  // and permanently, irreversibly deleting a live tenant's entire dataset —
-  // every shipment, invoice, user account and document, cascade-deleted with
-  // no soft-delete or recovery path. This is the single most destructive
-  // action in the whole SuperAdmin console, so it gets the one confirmation
-  // pattern that actually stops a misclick: retyping the company's exact
-  // name, the same shape GitHub/AWS use for their own irreversible deletes.
   async function confirmDeleteCompany() {
     if (!deleteTarget || deleteConfirmText !== deleteTarget.name || deleting) return;
     setDeleting(true);
@@ -524,6 +511,11 @@ export function CompaniesView() {
     }
   }
 
+  const totalTenants = displayed.length;
+  const activeTenants = displayed.filter(c => c.status === 'active').length;
+  const inactiveTenants = displayed.filter(c => c.status === 'inactive').length;
+  const totalUsersCount = displayed.reduce((acc, c) => acc + (c.users || 1), 0);
+
   return (
     <div>
       <PageHdr
@@ -538,186 +530,297 @@ export function CompaniesView() {
         }
       />
 
-      {/* Unified Dreams Core style filter bar */}
-      <div style={{ marginBottom: 16 }}>
-        <SearchToolbar
-          search={search}
-          onSearch={setSearch}
-          placeholder="Search companies…"
-          quickFilter={{
-            value: statusFilter === 'all' ? null : statusFilter,
-            onChange: v => setStatusFilter((v ?? 'all') as any),
-            allLabel: "All Status",
-            options: [
-              {
-                value: 'active',
-                label: 'Active',
-                icon: <span style={{ width: 7, height: 7, borderRadius: '50%', background: 'var(--green, #10b981)', display: 'inline-block' }} />
-              },
-              {
-                value: 'inactive',
-                label: 'Inactive',
-                icon: <span style={{ width: 7, height: 7, borderRadius: '50%', background: 'var(--ink3, #94a3b8)', display: 'inline-block' }} />
-              },
-            ]
-          }}
-          activeFilterCount={(statusFilter !== 'all' ? 1 : 0) + (planFilter !== 'all' ? 1 : 0)}
-          filterContent={(close) => {
-            const count = (statusFilter !== 'all' ? 1 : 0) + (planFilter !== 'all' ? 1 : 0);
-            const hasActive = count > 0 || Boolean(search.trim());
-            return (
-              <div style={{ padding: 16, fontFamily: 'var(--font)' }}>
-                {/* Popover Header */}
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', paddingBottom: 12, borderBottom: '1px solid var(--border)' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontWeight: 700, fontSize: 13.5, color: 'var(--ink)' }}>
-                    <SlidersHorizontal size={14} style={{ color: 'hsl(var(--primary))' }} />
-                    <span>Filters</span>
-                    {count > 0 && (
-                      <span className="stb-green-badge">
-                        <span className="stb-green-dot" />
-                        <span>{count}</span>
+      {/* Top Executive KPI Deck */}
+      <div className="ondi-kpi-grid" style={{ marginBottom: 16 }}>
+        <div
+          role="button"
+          tabIndex={0}
+          onClick={() => { setStatusFilter('all'); setPlanFilter('all'); }}
+          onKeyDown={e => { if (e.key === 'Enter') { setStatusFilter('all'); setPlanFilter('all'); } }}
+          className={`ondi-kpi-card ${statusFilter === 'all' && planFilter === 'all' ? 'is-active' : ''}`}
+        >
+          <div className="ondi-kpi-header">
+            <span className="ondi-kpi-title">Total Companies</span>
+            <div className="ondi-kpi-icon-box purple">
+              <Icon name="building" size={18} />
+            </div>
+          </div>
+          <div className="ondi-kpi-body">
+            <span className="ondi-kpi-num">{totalTenants}</span>
+            <span className="ondi-kpi-sub">{apiError ? 'mock tenants' : 'registered tenants'}</span>
+          </div>
+        </div>
+
+        <div
+          role="button"
+          tabIndex={0}
+          onClick={() => setStatusFilter('active')}
+          onKeyDown={e => { if (e.key === 'Enter') setStatusFilter('active'); }}
+          className={`ondi-kpi-card ${statusFilter === 'active' ? 'is-active' : ''}`}
+        >
+          <div className="ondi-kpi-header">
+            <span className="ondi-kpi-title">Active Tenants</span>
+            <div className="ondi-kpi-icon-box green">
+              <Icon name="checkCircle" size={18} />
+            </div>
+          </div>
+          <div className="ondi-kpi-body">
+            <span className="ondi-kpi-num" style={{ color: 'var(--green)' }}>{activeTenants}</span>
+            <span className="ondi-kpi-sub">live & operational</span>
+          </div>
+        </div>
+
+        <div
+          role="button"
+          tabIndex={0}
+          onClick={() => setStatusFilter('inactive')}
+          onKeyDown={e => { if (e.key === 'Enter') setStatusFilter('inactive'); }}
+          className={`ondi-kpi-card ${statusFilter === 'inactive' ? 'is-active' : ''}`}
+        >
+          <div className="ondi-kpi-header">
+            <span className="ondi-kpi-title">Inactive / Suspended</span>
+            <div className="ondi-kpi-icon-box gold">
+              <Icon name="lock" size={18} />
+            </div>
+          </div>
+          <div className="ondi-kpi-body">
+            <span className="ondi-kpi-num" style={{ color: 'var(--gold)' }}>{inactiveTenants}</span>
+            <span className="ondi-kpi-sub">access paused</span>
+          </div>
+        </div>
+
+        <div
+          role="button"
+          tabIndex={0}
+          className="ondi-kpi-card"
+        >
+          <div className="ondi-kpi-header">
+            <span className="ondi-kpi-title">Total Seated Users</span>
+            <div className="ondi-kpi-icon-box blue">
+              <Icon name="users" size={18} />
+            </div>
+          </div>
+          <div className="ondi-kpi-body">
+            <span className="ondi-kpi-num" style={{ color: 'var(--blue)' }}>{totalUsersCount}</span>
+            <span className="ondi-kpi-sub">across all tenants</span>
+          </div>
+        </div>
+      </div>
+
+      {/* Filter and Density Toolbar */}
+      <div style={{ marginBottom: 14 }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10, flexWrap: 'wrap' }}>
+          <div style={{ flex: 1, minWidth: 260 }}>
+            <SearchToolbar
+              search={search}
+              onSearch={setSearch}
+              placeholder="Search companies by name or email…"
+              quickFilter={{
+                value: statusFilter === 'all' ? null : statusFilter,
+                onChange: v => setStatusFilter((v ?? 'all') as any),
+                allLabel: "All Status",
+                options: [
+                  {
+                    value: 'active',
+                    label: 'Active',
+                    icon: <span style={{ width: 7, height: 7, borderRadius: '50%', background: 'var(--green, #10b981)', display: 'inline-block' }} />
+                  },
+                  {
+                    value: 'inactive',
+                    label: 'Inactive',
+                    icon: <span style={{ width: 7, height: 7, borderRadius: '50%', background: 'var(--ink3, #94a3b8)', display: 'inline-block' }} />
+                  },
+                ]
+              }}
+              activeFilterCount={(statusFilter !== 'all' ? 1 : 0) + (planFilter !== 'all' ? 1 : 0)}
+              filterContent={(close) => {
+                const count = (statusFilter !== 'all' ? 1 : 0) + (planFilter !== 'all' ? 1 : 0);
+                const hasActive = count > 0 || Boolean(search.trim());
+                return (
+                  <div style={{ padding: 16, fontFamily: 'var(--font)' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', paddingBottom: 12, borderBottom: '1px solid var(--border)' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontWeight: 700, fontSize: 13.5, color: 'var(--ink)' }}>
+                        <SlidersHorizontal size={14} style={{ color: 'hsl(var(--primary))' }} />
+                        <span>Filters</span>
+                        {count > 0 && (
+                          <span className="stb-green-badge">
+                            <span className="stb-green-dot" />
+                            <span>{count}</span>
+                          </span>
+                        )}
+                      </div>
+                      {hasActive && (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setSearch('');
+                            setStatusFilter('all');
+                            setPlanFilter('all');
+                          }}
+                          style={{
+                            fontSize: "var(--text-base)",
+                            fontWeight: 600,
+                            color: 'hsl(var(--primary))',
+                            background: 'transparent',
+                            border: 'none',
+                            cursor: 'pointer',
+                            padding: "var(--action-py) var(--space-md)",
+                          }}
+                          className="hover:underline"
+                          data-ui-native-button=""
+                        >
+                          Reset all
+                        </button>
+                      )}
+                    </div>
+
+                    {/* Status section */}
+                    <div style={{ marginTop: 14 }}>
+                      <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--ink3)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 8 }}>
+                        Company Status
+                      </div>
+                      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+                        {[
+                          { value: 'all', label: 'All Status' },
+                          { value: 'active', label: 'Active', dot: 'var(--green, #10b981)' },
+                          { value: 'inactive', label: 'Inactive', dot: 'var(--ink3, #94a3b8)' },
+                        ].map(opt => {
+                          const isSelected = statusFilter === opt.value;
+                          return (
+                            <button
+                              key={opt.value}
+                              type="button"
+                              onClick={() => setStatusFilter(opt.value as any)}
+                              style={{
+                                display: 'inline-flex',
+                                alignItems: 'center',
+                                gap: 6,
+                                padding: "var(--action-py) var(--space-md)",
+                                borderRadius: "var(--r-sm)",
+                                fontSize: "var(--text-base)",
+                                fontWeight: isSelected ? 600 : 500,
+                                border: isSelected ? '1px solid hsl(var(--primary))' : '1px solid var(--border)',
+                                background: isSelected ? 'hsl(var(--primary) / 0.1)' : 'var(--bg)',
+                                color: isSelected ? 'hsl(var(--primary))' : 'var(--ink2)',
+                                cursor: 'pointer',
+                                transition: 'all 0.15s ease',
+                              }}
+                              data-ui-native-button=""
+                            >
+                              {opt.dot && (
+                                <span style={{ width: 6, height: 6, borderRadius: '50%', background: opt.dot }} />
+                              )}
+                              <span>{opt.label}</span>
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
+
+                    {/* Plan section */}
+                    <div style={{ marginTop: 16 }}>
+                      <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--ink3)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 8 }}>
+                        Subscription Plan
+                      </div>
+                      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+                        <button
+                          type="button"
+                          onClick={() => setPlanFilter('all')}
+                          style={{
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            padding: "var(--action-py) var(--space-md)",
+                            borderRadius: "var(--r-sm)",
+                            fontSize: "var(--text-base)",
+                            fontWeight: planFilter === 'all' ? 600 : 500,
+                            border: planFilter === 'all' ? '1px solid hsl(var(--primary))' : '1px solid var(--border)',
+                            background: planFilter === 'all' ? 'hsl(var(--primary) / 0.1)' : 'var(--bg)',
+                            color: planFilter === 'all' ? 'hsl(var(--primary))' : 'var(--ink2)',
+                            cursor: 'pointer',
+                            transition: 'all 0.15s ease',
+                          }}
+                          data-ui-native-button=""
+                        >
+                          All Plans
+                        </button>
+                        {(Object.keys(PLAN_CFG) as PlanId[]).map(k => {
+                          const isSelected = planFilter === k;
+                          return (
+                            <button
+                              key={k}
+                              type="button"
+                              onClick={() => setPlanFilter(k)}
+                              style={{
+                                display: 'inline-flex',
+                                alignItems: 'center',
+                                padding: "var(--action-py) var(--space-md)",
+                                borderRadius: "var(--r-sm)",
+                                fontSize: "var(--text-base)",
+                                fontWeight: isSelected ? 600 : 500,
+                                border: isSelected ? '1px solid hsl(var(--primary))' : '1px solid var(--border)',
+                                background: isSelected ? 'hsl(var(--primary) / 0.1)' : 'var(--bg)',
+                                color: isSelected ? 'hsl(var(--primary))' : 'var(--ink2)',
+                                cursor: 'pointer',
+                                transition: 'all 0.15s ease',
+                              }}
+                              data-ui-native-button=""
+                            >
+                              {PLAN_CFG[k].label}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
+
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: 18, paddingTop: 12, borderTop: '1px solid var(--border)' }}>
+                      <span style={{ fontSize: 12, color: 'var(--ink3)' }}>
+                        Showing <strong style={{ color: 'var(--ink)' }}>{filtered.length}</strong> of {displayed.length}
                       </span>
-                    )}
+                      <button
+                        type="button"
+                        onClick={close}
+                        className="btn btn-primary btn-sm"
+                        style={{ padding: "var(--action-py) var(--space-md)", fontSize: "var(--text-base)" }}
+                        data-ui-native-button=""
+                      >
+                        Done
+                      </button>
+                    </div>
                   </div>
-                  {hasActive && (
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setSearch('');
-                        setStatusFilter('all');
-                        setPlanFilter('all');
-                      }}
-                      style={{
-                        fontSize: "var(--text-base)",
-                        fontWeight: 600,
-                        color: 'hsl(var(--primary))',
-                        background: 'transparent',
-                        border: 'none',
-                        cursor: 'pointer',
-                        padding: "var(--action-py) var(--space-md)",
-                      }}
-                      className="hover:underline"
-                     data-ui-native-button="">
-                      Reset all
-                    </button>
-                  )}
-                </div>
+                );
+              }}
+            />
+          </div>
 
-                {/* Status section */}
-                <div style={{ marginTop: 14 }}>
-                  <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--ink3)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 8 }}>
-                    Company Status
-                  </div>
-                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
-                    {[
-                      { value: 'all', label: 'All Status' },
-                      { value: 'active', label: 'Active', dot: 'var(--green, #10b981)' },
-                      { value: 'inactive', label: 'Inactive', dot: 'var(--ink3, #94a3b8)' },
-                    ].map(opt => {
-                      const isSelected = statusFilter === opt.value;
-                      return (
-                        <button
-                          key={opt.value}
-                          type="button"
-                          onClick={() => setStatusFilter(opt.value as any)}
-                          style={{
-                            display: 'inline-flex',
-                            alignItems: 'center',
-                            gap: 6,
-                            padding: "var(--action-py) var(--space-md)",
-                            borderRadius: "var(--r-sm)",
-                            fontSize: "var(--text-base)",
-                            fontWeight: isSelected ? 600 : 500,
-                            border: isSelected ? '1px solid hsl(var(--primary))' : '1px solid var(--border)',
-                            background: isSelected ? 'hsl(var(--primary) / 0.1)' : 'var(--bg)',
-                            color: isSelected ? 'hsl(var(--primary))' : 'var(--ink2)',
-                            cursor: 'pointer',
-                            transition: 'all 0.15s ease',
-                          }}
-                         data-ui-native-button="">
-                          {opt.dot && (
-                            <span style={{ width: 6, height: 6, borderRadius: '50%', background: opt.dot }} />
-                          )}
-                          <span>{opt.label}</span>
-                        </button>
-                      );
-                    })}
-                  </div>
-                </div>
+          {/* Density toggle and Export toolbar action */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <Tip label={compactRows ? "Currently in compressed rows view (compact). Click for standard." : "Switch to compressed rows view."}>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => setCompactRows(v => !v)}
+                className="h-8 gap-1.5 text-xs font-semibold"
+              >
+                <Icon name="list" size={13} />
+                <span>{compactRows ? 'Dense Rows' : 'Standard Rows'}</span>
+              </Button>
+            </Tip>
 
-                {/* Plan section */}
-                <div style={{ marginTop: 16 }}>
-                  <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--ink3)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 8 }}>
-                    Subscription Plan
-                  </div>
-                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
-                    <button
-                      type="button"
-                      onClick={() => setPlanFilter('all')}
-                      style={{
-                        display: 'inline-flex',
-                        alignItems: 'center',
-                        padding: "var(--action-py) var(--space-md)",
-                        borderRadius: "var(--r-sm)",
-                        fontSize: "var(--text-base)",
-                        fontWeight: planFilter === 'all' ? 600 : 500,
-                        border: planFilter === 'all' ? '1px solid hsl(var(--primary))' : '1px solid var(--border)',
-                        background: planFilter === 'all' ? 'hsl(var(--primary) / 0.1)' : 'var(--bg)',
-                        color: planFilter === 'all' ? 'hsl(var(--primary))' : 'var(--ink2)',
-                        cursor: 'pointer',
-                        transition: 'all 0.15s ease',
-                      }}
-                     data-ui-native-button="">
-                      All Plans
-                    </button>
-                    {(Object.keys(PLAN_CFG) as PlanId[]).map(k => {
-                      const isSelected = planFilter === k;
-                      return (
-                        <button
-                          key={k}
-                          type="button"
-                          onClick={() => setPlanFilter(k)}
-                          style={{
-                            display: 'inline-flex',
-                            alignItems: 'center',
-                            padding: "var(--action-py) var(--space-md)",
-                            borderRadius: "var(--r-sm)",
-                            fontSize: "var(--text-base)",
-                            fontWeight: isSelected ? 600 : 500,
-                            border: isSelected ? '1px solid hsl(var(--primary))' : '1px solid var(--border)',
-                            background: isSelected ? 'hsl(var(--primary) / 0.1)' : 'var(--bg)',
-                            color: isSelected ? 'hsl(var(--primary))' : 'var(--ink2)',
-                            cursor: 'pointer',
-                            transition: 'all 0.15s ease',
-                          }}
-                         data-ui-native-button="">
-                          {PLAN_CFG[k].label}
-                        </button>
-                      );
-                    })}
-                  </div>
-                </div>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={exportCompanies}
+              className="h-8 gap-1.5 text-xs font-semibold"
+            >
+              <Icon name="download" size={13} />
+              <span>{selected.size > 0 ? `Export (${selected.size})` : 'Export CSV'}</span>
+            </Button>
+          </div>
+        </div>
 
-                {/* Footer summary & action */}
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: 18, paddingTop: 12, borderTop: '1px solid var(--border)' }}>
-                  <span style={{ fontSize: 12, color: 'var(--ink3)' }}>
-                    Showing <strong style={{ color: 'var(--ink)' }}>{filtered.length}</strong> of {displayed.length}
-                  </span>
-                  <button
-                    type="button"
-                    onClick={close}
-                    className="btn btn-primary btn-sm"
-                    style={{ padding: "var(--action-py) var(--space-md)", fontSize: "var(--text-base)" }}
-                   data-ui-native-button="">
-                    Done
-                  </button>
-                </div>
-              </div>
-            );
-          }}
-        />
-
-        {/* Active Filter Chips strip */}
+        {/* Active Filter Chips */}
         {((statusFilter !== 'all' ? 1 : 0) + (planFilter !== 'all' ? 1 : 0) > 0 || Boolean(search.trim())) && (
           <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap', marginTop: 10, paddingLeft: 2 }}>
             <span style={{ fontSize: 11.5, color: 'var(--ink3)', fontWeight: 600 }}>Active filters:</span>
@@ -727,21 +830,22 @@ export function CompaniesView() {
                   display: 'inline-flex',
                   alignItems: 'center',
                   gap: 6,
-                  padding: '3px 8px',
+                  padding: '2px 8px',
                   borderRadius: 6,
-                  fontSize: 11.5,
+                  fontSize: 11,
                   background: 'var(--bg)',
                   border: '1px solid var(--border)',
                   color: 'var(--ink)',
                 }}
               >
-                Search: <strong>"{search}"</strong>
+                Search: <strong>&ldquo;{search}&rdquo;</strong>
                 <button
                   type="button"
                   onClick={() => setSearch('')}
                   style={{ background: 'transparent', border: 'none', cursor: 'pointer', padding: 0, color: 'var(--ink3)', display: 'inline-flex', alignItems: 'center' }}
                   title="Clear search"
-                 data-ui-native-button="">
+                  data-ui-native-button=""
+                >
                   <X size={12} />
                 </button>
               </span>
@@ -752,9 +856,9 @@ export function CompaniesView() {
                   display: 'inline-flex',
                   alignItems: 'center',
                   gap: 6,
-                  padding: '3px 8px',
+                  padding: '2px 8px',
                   borderRadius: 6,
-                  fontSize: 11.5,
+                  fontSize: 11,
                   background: 'var(--bg)',
                   border: '1px solid var(--border)',
                   color: 'var(--ink)',
@@ -767,7 +871,8 @@ export function CompaniesView() {
                   onClick={() => setStatusFilter('all')}
                   style={{ background: 'transparent', border: 'none', cursor: 'pointer', padding: 0, color: 'var(--ink3)', display: 'inline-flex', alignItems: 'center' }}
                   title="Remove status filter"
-                 data-ui-native-button="">
+                  data-ui-native-button=""
+                >
                   <X size={12} />
                 </button>
               </span>
@@ -778,9 +883,9 @@ export function CompaniesView() {
                   display: 'inline-flex',
                   alignItems: 'center',
                   gap: 6,
-                  padding: '3px 8px',
+                  padding: '2px 8px',
                   borderRadius: 6,
-                  fontSize: 11.5,
+                  fontSize: 11,
                   background: 'var(--bg)',
                   border: '1px solid var(--border)',
                   color: 'var(--ink)',
@@ -792,7 +897,8 @@ export function CompaniesView() {
                   onClick={() => setPlanFilter('all')}
                   style={{ background: 'transparent', border: 'none', cursor: 'pointer', padding: 0, color: 'var(--ink3)', display: 'inline-flex', alignItems: 'center' }}
                   title="Remove plan filter"
-                 data-ui-native-button="">
+                  data-ui-native-button=""
+                >
                   <X size={12} />
                 </button>
               </span>
@@ -805,16 +911,17 @@ export function CompaniesView() {
                 setPlanFilter('all');
               }}
               style={{
-                fontSize: "var(--text-base)",
+                fontSize: 11.5,
                 fontWeight: 600,
                 color: 'hsl(var(--primary))',
                 background: 'transparent',
                 border: 'none',
                 cursor: 'pointer',
-                padding: "var(--action-py) var(--space-md)",
+                padding: '2px 6px',
               }}
               className="hover:underline"
-             data-ui-native-button="">
+              data-ui-native-button=""
+            >
               Clear all
             </button>
           </div>
@@ -826,16 +933,17 @@ export function CompaniesView() {
       )}
 
       {apiLoaded && selected.size > 0 && (
-        <div style={{ display:'flex', alignItems:'center', gap:12, padding:'0 14px', minHeight:'var(--ctl-h)', marginBottom:8, background:'color-mix(in srgb, var(--teal) 8%, var(--white))', border:'1px solid color-mix(in srgb, var(--teal) 25%, transparent)', borderRadius:'var(--r)', fontSize:13, boxShadow:'0 1px 2px 0 rgba(0,0,0,0.03)' }}>
+        <div style={{ display:'flex', alignItems:'center', gap:12, padding:'0 14px', minHeight:'34px', marginBottom:8, background:'color-mix(in srgb, var(--teal) 8%, var(--white))', border:'1px solid color-mix(in srgb, var(--teal) 25%, transparent)', borderRadius:'var(--r)', fontSize:12.5, boxShadow:'0 1px 2px 0 rgba(0,0,0,0.03)' }}>
           <span style={{ fontWeight:600, color:'var(--teal)' }}>{selected.size} {selected.size === 1 ? 'company' : 'companies'} selected</span>
           <div style={{ flex:1 }} />
-          <button type="button" className="btn btn-secondary btn-sm" onClick={exportCompanies} data-ui-native-button=""><Icon name="download" size={12} style={{ marginRight:5 }}/>Export</button>
-          <button type="button" className="btn btn-sm" style={{ color:'var(--ink3)' }} onClick={()=>setSelected(new Set())} data-ui-native-button="">Clear</button>
+          <button type="button" className="btn btn-secondary btn-sm" onClick={exportCompanies} data-ui-native-button="" style={{ minHeight: 26, padding: '2px 8px', fontSize: 11 }}><Icon name="download" size={11} style={{ marginRight:4 }}/>Export Selected</button>
+          <button type="button" className="btn btn-sm" style={{ color:'var(--ink3)', minHeight: 26, padding: '2px 6px', fontSize: 11 }} onClick={()=>setSelected(new Set())} data-ui-native-button="">Clear</button>
         </div>
       )}
 
       {apiLoaded && (
         <DataTable
+          compact={compactRows}
           headers={['Company','Contact','Plan','Users','Status','Domain','Created','Actions']}
           selectAll={selected.size === paginated.length && paginated.length > 0}
           selectAllIndeterminate={selected.size > 0 && selected.size < paginated.length}
@@ -855,50 +963,72 @@ export function CompaniesView() {
               return next;
             })}>
               <TD>
-                <div style={{ display:'flex', alignItems:'center', gap:10 }}>
-                  <CoAv co={co} />
-                  <div>
-                    <div style={{ display:'flex', alignItems:'center', gap:6 }}>
-                      <span style={{ fontWeight:600 }}>{co.name}</span>
+                <div style={{ display:'flex', alignItems:'center', gap: compactRows ? 7 : 10 }}>
+                  <CoAv co={co} size={compactRows ? 24 : 34} />
+                  <div style={{ minWidth: 0, lineHeight: 1.25 }}>
+                    <div style={{ display:'flex', alignItems:'center', gap: 5, flexWrap: 'wrap' }}>
+                      <span style={{ fontWeight: 600, fontSize: compactRows ? 12 : 13, color: 'var(--ink)' }}>{co.name}</span>
                       {co.founderPersonalEmailDomain && (
-                        <Tip label={`Signed up with a personal email (${co.founderPersonalEmailDomain}), not a verified work domain`} side="top">
-                          <span style={{ fontSize:10, fontWeight:700, borderRadius:'var(--badge-radius)', padding:'2px 7px', color:'var(--gold)', background:'var(--gold-l)', whiteSpace:'nowrap', cursor:'default' }}>
-                            Personal email
+                        <Tip label={`Signed up with personal email (${co.founderPersonalEmailDomain})`} side="top">
+                          <span style={{ fontSize: 9.5, fontWeight: 700, borderRadius: 'var(--badge-radius)', padding: '1px 5px', color: 'var(--gold)', background: 'var(--gold-l)', whiteSpace: 'nowrap' }}>
+                            Personal
                           </span>
                         </Tip>
                       )}
                     </div>
-                    <div style={{ fontSize:11, color:'var(--ink3)', fontFamily:'var(--font)' }}>{co.id.length > 10 ? co.id.slice(0,8)+'…' : co.id}</div>
+                    <div style={{ fontSize: 10.5, color: 'var(--ink3)', fontFamily: 'var(--font)' }}>
+                      {co.id.length > 8 ? co.id.slice(0, 8) + '…' : co.id}
+                    </div>
                   </div>
                 </div>
               </TD>
               <TD>
-                <div className="rtbl-truncate" style={{ fontSize:12, maxWidth:160 }} title={co.email}>{co.email}</div>
-                <div style={{ fontSize:11, color:'var(--ink3)' }}>{co.phone || co.owner}</div>
+                <div className="rtbl-truncate" style={{ fontSize: compactRows ? 11.5 : 12, maxWidth: 160, color: 'var(--ink)' }} title={co.email}>{co.email}</div>
+                <div style={{ fontSize: 10.5, color: 'var(--ink3)' }}>{co.phone || co.owner}</div>
               </TD>
               <TD><Badge cfg={PLAN_CFG[co.plan]} /></TD>
-              <TD><span style={{ fontWeight:600 }}>{co.users}</span></TD>
+              <TD><span style={{ fontWeight: 600, fontSize: compactRows ? 12 : 13 }}>{co.users}</span></TD>
               <TD><Badge cfg={CO_CFG[co.status]} /></TD>
-              <TD><span className="rtbl-truncate" style={{ fontSize:12, color:'var(--ink3)', fontFamily:'var(--font)' }} title={co.domain}>{co.domain}</span></TD>
-              <TD nowrap><span style={{ fontSize:12, color:'var(--ink3)' }}>{fmtDate(co.created)}</span></TD>
+              <TD><span className="rtbl-truncate" style={{ fontSize: compactRows ? 11.5 : 12, color: 'var(--ink3)', fontFamily: 'var(--font)' }} title={co.domain}>{co.domain}</span></TD>
+              <TD nowrap><span style={{ fontSize: compactRows ? 11.5 : 12, color: 'var(--ink3)' }}>{fmtDate(co.created)}</span></TD>
               <TD>
-                <div style={{ display:'flex', gap:6, alignItems:'center' }}>
-                  <Tip label={`Sign in as ${co.name} — you'll see the platform exactly as their admin does`} side="top">
+                <div style={{ display: 'flex', gap: compactRows ? 3 : 6, alignItems: 'center' }}>
+                  <Tip label={`Sign in as ${co.name}`} side="top">
                     <button
                       type="button"
                       disabled={!!impersonating}
                       onClick={() => handleImpersonate(co)}
-                      style={{ display:'inline-flex', alignItems:'center', gap:5, padding:'var(--ds-btn-py-xs) 10px', borderRadius:'var(--r)', border:'1px solid var(--teal)', background:'var(--teal-l)', color:'var(--teal)', fontSize:"var(--text-xs)", fontWeight:700, cursor: impersonating ? 'not-allowed' : 'pointer', fontFamily:'var(--font)', opacity: impersonating===co.id ? 0.6 : 1, whiteSpace:'nowrap', minHeight: 'var(--ctl-h-xs)', boxSizing: 'border-box', lineHeight: 1.25}} data-ui-native-button="">
-                      <Icon name="eye" size={11} color="var(--teal)" />
+                      style={{
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: 4,
+                        padding: compactRows ? '2px 7px' : 'var(--ds-btn-py-xs) 10px',
+                        borderRadius: 'var(--r-sm)',
+                        border: '1px solid var(--teal)',
+                        background: 'var(--teal-l)',
+                        color: 'var(--teal)',
+                        fontSize: compactRows ? 11 : "var(--text-xs)",
+                        fontWeight: 700,
+                        cursor: impersonating ? 'not-allowed' : 'pointer',
+                        fontFamily: 'var(--font)',
+                        opacity: impersonating === co.id ? 0.6 : 1,
+                        whiteSpace: 'nowrap',
+                        minHeight: compactRows ? 24 : 'var(--ctl-h-xs)',
+                        boxSizing: 'border-box',
+                        lineHeight: 1.2
+                      }}
+                      data-ui-native-button=""
+                    >
+                      <Icon name="eye" size={compactRows ? 10 : 11} color="var(--teal)" />
                       {impersonating === co.id ? 'Switching…' : 'Login As'}
                     </button>
                   </Tip>
-                  <ActBtn icon="users" title="View customers" onClick={()=>openCustomers(co)} />
-                  <ActBtn icon="edit" color="var(--teal)" title="Edit company" onClick={()=>openEdit(co)} />
+                  <ActBtn icon="users" title="View customers" size={compactRows ? 12 : 14} onClick={() => openCustomers(co)} />
+                  <ActBtn icon="edit" color="var(--teal)" title="Edit company" size={compactRows ? 12 : 14} onClick={() => openEdit(co)} />
                   {co.status === 'active'
-                    ? <ActBtn icon="lock" color="var(--gold)" title="Suspend company" onClick={()=>toggleSuspend(co)} />
-                    : <ActBtn icon="unlock" color="var(--green)" title="Reactivate company" onClick={()=>toggleSuspend(co)} />}
-                  <ActBtn icon="trash" color="var(--red)" title="Delete company" onClick={()=>{setDeleteTarget(co); setDeleteConfirmText('');}} />
+                    ? <ActBtn icon="lock" color="var(--gold)" title="Suspend company" size={compactRows ? 12 : 14} onClick={() => toggleSuspend(co)} />
+                    : <ActBtn icon="unlock" color="var(--green)" title="Reactivate company" size={compactRows ? 12 : 14} onClick={() => toggleSuspend(co)} />}
+                  <ActBtn icon="trash" color="var(--red)" title="Delete company" size={compactRows ? 12 : 14} onClick={() => { setDeleteTarget(co); setDeleteConfirmText(''); }} />
                 </div>
               </TD>
             </TR>
@@ -923,97 +1053,177 @@ export function CompaniesView() {
         />
       )}
 
-      {showAdd && (
-        <div className="modal-overlay" onClick={()=>setShowAdd(false)}>
-          <div className="card" style={{ width:480, padding:28, maxHeight:'90vh', overflowY:'auto' }} onClick={e=>e.stopPropagation()}>
-            <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:22 }}>
-              <span style={{ fontSize:16, fontWeight:700, color:'var(--ink)' }}>Add Company</span>
-              <Tip label="Close"><button type="button" aria-label="Close" onClick={()=>setShowAdd(false)} className="dp-close" data-ui-native-button=""><Icon name="close" size={16} /></button></Tip>
-            </div>
-            <div style={{ display:'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap:14 }}>
-              {([
-                { label:'Company Name *', key:'name',    placeholder:'Summit Traders Ltd' },
-                { label:'Owner Name',     key:'owner',   placeholder:'Amina Hassan' },
-                { label:'Email *',        key:'email',   placeholder:'admin@company.co.tz' },
-                { label:'Phone',          key:'phone',   placeholder:'+255 712 000 000' },
-                { label:'Country',        key:'country', placeholder:'Tanzania' },
-              ] as const).map(f=>(
-                <div key={f.key} style={{ gridColumn: f.key==='email'?'span 2':undefined }}>
-                  <label style={{ fontSize:12, fontWeight:600, color:'var(--ink2)', display:'block', marginBottom:5 }}>{f.label}</label>
-                  <input data-ui-field="input" title={f.label} value={form[f.key as keyof CoForm]} onChange={e=>setForm(p=>({...p,[f.key]:e.target.value}))} placeholder={f.placeholder} className="input-field" style={{ width:'100%' }} />
-                </div>
-              ))}
+      {/* Add Company Dialog */}
+      <Dialog open={showAdd} onOpenChange={setShowAdd}>
+        <DialogContent className="max-w-md p-0 overflow-hidden">
+          <DialogHeader className="p-6 pb-4 border-b border-border bg-card">
+            <div className="flex items-center gap-2.5">
+              <div className="w-9 h-9 rounded-xl bg-teal-50 dark:bg-teal-950 text-teal-600 dark:text-teal-400 flex items-center justify-center border border-teal-200 dark:border-teal-800">
+                <Icon name="plus" size={18} />
+              </div>
               <div>
-                <label style={{ fontSize:12, fontWeight:600, color:'var(--ink2)', display:'block', marginBottom:5 }}>Plan</label>
-                <Select value={form.plan} onValueChange={v=>setForm(p=>({...p,plan:v as PlanId}))}>
-                  <SelectTrigger className="input-field" style={{ width:'100%' }}><SelectValue /></SelectTrigger>
-                  <SelectContent>
-                    {(Object.keys(PLAN_CFG) as PlanId[]).map(k=><SelectItem key={k} value={k}>{PLAN_CFG[k].label}</SelectItem>)}
-                  </SelectContent>
-                </Select>
+                <DialogTitle className="text-base font-bold text-foreground">Add Company</DialogTitle>
+                <DialogDescription className="text-xs text-muted-foreground mt-0.5">
+                  Register a new tenant company workspace on the platform.
+                </DialogDescription>
               </div>
             </div>
-            <div style={{ display:'flex', gap:10, justifyContent:'flex-end', marginTop:22 }}>
-              <button type="button" onClick={()=>setShowAdd(false)} className="btn btn-secondary btn-sm" data-ui-native-button="">Cancel</button>
-              <button type="button" onClick={addCompany} className="btn btn-primary btn-sm" disabled={!form.name.trim()||!form.email.trim()} data-ui-native-button="">Add Company</button>
+          </DialogHeader>
+
+          <div className="p-6 space-y-3.5">
+            <div className="space-y-1">
+              <label className="text-xs font-bold text-foreground/85 block">Company Name *</label>
+              <Input
+                value={form.name}
+                onChange={e => setForm(p => ({ ...p, name: e.target.value }))}
+                placeholder="Summit Traders Ltd"
+                autoFocus
+              />
+            </div>
+
+            <div className="space-y-1">
+              <label className="text-xs font-bold text-foreground/85 block">Owner Name</label>
+              <Input
+                value={form.owner}
+                onChange={e => setForm(p => ({ ...p, owner: e.target.value }))}
+                placeholder="Amina Hassan"
+              />
+            </div>
+
+            <div className="space-y-1">
+              <label className="text-xs font-bold text-foreground/85 block">Work Email *</label>
+              <Input
+                type="email"
+                value={form.email}
+                onChange={e => setForm(p => ({ ...p, email: e.target.value }))}
+                placeholder="admin@company.co.tz"
+              />
+            </div>
+
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-1">
+                <label className="text-xs font-bold text-foreground/85 block">Phone</label>
+                <Input
+                  value={form.phone}
+                  onChange={e => setForm(p => ({ ...p, phone: e.target.value }))}
+                  placeholder="+255 712 000 000"
+                />
+              </div>
+
+              <div className="space-y-1">
+                <label className="text-xs font-bold text-foreground/85 block">Country</label>
+                <Input
+                  value={form.country}
+                  onChange={e => setForm(p => ({ ...p, country: e.target.value }))}
+                  placeholder="Tanzania"
+                />
+              </div>
+            </div>
+
+            <div className="space-y-1">
+              <label className="text-xs font-bold text-foreground/85 block">Subscription Tier</label>
+              <Select value={form.plan} onValueChange={v => setForm(p => ({ ...p, plan: v as PlanId }))}>
+                <SelectTrigger className="w-full text-xs">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {(Object.keys(PLAN_CFG) as PlanId[]).map(k => (
+                    <SelectItem key={k} value={k}>{PLAN_CFG[k].label}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
           </div>
-        </div>
-      )}
 
-      {showEdit && (
-        <div className="modal-overlay" onClick={()=>setShowEdit(false)}>
-          <div className="card" style={{ width:480, padding:28, maxHeight:'90vh', overflowY:'auto' }} onClick={e=>e.stopPropagation()}>
-            <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:22 }}>
-              <span style={{ fontSize:16, fontWeight:700, color:'var(--ink)' }}>Edit Company</span>
-              <Tip label="Close"><button type="button" aria-label="Close" onClick={()=>setShowEdit(false)} className="dp-close" data-ui-native-button=""><Icon name="close" size={16} /></button></Tip>
-            </div>
-            <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:14 }}>
-              <div>
-                <label style={{ fontSize:12, fontWeight:600, color:'var(--ink2)', display:'block', marginBottom:5 }}>Company Name</label>
-                <input data-ui-field="input" title="Company Name" value={editForm.name} onChange={e=>setEditForm(p=>({...p,name:e.target.value}))} className="input-field" style={{ width:'100%' }} />
+          <DialogFooter className="p-4 border-t border-border bg-muted/20 gap-2">
+            <Button type="button" variant="outline" size="sm" onClick={() => setShowAdd(false)}>
+              Cancel
+            </Button>
+            <Button
+              type="button"
+              size="sm"
+              onClick={addCompany}
+              disabled={!form.name.trim() || !form.email.trim()}
+            >
+              Add Company
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Edit Company Dialog */}
+      <Dialog open={showEdit} onOpenChange={setShowEdit}>
+        <DialogContent className="max-w-xl p-0 overflow-hidden">
+          <DialogHeader className="p-6 pb-4 border-b border-border bg-card">
+            <div className="flex items-center gap-2.5">
+              <div className="w-9 h-9 rounded-xl bg-teal-50 dark:bg-teal-950 text-teal-600 dark:text-teal-400 flex items-center justify-center border border-teal-200 dark:border-teal-800">
+                <Icon name="edit" size={18} />
               </div>
               <div>
-                <label style={{ fontSize:12, fontWeight:600, color:'var(--ink2)', display:'block', marginBottom:5 }}>Plan</label>
-                <Select value={editForm.plan} onValueChange={v=>setEditForm(p=>({...p,plan:v as PlanId}))}>
-                  <SelectTrigger className="input-field" style={{ width:'100%' }}><SelectValue /></SelectTrigger>
+                <DialogTitle className="text-base font-bold text-foreground">Edit Company</DialogTitle>
+                <DialogDescription className="text-xs text-muted-foreground mt-0.5">
+                  Update subscription tier, enabled applications, and add-on grants.
+                </DialogDescription>
+              </div>
+            </div>
+          </DialogHeader>
+
+          <DialogBody className="p-6 space-y-4 max-h-[75vh] overflow-y-auto">
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-1">
+                <label className="text-xs font-bold text-foreground/85 block">Company Name</label>
+                <Input
+                  value={editForm.name}
+                  onChange={e => setEditForm(p => ({ ...p, name: e.target.value }))}
+                />
+              </div>
+
+              <div className="space-y-1">
+                <label className="text-xs font-bold text-foreground/85 block">Subscription Tier</label>
+                <Select value={editForm.plan} onValueChange={v => setEditForm(p => ({ ...p, plan: v as PlanId }))}>
+                  <SelectTrigger className="w-full text-xs">
+                    <SelectValue />
+                  </SelectTrigger>
                   <SelectContent>
-                    {(Object.keys(PLAN_CFG) as PlanId[]).map(k=><SelectItem key={k} value={k}>{PLAN_CFG[k].label}</SelectItem>)}
+                    {(Object.keys(PLAN_CFG) as PlanId[]).map(k => (
+                      <SelectItem key={k} value={k}>{PLAN_CFG[k].label}</SelectItem>
+                    ))}
                   </SelectContent>
                 </Select>
               </div>
             </div>
 
-            <div style={{ marginTop: 20 }}>
-              <label style={{ fontSize:12, fontWeight:600, color:'var(--ink2)', display:'block', marginBottom:8 }}>Enabled Apps</label>
-              <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:6, padding:12, background:'var(--bg)', borderRadius: 'var(--r)', border:'1px solid var(--border)' }}>
+            <div className="space-y-1.5 pt-1">
+              <label className="text-xs font-bold text-foreground/85 block">Enabled Workspace Applications</label>
+              <div className="grid grid-cols-2 gap-2 p-3 bg-muted/40 rounded-lg border border-border">
                 {TENANT_APPS.map(app => {
                   const enabled = editEnabledApps[app.id] !== false;
                   return (
-                    <label key={app.id} style={{ display:'flex', alignItems:'center', gap:7, fontSize:12.5, color:'var(--ink)', cursor:'pointer', padding:'3px 0' }}>
-                      <Checkbox checked={enabled}
-                        onCheckedChange={c => setEditEnabledApps(p => ({ ...p, [app.id]: c === true }))} />
-                      {app.name}
+                    <label key={app.id} className="flex items-center gap-2 text-xs text-foreground cursor-pointer py-0.5">
+                      <Checkbox
+                        checked={enabled}
+                        onCheckedChange={c => setEditEnabledApps(p => ({ ...p, [app.id]: c === true }))}
+                      />
+                      <span>{app.name}</span>
                     </label>
                   );
                 })}
               </div>
             </div>
 
-            {/* Add-ons (376_package_addons.sql) — granted independent of the
-                plan above, e.g. Onsite for an agency/web-host/IT-provider
-                tenant. Mirrors the Enabled Apps grid exactly. */}
             {addonsCatalog.length > 0 && (
-              <div style={{ marginTop: 16 }}>
-                <label style={{ fontSize:12, fontWeight:600, color:'var(--ink2)', display:'block', marginBottom:8 }}>Add-ons</label>
-                <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:6, padding:12, background:'var(--bg)', borderRadius: 'var(--r)', border:'1px solid var(--border)' }}>
+              <div className="space-y-1.5 pt-1">
+                <label className="text-xs font-bold text-foreground/85 block">Platform Add-ons</label>
+                <div className="grid grid-cols-2 gap-2 p-3 bg-muted/40 rounded-lg border border-border">
                   {addonsCatalog.map(addon => {
                     const granted = editAddonGrants[addon.code] === true;
                     return (
-                      <label key={addon.code} style={{ display:'flex', alignItems:'center', gap:7, fontSize:12.5, color:'var(--ink)', cursor:'pointer', padding:'3px 0' }}>
-                        <Checkbox checked={granted}
-                          onCheckedChange={c => setEditAddonGrants(p => ({ ...p, [addon.code]: c === true }))} />
-                        {addon.name} <span style={{ color:'var(--ink3)' }}>(${addon.monthly}/mo)</span>
+                      <label key={addon.code} className="flex items-center gap-2 text-xs text-foreground cursor-pointer py-0.5">
+                        <Checkbox
+                          checked={granted}
+                          onCheckedChange={c => setEditAddonGrants(p => ({ ...p, [addon.code]: c === true }))}
+                        />
+                        <span>{addon.name} <span className="text-muted-foreground font-mono">(${addon.monthly}/mo)</span></span>
                       </label>
                     );
                   })}
@@ -1021,9 +1231,9 @@ export function CompaniesView() {
               </div>
             )}
 
-            <div style={{ marginTop: 16 }}>
-              <label style={{ fontSize:12, fontWeight:600, color:'var(--ink2)', display:'block', marginBottom:8 }}>Finance access</label>
-              <div style={{ padding:12, background:'var(--bg)', borderRadius:'var(--r)', border:'1px solid var(--border)' }}>
+            <div className="space-y-1.5 pt-1">
+              <label className="text-xs font-bold text-foreground/85 block">Finance Module Access</label>
+              <div className="p-3 bg-muted/40 rounded-lg border border-border">
                 {editFinanceLoading ? (
                   <SectionLoading label="Loading Finance access" />
                 ) : editFinance ? (() => {
@@ -1035,87 +1245,126 @@ export function CompaniesView() {
                     ? `${summary.usage.used.toLocaleString()} actions · Unlimited`
                     : `${summary.usage.used.toLocaleString()} / ${summary.usage.limit.toLocaleString()} actions`;
                   return (
-                    <div style={{ display:'grid', gap:10 }}>
-                      <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', gap:8 }}>
-                        <UiBadge variant={summary.edition === 'advanced' ? 'brand' : 'gray'}>{summary.edition === 'advanced' ? 'Finance Advanced' : 'Finance Basic'}</UiBadge>
-                        <span style={{ fontSize:11.5, color:'var(--ink3)' }}>{quota} / {summary.usage.period}</span>
+                    <div className="space-y-2.5">
+                      <div className="flex items-center justify-between gap-2">
+                        <UiBadge variant={summary.edition === 'advanced' ? 'brand' : 'gray'}>
+                          {summary.edition === 'advanced' ? 'Finance Advanced' : 'Finance Basic'}
+                        </UiBadge>
+                        <span className="text-[11px] text-muted-foreground">{quota} / {summary.usage.period}</span>
                       </div>
-                      <div style={{ display:'grid', gridTemplateColumns:'repeat(3, 1fr)', gap:6 }}>
+                      <div className="grid grid-cols-3 gap-2">
                         {[
                           ['Enabled', enabled, 'var(--green)'],
                           ['Available', available, 'var(--gold)'],
                           ['Plan locked', locked, 'var(--ink3)'],
                         ].map(([label, value, color]) => (
-                          <div key={String(label)} style={{ background:'var(--card)', border:'1px solid var(--border)', borderRadius:'var(--r-sm)', padding:'8px 9px' }}>
-                            <div style={{ fontSize:15, fontWeight:700, color:String(color) }}>{value}</div>
-                            <div style={{ fontSize:10.5, color:'var(--ink3)' }}>{label}</div>
+                          <div key={String(label)} className="bg-card border border-border rounded-md p-2 text-center">
+                            <div className="text-sm font-bold" style={{ color: String(color) }}>{value}</div>
+                            <div className="text-[10px] text-muted-foreground">{label}</div>
                           </div>
                         ))}
-                      </div>
-                      <div style={{ fontSize:11.5, color:'var(--ink2)', lineHeight:1.5 }}>
-                        {editFinance.configuration.industries.length
-                          ? `Industries: ${editFinance.configuration.industries.join(', ')}`
-                          : 'No industry profile selected'}
-                        {' · '}{editFinance.configuration.businessLines.length} business line{editFinance.configuration.businessLines.length === 1 ? '' : 's'}
                       </div>
                     </div>
                   );
                 })() : (
-                  <span style={{ fontSize:12, color:'var(--ink3)' }}>Finance access could not be loaded.</span>
+                  <span className="text-xs text-muted-foreground">Finance access details unavailable.</span>
                 )}
               </div>
             </div>
+          </DialogBody>
 
-            <div style={{ display:'flex', gap:10, justifyContent:'flex-end', marginTop:22 }}>
-              <button type="button" onClick={()=>setShowEdit(false)} className="btn btn-secondary btn-sm" data-ui-native-button="">Cancel</button>
-              <button type="button" onClick={saveEditCompany} className="btn btn-primary btn-sm" disabled={!editForm.name.trim()} data-ui-native-button="">Save Changes</button>
-            </div>
-          </div>
-        </div>
-      )}
+          <DialogFooter className="p-4 border-t border-border bg-muted/20 gap-2">
+            <Button type="button" variant="outline" size="sm" onClick={() => setShowEdit(false)}>
+              Cancel
+            </Button>
+            <Button
+              type="button"
+              size="sm"
+              onClick={saveEditCompany}
+              disabled={!editForm.name.trim()}
+            >
+              Save Changes
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
-      {customersCo && (
-        <div className="modal-overlay" onClick={()=>setCustomersCo(null)}>
-          <div className="card" style={{ width:640, padding:28, maxHeight:'85vh', overflowY:'auto' }} onClick={e=>e.stopPropagation()}>
-            <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:18, gap:10 }}>
-              <span style={{ fontSize:16, fontWeight:700, color:'var(--ink)' }}>{customersCo.name} — Customers</span>
-              <div style={{ display:'flex', alignItems:'center', gap:8 }}>
-                <Tip label="Retag customer and shipment Cloud folders created before entity linking existed" side="top">
-                  <button type="button" disabled={resyncingCloud}
-                    onClick={handleResyncCloudLinks} className="btn btn-secondary btn-sm" data-ui-native-button="">
-                    {resyncingCloud ? 'Resyncing…' : 'Resync Cloud Links'}
-                  </button>
-                </Tip>
-                <Tip label="Close"><button type="button" aria-label="Close" onClick={()=>setCustomersCo(null)} className="dp-close" data-ui-native-button=""><Icon name="close" size={16} /></button></Tip>
-              </div>
+      {/* Customers List Dialog */}
+      <Dialog open={!!customersCo} onOpenChange={o => { if (!o) setCustomersCo(null); }}>
+        <DialogContent className="max-w-2xl p-0 overflow-hidden">
+          <DialogHeader className="p-6 pb-4 border-b border-border bg-card flex flex-row items-center justify-between">
+            <div>
+              <DialogTitle className="text-base font-bold text-foreground">
+                {customersCo?.name} — Customers
+              </DialogTitle>
+              <DialogDescription className="text-xs text-muted-foreground mt-0.5">
+                Client accounts registered in this company&apos;s workspace.
+              </DialogDescription>
             </div>
+            <Tip label="Retag customer and shipment Cloud folders created before entity linking existed" side="top">
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                disabled={resyncingCloud}
+                onClick={handleResyncCloudLinks}
+                className="h-8 text-xs font-semibold"
+              >
+                {resyncingCloud ? 'Resyncing…' : 'Resync Cloud Links'}
+              </Button>
+            </Tip>
+          </DialogHeader>
+
+          <DialogBody className="p-4 max-h-[70vh] overflow-y-auto">
             {loadingCustomers ? (
-              <div style={{ textAlign:'center', padding:'32px 0', color:'var(--ink3)', fontSize:13 }}>Loading customers…</div>
+              <div className="text-center py-8 text-xs text-muted-foreground">Loading customers…</div>
             ) : tenantCustomers.length === 0 ? (
-              <div style={{ textAlign:'center', padding:'32px 0', color:'var(--ink3)', fontSize:13 }}>This company has no customers yet.</div>
+              <div className="text-center py-8 text-xs text-muted-foreground">This company has no customers yet.</div>
             ) : (
-              <DataTable headers={['Customer','Contact','Status','Actions']}>
+              <DataTable compact={true} headers={['Customer','Contact','Status','Actions']}>
                 {tenantCustomers.map(cust => (
                   <TR key={cust.id}>
                     <TD>
-                      <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}>
-                        <PersonAvatar userId={cust.id} kind="customers" name={cust.name} size={24} />
-                        <span style={{ fontWeight:600 }}>{cust.name}</span>
+                      <span className="inline-flex items-center gap-2">
+                        <PersonAvatar userId={cust.id} kind="customers" name={cust.name} size={22} />
+                        <span className="font-semibold text-xs">{cust.name}</span>
                       </span>
                     </TD>
                     <TD>
-                      <div style={{ fontSize:12 }}>{cust.email || '—'}</div>
-                      <div style={{ fontSize:11, color:'var(--ink3)' }}>{cust.phone || cust.phone_wa || ''}</div>
+                      <div className="text-xs">{cust.email || '—'}</div>
+                      <div className="text-[11px] text-muted-foreground">{cust.phone || cust.phone_wa || ''}</div>
                     </TD>
-                    <TD><Badge cfg={cust.active ? { label: cust.account_status || 'Active', color:'var(--green)', bg:'var(--green-l)' } : { label:'Inactive', color:'var(--ink3)', bg:'var(--bg)' }} /></TD>
+                    <TD>
+                      <Badge cfg={cust.active ? { label: cust.account_status || 'Active', color:'var(--green)', bg:'var(--green-l)' } : { label:'Inactive', color:'var(--ink3)', bg:'var(--bg)' }} />
+                    </TD>
                     <TD right>
                       <button
                         type="button"
                         title={`Login as ${cust.name}`}
                         disabled={!!impersonatingCustomerId}
                         onClick={() => handleImpersonateCustomer(cust)}
-                        style={{ display:'inline-flex', alignItems:'center', gap:5, padding:'var(--ds-btn-py-xs) 10px', borderRadius:'var(--r)', border:'1px solid var(--teal)', background:'var(--teal-l)', color:'var(--teal)', fontSize:"var(--text-xs)", fontWeight:700, cursor: impersonatingCustomerId ? 'not-allowed' : 'pointer', fontFamily:'var(--font)', opacity: impersonatingCustomerId===cust.id ? 0.6 : 1, whiteSpace:'nowrap', minHeight: 'var(--ctl-h-xs)', boxSizing: 'border-box', lineHeight: 1.25}} data-ui-native-button="">
-                        <Icon name="eye" size={11} color="var(--teal)" />
+                        style={{
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: 4,
+                          padding: '2px 8px',
+                          borderRadius: 'var(--r-sm)',
+                          border: '1px solid var(--teal)',
+                          background: 'var(--teal-l)',
+                          color: 'var(--teal)',
+                          fontSize: 11,
+                          fontWeight: 700,
+                          cursor: impersonatingCustomerId ? 'not-allowed' : 'pointer',
+                          fontFamily: 'var(--font)',
+                          opacity: impersonatingCustomerId === cust.id ? 0.6 : 1,
+                          whiteSpace: 'nowrap',
+                          minHeight: 24,
+                          boxSizing: 'border-box',
+                          lineHeight: 1.2
+                        }}
+                        data-ui-native-button=""
+                      >
+                        <Icon name="eye" size={10} color="var(--teal)" />
                         {impersonatingCustomerId === cust.id ? 'Switching…' : 'Login As Customer'}
                       </button>
                     </TD>
@@ -1123,10 +1372,11 @@ export function CompaniesView() {
                 ))}
               </DataTable>
             )}
-          </div>
-        </div>
-      )}
+          </DialogBody>
+        </DialogContent>
+      </Dialog>
 
+      {/* Delete Confirmation Dialog */}
       <Dialog open={!!deleteTarget} onOpenChange={o => { if (!o) { setDeleteTarget(null); setDeleteConfirmText(''); } }}>
         <DialogContent className="sm:max-w-md">
           {deleteTarget && (

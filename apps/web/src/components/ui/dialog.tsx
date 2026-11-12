@@ -108,7 +108,9 @@ const DialogContent = React.forwardRef<
             // steady-size: fixed box (via inline style below), only the body scrolls
             ? "flex flex-col overflow-hidden p-0"
             // legacy: grows to fit its content
-            : "grid w-full max-w-lg gap-4 p-6",
+            // max-h + scroll: a tall legacy dialog used to extend past a
+            // short/phone viewport with its footer buttons unreachable.
+            : "grid w-full max-w-lg gap-4 p-6 max-h-[calc(100dvh-2rem)] overflow-y-auto",
           className
         )}
         style={{ opacity: 1, ...sizeStyle, ...style }}
@@ -118,7 +120,7 @@ const DialogContent = React.forwardRef<
           {children}
         </DialogSizedContext.Provider>
         {!hideClose && (
-          <DialogPrimitive.Close className="absolute right-5 top-5 z-10 rounded-full p-1 opacity-70 ring-offset-background transition-colors hover:bg-muted hover:opacity-100 focus:outline-none disabled:pointer-events-none data-[state=open]:bg-accent data-[state=open]:text-muted-foreground">
+          <DialogPrimitive.Close data-ui-focus="" className="absolute right-4.5 top-4.5 z-10 rounded-full p-1.5 opacity-70 transition-colors hover:bg-muted hover:opacity-100 focus-visible:opacity-100 disabled:pointer-events-none data-[state=open]:bg-accent data-[state=open]:text-muted-foreground">
             <X className="h-4 w-4" />
             <span className="sr-only">Close</span>
           </DialogPrimitive.Close>
