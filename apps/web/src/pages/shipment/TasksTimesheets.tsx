@@ -206,173 +206,309 @@ export function TasksTab({ job, isMobile, shipmentId, isLive, onRefresh }: { job
           {(['all', ...statuses] as const).map(status => {
             const active = filterStatus === status;
             return (
-              <button data-ui-native-button="" key={status} type="button" className={`stf-pill${active ? ' stf-active' : ''}`} aria-pressed={active} onClick={() => setFilterStatus(status)}>
+              <button
+                data-ui-native-button=""
+                key={status}
+                type="button"
+                className={`stf-pill${active ? ' stf-active' : ''}`}
+                aria-pressed={active}
+                onClick={() => setFilterStatus(status)}
+              >
                 <span className="stf-label">{FILTER_LABELS[status]}</span>
                 <span className="stf-count">{counts[status]}</span>
               </button>
             );
           })}
         </div>
-        <SearchToolbar search={search} onSearch={setSearch} placeholder="Search tasks…" actions={
-          <Button size="sm" onClick={() => setShowAdd(true)}><Icon name="plus" size={14} /> Add Task</Button>
-        } />
+        <SearchToolbar
+          search={search}
+          onSearch={setSearch}
+          placeholder="Search tasks…"
+          actions={
+            <Button size="sm" onClick={() => setShowAdd(true)}>
+              <Icon name="plus" size={14} /> Add Task
+            </Button>
+          }
+        />
       </div>
 
       {/* Add-task form */}
       {showAdd && (
-        <div style={{ marginBottom: 14 }}>
-        <Card title="New Task">
-        <form onSubmit={handleAdd}>
-          <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '2fr 1fr 1fr 1fr', gap: 10, marginBottom: 10 }}>
-            <div>
-              <label style={{ fontSize: 11, fontWeight: 600, color: 'var(--ink3)', display: 'block', marginBottom: 3 }}>Task Title</label>
-              {newTitleCustom ? (
-                <div style={{ display: 'flex', gap: 6 }}>
-                  <input data-ui-field="input" value={newTitle} onChange={e => setNewTitle(e.target.value)} className="input-field" placeholder="New task name…" required autoFocus style={{ flex: 1 }} />
-                  <button type="button" onClick={() => { setNewTitleCustom(false); setNewTitle(''); }} title="Choose from list instead" className="btn btn-secondary btn-sm" data-ui-native-button="">
-                    <Icon name="x" size={13} />
-                  </button>
+        <div style={{ padding: '0 16px 16px' }}>
+          <Card title="New Task">
+            <form onSubmit={handleAdd}>
+              <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(auto-fit, minmax(200px, 1fr))', gap: 12, marginBottom: 12 }}>
+                <div>
+                  <label style={{ fontSize: 11, fontWeight: 600, color: 'var(--ink3)', display: 'block', marginBottom: 4 }}>Task Title</label>
+                  {newTitleCustom ? (
+                    <div style={{ display: 'flex', gap: 6 }}>
+                      <input data-ui-field="input" value={newTitle} onChange={e => setNewTitle(e.target.value)} className="input-field" placeholder="New task name…" required autoFocus style={{ flex: 1 }} />
+                      <Button variant="outline" size="sm" type="button" onClick={() => { setNewTitleCustom(false); setNewTitle(''); }} title="Choose from list instead">
+                        <Icon name="x" size={13} />
+                      </Button>
+                    </div>
+                  ) : (
+                    <Select
+                      value={newTitle}
+                      onValueChange={v => { if (v === '__new__') { setNewTitleCustom(true); setNewTitle(''); } else { setNewTitle(v); } }}
+                    >
+                      <SelectTrigger><SelectValue placeholder="Select a task…" /></SelectTrigger>
+                      <SelectContent>
+                        {taskTypes.map(t => <SelectItem key={t.id} value={t.name}>{t.name}</SelectItem>)}
+                        <SelectItem value="__new__">+ Add new task…</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  )}
                 </div>
-              ) : (
-                <Select
-                  value={newTitle}
-                  onValueChange={v => { if (v === '__new__') { setNewTitleCustom(true); setNewTitle(''); } else { setNewTitle(v); } }}
-                >
-                  <SelectTrigger><SelectValue placeholder="Select a task…" /></SelectTrigger>
-                  <SelectContent>
-                    {taskTypes.map(t => <SelectItem key={t.id} value={t.name}>{t.name}</SelectItem>)}
-                    <SelectItem value="__new__">+ Add new task…</SelectItem>
-                  </SelectContent>
-                </Select>
-              )}
-            </div>
-            <div>
-              <label style={{ fontSize: 11, fontWeight: 600, color: 'var(--ink3)', display: 'block', marginBottom: 3 }}>Assignee</label>
-              <Combobox
-                options={[{ value: '', label: 'Unassigned' }, ...staff.map(s => ({ value: s.id, label: s.name }))]}
-                value={newAssignee} onChange={setNewAssignee} placeholder="Unassigned"
-              />
-            </div>
-            <div>
-              <label style={{ fontSize: 11, fontWeight: 600, color: 'var(--ink3)', display: 'block', marginBottom: 3 }}>Due Date</label>
-              <DatePicker date={parseDateOnly(newDue)} onChange={d => setNewDue(toDateOnlyString(d))} />
-            </div>
-            <div>
-              <label style={{ fontSize: 11, fontWeight: 600, color: 'var(--ink3)', display: 'block', marginBottom: 3 }}>Priority</label>
-              <Select value={newPriority} onValueChange={v => setNewPriority(v as 'medium')}>
-                <SelectTrigger><SelectValue /></SelectTrigger>
-                <SelectContent>
-                  {(['low','medium','high','urgent'] as const).map(p => <SelectItem key={p} value={p}>{p.charAt(0).toUpperCase() + p.slice(1)}</SelectItem>)}
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
-          <div style={{ marginBottom: 10 }}>
-            <label style={{ fontSize: 11, fontWeight: 600, color: 'var(--ink3)', display: 'block', marginBottom: 3 }}>Billable Service (optional)</label>
-            <Combobox
-              options={[{ value: '', label: 'No service (unbilled)' }, ...services.map(s => ({ value: s.id, label: s.name, sublabel: `${fmtServiceRate(s.sale_price, s.currency)}/${s.unit}` }))]}
-              value={newProductId} onChange={setNewProductId} placeholder="No service (unbilled)"
-            />
-          </div>
-          <div style={{ display: 'flex', gap: 8 }}>
-            <Button size="sm" type="submit" loading={addSaving} loadingText="Saving…">Add Task</Button>
-            <button type="button" onClick={() => setShowAdd(false)} className="btn btn-secondary btn-sm" data-ui-native-button="">Cancel</button>
-          </div>
-        </form>
-        </Card>
+                <div>
+                  <label style={{ fontSize: 11, fontWeight: 600, color: 'var(--ink3)', display: 'block', marginBottom: 4 }}>Assignee</label>
+                  <Combobox
+                    options={[{ value: '', label: 'Unassigned' }, ...staff.map(s => ({ value: s.id, label: s.name }))]}
+                    value={newAssignee} onChange={setNewAssignee} placeholder="Unassigned"
+                  />
+                </div>
+                <div>
+                  <label style={{ fontSize: 11, fontWeight: 600, color: 'var(--ink3)', display: 'block', marginBottom: 4 }}>Due Date</label>
+                  <DatePicker date={parseDateOnly(newDue)} onChange={d => setNewDue(toDateOnlyString(d))} />
+                </div>
+                <div>
+                  <label style={{ fontSize: 11, fontWeight: 600, color: 'var(--ink3)', display: 'block', marginBottom: 4 }}>Priority</label>
+                  <Select value={newPriority} onValueChange={v => setNewPriority(v as 'medium')}>
+                    <SelectTrigger><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      {(['low','medium','high','urgent'] as const).map(p => <SelectItem key={p} value={p}>{p.charAt(0).toUpperCase() + p.slice(1)}</SelectItem>)}
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+              <div style={{ marginBottom: 12 }}>
+                <label style={{ fontSize: 11, fontWeight: 600, color: 'var(--ink3)', display: 'block', marginBottom: 4 }}>Billable Service (optional)</label>
+                <Combobox
+                  options={[{ value: '', label: 'No service (unbilled)' }, ...services.map(s => ({ value: s.id, label: s.name, sublabel: `${fmtServiceRate(s.sale_price, s.currency)}/${s.unit}` }))]}
+                  value={newProductId} onChange={setNewProductId} placeholder="No service (unbilled)"
+                />
+              </div>
+              <div style={{ display: 'flex', gap: 8 }}>
+                <Button size="sm" type="submit" loading={addSaving} loadingText="Saving…">Add Task</Button>
+                <Button variant="outline" size="sm" type="button" onClick={() => setShowAdd(false)}>Cancel</Button>
+              </div>
+            </form>
+          </Card>
         </div>
       )}
 
-      {/* Table */}
-      <div className="shipment-task-table">
-        <table className="rtbl" style={{ borderCollapse: 'collapse' }}>
-          <thead>
-            <tr>{['#','Task','Service','Status','Start','Due','Assignees','Priority','Tags','Actions'].map(h => (
-              <th key={h} style={{ padding: '10px 14px', background: 'var(--bg)', borderBottom: '1px solid var(--border)', textAlign: 'left', fontSize: 11, fontWeight: 700, color: 'var(--ink3)', textTransform: 'uppercase', letterSpacing: '0.04em', whiteSpace: 'nowrap' }}>{h}</th>
-            ))}</tr>
-          </thead>
-          <tbody>
-            {visible.length === 0 && <tr><td colSpan={10} style={{ padding: '24px', textAlign: 'center', color: 'var(--ink3)', fontSize: 13 }}>No tasks match this filter.</td></tr>}
+      {/* Task Content */}
+      {visible.length === 0 ? (
+        <div style={{ padding: '36px 20px', textAlign: 'center', color: 'var(--ink3)', fontSize: 13 }}>
+          No tasks match this filter.
+        </div>
+      ) : (
+        <>
+          {/* Desktop Table */}
+          <div className="shipment-task-table-wrap">
+            <table className="shipment-task-table">
+              <thead>
+                <tr>
+                  <th style={{ width: 44, textAlign: 'center' }}>#</th>
+                  <th style={{ minWidth: 200 }}>Task</th>
+                  <th style={{ minWidth: 140 }}>Service</th>
+                  <th style={{ minWidth: 110, whiteSpace: 'nowrap' }}>Status</th>
+                  <th style={{ minWidth: 95, whiteSpace: 'nowrap' }}>Start</th>
+                  <th style={{ minWidth: 95, whiteSpace: 'nowrap' }}>Due</th>
+                  <th style={{ minWidth: 90 }}>Assignees</th>
+                  <th style={{ minWidth: 90, whiteSpace: 'nowrap' }}>Priority</th>
+                  <th style={{ minWidth: 80 }}>Tags</th>
+                  <th style={{ minWidth: 190, textAlign: 'right', whiteSpace: 'nowrap' }}>Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {visible.map((task, i) => {
+                  const sCfg = TASK_STATUS_CFG[task.status];
+                  const pCfg = PRIORITY_CFG[task.priority];
+                  const overdue = task.dueDate && new Date() > task.dueDate && task.status !== 'complete';
+                  return (
+                    <tr key={task.id}>
+                      <td style={{ textAlign: 'center', color: 'var(--ink3)', fontSize: 11 }}>{i + 1}</td>
+                      <td>
+                        <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--ink)', lineHeight: 1.35 }}>{task.title}</div>
+                        {task.description && (
+                          <div style={{ fontSize: 11, color: 'var(--ink3)', marginTop: 2, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: 260 }}>
+                            {task.description}
+                          </div>
+                        )}
+                      </td>
+                      <td>
+                        {task.serviceName ? (
+                          <div>
+                            <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--ink)', whiteSpace: 'nowrap' }}>{task.serviceName}</div>
+                            <div style={{ fontSize: 11, color: 'var(--teal)', fontWeight: 600 }}>{fmtServiceRate(task.serviceRate || 0, task.serviceCurrency || 'USD')}/{task.serviceUnit}</div>
+                          </div>
+                        ) : <span style={{ fontSize: 12, color: 'var(--ink3)' }}>—</span>}
+                      </td>
+                      <td style={{ whiteSpace: 'nowrap' }}>
+                        <Badge variant={task.status === 'complete' ? 'success' : task.status === 'in_progress' ? 'info' : task.status === 'testing' ? 'info' : task.status === 'awaiting_feedback' ? 'warning' : 'gray'} className="whitespace-nowrap font-medium text-xs">
+                          {sCfg.label}
+                        </Badge>
+                      </td>
+                      <td style={{ fontSize: 12, color: 'var(--ink3)', whiteSpace: 'nowrap' }}>{fdate(task.startDate)}</td>
+                      <td style={{ fontSize: 12, color: overdue ? 'var(--red)' : 'var(--ink3)', fontWeight: overdue ? 700 : 400, whiteSpace: 'nowrap' }}>{fdate(task.dueDate)}</td>
+                      <td>
+                        <div style={{ display: 'flex', gap: 3, alignItems: 'center' }}>
+                          {task.assignees.slice(0, 3).map(a => (
+                            <Av key={a} name={a} size={24} />
+                          ))}
+                          {task.assignees.length > 3 && (
+                            <div style={{ width: 24, height: 24, borderRadius: '50%', background: 'var(--border)', color: 'var(--ink3)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 9, fontWeight: 700 }}>
+                              +{task.assignees.length - 3}
+                            </div>
+                          )}
+                          {task.assignees.length === 0 && <span style={{ fontSize: 12, color: 'var(--ink3)' }}>—</span>}
+                        </div>
+                      </td>
+                      <td style={{ whiteSpace: 'nowrap' }}>
+                        <Badge variant={task.priority === 'urgent' ? 'error' : task.priority === 'high' ? 'warning' : 'gray'} className="whitespace-nowrap font-medium text-xs">
+                          {pCfg.label}
+                        </Badge>
+                      </td>
+                      <td>
+                        <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap' }}>
+                          {task.tags.length > 0 ? task.tags.map(tag => (
+                            <span key={tag} style={{ fontSize: 10, padding: '1px 6px', borderRadius: 'var(--r-sm)', background: 'var(--bg)', color: 'var(--ink3)', border: '1px solid var(--border)' }}>{tag}</span>
+                          )) : <span style={{ fontSize: 12, color: 'var(--ink3)' }}>—</span>}
+                        </div>
+                      </td>
+                      <td style={{ textAlign: 'right', whiteSpace: 'nowrap' }}>
+                        {task.closedAt ? (
+                          <div style={{ display: 'inline-flex', alignItems: 'center', gap: 8, justifyContent: 'flex-end' }}>
+                            <span title={`Closed ${fdate(task.closedAt)}${task.closedById ? ` by ${nameFor(task.closedById)}` : ''}`}
+                              style={{ display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: 11, fontWeight: 700, color: 'var(--green)' }}>
+                              <Icon name="lock" size={12} /> Closed{task.closedById ? ` · ${nameFor(task.closedById)}` : ''}
+                            </span>
+                            {canEditStatus(task) && (
+                              <Button variant="outline" size="xs" onClick={() => closeTask(task, 'reopen')} disabled={savingStatus === task.id} title="Reopen this task">Reopen</Button>
+                            )}
+                          </div>
+                        ) : canEditStatus(task) ? (
+                          <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6, justifyContent: 'flex-end' }}>
+                            <div style={{ width: 120 }}>
+                              <Select value={task.status} onValueChange={v => setTaskStatus(task, v as TaskStatus)} disabled={savingStatus === task.id}>
+                                <SelectTrigger className="h-7 text-xs bg-background"><SelectValue /></SelectTrigger>
+                                <SelectContent>
+                                  {(['not_started', 'in_progress', 'testing', 'awaiting_feedback', 'complete'] as TaskStatus[]).map(s => (
+                                    <SelectItem key={s} value={s}>{TASK_STATUS_CFG[s].label}</SelectItem>
+                                  ))}
+                                </SelectContent>
+                              </Select>
+                            </div>
+                            {task.status !== 'complete' && (
+                              <Button variant="outline" size="xs" className="h-7 w-7 p-0 text-emerald-600 border-emerald-200 hover:bg-emerald-50 dark:hover:bg-emerald-950/30" onClick={() => setTaskStatus(task, 'complete')} disabled={savingStatus === task.id} title="Mark complete">
+                                <Icon name="check" size={12} />
+                              </Button>
+                            )}
+                            <Button variant="outline" size="xs" className="h-7 px-2 text-xs text-muted-foreground hover:text-foreground" onClick={() => closeTask(task, 'close')} disabled={savingStatus === task.id} title="Close & sign off this task">
+                              <Icon name="lock" size={11} className="mr-1" /> Close
+                            </Button>
+                          </div>
+                        ) : <span style={{ fontSize: 12, color: 'var(--ink3)' }}>—</span>}
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+
+          {/* Mobile Card List */}
+          <div className="shipment-task-mobile-list">
             {visible.map((task, i) => {
               const sCfg = TASK_STATUS_CFG[task.status];
               const pCfg = PRIORITY_CFG[task.priority];
               const overdue = task.dueDate && new Date() > task.dueDate && task.status !== 'complete';
               return (
-                <tr key={task.id} style={{ borderBottom: '1px solid var(--border)', background: i % 2 === 0 ? 'var(--white)' : 'var(--bg)' }}>
-                  <td data-label="#" style={{ padding: '10px 14px', fontSize: 11, color: 'var(--ink3)', fontFamily: 'var(--font)', width: 36 }}>{i + 1}</td>
-                  <td data-label="Task" style={{ padding: '10px 14px', maxWidth: 240 }}>
-                    <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--ink)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{task.title}</div>
-                    {task.description && <div style={{ fontSize: 11, color: 'var(--ink3)', marginTop: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{task.description}</div>}
-                  </td>
-                  <td data-label="Service" style={{ padding: '10px 14px', maxWidth: 160 }}>
-                    {task.serviceName ? (
-                      <>
-                        <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--ink)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{task.serviceName}</div>
-                        <div style={{ fontSize: 11, color: 'var(--teal)', fontWeight: 600 }}>{fmtServiceRate(task.serviceRate || 0, task.serviceCurrency || 'USD')}/{task.serviceUnit}</div>
-                      </>
-                    ) : <span style={{ fontSize: 12, color: 'var(--ink3)' }}>—</span>}
-                  </td>
-                  <td data-label="Status" style={{ padding: '10px 14px' }}>
-                    <Badge variant={task.status === 'complete' ? 'success' : task.status === 'in_progress' ? 'info' : task.status === 'testing' ? 'info' : task.status === 'awaiting_feedback' ? 'warning' : 'gray'}>{sCfg.label}</Badge>
-                  </td>
-                  <td data-label="Start" style={{ padding: '10px 14px', fontSize: 12, color: 'var(--ink3)', whiteSpace: 'nowrap' }}>{fdate(task.startDate)}</td>
-                  <td data-label="Due" style={{ padding: '10px 14px', fontSize: 12, color: overdue ? 'var(--red)' : 'var(--ink3)', fontWeight: overdue ? 700 : 400, whiteSpace: 'nowrap' }}>{fdate(task.dueDate)}</td>
-                  <td data-label="Assignees" style={{ padding: '10px 14px' }}>
-                    <div style={{ display: 'flex', gap: 3 }}>
-                      {task.assignees.slice(0, 3).map(a => (
-                        <Av key={a} name={a} size={24} />
-                      ))}
-                      {task.assignees.length > 3 && <div style={{ width: 24, height: 24, borderRadius: '50%', background: 'var(--border)', color: 'var(--ink3)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 9, fontWeight: 700 }}>+{task.assignees.length - 3}</div>}
-                    </div>
-                  </td>
-                  <td data-label="Priority" style={{ padding: '10px 14px' }}>
-                    <Badge variant={task.priority === 'urgent' ? 'error' : task.priority === 'high' ? 'warning' : task.priority === 'low' ? 'success' : 'gray'}>{pCfg.label}</Badge>
-                  </td>
-                  <td data-label="Tags" style={{ padding: '10px 14px' }}>
-                    <div style={{ display: 'flex', gap: 3, flexWrap: 'wrap' }}>
-                      {task.tags.map(tag => <span key={tag} style={{ fontSize: 10, padding: '1px 6px', borderRadius: 'var(--r-sm)', background: 'var(--bg)', color: 'var(--ink3)', border: '1px solid var(--border)' }}>{tag}</span>)}
-                    </div>
-                  </td>
-                  <td data-label="Actions" style={{ padding: '10px 14px', whiteSpace: 'nowrap' }}>
-                    {task.closedAt ? (
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                        <span title={`Closed ${fdate(task.closedAt)}${task.closedById ? ` by ${nameFor(task.closedById)}` : ''}`}
-                          style={{ display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: 11, fontWeight: 700, color: 'var(--green)' }}>
-                          <Icon name="lock" size={12} /> Closed{task.closedById ? ` · ${nameFor(task.closedById)}` : ''}
-                        </span>
-                        {canEditStatus(task) && (
-                          <Button variant="outline" size="xs" onClick={() => closeTask(task, 'reopen')} disabled={savingStatus === task.id} title="Reopen this task">Reopen</Button>
-                        )}
-                      </div>
-                    ) : canEditStatus(task) ? (
+                <div key={task.id} className="shipment-task-mobile-card">
+                  <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 10 }}>
+                    <div style={{ minWidth: 0, flex: 1 }}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                        <div style={{ width: 150 }}>
-                          <Select value={task.status} onValueChange={v => setTaskStatus(task, v as TaskStatus)} disabled={savingStatus === task.id}>
-                            <SelectTrigger><SelectValue /></SelectTrigger>
-                            <SelectContent>
-                              {(['not_started', 'in_progress', 'testing', 'awaiting_feedback', 'complete'] as TaskStatus[]).map(s => (
-                                <SelectItem key={s} value={s}>{TASK_STATUS_CFG[s].label}</SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
-                        </div>
-                        {task.status !== 'complete' && (
-                          <Button variant="outline" size="xs" onClick={() => setTaskStatus(task, 'complete')} disabled={savingStatus === task.id} title="Mark complete" style={{ borderColor: 'var(--green)', color: 'var(--green)', paddingInline: "var(--space-md)" }}>
-                            <Icon name="check" size={12} />
-                          </Button>
-                        )}
-                        <Button variant="outline" size="xs" onClick={() => closeTask(task, 'close')} disabled={savingStatus === task.id} title="Close & sign off this task" style={{ borderColor: 'var(--teal)', background: 'var(--teal-l)', color: 'var(--teal-d)' }}>
-                          <Icon name="lock" size={11} /> Close
-                        </Button>
+                        <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--ink3)' }}>#{i + 1}</span>
+                        <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--ink)', lineHeight: 1.3 }}>{task.title}</span>
                       </div>
-                    ) : <span style={{ fontSize: 12, color: 'var(--ink3)' }}>—</span>}
-                  </td>
-                </tr>
+                      {task.description && (
+                        <div style={{ fontSize: 11, color: 'var(--ink3)', marginTop: 2 }}>{task.description}</div>
+                      )}
+                    </div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 5, flexShrink: 0 }}>
+                      <Badge variant={task.status === 'complete' ? 'success' : task.status === 'in_progress' ? 'info' : task.status === 'testing' ? 'info' : task.status === 'awaiting_feedback' ? 'warning' : 'gray'} className="whitespace-nowrap font-medium text-xs">
+                        {sCfg.label}
+                      </Badge>
+                      <Badge variant={task.priority === 'urgent' ? 'error' : task.priority === 'high' ? 'warning' : 'gray'} className="whitespace-nowrap font-medium text-xs">
+                        {pCfg.label}
+                      </Badge>
+                    </div>
+                  </div>
+
+                  {task.serviceName && (
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 11, background: 'var(--bg)', padding: '6px 10px', borderRadius: 'var(--r-sm)' }}>
+                      <span style={{ fontWeight: 600, color: 'var(--ink)' }}>{task.serviceName}</span>
+                      <span style={{ color: 'var(--teal)', fontWeight: 600, marginLeft: 'auto' }}>
+                        {fmtServiceRate(task.serviceRate || 0, task.serviceCurrency || 'USD')}/{task.serviceUnit}
+                      </span>
+                    </div>
+                  )}
+
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10, fontSize: 11, color: 'var(--ink3)' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                      <div style={{ display: 'flex', gap: 3 }}>
+                        {task.assignees.slice(0, 3).map(a => (
+                          <Av key={a} name={a} size={20} />
+                        ))}
+                      </div>
+                      <span>{task.assignees.length > 0 ? task.assignees.map(friendlyAssignee).join(', ') : 'Unassigned'}</span>
+                    </div>
+                    {task.dueDate && (
+                      <div style={{ color: overdue ? 'var(--red)' : 'var(--ink3)', fontWeight: overdue ? 700 : 500, display: 'flex', alignItems: 'center', gap: 4 }}>
+                        <Icon name="calendar" size={11} />
+                        <span>{overdue ? 'Overdue: ' : 'Due '}{fdate(task.dueDate)}</span>
+                      </div>
+                    )}
+                  </div>
+
+                  {task.closedAt ? (
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', paddingTop: 8, borderTop: '1px solid var(--border)' }}>
+                      <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: 11, fontWeight: 700, color: 'var(--green)' }}>
+                        <Icon name="lock" size={11} /> Closed{task.closedById ? ` · ${nameFor(task.closedById)}` : ''}
+                      </span>
+                      {canEditStatus(task) && (
+                        <Button variant="outline" size="xs" onClick={() => closeTask(task, 'reopen')} disabled={savingStatus === task.id}>Reopen</Button>
+                      )}
+                    </div>
+                  ) : canEditStatus(task) ? (
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8, paddingTop: 8, borderTop: '1px solid var(--border)' }}>
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <Select value={task.status} onValueChange={v => setTaskStatus(task, v as TaskStatus)} disabled={savingStatus === task.id}>
+                          <SelectTrigger className="h-8 text-xs w-full"><SelectValue /></SelectTrigger>
+                          <SelectContent>
+                            {(['not_started', 'in_progress', 'testing', 'awaiting_feedback', 'complete'] as TaskStatus[]).map(s => (
+                              <SelectItem key={s} value={s}>{TASK_STATUS_CFG[s].label}</SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      {task.status !== 'complete' && (
+                        <Button variant="outline" size="xs" className="h-8 px-2.5 text-xs text-emerald-600 border-emerald-200 hover:bg-emerald-50" onClick={() => setTaskStatus(task, 'complete')} disabled={savingStatus === task.id}>
+                          <Icon name="check" size={12} className="mr-1" /> Done
+                        </Button>
+                      )}
+                      <Button variant="outline" size="xs" className="h-8 px-2.5 text-xs text-muted-foreground" onClick={() => closeTask(task, 'close')} disabled={savingStatus === task.id}>
+                        <Icon name="lock" size={11} className="mr-1" /> Close
+                      </Button>
+                    </div>
+                  ) : null}
+                </div>
               );
             })}
-          </tbody>
-        </table>
-      </div>
+          </div>
+        </>
+      )}
     </UICard>
   );
 }
@@ -456,9 +592,9 @@ export function TimesheetsTab({ job, isMobile, shipmentId, isLive, onRefresh }: 
             <span> · Billable: <span style={{ fontWeight: 700, color: 'var(--teal)' }}>{Object.entries(billableByCurrency).map(([cur, amt]) => fmtServiceRate(amt, cur)).join(' + ')}</span></span>
           )}
         </div>
-        <button type="button" onClick={() => setShowLog(true)} style={{ display: 'flex', alignItems: 'center', gap: 6, padding: 'var(--ds-btn-py) 16px', background: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))', border: 'none', borderRadius: 'var(--r)', fontSize: "var(--text-base)", fontWeight: 700, cursor: 'pointer', minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}} data-ui-native-button="">
+        <Button size="sm" onClick={() => setShowLog(true)}>
           <Icon name="clock" size={14} /> Log Time
-        </button>
+        </Button>
       </div>
 
       {/* Log time form */}
@@ -510,7 +646,7 @@ export function TimesheetsTab({ job, isMobile, shipmentId, isLive, onRefresh }: 
           </div>
           <div style={{ display: 'flex', gap: 8 }}>
             <Button size="sm" type="submit" loading={logSaving} loadingText="Saving…">Save Entry</Button>
-            <button type="button" onClick={() => setShowLog(false)} className="btn btn-secondary btn-sm" data-ui-native-button="">Cancel</button>
+            <Button variant="outline" size="sm" type="button" onClick={() => setShowLog(false)}>Cancel</Button>
           </div>
         </form>
         </Card>
@@ -518,9 +654,9 @@ export function TimesheetsTab({ job, isMobile, shipmentId, isLive, onRefresh }: 
       )}
 
       {/* Table */}
-      <div className="rtbl-wrap">
+      <div className="rtbl-wrap" style={{ overflowX: 'auto', width: '100%', WebkitOverflowScrolling: 'touch' }}>
       <Card padded={false}>
-        <table className="rtbl" style={{ borderCollapse: 'collapse' }}>
+        <table className="rtbl" style={{ borderCollapse: 'collapse', minWidth: 720 }}>
           <thead>
             <tr>{['Member','Task','Service','Date','Duration','Hours','Amount','Note'].map(h => (
               <th key={h} style={{ padding: '10px 16px', background: 'var(--bg)', borderBottom: '1px solid var(--border)', textAlign: 'left', fontSize: 11, fontWeight: 700, color: 'var(--ink3)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>{h}</th>

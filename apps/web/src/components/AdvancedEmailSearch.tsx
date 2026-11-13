@@ -4,6 +4,7 @@ import { Popover, PopoverTrigger, PopoverContent } from './ui/popover.js';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from './ui/select.js';
 import { DatePicker } from './ui/date-picker.js';
 import { Tip } from './ui/tooltip.js';
+import { Button } from './ui/button.js';
 
 export interface AdvancedSearchQuery {
   from?: string;
@@ -242,26 +243,25 @@ export function AdvancedEmailSearch({ labelDefs, onSearch, onCreateFilter, colli
         </div>
 
         <div className="em-adv-search-actions">
-          <button type="button" className="btn btn-ghost btn-xs" onClick={clear} data-ui-native-button="">
+          <Button variant="ghost" size="xs" type="button" onClick={clear}>
             Clear
-          </button>
+          </Button>
           <div className="em-adv-actions-right">
             {onCreateFilter && (
               <Tip label="Save these criteria as an incoming filter">
-                <button
+                <Button variant="outline" size="xs"
                   type="button"
-                  className="btn btn-secondary btn-xs"
-                  onClick={() => { onCreateFilter(q); setOpen(false); }}
-                 data-ui-native-button="">
+                 
+                  onClick={() => { onCreateFilter(q); setOpen(false); }}>
                   <Icon name="filter" size={12} />
                   <span>Create filter</span>
-                </button>
+                </Button>
               </Tip>
             )}
-            <button type="button" className="btn btn-primary btn-xs" onClick={run} data-ui-native-button="">
+            <Button size="xs" type="button" onClick={run}>
               <Icon name="search" size={12} />
               <span>Search</span>
-            </button>
+            </Button>
           </div>
         </div>
       </PopoverContent>

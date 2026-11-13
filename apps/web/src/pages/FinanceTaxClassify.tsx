@@ -8,6 +8,7 @@ import { apiFetch } from '../lib/api.js';
 import { SectionCard } from '../components/SectionCard.js';
 import { SectionLoading } from '../components/ui/spinner.js';
 import { Banner } from '../components/ui/alert.js';
+import { Button } from '../components/ui/button.js';
 import {
   useTaxCodes, TAX_CODE_KIND_HINT, TAX_CODE_KIND_VARIANT, TAX_CODE_KIND_LABEL, type TaxCode,
 } from '../data/taxCodeData.js';
@@ -299,11 +300,11 @@ export function FinanceTaxClassify() {
                       )}
                     </td>
                     <td style={{ ...td, textAlign: 'right' }}>
-                      <button type="button" className="btn btn-primary btn-sm"
+                      <Button size="sm" type="button"
                         disabled={busy || !picked || !fits}
-                        onClick={() => applyGroup(g)} data-ui-native-button="">
+                        onClick={() => applyGroup(g)}>
                         Apply to {g.count}
-                      </button>
+                      </Button>
                     </td>
                   </tr>
                 );
@@ -354,17 +355,17 @@ export function FinanceTaxClassify() {
         </div>
 
         <div style={{ display: 'flex', gap: 8, alignItems: 'center', paddingTop: 14 }}>
-          <button type="button" className="btn btn-secondary btn-sm"
+          <Button variant="outline" size="sm" type="button"
             disabled={!chosen || eligible.size === 0}
-            onClick={selectAllEligible} data-ui-native-button="">
+            onClick={selectAllEligible}>
             Select {chosen ? eligible.size : ''} eligible
-          </button>
-          <button type="button" className="btn btn-primary btn-sm"
+          </Button>
+          <Button size="sm" type="button"
             disabled={busy || !chosen || selectedEligible.length === 0}
-            onClick={apply} data-ui-native-button="">
+            onClick={apply}>
             <Icon name="check" size={13} color="#fff" />
             {busy ? 'Applying…' : `Classify ${selectedEligible.length || ''}`}
-          </button>
+          </Button>
         </div>
         </div>
       </SectionCard>
@@ -435,17 +436,17 @@ export function FinanceTaxClassify() {
           {total > 0 && <> — showing {page * PAGE_SIZE + 1}–{Math.min((page + 1) * PAGE_SIZE, total)}</>}
         </div>
         <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
-          <button type="button" className="btn btn-secondary btn-sm" disabled={page === 0}
-            onClick={() => setPage(p => Math.max(0, p - 1))} data-ui-native-button="">
+          <Button variant="outline" size="sm" type="button" disabled={page === 0}
+            onClick={() => setPage(p => Math.max(0, p - 1))}>
             <Icon name="chevronLeft" size={13} /> Previous
-          </button>
+          </Button>
           <span style={{ fontSize: 12, color: 'var(--ink2)', fontWeight: 600, padding: '0 6px' }}>
             Page {page + 1} of {pages}
           </span>
-          <button type="button" className="btn btn-secondary btn-sm" disabled={page + 1 >= pages}
-            onClick={() => setPage(p => p + 1)} data-ui-native-button="">
+          <Button variant="outline" size="sm" type="button" disabled={page + 1 >= pages}
+            onClick={() => setPage(p => p + 1)}>
             Next <Icon name="chevronRight" size={13} />
-          </button>
+          </Button>
         </div>
       </div>
       </>}

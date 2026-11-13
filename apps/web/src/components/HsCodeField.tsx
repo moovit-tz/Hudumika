@@ -77,7 +77,7 @@ export function HsCodeField({ value, onChange, onPick, placeholder, required }: 
       )}
 
       {focused && results.length > 0 && !(selected && selected.code === value) && (
-        <div style={{ position: 'absolute', top: '100%', left: 0, right: 0, background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 10, zIndex: 50, boxShadow: 'var(--elev-lg)', overflow: 'hidden', marginTop: 4, maxHeight: 240, overflowY: 'auto' }}>
+        <div style={{ position: 'absolute', top: '100%', left: 0, right: 0, background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 'var(--r)', zIndex: 50, boxShadow: 'var(--elev-lg)', overflow: 'hidden', marginTop: 4, maxHeight: 240, overflowY: 'auto' }}>
           {results.map(r => (
             <div key={r.code} onMouseDown={() => pick(r)}
               style={{ padding: '9px 12px', cursor: 'pointer', fontSize: 12.5, borderBottom: '1px solid var(--border)' }}

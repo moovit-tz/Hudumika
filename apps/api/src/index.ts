@@ -16,7 +16,7 @@ import { db, withTenant } from './db/client.js';
 import { authPlugin } from './middleware/auth.js';
 import { getPlatformApiSettings } from './lib/platform-settings.js';
 import { extractToken } from './lib/cookies.js';
-import { replayMissedEvents } from './lib/ws-broadcast.js';
+import { replayMissedEvents, registerWsServer } from './lib/ws-broadcast.js';
 import { bootstrapJobs } from './jobs/index.js';
 import { bootstrapSubscribers } from './subscribers/index.js';
 import { replayAllUndeliveredEvents } from './services/domain-events.service.js';
@@ -378,6 +378,7 @@ export async function registerApp() {
     });
 
     await server.register(websocket);
+    registerWsServer(server);
 
     // Public/partner API layer — schema-driven docs + per-key/per-IP rate limiting.
     await server.register(swagger, {

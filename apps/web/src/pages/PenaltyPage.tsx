@@ -6,6 +6,7 @@ import { SectionCard } from '../components/SectionCard.js';
 import { Icon, type IconName } from '../components/Icon.js';
 import { Banner } from '../components/ui/alert.js';
 import { apiFetch } from '../lib/api.js';
+import { Button } from '../components/ui/button.js';
 
 interface PenResult {
   violation_type: string;
@@ -181,12 +182,12 @@ export const PenaltyPage: React.FC = () => {
         subtitle="Estimate Tanzania customs penalties under CEMA CAP 403"
         actions={
           step === 3 ? (
-            <button type="button" className="btn btn-primary"
+            <Button type="button"
               disabled={!result || aiPending} onClick={runAi}
-              style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: "var(--text-base)" }} data-ui-native-button="">
+              style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: "var(--text-base)" }}>
               <Icon name="zap" size={14} />
               {aiPending ? 'Analysing…' : 'AI Analysis'}
-            </button>
+            </Button>
           ) : undefined
         }
       />
@@ -238,15 +239,14 @@ export const PenaltyPage: React.FC = () => {
           </div>
 
           <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
-            <button
+            <Button
               type="button"
-              className="btn btn-primary"
+             
               onClick={() => setStep(2)}
-              style={{ display: 'inline-flex', alignItems: 'center', gap: 8, padding: 'var(--ds-btn-py) 28px', borderRadius: 'var(--r)', fontSize: "var(--text-base)", minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}}
-             data-ui-native-button="">
+              style={{ display: 'inline-flex', alignItems: 'center', gap: 8, padding: 'var(--ds-btn-py) 28px', borderRadius: 'var(--r)', fontSize: "var(--text-base)", minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}}>
               <span>Continue</span>
               <span style={{ fontSize: 15 }}>→</span>
-            </button>
+            </Button>
           </div>
         </SectionCard>
       )}
@@ -326,9 +326,9 @@ export const PenaltyPage: React.FC = () => {
               style={{ padding: 'var(--ds-btn-py) 24px', borderRadius: 'var(--r)', border: '1px solid var(--border)', background: 'var(--white)', color: 'var(--ink2)', fontWeight: 600, fontSize: "var(--text-base)", cursor: 'pointer', minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}} data-ui-native-button="">
               ← Back
             </button>
-            <button
+            <Button
               type="button"
-              className="btn btn-primary"
+             
               onClick={() => {
                 const dc = parseFloat(declared);
                 if (!dc || dc <= 0) { setError('Enter the declared CIF value.'); return; }
@@ -337,11 +337,10 @@ export const PenaltyPage: React.FC = () => {
                 setSummary('');
                 setStep(3);
               }}
-              style={{ display: 'inline-flex', alignItems: 'center', gap: 8, padding: 'var(--ds-btn-py) 28px', borderRadius: 'var(--r)', fontSize: "var(--text-base)", minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}}
-             data-ui-native-button="">
+              style={{ display: 'inline-flex', alignItems: 'center', gap: 8, padding: 'var(--ds-btn-py) 28px', borderRadius: 'var(--r)', fontSize: "var(--text-base)", minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}}>
               <span>Calculate Penalty</span>
               <span style={{ fontSize: 15 }}>→</span>
-            </button>
+            </Button>
           </div>
         </SectionCard>
       )}
@@ -354,16 +353,15 @@ export const PenaltyPage: React.FC = () => {
             <SectionCard collapsible={false}>
               <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 16 }}>
                 <div style={{ fontSize: 13.5, color: 'var(--ink3)' }}>{calcLoading ? 'Calculating estimate…' : 'Ready to calculate estimate.'}</div>
-                <button
+                <Button
                   type="button"
-                  className="btn btn-primary"
+                 
                   onClick={calculate}
                   disabled={calcLoading}
-                  style={{ display: 'flex', alignItems: 'center', gap: 8, padding: 'var(--ds-btn-py) 36px', borderRadius: 'var(--r)', fontSize: "var(--text-base)", minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}}
-                 data-ui-native-button="">
+                  style={{ display: 'flex', alignItems: 'center', gap: 8, padding: 'var(--ds-btn-py) 36px', borderRadius: 'var(--r)', fontSize: "var(--text-base)", minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}}>
                   <Icon name="alertCircle" size={15} color="hsl(var(--primary-foreground))" />
                   <span>{calcLoading ? 'Calculating…' : 'Estimate Penalty'}</span>
-                </button>
+                </Button>
               </div>
             </SectionCard>
           )}

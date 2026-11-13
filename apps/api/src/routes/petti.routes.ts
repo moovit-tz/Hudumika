@@ -4,6 +4,70 @@ import { z } from 'zod';
 import { requireRole } from '../middleware/rbac.js';
 import { PettiService, PETTI_CATEGORIES, PETTI_FINANCE_ROLES } from '../services/petti.service.js';
 import { getActiveGateway, getConfiguredGateways } from '../lib/payment-gateway.js';
+import { NotificationService } from '../services/notification.service.js';
+import { withTenant as withTenantForNotify } from '../db/client.js';
+
+const pettiMoney = (v: unknown) => Number(v || 0).toLocaleString('en-US', { maximumFractionDigits: 2 });
+
+/**
+ * Who should be told a request is waiting. Mirrors PettiService's own rule
+ * for who may act on it (assertCanActOnApprovalStep): the wallet's designated
+ * approver and backup when its workflow needs department approval and they
+ * are set; otherwise managers and finance; or finance alone when the workflow
+ * goes straight to them.
+ */
+async function notifyPettiApprovers(tenantId: string, req: any, actorId: string): Promise<void> {
+  try {
+    const { wallet, workflow } = await withTenantForNotify(tenantId, async (trx) => ({
+      wallet: await trx.selectFrom('petti_wallets').select(['name', 'currency', 'approver_user_id', 'approver_backup_user_id'])
+        .where('id', '=', req.wallet_id).where('tenant_id', '=', tenantId).executeTakeFirst(),
+      workflow: req.workflow_id ? await trx.selectFrom('petti_workflows').select(['requires_department_approval'])
+        .where('id', '=', req.workflow_id).where('tenant_id', '=', tenantId).executeTakeFirst() : null,
+    }));
+    if (!wallet) return;
+    const opts = {
+      app: 'petti', type: 'task',
+      title: 'Petty cash request awaiting approval',
+      message: `${wallet.currency ?? ''} ${pettiMoney(req.amount)} from ${wallet.name} — ${req.purpose}`.trim(),
+      link: '/petti', entityType: 'petti_withdrawal', entityId: req.id, entityLabel: req.ref ?? undefined,
+    };
+    const requiresDept = workflow ? workflow.requires_department_approval : true;
+    const designated = [wallet.approver_user_id, wallet.approver_backup_user_id].filter(Boolean) as string[];
+    if (requiresDept && designated.length) await NotificationService.notifyUsers(tenantId, designated, opts, actorId);
+    else await NotificationService.notifyRoles(tenantId, requiresDept ? ['MANAGER', 'FINANCE', 'TENANT_ADMIN', 'ADMIN'] : ['FINANCE', 'TENANT_ADMIN', 'ADMIN'], opts, { exceptUserId: actorId });
+  } catch (err: any) {
+    console.error('[Petti] approver notification failed:', err?.message);
+  }
+}
+
+/**
+ * Once a request is decided, the "awaiting approval" notice the other
+ * approvers still hold is no longer true — there is nothing left for them to
+ * approve. Clear it rather than leave three people chasing a closed request.
+ */
+async function resolvePettiPending(tenantId: string, requestId: string, title: string): Promise<void> {
+  try {
+    await withTenantForNotify(tenantId, (trx) => trx.updateTable('notifications')
+      .set({ read: true, status: 'AUTO_RESOLVED', read_at: new Date() })
+      .where('tenant_id', '=', tenantId).where('app', '=', 'petti').where('entity_id', '=', requestId)
+      .where('title', '=', title).where('read', '=', false).execute());
+  } catch (err: any) {
+    console.error('[Petti] could not clear pending notices:', err?.message);
+  }
+}
+
+/** Tells the person who asked (and whoever it was raised for) what happened. */
+async function notifyPettiRequester(tenantId: string, req: any, actorId: string, outcome: 'approved' | 'rejected' | 'disbursed'): Promise<void> {
+  const label = req.ref ? `Request ${req.ref}` : 'Your petty cash request';
+  const text = {
+    approved: { type: 'success', title: 'Petty cash request approved', message: `${label} was approved and is waiting for Finance to release the funds.` },
+    rejected: { type: 'warning', title: 'Petty cash request declined', message: `${label} was declined${req.rejection_reason ? `: ${req.rejection_reason}` : '.'}` },
+    disbursed: { type: 'success', title: 'Petty cash released', message: `${label} — ${pettiMoney(req.amount)} has been released to you.` },
+  }[outcome];
+  await NotificationService.notifyUsers(tenantId, [req.requested_by, req.on_behalf_of_user_id], {
+    app: 'petti', ...text, link: '/petti', entityType: 'petti_withdrawal', entityId: req.id, entityLabel: req.ref ?? undefined,
+  }, actorId);
+}
 
 // Gateway ids petti.service.ts's getPaymentGatewayAdapter actually knows how
 // to place a live charge with (VodacomMpesaAdapter/AirtelMoneyAdapter) —
@@ -421,6 +485,7 @@ export async function pettiRoutes(fastify: FastifyInstance) {
         walletId: id, amount: body.amount, category: body.category, purpose: body.purpose,
         payeeName: body.payee_name, onBehalfOfUserId: body.on_behalf_of_user_id,
       });
+      void notifyPettiApprovers(user.tenant_id, req, user.sub);
       return reply.status(201).send(req);
     } catch (e: any) {
       return sendServiceError(reply, e);
@@ -471,7 +536,16 @@ export async function pettiRoutes(fastify: FastifyInstance) {
     const user = request.user;
     const { id } = request.params as { id: string };
     try {
-      return await PettiService.approveWithdrawal(user.tenant_id, { id: user.sub, role: user.role }, id);
+      const approved = await PettiService.approveWithdrawal(user.tenant_id, { id: user.sub, role: user.role }, id);
+      void resolvePettiPending(user.tenant_id, approved.id, 'Petty cash request awaiting approval');
+      void notifyPettiRequester(user.tenant_id, approved, user.sub, 'approved');
+      // The next person in the chain: Finance releases what was approved.
+      void NotificationService.notifyRoles(user.tenant_id, ['FINANCE'], {
+        app: 'petti', type: 'task', title: 'Petty cash approved — ready to release',
+        message: `${approved.ref ?? 'A request'} — ${pettiMoney(approved.amount)}: ${approved.purpose}`,
+        link: '/petti', entityType: 'petti_withdrawal', entityId: approved.id, entityLabel: approved.ref ?? undefined,
+      }, { exceptUserId: user.sub });
+      return approved;
     } catch (e: any) {
       return sendServiceError(reply, e);
     }
@@ -482,7 +556,10 @@ export async function pettiRoutes(fastify: FastifyInstance) {
     const { id } = request.params as { id: string };
     const body = rejectSchema.parse(request.body ?? {});
     try {
-      return await PettiService.rejectWithdrawal(user.tenant_id, { id: user.sub, role: user.role }, id, body.reason);
+      const rejected = await PettiService.rejectWithdrawal(user.tenant_id, { id: user.sub, role: user.role }, id, body.reason);
+      void resolvePettiPending(user.tenant_id, rejected.id, 'Petty cash request awaiting approval');
+      void notifyPettiRequester(user.tenant_id, rejected, user.sub, 'rejected');
+      return rejected;
     } catch (e: any) {
       return sendServiceError(reply, e);
     }
@@ -492,7 +569,13 @@ export async function pettiRoutes(fastify: FastifyInstance) {
     const user = request.user;
     const { id } = request.params as { id: string };
     try {
-      return await PettiService.disburseWithdrawal(user.tenant_id, { id: user.sub, role: user.role }, id);
+      const disbursed: any = await PettiService.disburseWithdrawal(user.tenant_id, { id: user.sub, role: user.role }, id);
+      // The service returns the updated request on some paths and a wrapper
+      // on others; either way the request id is the one in the URL.
+      const disbursedReq = disbursed?.requested_by ? disbursed : (disbursed?.request?.requested_by ? disbursed.request : null);
+      void resolvePettiPending(user.tenant_id, id, 'Petty cash approved — ready to release');
+      if (disbursedReq) void notifyPettiRequester(user.tenant_id, disbursedReq, user.sub, 'disbursed');
+      return disbursed;
     } catch (e: any) {
       return sendServiceError(reply, e);
     }

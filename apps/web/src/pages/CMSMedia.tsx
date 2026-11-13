@@ -7,6 +7,7 @@ import { showAlert } from '../lib/alert.js';
 import { showConfirm } from '../lib/confirm.js';
 import { showPrompt } from '../lib/prompt.js';
 import type { CmsMedia } from '@hudumika/types';
+import { Button } from '../components/ui/button.js';
 
 function fmtDate(iso: string) {
   return new Date(iso).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
@@ -116,9 +117,9 @@ export function CMSMedia() {
         subtitle="Every image uploaded through this CMS — browse, organize into folders, copy a link, or upload something new. Insert one into a page or post from its own editor."
         actions={
           <>
-            <button className="btn btn-primary btn-sm" disabled={uploading} onClick={() => fileRef.current?.click()} data-ui-native-button="">
+            <Button size="sm" disabled={uploading} onClick={() => fileRef.current?.click()}>
               <Icon name="upload" size={13} /> {uploading ? 'Uploading…' : 'Upload'}
-            </button>
+            </Button>
             <input ref={fileRef} type="file" accept="image/*" multiple style={{ display: 'none' }}
               onChange={e => { handleUpload(e.target.files); e.target.value = ''; }} />
           </>
@@ -165,12 +166,12 @@ export function CMSMedia() {
                     <Icon name="tag" size={10} /> {m.tags || 'Add tags'}
                   </button>
                   <div style={{ display: 'flex', gap: 6, marginTop: 4 }}>
-                    <button onClick={() => handleCopyUrl(m)} title="Copy URL" className="btn btn-secondary btn-xs" style={{ flex: 1, justifyContent: 'center' }} data-ui-native-button="">
+                    <Button variant="outline" size="xs" onClick={() => handleCopyUrl(m)} title="Copy URL" style={{ flex: 1, justifyContent: 'center' }}>
                       <Icon name="link" size={12} />
-                    </button>
-                    <button onClick={() => handleDelete(m)} title="Delete" className="btn btn-secondary btn-xs" style={{ flex: 1, justifyContent: 'center', color: 'var(--red)' }} data-ui-native-button="">
+                    </Button>
+                    <Button variant="outline" size="xs" onClick={() => handleDelete(m)} title="Delete" style={{ flex: 1, justifyContent: 'center', color: 'var(--red)' }}>
                       <Icon name="trash2" size={12} />
-                    </button>
+                    </Button>
                   </div>
                 </div>
               </div>

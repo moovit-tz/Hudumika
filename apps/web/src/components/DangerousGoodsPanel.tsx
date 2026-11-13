@@ -98,7 +98,7 @@ export function DangerousGoodsPanel({ shipmentId }: { shipmentId: string }) {
 
           {row.transport_mode === 'AIR' && row.air_transport_restriction && row.air_transport_restriction !== 'PASSENGER_AND_CARGO' && (
             <div style={{
-              fontSize: 11, fontWeight: 700, marginBottom: 8, padding: '4px 8px', borderRadius: 6, display: 'inline-block',
+              fontSize: 11, fontWeight: 700, marginBottom: 8, padding: '4px 8px', borderRadius: 'var(--r-sm)', display: 'inline-block',
               background: row.air_transport_restriction === 'FORBIDDEN' ? 'var(--red-l)' : 'var(--gold-l)',
               color: row.air_transport_restriction === 'FORBIDDEN' ? 'var(--red)' : 'var(--gold)',
             }}>

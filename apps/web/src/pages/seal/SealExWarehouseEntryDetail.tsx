@@ -130,9 +130,9 @@ export function SealExWarehouseEntryDetail() {
         subtitle={`${SEAL_DECLARATION_PROCEDURE_LABELS[entry.procedureCode] ?? entry.procedureCode} · HS ${entry.hsCode}`}
         actions={
           <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-            <button type="button" className="btn btn-secondary" onClick={() => navigate('/seal/ex-warehouse')} data-ui-native-button="">
+            <Button variant="outline" type="button" onClick={() => navigate('/seal/ex-warehouse')}>
               <Icon name="arrowLeft" size={13} /> Back
-            </button>
+            </Button>
             <Badge variant={STATUS_VARIANT[entry.status]}>{SEAL_DECLARATION_STATUS_LABELS[entry.status]}</Badge>
           </div>
         }
@@ -151,9 +151,9 @@ export function SealExWarehouseEntryDetail() {
           <div style={{ display: 'flex', flexDirection: 'column', gap: 10, borderTop: '1px solid var(--border)', paddingTop: 14, marginTop: 4 }}>
             {entry.status === 'DRAFT' && (
               <>
-                <button type="button" className="btn btn-secondary" style={{ alignSelf: 'flex-start' }} disabled={busy} onClick={handleRecompute} data-ui-native-button="">
+                <Button variant="outline" type="button" style={{ alignSelf: 'flex-start' }} disabled={busy} onClick={handleRecompute}>
                   <Icon name="calculator" size={13} /> Verify Reproducibility
-                </button>
+                </Button>
                 {recomputeResult && (
                   <div style={{ fontSize: 12.5, color: recomputeResult.matches ? 'var(--green)' : 'var(--red)' }}>
                     {recomputeResult.matches ? '✓ Recomputing from stored inputs gives the identical result.' : '✗ Recomputed result differs from stored computation.'}
@@ -176,13 +176,13 @@ export function SealExWarehouseEntryDetail() {
                         </SelectContent>
                       </Select>
                       <Button type="button" onClick={handleSubmitDeclaration} loading={busy} disabled={!submissionReference.trim() || !selectivityChannel} loadingText="Submitting…">Confirm Submission</Button>
-                      <button type="button" className="btn btn-secondary" onClick={() => setShowSubmit(false)} data-ui-native-button="">Cancel</button>
+                      <Button variant="outline" type="button" onClick={() => setShowSubmit(false)}>Cancel</Button>
                     </div>
                   </div>
                 ) : (
-                  <button type="button" className="btn btn-primary" style={{ alignSelf: 'flex-start' }} onClick={() => setShowSubmit(true)} data-ui-native-button="">
+                  <Button type="button" style={{ alignSelf: 'flex-start' }} onClick={() => setShowSubmit(true)}>
                     <Icon name="send" size={13} /> Submit Declaration
-                  </button>
+                  </Button>
                 )}
               </>
             )}
@@ -190,12 +190,12 @@ export function SealExWarehouseEntryDetail() {
             {(entry.status === 'SUBMITTED' || entry.status === 'QUERIED') && (
               <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
                 {entry.legalNextStatuses.includes('ASSESSED') && (
-                  <button type="button" className="btn btn-primary" disabled={busy} onClick={() => handleAdvance('ASSESSED')} data-ui-native-button="">
+                  <Button type="button" disabled={busy} onClick={() => handleAdvance('ASSESSED')}>
                     <Icon name="checkCircle" size={13} /> Mark Assessed
-                  </button>
+                  </Button>
                 )}
                 {entry.legalNextStatuses.includes('QUERIED') && (
-                  <button type="button" className="btn btn-secondary" disabled={busy} onClick={() => handleAdvance('QUERIED')} data-ui-native-button="">Query</button>
+                  <Button variant="outline" type="button" disabled={busy} onClick={() => handleAdvance('QUERIED')}>Query</Button>
                 )}
               </div>
             )}
@@ -205,23 +205,23 @@ export function SealExWarehouseEntryDetail() {
                 <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'flex-end' }}>
                   <input data-ui-field="input" type="text" className="input-field" style={{ width: 220 }} value={paymentReference} onChange={e => setPaymentReference(e.target.value)} placeholder="Payment reference" />
                   <Button type="button" onClick={() => handleAdvance('PAID', paymentReference.trim())} loading={busy} disabled={!paymentReference.trim()} loadingText="Recording…">Confirm Payment</Button>
-                  <button type="button" className="btn btn-secondary" onClick={() => setShowPay(false)} data-ui-native-button="">Cancel</button>
+                  <Button variant="outline" type="button" onClick={() => setShowPay(false)}>Cancel</Button>
                 </div>
               ) : (
-                <button type="button" className="btn btn-primary" style={{ alignSelf: 'flex-start' }} onClick={() => setShowPay(true)} data-ui-native-button="">
+                <Button type="button" style={{ alignSelf: 'flex-start' }} onClick={() => setShowPay(true)}>
                   <Icon name="creditCard" size={13} /> Record Payment
-                </button>
+                </Button>
               )
             )}
 
             {entry.status === 'PAID' && (
-              <button type="button" className="btn btn-primary" style={{ alignSelf: 'flex-start' }} disabled={busy} onClick={handleRelease} data-ui-native-button="">
+              <Button type="button" style={{ alignSelf: 'flex-start' }} disabled={busy} onClick={handleRelease}>
                 <Icon name="unlock" size={13} /> {busy ? 'Releasing…' : 'Release Lot'}
-              </button>
+              </Button>
             )}
 
             {['DRAFT', 'SUBMITTED', 'QUERIED', 'ASSESSED'].includes(entry.status) && entry.legalNextStatuses.includes('CANCELLED') && (
-              <button type="button" className="btn btn-secondary" style={{ alignSelf: 'flex-start' }} disabled={busy} onClick={() => handleAdvance('CANCELLED')} data-ui-native-button="">Cancel Declaration</button>
+              <Button variant="outline" type="button" style={{ alignSelf: 'flex-start' }} disabled={busy} onClick={() => handleAdvance('CANCELLED')}>Cancel Declaration</Button>
             )}
 
             {entry.status === 'RELEASED' && (
@@ -298,10 +298,10 @@ export function SealExWarehouseEntryDetail() {
                       </Select>
                       <input data-ui-field="input" type="text" className="input-field" style={{ width: 240 }} value={examFindings} onChange={e => setExamFindings(e.target.value)} placeholder="Officer's notes" />
                       <Button type="button" onClick={() => handleCompleteExamination(ex.id)} loading={busy} loadingText="Recording…">Complete Examination</Button>
-                      <button type="button" className="btn btn-secondary" onClick={() => setCompletingExamId(null)} data-ui-native-button="">Cancel</button>
+                      <Button variant="outline" type="button" onClick={() => setCompletingExamId(null)}>Cancel</Button>
                     </div>
                   ) : (
-                    <button type="button" className="btn btn-secondary" style={{ alignSelf: 'flex-start' }} onClick={() => setCompletingExamId(ex.id)} data-ui-native-button="">Complete Examination</button>
+                    <Button variant="outline" type="button" style={{ alignSelf: 'flex-start' }} onClick={() => setCompletingExamId(ex.id)}>Complete Examination</Button>
                   )
                 )}
               </div>

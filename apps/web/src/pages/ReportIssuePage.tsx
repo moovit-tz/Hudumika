@@ -7,6 +7,7 @@ import { Banner } from '../components/ui/alert.js';
 import { Badge } from '../components/ui/badge.js';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '../components/ui/select.js';
 import { apiFetch, BASE_URL } from '../lib/api.js';
+import { Button } from '../components/ui/button.js';
 
 /**
  * Reporting a problem from inside the app.
@@ -219,10 +220,10 @@ export const ReportIssuePage: React.FC = () => {
         titleEm="Issue"
         subtitle="Tell us what went wrong. It reaches the Hudumika platform team as a tracked ticket, and you can follow it here."
         actions={
-          <button type="button" className="btn btn-secondary" style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: "var(--text-base)" }}
-            onClick={() => navigate(-1)} data-ui-native-button="">
+          <Button variant="outline" type="button" style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: "var(--text-base)" }}
+            onClick={() => navigate(-1)}>
             <Icon name="arrowLeft" size={14} /> Back
-          </button>
+          </Button>
         }
       />
 
@@ -246,12 +247,12 @@ export const ReportIssuePage: React.FC = () => {
                 </div>
               )}
               <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
-                <button type="button" className="btn btn-primary" style={{ fontSize: "var(--text-base)" }} onClick={() => { setSent(null); setUploadNote(''); }} data-ui-native-button="">
+                <Button type="button" style={{ fontSize: "var(--text-base)" }} onClick={() => { setSent(null); setUploadNote(''); }}>
                   Report something else
-                </button>
-                <button type="button" className="btn btn-secondary" style={{ fontSize: "var(--text-base)" }} onClick={() => openTicket(sent.id)} data-ui-native-button="">
+                </Button>
+                <Button variant="outline" type="button" style={{ fontSize: "var(--text-base)" }} onClick={() => openTicket(sent.id)}>
                   Open this report
-                </button>
+                </Button>
               </div>
             </div>
           ) : (
@@ -354,12 +355,12 @@ export const ReportIssuePage: React.FC = () => {
                 )}
               </div>
 
-              <button type="button" className="btn btn-primary" disabled={sending}
+              <Button type="button" disabled={sending}
                 style={{ width: '100%', fontSize: "var(--text-base)", display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}
-                onClick={submit} data-ui-native-button="">
+                onClick={submit}>
                 <Icon name="send" size={14} color="#fff" />
                 {sending ? 'Filing the report…' : 'File this report'}
-              </button>
+              </Button>
             </>
           )}
         </div>

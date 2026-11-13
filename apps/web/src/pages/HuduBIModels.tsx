@@ -3,6 +3,7 @@ import { PageHeader } from '../components/PageHeader.js';
 import { Icon } from '../components/Icon.js';
 import { apiFetch } from '../lib/api.js';
 import { SectionCard } from '../components/SectionCard.js';
+import { Button } from '../components/ui/button.js';
 
 // This page used to advertise fabricated ML models ("18.4M samples", "0.02
 // drift", "38ms/query") that do not exist. There is no trained model here.
@@ -37,9 +38,9 @@ export function HuduBIModels() {
       <SectionCard
         title="Board digest"
         action={
-          <button type="button" className="btn btn-primary btn-sm" disabled={loading} style={{ display: 'flex', alignItems: 'center', gap: 6, minHeight: 'var(--ctl-h-sm)', boxSizing: 'border-box', lineHeight: 1.25 }} onClick={generate} data-ui-native-button="">
+          <Button size="sm" type="button" disabled={loading} style={{ display: 'flex', alignItems: 'center', gap: 6, minHeight: 'var(--ctl-h-sm)', boxSizing: 'border-box', lineHeight: 1.25 }} onClick={generate}>
             <Icon name="sparkle" size={14} /> {loading ? 'Analysing…' : (digest ? 'Regenerate' : 'Generate analysis')}
-          </button>
+          </Button>
         }
       >
         <div style={{ fontSize: 12.5, color: 'var(--ink3)' }}>Generated from your live customers, shipments, declarations and finance figures.</div>

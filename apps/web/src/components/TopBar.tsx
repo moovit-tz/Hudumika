@@ -190,7 +190,7 @@ function AISearchModal({ onClose }: { onClose: () => void }) {
                     onMouseEnter={e => (e.currentTarget.style.background = 'var(--hover-bg)')}
                     onMouseLeave={e => (e.currentTarget.style.background = '')}>
                     <div style={{
-                      width: 28, height: 28, borderRadius: 8, flexShrink: 0,
+                      width: 28, height: 28, borderRadius: 'var(--r-sm)', flexShrink: 0,
                       background: 'var(--teal-l)', display: 'flex', alignItems: 'center', justifyContent: 'center',
                     }}>
                       <Icon name={CATEGORY_LABELS[cat]?.icon || 'search'} size={13} color="var(--teal)" strokeWidth={2} />
@@ -215,7 +215,7 @@ function AISearchModal({ onClose }: { onClose: () => void }) {
                 onMouseEnter={e => (e.currentTarget.style.background = 'var(--hover-bg)')}
                 onMouseLeave={e => (e.currentTarget.style.background = '')}>
                 <div style={{
-                  width: 28, height: 28, borderRadius: 8, flexShrink: 0,
+                  width: 28, height: 28, borderRadius: 'var(--r-sm)', flexShrink: 0,
                   background: 'var(--bg)', display: 'flex', alignItems: 'center', justifyContent: 'center',
                 }}>
                   <Icon name="globe" size={13} color="var(--ink3)" strokeWidth={2} />
@@ -333,7 +333,7 @@ function ClockInModal({ onClose, onConfirm }: {
                           {j.customer}
                         </div>
                       </div>
-                      <span style={{ fontSize: 10, fontWeight: 700, padding: '3px 8px', borderRadius: 6, background: selected ? 'hsl(var(--primary))' : 'var(--bg)', color: selected ? 'hsl(var(--primary-foreground))' : 'var(--ink3)', whiteSpace: 'nowrap', flexShrink: 0 }}>{stageLabel}</span>
+                      <span style={{ fontSize: 10, fontWeight: 700, padding: '3px 8px', borderRadius: 'var(--r-sm)', background: selected ? 'hsl(var(--primary))' : 'var(--bg)', color: selected ? 'hsl(var(--primary-foreground))' : 'var(--ink3)', whiteSpace: 'nowrap', flexShrink: 0 }}>{stageLabel}</span>
                     </button>
                   );
                 })}
@@ -372,7 +372,7 @@ function ClockInModal({ onClose, onConfirm }: {
                 })}
               </div>
               {selectedSteps.length >= 3 && (
-                <div style={{ fontSize: 12, color: 'var(--gold)', background: 'var(--gold-l)', padding: '7px 12px', borderRadius: 7, marginBottom: 12 }}>
+                <div style={{ fontSize: 12, color: 'var(--gold)', background: 'var(--gold-l)', padding: '7px 12px', borderRadius: 'var(--r-sm)', marginBottom: 12 }}>
                   Maximum 3 steps selected. Deselect one to change.
                 </div>
               )}
@@ -836,7 +836,7 @@ export const TopBar: React.FC<TopBarProps> = ({ navCollapsed, onToggleNav, onMob
                   onClick={() => navigate(item.path)}
                   className="rounded-lg gap-3 py-2.5 px-3 cursor-pointer text-[13px]"
                 >
-                  <div style={{ width: 28, height: 28, borderRadius: 8, background: 'var(--bg)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                  <div style={{ width: 28, height: 28, borderRadius: 'var(--r-sm)', background: 'var(--bg)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
                     <Icon name={item.icon} size={14} color="var(--ink3)" />
                   </div>
                   {item.label}
@@ -849,7 +849,7 @@ export const TopBar: React.FC<TopBarProps> = ({ navCollapsed, onToggleNav, onMob
                 onClick={logout}
                 className="rounded-lg gap-3 py-2.5 px-3 cursor-pointer text-[13px] text-red-600 focus:text-red-600 focus:bg-red-50 dark:focus:bg-red-950/30"
               >
-                <div style={{ width: 28, height: 28, borderRadius: 8, background: 'var(--red-l)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                <div style={{ width: 28, height: 28, borderRadius: 'var(--r-sm)', background: 'var(--red-l)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
                   <Icon name="externalLink" size={14} color="var(--red)" />
                 </div>
                 Sign Out

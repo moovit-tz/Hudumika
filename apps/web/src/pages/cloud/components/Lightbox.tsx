@@ -11,6 +11,7 @@ import { DocThumbnail } from './DocThumbnail.js';
 import { PdfPageCanvas } from './PdfPageCanvas.js';
 import { PdfThumbnailRail } from './PdfThumbnailRail.js';
 import { Tip } from '../../../components/ui/tooltip.js';
+import { Button } from '../../../components/ui/button.js';
 
 /**
  * Full-screen document viewer modal.
@@ -347,7 +348,7 @@ export function Lightbox({ item, onClose, onDownload, onShare, onStar }: {
               <div className="lbx-status">
                 <Icon name="fileText" size={28} />
                 <span>Inline preview isn't available for {ext.toUpperCase()} files on this deployment.</span>
-                <button className="btn btn-sm" style={{ marginTop: 10 }} onClick={() => onDownload(item)} data-ui-native-button="">Download to view</button>
+                <Button variant="outline" size="sm" style={{ marginTop: 10 }} onClick={() => onDownload(item)}>Download to view</Button>
               </div>
             )}
 

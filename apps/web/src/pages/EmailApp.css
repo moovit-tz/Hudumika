@@ -2914,7 +2914,7 @@
   align-items: center;
   gap: 6px;
   padding: 3px 8px;
-  border-radius: 12px;
+  border-radius: var(--r);
   background: var(--white);
   border: 1px solid var(--border);
   font-size: 12px;
@@ -3169,7 +3169,7 @@
   color: var(--teal);
   background: var(--teal-l);
   padding: 2px 8px;
-  border-radius: 10px;
+  border-radius: var(--r);
   margin-top: 4px;
 }
 .em-context-section {

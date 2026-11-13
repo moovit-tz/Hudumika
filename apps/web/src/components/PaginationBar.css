@@ -273,3 +273,8 @@
     order: 3;
   }
 }
+
+/* Touch screens: 30px page buttons are cramped for a finger. */
+@media (pointer: coarse) {
+  .pagination-bar-btn { min-width: 36px; min-height: 36px; }
+}

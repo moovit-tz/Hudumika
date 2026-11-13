@@ -20,7 +20,7 @@ const SECTIONS: Record<string, SectionCopy> = {
     crumb: 'Overview',
     titlePlain: 'Compliance',
     titleEm: 'centre',
-    subtitle: "Overview of your team's compliance activity, a quick PVoC/GCLA/TBS/WMA checkup, and the guided Trade Compliance Wizard for permits, timelines and offices.",
+    subtitle: 'Run checks, screen partners, and follow trade procedures.',
     seoDesc: 'Overview, quick checks and the guided Trade Compliance Wizard.',
   },
   quick: {

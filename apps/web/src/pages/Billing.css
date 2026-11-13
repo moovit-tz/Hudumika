@@ -127,7 +127,7 @@
   min-height: 32px;
   padding: 0 12px;
   border: 0;
-  border-radius: 7px;
+  border-radius: var(--r-sm);
   background: transparent;
   color: var(--ink2);
   font: 600 12.5px/1 var(--font);
@@ -158,7 +158,7 @@
 .inv-search-icon { position: absolute; left: 8px; top: 50%; transform: translateY(-50%); pointer-events: none; }
 .inv-search-input {
   padding: 5px 8px 5px 28px;
-  border-radius: 6px;
+  border-radius: var(--r-sm);
   border: 1px solid var(--border);
   background: var(--bg);
   color: var(--ink);
@@ -171,7 +171,7 @@
   width: clamp(220px, 24vw, 380px);
   min-height: 40px;
   padding-left: 34px;
-  border-radius: 8px;
+  border-radius: var(--r-sm);
   background: var(--white);
 }
 .inv-search-wrap--primary .inv-search-icon { left: 11px; }
@@ -193,7 +193,7 @@
 .inv-filters-field input {
   width: 100%;
   padding: 6px 8px;
-  border-radius: 6px;
+  border-radius: var(--r-sm);
   border: 1px solid var(--border);
   background: var(--bg);
   color: var(--ink);
@@ -278,7 +278,7 @@
   width: 100%;
   padding: 16px;
   border: 1px solid var(--border);
-  border-radius: 10px;
+  border-radius: var(--r);
   background: var(--white);
   color: var(--ink);
   text-align: left;
@@ -298,7 +298,7 @@
 .inv-board-empty {
   padding: 28px 14px;
   border: 1px dashed var(--border);
-  border-radius: 10px;
+  border-radius: var(--r);
   color: var(--ink3);
   text-align: center;
   font-size: 12px;
@@ -365,7 +365,7 @@
   justify-content: center;
   width: 22px;
   height: 22px;
-  border-radius: 6px;
+  border-radius: var(--r-sm);
   background: var(--teal-l, #f0fdfa);
   color: var(--teal, #0d9488);
 }
@@ -391,7 +391,7 @@
   justify-content: center;
   width: 28px;
   height: 28px;
-  border-radius: 6px;
+  border-radius: var(--r-sm);
   border: 1px solid transparent;
   background: transparent;
   color: var(--ink3);
@@ -443,7 +443,7 @@
   align-items: center;
   gap: 4.5px;
   padding: 2.5px 8px;
-  border-radius: 6px;
+  border-radius: var(--r-sm);
   font-size: 11px;
   font-weight: 600;
   line-height: 1.3;

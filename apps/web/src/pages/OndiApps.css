@@ -56,7 +56,7 @@
 .oa-kpi-icon {
   width: 34px;
   height: 34px;
-  border-radius: 8px;
+  border-radius: var(--r-sm);
   background: var(--bg);
   display: flex;
   align-items: center;
@@ -253,7 +253,7 @@
 .oa-app-logo {
   width: 42px;
   height: 42px;
-  border-radius: 10px;
+  border-radius: var(--r);
   background: var(--teal-l);
   display: flex;
   align-items: center;
@@ -296,7 +296,7 @@
   padding: 2px 8px;
   background: var(--bg);
   border: 1px solid var(--border);
-  border-radius: 6px;
+  border-radius: var(--r-sm);
   font-size: 11px;
   font-weight: 500;
   color: var(--ink2);

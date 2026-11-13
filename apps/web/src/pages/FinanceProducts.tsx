@@ -15,6 +15,7 @@ import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '.
 import { showConfirm } from '../lib/confirm.js';
 import { SectionCard } from '../components/SectionCard.js';
 import { Tip } from '../components/ui/tooltip.js';
+import { Button } from '../components/ui/button.js';
 
 function newId() { return 'PRD-' + Date.now().toString(36).toUpperCase(); }
 
@@ -202,10 +203,10 @@ function ProductForm({ product, onSave, onClose }: {
       onCancel={onClose}
       actions={
         <>
-          <button type="button" onClick={onClose} className="btn btn-secondary" data-ui-native-button="">Cancel</button>
-          <button type="button" onClick={handleSave} disabled={saving || !form.name.trim()} className="btn btn-primary" data-ui-native-button="">
+          <Button variant="outline" type="button" onClick={onClose}>Cancel</Button>
+          <Button type="button" onClick={handleSave} disabled={saving || !form.name.trim()}>
             <Icon name="check" size={14} color="#fff" /> {saving ? 'Saving…' : product ? 'Save Changes' : 'Add Item'}
-          </button>
+          </Button>
         </>
       }
     >
@@ -377,9 +378,9 @@ export function FinanceProducts() {
         titleEm="services"
         subtitle="Define the items and services your business buys and sells."
         actions={
-          <button type="button" className="btn btn-primary" onClick={() => { setEditProduct(null); setShowForm(true); }} data-ui-native-button="">
+          <Button type="button" onClick={() => { setEditProduct(null); setShowForm(true); }}>
             <Icon name="plus" size={13} color="#fff" /> New Item
-          </button>
+          </Button>
         }
       />
       <MetricsRow cards={[

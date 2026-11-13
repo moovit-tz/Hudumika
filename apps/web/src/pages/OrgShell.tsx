@@ -10,6 +10,7 @@ import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '.
 import { SectionLoading } from '../components/ui/spinner.js';
 import { Dialog, DialogContent, DialogTitle } from '../components/ui/dialog.js';
 import { Tip } from '../components/ui/tooltip.js';
+import { Button } from '../components/ui/button.js';
 
 interface LinkedAgent {
   customer_id: string;
@@ -474,9 +475,9 @@ export const OrgShell: React.FC = () => {
             <Icon name="alertCircle" size={36} color="var(--red)" />
             <p style={{ color: 'var(--ink2)', fontSize: 14, margin: '12px 0 4px', fontWeight: 600 }}>Couldn't load your data</p>
             <p style={{ color: 'var(--ink3)', fontSize: 13, margin: '0 0 16px' }}>Check your connection and try again.</p>
-            <button type="button" onClick={load} className="btn btn-primary" data-ui-native-button="">
+            <Button type="button" onClick={load}>
               Retry
-            </button>
+            </Button>
           </div>
         ) : (
           <>

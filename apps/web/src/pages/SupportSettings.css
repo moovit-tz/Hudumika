@@ -86,7 +86,7 @@
   color: var(--ink3);
   cursor: pointer;
   padding: 6px;
-  border-radius: 6px;
+  border-radius: var(--r-sm);
   flex-shrink: 0;
 }
 .ssg-rule-delete:hover { background: var(--red-l); color: var(--red); }
@@ -95,7 +95,7 @@
 .ssg-toggle { position: relative; width: 32px; height: 18px; flex-shrink: 0; }
 .ssg-toggle input { opacity: 0; width: 0; height: 0; position: absolute; }
 .ssg-toggle-track {
-  position: absolute; inset: 0; background: var(--border); border-radius: 10px;
+  position: absolute; inset: 0; background: var(--border); border-radius: var(--r);
   transition: background 0.15s; cursor: pointer;
 }
 .ssg-toggle-track::before {
@@ -113,7 +113,7 @@
   margin-top: 12px;
   padding: var(--ds-btn-py) 14px;
   border: 1px dashed var(--border2);
-  border-radius: 8px;
+  border-radius: var(--r-sm);
   background: transparent;
   color: var(--ink2);
   font-size: 13px;

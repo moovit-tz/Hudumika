@@ -404,18 +404,16 @@ export const ShipmentsList: React.FC = () => {
               </div>
             </div>
             <div className="ent-kpi-metric">
-              <span className={`ent-kpi-value${((kpis?.demurrage_risk ?? 0) + (kpis?.sla_breached ?? 0)) > 0 ? ' ent-kpi-value-alert' : ''}`}>
-                {loading ? '…' : ((kpis?.demurrage_risk ?? 0) + (kpis?.sla_breached ?? 0))}
+              <span className={`ent-kpi-value${((kpis?.free_time_due_48h ?? 0) + (kpis?.free_time_overdue ?? 0) + (kpis?.sla_breached ?? 0)) > 0 ? ' ent-kpi-value-alert' : ''}`}>
+                {loading ? '…' : ((kpis?.free_time_due_48h ?? 0) + (kpis?.free_time_overdue ?? 0) + (kpis?.sla_breached ?? 0))}
               </span>
               <span className="ent-kpi-unit">alerts</span>
             </div>
             <div className="ent-kpi-label">Requiring immediate action</div>
             <div className="ent-kpi-footer">
-              <span className="ent-kpi-pill ent-kpi-pill-amber">{loading ? '…' : (kpis?.demurrage_risk ?? 0)} demurrage</span>
+              <span className="ent-kpi-pill ent-kpi-pill-amber">{loading ? '…' : (kpis?.free_time_due_48h ?? 0)} due ≤48h</span>
               <span className="ent-kpi-pill ent-kpi-pill-red">{loading ? '…' : (kpis?.sla_breached ?? 0)} SLA breaches</span>
-              {(kpis?.penalty_exposure_tzs ?? 0) > 0 && (
-                <span className="ent-kpi-pill ent-kpi-pill-neutral">{((kpis.penalty_exposure_tzs ?? 0) / 1_000_000).toFixed(1)}M TZS exposure</span>
-              )}
+              <span className="ent-kpi-pill ent-kpi-pill-neutral">{loading ? '…' : (kpis?.free_time_overdue ?? 0)} overdue</span>
             </div>
           </Link>
 
@@ -741,7 +739,7 @@ export const ShipmentsList: React.FC = () => {
             </table></div>
           </Panel>
 
-          <Panel title="Officer Output & Penalties">
+          <Panel title="Officer Output & Demurrage Cases">
             <div className="rtbl-wrap"><table className="rtbl" style={{ borderCollapse: 'collapse', fontSize: 13 }}>
               <thead>
                 <tr style={{ borderBottom: '2px solid var(--border)' }}>
@@ -749,7 +747,7 @@ export const ShipmentsList: React.FC = () => {
                   <th style={{ padding: '6px 8px', textAlign: 'right', fontWeight: 600, color: 'var(--ink2)', fontSize: 11.5, textTransform: 'uppercase', letterSpacing: '.3px' }}>Active</th>
                   <th style={{ padding: '6px 8px', textAlign: 'right', fontWeight: 600, color: 'var(--ink2)', fontSize: 11.5, textTransform: 'uppercase', letterSpacing: '.3px' }}>Closed</th>
                   <th style={{ padding: '6px 8px', textAlign: 'right', fontWeight: 600, color: 'var(--ink2)', fontSize: 11.5, textTransform: 'uppercase', letterSpacing: '.3px' }}>Avg Cycle</th>
-                  <th style={{ padding: '6px 8px', textAlign: 'right', fontWeight: 600, color: 'var(--ink2)', fontSize: 11.5, textTransform: 'uppercase', letterSpacing: '.3px' }}>Penalties</th>
+                  <th style={{ padding: '6px 8px', textAlign: 'right', fontWeight: 600, color: 'var(--ink2)', fontSize: 11.5, textTransform: 'uppercase', letterSpacing: '.3px' }}>Cases with Demurrage</th>
                 </tr>
               </thead>
               <tbody>
@@ -762,7 +760,7 @@ export const ShipmentsList: React.FC = () => {
                     <td style={{ padding: '8px 8px', textAlign: 'right' }}>{o.cases_closed}</td>
                     <td style={{ padding: '8px 8px', textAlign: 'right', fontFamily: 'var(--font)', color: 'var(--ink2)' }}>{o.avg_days}d</td>
                     <td style={{ padding: '8px 8px', textAlign: 'right' }}>
-                      <span className={o.penalties_caused > 0 ? 'badge badge-red' : 'badge badge-green'}>{o.penalties_caused}</span>
+                      <span className={o.cases_with_demurrage > 0 ? 'badge badge-red' : 'badge badge-green'}>{o.cases_with_demurrage}</span>
                     </td>
                   </tr>
                 ))}

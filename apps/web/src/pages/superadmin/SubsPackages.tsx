@@ -115,8 +115,8 @@ export function SubscriptionsView() {
         <div style={{ display:'flex', alignItems:'center', gap:12, padding:'0 14px', minHeight:'var(--ctl-h)', marginBottom:8, background:'color-mix(in srgb, var(--teal) 8%, var(--white))', border:'1px solid color-mix(in srgb, var(--teal) 25%, transparent)', borderRadius:'var(--r)', fontSize:13, boxShadow:'0 1px 2px 0 rgba(0,0,0,0.03)' }}>
           <span style={{ fontWeight:600, color:'var(--teal)' }}>{selected.size} {selected.size === 1 ? 'subscription' : 'subscriptions'} selected</span>
           <div style={{ flex:1 }} />
-          <button type="button" className="btn btn-secondary btn-sm" onClick={exportSubscriptions} data-ui-native-button=""><Icon name="download" size={12} style={{ marginRight:5 }}/>Export</button>
-          <button type="button" className="btn btn-sm" style={{ color:'var(--ink3)' }} onClick={()=>setSelected(new Set())} data-ui-native-button="">Clear</button>
+          <Button variant="outline" size="sm" type="button" onClick={exportSubscriptions}><Icon name="download" size={12} style={{ marginRight:5 }}/>Export</Button>
+          <Button type="button" variant="ghost" size="sm" onClick={()=>setSelected(new Set())}>Clear</Button>
         </div>
       )}
 

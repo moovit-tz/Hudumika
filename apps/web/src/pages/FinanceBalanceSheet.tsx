@@ -11,6 +11,7 @@ import { SectionLoading } from '../components/ui/spinner.js';
 import { Banner } from '../components/ui/alert.js';
 import { useIsMobile } from '../hooks/useIsMobile.js';
 import { formatAmount } from '../lib/currency.js';
+import { Button } from '../components/ui/button.js';
 
 interface LineItem { label: string; amount: number; sub?: boolean; bold?: boolean; separator?: boolean }
 
@@ -162,9 +163,9 @@ export const FinanceBalanceSheet: React.FC = () => {
         actions={
           <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
             <DatePicker date={parseDateOnly(asOf)} onChange={d => setAsOf(toDateOnlyString(d))} triggerClassName="w-auto" />
-            <button type="button" onClick={exportCsv} className="btn btn-secondary btn-sm" style={{ gap: 6 }} data-ui-native-button="">
+            <Button variant="outline" size="sm" type="button" onClick={exportCsv} style={{ gap: 6 }}>
               <Icon name="download" size={13} /> Export
-            </button>
+            </Button>
           </div>
         }
       />

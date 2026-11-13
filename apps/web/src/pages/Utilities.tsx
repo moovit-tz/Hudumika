@@ -8,6 +8,7 @@ import { useAuth } from '../hooks/useAuth.js';
 import { Icon, type IconName } from '../components/Icon.js';
 import { showAlert } from '../lib/alert.js';
 import { showConfirm } from '../lib/confirm.js';
+import { Button } from '../components/ui/button.js';
 
 export const APP_META: Record<string, { name: string; desc: string; icon: IconName }> = {
   // Added with migration 213. These had no feature key, so they never appeared
@@ -231,10 +232,10 @@ export const Utilities: React.FC = () => {
               title={`Export ${ds.label.toLowerCase()}`}
               desc={ds.desc}
               action={
-                <button type="button" className="btn btn-secondary btn-sm"
-                  onClick={() => exportDataset(ds)} disabled={exporting !== null} data-ui-native-button="">
+                <Button variant="outline" size="sm" type="button"
+                  onClick={() => exportDataset(ds)} disabled={exporting !== null}>
                   {exporting === ds.id ? 'Exporting…' : 'Download CSV'}
-                </button>
+                </Button>
               }
             />
           ))}
@@ -255,7 +256,7 @@ export const Utilities: React.FC = () => {
             desc="Ping the backend API to verify it is reachable and responding correctly."
             action={
               <div>
-                <button type="button" className="btn btn-secondary btn-sm" onClick={checkHealth} data-ui-native-button="">Check Health</button>
+                <Button variant="outline" size="sm" type="button" onClick={checkHealth}>Check Health</Button>
                 {healthResult && <div style={{ marginTop: 8, fontSize: 12, fontFamily: 'var(--font)', color: healthResult.startsWith('✓') ? 'var(--green)' : 'var(--red)' }}>{healthResult}</div>}
               </div>
             }
@@ -267,7 +268,7 @@ export const Utilities: React.FC = () => {
             desc="Test the real-time WebSocket connection used for live shipment updates and notifications."
             action={
               <div>
-                <button type="button" className="btn btn-secondary btn-sm" onClick={pingWs} data-ui-native-button="">Test Connection</button>
+                <Button variant="outline" size="sm" type="button" onClick={pingWs}>Test Connection</Button>
                 {pingResult && <div style={{ marginTop: 8, fontSize: 12, fontFamily: 'var(--font)', color: pingResult.startsWith('✓') ? 'var(--green)' : 'var(--red)' }}>{pingResult}</div>}
               </div>
             }
@@ -278,9 +279,9 @@ export const Utilities: React.FC = () => {
             title="Clear Local Cache"
             desc="Clear browser localStorage data for this app. You will be signed out and need to log in again."
             action={
-              <button type="button" className="btn btn-danger btn-sm" onClick={async () => { if ((await showConfirm('Clear cache and sign out?', { variant: 'warning', confirmLabel: 'Clear Cache' }))) { localStorage.clear(); window.location.reload(); } }} data-ui-native-button="">
+              <Button variant="destructive" size="sm" type="button" onClick={async () => { if ((await showConfirm('Clear cache and sign out?', { variant: 'warning', confirmLabel: 'Clear Cache' }))) { localStorage.clear(); window.location.reload(); } }}>
                 Clear Cache
-              </button>
+              </Button>
             }
           />
 

@@ -19,7 +19,6 @@ import { Badge as UiBadge } from '../../components/ui/badge.js';
 import { showAlert } from '../../lib/alert.js';
 import { showConfirm } from '../../lib/confirm.js';
 import { PaginationBar } from '../../components/PaginationBar.js';
-import '../OndiPages.css';
 import { type FinanceCapabilitySummary, type FinanceConfiguration } from '@hudumika/types';
 import {
   Badge, CoAv, PLAN_CFG, CO_CFG, TX_CFG,
@@ -525,30 +524,44 @@ export function CompaniesView() {
         action={
           <div className="sa-toolbar-actions">
             {apiError && <span className="sa-toolbar-offline">API offline — showing mock data</span>}
-            <button type="button" onClick={load} className="btn btn-secondary btn-sm sa-btn-gap-sm" data-ui-native-button=""><Icon name="refresh" size={12}/>Refresh</button>
-            <button type="button" onClick={()=>setShowAdd(true)} className="btn btn-primary btn-sm sa-btn-gap-md" data-ui-native-button=""><Icon name="plus" size={13}/>Add Company</button>
+            <Button variant="outline" size="sm" className="sa-btn-gap-sm" type="button" onClick={load}><Icon name="refresh" size={12}/>Refresh</Button>
+            <Button size="sm" className="sa-btn-gap-md" type="button" onClick={()=>setShowAdd(true)}><Icon name="plus" size={13}/>Add Company</Button>
           </div>
         }
       />
 
       {/* Top Executive KPI Deck */}
-      <div className="ondi-kpi-grid" style={{ marginBottom: 16 }}>
+      <div style={{ display: 'grid', gridTemplateColumns: isMobile ? 'repeat(2, 1fr)' : 'repeat(4, minmax(0, 1fr))', gap: 14, marginBottom: 18 }}>
         <div
           role="button"
           tabIndex={0}
           onClick={() => { setStatusFilter('all'); setPlanFilter('all'); }}
           onKeyDown={e => { if (e.key === 'Enter') { setStatusFilter('all'); setPlanFilter('all'); } }}
-          className={`ondi-kpi-card ${statusFilter === 'all' && planFilter === 'all' ? 'is-active' : ''}`}
+          style={{
+            background: statusFilter === 'all' && planFilter === 'all' ? 'var(--teal-l)' : 'var(--white)',
+            border: `1px solid ${statusFilter === 'all' && planFilter === 'all' ? 'var(--teal)' : 'var(--border)'}`,
+            borderRadius: 'var(--r)',
+            padding: '16px 18px',
+            cursor: 'pointer',
+            transition: 'all 0.15s ease',
+            boxShadow: statusFilter === 'all' && planFilter === 'all' ? '0 4px 12px color-mix(in srgb, var(--teal) 18%, transparent)' : 'var(--elev-xs, 0 1px 3px rgba(0,0,0,0.04))',
+            display: 'flex',
+            flexDirection: 'column',
+            justifyContent: 'space-between',
+            gap: 12,
+            minHeight: 104,
+            outline: 'none'
+          }}
         >
-          <div className="ondi-kpi-header">
-            <span className="ondi-kpi-title">Total Companies</span>
-            <div className="ondi-kpi-icon-box purple">
-              <Icon name="building" size={18} />
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%' }}>
+            <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--ink3)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>Total Companies</span>
+            <div style={{ width: 34, height: 34, borderRadius: 'var(--r-sm)', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(124, 58, 237, 0.1)', color: '#7c3aed', flexShrink: 0 }}>
+              <Icon name="building" size={17} />
             </div>
           </div>
-          <div className="ondi-kpi-body">
-            <span className="ondi-kpi-num">{totalTenants}</span>
-            <span className="ondi-kpi-sub">{apiError ? 'mock tenants' : 'registered tenants'}</span>
+          <div style={{ display: 'flex', alignItems: 'baseline', gap: 8, flexWrap: 'wrap' }}>
+            <span style={{ fontSize: 26, fontWeight: 800, color: 'var(--ink)', letterSpacing: '-0.02em', fontFamily: 'var(--font)', lineHeight: 1 }}>{totalTenants}</span>
+            <span style={{ fontSize: 12, fontWeight: 500, color: 'var(--ink3)' }}>{apiError ? 'mock tenants' : 'registered tenants'}</span>
           </div>
         </div>
 
@@ -557,17 +570,31 @@ export function CompaniesView() {
           tabIndex={0}
           onClick={() => setStatusFilter('active')}
           onKeyDown={e => { if (e.key === 'Enter') setStatusFilter('active'); }}
-          className={`ondi-kpi-card ${statusFilter === 'active' ? 'is-active' : ''}`}
+          style={{
+            background: statusFilter === 'active' ? 'var(--green-l)' : 'var(--white)',
+            border: `1px solid ${statusFilter === 'active' ? 'var(--green)' : 'var(--border)'}`,
+            borderRadius: 'var(--r)',
+            padding: '16px 18px',
+            cursor: 'pointer',
+            transition: 'all 0.15s ease',
+            boxShadow: statusFilter === 'active' ? '0 4px 12px color-mix(in srgb, var(--green) 18%, transparent)' : 'var(--elev-xs, 0 1px 3px rgba(0,0,0,0.04))',
+            display: 'flex',
+            flexDirection: 'column',
+            justifyContent: 'space-between',
+            gap: 12,
+            minHeight: 104,
+            outline: 'none'
+          }}
         >
-          <div className="ondi-kpi-header">
-            <span className="ondi-kpi-title">Active Tenants</span>
-            <div className="ondi-kpi-icon-box green">
-              <Icon name="checkCircle" size={18} />
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%' }}>
+            <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--ink3)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>Active Tenants</span>
+            <div style={{ width: 34, height: 34, borderRadius: 'var(--r-sm)', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'var(--green-l)', color: 'var(--green)', flexShrink: 0 }}>
+              <Icon name="checkCircle" size={17} />
             </div>
           </div>
-          <div className="ondi-kpi-body">
-            <span className="ondi-kpi-num" style={{ color: 'var(--green)' }}>{activeTenants}</span>
-            <span className="ondi-kpi-sub">live & operational</span>
+          <div style={{ display: 'flex', alignItems: 'baseline', gap: 8, flexWrap: 'wrap' }}>
+            <span style={{ fontSize: 26, fontWeight: 800, color: 'var(--green)', letterSpacing: '-0.02em', fontFamily: 'var(--font)', lineHeight: 1 }}>{activeTenants}</span>
+            <span style={{ fontSize: 12, fontWeight: 500, color: 'var(--ink3)' }}>live & operational</span>
           </div>
         </div>
 
@@ -576,34 +603,57 @@ export function CompaniesView() {
           tabIndex={0}
           onClick={() => setStatusFilter('inactive')}
           onKeyDown={e => { if (e.key === 'Enter') setStatusFilter('inactive'); }}
-          className={`ondi-kpi-card ${statusFilter === 'inactive' ? 'is-active' : ''}`}
+          style={{
+            background: statusFilter === 'inactive' ? 'var(--gold-l)' : 'var(--white)',
+            border: `1px solid ${statusFilter === 'inactive' ? 'var(--gold)' : 'var(--border)'}`,
+            borderRadius: 'var(--r)',
+            padding: '16px 18px',
+            cursor: 'pointer',
+            transition: 'all 0.15s ease',
+            boxShadow: statusFilter === 'inactive' ? '0 4px 12px color-mix(in srgb, var(--gold) 18%, transparent)' : 'var(--elev-xs, 0 1px 3px rgba(0,0,0,0.04))',
+            display: 'flex',
+            flexDirection: 'column',
+            justifyContent: 'space-between',
+            gap: 12,
+            minHeight: 104,
+            outline: 'none'
+          }}
         >
-          <div className="ondi-kpi-header">
-            <span className="ondi-kpi-title">Inactive / Suspended</span>
-            <div className="ondi-kpi-icon-box gold">
-              <Icon name="lock" size={18} />
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%' }}>
+            <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--ink3)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>Inactive / Suspended</span>
+            <div style={{ width: 34, height: 34, borderRadius: 'var(--r-sm)', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'var(--gold-l)', color: 'var(--gold)', flexShrink: 0 }}>
+              <Icon name="lock" size={17} />
             </div>
           </div>
-          <div className="ondi-kpi-body">
-            <span className="ondi-kpi-num" style={{ color: 'var(--gold)' }}>{inactiveTenants}</span>
-            <span className="ondi-kpi-sub">access paused</span>
+          <div style={{ display: 'flex', alignItems: 'baseline', gap: 8, flexWrap: 'wrap' }}>
+            <span style={{ fontSize: 26, fontWeight: 800, color: 'var(--gold)', letterSpacing: '-0.02em', fontFamily: 'var(--font)', lineHeight: 1 }}>{inactiveTenants}</span>
+            <span style={{ fontSize: 12, fontWeight: 500, color: 'var(--ink3)' }}>access paused</span>
           </div>
         </div>
 
         <div
-          role="button"
-          tabIndex={0}
-          className="ondi-kpi-card"
+          style={{
+            background: 'var(--white)',
+            border: '1px solid var(--border)',
+            borderRadius: 'var(--r)',
+            padding: '16px 18px',
+            boxShadow: 'var(--elev-xs, 0 1px 3px rgba(0,0,0,0.04))',
+            display: 'flex',
+            flexDirection: 'column',
+            justifyContent: 'space-between',
+            gap: 12,
+            minHeight: 104
+          }}
         >
-          <div className="ondi-kpi-header">
-            <span className="ondi-kpi-title">Total Seated Users</span>
-            <div className="ondi-kpi-icon-box blue">
-              <Icon name="users" size={18} />
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%' }}>
+            <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--ink3)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>Total Seated Users</span>
+            <div style={{ width: 34, height: 34, borderRadius: 'var(--r-sm)', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'var(--blue-l)', color: 'var(--blue)', flexShrink: 0 }}>
+              <Icon name="users" size={17} />
             </div>
           </div>
-          <div className="ondi-kpi-body">
-            <span className="ondi-kpi-num" style={{ color: 'var(--blue)' }}>{totalUsersCount}</span>
-            <span className="ondi-kpi-sub">across all tenants</span>
+          <div style={{ display: 'flex', alignItems: 'baseline', gap: 8, flexWrap: 'wrap' }}>
+            <span style={{ fontSize: 26, fontWeight: 800, color: 'var(--blue)', letterSpacing: '-0.02em', fontFamily: 'var(--font)', lineHeight: 1 }}>{totalUsersCount}</span>
+            <span style={{ fontSize: 12, fontWeight: 500, color: 'var(--ink3)' }}>across all tenants</span>
           </div>
         </div>
       </div>
@@ -777,15 +827,14 @@ export function CompaniesView() {
                       <span style={{ fontSize: 12, color: 'var(--ink3)' }}>
                         Showing <strong style={{ color: 'var(--ink)' }}>{filtered.length}</strong> of {displayed.length}
                       </span>
-                      <button
+                      <Button size="sm"
                         type="button"
                         onClick={close}
-                        className="btn btn-primary btn-sm"
+                       
                         style={{ padding: "var(--action-py) var(--space-md)", fontSize: "var(--text-base)" }}
-                        data-ui-native-button=""
                       >
                         Done
-                      </button>
+                      </Button>
                     </div>
                   </div>
                 );
@@ -832,7 +881,7 @@ export function CompaniesView() {
                   alignItems: 'center',
                   gap: 6,
                   padding: '2px 8px',
-                  borderRadius: 6,
+                  borderRadius: 'var(--r-sm)',
                   fontSize: 11,
                   background: 'var(--bg)',
                   border: '1px solid var(--border)',
@@ -858,7 +907,7 @@ export function CompaniesView() {
                   alignItems: 'center',
                   gap: 6,
                   padding: '2px 8px',
-                  borderRadius: 6,
+                  borderRadius: 'var(--r-sm)',
                   fontSize: 11,
                   background: 'var(--bg)',
                   border: '1px solid var(--border)',
@@ -885,7 +934,7 @@ export function CompaniesView() {
                   alignItems: 'center',
                   gap: 6,
                   padding: '2px 8px',
-                  borderRadius: 6,
+                  borderRadius: 'var(--r-sm)',
                   fontSize: 11,
                   background: 'var(--bg)',
                   border: '1px solid var(--border)',
@@ -937,8 +986,8 @@ export function CompaniesView() {
         <div style={{ display:'flex', alignItems:'center', gap:12, padding:'0 14px', minHeight:'34px', marginBottom:8, background:'color-mix(in srgb, var(--teal) 8%, var(--white))', border:'1px solid color-mix(in srgb, var(--teal) 25%, transparent)', borderRadius:'var(--r)', fontSize:12.5, boxShadow:'0 1px 2px 0 rgba(0,0,0,0.03)' }}>
           <span style={{ fontWeight:600, color:'var(--teal)' }}>{selected.size} {selected.size === 1 ? 'company' : 'companies'} selected</span>
           <div style={{ flex:1 }} />
-          <button type="button" className="btn btn-secondary btn-sm" onClick={exportCompanies} data-ui-native-button="" style={{ minHeight: 26, padding: '2px 8px', fontSize: 11 }}><Icon name="download" size={11} style={{ marginRight:4 }}/>Export Selected</button>
-          <button type="button" className="btn btn-sm" style={{ color:'var(--ink3)', minHeight: 26, padding: '2px 6px', fontSize: 11 }} onClick={()=>setSelected(new Set())} data-ui-native-button="">Clear</button>
+          <Button variant="outline" size="sm" type="button" onClick={exportCompanies} style={{ minHeight: 26, padding: '2px 8px', fontSize: 11 }}><Icon name="download" size={11} style={{ marginRight:4 }}/>Export Selected</Button>
+          <Button type="button" variant="ghost" size="xs" onClick={()=>setSelected(new Set())}>Clear</Button>
         </div>
       )}
 

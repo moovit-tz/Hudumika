@@ -261,7 +261,7 @@
   gap: 8px;
   margin-bottom: 28px;
   padding: 14px 24px;
-  border-radius: 14px;
+  border-radius: var(--r-lg);
   background: var(--lp-input-bg, #ffffff);
   border: 1px solid var(--lp-row-border, #e2e8f0);
 }
@@ -366,7 +366,7 @@
   font-size: 10px;
   font-weight: 700;
   padding: 2px 7px;
-  border-radius: 6px;
+  border-radius: var(--r-sm);
   margin-left: 6px;
   display: inline-flex !important;
   align-items: center;
@@ -411,7 +411,7 @@
 }
 .ob-matrix-col {
   border: 1px solid var(--lp-row-border, #e2e8f0);
-  border-radius: 10px;
+  border-radius: var(--r);
   padding: 14px 16px;
 }
 .ob-matrix-col-name {
@@ -465,7 +465,7 @@
 .ob-payment-security strong { color: var(--lp-ink2, #444746); font-weight: 700; }
 
 /* ── Review summary ── */
-.ob-review { border: 1px solid var(--lp-row-border, #e2e8f0); border-radius: 10px; padding: 14px 16px; display: flex; flex-direction: column; gap: 8px; }
+.ob-review { border: 1px solid var(--lp-row-border, #e2e8f0); border-radius: var(--r); padding: 14px 16px; display: flex; flex-direction: column; gap: 8px; }
 .ob-review-title { font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em; color: var(--lp-ink3, #5f6368); margin-bottom: 2px; }
 .ob-review-row { display: flex; justify-content: space-between; gap: 12px; font-size: 13px; }
 .ob-review-row span:first-child { color: var(--lp-ink3, #5f6368); }
@@ -978,7 +978,7 @@
 .ob-tailor-package-banner {
   margin-bottom: 24px;
   padding: 16px 20px;
-  border-radius: 14px;
+  border-radius: var(--r-lg);
   background: var(--lp-input-bg);
   border: 1px solid var(--lp-row-border);
   display: flex;
@@ -1028,7 +1028,7 @@
   padding: 4px 12px;
   border-radius: var(--r-sm);
   background: var(--lp-card-bg, #ffffff);
-  border: 1px solid #e2e8f0;
+  border: 1px solid var(--border);
   font-size: 12px;
   font-weight: 500;
   color: var(--lp-ink, #334155);
@@ -1059,7 +1059,7 @@
 
 .ob-review-card {
   border: 1px solid var(--lp-row-border);
-  border-radius: 12px;
+  border-radius: var(--r);
   background: var(--lp-card-bg);
   padding: 12px 14px;
   display: flex;
@@ -1146,7 +1146,7 @@
   font-size: 11.5px;
   font-weight: 600;
   padding: 2px 7px;
-  border-radius: 6px;
+  border-radius: var(--r-sm);
   background: var(--lp-input-bg);
   border: 1px solid var(--lp-row-border);
   color: var(--lp-ink);
@@ -1252,7 +1252,7 @@
 .ob-tailor-package-banner {
   background: var(--lp-input-bg, #f8fafc);
   border: 1.5px solid color-mix(in srgb, var(--teal, #0d7a6b) 25%, var(--lp-card-border, #e2e8f0));
-  border-radius: 16px;
+  border-radius: var(--r-lg);
   padding: 16px 24px;
   display: flex;
   flex-direction: column;
@@ -1334,7 +1334,7 @@
   position: relative;
   text-align: left;
   border: 1.5px solid var(--lp-row-border, #e2e8f0);
-  border-radius: 16px;
+  border-radius: var(--r-lg);
   padding: 24px 22px;
   background: var(--lp-card-bg, #ffffff);
   cursor: pointer;
@@ -1457,7 +1457,7 @@
 .ob-pkg-btn {
   width: 100%;
   padding: 10px 16px;
-  border-radius: 10px;
+  border-radius: var(--r);
   font-size: 13.5px;
   font-weight: 700;
   cursor: pointer;
@@ -1540,7 +1540,7 @@
   font-size: 10px;
   font-weight: 700;
   padding: 2px 7px;
-  border-radius: 6px;
+  border-radius: var(--r-sm);
   margin-left: 6px;
   display: inline-flex;
   align-items: center;
@@ -1585,7 +1585,7 @@
   position: relative;
   text-align: left;
   border: 1.5px solid var(--lp-row-border, #e2e8f0);
-  border-radius: 16px;
+  border-radius: var(--r-lg);
   padding: 24px;
   background: var(--lp-card-bg, #ffffff);
   cursor: pointer;
@@ -1616,7 +1616,7 @@
 .ob-product-icon-wrap {
   width: 42px;
   height: 42px;
-  border-radius: 12px;
+  border-radius: var(--r);
   background: var(--teal-l, #e6f4f2);
   color: var(--teal, #0d7a6b);
   display: flex;
@@ -1633,7 +1633,7 @@
   padding: 3px 8px;
   background: var(--lp-tabs-bg, #f1f5f9);
   color: var(--lp-ink3, #64748b);
-  border-radius: 6px;
+  border-radius: var(--r-sm);
   border: 1px solid var(--lp-row-border, #e2e8f0);
 }
 
@@ -1750,7 +1750,7 @@
   padding: 14px 20px;
   background: var(--lp-input-bg, #f8fafc);
   border: 1.5px solid var(--lp-row-border, #e2e8f0);
-  border-radius: 14px;
+  border-radius: var(--r-lg);
   flex-wrap: wrap;
   gap: 12px;
 }
@@ -1815,7 +1815,7 @@
   width: 100%;
   overflow: visible;
   border: 1.5px solid var(--lp-row-border, #e2e8f0);
-  border-radius: 16px;
+  border-radius: var(--r-lg);
   background: var(--lp-card-bg, #ffffff);
   box-shadow: 0 4px 16px rgba(0, 0, 0, 0.04);
 }
@@ -1866,7 +1866,7 @@
 .ob-th-feature {
   width: 34%;
   background: var(--lp-card-bg, #ffffff);
-  border-top-left-radius: 15px;
+  border-top-left-radius: var(--r-lg);
 }
 
 .ob-th-title {
@@ -1892,7 +1892,7 @@
 }
 
 .ob-th-plan:last-child {
-  border-top-right-radius: 15px;
+  border-top-right-radius: var(--r-lg);
 }
 
 .ob-th-plan--pro {
@@ -1933,7 +1933,7 @@
 
 .ob-th-select-btn {
   padding: 6px 14px;
-  border-radius: 7px;
+  border-radius: var(--r-sm);
   font-size: 12px;
   font-weight: 700;
   cursor: pointer;

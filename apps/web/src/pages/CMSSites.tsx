@@ -166,18 +166,18 @@ export function CMSSites() {
             marginBottom: 24,
           }}
         >
-          <div style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 12, padding: 16 }}>
+          <div style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 'var(--r)', padding: 16 }}>
             <div style={{ fontSize: 12, color: 'var(--text-muted)', marginBottom: 4, fontWeight: 500 }}>TOTAL ACTIVE SITES</div>
             <div style={{ fontSize: 24, fontWeight: 700, color: 'var(--text)' }}>{sites?.length ?? 0}</div>
           </div>
-          <div style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 12, padding: 16 }}>
+          <div style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 'var(--r)', padding: 16 }}>
             <div style={{ fontSize: 12, color: 'var(--text-muted)', marginBottom: 4, fontWeight: 500 }}>PRIMARY SITE</div>
             <div style={{ fontSize: 16, fontWeight: 600, color: 'var(--teal)', display: 'flex', alignItems: 'center', gap: 6 }}>
               <Icon name="globe" size={16} />
               {defaultSite ? defaultSite.name : 'None'}
             </div>
           </div>
-          <div style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 12, padding: 16 }}>
+          <div style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 'var(--r)', padding: 16 }}>
             <div style={{ fontSize: 12, color: 'var(--text-muted)', marginBottom: 4, fontWeight: 500 }}>CUSTOM DOMAIN MAPPING</div>
             <div style={{ fontSize: 13, color: 'var(--text-secondary)' }}>
               CNAME / A-record route resolution active
@@ -193,7 +193,7 @@ export function CMSSites() {
               textAlign: 'center',
               padding: '60px 20px',
               background: 'var(--surface)',
-              borderRadius: 12,
+              borderRadius: 'var(--r)',
               border: '1px dashed var(--border)',
             }}
           >
@@ -226,7 +226,7 @@ export function CMSSites() {
                 style={{
                   background: 'var(--surface)',
                   border: site.is_default ? '2px solid var(--teal)' : '1px solid var(--border)',
-                  borderRadius: 12,
+                  borderRadius: 'var(--r)',
                   padding: 20,
                   display: 'flex',
                   flexDirection: 'column',
@@ -242,7 +242,7 @@ export function CMSSites() {
                         style={{
                           width: 36,
                           height: 36,
-                          borderRadius: 8,
+                          borderRadius: 'var(--r-sm)',
                           background: site.is_default ? 'var(--teal-l)' : 'var(--bg-muted)',
                           color: site.is_default ? 'var(--teal)' : 'var(--text-secondary)',
                           display: 'flex',
@@ -264,7 +264,7 @@ export function CMSSites() {
                     )}
                   </div>
 
-                  <div style={{ marginTop: 12, padding: 12, background: 'var(--bg-muted)', borderRadius: 8, fontSize: 12 }}>
+                  <div style={{ marginTop: 12, padding: 12, background: 'var(--bg-muted)', borderRadius: 'var(--r-sm)', fontSize: 12 }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}>
                       <span style={{ color: 'var(--text-muted)' }}>Custom Domain:</span>
                       <span style={{ fontWeight: 600, color: site.domain ? 'var(--text)' : 'var(--text-muted)' }}>
@@ -354,7 +354,7 @@ export function CMSSites() {
           <div
             style={{
               background: 'var(--surface)',
-              borderRadius: 16,
+              borderRadius: 'var(--r-lg)',
               padding: 24,
               width: '100%',
               maxWidth: 480,

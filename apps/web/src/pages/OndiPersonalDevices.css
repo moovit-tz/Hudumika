@@ -36,7 +36,7 @@
   transform: translateY(-2px);
   background: var(--hover-bg);
   border-color: var(--teal);
-  box-shadow: 0 8px 20px -4px rgba(13, 148, 136, 0.14), 0 2px 6px -1px rgba(0, 0, 0, 0.04);
+  box-shadow: 0 8px 20px -4px color-mix(in srgb, var(--teal) 14%, transparent), 0 2px 6px -1px rgba(0, 0, 0, 0.04);
 }
 
 .opd-kpi-card:active {
@@ -63,7 +63,7 @@
 .opd-kpi-icon {
   width: 36px;
   height: 36px;
-  border-radius: 10px;
+  border-radius: var(--r);
   background: var(--bg, #f8fafc);
   display: flex;
   align-items: center;
@@ -183,7 +183,7 @@
   height: 38px;
   background: var(--bg, #f8fafc);
   border: 1px solid var(--border, rgba(0, 0, 0, 0.08));
-  border-radius: 8px;
+  border-radius: var(--r-sm);
   padding: 0 12px 0 34px;
   font-size: 13px;
   color: var(--ink, #0f172a);
@@ -209,7 +209,7 @@
   border: 1px solid transparent;
   color: var(--ink3, #64748b);
   padding: 6px 12px;
-  border-radius: 8px;
+  border-radius: var(--r-sm);
   font-size: 12.5px;
   font-weight: 500;
   cursor: pointer;
@@ -228,13 +228,13 @@
   background: hsl(var(--primary));
   color: hsl(var(--primary-foreground));
   font-weight: 600;
-  box-shadow: 0 2px 6px rgba(13, 148, 136, 0.25);
+  box-shadow: 0 2px 6px color-mix(in srgb, var(--teal) 25%, transparent);
 }
 
 .opd-filter-count {
   font-size: 11px;
   padding: 1px 6px;
-  border-radius: 10px;
+  border-radius: var(--r);
   background: rgba(0, 0, 0, 0.06);
 }
 
@@ -253,7 +253,7 @@
   display: flex;
   align-items: center;
   background: var(--bg, #f1f5f9);
-  border-radius: 8px;
+  border-radius: var(--r-sm);
   padding: 3px;
   gap: 2px;
 }
@@ -263,7 +263,7 @@
   background: transparent;
   color: var(--ink3, #64748b);
   padding: 6px 10px;
-  border-radius: 6px;
+  border-radius: var(--r-sm);
   cursor: pointer;
   display: flex;
   align-items: center;
@@ -348,7 +348,7 @@
 .opd-card-icon-wrap {
   width: 46px;
   height: 46px;
-  border-radius: 12px;
+  border-radius: var(--r);
   background: var(--bg, #f1f5f9);
   display: flex;
   align-items: center;
@@ -412,7 +412,7 @@
   align-items: center;
   gap: 4px;
   padding: 2px 7px;
-  border-radius: 6px;
+  border-radius: var(--r-sm);
   background: var(--bg, #f8fafc);
   border: 1px solid var(--border, rgba(0, 0, 0, 0.06));
   font-size: 11.5px;
@@ -432,7 +432,7 @@
   align-items: center;
   gap: 5px;
   padding: 2px 8px;
-  border-radius: 6px;
+  border-radius: var(--r-sm);
   background: var(--green-l);
   color: var(--green);
   font-size: 11px;
@@ -445,7 +445,7 @@
   align-items: center;
   gap: 4px;
   padding: 2px 8px;
-  border-radius: 6px;
+  border-radius: var(--r-sm);
   background: var(--teal-l);
   color: var(--teal);
   font-size: 11px;
@@ -459,7 +459,7 @@
   gap: 8px;
   padding: 12px;
   background: var(--bg, #f8fafc);
-  border-radius: 10px;
+  border-radius: var(--r);
   font-size: 12px;
 }
 
@@ -499,7 +499,7 @@
   border: 1px solid var(--border, rgba(0, 0, 0, 0.12));
   color: var(--ink, #0f172a);
   padding: 8px 12px;
-  border-radius: 8px;
+  border-radius: var(--r-sm);
   font-size: 12.5px;
   font-weight: 600;
   cursor: pointer;
@@ -520,7 +520,7 @@
   border: 1px solid var(--red);
   color: var(--red);
   padding: 8px 14px;
-  border-radius: 8px;
+  border-radius: var(--r-sm);
   font-size: 12.5px;
   font-weight: 600;
   cursor: pointer;
@@ -590,7 +590,7 @@
 .opd-modal-avatar {
   width: 52px;
   height: 52px;
-  border-radius: 14px;
+  border-radius: var(--r-lg);
   background: var(--teal-l);
   color: var(--teal);
   display: flex;
@@ -651,7 +651,7 @@
 .opd-modal-spec-card {
   background: var(--bg, #f8fafc);
   border: 1px solid var(--border, rgba(0, 0, 0, 0.06));
-  border-radius: 10px;
+  border-radius: var(--r);
   padding: 12px 14px;
   display: flex;
   flex-direction: column;
@@ -681,7 +681,7 @@
 .opd-ua-container {
   margin-top: 16px;
   background: #0f172a;
-  border-radius: 10px;
+  border-radius: var(--r);
   padding: 12px 14px;
   color: #94a3b8;
   font-family: var(--font);
@@ -730,7 +730,7 @@
   margin-top: 16px;
   background: rgba(239, 68, 68, 0.04);
   border: 1px solid var(--red);
-  border-radius: 10px;
+  border-radius: var(--r);
   padding: 14px;
   display: flex;
   align-items: center;
@@ -759,7 +759,7 @@
   border: 1px solid var(--border, rgba(0, 0, 0, 0.08));
   color: var(--ink, #0f172a);
   padding: 9px 16px;
-  border-radius: 8px;
+  border-radius: var(--r-sm);
   font-size: 13px;
   font-weight: 600;
   cursor: pointer;
@@ -775,7 +775,7 @@
   border: none;
   color: hsl(var(--red-foreground));
   padding: 9px 18px;
-  border-radius: 8px;
+  border-radius: var(--r-sm);
   font-size: 13px;
   font-weight: 600;
   cursor: pointer;

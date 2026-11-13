@@ -7,6 +7,7 @@ import { InventoryService } from '../services/inventory.service.js';
 import { prepareIndustryBilling, attachIndustryInvoice } from '../services/finance-industry-work.service.js';
 import { getNextDocNumber, getNextCustomerDocNumber } from '../lib/doc-numbering.js';
 import { GLService } from '../services/gl.service.js';
+import { NotificationService } from '../services/notification.service.js';
 
 const ESTIMATE_STATUSES = ['draft', 'sent', 'approved', 'rejected', 'expired', 'converted'] as const;
 const WARRANTY_STATUSES = ['submitted', 'under_review', 'approved', 'partially_approved', 'rejected', 'settled'] as const;
@@ -442,6 +443,17 @@ export async function gerejiCrudRoutes(fastify: FastifyInstance) {
         .set(updates as any)
         .where('id', '=', id).where('tenant_id', '=', request.user.tenant_id)
         .returningAll().execute();
+      // The technician on the card hears when someone else moves it — a card
+      // sent back to "diagnosing" or cleared to "in progress" is their cue.
+      if (updated?.technician_id && updated.technician_id !== request.user.sub) {
+        const stage = String(body.status).replace(/_/g, ' ');
+        await NotificationService.createNotificationInTrx(trx, {
+          tenantId: request.user.tenant_id, userId: updated.technician_id, app: 'gereji', type: 'task',
+          title: `Job card moved to ${stage}`,
+          message: updated.reported_fault ? String(updated.reported_fault).slice(0, 160) : undefined,
+          link: '/gereji/job-cards', entityType: 'job_card', entityId: updated.id,
+        });
+      }
       return updated;
     });
   });

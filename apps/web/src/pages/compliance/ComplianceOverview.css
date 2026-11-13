@@ -1,0 +1,277 @@
+.compliance-overview {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 14px;
+  padding-bottom: 20px;
+}
+
+.compliance-overview__metrics {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.compliance-overview__metric {
+  padding: 12px 14px;
+  transition: border-color 0.15s ease;
+}
+
+.compliance-overview__metric-label {
+  color: var(--ink3);
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.compliance-overview__metric-value {
+  margin-top: 3px;
+  color: var(--ink);
+  font-size: 22px;
+  font-weight: 700;
+  line-height: 1.15;
+  overflow-wrap: anywhere;
+}
+
+.compliance-overview__metric-note {
+  margin-top: 3px;
+  color: var(--ink3);
+  font-size: 11px;
+}
+
+.compliance-overview__metric-icon,
+.compliance-tool-card__icon {
+  display: flex;
+  flex: 0 0 auto;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--border);
+  border-radius: var(--r-sm);
+  background: var(--bg);
+  color: var(--ink2);
+}
+
+.compliance-overview__metric-icon {
+  width: 32px;
+  height: 32px;
+}
+
+.compliance-overview__section-heading {
+  margin-bottom: 8px;
+}
+
+.compliance-overview__section-heading h2 {
+  margin: 0;
+  color: var(--ink);
+  font-size: 15px;
+  font-weight: 700;
+}
+
+.compliance-overview__tool-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.compliance-tool-card {
+  display: flex;
+  min-width: 0;
+  min-height: 154px;
+  flex-direction: column;
+  padding: 12px;
+  border: 1px solid var(--border);
+  border-radius: var(--card-radius, var(--r));
+  background: var(--white);
+  color: inherit;
+  text-decoration: none;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease, transform 0.15s ease;
+}
+
+.compliance-tool-card:hover {
+  transform: translateY(-1px);
+  border-color: var(--teal);
+  box-shadow: var(--elev-sm);
+}
+
+.compliance-tool-card:focus-visible {
+  outline: 2px solid var(--teal);
+  outline-offset: 2px;
+}
+
+.compliance-tool-card__top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+
+.compliance-tool-card__icon {
+  width: 30px;
+  height: 30px;
+}
+
+.compliance-tool-card__badge {
+  max-width: 70%;
+  overflow: hidden;
+  color: var(--ink2);
+  font-size: 10px;
+  font-weight: 500;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.compliance-tool-card__title {
+  color: var(--ink);
+  font-size: 13px;
+  font-weight: 700;
+  line-height: 1.25;
+}
+
+.compliance-tool-card__description {
+  margin-top: 4px;
+  color: var(--ink3);
+  font-size: 11.5px;
+  line-height: 1.4;
+}
+
+.compliance-tool-card__action {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  margin-top: auto;
+  padding-top: 9px;
+  color: var(--teal);
+  font-size: 11.5px;
+  font-weight: 700;
+}
+
+.compliance-overview__chart-grid {
+  display: grid;
+  min-width: 0;
+  gap: 12px;
+}
+
+.compliance-overview__chart-grid--activity {
+  grid-template-columns: minmax(0, 1.6fr) minmax(250px, 0.8fr);
+}
+
+.compliance-overview__chart-grid--quota {
+  grid-template-columns: minmax(0, 1.25fr) minmax(280px, 1fr);
+}
+
+.compliance-overview__chart-empty {
+  display: flex;
+  min-height: 104px;
+  align-items: center;
+  justify-content: center;
+  padding: 12px;
+  color: var(--ink3);
+  font-size: 12px;
+  text-align: center;
+}
+
+.compliance-activity-controls {
+  display: flex;
+  min-width: min(100%, 220px);
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.compliance-activity-search {
+  position: relative;
+  width: min(220px, 100%);
+}
+
+.compliance-activity-filters {
+  max-width: 100%;
+  flex-wrap: wrap;
+}
+
+@media (max-width: 980px) {
+  .compliance-overview__tool-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .compliance-overview__chart-grid--activity,
+  .compliance-overview__chart-grid--quota {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+@media (max-width: 560px) {
+  .compliance-overview {
+    gap: 10px;
+    padding-bottom: 12px;
+  }
+
+  .compliance-overview__metrics {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 8px;
+  }
+
+  .compliance-overview__metric:last-child:nth-child(odd) {
+    grid-column: 1 / -1;
+  }
+
+  .compliance-overview__metric {
+    padding: 10px;
+  }
+
+  .compliance-overview__metric-label {
+    font-size: 11px;
+  }
+
+  .compliance-overview__metric-value {
+    font-size: 20px;
+  }
+
+  .compliance-overview__metric-note {
+    font-size: 10.5px;
+  }
+
+  .compliance-overview__metric-icon {
+    width: 28px;
+    height: 28px;
+  }
+
+  .compliance-overview__tool-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 8px;
+  }
+
+  .compliance-tool-card {
+    min-height: 154px;
+    padding: 10px;
+  }
+
+  .compliance-tool-card__description {
+    font-size: 11px;
+  }
+
+  .compliance-activity-controls {
+    width: 100%;
+    min-width: 0;
+    justify-content: flex-start;
+  }
+
+  .compliance-activity-search {
+    width: 100%;
+  }
+
+  .compliance-activity-filters {
+    width: 100%;
+    justify-content: space-between;
+  }
+}
+
+@media (max-width: 360px) {
+  .compliance-overview__tool-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .compliance-tool-card {
+    min-height: 0;
+  }
+}

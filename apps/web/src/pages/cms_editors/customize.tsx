@@ -7,6 +7,7 @@ import { CMS_FONT_IDS, CMS_RADIUS_PRESETS } from '@hudumika/types';
 import { ColorSwatchPicker } from '../../components/ui/color-swatch-picker.js';
 import { CMS_FONT_LABELS, CMS_RADIUS_LABELS } from '../../lib/cmsDesignTokens.js';
 import { useMediaPicker, FL } from './shared.js';
+import { Button } from '../../components/ui/button.js';
 
 /* ── Customize: Site Identity + Appearance ── */
 export function CustomizeView({ settings, onSave }: { settings: CmsSiteSettings | null; onSave: (patch: Partial<CmsSiteSettings>) => Promise<boolean> }) {
@@ -55,23 +56,22 @@ export function CustomizeView({ settings, onSave }: { settings: CmsSiteSettings 
           <FL label="Logo">
             <div style={{ display: 'flex', gap: 8 }}>
               <input data-ui-field="input" value={form.logoUrl} onChange={e => set('logoUrl', e.target.value)} className="input-field" placeholder="https://…" style={{ flex: 1 }} />
-              <button type="button" className="btn btn-secondary btn-sm" onClick={() => pickInto('logoUrl')} data-ui-native-button="">Choose from library</button>
+              <Button variant="outline" size="sm" type="button" onClick={() => pickInto('logoUrl')}>Choose from library</Button>
             </div>
           </FL>
           <FL label="Favicon">
             <div style={{ display: 'flex', gap: 8 }}>
               <input data-ui-field="input" value={form.faviconUrl} onChange={e => set('faviconUrl', e.target.value)} className="input-field" placeholder="https://…" style={{ flex: 1 }} />
-              <button type="button" className="btn btn-secondary btn-sm" onClick={() => pickInto('faviconUrl')} data-ui-native-button="">Choose from library</button>
+              <Button variant="outline" size="sm" type="button" onClick={() => pickInto('faviconUrl')}>Choose from library</Button>
             </div>
           </FL>
           <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-            <button
+            <Button size="sm"
               onClick={() => handleSave('identity', { siteTitle: form.siteTitle, tagline: form.tagline, logoUrl: form.logoUrl, faviconUrl: form.faviconUrl })}
               disabled={saving === 'identity'}
-              className="btn btn-primary btn-sm" style={{ alignSelf: 'flex-start' }}
-             data-ui-native-button="">
+              style={{ alignSelf: 'flex-start' }}>
               {saving === 'identity' ? 'Saving…' : 'Save'}
-            </button>
+            </Button>
             {savedFlash === 'identity' && <span style={{ fontSize: 12, color: 'var(--green)' }}>Saved</span>}
           </div>
         </div>
@@ -120,13 +120,12 @@ export function CustomizeView({ settings, onSave }: { settings: CmsSiteSettings 
             </Select>
           </FL>
           <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-            <button
+            <Button size="sm"
               onClick={() => handleSave('appearance', { accentColor: form.accentColor, headingFont: form.headingFont, bodyFont: form.bodyFont, radius: form.radius })}
               disabled={saving === 'appearance'}
-              className="btn btn-primary btn-sm" style={{ alignSelf: 'flex-start' }}
-             data-ui-native-button="">
+              style={{ alignSelf: 'flex-start' }}>
               {saving === 'appearance' ? 'Saving…' : 'Save'}
-            </button>
+            </Button>
             {savedFlash === 'appearance' && <span style={{ fontSize: 12, color: 'var(--green)' }}>Saved</span>}
           </div>
         </div>

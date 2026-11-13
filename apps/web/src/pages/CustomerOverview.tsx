@@ -336,7 +336,7 @@ export const CustomerOverview: React.FC = () => {
                   {atRiskDeals.map(d => (
                     <div key={d.id} className="sales-risk-deal-item">
                       <div className="sales-risk-deal-left">
-                        <div style={{ width: 32, height: 32, borderRadius: 6, background: d.days_in_stage >= 21 ? 'var(--red-l)' : 'var(--gold-l)', color: d.days_in_stage >= 21 ? 'var(--red)' : 'var(--gold)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                        <div style={{ width: 32, height: 32, borderRadius: 'var(--r-sm)', background: d.days_in_stage >= 21 ? 'var(--red-l)' : 'var(--gold-l)', color: d.days_in_stage >= 21 ? 'var(--red)' : 'var(--gold)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
                           <Icon name="alertTriangle" size={15} />
                         </div>
                         <div>

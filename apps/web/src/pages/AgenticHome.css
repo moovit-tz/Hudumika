@@ -49,7 +49,7 @@
 .ah-app-icon-wrapper {
   width: 32px;
   height: 32px;
-  border-radius: 8px;
+  border-radius: var(--r-sm);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -110,7 +110,7 @@
 }
 
 .ah-explore-menu {
-  border-radius: 12px;
+  border-radius: var(--r);
   padding: 6px;
   border: 1px solid var(--border);
   background: var(--white);
@@ -133,7 +133,7 @@
   align-items: center;
   gap: 8px;
   padding: 7px 10px;
-  border-radius: 8px;
+  border-radius: var(--r-sm);
   font-size: 12.5px;
   color: var(--ink);
   font-family: var(--font);
@@ -728,7 +728,7 @@
 }
 .ah-chat-head { display: flex; align-items: center; gap: 8px; padding: 12px 14px; border-bottom: 1px solid var(--border); font-size: 12.5px; font-weight: 700; color: var(--ink); }
 .ah-chat-msgs { flex: 1; overflow-y: auto; padding: 12px 14px; display: flex; flex-direction: column; gap: 9px; min-height: 140px; max-height: 260px; }
-.ah-chat-msg { max-width: 88%; font-size: 12.5px; line-height: 1.45; padding: 8px 11px; border-radius: 12px; }
+.ah-chat-msg { max-width: 88%; font-size: 12.5px; line-height: 1.45; padding: 8px 11px; border-radius: var(--r); }
 .ah-chat-msg--agent { align-self: flex-start; background: var(--card-sunken); color: var(--ink); border-bottom-left-radius: 4px; }
 .ah-chat-msg--user { align-self: flex-end; background: var(--teal); color: hsl(var(--primary-foreground)); border-bottom-right-radius: 4px; }
 .ah-chat-input-row { display: flex; gap: 8px; padding: 10px 12px; border-top: 1px solid var(--border); }
@@ -744,7 +744,7 @@
    own gate. */
 .ah-approval-card {
   align-self: stretch; border: 1px solid var(--gold-m, var(--gold)); background: var(--gold-l);
-  border-radius: 10px; padding: 10px 12px; display: flex; flex-direction: column; gap: 6px;
+  border-radius: var(--r); padding: 10px 12px; display: flex; flex-direction: column; gap: 6px;
 }
 .ah-approval-head { display: flex; align-items: center; gap: 6px; font-size: 11.5px; font-weight: 700; color: var(--ink); text-transform: uppercase; letter-spacing: 0.02em; }
 .ah-approval-effect { font-size: 12.5px; line-height: 1.4; color: var(--ink); }

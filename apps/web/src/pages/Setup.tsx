@@ -1,6 +1,7 @@
 ﻿import React, { useState } from 'react';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '../components/ui/select.js';
 import { Icon } from '../components/Icon.js';
+import { Button } from '../components/ui/button.js';
 
 type Tab = 'general' | 'notifications' | 'stages' | 'users' | 'integrations';
 
@@ -88,9 +89,9 @@ export const Setup: React.FC = () => {
           <div style={{ fontSize: 12, color: 'var(--ink3)' }}>System configuration and preferences</div>
         </div>
         <div style={{ flex: 1 }} />
-        <button type="button" className="btn btn-primary btn-sm" onClick={save} data-ui-native-button="">
+        <Button size="sm" type="button" onClick={save}>
           {saved ? '✓ Saved' : 'Save Changes'}
-        </button>
+        </Button>
       </div>
 
       <div className="dp-tabs" role="tablist" aria-label="Setup sections" style={{ borderRadius: 0, flexShrink: 0 }}>

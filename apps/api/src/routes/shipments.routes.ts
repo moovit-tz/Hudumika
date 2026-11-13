@@ -262,6 +262,19 @@ async function assertShipmentRouteAccess(request: any, reply: any): Promise<bool
   });
 }
 
+/**
+ * Who may read a shipment's money: its ledger, and the revenue, expense and
+ * margin figures built from it. Management, senior and field officers,
+ * finance and sales. Junior officers and customers work the shipment
+ * without seeing our commercial position on it.
+ *
+ * Recording an entry (POST /:id/ledger) is deliberately wider: adding a task
+ * with a billable service writes its charge, and that must keep working for
+ * the people who add tasks. Writing a line does not reveal the totals.
+ */
+export const SHIPMENT_FINANCE_ROLES = ['SUPER_ADMIN', 'ADMIN', 'TENANT_ADMIN', 'MANAGER', 'SENIOR', 'FINANCE', 'OFFICER', 'SALES'] as const;
+export const canSeeShipmentFinance = (role: string) => (SHIPMENT_FINANCE_ROLES as readonly string[]).includes(role);
+
 export async function shipmentRoutes(fastify: FastifyInstance) {
   // Enforce authentication on all routes in this file
   fastify.addHook('preHandler', fastify.authenticate);
@@ -468,7 +481,10 @@ export async function shipmentRoutes(fastify: FastifyInstance) {
         })),
       };
 
-      return { ...shipment, customer_name: customer?.name ?? null, workflow };
+      // The ledger rides along on this payload, so the role gate on
+      // GET /:id/ledger means nothing unless it is applied here too.
+      const expenses = canSeeShipmentFinance(user.role) ? shipment.expenses : [];
+      return { ...shipment, expenses, customer_name: customer?.name ?? null, workflow };
     });
   });
 
@@ -1654,7 +1670,7 @@ export async function shipmentRoutes(fastify: FastifyInstance) {
   /**
    * GET /v1/shipments/:id/ledger
    */
-  fastify.get('/:id/ledger', async (request, reply) => {
+  fastify.get('/:id/ledger', { preHandler: requireRole(...SHIPMENT_FINANCE_ROLES) }, async (request, reply) => {
     const user = request.user;
     const { id } = request.params as { id: string };
     return withTenant(user.tenant_id, async (trx) => {

@@ -142,7 +142,7 @@ export function OrgVerificationPanel() {
               gap: 14,
               background: 'var(--green-l)',
               border: '1px solid var(--green)',
-              borderRadius: 10,
+              borderRadius: 'var(--r)',
               padding: '16px 20px'
             }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
@@ -165,7 +165,7 @@ export function OrgVerificationPanel() {
             {/* Extracted Details Table / Data Grid */}
             <div style={{
               border: '1px solid var(--border)',
-              borderRadius: 10,
+              borderRadius: 'var(--r)',
               padding: 20,
               background: 'var(--bg)',
               display: 'grid',
@@ -211,7 +211,7 @@ export function OrgVerificationPanel() {
             gap: 16,
             background: 'var(--gold-l)',
             border: '1px solid var(--gold)',
-            borderRadius: 12,
+            borderRadius: 'var(--r)',
             padding: 20
           }}>
             <FeaturedIcon variant="warning" size="md" shape="square">
@@ -238,7 +238,7 @@ export function OrgVerificationPanel() {
               padding: 16,
               background: 'var(--bg)',
               border: '1px solid var(--border)',
-              borderRadius: 8,
+              borderRadius: 'var(--r-sm)',
               fontSize: 13,
               color: 'var(--ink3)'
             }}>
@@ -253,7 +253,7 @@ export function OrgVerificationPanel() {
                   color: 'var(--red)',
                   background: 'var(--red-l)',
                   border: '1px solid var(--red)',
-                  borderRadius: 10,
+                  borderRadius: 'var(--r)',
                   padding: '14px 18px',
                   display: 'flex',
                   gap: 12,
@@ -276,10 +276,10 @@ export function OrgVerificationPanel() {
                 onDrop={handleDrop}
                 style={{
                   border: isDragOver ? '2px dashed var(--teal)' : '2px dashed var(--border)',
-                  borderRadius: 12,
+                  borderRadius: 'var(--r)',
                   padding: '40px 24px',
                   textAlign: 'center',
-                  background: isDragOver ? 'rgba(0,181,137,0.04)' : 'var(--bg)',
+                  background: isDragOver ? 'color-mix(in srgb, var(--teal) 4%, transparent)' : 'var(--bg)',
                   cursor: kybBusy ? 'default' : 'pointer',
                   transition: 'all 0.2s ease',
                   position: 'relative'

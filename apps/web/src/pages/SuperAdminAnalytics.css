@@ -38,7 +38,7 @@
 .sa-analytics-card-title-icon {
   width: 26px;
   height: 26px;
-  border-radius: 6px;
+  border-radius: var(--r-sm);
   display: inline-flex;
   align-items: center;
   justify-content: center;

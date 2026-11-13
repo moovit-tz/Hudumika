@@ -18,7 +18,7 @@ import { apiFetch, apiDownload, apiViewBlob, apiFetchBlob } from '../../lib/api.
 import { HUDUMIKA_FOOTER_HTML } from '../../lib/watermark.js';
 import { useCompany, getCompany } from '../../data/companyStore.js';
 import { useAuth } from '../../hooks/useAuth.js';
-import { MGMT_ROLES } from '../../lib/permissions.js';
+import { MGMT_ROLES, canSeeShipmentFinance } from '../../lib/permissions.js';
 import { useClockIn } from '../../contexts/ClockInContext.js';
 import { showAlert } from '../../lib/alert.js';
 import { showConfirm } from '../../lib/confirm.js';
@@ -252,6 +252,10 @@ export function SpecRow({ label, value, mono }: { label: string; value: React.Re
 
 export function OverviewTab({ job, isMobile, isLive, onRefresh }: { job: ClearanceJob; isMobile: boolean; isLive: boolean; onRefresh: () => void }) {
   const company = useCompany();
+  // Charge totals are for management, seniors and finance. The API already
+  // withholds the ledger from everyone else, so without this the card would
+  // read "—, 0 entries" and look like a shipment with no charges.
+  const seesFinance = canSeeShipmentFinance(useAuth().user?.role);
   // Document view/download/verify now live in the unified <DocumentsPanel/>.
   const totalTasks   = job.tasks.length;
   const doneTasks    = job.tasks.filter(t => t.status === 'complete').length;
@@ -265,14 +269,14 @@ export function OverviewTab({ job, isMobile, isLive, onRefresh }: { job: Clearan
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
       {/* Stats cards */}
-      <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr 1fr' : 'repeat(5, 1fr)', gap: 12 }}>
+      <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr 1fr' : `repeat(${seesFinance ? 5 : 4}, 1fr)`, gap: 12 }}>
         {[
           { label: 'Tasks',        value: `${doneTasks}/${totalTasks}`, sub: `${totalTasks - doneTasks} open`,         color: 'var(--ink)', icon: 'checkCircle' as IconName },
           { label: 'Days Left',    value: daysLeft !== null ? (daysLeft >= 0 ? String(daysLeft) : 'Overdue') : '—', sub: job.dueDate ? fdate(job.dueDate) : 'No due date', color: daysLeft !== null && daysLeft < 0 ? 'var(--red)' : 'var(--ink)', icon: 'clock' as IconName },
           { label: 'Hours Logged', value: totalHours.toFixed(1),        sub: `${job.timeEntries.length} entries`,     color: 'var(--blue)', icon: 'activity' as IconName },
           { label: 'Documents',    value: String(job.documents.length),  sub: `${job.documents.filter(d => d.extracted?.status === 'done').length} AI extracted`, color: 'var(--purple)', icon: 'folder' as IconName },
           { label: 'Total Charges',value: totalCharges > 0 ? `TZS ${(totalCharges/1_000_000).toFixed(1)}M` : '—', sub: `${job.ledger.filter(e => e.type==='charge').length} entries`, color: 'var(--red)', icon: 'receipt' as IconName },
-        ].map(c => (
+        ].filter(c => seesFinance || c.label !== 'Total Charges').map(c => (
           <div key={c.label} style={{ background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 'var(--card-radius)', boxShadow: 'var(--card-shadow, none)', padding: '14px 16px' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 6 }}>
               <Icon name={c.icon} size={12} color={c.color} />
@@ -285,7 +289,7 @@ export function OverviewTab({ job, isMobile, isLive, onRefresh }: { job: Clearan
       </div>
 
       {/* Financial summary bar — Paid / Due / Overdue, like a payment ledger snapshot */}
-      {(totalCharges > 0 || totalPaid > 0) && (
+      {seesFinance && (totalCharges > 0 || totalPaid > 0) && (
         <Card title="Financial Summary">
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 10, flexWrap: 'wrap', gap: 8 }}>
             <span style={{ fontSize: 13, color: 'var(--ink2)' }}>Total charges: <strong style={{ color: 'var(--ink)' }}>{fmtTZS(totalCharges)}</strong></span>

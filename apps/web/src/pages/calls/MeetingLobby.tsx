@@ -100,7 +100,7 @@ export function MeetingLobby({ title, kind, onJoin, onCancel, hideWorkspaceLinks
 
   return (
     <div style={{ position: 'fixed', inset: 0, zIndex: 2100, background: 'rgba(0,0,0,0.6)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 24, fontFamily: 'var(--font)' }}>
-      <div style={{ background: 'var(--white)', borderRadius: 16, border: '1px solid var(--border)', padding: 28, width: '100%', maxWidth: 920, boxShadow: 'var(--elev-lg)', display: 'flex', flexDirection: 'column', gap: 24 }}>
+      <div style={{ background: 'var(--white)', borderRadius: 'var(--r-lg)', border: '1px solid var(--border)', padding: 28, width: '100%', maxWidth: 920, boxShadow: 'var(--elev-lg)', display: 'flex', flexDirection: 'column', gap: 24 }}>
 
         {/* Title Header */}
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: '1px solid var(--border)', paddingBottom: 20, gap: 12, flexWrap: 'wrap' }}>
@@ -117,7 +117,7 @@ export function MeetingLobby({ title, kind, onJoin, onCancel, hideWorkspaceLinks
         <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1.25fr) minmax(300px, 1fr)', gap: 32 }}>
           {/* Left Column: Video Preview Stage */}
           <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-            <div style={{ position: 'relative', aspectRatio: '16/9', background: '#0a0e1a', borderRadius: 16, overflow: 'hidden', border: '1px solid var(--border)' }}>
+            <div style={{ position: 'relative', aspectRatio: '16/9', background: '#0a0e1a', borderRadius: 'var(--r-lg)', overflow: 'hidden', border: '1px solid var(--border)' }}>
 
               {videoEnabled && kind === 'VIDEO' ? (
                 <video

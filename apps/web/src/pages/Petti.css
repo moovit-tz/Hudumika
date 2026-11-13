@@ -40,7 +40,7 @@
   align-items: center;
   gap: 6px;
   padding: 4px 10px;
-  border-radius: 6px;
+  border-radius: var(--r-sm);
   background: var(--bg);
   white-space: nowrap;
   font-size: 12px;
@@ -440,7 +440,7 @@
   padding: 5px 11px;
   font-size: 11.5px;
   font-weight: 700;
-  border-radius: 14px;
+  border-radius: var(--r-lg);
   background: var(--bg);
   color: var(--ink2);
   border: 1px solid var(--border2);

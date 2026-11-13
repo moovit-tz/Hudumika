@@ -20,7 +20,7 @@ import { apiFetch, apiDownload, apiViewBlob, apiFetchBlob } from '../lib/api.js'
 import { HUDUMIKA_FOOTER_HTML } from '../lib/watermark.js';
 import { useCompany, getCompany } from '../data/companyStore.js';
 import { useAuth } from '../hooks/useAuth.js';
-import { MGMT_ROLES } from '../lib/permissions.js';
+import { MGMT_ROLES, canSeeShipmentFinance } from '../lib/permissions.js';
 import { useClockIn } from '../contexts/ClockInContext.js';
 import { showAlert } from '../lib/alert.js';
 import { showConfirm } from '../lib/confirm.js';
@@ -83,6 +83,10 @@ export function ShipmentDetail() {
   }, [id]);
 
   const isStaff = !!(user && user.role !== 'CUSTOMER');
+  const seesFinance = canSeeShipmentFinance(user?.role);
+  // A saved or shared `?tab=ledger` link must not leave a blank body for
+  // someone who cannot see the ledger — show them the overview instead.
+  useEffect(() => { if (user && tab === 'ledger' && !seesFinance) setTab('overview'); }, [user, tab, seesFinance]);
 
   function loadTasks() {
     if (!id) return;
@@ -290,7 +294,7 @@ export function ShipmentDetail() {
         <div className="shipment-navigation" style={{ padding: isMobile ? '6px 10px' : '8px 14px', borderTop: '1px solid var(--border)' }}>
           <Tabs value={tab} onValueChange={v => setTab(v as typeof tab)} variant="segmented">
             <TabsList className="shipment-tab-list" style={{ width: '100%', flexWrap: 'nowrap' }}>
-              {TAB_CFG.filter(t => isStaff || CUSTOMER_TABS.has(t.id)).map(t => {
+              {TAB_CFG.filter(t => (isStaff || CUSTOMER_TABS.has(t.id)) && (t.id !== 'ledger' || seesFinance)).map(t => {
                 const badge =
                   t.id === 'tasks'      ? job.tasks.length :
                   t.id === 'timesheets' ? job.timeEntries.length :
@@ -332,7 +336,7 @@ export function ShipmentDetail() {
               {tab === 'updates'      && <UpdatesTab     job={job} shipmentId={id || job.id} isLive={!isMock} onRefresh={refreshJob} />}
               {tab === 'files'        && <DocumentsPanel job={job} shipmentId={id || job.id} isLive={!isMock} onRefresh={refreshJob} />}
               {tab === 'files'        && isStaff && <LinkedOperationalDocs shipmentId={id || job.id} />}
-              {tab === 'ledger'       && isStaff && <LedgerTab      job={job} shipmentId={id || job.id} isLive={!isMock} onRefresh={refreshJob} />}
+              {tab === 'ledger'       && seesFinance && <LedgerTab      job={job} shipmentId={id || job.id} isLive={!isMock} onRefresh={refreshJob} />}
               {tab === 'charges'      && isStaff && <JobChargesTab  job={job} shipmentId={id || job.id} isLive={!isMock} onRefresh={refreshJob} />}
               {tab === 'co2'          && <CO2Tab         job={job} shipmentId={id || job.id} isLive={!isMock} onRefresh={refreshJob} />}
             </div>

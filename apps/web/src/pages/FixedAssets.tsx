@@ -15,6 +15,7 @@ import { useIsMobile } from '../hooks/useIsMobile.js';
 import { useFinanceReadOnly } from '../components/FinanceCapabilityGate.js';
 import { Tip } from '../components/ui/tooltip.js';
 import { PageLoading } from '../components/ui/spinner.js';
+import { Button } from '../components/ui/button.js';
 
 const CATEGORIES = ['OFFICE_EQUIPMENT', 'MOTOR_VEHICLE', 'IT_EQUIPMENT', 'FURNITURE', 'MACHINERY', 'OTHER'];
 const CATEGORY_LABEL: Record<string, string> = { OFFICE_EQUIPMENT: 'Office Equipment', MOTOR_VEHICLE: 'Motor Vehicle', IT_EQUIPMENT: 'IT Equipment', FURNITURE: 'Furniture', MACHINERY: 'Machinery', OTHER: 'Other' };
@@ -212,15 +213,14 @@ function NewAssetForm({ onSave, onClose, fmt }: { onSave: (data: any) => Promise
             </div>
 
             <div style={{ marginTop: 20, paddingTop: 16, borderTop: '1px solid var(--border)' }}>
-              <button
+              <Button
                 type="button"
-                className="btn btn-primary"
+               
                 style={{ width: '100%', justifyContent: 'center' }}
                 disabled={saving}
-                onClick={submit}
-               data-ui-native-button="">
+                onClick={submit}>
                 <Icon name="save" size={14} /> {saving ? 'Saving…' : 'Add Fixed Asset'}
-              </button>
+              </Button>
             </div>
           </div>
         </div>
@@ -377,7 +377,7 @@ export function FixedAssets() {
                   <td style={{ padding: '9px 12px', textAlign: 'right', fontFamily: 'var(--font)', color: 'var(--gold)' }}>{fmt(a.accumulated_depreciation)}</td>
                   <td style={{ padding: '9px 12px', textAlign: 'right', fontFamily: 'var(--font)', fontWeight: 700 }}>{fmt(a.net_book_value)}</td>
                   <td style={{ padding: '9px 12px', textAlign: 'center' }}>
-                    <span style={{ fontSize: 11, padding: '2px 8px', borderRadius: 10, fontWeight: 700, background: a.status === 'ACTIVE' ? 'var(--green-l)' : 'var(--bg)', color: a.status === 'ACTIVE' ? 'var(--green)' : 'var(--ink3)' }}>{a.status}</span>
+                    <span style={{ fontSize: 11, padding: '2px 8px', borderRadius: 'var(--r)', fontWeight: 700, background: a.status === 'ACTIVE' ? 'var(--green-l)' : 'var(--bg)', color: a.status === 'ACTIVE' ? 'var(--green)' : 'var(--ink3)' }}>{a.status}</span>
                   </td>
                   <td style={{ padding: '9px 12px', textAlign: 'right' }}>
                     <div style={{ display: 'flex', gap: 6, justifyContent: 'flex-end' }}>
@@ -423,8 +423,8 @@ export function FixedAssets() {
               <label style={lbl}>Disposal Proceeds</label>
               <input data-ui-field="input" type="number" min={0} style={inp} value={disposalProceeds} onChange={e => setDisposalProceeds(parseFloat(e.target.value) || 0)} />
               <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end', marginTop: 18 }}>
-                <button type="button" className="btn btn-secondary btn-sm" onClick={() => setDisposing(null)} data-ui-native-button="">Cancel</button>
-                <button type="button" className="btn btn-primary btn-sm" onClick={handleDispose} data-ui-native-button="">Confirm Disposal</button>
+                <Button variant="outline" size="sm" type="button" onClick={() => setDisposing(null)}>Cancel</Button>
+                <Button size="sm" type="button" onClick={handleDispose}>Confirm Disposal</Button>
               </div>
             </>
           )}

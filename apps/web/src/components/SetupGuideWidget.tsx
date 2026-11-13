@@ -129,7 +129,7 @@ export function SetupGuideWidget() {
           <Icon name="x" size={14} /> Hide
         </button>
       </div>
-      <div style={{ background: 'var(--card, #fff)', border: '1px solid var(--border)', borderRadius: 12, overflow: 'hidden', marginTop: 10 }}>
+      <div style={{ background: 'var(--card, #fff)', border: '1px solid var(--border)', borderRadius: 'var(--r)', overflow: 'hidden', marginTop: 10 }}>
         <Accordion type="single" collapsible defaultValue={firstIncomplete} className="flex flex-col gap-2 p-2">
           {PHASES.map(phase => {
             const done = checklist[phase.key];
@@ -153,7 +153,7 @@ export function SetupGuideWidget() {
                         key={item.title}
                         to={item.to}
                         style={{
-                          display: 'block', padding: '10px 12px', borderRadius: 8,
+                          display: 'block', padding: '10px 12px', borderRadius: 'var(--r-sm)',
                           border: '1px solid var(--border)', textDecoration: 'none', color: 'inherit',
                         }}
                       >

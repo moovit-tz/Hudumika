@@ -7,6 +7,7 @@ import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '.
 import { apiFetch } from '../lib/api.js';
 import { showAlert } from '../lib/alert.js';
 import { showConfirm } from '../lib/confirm.js';
+import { Button } from '../components/ui/button.js';
 
 /**
  * AgencyHost M8 — every referral commission across every tenant, in one
@@ -134,12 +135,12 @@ export const SuperAdminReferrals: React.FC = () => {
                   <td style={{ padding: '10px 14px', textAlign: 'right' }}>
                     {(r.status === 'pending' || r.status === 'flagged') && (
                       <div style={{ display: 'inline-flex', gap: 6 }}>
-                        <button className="btn btn-sm btn-primary" disabled={acting === r.id} onClick={() => decide(r.id, 'approved')} data-ui-native-button="">Approve</button>
-                        <button className="btn btn-sm btn-ghost" style={{ color: 'var(--red)' }} disabled={acting === r.id} onClick={() => decide(r.id, 'rejected')} data-ui-native-button="">Reject</button>
+                        <Button size="sm" disabled={acting === r.id} onClick={() => decide(r.id, 'approved')}>Approve</Button>
+                        <Button variant="ghost" size="sm" style={{ color: 'var(--red)' }} disabled={acting === r.id} onClick={() => decide(r.id, 'rejected')}>Reject</Button>
                       </div>
                     )}
                     {r.status === 'approved' && (
-                      <button className="btn btn-sm btn-secondary" disabled={acting === r.id} onClick={() => recordManualPayout(r.id)} data-ui-native-button="">Record payout</button>
+                      <Button variant="outline" size="sm" disabled={acting === r.id} onClick={() => recordManualPayout(r.id)}>Record payout</Button>
                     )}
                   </td>
                 </tr>

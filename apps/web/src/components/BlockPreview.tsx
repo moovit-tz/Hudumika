@@ -387,7 +387,7 @@ export function BlockPreview({ blocks, components, wrapClassName = 'block-previe
             case 'paragraph': return p.text ? <p>{renderInlineFormatted(p.text)}</p> : null;
             case 'heading': return p.level === 3 ? <h3>{p.text}</h3> : <h2>{p.text}</h2>;
             case 'quote': return <blockquote>{renderInlineFormatted(p.text)}</blockquote>;
-            case 'image': return p.url ? <img src={p.url} alt={p.alt || ''} style={{ maxWidth: '100%', borderRadius: 8 }} /> : null;
+            case 'image': return p.url ? <img src={p.url} alt={p.alt || ''} style={{ maxWidth: '100%', borderRadius: 'var(--r-sm)' }} /> : null;
             case 'form': return p.formKey ? <FormBlockRenderer formKey={p.formKey} tenantSlug={tenantSlug} interactive={interactive} buttonClassName={buttonClassName} /> : null;
             case 'experiment': return p.experimentKey ? <ExperimentBlockRenderer experimentKey={p.experimentKey} tenantSlug={tenantSlug} interactive={interactive} components={components} wrapClassName={wrapClassName} buttonClassName={buttonClassName} visitorSegment={visitorSegment} /> : null;
             case 'list': {
@@ -406,7 +406,7 @@ export function BlockPreview({ blocks, components, wrapClassName = 'block-previe
             // a reasonable generic default for the provider list this
             // supports (video, maps, calendar, scheduling, audio).
             case 'embed': return p.url ? (
-              <div style={{ position: 'relative', paddingBottom: '56.25%', height: 0, overflow: 'hidden', borderRadius: 8 }}>
+              <div style={{ position: 'relative', paddingBottom: '56.25%', height: 0, overflow: 'hidden', borderRadius: 'var(--r-sm)' }}>
                 <iframe src={p.url} title={p.title || 'Embedded content'} loading="lazy" allowFullScreen
                   style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', border: 0 }} />
               </div>

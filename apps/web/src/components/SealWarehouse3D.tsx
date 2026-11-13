@@ -131,7 +131,7 @@ export function SealWarehouse3D({ floors }: { floors: Floor3D[] }) {
 
   return (
     <div style={{ position: 'relative' }}>
-      <Canvas camera={{ position: [span * 1.3, topY * 1.6, span * 1.3], fov: 45 }} style={{ background: 'var(--bg)', borderRadius: 12, height: 520 }}>
+      <Canvas camera={{ position: [span * 1.3, topY * 1.6, span * 1.3], fov: 45 }} style={{ background: 'var(--bg)', borderRadius: 'var(--r)', height: 520 }}>
         <ambientLight intensity={0.75} />
         <directionalLight position={[10, 16, 8]} intensity={0.9} />
         {floors.map(f => (
@@ -140,7 +140,7 @@ export function SealWarehouse3D({ floors }: { floors: Floor3D[] }) {
         <OrbitControls ref={controlsRef} enablePan enableZoom enableRotate target={[0, topY / 2, 0]} />
       </Canvas>
 
-      <div style={{ position: 'absolute', top: 12, left: 12, background: 'var(--card-bg, var(--white))', border: '1px solid var(--border)', borderRadius: 10, padding: '8px 12px', fontSize: 11.5, display: 'flex', gap: 12 }}>
+      <div style={{ position: 'absolute', top: 12, left: 12, background: 'var(--card-bg, var(--white))', border: '1px solid var(--border)', borderRadius: 'var(--r)', padding: '8px 12px', fontSize: 11.5, display: 'flex', gap: 12 }}>
         <span style={{ display: 'flex', alignItems: 'center', gap: 5 }}><span style={{ width: 9, height: 9, borderRadius: 2, background: 'var(--green)' }} /> 0-60%</span>
         <span style={{ display: 'flex', alignItems: 'center', gap: 5 }}><span style={{ width: 9, height: 9, borderRadius: 2, background: 'var(--gold)' }} /> 61-85%</span>
         <span style={{ display: 'flex', alignItems: 'center', gap: 5 }}><span style={{ width: 9, height: 9, borderRadius: 2, background: 'var(--red)' }} /> 86-100%</span>
@@ -149,7 +149,7 @@ export function SealWarehouse3D({ floors }: { floors: Floor3D[] }) {
       </div>
 
       {selected && (
-        <div style={{ position: 'absolute', top: 12, right: 12, background: 'var(--card-bg, var(--white))', border: '1px solid var(--border)', borderRadius: 10, padding: '10px 14px', fontSize: 12.5, maxWidth: 220 }}>
+        <div style={{ position: 'absolute', top: 12, right: 12, background: 'var(--card-bg, var(--white))', border: '1px solid var(--border)', borderRadius: 'var(--r)', padding: '10px 14px', fontSize: 12.5, maxWidth: 220 }}>
           <div style={{ fontWeight: 800, marginBottom: 4 }}>{selected.code}</div>
           {selected.lengthM != null && selected.widthM != null && selected.heightM != null && (
             <div style={{ marginBottom: 4 }}>{selected.lengthM}m × {selected.widthM}m × {selected.heightM}m ({selected.volumeCbm?.toFixed(2)} m³)</div>

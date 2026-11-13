@@ -33,6 +33,9 @@ type Scheme = {
 };
 
 type Band = { seq: number; lowerBound: number; upperBound: number | null; ratePct: number; fixedAmount: number };
+type HrTimePolicy = { version: number; restDays: number[]; overtimeMultipliers: { normal: number; restDay: number; publicHoliday: number } };
+const DEFAULT_TIME_POLICY: HrTimePolicy = { version: 1, restDays: [0, 6], overtimeMultipliers: { normal: 1.5, restDay: 2, publicHoliday: 2 } };
+const WEEKDAYS = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
 
 const num = (v: number | string) => (typeof v === 'number' ? v : Number(v) || 0);
 const money = (n: number) => n.toLocaleString(undefined, { maximumFractionDigits: 0 });
@@ -43,6 +46,9 @@ type EditableKey = typeof EDITABLE_KEYS[number];
 export function PayrollSettingsModal({ onClose }: { onClose: () => void }) {
   const { user } = useAuth();
   const [salaryBasis, setSalaryBasis] = useState('calendar_days');
+  const [timePolicy, setTimePolicy] = useState<HrTimePolicy>(DEFAULT_TIME_POLICY);
+  const [timePolicyDirty, setTimePolicyDirty] = useState(false);
+  const [savingTimePolicy, setSavingTimePolicy] = useState(false);
   const [policyError, setPolicyError] = useState('');
   const canConfigure = ['SUPER_ADMIN','ADMIN','TENANT_ADMIN'].includes(user?.role || '');
   const [loading, setLoading] = useState(true);
@@ -65,6 +71,7 @@ export function PayrollSettingsModal({ onClose }: { onClose: () => void }) {
         ]);
         if (!alive) return;
         setSalaryBasis(policy.salary_basis);
+        setTimePolicy(policy.time_policy ?? DEFAULT_TIME_POLICY);
         setConfigured(!!settings?.configured);
         setJurisdiction(settings?.jurisdiction ?? 'TZ');
         setBands({
@@ -115,6 +122,23 @@ export function PayrollSettingsModal({ onClose }: { onClose: () => void }) {
     }
   }
 
+  function updateTimePolicy(update: { restDays?: number[]; overtimeMultipliers?: Partial<HrTimePolicy['overtimeMultipliers']> }) {
+    setTimePolicy(current => ({ ...current, ...update, overtimeMultipliers: { ...current.overtimeMultipliers, ...update.overtimeMultipliers } }));
+    setTimePolicyDirty(true);
+  }
+
+  async function saveTimePolicy() {
+    setSavingTimePolicy(true);
+    setPolicyError('');
+    try {
+      const saved = await apiFetch('/v1/payroll/policy', { method: 'PATCH', body: JSON.stringify({ time_policy: { restDays: timePolicy.restDays, overtimeMultipliers: timePolicy.overtimeMultipliers } }) });
+      setTimePolicy(saved.time_policy);
+      setTimePolicyDirty(false);
+    } catch (error) {
+      setPolicyError(error instanceof Error ? error.message : 'Could not save time policy');
+    } finally { setSavingTimePolicy(false); }
+  }
+
   const totalEmployerCost = useMemo(
     () => schemes.filter(s => value(s, 'active')).reduce((a, s) => a + num(value(s, 'employer_pct')), 0),
     [schemes, draft],
@@ -143,6 +167,25 @@ export function PayrollSettingsModal({ onClose }: { onClose: () => void }) {
           }}><SelectTrigger id="payroll-salary-basis"><SelectValue /></SelectTrigger><SelectContent><SelectItem value="calendar_days">Prorate changes by calendar days</SelectItem><SelectItem value="period_end">Salary in force at period end</SelectItem></SelectContent></Select>
           <p style={{fontSize:12,color:'var(--ink3)'}}>Approval requires a different authorised approver from the run creator and calculator. This payroll supports TZS monthly or annual compensation; unsupported currencies and pay cycles are blocked before calculation.</p>
           {policyError && <Banner variant="error">{policyError}</Banner>}
+        </section>}
+        {!loading && <section style={{marginTop:18,padding:14,border:'1px solid var(--border)',borderRadius:'var(--r)',display:'grid',gap:12}}>
+          <div>
+            <h3 style={{fontSize:13,fontWeight:800,margin:'0 0 4px',color:'var(--ink)'}}>Time &amp; overtime policy</h3>
+            <p style={{fontSize:11.5,color:'var(--ink3)',margin:0}}>Sets rest-day classification and the multipliers attached to new overtime claims. Approved claims and payroll runs retain the policy version used when they were created.</p>
+          </div>
+          <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit,minmax(150px,1fr))',gap:10}}>
+            {(['normal','restDay','publicHoliday'] as const).map(key => <Field key={key} label={`${key === 'normal' ? 'Ordinary day' : key === 'restDay' ? 'Rest day' : 'Public holiday'} multiplier`}>
+              <input data-ui-field="input" type="number" min="1" max="3" step="0.05" disabled={!canConfigure} className="input-field" value={timePolicy.overtimeMultipliers[key]} onChange={event => updateTimePolicy({ overtimeMultipliers: { [key]: Number(event.target.value) } })} />
+            </Field>)}
+          </div>
+          <div>
+            <div style={{fontSize:11,fontWeight:700,color:'var(--ink3)',marginBottom:7}}>Weekly rest days</div>
+            <div style={{display:'flex',flexWrap:'wrap',gap:'8px 14px'}}>{WEEKDAYS.map((day,index)=><label key={day} style={{display:'inline-flex',alignItems:'center',gap:6,fontSize:12,color:'var(--ink2)'}}>
+              <Checkbox checked={timePolicy.restDays.includes(index)} disabled={!canConfigure} onCheckedChange={checked=>updateTimePolicy({restDays:checked?[...new Set([...timePolicy.restDays,index])]:timePolicy.restDays.filter(value=>value!==index)})}/>{day}
+            </label>)}</div>
+          </div>
+          <p style={{fontSize:11.5,color:'var(--ink3)',margin:0}}>Work timers keep absolute start/end instants and the timezone saved at clock-in; overnight durations are split at workspace-local midnight. Only configured billable NexusHR tasks can be billable. Cross-product work defaults to non-billable. Approved periods stay locked; corrections require an administrator reopen with a reason. Rounding remains to the exact recorded minute.</p>
+          {canConfigure && timePolicyDirty && <div style={{display:'flex',justifyContent:'flex-end'}}><Button size="sm" onClick={saveTimePolicy} disabled={savingTimePolicy || timePolicy.restDays.length===0}>{savingTimePolicy?'Saving…':'Save time policy'}</Button></div>}
         </section>}
         {loading ? (
           <div style={{ padding: '32px 0' }}><SectionLoading /></div>

@@ -61,7 +61,7 @@ export function ComposeEmailButton({ subjectType, subjectId, onSent, children }:
             />
           </DialogBody>
           <DialogFooter>
-            <button type="button" className="btn btn-secondary btn-sm" disabled={sending} onClick={() => setOpen(false)} data-ui-native-button="">Cancel</button>
+            <Button variant="outline" size="sm" type="button" disabled={sending} onClick={() => setOpen(false)}>Cancel</Button>
             <Button size="sm" type="button" onClick={send} loading={sending} disabled={!subject.trim() || !body.trim()} loadingText="Sending…">
               Send
             </Button>

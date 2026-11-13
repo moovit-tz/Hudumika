@@ -288,7 +288,7 @@ export const OndiGroups: React.FC = () => {
             <div key={g.id} style={{ borderBottom: i < arr.length - 1 ? '1px solid var(--border)' : 'none' }}>
               <div onClick={() => toggleExpand(g)}
                 role="button" tabIndex={0} onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); toggleExpand(g); } }}
-                style={{ display: 'flex', alignItems: 'center', gap: 14, padding: '16px 20px', cursor: 'pointer', background: open ? 'rgba(0, 181, 137, 0.02)' : 'transparent', transition: 'background 0.15s ease' }}>
+                style={{ display: 'flex', alignItems: 'center', gap: 14, padding: '16px 20px', cursor: 'pointer', background: open ? 'color-mix(in srgb, var(--teal) 2%, transparent)' : 'transparent', transition: 'background 0.15s ease' }}>
                 <Icon name={open ? 'chevronDown' : 'chevronRight'} size={16} color="var(--ink3)" />
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <div style={{ fontSize: 14, fontWeight: 800, color: 'var(--ink)', display: 'flex', alignItems: 'center', gap: 10 }}>

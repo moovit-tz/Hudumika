@@ -91,7 +91,7 @@ export function TotpEnrollCard() {
       <div style={hdrStyle}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
           <div style={{
-            width: 32, height: 32, borderRadius: 8, display: 'flex', alignItems: 'center', justifyContent: 'center',
+            width: 32, height: 32, borderRadius: 'var(--r-sm)', display: 'flex', alignItems: 'center', justifyContent: 'center',
             background: twoFA?.enabled ? 'var(--green-l)' : 'var(--teal-l)', color: twoFA?.enabled ? 'var(--green, #10b981)' : 'var(--teal)',
           }}>
             <Icon name="shield" size={15} />
@@ -121,12 +121,12 @@ export function TotpEnrollCard() {
 
         {setupData && (
           <div style={{ display: 'flex', gap: 20, flexWrap: 'wrap' }}>
-            <div style={{ background: 'var(--white)', padding: 10, borderRadius: 8, border: '1px solid var(--border)' }}>
+            <div style={{ background: 'var(--white)', padding: 10, borderRadius: 'var(--r-sm)', border: '1px solid var(--border)' }}>
               <QRCodeSVG value={setupData.uri} size={120} level="M" />
             </div>
             <div style={{ flex: 1, minWidth: 200, display: 'flex', flexDirection: 'column', gap: 10 }}>
               <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--ink)' }}>1. Scan the QR code, or copy the secret key</span>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8, background: 'var(--bg)', border: '1px solid var(--border)', borderRadius: 8, padding: '8px 10px', fontFamily: 'var(--font)', fontSize: 12.5 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, background: 'var(--bg)', border: '1px solid var(--border)', borderRadius: 'var(--r-sm)', padding: '8px 10px', fontFamily: 'var(--font)', fontSize: 12.5 }}>
                 <span style={{ flex: 1, overflow: 'auto', whiteSpace: 'nowrap' }}>{setupData.secret}</span>
                 <button type="button" onClick={() => { navigator.clipboard.writeText(setupData.secret); showAlert('Secret key copied.', { variant: 'success' }); }}
                   style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--teal)', padding: 0, display: 'flex' }} data-ui-native-button="">
@@ -150,7 +150,7 @@ export function TotpEnrollCard() {
         )}
 
         {backupCodes && (
-          <div style={{ padding: 14, background: 'var(--bg)', borderRadius: 10, border: '1px solid var(--border)' }}>
+          <div style={{ padding: 14, background: 'var(--bg)', borderRadius: 'var(--r)', border: '1px solid var(--border)' }}>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
               <span style={{ fontSize: 12.5, fontWeight: 700, color: 'var(--ink)' }}>Backup codes — save these somewhere safe</span>
               <button type="button" onClick={() => { navigator.clipboard.writeText(backupCodes.join('\n')); showAlert('Backup codes copied.', { variant: 'success' }); }}
@@ -176,7 +176,7 @@ export function TotpEnrollCard() {
                 <Button variant="outline" size="sm" onClick={() => setShowDisable(true)} style={{ color: 'var(--red)' }}>Disconnect authenticator app</Button>
               </div>
             ) : (
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap', padding: 12, background: 'var(--bg)', borderRadius: 8, border: '1px solid var(--border)' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap', padding: 12, background: 'var(--bg)', borderRadius: 'var(--r-sm)', border: '1px solid var(--border)' }}>
                 <input data-ui-field="input"
                   type="text" value={disableCode}
                   onChange={(e) => setDisableCode(e.target.value.replace(/\D/g, '').slice(0, 6))}

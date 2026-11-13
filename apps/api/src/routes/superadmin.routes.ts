@@ -999,7 +999,7 @@ export async function superAdminRoutes(fastify: FastifyInstance) {
         const err = await res.text().catch(() => '');
         return reply.status(400).send({ ok: false, error: `Mapbox API returned HTTP ${res.status}: ${err}` });
       }
-      const data = await res.json().catch(() => ({}));
+      const data: any = await res.json().catch(() => ({}));
       return { ok: true, code: data.code || 'TokenValid', token: token.substring(0, 10) + '••••' };
     } catch (err: any) {
       return reply.status(400).send({ ok: false, error: err.message || 'Failed to connect to Mapbox' });
@@ -1422,7 +1422,12 @@ export async function superAdminRoutes(fastify: FastifyInstance) {
 
   fastify.get('/domains', async (request, reply) => {
     try {
-      return { data: await PlatformAdminService.listDomains() };
+      const [data, subdomains, onsite] = await Promise.all([
+        PlatformAdminService.listDomains(),
+        PlatformAdminService.listTenantSubdomains(),
+        PlatformAdminService.listOnsiteDomains(),
+      ]);
+      return { data, subdomains, onsite, base_domain: env.PLATFORM_BASE_DOMAIN };
     } catch (err: any) {
       return reply.status(500).send({ error: err.message });
     }

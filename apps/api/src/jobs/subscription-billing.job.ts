@@ -114,6 +114,14 @@ export async function runSubscriptionBillingJob(now = new Date(), onlyTenantId?:
 
       if (target.stage <= 2 && await tryAutoCharge(inv)) { autoPaid++; continue; }
 
+      // Each rung of the ladder says the same thing more firmly. Leaving
+      // the earlier rungs unread beside it made one overdue invoice look
+      // like four separate problems.
+      await withTenant(inv.tenant_id, (trx) => trx.updateTable('notifications')
+        .set({ read: true, status: 'AUTO_RESOLVED', read_at: now })
+        .where('tenant_id', '=', inv.tenant_id).where('entity_type', '=', 'subscription_invoice')
+        .where('entity_id', '=', inv.id).where('read', '=', false).execute());
+
       for (const admin of await admins(inv.tenant_id)) {
         await NotificationService.createNotification({
           tenantId: inv.tenant_id, userId: admin.id, app: 'admin', type: 'warning',

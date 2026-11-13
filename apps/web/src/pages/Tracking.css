@@ -37,7 +37,7 @@
   background: rgba(255, 255, 255, 0.85);
   backdrop-filter: blur(20px);
   -webkit-backdrop-filter: blur(20px);
-  border-radius: 16px;
+  border-radius: var(--r-lg);
   border: 1px solid rgba(255, 255, 255, 0.4);
   box-shadow: var(--elev-lg);
   display: flex;
@@ -179,7 +179,7 @@
   backdrop-filter: blur(20px);
   -webkit-backdrop-filter: blur(20px);
   padding: 12px 20px;
-  border-radius: 12px;
+  border-radius: var(--r);
   border: 1px solid rgba(255, 255, 255, 0.4);
   box-shadow: var(--elev-lg);
   display: flex;
@@ -213,7 +213,7 @@
 .trk-mc-btn {
   width: 40px;
   height: 40px;
-  border-radius: 8px;
+  border-radius: var(--r-sm);
   border: 1px solid rgba(255, 255, 255, 0.4);
   background: rgba(255, 255, 255, 0.85);
   -webkit-backdrop-filter: blur(10px);
@@ -237,7 +237,7 @@
   flex-direction: column;
   gap: 2px;
   padding: 6px;
-  border-radius: 10px;
+  border-radius: var(--r);
   border: 1px solid rgba(255, 255, 255, 0.4);
   background: rgba(255, 255, 255, 0.95);
   -webkit-backdrop-filter: blur(10px);
@@ -247,7 +247,7 @@
 }
 .trk-layers-menu-item {
   padding: 7px 10px;
-  border-radius: 6px;
+  border-radius: var(--r-sm);
   border: none;
   background: none;
   color: var(--ink);
@@ -287,7 +287,7 @@
   background: rgba(255, 255, 255, 0.95);
   backdrop-filter: blur(20px);
   -webkit-backdrop-filter: blur(20px);
-  border-radius: 16px;
+  border-radius: var(--r-lg);
   border: 1px solid rgba(255, 255, 255, 0.4);
   box-shadow: var(--elev-lg);
   display: flex;
@@ -300,7 +300,7 @@
   transform: translateX(0);
 }
 
-.trk-detail-hero { position: relative; height: 200px; width: 100%; border-radius: 16px 16px 0 0; overflow: hidden; }
+.trk-detail-hero { position: relative; height: 200px; width: 100%; border-radius: var(--r-lg) var(--r-lg) 0 0; overflow: hidden; }
 .trk-hero-img { width: 100%; height: 100%; object-fit: cover; }
 .trk-hero-overlay { position: absolute; bottom: 0; left: 0; right: 0; padding: 24px; background: linear-gradient(transparent, rgba(0,0,0,0.8)); color: white; }
 .trk-hero-overlay .trk-detail-title { color: white; }
@@ -343,13 +343,13 @@
 .trk-rt-sub { font-size: 11px; color: var(--ink3); margin-top: 2px; }
 
 /* DRIVER CARD */
-.trk-driver-card { display: flex; align-items: center; gap: 16px; padding: 12px; background: rgba(0,0,0,0.02); border-radius: 12px; }
+.trk-driver-card { display: flex; align-items: center; gap: 16px; padding: 12px; background: rgba(0,0,0,0.02); border-radius: var(--r); }
 .trk-driver-avatar-lg { width: 40px; height: 40px; border-radius: 50%; object-fit: cover; }
 .trk-driver-name { font-size: 14px; font-weight: 700; color: var(--ink); }
 
 /* CARGO & CAPACITY */
 .trk-cargo-stats { display: flex; gap: 12px; margin-bottom: 16px; }
-.trk-cargo-stat { flex: 1; background: rgba(0,0,0,0.02); padding: 10px; border-radius: 8px; font-size: 11px; color: var(--ink3); display: flex; flex-direction: column; }
+.trk-cargo-stat { flex: 1; background: rgba(0,0,0,0.02); padding: 10px; border-radius: var(--r-sm); font-size: 11px; color: var(--ink3); display: flex; flex-direction: column; }
 .trk-cargo-stat strong { font-size: 13px; color: var(--ink); margin-top: 4px; }
 .trk-capacity-header { display: flex; justify-content: space-between; font-size: 11px; font-weight: 600; color: var(--ink2); margin-bottom: 8px; text-transform: uppercase;}
 .trk-capacity-meter { height: 8px; background: rgba(0,0,0,0.06); border-radius: 4px; overflow: hidden; }
@@ -384,7 +384,7 @@
   background: var(--bg);
   border: 1px solid rgba(0,0,0,0.04);
   padding: 16px;
-  border-radius: 12px;
+  border-radius: var(--r);
   text-align: center;
 }
 .trk-kpi-val {

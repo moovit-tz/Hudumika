@@ -268,7 +268,7 @@ export function PettiDeposit() {
                   <div style={{ background: 'rgba(255,255,255,0.12)', padding: '12px 14px', borderRadius: 'var(--r-sm)', border: '1px solid rgba(255,255,255,0.18)', marginBottom: 12 }}>
                     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                       <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.8)', textTransform: 'uppercase', fontWeight: 700 }}>Deposit Amount</span>
-                      <span style={{ fontSize: 13, fontWeight: 800, fontFamily: 'var(--font)', color: '#10b981' }}>+{Number(amount).toLocaleString()} {selectedWallet.currency}</span>
+                      <span style={{ fontSize: 13, fontWeight: 800, fontFamily: 'var(--font)', color: 'var(--green)' }}>+{Number(amount).toLocaleString()} {selectedWallet.currency}</span>
                     </div>
                     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: 4, borderTop: '1px solid rgba(255,255,255,0.12)', paddingTop: 4 }}>
                       <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.85)', textTransform: 'uppercase', fontWeight: 800 }}>Projected New Balance</span>

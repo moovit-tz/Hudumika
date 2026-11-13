@@ -140,9 +140,9 @@ function GoogleSyncItem({ collapsed, onSynced }: { collapsed: boolean; onSynced:
               <Button size="sm" type="button" onClick={handleSync} loading={busy} loadingText="Importing…">
                 Refresh Imported Contacts
               </Button>
-              <button type="button" className="btn btn-secondary btn-sm" disabled={busy} onClick={handleDisconnect}>
+              <Button variant="outline" size="sm" type="button" disabled={busy} onClick={handleDisconnect}>
                 Disconnect
-              </button>
+              </Button>
             </div>
           </>
         )}
@@ -264,9 +264,9 @@ function OutlookSyncItem({ collapsed, onSynced }: { collapsed: boolean; onSynced
               <Button size="sm" type="button" onClick={handleSync} loading={busy} loadingText="Importing…">
                 Refresh Imported Contacts
               </Button>
-              <button type="button" className="btn btn-secondary btn-sm" disabled={busy} onClick={handleDisconnect}>
+              <Button variant="outline" size="sm" type="button" disabled={busy} onClick={handleDisconnect}>
                 Disconnect
-              </button>
+              </Button>
             </div>
           </>
         )}
@@ -671,16 +671,16 @@ function ContactsSidebarContent({ collapsed }: { collapsed: boolean }) {
               </SelectContent>
             </Select>
             <div className="csb-modal-btns">
-              <button
+              <Button variant="outline" size="sm"
                 type="button"
-                className="btn btn-secondary btn-sm"
+               
                 onClick={() => { setShowNewLabelModal(false); setNewLabelParentId(null); }}
               >
                 Cancel
-              </button>
-              <button type="submit" className="btn btn-primary btn-sm">
+              </Button>
+              <Button size="sm" type="submit">
                 Save
-              </button>
+              </Button>
             </div>
           </form>
         </div>

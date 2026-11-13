@@ -93,7 +93,7 @@ export function CMSTranslationModal({
       <div
         style={{
           background: 'var(--surface)',
-          borderRadius: 16,
+          borderRadius: 'var(--r-lg)',
           padding: 24,
           width: '100%',
           maxWidth: 480,
@@ -122,7 +122,7 @@ export function CMSTranslationModal({
 
         {/* Existing Language Versions */}
         {existingTranslations.length > 0 && (
-          <div style={{ marginBottom: 16, padding: 12, background: 'var(--bg-muted)', borderRadius: 10 }}>
+          <div style={{ marginBottom: 16, padding: 12, background: 'var(--bg-muted)', borderRadius: 'var(--r)' }}>
             <div style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-muted)', marginBottom: 6 }}>
               LINKED LANGUAGE EDITIONS
             </div>
@@ -138,7 +138,7 @@ export function CMSTranslationModal({
                       gap: 6,
                       padding: '4px 8px',
                       background: 'var(--surface)',
-                      borderRadius: 6,
+                      borderRadius: 'var(--r-sm)',
                       border: item.id === resourceId ? '1px solid var(--teal)' : '1px solid var(--border)',
                       fontSize: 12,
                     }}

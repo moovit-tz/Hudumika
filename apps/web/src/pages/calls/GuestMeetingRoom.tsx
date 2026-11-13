@@ -238,7 +238,7 @@ export function GuestMeetingRoom({
   if (left) {
     return (
       <div style={{ position: 'fixed', inset: 0, background: '#0b0b0f', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-        <div style={{ background: '#111827', borderRadius: 16, border: '1px solid #1f2937', padding: 32, width: 360, textAlign: 'center' }}>
+        <div style={{ background: '#111827', borderRadius: 'var(--r-lg)', border: '1px solid #1f2937', padding: 32, width: 360, textAlign: 'center' }}>
           <Icon name="checkCircle" size={28} color="var(--green)" />
           <div style={{ fontSize: 15, fontWeight: 700, color: '#f9fafb', marginTop: 12 }}>You left the meeting</div>
           <div style={{ fontSize: 12.5, color: '#9ca3af', marginTop: 6 }}>You can close this tab now.</div>
@@ -249,7 +249,7 @@ export function GuestMeetingRoom({
   if (ended) {
     return (
       <div style={{ position: 'fixed', inset: 0, background: '#0b0b0f', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-        <div style={{ background: '#111827', borderRadius: 16, border: '1px solid #1f2937', padding: 32, width: 360, textAlign: 'center' }}>
+        <div style={{ background: '#111827', borderRadius: 'var(--r-lg)', border: '1px solid #1f2937', padding: 32, width: 360, textAlign: 'center' }}>
           <Icon name="clock" size={28} color="#9ca3af" />
           <div style={{ fontSize: 15, fontWeight: 700, color: '#f9fafb', marginTop: 12 }}>The host ended this meeting</div>
         </div>

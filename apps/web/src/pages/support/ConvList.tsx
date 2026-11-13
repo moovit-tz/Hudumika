@@ -18,6 +18,7 @@ import { showAlert } from '../../lib/alert.js';
 import type { IconName } from '../../components/Icon.js';
 import type { ChannelId, StatusKey, PriorityKey, Ticket, SupportGroup, SupportView, ViewMode, InboxFilter, FilterSel, SortKey, ColumnId } from './shared.js';
 import { PRIORITY_CFG, STATUS_CFG, CHANNEL_CFG, CATEGORIES, relTime, channelKey, ticketOrigin, Av, PBadge, SBadge, ChPill, CONV_PAGE_SIZE, DEFAULT_COLUMN_ORDER, COLUMN_LABELS, COLUMN_SORT_KEY, COLUMN_WIDTHS, SOURCE_APP_LABELS, loadColumnOrder, loadHiddenColumns, sortByPriority, sortTickets } from './shared.js';
+import { Button } from '../../components/ui/button.js';
 
 export function ConvList({ tickets, selected, onSelect, onNew, groups, views, onCreateGroup, onCreateView, onDeleteView, isDesktop, initialChannelFilter, queueMode, agents = [], viewMode = 'chat', onViewModeChange, onBulkStatus, onBulkAssign, onBulkGroup }: {
   tickets: Ticket[]; selected: Ticket | null;
@@ -353,11 +354,11 @@ export function ConvList({ tickets, selected, onSelect, onNew, groups, views, on
                     </SelectContent>
                   </Select>
                   <div className="spt-nav-new-actions">
-                    <button type="button" className="btn btn-secondary btn-sm" onClick={() => setNewViewOpen(false)} data-ui-native-button="">Cancel</button>
-                    <button type="button" className="btn btn-primary btn-sm" disabled={!newViewName.trim()} onClick={() => {
+                    <Button variant="outline" size="sm" type="button" onClick={() => setNewViewOpen(false)}>Cancel</Button>
+                    <Button size="sm" type="button" disabled={!newViewName.trim()} onClick={() => {
                       onCreateView(newViewName.trim(), { category: newViewCategory });
                       setNewViewName(''); setNewViewOpen(false);
-                    }} data-ui-native-button="">Save</button>
+                    }}>Save</Button>
                   </div>
                 </div>
               )}
@@ -400,11 +401,11 @@ export function ConvList({ tickets, selected, onSelect, onNew, groups, views, on
                 <div className="spt-nav-new-form">
                   <input data-ui-field="input" className="input-field" placeholder="Group name" value={newGroupName} onChange={e => setNewGroupName(e.target.value)} />
                   <div className="spt-nav-new-actions">
-                    <button type="button" className="btn btn-secondary btn-sm" onClick={() => setNewGroupOpen(false)} data-ui-native-button="">Cancel</button>
-                    <button type="button" className="btn btn-primary btn-sm" disabled={!newGroupName.trim()} onClick={() => {
+                    <Button variant="outline" size="sm" type="button" onClick={() => setNewGroupOpen(false)}>Cancel</Button>
+                    <Button size="sm" type="button" disabled={!newGroupName.trim()} onClick={() => {
                       onCreateGroup(newGroupName.trim());
                       setNewGroupName(''); setNewGroupOpen(false);
-                    }} data-ui-native-button="">Save</button>
+                    }}>Save</Button>
                   </div>
                 </div>
               )}

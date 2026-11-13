@@ -431,7 +431,7 @@ export function HrDocuments() {
                   background: tab.badgeColor ? 'var(--red-l)' : 'var(--teal-l)',
                   color: tab.badgeColor ? 'var(--red)' : 'var(--teal)',
                   padding: '2px 7px',
-                  borderRadius: 12,
+                  borderRadius: 'var(--r)',
                 }}
               >
                 {tab.badge}

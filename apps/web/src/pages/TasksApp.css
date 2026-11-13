@@ -50,7 +50,7 @@
 .tasks-hero-icon-wrap {
   width: 44px;
   height: 44px;
-  border-radius: 12px;
+  border-radius: var(--r);
   background: var(--white);
   border: 1px solid var(--border);
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
@@ -224,7 +224,7 @@
   position: relative;
   background: var(--white);
   border: 1px solid var(--border);
-  border-radius: 12px;
+  border-radius: var(--r);
   padding: 12px 14px;
   text-align: left;
   cursor: pointer;
@@ -244,7 +244,7 @@
 
 .tasks-kpi-card--active {
   border-color: var(--teal) !important;
-  box-shadow: 0 0 0 2px var(--teal), 0 4px 12px rgba(13, 148, 136, 0.12) !important;
+  box-shadow: 0 0 0 2px var(--teal), 0 4px 12px color-mix(in srgb, var(--teal) 12%, transparent) !important;
   background: var(--white) !important;
 }
 
@@ -326,7 +326,7 @@
   padding: 8px 14px;
   background: var(--white);
   border: 1px dashed var(--border);
-  border-radius: 12px;
+  border-radius: var(--r);
   box-shadow: 0 1px 2px rgba(0, 0, 0, 0.02);
   transition: all 0.15s ease;
 }
@@ -383,7 +383,7 @@
   position: relative;
   background: var(--white);
   border: 1px solid var(--border);
-  border-radius: 12px;
+  border-radius: var(--r);
   overflow: hidden;
   transition: border-color 0.15s ease, box-shadow 0.15s ease, transform 0.15s ease;
   box-shadow: 0 1px 2px rgba(0, 0, 0, 0.02);
@@ -396,7 +396,7 @@
 
 .task-item-card--expanded {
   border-color: var(--teal) !important;
-  box-shadow: 0 4px 14px rgba(13, 148, 136, 0.08) !important;
+  box-shadow: 0 4px 14px color-mix(in srgb, var(--teal) 8%, transparent) !important;
 }
 
 .task-item-card--completed {
@@ -526,7 +526,7 @@
   color: var(--red);
   background: var(--red-l);
   padding: 2px 7px;
-  border-radius: 6px;
+  border-radius: var(--r-sm);
   font-weight: 700;
 }
 
@@ -534,7 +534,7 @@
   color: var(--gold);
   background: var(--gold-l);
   padding: 2px 7px;
-  border-radius: 6px;
+  border-radius: var(--r-sm);
   font-weight: 700;
 }
 
@@ -547,7 +547,7 @@
   color: var(--teal);
   background: var(--teal-l);
   padding: 2px 8px;
-  border-radius: 6px;
+  border-radius: var(--r-sm);
 }
 
 /* Right Actions */
@@ -563,7 +563,7 @@
   border: none;
   color: var(--ink3);
   padding: 5px;
-  border-radius: 6px;
+  border-radius: var(--r-sm);
   cursor: pointer;
   display: flex;
   align-items: center;
@@ -599,7 +599,7 @@
   padding: 10px 12px;
   background: var(--white);
   border: 1px solid var(--border);
-  border-radius: 10px;
+  border-radius: var(--r);
   font-size: 13px;
   color: var(--ink);
   font-family: inherit;
@@ -617,7 +617,7 @@
 .task-subtasks-card {
   background: var(--white);
   border: 1px solid var(--border);
-  border-radius: 10px;
+  border-radius: var(--r);
   padding: 14px 16px;
   display: flex;
   flex-direction: column;
@@ -695,7 +695,7 @@
   align-items: center;
   justify-content: center;
   margin-bottom: 18px;
-  box-shadow: 0 4px 16px rgba(13, 148, 136, 0.15);
+  box-shadow: 0 4px 16px color-mix(in srgb, var(--teal) 15%, transparent);
 }
 
 .tasks-empty-title {

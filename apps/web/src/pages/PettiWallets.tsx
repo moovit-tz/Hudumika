@@ -178,7 +178,7 @@ export function PettiWallets() {
         <div className="petti-stat-card">
           <div className="petti-stat-card-header">
             <span className="petti-stat-label">Total Active Liquidity</span>
-            <span style={{ fontSize: 11, fontWeight: 800, padding: '2px 8px', borderRadius: 12, background: 'var(--teal-l)', color: 'var(--teal)' }}>
+            <span style={{ fontSize: 11, fontWeight: 800, padding: '2px 8px', borderRadius: 'var(--r)', background: 'var(--teal-l)', color: 'var(--teal)' }}>
               LIVE
             </span>
           </div>
@@ -282,7 +282,7 @@ export function PettiWallets() {
                 <div>
                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
                     <Badge variant={w.status === 'active' ? 'success' : 'gray'}>{w.status}</Badge>
-                    <span style={{ fontSize: 11, fontWeight: 800, color: 'var(--teal)', background: 'var(--teal-l)', padding: '2px 8px', borderRadius: 12 }}>
+                    <span style={{ fontSize: 11, fontWeight: 800, color: 'var(--teal)', background: 'var(--teal-l)', padding: '2px 8px', borderRadius: 'var(--r)' }}>
                       {w.currency}
                     </span>
                   </div>

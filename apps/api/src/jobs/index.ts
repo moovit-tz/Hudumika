@@ -36,6 +36,7 @@ import { runSignAnchorStampJob } from './sign-anchor-stamp.job.js';
 import { runNotesReminderJob } from './notes-reminder.job.js';
 import { runTaskReminderJob } from './task-reminder.job.js';
 import { runContactBirthdayReminderJob } from './contact-birthday-reminder.job.js';
+import { runAppRemindersJob } from './app-reminders.job.js';
 import { runCmsScheduledPublishJob } from './cms-scheduled-publish.job.js';
 import { runNotesPurgeJob } from './notes-purge.job.js';
 import { runCmsTrashPurgeJob } from './cms-trash-purge.job.js';
@@ -333,6 +334,8 @@ function startBullMQ(): void {
           await runCalendarExternalSyncJob();
         } else if (job.name === 'contact-birthday-reminder') {
           await runContactBirthdayReminderJob();
+        } else if (job.name === 'app-reminders') {
+          await runAppRemindersJob();
         } else if (job.name === 'cms-scheduled-publish') {
           await runCmsScheduledPublishJob();
         } else if (job.name === 'cms-trash-purge') {
@@ -680,6 +683,13 @@ function startBullMQ(): void {
       repeat: { pattern: '0 8 * * *' } // Daily at 8:00 AM
     }).catch(console.error);
 
+    // Legal deadlines, low stock, overdue customer invoices — see
+    // app-reminders.job.ts. Daily is the real resolution: each is a "start
+    // of the working day" nudge, and the job skips anything still unread.
+    reminderQueue.add('app-reminders', {}, {
+      repeat: { pattern: '30 7 * * *' } // Daily at 7:30 AM
+    }).catch(console.error);
+
     // CMS scheduled publish — same 5-minute "set to the minute" resolution
     // reasoning as notes/task/calendar reminders: a schedule picker lets a
     // tenant pick a specific minute, so daily/hourly would defeat the point.
@@ -824,6 +834,7 @@ function startIntervalFallback(): void {
   // repeat call within the same day a safe no-op.
   setInterval(() => {
     runContactBirthdayReminderJob().catch(console.error);
+    runAppRemindersJob().catch(console.error);
   }, 6 * 60 * 60 * 1000);
 
   // External Google/Outlook calendar pull — see the BullMQ registration

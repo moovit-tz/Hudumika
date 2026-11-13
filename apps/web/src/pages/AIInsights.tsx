@@ -4,6 +4,7 @@ import { Banner } from '../components/ui/alert.js';
 import { apiFetch } from '../lib/api.js';
 import '../pages/AI.css';
 import { PageHeader } from '../components/PageHeader.js';
+import { Button } from '../components/ui/button.js';
 
 interface InsightsResponse {
   digest: string;
@@ -41,9 +42,9 @@ export const AIInsights: React.FC = () => {
             subtitle="Generated from live operational and financial data"
           />
         </div>
-        <button type="button" className="btn btn-secondary btn-sm" onClick={load} disabled={loading} data-ui-native-button="">
+        <Button variant="outline" size="sm" type="button" onClick={load} disabled={loading}>
           <Icon name="refresh" size={13} /> Refresh
-        </button>
+        </Button>
       </div>
 
       {loading ? (

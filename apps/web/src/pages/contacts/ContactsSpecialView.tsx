@@ -429,9 +429,9 @@ export function ContactsSpecialView({ view, loading, directory, discovery, conta
           <div className="cts-special-bulk-bar">
             <div className="cts-special-bulk-left">
               <span className="cts-special-bulk-count">{selectedEmails.size} selected</span>
-              <button type="button" className="btn btn-secondary btn-sm" onClick={clearSelection} data-ui-native-button="">
+              <Button variant="outline" size="sm" type="button" onClick={clearSelection}>
                 Deselect all
-              </button>
+              </Button>
             </div>
             <div className="cts-special-bulk-right">
               <Button
@@ -720,39 +720,36 @@ export function ContactsSpecialView({ view, loading, directory, discovery, conta
           <DialogBody style={{ maxHeight: '60vh', overflowY: 'auto' }}>
             <div style={{ display: 'flex', gap: 8, alignItems: 'center', marginBottom: 12, paddingBottom: 12, borderBottom: '1px solid var(--border)', flexWrap: 'wrap' }}>
               <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--ink2)' }}>Quick configure:</span>
-              <button
+              <Button variant="outline" size="xs"
                 type="button"
-                className="btn btn-secondary btn-xs"
+               
                 onClick={() => {
                   const next: Record<string, 'contact' | 'company'> = { ...entityTypeOverrides };
                   selectedRows.forEach(r => { next[r.email] = 'contact'; });
                   setEntityTypeOverrides(next);
-                }}
-               data-ui-native-button="">
+                }}>
                 All as Contacts
-              </button>
-              <button
+              </Button>
+              <Button variant="outline" size="xs"
                 type="button"
-                className="btn btn-secondary btn-xs"
+               
                 onClick={() => {
                   const next: Record<string, 'contact' | 'company'> = { ...entityTypeOverrides };
                   selectedRows.forEach(r => { next[r.email] = 'company'; });
                   setEntityTypeOverrides(next);
-                }}
-               data-ui-native-button="">
+                }}>
                 All as Companies
-              </button>
-              <button
+              </Button>
+              <Button variant="outline" size="xs"
                 type="button"
-                className="btn btn-secondary btn-xs"
+               
                 onClick={() => {
                   const next: Record<string, 'contact' | 'company'> = { ...entityTypeOverrides };
                   selectedRows.forEach(r => { delete next[r.email]; });
                   setEntityTypeOverrides(next);
-                }}
-               data-ui-native-button="">
+                }}>
                 Reset to Auto-detect
-              </button>
+              </Button>
             </div>
 
             <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
@@ -814,14 +811,13 @@ export function ContactsSpecialView({ view, loading, directory, discovery, conta
             </table>
           </DialogBody>
           <DialogFooter>
-            <button
+            <Button variant="outline" size="sm"
               type="button"
-              className="btn btn-secondary btn-sm"
+             
               onClick={() => setShowReviewModal(false)}
-              disabled={bulkBusy}
-             data-ui-native-button="">
+              disabled={bulkBusy}>
               Cancel
-            </button>
+            </Button>
             <Button
               size="sm"
               onClick={() => handleBulkImport('auto')}

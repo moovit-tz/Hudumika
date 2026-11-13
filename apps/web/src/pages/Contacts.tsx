@@ -733,43 +733,40 @@ export function Contacts() {
               <div style={{ flex: 1 }} />
 
               <div style={{ display: 'flex', gap: 8 }}>
-                <button
+                <Button variant="outline" size="sm"
                   type="button"
                   onClick={() => handleToggleFavorite(activeContact)}
-                  className="btn btn-secondary btn-sm"
-                  style={{ display: 'flex', alignItems: 'center', gap: 6 }}
-                 data-ui-native-button="">
+                 
+                  style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                   <Icon name="star" size={14} color={activeContact.is_favorite ? 'var(--gold)' : 'var(--ink2)'} />
                   {activeContact.is_favorite ? 'Favorited' : 'Favorite'}
-                </button>
-                <button
+                </Button>
+                <Button variant="outline" size="sm"
                   type="button"
                   onClick={() => openContactModal(activeContact)}
-                  className="btn btn-secondary btn-sm"
-                  style={{ display: 'flex', alignItems: 'center', gap: 6 }}
-                 data-ui-native-button="">
+                 
+                  style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                   <Icon name="edit" size={14} color="var(--ink2)" />
                   Edit
-                </button>
-                <button type="button" onClick={() => setAccessOpen(true)} className="btn btn-secondary btn-sm" style={{ display: 'flex', alignItems: 'center', gap: 6 }} data-ui-native-button="">
+                </Button>
+                <Button variant="outline" size="sm" type="button" onClick={() => setAccessOpen(true)} style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                   <Icon name="lock" size={14} color="var(--ink2)" /> Access
-                </button>
-                <button type="button" onClick={shareContact} className="btn btn-secondary btn-sm" style={{ display: 'flex', alignItems: 'center', gap: 6 }} data-ui-native-button="">
+                </Button>
+                <Button variant="outline" size="sm" type="button" onClick={shareContact} style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                   <Icon name="share" size={14} color="var(--ink2)" /> Share
-                </button>
+                </Button>
                 {activeContact && (
                   <PartyShareDialog open={accessOpen} onOpenChange={setAccessOpen} partyId={activeContact.party_id ?? activeContact.id}
                     name={`${activeContact.first_name} ${activeContact.last_name || ''}`.trim()} />
                 )}
-                <button
+                <Button variant="outline" size="sm"
                   type="button"
                   onClick={() => handleDeleteContact(activeContact.id, activeContact.status === 'TRASHED')}
-                  className="btn btn-secondary btn-sm"
-                  style={{ display: 'flex', alignItems: 'center', gap: 6, borderColor: 'var(--red)', color: 'var(--red)' }}
-                 data-ui-native-button="">
+                 
+                  style={{ display: 'flex', alignItems: 'center', gap: 6, borderColor: 'var(--red)', color: 'var(--red)' }}>
                   <Icon name="trash" size={14} color="var(--red)" />
                   Delete
-                </button>
+                </Button>
               </div>
             </div>
 
@@ -1044,13 +1041,12 @@ export function Contacts() {
                     <div style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
                       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
                         <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--ink2)', textTransform: 'uppercase', letterSpacing: '.8px' }}>Notepad</div>
-                        <button
+                        <Button size="sm"
                           type="button"
-                          className="btn btn-primary btn-sm"
-                          onClick={() => openContactModal(activeContact)}
-                         data-ui-native-button="">
+                         
+                          onClick={() => openContactModal(activeContact)}>
                           Edit Notes
-                        </button>
+                        </Button>
                       </div>
                       <div style={{
                         flex: 1, padding: 16, background: 'var(--bg)', borderRadius: 'var(--r)', border: '1px solid var(--border)',
@@ -1179,7 +1175,7 @@ export function Contacts() {
 
             {currentView === 'contacts' && (loadErrors.contacts || loadErrors.labels || loadErrors.smartGroups || loadErrors.duplicates || loadErrors.companies || birthdaysError) && (
               <div style={{ padding: '0 20px 16px' }}>
-                <Banner variant="error" action={<button type="button" className="btn btn-secondary btn-sm" onClick={() => { loadData(); if (birthdaysError) apiFetch('/v1/contacts/birthdays?within=30').then((rows: any) => { setUpcomingBirthdays(Array.isArray(rows) ? rows : []); setBirthdaysError(false); }).catch(() => setBirthdaysError(true)); }} data-ui-native-button="">Retry</button>}>
+                <Banner variant="error" action={<Button variant="outline" size="sm" type="button" onClick={() => { loadData(); if (birthdaysError) apiFetch('/v1/contacts/birthdays?within=30').then((rows: any) => { setUpcomingBirthdays(Array.isArray(rows) ? rows : []); setBirthdaysError(false); }).catch(() => setBirthdaysError(true)); }}>Retry</Button>}>
                   {loadErrors.contacts
                     ? "Some contacts couldn't load — this list may be incomplete."
                     : [
@@ -1316,7 +1312,7 @@ export function Contacts() {
               {selectedIds.size > 0 && (
                 <div style={{ display: 'flex', alignItems: 'center', gap: 16, padding: '10px 16px', background: 'var(--cts-accent-bg)', borderRadius: 'var(--r)', marginBottom: 16 }}>
                   <span style={{ fontSize: 14, fontWeight: 600, color: 'var(--cts-accent)' }}>{selectedIds.size} selected</span>
-                  <button type="button" className="btn btn-secondary btn-sm" onClick={toggleSelectAll} data-ui-native-button="">Deselect all</button>
+                  <Button variant="outline" size="sm" type="button" onClick={toggleSelectAll}>Deselect all</Button>
                   
                   <div style={{ flex: 1 }} />
 
@@ -1347,14 +1343,13 @@ export function Contacts() {
                     </DropdownMenuContent>
                   </DropdownMenu>
 
-                  <button
+                  <Button variant="outline" size="sm"
                     type="button"
-                    className="btn btn-secondary btn-sm"
+                   
                     style={{ borderColor: 'var(--red)', color: 'var(--red)' }}
-                    onClick={() => handleBulkDelete(currentView === 'trash')}
-                   data-ui-native-button="">
+                    onClick={() => handleBulkDelete(currentView === 'trash')}>
                     {currentView === 'trash' ? 'Delete Permanently' : 'Move to Trash'}
-                  </button>
+                  </Button>
                 </div>
               )}
 
@@ -1529,18 +1524,17 @@ export function Contacts() {
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
                     <h3 style={{ fontSize: 16, fontWeight: 700, color: 'var(--ink)', margin: 0 }}>Duplicate suggestions</h3>
                     {duplicates.length > 0 && (
-                      <button
+                      <Button
                         type="button"
-                        className="btn btn-primary"
+                       
                         onClick={async () => {
                           for (const group of duplicates) {
                             await handleMerge(group.contacts[0].id, group.contacts.slice(1).map(c => c.id));
                           }
                           showAlert('All duplicates merged!');
-                        }}
-                       data-ui-native-button="">
+                        }}>
                         Merge all
-                      </button>
+                      </Button>
                     )}
                   </div>
 
@@ -1576,13 +1570,12 @@ export function Contacts() {
                           </div>
 
                           <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 10 }}>
-                            <button
+                            <Button size="sm"
                               type="button"
-                              className="btn btn-primary btn-sm"
-                              onClick={() => handleMerge(group.contacts[0].id, group.contacts.slice(1).map(c => c.id))}
-                             data-ui-native-button="">
+                             
+                              onClick={() => handleMerge(group.contacts[0].id, group.contacts.slice(1).map(c => c.id))}>
                               Merge
-                            </button>
+                            </Button>
                           </div>
                         </div>
                       ))}
@@ -2065,27 +2058,25 @@ export function Contacts() {
 
             {/* Footer — Back / Continue walk through steps; Save works from any step */}
             <DialogFooter className="justify-between">
-              <button type="button" className="btn btn-secondary" onClick={() => setShowEditModal(null)} data-ui-native-button="">Cancel</button>
+              <Button variant="outline" type="button" onClick={() => setShowEditModal(null)}>Cancel</Button>
               <div style={{ display: 'flex', gap: 10 }}>
                 {MODAL_STEPS.findIndex(s => s.key === formStep) > 0 && (
-                  <button
+                  <Button variant="outline"
                     type="button"
-                    className="btn btn-secondary"
-                    onClick={() => setFormStep(MODAL_STEPS[MODAL_STEPS.findIndex(s => s.key === formStep) - 1].key)}
-                   data-ui-native-button="">
+                   
+                    onClick={() => setFormStep(MODAL_STEPS[MODAL_STEPS.findIndex(s => s.key === formStep) - 1].key)}>
                     Back
-                  </button>
+                  </Button>
                 )}
                 {MODAL_STEPS.findIndex(s => s.key === formStep) < MODAL_STEPS.length - 1 && (
-                  <button
+                  <Button variant="outline"
                     type="button"
-                    className="btn btn-secondary"
-                    onClick={() => setFormStep(MODAL_STEPS[MODAL_STEPS.findIndex(s => s.key === formStep) + 1].key)}
-                   data-ui-native-button="">
+                   
+                    onClick={() => setFormStep(MODAL_STEPS[MODAL_STEPS.findIndex(s => s.key === formStep) + 1].key)}>
                     Continue
-                  </button>
+                  </Button>
                 )}
-                <button type="submit" className="btn btn-primary" data-ui-native-button="">Save contact</button>
+                <Button type="submit">Save contact</Button>
               </div>
             </DialogFooter>
           </form>

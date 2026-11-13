@@ -101,6 +101,7 @@ export async function listTransitRoutes(tenantId: string) {
     if (existing.length > 0) return existing;
     await trx.insertInto('transit_route_rates')
       .values(DEFAULT_TRANSIT_ROUTES.map(r => ({ tenant_id: tenantId, ...r })))
+      .onConflict(oc => oc.columns(['tenant_id', 'destination']).doNothing())
       .execute();
     return trx.selectFrom('transit_route_rates').selectAll()
       .where('tenant_id', '=', tenantId).orderBy('destination', 'asc').execute();

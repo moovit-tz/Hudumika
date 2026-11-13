@@ -22,7 +22,7 @@
 .ot-card {
   background: var(--white);
   border: 1px solid var(--border);
-  border-radius: 14px;
+  border-radius: var(--r-lg);
   padding: 22px 24px;
   display: flex;
   flex-direction: column;
@@ -168,7 +168,7 @@
   align-items: center;
   justify-content: space-between;
   padding: 10px 14px;
-  border-radius: 10px;
+  border-radius: var(--r);
   background: var(--bg);
   border: 1px solid var(--border);
   transition: all 0.15s ease;
@@ -299,7 +299,7 @@
   transform: translate(-50%, -100%);
   background: var(--white, #ffffff);
   border: 1px solid var(--border);
-  border-radius: 8px;
+  border-radius: var(--r-sm);
   padding: 8px 12px;
   box-shadow: 0 10px 25px rgba(0, 0, 0, 0.12), 0 1px 3px rgba(0, 0, 0, 0.05);
   pointer-events: none;
@@ -410,7 +410,7 @@
 .ot-reliability-wrap {
   background: var(--white);
   border: 1px solid var(--border);
-  border-radius: 14px;
+  border-radius: var(--r-lg);
   padding: 22px 24px;
   box-shadow: var(--elev-sm, 0 1px 3px rgba(0,0,0,0.04));
 }
@@ -455,7 +455,7 @@
 .ot-rel-card {
   background: var(--bg);
   border: 1px solid var(--border);
-  border-radius: 12px;
+  border-radius: var(--r);
   padding: 16px;
   display: flex;
   flex-direction: column;
@@ -513,7 +513,7 @@
 .ot-recs-wrap {
   background: var(--white);
   border: 1px solid var(--border);
-  border-radius: 14px;
+  border-radius: var(--r-lg);
   padding: 22px 24px;
   box-shadow: var(--elev-sm, 0 1px 3px rgba(0,0,0,0.04));
 }
@@ -527,7 +527,7 @@
 .ot-rec-card {
   background: var(--bg);
   border: 1px solid var(--border);
-  border-radius: 12px;
+  border-radius: var(--r);
   padding: 18px;
   display: flex;
   flex-direction: column;

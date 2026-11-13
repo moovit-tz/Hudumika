@@ -12,6 +12,7 @@ import { showConfirm } from '../lib/confirm.js';
 import { fmtSize } from '../pages/cloud/lib/format.js';
 import { CATEGORY_EXT, categorizeBytes } from '../pages/cloud/lib/categories.js';
 import { CreateFolderModal } from '../pages/cloud/modals/CreateFolderModal.js';
+import { Button } from '../components/ui/button.js';
 
 /** Same colour-per-category mapping StorageOverviewCards uses on Home, so
  *  the sidebar widget and the Home dashboard never disagree about which
@@ -217,7 +218,7 @@ export function CloudSidebarContent({ collapsed }: { collapsed: boolean }) {
           </DropdownMenuTrigger>
           <DropdownMenuContent align="start" className="w-56">
             <DropdownMenuItem onClick={() => setShowCreateFolder(true)}>
-              <Icon name="folder" size={15} color="#f59e0b" /> {t('sidebar.newFolder')}
+              <Icon name="folder" size={15} color="var(--gold)" /> {t('sidebar.newFolder')}
             </DropdownMenuItem>
             <DropdownMenuItem onClick={() => fileInputRef.current?.click()}>
               <Icon name="upload" size={15} color="var(--teal)" /> {t('sidebar.fileUpload')}
@@ -441,8 +442,8 @@ export function CloudSidebarContent({ collapsed }: { collapsed: boolean }) {
               new shared drive.
             </p>
             <div className="csb-modal-actions">
-              <button onClick={() => setShowCreateDrive(false)} className="btn btn-secondary btn-sm">Cancel</button>
-              <button onClick={handleCreateDrive} className="btn btn-primary btn-sm" disabled={!newDriveName.trim()}>Create</button>
+              <Button variant="outline" size="sm" onClick={() => setShowCreateDrive(false)}>Cancel</Button>
+              <Button size="sm" onClick={handleCreateDrive} disabled={!newDriveName.trim()}>Create</Button>
             </div>
           </div>
         </div>
@@ -465,8 +466,8 @@ export function CloudSidebarContent({ collapsed }: { collapsed: boolean }) {
               style={{ width: '100%', marginBottom: 20 }}
             />
             <div className="csb-modal-actions">
-              <button onClick={() => setRenamingDrive(null)} className="btn btn-secondary btn-sm">Cancel</button>
-              <button onClick={handleRenameDrive} className="btn btn-primary btn-sm" disabled={!renameValue.trim()}>Save</button>
+              <Button variant="outline" size="sm" onClick={() => setRenamingDrive(null)}>Cancel</Button>
+              <Button size="sm" onClick={handleRenameDrive} disabled={!renameValue.trim()}>Save</Button>
             </div>
           </div>
         </div>

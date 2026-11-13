@@ -62,10 +62,10 @@ function MiniMonthPicker() {
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
         <span style={{ fontSize: 12.5, fontWeight: 700, color: 'var(--ink)' }}>{MONTH_NAMES[month]} {year}</span>
         <div style={{ display: 'flex', gap: 2 }}>
-          <button type="button" onClick={() => jump(-1)} title="Previous month" style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 3, display: 'flex', borderRadius: 6, color: 'var(--ink3)' }}>
+          <button type="button" onClick={() => jump(-1)} title="Previous month" style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 3, display: 'flex', borderRadius: 'var(--r-sm)', color: 'var(--ink3)' }}>
             <Icon name="chevronLeft" size={14} />
           </button>
-          <button type="button" onClick={() => jump(1)} title="Next month" style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 3, display: 'flex', borderRadius: 6, color: 'var(--ink3)' }}>
+          <button type="button" onClick={() => jump(1)} title="Next month" style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 3, display: 'flex', borderRadius: 'var(--r-sm)', color: 'var(--ink3)' }}>
             <Icon name="chevronRight" size={14} />
           </button>
         </div>
@@ -141,7 +141,7 @@ function MeetWithPanel() {
         <Icon name="users" size={14} color="var(--ink3)" />
         Meet with…
         {people.length > 0 && (
-          <span style={{ background: 'var(--teal-l)', color: 'var(--teal)', padding: '1px 7px', borderRadius: 10, fontSize: 10.5, fontWeight: 700 }}>{people.length}</span>
+          <span style={{ background: 'var(--teal-l)', color: 'var(--teal)', padding: '1px 7px', borderRadius: 'var(--r)', fontSize: 10.5, fontWeight: 700 }}>{people.length}</span>
         )}
         <Icon name={open ? 'chevronUp' : 'chevronDown'} size={13} color="var(--ink3)" style={{ marginLeft: 'auto' }} />
       </button>
@@ -151,10 +151,10 @@ function MeetWithPanel() {
             <input
               type="text" value={query} onChange={e => setQuery(e.target.value)}
               placeholder="Search people…"
-              style={{ width: '100%', boxSizing: 'border-box', padding: '7px 10px', border: '1px solid var(--border)', borderRadius: 7, fontSize: 12.5 }}
+              style={{ width: '100%', boxSizing: 'border-box', padding: '7px 10px', border: '1px solid var(--border)', borderRadius: 'var(--r-sm)', fontSize: 12.5 }}
             />
             {(results.length > 0 || searching) && (
-              <div style={{ position: 'absolute', top: '100%', left: 0, right: 0, marginTop: 4, background: 'var(--card-bg, #fff)', border: '1px solid var(--border)', borderRadius: 8, boxShadow: 'var(--elev)', zIndex: 20, maxHeight: 200, overflowY: 'auto' }}>
+              <div style={{ position: 'absolute', top: '100%', left: 0, right: 0, marginTop: 4, background: 'var(--card-bg, #fff)', border: '1px solid var(--border)', borderRadius: 'var(--r-sm)', boxShadow: 'var(--elev)', zIndex: 20, maxHeight: 200, overflowY: 'auto' }}>
                 {searching && <div style={{ padding: 8, fontSize: 12, color: 'var(--ink3)' }}>Searching…</div>}
                 {!searching && results.map(p => (
                   <button
@@ -284,7 +284,7 @@ function TodoSidebarContent({ collapsed }: { collapsed: boolean }) {
                 <span style={{ width: 7, height: 7, borderRadius: '50%', background: list.color }} />
                 {list.name}
               </span>
-              <span style={{ background: 'var(--border)', padding: '1px 6px', borderRadius: 10, fontSize: 10, color: 'var(--ink2)', fontWeight: 600 }}>{listTodos.length}</span>
+              <span style={{ background: 'var(--border)', padding: '1px 6px', borderRadius: 'var(--r)', fontSize: 10, color: 'var(--ink2)', fontWeight: 600 }}>{listTodos.length}</span>
             </div>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
               {listTodos.map(todo => (
@@ -293,7 +293,7 @@ function TodoSidebarContent({ collapsed }: { collapsed: boolean }) {
                   draggable
                   onDragStart={e => handleDragStart(e, todo)}
                   style={{
-                    background: 'var(--white)', padding: '8px 10px', borderRadius: 7,
+                    background: 'var(--white)', padding: '8px 10px', borderRadius: 'var(--r-sm)',
                     fontSize: 12.5, color: 'var(--ink)', cursor: 'grab', display: 'flex', alignItems: 'center', gap: 8,
                     border: '1px solid var(--border)', transition: 'border-color .15s',
                   }}

@@ -6,6 +6,7 @@ import { useIdleLock } from '../hooks/useIdleLock.js';
 import { PersonAvatar } from './PersonAvatar.js';
 import { NotificationCentre } from './NotificationCentre.js';
 import { HeaderPill } from './HeaderPill.js';
+import { useWebSocket } from '../hooks/useWebSocket.js';
 import { Icon, type IconName } from './Icon.js';
 import { APP_COLORS, ActiveAppContext, MobileNavContext } from '../shells/WorkspaceApp.js';
 import { useBranding } from '../hooks/useBranding.js';
@@ -74,6 +75,37 @@ const SEARCH_CATEGORIES: Record<string, { label: string; icon: IconName }> = {
   emails:    { label: 'Email',     icon: 'mail' },
   people:    { label: 'People', icon: 'user' },
   organizations: { label: 'Organizations', icon: 'building' },
+  tasks:        { label: 'My tasks',      icon: 'tasks' },
+  projects:     { label: 'Projects',      icon: 'layers' },
+  notes:        { label: 'My notes',      icon: 'fileText' },
+  files:        { label: 'My files',      icon: 'folder' },
+  events:       { label: 'My calendar',   icon: 'calendar' },
+  leads:        { label: 'Leads',         icon: 'users' },
+  deals:        { label: 'Deals',         icon: 'dollarSign' },
+  tickets:      { label: 'Support tickets', icon: 'inbox' },
+  quotations:   { label: 'Quotations',    icon: 'clipboard' },
+  products:     { label: 'Products & services', icon: 'package' },
+  suppliers:    { label: 'Suppliers',     icon: 'building' },
+  declarations: { label: 'Declarations',  icon: 'clipboard' },
+  documents:    { label: 'My sign documents', icon: 'send' },
+  notifications: { label: 'My notifications', icon: 'bell' },
+  purchase_orders: { label: 'Purchase orders', icon: 'clipboard' },
+  bills:        { label: 'Supplier bills',  icon: 'invoice' },
+  expenses:     { label: 'Expenses',        icon: 'receipt' },
+  credit_notes: { label: 'Credit notes',    icon: 'invoice' },
+  delivery_docs: { label: 'Delivery documents', icon: 'truck' },
+  petty_cash:   { label: 'Petty cash',      icon: 'dollarSign' },
+  seal_lots:    { label: 'Warehouse lots',  icon: 'package' },
+  consignments: { label: 'Consignments',    icon: 'container' },
+  campaigns:    { label: 'SMS campaigns',   icon: 'send' },
+  sms_templates: { label: 'SMS templates',  icon: 'fileText' },
+  parcels:      { label: 'Parcels',         icon: 'send' },
+  garage_vehicles: { label: 'Garage vehicles', icon: 'truck' },
+  matters:      { label: 'Legal matters',   icon: 'briefcase' },
+  permits:      { label: 'Permits & licences', icon: 'shield' },
+  web_pages:    { label: 'Website pages',   icon: 'globe' },
+  domains:      { label: 'Domains',         icon: 'globe' },
+  meetings:     { label: 'My meetings',     icon: 'calendar' },
 };
 
 // ── Main component ─────────────────────────────────────────────
@@ -274,6 +306,9 @@ export function AppHeader({
    *  the server decides what is live and undismissed, so there is nothing to
    *  filter here. */
   const [announcements, setAnnouncements] = useState<any[]>([]);
+  /** What the bar announces — asked for directly (GET /notifications/ticker)
+   *  rather than derived from `notifs`, which is only the newest page. */
+  const [ticker, setTicker] = useState<any[]>([]);
 
   useEffect(() => {
     const load = () => apiFetch('/v1/announcements/active')
@@ -296,13 +331,36 @@ export function AppHeader({
       const serverTotal = Array.isArray(data) ? undefined : data?.total_count;
       setTotalCount(typeof serverTotal === 'number' ? serverTotal : list.length);
     } catch { /* silently ignore */ }
+    try {
+      const res = await apiFetch('/v1/notifications/ticker');
+      setTicker(Array.isArray(res?.items) ? res.items : []);
+    } catch { /* the bar falls back to the search box */ }
   }, []);
 
   useEffect(() => {
     loadNotifs();
-    const interval = setInterval(loadNotifs, 45000);
-    return () => clearInterval(interval);
+    // The poll is the safety net; the socket below is what makes it prompt.
+    // A hidden tab does not poll — it catches up the moment it is shown.
+    const interval = setInterval(() => { if (!document.hidden) loadNotifs(); }, 45000);
+    const onVisible = () => { if (!document.hidden) loadNotifs(); };
+    document.addEventListener('visibilitychange', onVisible);
+    window.addEventListener('focus', onVisible);
+    return () => {
+      clearInterval(interval);
+      document.removeEventListener('visibilitychange', onVisible);
+      window.removeEventListener('focus', onVisible);
+    };
   }, [loadNotifs]);
+
+  // The server nudges this person's tabs when something is written for them.
+  // The nudge carries no content; we re-read through the normal endpoints.
+  const nudgeTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  useWebSocket(useCallback((event: any) => {
+    if (event?.type !== 'notification.new') return;
+    if (nudgeTimer.current) clearTimeout(nudgeTimer.current);
+    nudgeTimer.current = setTimeout(loadNotifs, 300);
+  }, [loadNotifs]));
+  useEffect(() => () => { if (nudgeTimer.current) clearTimeout(nudgeTimer.current); }, []);
 
   /**
    * Unread, newest first, capped — the pill is a nudge, not an inbox, and the
@@ -326,8 +384,10 @@ export function AppHeader({
       out.push({ id: a.id, title: a.title, message: a.body, link: a.link, badge: a.badge, kind: 'announcement' });
       if (out.length === 3) break;
     }
-    for (const n of notifs) {
-      if (n.read || !n.title) continue;
+    // Already unread, current, unmuted and one-per-subject: the server did
+    // that.
+    for (const n of ticker) {
+      if (!n.title) continue;
       const key = `${n.title}|${n.shipment_id ?? n.entity_id ?? ''}`;
       if (seen.has(key)) continue;
       seen.add(key);
@@ -335,7 +395,7 @@ export function AppHeader({
       if (out.length === 5) break;
     }
     return out;
-  }, [notifs, announcements]);
+  }, [ticker, announcements]);
 
 
   /** Announcements dismiss per person, notifications mark read — same gesture
@@ -351,11 +411,13 @@ export function AppHeader({
 
   function handleMarkRead(id: string, _link?: string) {
     setNotifs(prev => prev.map(n => n.id === id ? { ...n, read: true } : n));
+    setTicker(prev => prev.filter(n => n.id !== id));
     setUnreadCount(prev => Math.max(0, prev - 1));
     apiFetch(`/v1/notifications/${id}/read`, { method: 'PATCH' }).catch(() => {});
   }
   function handleMarkAllRead() {
     setNotifs(prev => prev.map(n => ({ ...n, read: true })));
+    setTicker([]);
     setUnreadCount(0);
     apiFetch('/v1/notifications/read-all', { method: 'PATCH' }).catch(() => {});
   }
@@ -409,6 +471,21 @@ export function AppHeader({
   const isHub = !!onHubSearchChange;
   const isAppSearch = !!onAppSearchChange;
   const [searchEverywhere, setSearchEverywhere] = useState(() => !isAppSearch);
+  /**
+   * Within a platform search: every app (default) or only the one open now.
+   * Remembered per person — someone who works in one app all day wants their
+   * choice to stick. The API narrows the categories itself (scope=app).
+   */
+  const [appOnly, setAppOnly] = useState<boolean>(() => {
+    try { return localStorage.getItem('hudumika_search_app_only') === '1'; } catch { return false; }
+  });
+  useEffect(() => {
+    try { localStorage.setItem('hudumika_search_app_only', appOnly ? '1' : '0'); } catch { /* private mode */ }
+  }, [appOnly]);
+  const openAppName = activeApp
+    ? branding.getAppName(activeApp, LAUNCHER_APPS.find(a => a.id === activeApp)?.name ?? activeApp)
+    : '';
+  const scopedToApp = searchEverywhere && appOnly && !!activeApp;
   const searchValue = isHub
     ? (hubSearch ?? '')
     : isAppSearch
@@ -424,7 +501,7 @@ export function AppHeader({
     ? t('header.searchHub')
     : isAppSearch && !searchEverywhere
       ? (appSearchPlaceholder ?? t('header.searchDefault'))
-      : 'Search across Hudumika…';
+      : scopedToApp ? `Search ${openAppName}…` : 'Search across Hudumika…';
 
   // ── Global cross-app search results ──
   const navigate = useNavigate();
@@ -451,7 +528,7 @@ export function AppHeader({
       searchAbortRef.current = controller;
       // `app` never narrows the search — it decides depth and order. See
       // apps/api/src/routes/search.routes.ts.
-      const scope = activeApp ? `&app=${encodeURIComponent(activeApp)}` : '';
+      const scope = activeApp ? `&app=${encodeURIComponent(activeApp)}${scopedToApp ? '&scope=app' : ''}` : '';
       apiFetch(`/v1/search?q=${encodeURIComponent(q)}${scope}`, { signal: controller.signal })
         .then((res: GlobalSearchResponse) => {
           setGlobalResults(res.data || {});
@@ -466,7 +543,36 @@ export function AppHeader({
         .finally(() => { if (!controller.signal.aborted) setGlobalSearching(false); });
     }, 250);
     return () => { if (searchDebounceRef.current) clearTimeout(searchDebounceRef.current); searchAbortRef.current?.abort(); };
-  }, [searchValue, activeApp, searchEverywhere]);
+  }, [searchValue, activeApp, searchEverywhere, scopedToApp]);
+
+  // Page (this page's own filter) -> this app -> every app.
+  const scopeLabel = !searchEverywhere ? 'Page' : scopedToApp ? (openAppName || 'App') : 'All apps';
+  const scopeNextLabel = !searchEverywhere
+    ? `Search ${openAppName || 'this app'}`
+    : scopedToApp ? 'Search every app' : (isAppSearch ? 'Filter this page only' : `Search ${openAppName || 'this app'} only`);
+  function cycleSearchScope() {
+    // Keep the search going after the switch: focus back in the box, results
+    // reopen for the new scope (the effect above re-runs the query).
+    requestAnimationFrame(() => {
+      searchInputRef.current?.focus();
+      setResultsOpen(searchValue.trim().length >= 2);
+    });
+    if (!searchEverywhere) {
+      const seed = appSearch ?? '';
+      setGlobalSearch(seed);
+      setSearchEverywhere(true);
+      setAppOnly(true);
+      setResultsOpen(seed.trim().length >= 2);
+    } else if (scopedToApp) {
+      setAppOnly(false);
+    } else if (isAppSearch) {
+      setSearchEverywhere(false);
+      setResultsOpen(false);
+    } else {
+      setAppOnly(true);
+    }
+    setActiveResult(-1);
+  }
 
   function handleSearchFocus() {
     if (searchEverywhere && searchValue.trim().length >= 2) setResultsOpen(true);
@@ -501,8 +607,10 @@ export function AppHeader({
         const inThisApp = !!activeApp && categoryApp[cat] === activeApp;
         // The first result that is NOT from the app you are in — everything
         // above it is local, everything below is the rest of the platform.
-        const firstAway = !!activeApp && !inThisApp
-          && resultOrder.slice(0, i).some(c => globalResults[c]?.length && categoryApp[c] === activeApp);
+        // Only where the group just above is local: checking "any earlier
+        // group" printed the divider above every later group, not once.
+        const prevShown = [...resultOrder.slice(0, i)].reverse().find(c => globalResults[c]?.length);
+        const firstAway = !!activeApp && !inThisApp && !!prevShown && categoryApp[prevShown] === activeApp;
         return (
         <div key={cat} className="mb-1 last:mb-0">
           {firstAway && (
@@ -647,7 +755,7 @@ export function AppHeader({
                   <Tip label="Clear search" side="bottom">
                     <button
                       type="button"
-                      className={`app-header-hub-search-clear${isAppSearch ? ' app-header-hub-search-clear--with-scope' : ''}`}
+                      className={`app-header-hub-search-clear${isAppSearch || activeApp ? ' app-header-hub-search-clear--with-scope' : ''}`}
                       aria-label="Clear search"
                       onClick={() => { handleSearch(''); setResultsOpen(false); }}
                      data-ui-native-button="">
@@ -655,25 +763,14 @@ export function AppHeader({
                     </button>
                   </Tip>
                 )}
-                {isAppSearch && (
+                {(isAppSearch || !!activeApp) && (
                   <Tip label={searchEverywhere ? 'Search this app only' : 'Search every app'} side="bottom">
                     <button
                       type="button"
                       className="app-header-search-scope"
-                      aria-label={searchEverywhere ? 'Search this app only' : 'Search every app'}
-                      onClick={() => {
-                        if (searchEverywhere) {
-                          setSearchEverywhere(false);
-                          setResultsOpen(false);
-                        } else {
-                          const seed = appSearch ?? '';
-                          setGlobalSearch(seed);
-                          setSearchEverywhere(true);
-                          setResultsOpen(seed.trim().length >= 2);
-                        }
-                        setActiveResult(-1);
-                      }}
-                     data-ui-native-button="">{searchEverywhere ? 'All' : 'App'}</button>
+                      aria-label={scopeNextLabel}
+                      onClick={cycleSearchScope}
+                     data-ui-native-button="">{scopeLabel}</button>
                   </Tip>
                 )}
               </div>
@@ -685,6 +782,11 @@ export function AppHeader({
               className="w-(--radix-popover-trigger-width) min-w-[320px] max-h-105 overflow-y-auto p-1.5"
               onOpenAutoFocus={e => e.preventDefault()}
               onCloseAutoFocus={e => e.preventDefault()}
+              // A click in the search box itself (the scope switch, the clear
+              // button) is not "outside" — it must not close the results.
+              onInteractOutside={e => {
+                if ((e.target as HTMLElement | null)?.closest?.('.app-header-hub-search')) e.preventDefault();
+              }}
             >
               {resultsPanel}
             </PopoverContent>
@@ -1019,6 +1121,21 @@ export function AppHeader({
           </div>
         </div>
       </header>
+
+      {/* Phones have no room for the bar inside the header row, so it gets a
+          row of its own beneath it. Hidden above the mobile breakpoint, where
+          the copy in the header's centre slot is showing instead. */}
+      {pillItems.length > 0 && (
+        <div className="app-header-pill-row">
+          <HeaderPill
+            compact
+            items={pillItems}
+            onOpen={item => { handlePillDismiss(item); if (item.link) navigate(item.link); }}
+            onDismiss={handlePillDismiss}
+            onExpandSearch={() => setMobileSearchOpen(true)}
+          />
+        </div>
+      )}
 
       {mobileSearchOpen && (
         <div className="app-header-search-overlay" onClick={() => setMobileSearchOpen(false)}>

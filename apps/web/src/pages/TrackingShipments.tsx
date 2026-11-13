@@ -448,7 +448,7 @@ export const TrackingShipments: React.FC = () => {
               {[1, 2, 3, 4, 5, 6].map(i => (
                 <div key={i} className="trk-shipment-card" style={{ minHeight: 220, opacity: 0.6 }}>
                   <div style={{ height: 20, width: '40%', background: 'var(--card-sunken)', borderRadius: 4 }} />
-                  <div style={{ height: 60, width: '100%', background: 'var(--card-sunken)', borderRadius: 6, margin: '10px 0' }} />
+                  <div style={{ height: 60, width: '100%', background: 'var(--card-sunken)', borderRadius: 'var(--r-sm)', margin: '10px 0' }} />
                   <div style={{ height: 16, width: '70%', background: 'var(--card-sunken)', borderRadius: 4 }} />
                 </div>
               ))}

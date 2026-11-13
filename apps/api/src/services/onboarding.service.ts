@@ -56,6 +56,15 @@ export async function findTenantByEmailDomain(email: string): Promise<MatchedTen
 const RESERVED_SUBDOMAINS = new Set([
   'www', 'api', 'admin', 'app', 'mail', 'static', 'assets', 'cdn',
   'superadmin', 'support', 'help', 'blog', 'docs', 'status',
+  // Workspaces live at {subdomain}.PLATFORM_BASE_DOMAIN, the same domain the
+  // apps are served on ({app}.hudumika.tz — apps/web/src/lib/appEntry.ts and
+  // deploy/contabo/Caddyfile). A workspace must never be able to claim one.
+  'bliss', 'calendar', 'clearos', 'cloud', 'cms', 'complyos', 'contacts', 'crm',
+  'developer', 'email', 'esign', 'finops', 'hudubi', 'hudufreight', 'lens',
+  'nexushr', 'ondi', 'onsite', 'petti', 'pos', 'projects', 'safetracker', 'seal',
+  'sms', 'studio', 'tasks', 'workspace', 'gereji', 'tuma', 'ngao', 'lexcore',
+  'store', 'drive', 'notes', 'sign', 'travel', 'tracking', 'finance', 'hr',
+  'ns1', 'ns2', 'smtp', 'imap', 'webmail', 'auth', 'login', 'sso', 'id',
 ]);
 
 export class OnboardingError extends Error {

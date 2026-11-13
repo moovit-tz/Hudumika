@@ -611,7 +611,7 @@
 .sign-workspace .sign-field-type-btn:hover {
   border-color: var(--teal) !important;
   background: var(--card-bg) !important;
-  box-shadow: 0 4px 12px rgba(13, 148, 136, 0.08), 0 1px 3px rgba(0, 0, 0, 0.04) !important;
+  box-shadow: 0 4px 12px color-mix(in srgb, var(--teal) 8%, transparent), 0 1px 3px rgba(0, 0, 0, 0.04) !important;
   transform: translateY(-1px);
 }
 

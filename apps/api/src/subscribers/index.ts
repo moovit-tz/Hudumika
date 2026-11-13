@@ -19,6 +19,9 @@ import './activation.subscribers.js';
 // Registers one handler per DOMAIN_EVENT trigger, so tenant-defined Studio
 // workflows react to the same events the hardcoded subscribers above do.
 import './studio.subscribers.js';
+// Turns the events other apps already emit into bell notifications for the
+// person each one concerns.
+import './notifications.subscribers.js';
 
 export function bootstrapSubscribers(): void {
   // Imports above already ran registerSubscriber() as a module side effect;

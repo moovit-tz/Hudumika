@@ -124,7 +124,7 @@ export function MeetingLinkPanel({ title, value, onChange, disabled }: {
   }
 
   return (
-    <div style={{ border: '1px solid var(--border)', borderRadius: 10, padding: 12, background: 'var(--white)', display: 'flex', flexDirection: 'column', gap: 4 }}>
+    <div style={{ border: '1px solid var(--border)', borderRadius: 'var(--r)', padding: 12, background: 'var(--white)', display: 'flex', flexDirection: 'column', gap: 4 }}>
       <Input
         value={password} onChange={e => setPassword(e.target.value)}
         placeholder="Password (optional)" disabled={!hasBliss}

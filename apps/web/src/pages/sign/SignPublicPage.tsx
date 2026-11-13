@@ -284,7 +284,7 @@ export function SignPublicPage() {
 
   if (error) return (
     <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'var(--bg)', fontFamily: 'var(--font)' }}>
-      <div style={{ background: 'var(--card-bg)', borderRadius: 16, padding: 40, maxWidth: 400, textAlign: 'center', boxShadow: 'var(--elev-lg)' }}>
+      <div style={{ background: 'var(--card-bg)', borderRadius: 'var(--r-lg)', padding: 40, maxWidth: 400, textAlign: 'center', boxShadow: 'var(--elev-lg)' }}>
         <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 12 }}>
           <Icon name="alertCircle" size={48} style={{ color: 'var(--sign-red)' }} />
         </div>
@@ -406,7 +406,7 @@ export function SignPublicPage() {
   if (data.envelope.require_otp && !otpVerified) {
     return (
       <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'var(--bg)', fontFamily: 'var(--font)', padding: 24 }}>
-        <div style={{ background: 'var(--card-bg)', borderRadius: 16, padding: 36, maxWidth: 420, width: '100%', boxShadow: 'var(--elev-lg)' }}>
+        <div style={{ background: 'var(--card-bg)', borderRadius: 'var(--r-lg)', padding: 36, maxWidth: 420, width: '100%', boxShadow: 'var(--elev-lg)' }}>
           <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 14 }}>
             <div style={{ width: 56, height: 56, borderRadius: '50%', background: 'var(--blue-l)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
               <Icon name="lock" size={26} style={{ color: accent }} />
@@ -496,7 +496,7 @@ export function SignPublicPage() {
             {data.envelope.title}
           </span>
           {data.recipient.role_label && (
-            <span style={{ fontSize: 12, color: 'var(--teal)', background: 'var(--teal-l)', border: '1px solid var(--teal-m)', padding: '3px 10px', borderRadius: 14, fontWeight: 600, flexShrink: 0 }}>
+            <span style={{ fontSize: 12, color: 'var(--teal)', background: 'var(--teal-l)', border: '1px solid var(--teal-m)', padding: '3px 10px', borderRadius: 'var(--r-lg)', fontWeight: 600, flexShrink: 0 }}>
               {data.recipient.role_label}
             </span>
           )}

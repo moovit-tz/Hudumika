@@ -45,7 +45,7 @@ interface HudumikaApp {
 // (migration 395), set by a SuperAdmin and reported to every tenant via
 // GET /v1/entitlements' betaApps, exactly like Settings.tsx reads it.
 const APP_META: Record<string, Pick<HudumikaApp, 'desc' | 'category'>> = {
-  clearos:      { desc: 'Customs clearance platform & TANCIS integration', category: 'Logistics' },
+  clearos:      { desc: 'Customs clearance platform & TANCIS lodgement tracking', category: 'Logistics' },
   finops:       { desc: 'Financial accounts, TRA EFD integration & payroll ledger', category: 'Finance' },
   nexushr:      { desc: 'People operations, payroll & shift rosters', category: 'HR' },
   bliss:        { desc: 'Omnichannel customer helpdesk & ticketing system', category: 'Support' },

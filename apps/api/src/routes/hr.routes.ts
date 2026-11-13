@@ -1,6 +1,7 @@
 import { canReadStaffPay } from '../lib/hr-pay-access.js';
+import { isLicensedForApp } from '../lib/app-license.js';
 import { hasOrgPermission, requireRoleOrOrgPermission, ORG_PERMISSIONS } from '../lib/org-rbac.js';
-import { requireEntitlement } from '../middleware/entitlement.js';
+import { requireEntitlement, tenantHasEntitlement } from '../middleware/entitlement.js';
 import { requireUuidParams } from '../middleware/uuid-params.js';
 import type { FastifyInstance } from 'fastify';
 import { csvCell, type HrTimeReconciliation } from '@hudumika/types';
@@ -29,6 +30,8 @@ import { renderOfferLetterPdf } from '../services/offer-letter-pdf.service.js';
 import { MinioIntegration } from '../integrations/minio.js';
 import { resolveDirectManager } from '../services/org-chart.service.js';
 import { NotificationService } from '../services/notification.service.js';
+import { resolveAdditionalWorkItem } from '../services/work-item-resolver.service.js';
+import { addCalendarDays, localDateKey, localMidnight, splitIntervalByLocalDay, tenantTimezone } from '../services/tenant-timezone.service.js';
 
 /**
  * YYYY-MM-DD from a `date` column, whatever the driver hands back.
@@ -131,7 +134,8 @@ async function ensureAttendanceSessionOpen(trx: any, tenantId: string, userId: s
     .executeTakeFirst();
   if (open) return; // already clocked in — a task switch must not reopen a session
 
-  const dateStr = isoDate(now);
+  const timezone = await tenantTimezone(trx, tenantId);
+  const dateStr = localDateKey(now, timezone);
 
   await trx.insertInto('hr_clock_sessions').values({
     tenant_id: tenantId,
@@ -152,7 +156,6 @@ async function closeAttendanceSessionIfIdle(trx: any, tenantId: string, userId: 
     .select('id')
     .where('tenant_id', '=', tenantId)
     .where('user_id', '=', userId)
-    .where('date', '=', isoDate(now))
     .where('ended_at', 'is', null)
     .executeTakeFirst();
   if (stillOpen) return;
@@ -198,14 +201,16 @@ async function closeAttendanceSessionIfIdle(trx: any, tenantId: string, userId: 
  * synced one way — the header could mark the timesheet, but not the reverse.
  */
 async function ensureTimeEntryOpen(trx: any, tenantId: string, userId: string, now: Date) {
+  const timezone = await tenantTimezone(trx, tenantId);
+  const today = localDateKey(now, timezone);
   const open = await trx.selectFrom('hr_time_entries').select('id')
     .where('tenant_id', '=', tenantId).where('user_id', '=', userId)
-    .where('date', '=', isoDate(now)).where('ended_at', 'is', null)
+    .where('ended_at', 'is', null)
     .executeTakeFirst();
   if (open) return;
   await trx.insertInto('hr_time_entries').values({
     tenant_id: tenantId, user_id: userId, task_id: null, task_name: 'Clocked in',
-    is_billable: false, entry_type: 'CHECK_IN', date: isoDate(now), is_full_day: false,
+    is_billable: false, entry_type: 'CHECK_IN', date: today, work_timezone: timezone, is_full_day: false,
     started_at: now, last_ack_at: now, project_id: null, project_ref: null,
   }).execute();
 }
@@ -213,7 +218,7 @@ async function ensureTimeEntryOpen(trx: any, tenantId: string, userId: string, n
 async function closeOpenTimeEntries(trx: any, tenantId: string, userId: string, now: Date) {
   const open = await trx.selectFrom('hr_time_entries').select(['id', 'started_at'])
     .where('tenant_id', '=', tenantId).where('user_id', '=', userId)
-    .where('date', '=', isoDate(now)).where('ended_at', 'is', null)
+    .where('ended_at', 'is', null)
     .execute();
   for (const e of open) {
     const settled = settleEntry(e.started_at, now, null);
@@ -1232,6 +1237,12 @@ export async function hrRoutes(fastify: FastifyInstance) {
         const updated = await trx.updateTable('hr_timesheet_approvals').set({ status: 'REJECTED', note: `Reopened for correction: ${reason}`, reviewed_by: user.sub, reviewed_at: new Date(), updated_at: new Date() })
           .where('tenant_id', '=', user.tenant_id).where('id', '=', id).where('status', '=', 'APPROVED').returningAll().executeTakeFirst();
         if (!updated) return reply.status(409).send({ error: 'Only approved timesheets may be reopened.' });
+        await NotificationService.createNotificationInTrx(trx, {
+          tenantId: user.tenant_id, userId: row.user_id, app: 'nexushr', type: 'warning',
+          title: 'Timesheet reopened for correction',
+          message: `${isoDate(row.period_start)} – ${isoDate(row.period_end)}: ${reason}`,
+          link: '/nexushr/clock-in', entityType: 'timesheet_approval', entityId: row.id,
+        });
         await trx.insertInto('hr_activity_log').values({ tenant_id: user.tenant_id, user_id: user.sub, action: 'timesheet.reopened', module: 'HR', metadata: { reason, previous: row } }).execute();
         return { ok: true, approval: updated };
       });
@@ -1253,7 +1264,14 @@ export async function hrRoutes(fastify: FastifyInstance) {
     const periodStart = dateOnly(body.period_start);
     const periodEnd = dateOnly(body.period_end);
     timesheetRange(periodStart, periodEnd);
-    if (periodEnd > isoDate(new Date())) return reply.status(400).send({ error: 'Only completed periods may be submitted.' });
+    // The current week may go in from its Friday, so people who don't work
+    // weekends can submit before they leave. It can't be approved until it
+    // has ended (see the review route), and any time recorded after the
+    // submission makes approval refuse until it is resubmitted.
+    const todayStr = isoDate(new Date());
+    if (periodEnd > todayStr && Date.parse(periodEnd) - Date.parse(todayStr) > 2 * 86400000) {
+      return reply.status(400).send({ error: 'This week can be submitted from Friday.' });
+    }
 
     return withTenant(user.tenant_id, async (trx) => {
       if (targetUserId !== user.sub && !await canReviewTime(trx, user, targetUserId)) return reply.status(403).send({ error: 'You may only act for your reporting line or as an HR administrator.' });
@@ -1278,6 +1296,9 @@ export async function hrRoutes(fastify: FastifyInstance) {
         .where('status', '=', 'COMPLETED')
         .execute();
       const totalWorked = sessions.reduce((s, r) => s + (r.worked_minutes || 0), 0);
+      // An empty sheet gives a reviewer nothing to check and only clutters
+      // their queue ("0.0h · 0 sessions").
+      if (sessions.length === 0) return reply.status(400).send({ error: 'There are no completed sessions in this period to submit.' });
 
       const existing = await trx.selectFrom('hr_timesheet_approvals')
         .selectAll()
@@ -1355,7 +1376,16 @@ export async function hrRoutes(fastify: FastifyInstance) {
         .selectAll()
         .where('tenant_id', '=', user.tenant_id)
         .where('user_id', '=', targetUserId);
-      if (q.period_start) query = query.where('period_start', '=', isoDate(q.period_start));
+      // The page shows a rolling window ("last 7 days"), so its start date
+      // moves every day. Matched on an exact start, yesterday's submission
+      // vanished from the badge today while /submit still refused the new
+      // window as overlapping it. With period_end, report the submission that
+      // actually covers the window — the same overlap rule /submit applies.
+      if (q.period_start && q.period_end) {
+        query = query.where('period_start', '<=', isoDate(q.period_end)).where('period_end', '>=', isoDate(q.period_start));
+      } else if (q.period_start) {
+        query = query.where('period_start', '=', isoDate(q.period_start));
+      }
       const row = await query.orderBy('period_start', 'desc').executeTakeFirst();
       return { approval: row || null };
     });
@@ -1394,6 +1424,28 @@ export async function hrRoutes(fastify: FastifyInstance) {
       });
     });
 
+  // Withdraw your own pending submission. Reviewing your own sheet is refused
+  // below, so without this a submission made by mistake could only be cleared
+  // by someone else — and in a workspace with a single administrator, by
+  // nobody. Only SUBMITTED rows: an approved or rejected sheet is a decision
+  // someone made and stays on record.
+  fastify.delete('/clock-in/timesheet/approvals/:id', async (req, reply) => {
+    const user = req.user;
+    const { id } = z.object({ id: z.string().uuid() }).parse(req.params);
+    return withTenant(user.tenant_id, async (trx) => {
+      const row = await trx.selectFrom('hr_timesheet_approvals').selectAll()
+        .where('id', '=', id).where('tenant_id', '=', user.tenant_id).executeTakeFirst();
+      if (!row || row.user_id !== user.sub) return reply.status(404).send({ error: 'Submission not found' });
+      await lockEmployeeTime(trx, user.tenant_id, user.sub);
+      const removed = await trx.deleteFrom('hr_timesheet_approvals')
+        .where('id', '=', id).where('tenant_id', '=', user.tenant_id).where('user_id', '=', user.sub)
+        .where('status', '=', 'SUBMITTED').returning('id').executeTakeFirst();
+      if (!removed) return reply.status(409).send({ error: 'Only a timesheet that is still awaiting review can be withdrawn.' });
+      await trx.insertInto('hr_activity_log').values({ tenant_id: user.tenant_id, user_id: user.sub, action: 'timesheet.withdrawn', module: 'HR', metadata: { withdrawn: row } }).execute();
+      return { ok: true };
+    });
+  });
+
   // Approve or reject a submission.
   fastify.patch('/clock-in/timesheet/approvals/:id',
     { preHandler: requireRole('SUPER_ADMIN', 'MANAGER', 'ADMIN', 'TENANT_ADMIN', 'SENIOR') },
@@ -1420,6 +1472,11 @@ export async function hrRoutes(fastify: FastifyInstance) {
         await lockEmployeeTime(trx, user.tenant_id, row.user_id);
         const current = await trx.selectFrom('hr_timesheet_approvals').selectAll().where('tenant_id', '=', user.tenant_id).where('id', '=', id).forUpdate().executeTakeFirstOrThrow();
         if (current.status !== 'SUBMITTED') return reply.status(409).send({ error: 'Only submitted timesheets can be reviewed.' });
+        if (action === 'approve' && isoDate(current.period_end) > isoDate(new Date())) {
+          // Submitted early (from Friday). Approving locks the whole period,
+          // which would block any weekend clock-in, so wait for it to end.
+          return reply.status(409).send({ error: `This week runs until ${isoDate(current.period_end)}. Approve it once it has ended, so any time still to be recorded is included.` });
+        }
         if (action === 'approve') {
           const sessions = await trx.selectFrom('hr_clock_sessions').select(['status', 'worked_minutes'])
             .where('tenant_id', '=', user.tenant_id).where('user_id', '=', row.user_id)
@@ -1436,6 +1493,15 @@ export async function hrRoutes(fastify: FastifyInstance) {
           updated_at: new Date(),
         }).where('id', '=', id).where('tenant_id', '=', user.tenant_id)
           .returningAll().executeTakeFirstOrThrow();
+        // The employee was never told the outcome — only the manager heard
+        // about the submission.
+        await NotificationService.createNotificationInTrx(trx, {
+          tenantId: user.tenant_id, userId: row.user_id, app: 'nexushr',
+          type: action === 'approve' ? 'success' : 'warning',
+          title: action === 'approve' ? 'Timesheet approved' : 'Timesheet sent back',
+          message: `${isoDate(updated.period_start)} – ${isoDate(updated.period_end)}${action === 'reject' && body.note ? `: ${body.note}` : ''}`,
+          link: '/nexushr/clock-in', entityType: 'timesheet_approval', entityId: updated.id,
+        });
         return { ok: true, approval: updated };
       });
     });
@@ -1739,7 +1805,7 @@ export async function hrRoutes(fastify: FastifyInstance) {
           app: 'nexushr', type: 'task',
           title: 'Leave request awaiting approval',
           message: `${requesterName} requested ${Number(row.days)} day(s) of ${row.type.toLowerCase().replace(/_/g, ' ')} leave (${isoDate(row.from_date)} – ${isoDate(row.to_date)})`,
-          link: `/hr/leaves?pending=1`,
+          link: `/nexushr/leaves`,
           entityType: 'leave', entityId: row.id,
         });
       }
@@ -3254,12 +3320,16 @@ export async function hrRoutes(fastify: FastifyInstance) {
   fastify.get('/time/today', async (req) => {
     const user = req.user;
     return withTenant(user.tenant_id, async (trx) => {
-      const today = isoDate(new Date());
+      const now = new Date();
+      const timezone = await tenantTimezone(trx, user.tenant_id);
+      const today = localDateKey(now, timezone);
       return trx.selectFrom('hr_time_entries')
         .selectAll()
         .where('tenant_id', '=', user.tenant_id)
         .where('user_id', '=', user.sub)
-        .where('date', '=', today)
+        // A work interval can cross midnight. Keep the open entry visible so
+        // the header can stop or switch it after the calendar date changes.
+        .where((eb) => eb.or([eb('date', '=', today), eb('ended_at', 'is', null)]))
         .orderBy('started_at')
         .execute();
     });
@@ -3269,25 +3339,36 @@ export async function hrRoutes(fastify: FastifyInstance) {
     const user = req.user;
     const q = req.query as any;
     return withTenant(user.tenant_id, async (trx) => {
-      const date = q.date || isoDate(new Date());
+      const timezone = await tenantTimezone(trx, user.tenant_id);
+      const date = dateOnly(q.date || localDateKey(new Date(), timezone));
+      const dayStart = localMidnight(date, timezone);
+      const dayEnd = localMidnight(addCalendarDays(date, 1), timezone);
       const entries = await trx.selectFrom('hr_time_entries')
         .selectAll()
         .where('tenant_id', '=', user.tenant_id)
-        .where('date', '=', date)
+        .where('user_id', '=', user.sub)
+        .where('started_at', '<', dayEnd)
+        .where((eb) => eb.or([eb('ended_at', 'is', null), eb('ended_at', '>', dayStart)]))
         .execute();
 
-      const billable = entries.filter(e => e.is_billable);
-      const unbillable = entries.filter(e => !e.is_billable);
-      const totalMin = entries.reduce((s, e) => s + (e.duration_minutes ?? 0), 0);
-      const billableMin = billable.reduce((s, e) => s + (e.duration_minutes ?? 0), 0);
+      const rows = entries.map(entry => {
+        const allocated = entry.work_timezone && entry.ended_at && entry.duration_minutes !== null
+          ? splitIntervalByLocalDay(new Date(entry.started_at), new Date(entry.ended_at), entry.work_timezone)
+            .find(part => part.date === date)?.minutes ?? 0
+          : !entry.work_timezone && entry.date === date ? entry.duration_minutes ?? 0 : 0;
+        return { ...entry, allocated_minutes: allocated };
+      });
+      const totalMin = rows.reduce((sum, entry) => sum + entry.allocated_minutes, 0);
+      const billableMin = rows.reduce((sum, entry) => sum + (entry.is_billable ? entry.allocated_minutes : 0), 0);
 
       return {
         date,
-        total_entries: entries.length,
+        timezone,
+        total_entries: rows.length,
         total_minutes: totalMin,
         billable_minutes: billableMin,
         unbillable_minutes: totalMin - billableMin,
-        entries,
+        entries: rows,
       };
     });
   });
@@ -3302,25 +3383,104 @@ export async function hrRoutes(fastify: FastifyInstance) {
       is_full_day: z.boolean().optional(),
       project_id: z.string().uuid().optional(),
       project_ref: z.string().max(100).optional(),
+      notes: z.string().max(1000).optional(),
+      work_item: z.object({
+        app_id: z.string().trim().min(1).max(100),
+        type: z.string().trim().min(1).max(100),
+        id: z.string().trim().min(1).max(200),
+      }).optional(),
+    }).refine((value) => !(value.task_id && value.project_id), {
+      message: 'A time interval can be linked to only one work item.',
     }).parse(req.body);
+    const productEntitlement: Record<string, string> = { clearos: 'clearos', tuma: 'tuma', seal: 'seal', hudufreight: 'hudufreight', complyos: 'complyos', finops: 'finops' };
+    const requestedProduct = body.work_item && productEntitlement[body.work_item.app_id];
+    if (requestedProduct && !await tenantHasEntitlement(user.tenant_id, requestedProduct)) {
+      throw Object.assign(new Error(`This workspace does not have ${body.work_item!.app_id} enabled.`), { statusCode: 403 });
+    }
+    if (requestedProduct && !await isLicensedForApp(user.tenant_id, user.sub, requestedProduct)) {
+      throw Object.assign(new Error('You are not assigned access to this work item app.'), { statusCode: 403 });
+    }
     return withTenant(user.tenant_id, async (trx) => {
       await lockEmployeeTime(trx, user.tenant_id, user.sub);
-      if (body.task_id) {
-        const task = await trx.selectFrom('hr_tasks').select('id').where('tenant_id', '=', user.tenant_id).where('id', '=', body.task_id).where('active', '=', true).executeTakeFirst();
+
+      let taskId = body.task_id;
+      let projectId = body.project_id;
+      let additionalWorkItem: Awaited<ReturnType<typeof resolveAdditionalWorkItem>> = null;
+      if (body.work_item) {
+        const { app_id, type, id } = body.work_item;
+        if (['tuma.parcel', 'seal.task', 'hudufreight.booking', 'tasks.task', 'clearos.task', 'crm.task', 'support.ticket', 'finops.invoice', 'complyos.obligation'].includes(`${app_id}.${type}`)) {
+          if (!z.string().uuid().safeParse(id).success) throw Object.assign(new Error('Invalid work-item ID.'), { statusCode: 400 });
+          additionalWorkItem = await resolveAdditionalWorkItem(trx, user.tenant_id, user.sub, user.role, app_id, type, id, TS_MANAGER_ROLES);
+          if (!additionalWorkItem) throw Object.assign(new Error(`Work-item type ${app_id}.${type} is not connected to NexusHR.`), { statusCode: 422 });
+        } else if (app_id === 'nexushr' && type === 'task') {
+          if (!z.string().uuid().safeParse(id).success) throw Object.assign(new Error('Invalid NexusHR task ID.'), { statusCode: 400 });
+          if (taskId && taskId !== id) throw Object.assign(new Error('Conflicting task references.'), { statusCode: 400 });
+          taskId = id;
+        } else if ((app_id === 'clearos' && type === 'shipment') || (app_id === 'projects' && type === 'project')) {
+          if (!z.string().uuid().safeParse(id).success) throw Object.assign(new Error('Invalid work-item ID.'), { statusCode: 400 });
+          if (projectId && projectId !== id) throw Object.assign(new Error('Conflicting work-item references.'), { statusCode: 400 });
+          projectId = id;
+        } else {
+          throw Object.assign(new Error(`Work-item type ${app_id}.${type} is not connected to NexusHR yet.`), { statusCode: 422 });
+        }
+      }
+
+      if (taskId && projectId) throw Object.assign(new Error('A time interval can be linked to only one work item.'), { statusCode: 400 });
+      if (additionalWorkItem && (body.task_id || body.project_id)) throw Object.assign(new Error('A time interval can be linked to only one work item.'), { statusCode: 400 });
+
+      let task: { id: string; name: string; is_billable: boolean } | undefined;
+      let workItem: { appId: string; type: string; id: string; ref: string | null; label: string } | null = additionalWorkItem;
+      if (taskId) {
+        task = await trx.selectFrom('hr_tasks').select(['id', 'name', 'is_billable'])
+          .where('tenant_id', '=', user.tenant_id).where('id', '=', taskId).where('active', '=', true).executeTakeFirst();
         if (!task) throw Object.assign(new Error('Task not found in this workspace.'), { statusCode: 400 });
+        if (body.is_billable === true && !task.is_billable) {
+          throw Object.assign(new Error('This task is not configured as billable.'), { statusCode: 400 });
+        }
+        workItem = { appId: 'nexushr', type: 'task', id: task.id, ref: null, label: task.name };
       }
-      if (body.project_id) {
-        // The header labels ClearOS shipments as projects; task projects are
-        // also supported. Either reference must belong to this workspace.
-        const shipment = await trx.selectFrom('shipment_cases').select('id').where('tenant_id', '=', user.tenant_id).where('id', '=', body.project_id).where('deleted_at', 'is', null).executeTakeFirst();
-        const project = shipment ? null : await trx.selectFrom('projects').select('id').where('tenant_id', '=', user.tenant_id).where('id', '=', body.project_id).executeTakeFirst();
-        if (!shipment && !project) throw Object.assign(new Error('Project or shipment not found in this workspace.'), { statusCode: 400 });
+
+      if (projectId) {
+        // Resolve and authorize the actual entity. A tenant match alone is not
+        // enough to let a worker attribute time to another team's work.
+        const requestedKind = body.work_item?.app_id === 'clearos' && body.work_item.type === 'shipment'
+          ? 'shipment'
+          : body.work_item?.app_id === 'projects' && body.work_item.type === 'project'
+            ? 'project'
+            : null;
+        const shipment = requestedKind === 'project' ? undefined : await trx.selectFrom('shipment_cases')
+          .select(['id', 'ref_number', 'goods_desc', 'assigned_to'])
+          .where('tenant_id', '=', user.tenant_id).where('id', '=', projectId)
+          .where('deleted_at', 'is', null).executeTakeFirst();
+        if (shipment) {
+          if (shipment.assigned_to !== user.sub && !TS_MANAGER_ROLES.includes(user.role)) {
+            throw Object.assign(new Error('You are not assigned to this shipment.'), { statusCode: 403 });
+          }
+          workItem = { appId: 'clearos', type: 'shipment', id: shipment.id, ref: shipment.ref_number, label: shipment.goods_desc || shipment.ref_number };
+        } else {
+          const project = await trx.selectFrom('projects').select(['id', 'name', 'owner_id'])
+            .where('tenant_id', '=', user.tenant_id).where('id', '=', projectId).executeTakeFirst();
+          if (!project || requestedKind === 'shipment') throw Object.assign(new Error('Project or shipment not found in this workspace.'), { statusCode: 400 });
+          const membership = await trx.selectFrom('project_members').select('role')
+            .where('tenant_id', '=', user.tenant_id).where('project_id', '=', project.id)
+            .where('user_id', '=', user.sub).executeTakeFirst();
+          const canAccess = project.owner_id === user.sub || !!membership || ADMIN_LIKE_ROLES.includes(user.role);
+          if (!canAccess) throw Object.assign(new Error('You do not have access to this project.'), { statusCode: 403 });
+          workItem = { appId: 'projects', type: 'project', id: project.id, ref: project.name, label: project.name };
+        }
       }
-      const today = isoDate(new Date());
+
+      if (!taskId && body.is_billable === true) {
+        throw Object.assign(new Error('Billable time must be linked to a task configured as billable.'), { statusCode: 400 });
+      }
+      const effectiveBillable = !!task?.is_billable && body.is_billable !== false;
+      const now = new Date();
+      const timezone = await tenantTimezone(trx, user.tenant_id);
+      const today = localDateKey(now, timezone);
       // Settle previous entries under the employee lock before switching tasks.
       const openEntries = await trx.selectFrom('hr_time_entries').selectAll().where('tenant_id', '=', user.tenant_id).where('user_id', '=', user.sub).where('ended_at', 'is', null).execute();
       for (const entry of openEntries) {
-        await trx.updateTable('hr_time_entries').set({ ...settleEntry(entry.started_at, new Date(), entry.notes), updated_at: new Date() })
+        await trx.updateTable('hr_time_entries').set({ ...settleEntry(entry.started_at, now, entry.notes), updated_at: now })
           .where('tenant_id', '=', user.tenant_id).where('id', '=', entry.id).execute();
       }
       // Close any open entries first
@@ -3331,28 +3491,34 @@ export async function hrRoutes(fastify: FastifyInstance) {
         })
         .where('tenant_id', '=', user.tenant_id)
         .where('user_id', '=', user.sub)
-        .where('date', '=', today)
         .where('ended_at', 'is', null)
         .execute();
 
       const created = await trx.insertInto('hr_time_entries').values({
         tenant_id: user.tenant_id,
         user_id: user.sub,
-        task_id: body.task_id || null,
-        task_name: body.task_name || null,
-        is_billable: body.is_billable ?? false,
+        task_id: task?.id || null,
+        task_name: task?.name || (workItem?.appId === 'clearos' ? `Shipment: ${workItem.ref}` : workItem?.label || body.task_name || null),
+        is_billable: effectiveBillable,
         entry_type: body.entry_type || 'TASK',
         date: today,
         is_full_day: body.is_full_day ?? false,
-        started_at: new Date(),
-        last_ack_at: new Date(),
-        project_id: body.project_id || null,
-        project_ref: body.project_ref || null,
+        started_at: now,
+        last_ack_at: now,
+        notes: body.notes || null,
+        work_timezone: timezone,
+        project_id: projectId || null,
+        project_ref: workItem?.ref || (projectId ? body.project_ref || null : null),
+        work_item_app_id: workItem?.appId || null,
+        work_item_type: workItem?.type || null,
+        work_item_id: workItem?.id || null,
+        work_item_ref: workItem?.ref || null,
+        work_item_label: workItem?.label || null,
       }).returningAll().executeTakeFirstOrThrow();
 
       // Logging task/shipment time from the header also marks you present on the
       // /nexushr/clock-in timesheet (no-op if a session is already open).
-      await ensureAttendanceSessionOpen(trx, user.tenant_id, user.sub, new Date());
+      await ensureAttendanceSessionOpen(trx, user.tenant_id, user.sub, now);
 
       return created;
     });
@@ -3361,6 +3527,9 @@ export async function hrRoutes(fastify: FastifyInstance) {
   fastify.patch('/time/:id/stop', async (req) => {
     const user = req.user;
     const { id } = req.params as any;
+    const stopBody = z.object({
+      notes: z.string().max(1000).optional(),
+    }).optional().parse(req.body);
     return withTenant(user.tenant_id, async (trx) => {
       const entry = await trx.selectFrom('hr_time_entries')
         .selectAll()
@@ -3386,11 +3555,15 @@ export async function hrRoutes(fastify: FastifyInstance) {
       // elapsed time for a normal shift and leaves it blank, with a note, for
       // one that was never clocked out.
       const endedAt = new Date();
-      const settled = settleEntry(entry.started_at as any, endedAt, entry.notes ?? null);
+      const initialNotes = entry.notes ?? null;
+      const settled = settleEntry(entry.started_at as any, endedAt, initialNotes);
+      const combinedNotes = stopBody?.notes
+        ? (settled.notes ? `${settled.notes} — ${stopBody.notes}` : stopBody.notes)
+        : settled.notes;
 
       const stopped = await trx.updateTable('hr_time_entries')
         .set({ ended_at: settled.ended_at, duration_minutes: settled.duration_minutes,
-               notes: settled.notes, updated_at: new Date() })
+               notes: combinedNotes, updated_at: new Date() })
         .where('id', '=', id).where('tenant_id', '=', user.tenant_id)
         .returningAll().executeTakeFirstOrThrow();
 
@@ -4379,10 +4552,292 @@ export async function hrRoutes(fastify: FastifyInstance) {
 
   // ── My Active Shipments (for check-in widget) ────────────────
 
+  // Product work items are returned only when both the tenant and the
+  // employee are entitled to that app. Assignment is repeated here and in
+  // /time/start; this list is a picker aid, never authorization by itself.
+  // ── Unified Work Items across apps (for check-in widget & timesheets) ────
+  fastify.get('/time/work-items', async (req) => {
+    const user = req.user;
+    const products = [
+      ['clearos', 'clearos'],
+      ['tasks', 'tasks'],
+      ['tuma', 'tuma'],
+      ['seal', 'seal'],
+      ['hudufreight', 'hudufreight'],
+      ['crm', 'crm'],
+      ['support', 'bliss'],
+      ['finops', 'finops'],
+      ['complyos', 'complyos'],
+    ] as const;
+
+    const enabledApps = (await Promise.all(products.map(async ([appId, entitlement]) => {
+      // Base workspace apps like tasks are available to all tenants
+      if (appId === 'tasks') return appId;
+      const entitled = await tenantHasEntitlement(user.tenant_id, entitlement);
+      if (!entitled) return null;
+      const licensed = await isLicensedForApp(user.tenant_id, user.sub, entitlement);
+      return licensed ? appId : null;
+    }))).filter((appId): appId is Exclude<typeof appId, null> => appId !== null);
+
+    const manager = TS_MANAGER_ROLES.includes(user.role as any) || ['ADMIN', 'TENANT_ADMIN', 'SUPER_ADMIN'].includes(user.role);
+
+    const items = await withTenant(user.tenant_id, async (trx) => {
+      const result: Array<{
+        app_id: string;
+        app_name: string;
+        type: string;
+        id: string;
+        ref: string | null;
+        label: string;
+        subtitle?: string | null;
+        status?: string | null;
+        is_billable: boolean;
+      }> = [];
+
+      // 1. ClearOS Clearance Tasks
+      if (enabledApps.includes('clearos')) {
+        let q = trx.selectFrom('shipment_tasks')
+          .leftJoin('shipment_cases', 'shipment_cases.id', 'shipment_tasks.shipment_id')
+          .select([
+            'shipment_tasks.id', 'shipment_tasks.title', 'shipment_tasks.status',
+            'shipment_tasks.priority', 'shipment_tasks.assigned_to', 'shipment_tasks.service_name',
+            'shipment_cases.ref_number as shipment_ref',
+          ])
+          .where('shipment_tasks.tenant_id', '=', user.tenant_id)
+          .where('shipment_tasks.status', 'not in', ['complete', 'completed', 'cancelled', 'closed'])
+          .orderBy('shipment_tasks.created_at', 'desc')
+          .limit(40);
+        if (!manager) q = q.where('shipment_tasks.assigned_to', '=', user.sub);
+        const rows = await q.execute();
+        for (const row of rows) {
+          result.push({
+            app_id: 'clearos',
+            app_name: 'ClearOS',
+            type: 'task',
+            id: row.id,
+            ref: row.shipment_ref || null,
+            label: row.title,
+            subtitle: row.shipment_ref ? `Shipment: ${row.shipment_ref}` : (row.service_name || 'Clearance task'),
+            status: row.status ? row.status.replace(/_/g, ' ') : 'Pending',
+            is_billable: false,
+          });
+        }
+      }
+
+      // 2. Tasks OS (Workspace Tasks & Projects)
+      if (enabledApps.includes('tasks')) {
+        let q = trx.selectFrom('tasks')
+          .select(['id', 'title', 'notes', 'status', 'priority', 'completed', 'assignee_id', 'user_id', 'is_billable'])
+          .where('tenant_id', '=', user.tenant_id)
+          .where('completed', '=', false)
+          .where('deleted_at', 'is', null)
+          .orderBy('created_at', 'desc')
+          .limit(40);
+        if (!manager) {
+          q = q.where((eb: any) => eb.or([eb('assignee_id', '=', user.sub), eb('user_id', '=', user.sub)]));
+        }
+        const rows = await q.execute();
+        for (const row of rows) {
+          result.push({
+            app_id: 'tasks',
+            app_name: 'Tasks',
+            type: 'task',
+            id: row.id,
+            ref: null,
+            label: row.title,
+            subtitle: row.notes ? row.notes.slice(0, 60) : 'Workspace task',
+            status: row.status || 'Open',
+            is_billable: !!row.is_billable,
+          });
+        }
+      }
+
+      // 3. CRM Tasks
+      if (enabledApps.includes('crm')) {
+        let q = trx.selectFrom('crm_tasks')
+          .select(['id', 'title', 'subject_type', 'subject_id', 'done', 'assigned_to', 'created_by'])
+          .where('tenant_id', '=', user.tenant_id)
+          .where('done', '=', false)
+          .orderBy('created_at', 'desc')
+          .limit(30);
+        if (!manager) {
+          q = q.where((eb: any) => eb.or([eb('assigned_to', '=', user.sub), eb('created_by', '=', user.sub)]));
+        }
+        const rows = await q.execute();
+        for (const row of rows) {
+          result.push({
+            app_id: 'crm',
+            app_name: 'CRM',
+            type: 'task',
+            id: row.id,
+            ref: null,
+            label: row.title,
+            subtitle: row.subject_type ? `CRM ${row.subject_type.toUpperCase()}` : 'CRM sales task',
+            status: 'Pending',
+            is_billable: false,
+          });
+        }
+      }
+
+      // 4. Support Tickets
+      if (enabledApps.includes('support')) {
+        let q = trx.selectFrom('support_tickets')
+          .select(['id', 'ref_number', 'subject', 'status', 'priority', 'assigned_to', 'category'])
+          .where('tenant_id', '=', user.tenant_id)
+          .where('status', 'not in', ['RESOLVED', 'CLOSED'])
+          .orderBy('created_at', 'desc')
+          .limit(30);
+        if (!manager) q = q.where('assigned_to', '=', user.sub);
+        const rows = await q.execute();
+        for (const row of rows) {
+          result.push({
+            app_id: 'support',
+            app_name: 'Support',
+            type: 'ticket',
+            id: row.id,
+            ref: row.ref_number,
+            label: row.subject,
+            subtitle: row.category ? `Category: ${row.category}` : 'Customer ticket',
+            status: row.status ? row.status.replace(/_/g, ' ') : 'Open',
+            is_billable: false,
+          });
+        }
+      }
+
+      // 5. Tuma Courier Parcels
+      if (enabledApps.includes('tuma')) {
+        let query = trx.selectFrom('tuma_parcels')
+          .select(['id', 'parcel_number', 'name', 'description', 'status', 'created_by', 'dispatcher_id', 'offloader_id', 'deliverer_id'])
+          .where('tenant_id', '=', user.tenant_id)
+          .where('status', 'not in', ['DELIVERED', 'PICKED_UP', 'CANCELED'])
+          .orderBy('created_at', 'desc')
+          .limit(40);
+        if (!manager) query = query.where((eb: any) => eb.or([
+          eb('created_by', '=', user.sub), eb('dispatcher_id', '=', user.sub), eb('offloader_id', '=', user.sub), eb('deliverer_id', '=', user.sub),
+        ]));
+        for (const row of await query.execute()) {
+          result.push({
+            app_id: 'tuma',
+            app_name: 'Tuma',
+            type: 'parcel',
+            id: row.id,
+            ref: row.parcel_number,
+            label: row.name || row.description || `Parcel ${row.parcel_number}`,
+            subtitle: row.description || 'Courier parcel delivery',
+            status: row.status ? row.status.replace(/_/g, ' ') : 'Pending',
+            is_billable: false,
+          });
+        }
+      }
+
+      // 6. Seal Security Tasks
+      if (enabledApps.includes('seal')) {
+        let query = trx.selectFrom('seal_tasks')
+          .select(['id', 'title', 'status', 'assigned_to', 'created_by'])
+          .where('tenant_id', '=', user.tenant_id)
+          .where('status', 'not in', ['complete', 'blocked', 'cancelled'])
+          .orderBy('created_at', 'desc')
+          .limit(40);
+        if (!manager) query = query.where((eb: any) => eb.or([eb('assigned_to', '=', user.sub), eb('created_by', '=', user.sub)]));
+        for (const row of await query.execute()) {
+          result.push({
+            app_id: 'seal',
+            app_name: 'Seal',
+            type: 'task',
+            id: row.id,
+            ref: null,
+            label: row.title,
+            subtitle: 'Security inspection task',
+            status: row.status || 'Active',
+            is_billable: false,
+          });
+        }
+      }
+
+      // 7. HuduFreight Bookings
+      if (enabledApps.includes('hudufreight')) {
+        let query = trx.selectFrom('freight_bookings')
+          .select(['id', 'booking_number', 'cargo_desc', 'status', 'created_by'])
+          .where('tenant_id', '=', user.tenant_id)
+          .where('status', 'not in', ['CANCELLED', 'CANCELED'])
+          .orderBy('created_at', 'desc')
+          .limit(40);
+        if (!manager) query = query.where('created_by', '=', user.sub);
+        for (const row of await query.execute()) {
+          result.push({
+            app_id: 'hudufreight',
+            app_name: 'Freight',
+            type: 'booking',
+            id: row.id,
+            ref: row.booking_number,
+            label: row.cargo_desc || row.booking_number,
+            subtitle: 'Cargo freight booking',
+            status: row.status || 'Booked',
+            is_billable: false,
+          });
+        }
+      }
+
+      // 8. Sales invoices / billing follow-ups
+      if (enabledApps.includes('finops')) {
+        const rows = await trx.selectFrom('sales_invoices')
+          .leftJoin('customers', 'customers.id', 'sales_invoices.customer_id')
+          .select(['sales_invoices.id', 'sales_invoices.invoice_number', 'sales_invoices.status', 'customers.name as customer_name'])
+          .where('sales_invoices.tenant_id', '=', user.tenant_id)
+          .where(sql<boolean>`lower(sales_invoices.status) in ('draft', 'pending', 'sent')`)
+          .orderBy('sales_invoices.created_at', 'desc')
+          .limit(25)
+          .execute();
+        for (const row of rows) {
+          result.push({
+            app_id: 'finops',
+            app_name: 'FinOps',
+            type: 'invoice',
+            id: row.id,
+            ref: row.invoice_number,
+            label: `Invoice: ${row.invoice_number}`,
+            subtitle: row.customer_name ? `${row.customer_name} • Billing reconciliation` : 'Billing follow-up',
+            status: row.status ? row.status.toUpperCase() : 'Pending',
+            is_billable: false,
+          });
+        }
+      }
+
+      // 9. ComplyOS Obligations
+      if (enabledApps.includes('complyos')) {
+        const rows = await trx.selectFrom('comply_obligations')
+          .select(['id', 'name', 'obligation_code', 'status', 'due_date'])
+          .where('tenant_id', '=', user.tenant_id)
+          .where('status', 'not in', ['completed', 'cancelled', 'compliant'])
+          .orderBy('due_date', 'asc')
+          .limit(20)
+          .execute();
+        for (const row of rows) {
+          result.push({
+            app_id: 'complyos',
+            app_name: 'ComplyOS',
+            type: 'obligation',
+            id: row.id,
+            ref: row.obligation_code || null,
+            label: row.name,
+            subtitle: 'Compliance filing obligation',
+            status: row.status || 'Due',
+            is_billable: false,
+          });
+        }
+      }
+
+      return result;
+    });
+
+    return { apps: enabledApps, items };
+  });
+
   fastify.get('/my-shipments', async (req) => {
     const user = req.user as any;
+    const manager = TS_MANAGER_ROLES.includes(user.role as any) || ['ADMIN', 'TENANT_ADMIN', 'SUPER_ADMIN'].includes(user.role);
     return withTenant(user.tenant_id, async (trx) => {
-      const rows = await trx.selectFrom('shipment_cases')
+      let query = trx.selectFrom('shipment_cases')
         .leftJoin('customers', 'customers.id', 'shipment_cases.customer_id')
         .select([
           'shipment_cases.id', 'shipment_cases.ref_number', 'shipment_cases.goods_desc',
@@ -4390,11 +4845,14 @@ export async function hrRoutes(fastify: FastifyInstance) {
           'customers.name as customer_name',
         ])
         .where('shipment_cases.tenant_id', '=', user.tenant_id)
-        .where('shipment_cases.assigned_to', '=', user.sub)
-        .where(sql<boolean>`upper(shipment_cases.stage) not in ('COMPLETED', 'CANCELLED', 'CLOSED')`).where('shipment_cases.deleted_at', 'is', null)
-        .orderBy('shipment_cases.created_at', 'desc')
-        .limit(20)
-        .execute();
+        .where(sql<boolean>`upper(shipment_cases.stage) not in ('COMPLETED', 'CANCELLED', 'CLOSED')`)
+        .where('shipment_cases.deleted_at', 'is', null);
+
+      if (!manager) {
+        query = query.where('shipment_cases.assigned_to', '=', user.sub);
+      }
+
+      const rows = await query.orderBy('shipment_cases.created_at', 'desc').limit(50).execute();
       return rows;
     });
   });

@@ -91,7 +91,7 @@ const PLAN_ICONS: Record<string, IconName> = {
 const PLAN_DEFAULTS: Record<string, PlanDisplay> = {
   starter: {
     name: 'HuduStarter', color: 'var(--teal)', bg: 'var(--teal-l)', pricePerSeat: 6, extraSeatPrice: null, extraSeatThreshold: null, itemLimit: 100, storageLimitGb: 10, icon: 'zap',
-    features: ['Every module included', '100 items / month', '10 GB storage', 'Basic shipment tracking', 'TANCIS integration', 'Email support', 'Local mobile money (M-Pesa, Tigo Pesa, Airtel Money)'],
+    features: ['Every module included', '100 items / month', '10 GB storage', 'Basic shipment tracking', 'TANCIS declaration tracking', 'Email support', 'Local mobile money (M-Pesa, Tigo Pesa, Airtel Money)'],
     currency: 'USD', priceFlatMonthly: null, priceFlatAnnual: null, includedSeats: null, maxLocations: null,
   },
   growth: {
@@ -2337,15 +2337,14 @@ export const Subscription: React.FC = () => {
               <span style={{ width: 6, height: 6, borderRadius: '50%', background: 'currentColor', display: 'inline-block' }} />
               {tenant?.active ? 'ACTIVE' : 'INACTIVE'}
             </div>
-            <button
+            <Button
               type="button"
-              className="btn btn-primary"
+             
               onClick={() => setTab('plans')}
-              style={{ fontSize: "var(--text-base)", fontWeight: 600, padding: "var(--action-py) var(--space-md)" }}
-             data-ui-native-button="">
+              style={{ fontSize: "var(--text-base)", fontWeight: 600, padding: "var(--action-py) var(--space-md)" }}>
               <Icon name="layers" size={14} />
               <span>Change Plan</span>
-            </button>
+            </Button>
           </div>
         }
       />

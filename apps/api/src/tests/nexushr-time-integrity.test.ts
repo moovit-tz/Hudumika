@@ -1,7 +1,7 @@
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { randomUUID } from 'node:crypto';
 import { withTenant } from '../db/client.js';
-import { authHeaders, createTestTenant, getApp, type TestTenant } from './helpers.js';
+import { authHeaders, createTestTenant, getApp, grantStandaloneProduct, type TestTenant } from './helpers.js';
 import { recordDevicePunches } from '../services/attendance-device.service.js';
 
 describe('NexusHR time integrity acceptance', () => {
@@ -103,6 +103,27 @@ describe('NexusHR time integrity acceptance', () => {
     const unrelated = await tenant.addUser('MANAGER');
     expect((await call('GET', `/clock-in/timesheet/export?user_id=${person.userId}`, undefined, unrelated.token)).statusCode).toBe(403);
     expect((await call('GET', '/clock-in/timesheet/export?from=2026-09-30&to=2026-09-01')).statusCode).toBe(400);
+  });
+
+  it('switches an authenticated worker from a configured task to an assigned ClearOS shipment', async () => {
+    await grantStandaloneProduct(tenant.tenantId, 'clearos');
+    const { taskId, shipmentId } = await withTenant(tenant.tenantId, async trx => {
+      const task = await trx.insertInto('hr_tasks').values({ tenant_id: tenant.tenantId, name: `Switch task ${randomUUID()}`, is_billable: true }).returning('id').executeTakeFirstOrThrow();
+      const customer = await trx.insertInto('customers').values({ tenant_id: tenant.tenantId, name: 'Time switch fixture' } as any).returning('id').executeTakeFirstOrThrow();
+      const shipment = await trx.insertInto('shipment_cases').values({ tenant_id: tenant.tenantId, customer_id: customer.id, ref_number: `SWITCH-${randomUUID()}`, type: 'SEA_FCL', goods_desc: 'Switch test cargo', containers: '[]', vessel: 'Test', origin_port: 'Dar es Salaam', dest_port: 'Dodoma', assigned_to: person.userId }).returning('id').executeTakeFirstOrThrow();
+      return { taskId: task.id, shipmentId: shipment.id };
+    });
+
+    const first = await call('POST', '/time/start', { work_item: { app_id: 'nexushr', type: 'task', id: taskId }, is_billable: true });
+    expect(first.statusCode, first.body).toBe(200);
+    expect(first.json()).toMatchObject({ work_item_app_id: 'nexushr', work_item_type: 'task', work_item_id: taskId, is_billable: true });
+
+    const second = await call('POST', '/time/start', { project_id: shipmentId, project_ref: 'ignored-client-ref', work_item: { app_id: 'clearos', type: 'shipment', id: shipmentId }, is_billable: false });
+    expect(second.statusCode, second.body).toBe(200);
+    expect(second.json()).toMatchObject({ work_item_app_id: 'clearos', work_item_type: 'shipment', work_item_id: shipmentId, is_billable: false });
+    const prior = await withTenant(tenant.tenantId, trx => trx.selectFrom('hr_time_entries').select(['ended_at', 'work_timezone']).where('tenant_id', '=', tenant.tenantId).where('id', '=', first.json().id).executeTakeFirstOrThrow());
+    expect(prior.ended_at).toBeTruthy();
+    expect(prior.work_timezone).toBe('UTC');
   });
 
   it('pairs overnight device punches across separate batches and deduplicates retries after approval', async () => {

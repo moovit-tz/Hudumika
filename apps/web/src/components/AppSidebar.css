@@ -515,7 +515,7 @@ html[data-expanded="true"] .app-sidebar {
   background: var(--teal-l) !important;
   color: var(--teal) !important;
   font-weight: 700;
-  border-radius: 10px;
+  border-radius: var(--r);
   box-shadow: none !important;
 }
 
@@ -801,7 +801,7 @@ html[data-expanded="true"] .app-sidebar {
   align-items: center;
   justify-content: center;
   color: var(--ink3);
-  border-radius: 8px;
+  border-radius: var(--r-sm);
   transition: background 0.1s, color 0.1s;
   margin: 0 auto;
 }
@@ -831,7 +831,7 @@ html[data-expanded="true"] .app-sidebar {
   color: var(--ink3);
   text-align: left;
   padding: 0 10px;
-  border-radius: 8px;
+  border-radius: var(--r-sm);
   transition: background 0.1s, color 0.1s;
   white-space: nowrap;
   overflow: hidden;
@@ -1174,7 +1174,7 @@ html[data-expanded="true"] .app-sidebar {
   gap: 12px;
   height: 40px;
   padding: 0 12px;
-  border-radius: 8px;
+  border-radius: var(--r-sm);
 }
 
 .app-sb-skeleton-icon {

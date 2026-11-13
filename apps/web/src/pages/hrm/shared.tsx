@@ -109,7 +109,7 @@ export const TH = ({ children, right }: { children: React.ReactNode; right?: boo
 export const TD = ({ children, mono, right, muted, bold }: { children: React.ReactNode; mono?: boolean; right?: boolean; muted?: boolean; bold?: boolean }) => (
   <td style={{
     padding: '14px 16px', textAlign: right ? 'right' : 'left',
-    color: muted ? '#64748b' : 'var(--ink)', fontFamily: mono ? 'var(--mono, var(--font))' : undefined,
+    color: muted ? 'var(--ink3)' : 'var(--ink)', fontFamily: mono ? 'var(--mono, var(--font))' : undefined,
     fontSize: muted ? 12 : 13, fontWeight: bold ? 700 : 500, borderBottom: '1px solid var(--border)',
   }}>
     {children}
@@ -146,7 +146,7 @@ export function ActionBtn({ label, color = 'var(--teal)', onClick }: { label: st
         padding: '0 10px', height: "var(--action-h)", borderRadius: "var(--r-sm)", fontSize: "var(--text-base)", fontWeight: 600,
         fontFamily: 'var(--font)', cursor: 'pointer', marginRight: 6, transition: 'all 0.15s ease',
         background: isDanger ? 'rgba(225, 29, 72, 0.08)' : 'rgba(15, 118, 110, 0.08)',
-        color: isDanger ? '#e11d48' : 'var(--teal, #0f766e)',
+        color: isDanger ? 'var(--red)' : 'var(--teal, #0f766e)',
         border: isDanger ? '1px solid rgba(225, 29, 72, 0.2)' : '1px solid rgba(15, 118, 110, 0.2)',
       }}
      data-ui-native-button="">

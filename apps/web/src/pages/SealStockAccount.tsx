@@ -198,13 +198,13 @@ export function SealStockAccount() {
                               {submittingId === p.id ? (
                                 <>
                                   <input data-ui-field="input" type="text" className="input-field" style={{ width: 220 }} placeholder="Submission reference" value={submitRef} onChange={e => setSubmitRef(e.target.value)} />
-                                  <button type="button" className="btn btn-primary" disabled={!submitRef.trim()} onClick={() => handleSubmit(p.id)} data-ui-native-button="">Confirm Submission</button>
-                                  <button type="button" className="btn btn-secondary" onClick={() => setSubmittingId(null)} data-ui-native-button="">Cancel</button>
+                                  <Button type="button" disabled={!submitRef.trim()} onClick={() => handleSubmit(p.id)}>Confirm Submission</Button>
+                                  <Button variant="outline" type="button" onClick={() => setSubmittingId(null)}>Cancel</Button>
                                 </>
                               ) : (
-                                <button type="button" className="btn btn-primary" onClick={() => setSubmittingId(p.id)} data-ui-native-button="">
+                                <Button type="button" onClick={() => setSubmittingId(p.id)}>
                                   <Icon name="send" size={13} /><span>Submit to Customs</span>
-                                </button>
+                                </Button>
                               )}
                             </div>
                           )}

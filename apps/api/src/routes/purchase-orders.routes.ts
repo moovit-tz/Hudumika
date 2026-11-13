@@ -11,6 +11,7 @@ import { InventoryService } from '../services/inventory.service.js';
 import { sql, type Transaction } from 'kysely';
 import type { Database } from '../db/client.js';
 import { tenantHasEnabledFinanceCapability } from '../services/finance-capability.service.js';
+import { NotificationService } from '../services/notification.service.js';
 
 // Wire format is uppercase (PurchaseOrders.tsx's toApiStatus does
 // POStatus.toUpperCase() before sending) even though the frontend's own
@@ -358,12 +359,26 @@ export async function purchaseOrderRoutes(fastify: FastifyInstance) {
     const { id } = request.params as { id: string };
     const { status } = z.object({ status: z.enum(PO_STATUS) }).parse(request.body);
     return withTenant(user.tenant_id, async (trx) => {
+      const before = await trx.selectFrom('purchase_orders').select(['po_number', 'supplier_name', 'status', 'created_by'])
+        .where('id', '=', id).where('tenant_id', '=', user.tenant_id).executeTakeFirst();
       await trx
         .updateTable('purchase_orders')
         .set({ status, updated_at: new Date() })
         .where('id', '=', id)
         .where('tenant_id', '=', user.tenant_id)
         .execute();
+      // The person who raised it hears when someone else sends, receives or
+      // cancels it.
+      if (before && before.status !== status && before.created_by && before.created_by !== user.sub && status !== 'DRAFT') {
+        const verb = { SENT: 'was sent to the supplier', PARTIAL: 'was partly received', RECEIVED: 'was received in full', CANCELLED: 'was cancelled' }[status as 'SENT' | 'PARTIAL' | 'RECEIVED' | 'CANCELLED'];
+        await NotificationService.createNotificationInTrx(trx, {
+          tenantId: user.tenant_id, userId: before.created_by, app: 'finops',
+          type: status === 'CANCELLED' ? 'warning' : 'info',
+          title: `Purchase order ${before.po_number} ${status === 'CANCELLED' ? 'cancelled' : 'updated'}`,
+          message: `${before.po_number}${before.supplier_name ? ` (${before.supplier_name})` : ''} ${verb}.`,
+          link: `/finance/purchase-orders/${id}`, entityType: 'purchase_order', entityId: id, entityLabel: before.po_number,
+        });
+      }
       return { success: true };
     });
   });

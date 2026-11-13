@@ -53,7 +53,10 @@ export async function runAiTool(tenantId: string, toolName: string, input: Recor
           .where('shipment_cases.tenant_id', '=', tenantId)
           .where('shipment_cases.stage', 'not in', ['CLOSED', 'DELIVERY'])
           .where((eb) => eb.or([
-            eb('shipment_cases.free_time_end', '<=', next48h),
+            eb.and([
+              eb('shipment_cases.free_time_end', '>=', now),
+              eb('shipment_cases.free_time_end', '<=', next48h),
+            ]),
             eb('shipment_cases.sla_deadline', '<', now),
           ]))
           .limit(15)
@@ -63,7 +66,7 @@ export async function runAiTool(tenantId: string, toolName: string, input: Recor
           ref_number: r.ref_number,
           customer: r.customer,
           stage: r.stage,
-          demurrage_risk: r.free_time_end ? r.free_time_end <= next48h : false,
+          demurrage_risk: r.free_time_end ? r.free_time_end >= now && r.free_time_end <= next48h : false,
           sla_breached: r.sla_deadline ? r.sla_deadline < now : false,
         }));
       });

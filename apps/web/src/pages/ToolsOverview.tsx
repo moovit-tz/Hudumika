@@ -236,7 +236,7 @@ export const ToolsOverview: React.FC = () => {
 
         {/* Carbon Credits */}
         <ModuleSummaryCard
-          icon="leaf" title="Carbon Credits"
+          icon="leaf" title="Carbon estimates"
           color="var(--green)" bg="var(--green-l)"
           to="/carbon-credits"
         >

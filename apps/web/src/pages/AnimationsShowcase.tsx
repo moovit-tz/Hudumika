@@ -1,6 +1,7 @@
 import React, { useState, useCallback } from 'react';
 import { Icon } from '../components/Icon.js';
 import { TwotoneIcon } from '../components/ui/twotone-icon.js';
+import { Button } from '../components/ui/button.js';
 
 // ── Helpers ────────────────────────────────────────────────────────────────
 
@@ -113,9 +114,9 @@ function MicroInteractionsDemo() {
       </div>
       {/* Button press */}
       <div className="flex flex-col items-center gap-1">
-        <button type="button" className="btn btn-primary transition-transform active:scale-95" data-ui-native-button="">
+        <Button className="transition-transform active:scale-95" type="button">
           Press me
-        </button>
+        </Button>
         <span className="text-xs text-muted-foreground font-medium">Active:scale-95</span>
       </div>
       {/* Card lift */}

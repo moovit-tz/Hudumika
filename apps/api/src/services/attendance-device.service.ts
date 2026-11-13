@@ -12,14 +12,7 @@ import { syncAttendanceFromSessions } from './attendance-recording.service.js';
 import { lockEmployeeTime } from './timesheet-integrity.service.js';
 import { MAX_SHIFT_MINUTES } from './time-entry.service.js';
 import type { RawPunch } from '../lib/device-providers/index.js';
-
-/** YYYY-MM-DD in the punch's own local time (device sends device-local
- *  wall-clock time with no timezone — same assumption isoDate() makes
- *  elsewhere in this codebase for bare `date` columns). */
-function dateKey(d: Date): string {
-  const p = (n: number) => String(n).padStart(2, '0');
-  return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}`;
-}
+import { addCalendarDays, localDateKey, localMidnight, tenantTimezone, wallClockToUtc } from './tenant-timezone.service.js';
 
 /**
  * Records a batch of raw punches for one device: resolves each PIN to a real
@@ -38,8 +31,9 @@ export async function recordDevicePunches(
   if (punches.length === 0) return { received: 0, matched: 0 };
 
   return withTenant(tenantId, async (trx) => {
-    const device = await trx.selectFrom('attendance_devices').select('id').where('tenant_id', '=', tenantId).where('id', '=', deviceId).forUpdate().executeTakeFirst();
+    const device = await trx.selectFrom('attendance_devices').select(['id', 'timezone']).where('tenant_id', '=', tenantId).where('id', '=', deviceId).forUpdate().executeTakeFirst();
     if (!device) throw new Error('Attendance device no longer registered.');
+    const timezone = device.timezone || await tenantTimezone(trx, tenantId);
     const enrollments = await trx.selectFrom('attendance_device_enrollments')
       .select(['external_pin', 'user_id'])
       .where('tenant_id', '=', tenantId).where('device_id', '=', deviceId)
@@ -50,18 +44,18 @@ export async function recordDevicePunches(
     let matched = 0;
 
     for (const punch of punches) {
+      const punchedAt = punch.sourceLocalTime ? wallClockToUtc(punch.sourceLocalTime, timezone) : punch.punchedAt;
       const userId = pinToUser.get(punch.externalPin) ?? null;
       if (userId) matched++;
-      const duplicate = await trx.selectFrom('attendance_device_events').select('id').where('tenant_id', '=', tenantId).where('device_id', '=', deviceId)
-        .where('external_pin', '=', punch.externalPin).where('punched_at', '=', punch.punchedAt).where('raw_status', '=', punch.rawStatus).executeTakeFirst();
-      if (!duplicate) await trx.insertInto('attendance_device_events').values({
+      const inserted = await trx.insertInto('attendance_device_events').values({
         tenant_id: tenantId, device_id: deviceId, external_pin: punch.externalPin,
-        user_id: userId, punched_at: punch.punchedAt, raw_status: punch.rawStatus,
+        user_id: userId, punched_at: punchedAt, source_local_time: punch.sourceLocalTime ?? null,
+        device_timezone: timezone, raw_status: punch.rawStatus,
         processed: false,
-      }).execute();
-      if (userId && !duplicate) {
-        const previous = new Date(punch.punchedAt); previous.setDate(previous.getDate() - 1);
-        for (const date of [dateKey(previous), dateKey(punch.punchedAt)]) affected.set(`${userId}|${date}`, { userId, date });
+      }).onConflict((oc) => oc.doNothing()).returning('id').executeTakeFirst();
+      if (userId && inserted) {
+        const date = localDateKey(punchedAt, timezone);
+        for (const day of [addCalendarDays(date, -1), date]) affected.set(`${userId}|${day}`, { userId, date: day });
       }
     }
 
@@ -70,7 +64,7 @@ export async function recordDevicePunches(
       .where('id', '=', deviceId).where('tenant_id', '=', tenantId).execute();
 
     for (const { userId, date } of [...affected.values()].sort((a, b) => `${a.userId}|${a.date}`.localeCompare(`${b.userId}|${b.date}`))) {
-      await reconcileDevicePunchesForUserDate(trx, tenantId, deviceId, userId, date);
+      await reconcileDevicePunchesForUserDate(trx, tenantId, deviceId, userId, date, timezone);
     }
 
     return { received: punches.length, matched };
@@ -92,18 +86,20 @@ export async function reconcileDevicePunchesForUserDate(
   deviceId: string,
   userId: string,
   dateStr: string,
+  timezone?: string,
 ): Promise<void> {
   await lockEmployeeTime(trx, tenantId, userId);
+  const zone = timezone || await tenantTimezone(trx, tenantId);
   // Include the neighbouring dates so a night shift belongs to its start
   // date, and a later out-punch can finish yesterday's open session.
-  const from = new Date(dateStr + 'T00:00:00'); from.setDate(from.getDate() - 1);
-  const to = new Date(dateStr + 'T00:00:00'); to.setDate(to.getDate() + 2);
+  const from = localMidnight(addCalendarDays(dateStr, -1), zone);
+  const to = localMidnight(addCalendarDays(dateStr, 2), zone);
   const events = await trx.selectFrom('attendance_device_events')
-    .select(['id', 'punched_at', 'raw_status'])
+    .select(['id', 'punched_at', 'raw_status', 'device_timezone'])
     .where('tenant_id', '=', tenantId).where('device_id', '=', deviceId).where('user_id', '=', userId)
     .where('punched_at', '>=', from).where('punched_at', '<', to)
     .execute();
-  type PunchEvent = { id: string; punched_at: Date | string; raw_status: string };
+  type PunchEvent = { id: string; punched_at: Date | string; raw_status: string | null; device_timezone: string | null };
   const uniqueEvents = [...new Map<string, PunchEvent>(events.map((event: PunchEvent) => [`${new Date(event.punched_at).toISOString()}|${event.raw_status}`, event])).values()];
   const dayEvents = uniqueEvents
     .sort((a: any, b: any) => new Date(a.punched_at).getTime() - new Date(b.punched_at).getTime());
@@ -148,7 +144,7 @@ export async function reconcileDevicePunchesForUserDate(
     }
   }
 
-  for (const s of sessions.filter(s => dateKey(s.inAt) === dateStr)) {
+  for (const s of sessions.filter(s => localDateKey(s.inAt, zone) === dateStr)) {
     const workedMinutes = s.outAt ? Math.max(0, Math.round((s.outAt.getTime() - s.inAt.getTime()) / 60000)) : null;
     await trx.insertInto('hr_clock_sessions').values({
       tenant_id: tenantId, user_id: userId, date: dateStr,

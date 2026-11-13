@@ -1,6 +1,5 @@
 import React from 'react';
 import type { KPIResponse } from '@hudumika/types';
-import { formatCompact } from '../lib/currency.js';
 
 interface KPIBarProps {
   kpis: KPIResponse | null;
@@ -10,8 +9,6 @@ interface KPIBarProps {
 
 export const KPIBar: React.FC<KPIBarProps> = ({ kpis, onSelectMetric, selectedMetric }) => {
   if (!kpis) return null;
-
-  const formatCurrency = (val: number) => formatCompact(val, 'TZS');
 
   const items = [
     {
@@ -23,10 +20,10 @@ export const KPIBar: React.FC<KPIBarProps> = ({ kpis, onSelectMetric, selectedMe
     },
     {
       id: 'demurrage',
-      label: 'Demurrage Risk',
-      value: kpis.demurrage_risk,
+      label: 'Free Time Due ≤48h',
+      value: kpis.free_time_due_48h,
       colorClass: 'r', // red
-      bgClass: kpis.demurrage_risk > 0 ? 'alert' : '',
+      bgClass: kpis.free_time_due_48h > 0 ? 'alert' : '',
     },
     {
       id: 'sla',
@@ -43,15 +40,15 @@ export const KPIBar: React.FC<KPIBarProps> = ({ kpis, onSelectMetric, selectedMe
       bgClass: '',
     },
     {
-      id: 'exposure',
-      label: 'Penalty Exposure',
-      value: formatCurrency(kpis.penalty_exposure_tzs),
+      id: 'overdue',
+      label: 'Free Time Overdue',
+      value: kpis.free_time_overdue,
       colorClass: 'r',
-      bgClass: kpis.penalty_exposure_tzs > 0 ? 'alert' : '',
+      bgClass: kpis.free_time_overdue > 0 ? 'alert' : '',
     },
     {
       id: 'ontime',
-      label: 'On-Time Rate',
+      label: 'SLA-Compliant Close Rate',
       value: kpis.on_time_rate_pct == null ? '—' : `${kpis.on_time_rate_pct}%`,
       colorClass: 'g',
       bgClass: '',

@@ -2,7 +2,8 @@ import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import { Icon } from '../../components/Icon.js';
 import type { IconName } from '../../components/Icon.js';
-import { PersonAvatar } from '../../components/PersonAvatar.js';
+import { PersonAvatar, CompanyAvatar } from '../../components/PersonAvatar.js';
+import { Tabs, TabsList, TabsTrigger, TabsContent } from '../../components/ui/tabs.js';
 import { apiFetch } from '../../lib/api.js';
 import { Combobox } from '../../components/ui/combobox.js';
 import { SearchToolbar } from '../../components/ui/filter-dropdown.js';
@@ -23,6 +24,10 @@ import {
 } from './shared.js';
 export function DomainsView() {
   const [domains, setDomains] = useState<any[]>([]);
+  const [subdomains, setSubdomains] = useState<any[]>([]);
+  const [onsiteDomains, setOnsiteDomains] = useState<any[]>([]);
+  const [baseDomain, setBaseDomain] = useState('hudumika.tz');
+  const [tab, setTab] = useState<'custom' | 'subdomains' | 'onsite'>('custom');
   const [tenants, setTenants] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState('');
@@ -44,6 +49,9 @@ export function DomainsView() {
         apiFetch('/v1/superadmin/tenants'),
       ]);
       setDomains(d?.data ?? []);
+      setSubdomains(d?.subdomains ?? []);
+      setOnsiteDomains(d?.onsite ?? []);
+      if (d?.base_domain) setBaseDomain(d.base_domain);
       setTenants(Array.isArray(t) ? t : (t?.data ?? []));
     } catch (e: any) { setLoadError(e?.message ?? 'Could not load domains.'); }
     finally { setLoading(false); }
@@ -103,13 +111,22 @@ export function DomainsView() {
 
   return (
     <div>
-      <PageHdr title="Custom Domains" sub="Custom domains across all companies, and what the last DNS and TLS check actually found" />
+      <PageHdr title="Platform Domains" sub="Every way a company is reached: custom domains added here, workspace subdomains from signup, and domains bought or connected in Onsite" />
 
       {loadError && (
         <div style={{ padding:'10px 13px', borderRadius: 'var(--r)', background:'var(--red-l)', color:'var(--red)', fontSize:12.5, marginBottom:14 }}>{loadError}</div>
       )}
 
-      <div style={{ display:'grid', gridTemplateColumns:'repeat(4,1fr)', gap:14, marginBottom:22 }}>
+      <Tabs value={tab} onValueChange={v => setTab(v as typeof tab)}>
+        <TabsList style={{ marginBottom: 18 }}>
+          <TabsTrigger value="custom"><span className="ds-tabs-trigger-label">Custom domains</span> <span style={{ color:'var(--ink3)' }}>{domains.length}</span></TabsTrigger>
+          <TabsTrigger value="subdomains"><span className="ds-tabs-trigger-label">Workspace subdomains</span> <span style={{ color:'var(--ink3)' }}>{subdomains.length}</span></TabsTrigger>
+          <TabsTrigger value="onsite"><span className="ds-tabs-trigger-label">Onsite domains</span> <span style={{ color:'var(--ink3)' }}>{onsiteDomains.length}</span></TabsTrigger>
+        </TabsList>
+        <TabsContent value="subdomains"><WorkspaceSubdomainsTable rows={subdomains} baseDomain={baseDomain} /></TabsContent>
+        <TabsContent value="onsite"><OnsiteDomainsTable rows={onsiteDomains} /></TabsContent>
+        <TabsContent value="custom">
+      <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fit,minmax(160px,1fr))', gap:14, marginBottom:22 }}>
         <StatCard label="Total Domains"  value={stats.total}     color="var(--teal)"   />
         <StatCard label="Verified"       value={stats.verified}  color="var(--green)"  />
         {/* Counts certificates actually seen, not domains someone ticked. */}
@@ -135,9 +152,9 @@ export function DomainsView() {
           }}
           activeFilterCount={statusFilter !== 'all' ? 1 : 0}
           actions={
-            <button type="button" className="btn btn-primary btn-sm" onClick={()=>setAdding(a=>!a)} data-ui-native-button="">
+            <Button size="sm" type="button" onClick={()=>setAdding(a=>!a)}>
               {adding ? 'Cancel' : '+ Add domain'}
-            </button>
+            </Button>
           }
         />
       </div>
@@ -157,13 +174,13 @@ export function DomainsView() {
               placeholder="Choose a company…"
             />
           </div>
-          <button type="button" className="btn btn-primary" disabled={!newHost.trim() || !newTenant || !!busy}
+          <Button type="button" disabled={!newHost.trim() || !newTenant || !!busy}
             onClick={()=>act('add', async () => {
               await apiFetch('/v1/superadmin/domains', { method:'POST', body: JSON.stringify({ tenant_id:newTenant, domain:newHost.trim() }) });
               setNewHost(''); setAdding(false);
-            })} data-ui-native-button="">
+            })}>
             {busy==='add' ? 'Adding…' : 'Add domain'}
-          </button>
+          </Button>
           <div style={{ flexBasis:'100%', fontSize:11.5, color:'var(--ink3)' }}>
             Added unverified. The company publishes the TXT token it is given, then Check confirms it — nothing is marked verified before that.
           </div>
@@ -182,8 +199,8 @@ export function DomainsView() {
           <div style={{ display:'flex', alignItems:'center', gap:12, padding:'0 14px', minHeight:'var(--ctl-h)', marginBottom:8, background:'color-mix(in srgb, var(--teal) 8%, var(--white))', border:'1px solid color-mix(in srgb, var(--teal) 25%, transparent)', borderRadius:'var(--r)', fontSize:13, boxShadow:'0 1px 2px 0 rgba(0,0,0,0.03)' }}>
             <span style={{ fontWeight:600, color:'var(--teal)' }}>{selected.size} {selected.size === 1 ? 'domain' : 'domains'} selected</span>
             <div style={{ flex:1 }} />
-            <button type="button" className="btn btn-secondary btn-sm" onClick={exportDomains} data-ui-native-button=""><Icon name="download" size={12} style={{ marginRight:5 }}/>Export</button>
-            <button type="button" className="btn btn-sm" style={{ color:'var(--ink3)' }} onClick={()=>setSelected(new Set())} data-ui-native-button="">Clear</button>
+            <Button variant="outline" size="sm" type="button" onClick={exportDomains}><Icon name="download" size={12} style={{ marginRight:5 }}/>Export</Button>
+            <Button type="button" variant="ghost" size="sm" onClick={()=>setSelected(new Set())}>Clear</Button>
           </div>
         )}
 
@@ -238,11 +255,11 @@ export function DomainsView() {
               </TD>
               <TD>
                 <div style={{ display:'flex', gap:6, alignItems:'center' }}>
-                  <button type="button" className="btn" style={{ fontSize:"var(--text-xs)", padding:'var(--ds-btn-py-xs) 9px', minHeight: 'var(--ctl-h-xs)', boxSizing: 'border-box', lineHeight: 1.25}}
-                    disabled={busy==='chk'+d.id}
-                    onClick={()=>act('chk'+d.id, ()=>apiFetch(`/v1/superadmin/domains/${d.id}/check`, { method:'POST', body:'{}' }))} data-ui-native-button="">
-                    {busy==='chk'+d.id ? 'Checking…' : 'Check'}
-                  </button>
+                  <Button type="button" variant="outline" size="xs"
+                    loading={busy==='chk'+d.id} loadingText="Checking…"
+                    onClick={()=>act('chk'+d.id, ()=>apiFetch(`/v1/superadmin/domains/${d.id}/check`, { method:'POST', body:'{}' }))}>
+                    Check
+                  </Button>
                   <ActBtn icon="trash" color="var(--red)" title="Remove"
                     onClick={()=>act('del'+d.id, ()=>apiFetch(`/v1/superadmin/domains/${d.id}`, { method:'DELETE' }))} />
                 </div>
@@ -263,6 +280,141 @@ export function DomainsView() {
           />
         )}
       </>
+      )}
+        </TabsContent>
+      </Tabs>
+    </div>
+  );
+}
+
+/* Read-only: every workspace's platform address, {subdomain}.{base}. Signup
+   stores the chosen subdomain; older workspaces are reached by their slug. */
+function WorkspaceSubdomainsTable({ rows, baseDomain }: { rows: any[]; baseDomain: string }) {
+  const [search, setSearch] = useState('');
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(25);
+  const filtered = useMemo(() => {
+    const q = search.trim().toLowerCase();
+    return q ? rows.filter(r => `${r.hostname ?? ''} ${r.tenant_name ?? ''}`.toLowerCase().includes(q)) : rows;
+  }, [rows, search]);
+  const shown = filtered.slice((page - 1) * pageSize, page * pageSize);
+  const chosen = rows.filter(r => r.chosen_at_signup).length;
+  return (
+    <div>
+      <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fit,minmax(180px,1fr))', gap:14, marginBottom:22 }}>
+        <StatCard label="Workspaces"         value={rows.length}          color="var(--teal)" />
+        <StatCard label="Chosen at signup"   value={chosen}               color="var(--green)" />
+        <StatCard label="Reached by slug"    value={rows.length - chosen} color="var(--gold)" />
+      </div>
+      <div style={{ marginBottom: 16 }}>
+        <SearchToolbar search={search} onSearch={v => { setSearch(v); setPage(1); }} placeholder={`Search *.${baseDomain} or company…`} />
+      </div>
+      <DataTable headers={['Address', 'Company', 'Source', 'Workspace', 'Created']}>
+        {shown.map(r => (
+          <TR key={r.tenant_id}>
+            <TD>
+              <div style={{ display:'flex', alignItems:'center', gap:8 }}>
+                <Icon name="globe" size={14} color="var(--teal)" />
+                <span style={{ fontSize:12.5, fontWeight:600, color:'var(--ink)' }}>{r.hostname ?? 'no address'}</span>
+              </div>
+            </TD>
+            <TD>
+              <div style={{ display:'flex', alignItems:'center', gap:8 }}>
+                <CompanyAvatar name={r.tenant_name ?? '?'} logoUrl={r.tenant_logo_url} size={24} shape="square" />
+                <span style={{ fontSize:13 }}>{r.tenant_name}</span>
+              </div>
+            </TD>
+            <TD><span style={{ fontSize:12, color:'var(--ink2)' }}>{r.chosen_at_signup ? 'Chosen at signup' : 'Workspace slug'}</span></TD>
+            <TD><Badge cfg={r.active ? { label:'Active', color:'var(--green)', bg:'var(--green-l)' } : { label:'Suspended', color:'var(--ink3)', bg:'var(--bg)' }} /></TD>
+            <TD nowrap><span style={{ fontSize:12, color:'var(--ink3)' }}>{fmtDate(r.created_at)}</span></TD>
+          </TR>
+        ))}
+        {filtered.length === 0 && (
+          <tr><td colSpan={5} style={{ textAlign:'center', padding:'40px 0', color:'var(--ink3)', fontSize:13 }}>No workspaces match.</td></tr>
+        )}
+      </DataTable>
+      {filtered.length > 0 && (
+        <PaginationBar page={page} pageSize={pageSize} total={filtered.length} onPageChange={setPage}
+          onPageSizeChange={p => { setPageSize(p); setPage(1); }} itemLabel="workspaces" bordered />
+      )}
+    </div>
+  );
+}
+
+const ORIGIN_CFG: Record<string, { label: string; color: string; bg: string }> = {
+  bought:    { label: 'Bought in Onsite', color: 'var(--green)', bg: 'var(--green-l)' },
+  transfer:  { label: 'Transferred in',   color: 'var(--teal)',  bg: 'color-mix(in srgb, var(--teal) 10%, var(--white))' },
+  connected: { label: 'Connected',        color: 'var(--ink2)',  bg: 'var(--bg)' },
+};
+
+/* Read-only: domains customers bought, transferred or connected in Onsite.
+   They are managed from each customer's Onsite workspace, not from here. */
+function OnsiteDomainsTable({ rows }: { rows: any[] }) {
+  const [search, setSearch] = useState('');
+  const [origin, setOrigin] = useState<string | null>(null);
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(25);
+  const filtered = useMemo(() => rows.filter(r => {
+    if (origin && r.origin !== origin) return false;
+    const q = search.trim().toLowerCase();
+    return !q || `${r.domain} ${r.tenant_name ?? ''}`.toLowerCase().includes(q);
+  }), [rows, search, origin]);
+  const shown = filtered.slice((page - 1) * pageSize, page * pageSize);
+  const expiringSoon = rows.filter(r => r.expires_at && Date.parse(r.expires_at) - Date.now() < 30 * 86_400_000).length;
+  return (
+    <div>
+      <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fit,minmax(160px,1fr))', gap:14, marginBottom:22 }}>
+        <StatCard label="Onsite domains"     value={rows.length} color="var(--teal)" />
+        <StatCard label="Bought in Onsite"   value={rows.filter(r => r.origin === 'bought').length} color="var(--green)" />
+        <StatCard label="Transferred in"     value={rows.filter(r => r.origin === 'transfer').length} color="var(--teal)" />
+        <StatCard label="Expiring in 30 days" value={expiringSoon} color="var(--gold)" />
+      </div>
+      <div style={{ marginBottom: 16 }}>
+        <SearchToolbar
+          search={search} onSearch={v => { setSearch(v); setPage(1); }} placeholder="Search domains or company…"
+          quickFilter={{
+            value: origin, onChange: v => { setOrigin(v); setPage(1); }, allLabel: 'All sources',
+            options: Object.entries(ORIGIN_CFG).map(([value, c]) => ({ value, label: c.label })),
+          }}
+          activeFilterCount={origin ? 1 : 0}
+        />
+      </div>
+      <DataTable headers={['Domain', 'Company', 'Source', 'Registrar', 'Expires', 'Status']}>
+        {shown.map(r => (
+          <TR key={r.id}>
+            <TD>
+              <div style={{ display:'flex', alignItems:'center', gap:8 }}>
+                <Icon name="globe" size={14} color="var(--teal)" />
+                <div>
+                  <div style={{ fontSize:12.5, fontWeight:600, color:'var(--ink)' }}>{r.domain}</div>
+                  <div style={{ fontSize:10.5, color:'var(--ink3)' }}>DNS {r.dns_status} · TLS {r.ssl_status}</div>
+                </div>
+              </div>
+            </TD>
+            <TD>
+              <div style={{ display:'flex', alignItems:'center', gap:8 }}>
+                <CompanyAvatar name={r.tenant_name ?? '?'} logoUrl={r.tenant_logo_url} size={24} shape="square" />
+                <span style={{ fontSize:13 }}>{r.tenant_name ?? 'company no longer on file'}</span>
+              </div>
+            </TD>
+            <TD><Badge cfg={ORIGIN_CFG[r.origin] ?? ORIGIN_CFG.connected} /></TD>
+            <TD><span style={{ fontSize:12, color:'var(--ink2)' }}>{r.registrar || '—'}</span></TD>
+            <TD nowrap>
+              <span style={{ fontSize:12, color:'var(--ink3)' }}>{r.expires_at ? fmtDate(r.expires_at) : 'not recorded'}</span>
+              {r.expires_at && r.auto_renew && <div style={{ fontSize:10.5, color:'var(--ink3)' }}>auto-renews</div>}
+            </TD>
+            <TD><Badge cfg={r.status === 'active' ? { label:'Active', color:'var(--green)', bg:'var(--green-l)' } : { label: String(r.status).replace(/^./, c => c.toUpperCase()), color:'var(--gold)', bg:'var(--gold-l)' }} /></TD>
+          </TR>
+        ))}
+        {filtered.length === 0 && (
+          <tr><td colSpan={6} style={{ textAlign:'center', padding:'40px 0', color:'var(--ink3)', fontSize:13 }}>
+            {rows.length === 0 ? 'No customer has bought or connected a domain in Onsite yet.' : 'No domains match your filters.'}
+          </td></tr>
+        )}
+      </DataTable>
+      {filtered.length > 0 && (
+        <PaginationBar page={page} pageSize={pageSize} total={filtered.length} onPageChange={setPage}
+          onPageSizeChange={p => { setPageSize(p); setPage(1); }} itemLabel="domains" bordered />
       )}
     </div>
   );
@@ -346,27 +498,25 @@ export function TransactionsView() {
         sub={loading ? 'Loading…' : `${rows.length} platform billing transactions recorded`}
         action={
           <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-            <button
+            <Button variant="outline" size="sm"
               type="button"
-              className="btn btn-secondary btn-sm"
+             
               style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}
               onClick={loadTransactions}
-              data-ui-native-button=""
             >
               <Icon name="refresh" size={12} />
               Refresh
-            </button>
-            <button
+            </Button>
+            <Button variant="outline" size="sm"
               type="button"
-              className="btn btn-secondary btn-sm"
+             
               style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}
               onClick={exportCsv}
               disabled={filtered.length === 0}
-              data-ui-native-button=""
             >
               <Icon name="download" size={13} />
               Export CSV
-            </button>
+            </Button>
           </div>
         }
       />
@@ -515,7 +665,7 @@ export function TransactionsView() {
                   alignItems: 'center',
                   gap: 6,
                   padding: '2px 8px',
-                  borderRadius: 6,
+                  borderRadius: 'var(--r-sm)',
                   fontSize: 11,
                   background: 'var(--bg)',
                   border: '1px solid var(--border)',
@@ -541,7 +691,7 @@ export function TransactionsView() {
                   alignItems: 'center',
                   gap: 6,
                   padding: '2px 8px',
-                  borderRadius: 6,
+                  borderRadius: 'var(--r-sm)',
                   fontSize: 11,
                   background: 'var(--bg)',
                   border: '1px solid var(--border)',
@@ -598,8 +748,8 @@ export function TransactionsView() {
           <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '0 14px', minHeight: 'var(--ctl-h)', marginBottom: 8, background: 'color-mix(in srgb, var(--teal) 8%, var(--white))', border: '1px solid color-mix(in srgb, var(--teal) 25%, transparent)', borderRadius: 'var(--r)', fontSize: 13, boxShadow: '0 1px 2px 0 rgba(0,0,0,0.03)' }}>
             <span style={{ fontWeight: 600, color: 'var(--teal)' }}>{selected.size} {selected.size === 1 ? 'transaction' : 'transactions'} selected</span>
             <div style={{ flex: 1 }} />
-            <button type="button" className="btn btn-secondary btn-sm" onClick={exportCsv} data-ui-native-button=""><Icon name="download" size={12} style={{ marginRight: 5 }} />Export selected</button>
-            <button type="button" className="btn btn-sm" style={{ color: 'var(--ink3)' }} onClick={() => setSelected(new Set())} data-ui-native-button="">Clear</button>
+            <Button variant="outline" size="sm" type="button" onClick={exportCsv}><Icon name="download" size={12} style={{ marginRight: 5 }} />Export selected</Button>
+            <Button type="button" variant="ghost" size="sm" onClick={() => setSelected(new Set())}>Clear</Button>
           </div>
         )}
 
@@ -1004,9 +1154,9 @@ export function ActivityView() {
         title="Audit Log"
         sub="Security-sensitive changes with before/after comparison"
         action={
-          <button type="button" className="btn btn-secondary btn-sm" style={{ gap:6 }} onClick={exportCsv} disabled={filtered.length === 0} data-ui-native-button="">
+          <Button variant="outline" size="sm" type="button" style={{ gap:6 }} onClick={exportCsv} disabled={filtered.length === 0}>
             <Icon name="download" size={12} style={{ marginRight:4 }} />Export CSV
-          </button>
+          </Button>
         }
       />
 

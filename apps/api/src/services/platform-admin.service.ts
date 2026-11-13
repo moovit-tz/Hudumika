@@ -2,6 +2,7 @@ import dns from 'node:dns/promises';
 import tls from 'node:tls';
 import crypto from 'node:crypto';
 import { dbPlatform } from '../db/client.js';
+import { env } from '../config/env.js';
 
 /**
  * Platform-level audit trail and custom domains.
@@ -90,6 +91,37 @@ export class PlatformAdminService {
       ssl_ok: r.ssl_verified_at != null,
       never_checked: r.last_checked_at == null,
     }));
+  }
+
+  /**
+   * Every workspace's platform address. Signup stores the chosen subdomain on
+   * the tenant; workspaces made before that field existed are reached by their
+   * slug — the same `subdomain || slug` rule onboarding.service.ts uses.
+   */
+  static async listTenantSubdomains() {
+    const rows = await dbPlatform.selectFrom('tenants')
+      .select(['id', 'name', 'slug', 'subdomain', 'active', 'created_at', 'logo_url'])
+      .orderBy('created_at', 'desc').execute();
+    return rows.map(r => {
+      const label = r.subdomain || r.slug;
+      return {
+        tenant_id: r.id, tenant_name: r.name, tenant_logo_url: r.logo_url, active: r.active, created_at: r.created_at,
+        subdomain: label, chosen_at_signup: !!r.subdomain,
+        hostname: label ? `${label}.${env.PLATFORM_BASE_DOMAIN}` : null,
+      };
+    });
+  }
+
+  /** Domains customers bought, transferred in or connected in Onsite. */
+  static async listOnsiteDomains() {
+    return dbPlatform.selectFrom('onsite_domains as d')
+      .leftJoin('tenants as t', 't.id', 'd.tenant_id')
+      .select([
+        'd.id', 'd.tenant_id', 'd.domain', 'd.origin', 'd.status', 'd.registrar',
+        'd.registered_at', 'd.expires_at', 'd.auto_renew', 'd.dns_status', 'd.ssl_status',
+        'd.ssl_expires_at', 'd.created_at', 't.name as tenant_name', 't.logo_url as tenant_logo_url',
+      ])
+      .orderBy('d.created_at', 'desc').execute();
   }
 
   static async addDomain(tenantId: string, domain: string) {

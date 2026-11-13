@@ -494,7 +494,7 @@ export const PaymentGatewaysSection: React.FC = () => {
         <div className="s-gw-count">
           {enabledCount} of {GATEWAYS.length} gateways active · customers will see enabled gateways at checkout.
         </div>
-        <button type="button" className="btn btn-primary" disabled={saving} onClick={async () => {
+        <Button type="button" disabled={saving} onClick={async () => {
           setSaving(true);
           // Every top-level `gw-<id>` key directly, the exact same shape the
           // per-gateway "Save" button and lib/payment-gateway.ts's own
@@ -512,9 +512,9 @@ export const PaymentGatewaysSection: React.FC = () => {
           }
           try { await apiFetch('/v1/settings', { method: 'PATCH', body: JSON.stringify(payload) }); } catch {}
           setSaving(false);
-        }} data-ui-native-button="">
+        }}>
           {saving ? 'Saving…' : 'Save All Changes'}
-        </button>
+        </Button>
       </div>
 
       {REGIONS.map(region => {
@@ -610,10 +610,10 @@ export const PaymentGatewaysSection: React.FC = () => {
                         </div>
                         {/* Actions */}
                         <div className="s-gw-foot">
-                          <button type="button" className="btn btn-primary btn-sm" onClick={() => save(`gw-${gw.id}`, { enabled: true, sandbox: sbx, ...values[gw.id] }).catch(() => {})} data-ui-native-button="">Save</button>
-                          <button type="button" className="btn btn-secondary btn-sm" disabled={testing === gw.id} onClick={() => testGateway(gw)} data-ui-native-button="">
+                          <Button size="sm" type="button" onClick={() => save(`gw-${gw.id}`, { enabled: true, sandbox: sbx, ...values[gw.id] }).catch(() => {})}>Save</Button>
+                          <Button variant="outline" size="sm" type="button" disabled={testing === gw.id} onClick={() => testGateway(gw)}>
                             {testing === gw.id ? 'Testing…' : 'Test Connection'}
-                          </button>
+                          </Button>
                           {testResults[gw.id] && (
                             <span style={{ fontSize: 11.5, marginLeft: 8, fontWeight: 600, color: testResults[gw.id].ok ? 'var(--green)' : 'var(--red)' }}>
                               {testResults[gw.id].message}

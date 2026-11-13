@@ -940,7 +940,7 @@ export async function taskProjectsRoutes(fastify: FastifyInstance) {
         if (!recipient) continue;
         const title = `${actorName} posted in "${projectName}"`;
         await NotificationService.createNotification({
-          tenantId: user.tenant_id, userId: uid, app: 'tasks', type: 'mention',
+          tenantId: user.tenant_id, userId: uid, app: 'projects', type: 'mention',
           title, message: body.content.trim(), link: '/projects', entityType: 'project', entityId: request.params.id,
         }).catch(err => console.error('[Projects] Failed to notify on discussion post:', err.message));
         await MailService.sendNow(user.tenant_id, {

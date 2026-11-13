@@ -7,7 +7,8 @@ import { FeaturedIcon } from "./featured-icon"
 import { cn } from "@/lib/utils"
 
 interface RowProps {
-  title: string
+  /** Usually plain text; may carry an inline badge beside the name. */
+  title: React.ReactNode
   description?: string
   disabled?: boolean
   className?: string

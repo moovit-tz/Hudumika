@@ -22,6 +22,7 @@ import { PageHeader } from '../components/PageHeader.js';
 import { showAlert } from '../lib/alert.js';
 import { readXlsxSheets } from '../lib/xlsx-read.js';
 import './CreateShipmentPage.css';
+import { Button } from '../components/ui/button.js';
 
 /**
  * Dangerous goods aren't a separate creation process — same clearing flow as
@@ -284,9 +285,15 @@ export function CreateShipmentPage() {
   }, [createForm.container_number]);
 
   useEffect(() => {
-    apiFetch('/v1/customers').then((data: any) => setCustomers(data || [])).catch(() => {});
-    apiFetch('/v1/staff').then((data: any) => setOfficers(data || [])).catch(() => {});
-    apiFetch('/v1/workflows').then((data: any) => setWorkflows(data || [])).catch(() => {});
+    apiFetch('/v1/customers').then((response: any) => {
+      setCustomers(Array.isArray(response) ? response : Array.isArray(response?.data) ? response.data : []);
+    }).catch(() => setCustomers([]));
+    apiFetch('/v1/hr/staff').then((response: any) => {
+      setOfficers(Array.isArray(response) ? response : Array.isArray(response?.data) ? response.data : []);
+    }).catch(() => setOfficers([]));
+    apiFetch('/v1/workflows').then((response: any) => {
+      setWorkflows(Array.isArray(response) ? response : Array.isArray(response?.data) ? response.data : []);
+    }).catch(() => setWorkflows([]));
   }, []);
 
   const handleOcrFile = async (f: File) => {
@@ -704,11 +711,11 @@ export function CreateShipmentPage() {
                   Download the official Hudumika logistics template. Share it with your clients or operators to fill in container and commercial details before uploading here.
                 </p>
                 <div className="shipment-excel-btn-group">
-                  <button className="btn btn-secondary" onClick={downloadTemplate} data-ui-native-button="" style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}>
+                  <Button variant="outline" onClick={downloadTemplate} style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}>
                     <Icon name="download" size={16} /> Download Template (.csv)
-                  </button>
-                  <button
-                    className="btn btn-primary"
+                  </Button>
+                  <Button
+                   
                     disabled={excelBusy}
                     onClick={() => {
                       const inp = document.createElement('input');
@@ -717,11 +724,10 @@ export function CreateShipmentPage() {
                       inp.onchange = (ev: any) => { const f = ev.target.files?.[0]; if (f) void importSheet(f); };
                       inp.click();
                     }}
-                    data-ui-native-button=""
                     style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}
                   >
                     <Icon name="upload" size={16} /> {excelBusy ? 'Reading…' : 'Upload Filled Sheet'}
-                  </button>
+                  </Button>
                 </div>
 
                 {excelReport && (
@@ -736,9 +742,9 @@ export function CreateShipmentPage() {
                     <div style={{ fontSize: 13, color: 'var(--ink2)', lineHeight: 1.55 }}>
                       <div>{excelReport.text}</div>
                       <div style={{ marginTop: 12 }}>
-                        <button className="btn btn-primary" style={{ fontSize: "var(--text-base)" }} onClick={() => setCurrentStep(3)} data-ui-native-button="">
+                        <Button style={{ fontSize: "var(--text-base)" }} onClick={() => setCurrentStep(3)}>
                           {excelReport.ok ? 'Review Extracted Fields' : 'Fill Form by Hand'}
-                        </button>
+                        </Button>
                       </div>
                     </div>
                   </div>
@@ -1121,34 +1127,33 @@ export function CreateShipmentPage() {
             
             {/* ── Footer Navigation ──────────────────────────────────── */}
             <div className="create-shipment-footer">
-              <button 
+              <Button variant="outline" 
                 type="button" 
-                className="btn btn-secondary" 
+                
                 onClick={() => currentStep > 1 ? setCurrentStep(s => s - 1) : navigate('/clearos/ops')}
-                data-ui-native-button=""
               >
                 {currentStep === 1 ? 'Cancel' : 'Previous Step'}
-              </button>
+              </Button>
               
               {currentStep === 1 && (
                 <div className="create-shipment-footer-actions">
-                  <button type="button" className="btn btn-secondary" onClick={() => setCurrentStep(2)} data-ui-native-button="">Skip OCR</button>
-                  <button type="button" className="btn btn-primary" onClick={applyOcrToForm} disabled={!ocrResult} data-ui-native-button="">Apply Extracted Data</button>
+                  <Button variant="outline" type="button" onClick={() => setCurrentStep(2)}>Skip OCR</Button>
+                  <Button type="button" onClick={applyOcrToForm} disabled={!ocrResult}>Apply Extracted Data</Button>
                 </div>
               )}
               
               {currentStep === 2 && (
                 <div className="create-shipment-footer-actions">
-                  <button type="button" className="btn btn-secondary" onClick={() => setCurrentStep(3)} data-ui-native-button="">Skip Excel</button>
-                  <button type="button" className="btn btn-primary" onClick={() => setCurrentStep(3)} disabled={!excelReport} data-ui-native-button="">Continue to Form</button>
+                  <Button variant="outline" type="button" onClick={() => setCurrentStep(3)}>Skip Excel</Button>
+                  <Button type="button" onClick={() => setCurrentStep(3)} disabled={!excelReport}>Continue to Form</Button>
                 </div>
               )}
               
               {currentStep === 3 && (
                 <div className="create-shipment-footer-actions">
-                  <button type="button" className="btn btn-primary" onClick={() => setCurrentStep(4)} data-ui-native-button="">
+                  <Button type="button" onClick={() => setCurrentStep(4)}>
                     Review Details &rarr;
-                  </button>
+                  </Button>
                 </div>
               )}
               
@@ -1168,16 +1173,15 @@ export function CreateShipmentPage() {
                       </button>
                     </span>
                   )}
-                  <button
+                  <Button
                     type="button"
-                    className="btn btn-primary"
+                   
                     onClick={handleCreateCase}
                     disabled={createLoading || missingRequired.length > 0}
-                    data-ui-native-button=""
                     style={{ fontWeight: 700 }}
                   >
                     {createLoading ? 'Creating Shipment…' : 'Create Shipment Case'}
-                  </button>
+                  </Button>
                 </div>
               )}
             </div>

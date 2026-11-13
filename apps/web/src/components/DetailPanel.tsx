@@ -135,12 +135,12 @@ export const DetailPanel: React.FC<DetailPanelProps> = ({ shipmentId, onClose })
               )}
               {riskTypes.map((r: string) => (
                 <span key={r} style={{ display: 'inline-flex', alignItems: 'center', gap: 3, fontSize: 12, fontWeight: 700, color: 'var(--red)', background: 'var(--red-l)', borderRadius: 'var(--badge-radius)', padding: '3px 10px' }}>
-                  <Icon name="alertTriangle" size={11} color="#dc2626" />
+                  <Icon name="alertTriangle" size={11} color="var(--red)" />
                   {r}
                 </span>
               ))}
               {shipment.tansad_number && (
-                <span style={{ fontFamily: 'var(--font)', fontSize: 11, color: 'var(--blue)', fontWeight: 700, background: 'var(--blue-l)', padding: '3px 9px', borderRadius: 6 }}>
+                <span style={{ fontFamily: 'var(--font)', fontSize: 11, color: 'var(--blue)', fontWeight: 700, background: 'var(--blue-l)', padding: '3px 9px', borderRadius: 'var(--r-sm)' }}>
                   {shipment.tansad_number}
                 </span>
               )}
@@ -150,7 +150,7 @@ export const DetailPanel: React.FC<DetailPanelProps> = ({ shipmentId, onClose })
           {/* Stage progress */}
           <div style={{ padding: '14px 16px', borderBottom: '1px solid var(--border)' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
-              <span style={{ fontSize: 13, fontWeight: 700, color: hasRisk ? '#dc2626' : 'var(--ink)' }}>
+              <span style={{ fontSize: 13, fontWeight: 700, color: hasRisk ? 'var(--red)' : 'var(--ink)' }}>
                 {stageLabel}
               </span>
               <span style={{ fontSize: 11.5, color: 'var(--ink3)' }}>{stagePct}% complete</span>
@@ -277,7 +277,7 @@ export const DetailPanel: React.FC<DetailPanelProps> = ({ shipmentId, onClose })
             </Link>
 
             {isOverdue && (
-              <div style={{ marginTop: 10, textAlign: 'center', fontSize: 12.5, color: '#dc2626', fontWeight: 600 }}>
+              <div style={{ marginTop: 10, textAlign: 'center', fontSize: 12.5, color: 'var(--red)', fontWeight: 600 }}>
                 ⚠ Overdue · {new Date(shipment.sla_deadline).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}
               </div>
             )}

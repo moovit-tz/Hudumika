@@ -278,11 +278,11 @@ export function AttendanceStatusBanner() {
             ) : confirmPreview && (
               <>
                 <div style={{ display: 'flex', gap: 12 }}>
-                  <div style={{ flex: 1, background: 'var(--bg)', borderRadius: 12, padding: '14px 16px', border: '1px solid var(--border)' }}>
+                  <div style={{ flex: 1, background: 'var(--bg)', borderRadius: 'var(--r)', padding: '14px 16px', border: '1px solid var(--border)' }}>
                     <div style={{ fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--ink3)', marginBottom: 4 }}>Time so far</div>
                     <div style={{ fontSize: 22, fontWeight: 800, color: 'var(--ink)', fontFamily: 'var(--font)' }}>{formatSummaryDuration(confirmPreview.worked_minutes)}</div>
                   </div>
-                  <div style={{ flex: 1, background: 'var(--bg)', borderRadius: 12, padding: '14px 16px', border: '1px solid var(--border)' }}>
+                  <div style={{ flex: 1, background: 'var(--bg)', borderRadius: 'var(--r)', padding: '14px 16px', border: '1px solid var(--border)' }}>
                     <div style={{ fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--ink3)', marginBottom: 4 }}>Tasks closed</div>
                     <div style={{ fontSize: 22, fontWeight: 800, color: 'var(--ink)', fontFamily: 'var(--font)' }}>{confirmPreview.tasks_completed_count}</div>
                   </div>
@@ -322,11 +322,11 @@ export function AttendanceStatusBanner() {
                 </div>
               )}
               <div style={{ display: 'flex', gap: 12 }}>
-                <div style={{ flex: 1, background: 'var(--bg)', borderRadius: 12, padding: '14px 16px', border: '1px solid var(--border)' }}>
+                <div style={{ flex: 1, background: 'var(--bg)', borderRadius: 'var(--r)', padding: '14px 16px', border: '1px solid var(--border)' }}>
                   <div style={{ fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--ink3)', marginBottom: 4 }}>Time worked</div>
                   <div style={{ fontSize: 22, fontWeight: 800, color: 'var(--ink)', fontFamily: 'var(--font)' }}>{formatSummaryDuration(clockOutSummary.worked_minutes)}</div>
                 </div>
-                <div style={{ flex: 1, background: 'var(--bg)', borderRadius: 12, padding: '14px 16px', border: '1px solid var(--border)' }}>
+                <div style={{ flex: 1, background: 'var(--bg)', borderRadius: 'var(--r)', padding: '14px 16px', border: '1px solid var(--border)' }}>
                   <div style={{ fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--ink3)', marginBottom: 4 }}>Tasks closed</div>
                   <div style={{ fontSize: 22, fontWeight: 800, color: 'var(--ink)', fontFamily: 'var(--font)' }}>{clockOutSummary.tasks_completed_count}</div>
                 </div>

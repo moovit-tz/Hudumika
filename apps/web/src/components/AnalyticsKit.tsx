@@ -35,7 +35,7 @@ export const ExportButton: React.FC<{ onClick: () => void }> = ({ onClick }) => 
 const TONE_COLOR: Record<'red' | 'green' | 'ink', string> = { red: 'var(--red)', green: 'var(--green)', ink: 'var(--ink)' };
 const TONE_BG: Record<'red' | 'green' | 'ink', string> = { red: 'var(--red-l)', green: 'var(--green-l)', ink: 'var(--bg)' };
 export const StatTile: React.FC<{ label: string; value: string; tone?: 'red' | 'green' | 'ink' }> = ({ label, value, tone = 'ink' }) => (
-  <div style={{ flex: 1, minWidth: 110, padding: '10px 14px', background: TONE_BG[tone], borderRadius: 8, border: '1px solid var(--border)' }}>
+  <div style={{ flex: 1, minWidth: 110, padding: '10px 14px', background: TONE_BG[tone], borderRadius: 'var(--r-sm)', border: '1px solid var(--border)' }}>
     <div style={{ fontSize: 10.5, fontWeight: 700, color: 'var(--ink3)', textTransform: 'uppercase', letterSpacing: '.05em', marginBottom: 4 }}>{label}</div>
     <div style={{ fontSize: 19, fontWeight: 800, color: TONE_COLOR[tone] }}>{value}</div>
   </div>

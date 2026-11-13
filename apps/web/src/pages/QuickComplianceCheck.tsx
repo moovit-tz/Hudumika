@@ -7,11 +7,15 @@ import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '.
 import { apiFetch } from '../lib/api.js';
 import { useEnabledApps, isAppEnabled } from '../hooks/useEnabledApps.js';
 import { useIsMobile } from '../hooks/useIsMobile.js';
+import { Button } from '../components/ui/button.js';
 
 const COMPLYOS_PITCH = [
   { icon: 'users' as const, highlight: 'Vetted Experts', text: 'Connect with consultants who file on your behalf' },
   { icon: 'clipboardList' as const, highlight: 'Central Tracker', text: 'Track every permit & licence renewal in one place' },
-  { icon: 'zap' as const, highlight: 'Auto Filings', text: 'Automate applications to BRELA, TRA, NSSF & more' },
+  // Not "automated": BRELA, TRA and NSSF are portal or manual filings today
+  // (apps/api/src/integrations/comply-agencies.ts). ComplyOS prepares and
+  // tracks the application; a person still lodges it on the agency portal.
+  { icon: 'clipboardList' as const, highlight: 'Guided Filings', text: 'Prepare BRELA, TRA & NSSF applications and track each one to approval' },
 ];
 
 // Soft, light card built from the design system's own derived tint tokens
@@ -68,15 +72,14 @@ function ComplyOSPromoCard() {
 
       {/* CTA — same solid-brand button style as "Check Compliance" above, so it
           reads as the one high-contrast element against this pale card. */}
-      <button
+      <Button
         type="button"
         onClick={() => navigate('/complyos')}
-        className="btn btn-primary"
-        style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, height: "var(--action-h)", fontSize: "var(--text-base)", fontWeight: 700, marginTop: 20 }}
-       data-ui-native-button="">
+       
+        style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, height: "var(--action-h)", fontSize: "var(--text-base)", fontWeight: 700, marginTop: 20 }}>
         <span>{enabled ? 'Open ComplyOS' : 'Explore ComplyOS'}</span>
         <Icon name="arrowRight" size={15} color="#fff" />
-      </button>
+      </Button>
     </div>
   );
 }
@@ -305,11 +308,11 @@ export const QuickComplianceCheck: React.FC = () => {
               </div>
             )}
 
-            <button type="button" onClick={runCheck} disabled={loading} className="btn btn-primary"
-              style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, height: "var(--action-h)", fontSize: "var(--text-base)", fontWeight: 700 }} data-ui-native-button="">
+            <Button type="button" onClick={runCheck} disabled={loading}
+              style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, height: "var(--action-h)", fontSize: "var(--text-base)", fontWeight: 700 }}>
               <Icon name="shield" size={15} color="#fff" />
               {loading ? 'Checking…' : 'Check Compliance'}
-            </button>
+            </Button>
           </div>
         </div>
 

@@ -46,6 +46,36 @@ export function broadcastToTenant(fastify: FastifyInstance, tenantId: string, pa
 }
 
 /**
+ * The server handle, kept so code with no request in hand (services, jobs)
+ * can still reach connected sockets. Set once at boot, see index.ts.
+ */
+let wsServer: FastifyInstance | null = null;
+export function registerWsServer(fastify: FastifyInstance): void { wsServer = fastify; }
+
+/**
+ * Nudges one person's open tabs to reload their notifications.
+ *
+ * Sent to that user's sockets only, and carries no content: the client
+ * re-reads GET /v1/notifications, which applies the real access rules. It
+ * is deliberately outside the tenant replay buffer (seq 0) — a missed nudge
+ * costs nothing, since the header also polls.
+ *
+ * Delayed slightly because most callers are still inside the transaction
+ * that wrote the row; a client that re-read immediately would not see it.
+ */
+export function notifyUser(tenantId: string, userId: string | null | undefined): void {
+  if (!userId || !wsServer) return;
+  const message = JSON.stringify({ seq: 0, event: { type: 'notification.new', count: 1 } });
+  setTimeout(() => {
+    wsServer?.websocketServer?.clients.forEach((client: any) => {
+      if (client.tenantId === tenantId && client.userId === userId && client.readyState === client.OPEN) {
+        try { client.send(message); } catch { /* client gone */ }
+      }
+    });
+  }, 800).unref?.();
+}
+
+/**
  * Replays everything the buffer still holds for `tenantId` after `sinceSeq`,
  * sent only to the one reconnecting `socket` — never broadcast. Returns
  * false when `sinceSeq` has already aged or rotated out of the buffer, so

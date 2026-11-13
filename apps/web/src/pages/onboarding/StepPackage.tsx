@@ -93,7 +93,9 @@ const COMPARISON_CATEGORIES: MatrixCategory[] = [
     icon: 'truck',
     rows: [
       { label: 'Monthly shipments & consignments', sublabel: 'Commercial freight and clearance declarations', starter: '100 shipments / mo', business: '500 shipments / mo', scale: '2,000 shipments / mo' },
-      { label: 'Customs declaration & TANCIS integration', sublabel: 'Automated TRA customs clearance gateway', starter: 'Standard gateway', business: 'Fast-track sync', scale: 'Priority dispatch queue' },
+      // No live TANCIS API exists (apps/api/src/services/seal-customs-adapter.ts):
+      // declarations are prepared here and lodged by a person on the TRA portal.
+      { label: 'Customs declarations & TANCIS tracking', sublabel: 'Prepare declarations and record each TANCIS lodgement, reference and release', starter: true, business: true, scale: true },
       { label: 'Demurrage risk radar & detention alerts', sublabel: 'Predictive port and ICD storage cost protection', starter: false, business: 'Included (Real-time)', scale: 'Priority radar + multi-port' },
       { label: 'SEAL bonded warehouse management', sublabel: 'Cargo containment, tally sheets & release orders', starter: false, business: true, scale: 'Multi-terminal tracking' },
       { label: 'External cargo tracking (AWB / B/L)', sublabel: 'Real-time shipping line and airline tracking', starter: 'Optional add-on', business: true, scale: true },
@@ -105,7 +107,7 @@ const COMPARISON_CATEGORIES: MatrixCategory[] = [
     rows: [
       { label: 'Invoices, quotations & proforma generation', sublabel: 'Multi-currency invoicing with payment links', starter: true, business: true, scale: true },
       { label: 'Point of Sale (POS) retail registers', sublabel: 'Fast barcode scanning and thermal receipts', starter: '1 active register', business: 'Up to 3 registers', scale: 'Unlimited registers' },
-      { label: 'EFD / VAT tax calculation & compliance', sublabel: 'Automated TRA VFD virtual fiscal device sync', starter: 'Standard EFD', business: 'Automated tax engine', scale: 'Multi-entity & automated filings' },
+      { label: 'EFD / VAT tax calculation & compliance', sublabel: 'Automated TRA VFD virtual fiscal device sync', starter: 'Standard EFD', business: 'Automated tax engine', scale: 'Multi-entity VAT returns, ready to file' },
       { label: 'Vendor bills & procurement approvals', sublabel: 'Purchase orders, 3-way matching and approvals', starter: 'Basic billing', business: 'Approval workflows', scale: 'Multi-tiered governance' },
       { label: 'Inventory, batch/serial & manufacturing', sublabel: 'Stock valuation, FIFO, BOM and serial tracking', starter: 'Basic inventory', business: 'Batch, serial & BOM', scale: 'Advanced multi-warehouse' },
     ],
@@ -523,7 +525,7 @@ export const StepPackage: React.FC<StepProps> = ({ draft, update, onNext, onBack
                         <span className="ob-pkg-feature-icon">
                           <Icon name="check" size={11} />
                         </span>
-                        <span>Customs & TANCIS integration</span>
+                        <span>Customs declarations & TANCIS tracking</span>
                       </li>
                       {(isPro || isScale) && (
                         <li className="ob-pkg-feature-item">

@@ -633,7 +633,7 @@
 
 .sfc-modal-content {
   background: var(--card-bg);
-  border-radius: 14px;
+  border-radius: var(--r-lg);
   max-width: 95vw;
   max-height: 92vh;
   display: flex;

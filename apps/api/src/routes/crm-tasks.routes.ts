@@ -77,6 +77,17 @@ export async function crmTasksRoutes(fastify: FastifyInstance) {
         assigned_to: b.assigned_to || null,
         created_by: request.user.sub,
       }).returningAll().executeTakeFirstOrThrow();
+      // A follow-up given to someone else.
+      if (b.assigned_to && b.assigned_to !== request.user.sub) {
+        const { NotificationService } = await import('../services/notification.service.js');
+        await NotificationService.createNotificationInTrx(trx, {
+          tenantId, userId: b.assigned_to, app: 'crm', type: 'task',
+          title: 'A follow-up was assigned to you',
+          message: `${b.title}${b.due_at ? ` — due ${new Date(b.due_at).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}` : ''}`,
+          link: b.subject_type === 'deal' ? `/crm/pipeline?deal=${b.subject_id}` : `/crm/leads/${b.subject_id}`,
+          entityType: 'crm_task', entityId: (row as any).id,
+        });
+      }
       await logCrmActivity(trx, {
         tenantId, subjectType: b.subject_type, subjectId: b.subject_id,
         type: 'task_added',

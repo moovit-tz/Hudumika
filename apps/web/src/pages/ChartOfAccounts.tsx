@@ -348,7 +348,7 @@ export const ChartOfAccounts: React.FC = () => {
         onCancel={() => setShowForm(false)}
         actions={
           <>
-            <button type="button" className="btn btn-secondary" onClick={() => setShowForm(false)} disabled={saving} data-ui-native-button="">Cancel</button>
+            <Button variant="outline" type="button" onClick={() => setShowForm(false)} disabled={saving}>Cancel</Button>
             <Button type="button" onClick={handleSaveAccount} loading={saving} loadingText="Saving…">Save Account</Button>
           </>
         }
@@ -429,15 +429,15 @@ export const ChartOfAccounts: React.FC = () => {
             Read-only · Enable Advanced Accounting to customize accounts
           </span>
         )}
-        <button type="button" className="btn btn-secondary btn-sm" onClick={expandAll} data-ui-native-button="">
+        <Button variant="outline" size="sm" type="button" onClick={expandAll}>
           <Icon name="chevronDown" size={13} /> Expand All
-        </button>
-        <button type="button" className="btn btn-secondary btn-sm" onClick={collapseAll} data-ui-native-button="">
+        </Button>
+        <Button variant="outline" size="sm" type="button" onClick={collapseAll}>
           <Icon name="chevronUp" size={13} /> Collapse All
-        </button>
-        <button type="button" className="btn btn-secondary btn-sm" onClick={exportCsv} data-ui-native-button="">
+        </Button>
+        <Button variant="outline" size="sm" type="button" onClick={exportCsv}>
           <Icon name="download" size={13} /> Export CSV
-        </button>
+        </Button>
         <Tip label={canManageAccounts ? 'Create account' : 'Requires Advanced Accounting'}>
           <span>
             <button type="button" onClick={openNewAccountForm} disabled={!canManageAccounts}
@@ -552,15 +552,15 @@ export const ChartOfAccounts: React.FC = () => {
               {rowsOnPage !== pagedTree.length && <> · {rowsOnPage} rows shown</>}
             </span>
             <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-              <button type="button" className="btn btn-secondary btn-sm"
-                disabled={currentPage === 1} onClick={() => setPage(p => Math.max(1, p - 1))} data-ui-native-button="">
+              <Button variant="outline" size="sm" type="button"
+                disabled={currentPage === 1} onClick={() => setPage(p => Math.max(1, p - 1))}>
                 <Icon name="arrowLeft" size={12} /> Previous
-              </button>
+              </Button>
               <span style={{ minWidth: 70, textAlign: 'center' }}>Page {currentPage} of {pageCount}</span>
-              <button type="button" className="btn btn-secondary btn-sm"
-                disabled={currentPage === pageCount} onClick={() => setPage(p => Math.min(pageCount, p + 1))} data-ui-native-button="">
+              <Button variant="outline" size="sm" type="button"
+                disabled={currentPage === pageCount} onClick={() => setPage(p => Math.min(pageCount, p + 1))}>
                 Next <Icon name="arrowRight" size={12} />
-              </button>
+              </Button>
             </div>
           </div>
         )}
@@ -617,14 +617,14 @@ export const ChartOfAccounts: React.FC = () => {
               </div>
             )}
             {canManageAccounts && <div style={{ display: 'flex', gap: 8, marginTop: 4, borderTop: '1px solid var(--border)', paddingTop: 12 }}>
-              <button type="button" className="btn btn-secondary btn-sm" style={{ flex: 1 }} onClick={() => openEditForm(selected)} data-ui-native-button="">
+              <Button variant="outline" size="sm" type="button" style={{ flex: 1 }} onClick={() => openEditForm(selected)}>
                 <Icon name="edit" size={12} /> Edit
-              </button>
+              </Button>
               {!selected.is_system && (
                 <Tip label="Delete account">
-                  <button type="button" aria-label="Delete account" className="btn btn-secondary btn-sm" style={{ color: 'var(--red)' }} onClick={() => handleDeleteAccount(selected)} data-ui-native-button="">
+                  <Button variant="outline" size="sm" type="button" aria-label="Delete account" style={{ color: 'var(--red)' }} onClick={() => handleDeleteAccount(selected)}>
                     <Icon name="trash2" size={12} />
-                  </button>
+                  </Button>
                 </Tip>
               )}
             </div>}

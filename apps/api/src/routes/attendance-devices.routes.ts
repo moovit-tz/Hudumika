@@ -14,6 +14,7 @@ const deviceCreateSchema = z.object({
   name: z.string().trim().min(1).max(200),
   provider: z.enum(Object.keys(DEVICE_PROVIDERS) as [string, ...string[]]).default('zkteco'),
   location: z.string().trim().max(200).optional(),
+  timezone: z.string().trim().min(1).max(100).refine((value) => { try { new Intl.DateTimeFormat('en-US', { timeZone: value }); return true; } catch { return false; } }, 'Use a valid IANA timezone.').optional(),
 });
 const enrollmentCreateSchema = z.object({
   userId: z.string().uuid(),
@@ -56,7 +57,7 @@ export async function attendanceDevicesRoutes(fastify: FastifyInstance) {
   // employees. The frontend (HRM.tsx) only ever reads `push_token` from the
   // one-time POST /registration response, never from this list, matching
   // this route's own comment that it's "shown once... not retrievable again."
-  const DEVICE_SAFE_COLUMNS = ['id', 'tenant_id', 'provider', 'name', 'serial_number', 'location', 'status', 'last_heartbeat_at', 'last_sync_at', 'created_by', 'created_at', 'updated_at'] as const;
+  const DEVICE_SAFE_COLUMNS = ['id', 'tenant_id', 'provider', 'name', 'serial_number', 'location', 'timezone', 'status', 'last_heartbeat_at', 'last_sync_at', 'created_by', 'created_at', 'updated_at'] as const;
 
   fastify.get('/', async (req) => {
     const user = req.user;
@@ -76,24 +77,26 @@ export async function attendanceDevicesRoutes(fastify: FastifyInstance) {
     const device = await withTenant(user.tenant_id, (trx) =>
       trx.insertInto('attendance_devices').values({
         tenant_id: user.tenant_id, provider: body.provider, name: body.name,
-        serial_number: serial, push_token: pushToken, location: body.location ?? null,
+        serial_number: serial, push_token: null, push_token_hash: crypto.createHash('sha256').update(pushToken).digest('hex'),
+        timezone: body.timezone ?? null, location: body.location ?? null,
         created_by: user.sub,
-      }).returningAll().executeTakeFirstOrThrow()
+      }).returning(DEVICE_SAFE_COLUMNS).executeTakeFirstOrThrow()
         .then(async (d: any) => { await logDeviceActivity(trx, user.tenant_id, user.sub, `Registered device "${body.name}"`); return d; })
     );
 
     reply.status(201);
     // pushToken/serverUrl returned once, for the tenant to punch into the
     // physical unit's own "Server URL" menu — not retrievable again after this.
-    return { ...device, serverUrl: `${env.API_BASE_URL.replace(/\/$/, '')}/iclock` };
+    return { ...device, push_token: pushToken, serverUrl: `${env.API_BASE_URL.replace(/\/$/, '')}/iclock` };
   });
 
   fastify.patch<{ Params: { id: string } }>('/:id', { preHandler: requireRole(...MGMT) }, async (req, reply) => {
     const user = req.user;
-    const body = z.object({ name: z.string().trim().min(1).max(200).optional(), location: z.string().trim().max(200).nullable().optional() }).parse(req.body);
+    const body = z.object({ name: z.string().trim().min(1).max(200).optional(), location: z.string().trim().max(200).nullable().optional(), timezone: z.string().trim().min(1).max(100).refine((value) => { try { new Intl.DateTimeFormat('en-US', { timeZone: value }); return true; } catch { return false; } }, 'Use a valid IANA timezone.').nullable().optional() }).parse(req.body);
     const updates: Record<string, unknown> = { updated_at: new Date() };
     if (body.name !== undefined) updates.name = body.name;
     if (body.location !== undefined) updates.location = body.location;
+    if (body.timezone !== undefined) updates.timezone = body.timezone;
 
     return withTenant(user.tenant_id, async (trx) => {
       // HUD-0073: same push_token leak as GET / — a name/location rename has
@@ -122,7 +125,7 @@ export async function attendanceDevicesRoutes(fastify: FastifyInstance) {
   fastify.post<{ Params: { id: string } }>('/:id/rotate-token', { preHandler: requireRole(...MGMT) }, async (req, reply) => {
     const token = crypto.randomBytes(24).toString('hex');
     return withTenant(req.user.tenant_id, async trx => {
-      const device = await trx.updateTable('attendance_devices').set({push_token:token,updated_at:new Date()})
+      const device = await trx.updateTable('attendance_devices').set({push_token:null,push_token_hash:crypto.createHash('sha256').update(token).digest('hex'),updated_at:new Date()})
         .where('tenant_id','=',req.user.tenant_id).where('id','=',req.params.id).returning(['id','serial_number']).executeTakeFirst();
       if(!device) return reply.status(404).send({error:'Device not found'});
       await logDeviceActivity(trx,req.user.tenant_id,req.user.sub,'Rotated attendance device credential');
@@ -149,6 +152,8 @@ export async function attendanceDevicesRoutes(fastify: FastifyInstance) {
     return withTenant(user.tenant_id, async (trx) => {
       const device = await trx.selectFrom('attendance_devices').select('name').where('id', '=', req.params.id).where('tenant_id', '=', user.tenant_id).executeTakeFirst();
       if (!device) return reply.status(404).send({ error: 'Device not found' });
+      const employee = await trx.selectFrom('users').select('id').where('tenant_id', '=', user.tenant_id).where('id', '=', body.userId).executeTakeFirst();
+      if (!employee) return reply.status(400).send({ error: 'Employee must belong to this workspace.' });
 
       const row = await trx.insertInto('attendance_device_enrollments').values({
         tenant_id: user.tenant_id, device_id: req.params.id, user_id: body.userId,
@@ -201,8 +206,10 @@ export async function attendanceDevicesRoutes(fastify: FastifyInstance) {
           .executeTakeFirst();
         if (!event) return reply.status(404).send({ error: 'Event not found' });
 
+        const employee = await trx.selectFrom('users').select('id').where('tenant_id', '=', user.tenant_id).where('id', '=', body.userId).executeTakeFirst();
+        if (!employee) return reply.status(400).send({ error: 'Employee must belong to this workspace.' });
         const existingEnrollment = await trx.selectFrom('attendance_device_enrollments').select('id')
-          .where('device_id', '=', req.params.id).where('external_pin', '=', event.external_pin).executeTakeFirst();
+          .where('tenant_id', '=', user.tenant_id).where('device_id', '=', req.params.id).where('external_pin', '=', event.external_pin).executeTakeFirst();
         if (!existingEnrollment) {
           await trx.insertInto('attendance_device_enrollments').values({
             tenant_id: user.tenant_id, device_id: req.params.id, user_id: body.userId,
@@ -215,7 +222,11 @@ export async function attendanceDevicesRoutes(fastify: FastifyInstance) {
           .execute();
 
         const { reconcileDevicePunchesForUserDate } = await import('../services/attendance-device.service.js');
-        const dateStr = new Date(event.punched_at).toISOString().slice(0, 10);
+        const device = await trx.selectFrom('attendance_devices').select('timezone').where('tenant_id', '=', user.tenant_id).where('id', '=', req.params.id).executeTakeFirstOrThrow();
+        const { localDateKey } = await import('../services/tenant-timezone.service.js');
+        const { tenantTimezone } = await import('../services/tenant-timezone.service.js');
+        const timezone = device.timezone || await tenantTimezone(trx, user.tenant_id);
+        const dateStr = localDateKey(new Date(event.punched_at), timezone);
         await reconcileDevicePunchesForUserDate(trx, user.tenant_id, req.params.id, body.userId, dateStr);
         await logDeviceActivity(trx, user.tenant_id, user.sub, `Assigned an orphan punch (PIN ${event.external_pin}) to an employee`);
 

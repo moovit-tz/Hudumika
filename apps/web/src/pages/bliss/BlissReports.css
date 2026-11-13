@@ -96,7 +96,7 @@
 .bliss-chip-icon {
   width: 36px;
   height: 36px;
-  border-radius: 8px;
+  border-radius: var(--r-sm);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -214,7 +214,7 @@
 
 .bliss-podium-pillar {
   width: 88px;
-  border-radius: 10px 10px 0 0;
+  border-radius: var(--r) var(--r) 0 0;
   display: flex;
   align-items: flex-start;
   justify-content: center;

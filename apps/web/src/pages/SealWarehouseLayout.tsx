@@ -255,9 +255,9 @@ export function SealWarehouseLayout() {
       <div className="seal-page">
         {/* Page Header */}
         <div>
-          <button type="button" className="btn btn-secondary" onClick={() => navigate('/seal/compartments')} style={{ marginBottom: 12 }} data-ui-native-button="">
+          <Button variant="outline" type="button" onClick={() => navigate('/seal/compartments')} style={{ marginBottom: 12 }}>
             <Icon name="arrowLeft" size={13} /><span>Back to Compartments</span>
-          </button>
+          </Button>
           <PageHeader
             crumbs={['SEAL', 'Compartments']}
             titlePlain="Warehouse"
@@ -271,9 +271,9 @@ export function SealWarehouseLayout() {
                 <button type="button" className={viewMode === '3d' ? 'btn btn-primary' : 'btn btn-secondary'} onClick={() => setViewMode('3d')} data-ui-native-button="">
                   <Icon name="package" size={13} /><span>3D View</span>
                 </button>
-                <button type="button" className="btn btn-secondary" onClick={handlePopulateData} disabled={populating} data-ui-native-button="">
+                <Button variant="outline" type="button" onClick={handlePopulateData} disabled={populating}>
                   <Icon name="refresh" size={13} /><span>{populating ? 'Populating…' : 'Populate Real Layout'}</span>
-                </button>
+                </Button>
                 <button type="button" className={showAddForm ? 'btn btn-primary' : 'btn btn-secondary'} onClick={() => setShowAddForm(v => !v)} data-ui-native-button="">
                   <Icon name="plus" size={13} /><span>Add Rack / Floor</span>
                 </button>
@@ -368,7 +368,7 @@ export function SealWarehouseLayout() {
                   </div>
                 </div>
                 <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 10 }}>
-                  <button type="button" className="btn btn-secondary" onClick={() => setShowAddForm(false)} data-ui-native-button="">Cancel</button>
+                  <Button variant="outline" type="button" onClick={() => setShowAddForm(false)}>Cancel</Button>
                   <Button type="submit" loading={addingLoc} disabled={!newLocZoneId || !newLocCode.trim()} loadingText="Adding…">
                     Add to Layout
                   </Button>
@@ -600,7 +600,7 @@ export function SealWarehouseLayout() {
                       </div>
                     </div>
                     <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 10 }}>
-                      <button type="button" className="btn btn-secondary" onClick={() => setEditingLoc(false)} data-ui-native-button="">Cancel</button>
+                      <Button variant="outline" type="button" onClick={() => setEditingLoc(false)}>Cancel</Button>
                       <Button type="button" onClick={handleSaveEditLoc} loading={savingEdit} loadingText="Saving…">Save Changes</Button>
                     </div>
                   </div>

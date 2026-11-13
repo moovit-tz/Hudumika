@@ -658,7 +658,7 @@ export async function settingsRoutes(fastify: FastifyInstance) {
                 grant_type: 'client_credentials',
               }),
             });
-            const body = await res.json().catch(() => ({} as any));
+            const body: any = await res.json().catch(() => ({}));
             if (res.ok && body?.access_token) return { ok: true, message: 'Airtel Money credentials verified.' };
             return reply.status(400).send({
               ok: false,
@@ -711,7 +711,7 @@ export async function settingsRoutes(fastify: FastifyInstance) {
             const res = await fetch(host, {
               headers: { Authorization: `Bearer ${bearer}`, Origin: '*', 'Content-Type': 'application/json' },
             });
-            const body = await res.json().catch(() => ({} as any));
+            const body: any = await res.json().catch(() => ({}));
             if (res.ok && body?.output_SessionID) {
               return { ok: true, message: `M-Pesa session established${v.sandbox === 'false' ? '' : ' (sandbox)'}.` };
             }
@@ -741,7 +741,7 @@ export async function settingsRoutes(fastify: FastifyInstance) {
               ? 'https://api.safaricom.co.ke/oauth/v1/generate?grant_type=client_credentials'
               : 'https://sandbox.safaricom.co.ke/oauth/v1/generate?grant_type=client_credentials';
             const res = await fetch(host, { headers: { Authorization: `Basic ${auth}` } });
-            const body = await res.json().catch(() => ({} as any));
+            const body: any = await res.json().catch(() => ({}));
             if (res.ok && body?.access_token) {
               return { ok: true, message: `Safaricom Daraja credentials verified${v.sandbox === 'false' ? '' : ' (sandbox)'}.` };
             }

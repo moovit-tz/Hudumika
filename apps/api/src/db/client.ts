@@ -1826,6 +1826,16 @@ export interface NotificationsTable {
   entity_type: string | null;     // 'shipment' | 'invoice' | 'employee' | 'ticket'
   entity_id: string | null;
   entity_label: string | null;    // e.g. 'CLR-2026-0001'
+  // Migration 753: when a time-bound notice stops being worth announcing.
+  expires_at: Date | null;
+}
+
+/** Migration 753: apps a person has muted in the bell and the header bar. */
+export interface NotificationMutesTable {
+  tenant_id: string;
+  user_id: string;
+  app: string;
+  created_at: Generated<Date>;
 }
 
 export interface TenantCompaniesTable {
@@ -2614,6 +2624,8 @@ export interface HrOvertimeRequestsTable {
   kind: Generated<'NORMAL' | 'REST_DAY' | 'PUBLIC_HOLIDAY'>;
   /** The rate that applied on the day worked. A later change must not rewrite it. */
   rate_multiplier: Generated<string>;
+  /** Payroll policy version used to determine kind/rate at claim time. */
+  policy_version: Generated<number>;
   reason: string | null;
   status: Generated<'PENDING' | 'APPROVED' | 'REJECTED' | 'CANCELLED'>;
   requested_by: string | null;
@@ -6561,6 +6573,7 @@ export interface Database {
   case_messages: CaseMessagesTable;
   risk_flags: RiskFlagsTable;
   notifications: NotificationsTable;
+  notification_mutes: NotificationMutesTable;
   // Declaration tables (TANESW)
   declarations: DeclarationsTable;
   clearos_case_declarations: {
@@ -11114,9 +11127,15 @@ export interface HrTimeEntriesTable {
   notes: string | null;
   entry_type: Generated<string>;
   date: string;
+  work_timezone: string | null;
   last_ack_at: Date | null;
   project_id: string | null;
   project_ref: string | null;
+  work_item_app_id: Generated<string | null>;
+  work_item_type: Generated<string | null>;
+  work_item_id: Generated<string | null>;
+  work_item_ref: Generated<string | null>;
+  work_item_label: Generated<string | null>;
   created_at: Generated<Date>;
   updated_at: Generated<Date>;
 }
@@ -13332,6 +13351,8 @@ export interface OnsiteDomainsTable {
   ssl_expires_at: Date | null;
   status: Generated<string>;
   notes: string | null;
+  /** connected | bought | transfer — migration 759. */
+  origin: Generated<string>;
   created_by: string | null;
   created_at: Generated<Date>;
   updated_at: Generated<Date>;
@@ -13729,7 +13750,10 @@ export interface AttendanceDevicesTable {
   provider: Generated<string>;
   name: string;
   serial_number: string;
-  push_token: string;
+  /** Legacy plaintext is null after migration 756; only the one-time response has the raw value. */
+  push_token: string | null;
+  push_token_hash: string | null;
+  timezone: string | null;
   location: string | null;
   status: Generated<string>;
   last_heartbeat_at: Date | null;
@@ -13760,6 +13784,8 @@ export interface AttendanceDeviceEventsTable {
   external_pin: string;
   user_id: string | null;
   punched_at: Date;
+  source_local_time: string | null;
+  device_timezone: string | null;
   raw_status: string | null;
   processed: Generated<boolean>;
   created_at: Generated<Date>;

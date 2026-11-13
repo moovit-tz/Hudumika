@@ -34,15 +34,12 @@ export async function drivesRoutes(fastify: FastifyInstance) {
     const wantsAdminView = (req.query as any)?.admin === '1' || (req.query as any)?.admin === 'true';
     try {
       return await withTenant(user.tenant_id, async (trx) => {
-        const personal = await trx.selectFrom('cloud_drives').selectAll()
-          .where('tenant_id', '=', user.tenant_id).where('type', '=', 'personal').where('owner_id', '=', user.sub)
-          .executeTakeFirst();
-        if (!personal) {
-          await trx.insertInto('cloud_drives').values({
-            tenant_id: user.tenant_id, name: 'My Drive', type: 'personal',
-            owner_name: user.name ?? 'You', owner_id: user.sub,
-          }).execute();
-        }
+        // App-shell widgets can request Drives concurrently. The unique
+        // partial index is the serialization point; a read-then-insert races.
+        await trx.insertInto('cloud_drives').values({
+          tenant_id: user.tenant_id, name: 'My Drive', type: 'personal',
+          owner_name: user.name ?? 'You', owner_id: user.sub,
+        }).onConflict(oc => oc.doNothing()).execute();
 
         // Business Records must exist before anyone's first automatic
         // business-record folder or CUSTOMER upload — those paths

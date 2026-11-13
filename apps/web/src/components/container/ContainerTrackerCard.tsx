@@ -554,7 +554,7 @@ export const ContainerTrackerCard: React.FC<ContainerTrackerCardProps> = ({
                   <div key={`${node.location}-${nodeIdx}`} className="relative">
                     {/* Circle on Rail */}
                     <div className="cnt-node-circle active">
-                      <Icon name="target" size={12} color="#0d9488" />
+                      <Icon name="target" size={12} color="var(--teal)" />
                     </div>
 
                     <div className="space-y-2">

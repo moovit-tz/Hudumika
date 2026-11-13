@@ -2,6 +2,7 @@
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { PageHeader } from '../components/PageHeader.js';
 import { SectionCard } from '../components/SectionCard.js';
+import { Banner } from '../components/ui/alert.js';
 import { Checkbox } from '../components/ui/checkbox.js';
 import { Icon } from '../components/Icon.js';
 import type { IconName } from '../components/Icon.js';
@@ -155,6 +156,10 @@ export const LandedCostPage: React.FC = () => {
   const [error,      setError]     = useState('');
   const [step,       setStep]      = useState<WizardStep>(() => fromDraft(d, 'step', 1));
   const [fxRate,     setFxRate]    = useState<number | null>(null);
+  // The live feed failed. The server then refuses to price without a typed
+  // override, so the page must say so rather than show a made-up "live" rate.
+  const [fxUnavailable, setFxUnavailable] = useState(false);
+  const [fxPublishedAt, setFxPublishedAt] = useState<string | null>(null);
   const [hsSelected, setHsSelected] = useState<HsResult | null>(() => fromDraft(d, 'hsSelected', null));
   const [calcLoading, setCalcLoading] = useState(false);
   const [history,    setHistory]   = useState<LandedCostResult[]>([]);
@@ -204,7 +209,9 @@ export const LandedCostPage: React.FC = () => {
 
   // Load live FX rate and history on mount
   useEffect(() => {
-    apiFetch('/v1/customs/fx-rate').then((r: any) => setFxRate(r.rate)).catch(() => setFxRate(2540));
+    apiFetch('/v1/customs/fx-rate')
+      .then((r: any) => { setFxRate(r.rate); setFxPublishedAt(r.published_at ?? null); setFxUnavailable(false); })
+      .catch(() => { setFxRate(null); setFxUnavailable(true); });
     // Needed to convert an invoice priced in something other than USD. Left
     // empty on failure so the importer refuses rather than assuming USD.
     apiFetch('/v1/customs/fx-rates').then((r: any) => setFxRates(r.rates ?? {})).catch(() => setFxRates({}));
@@ -1364,9 +1371,9 @@ export const LandedCostPage: React.FC = () => {
     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 8 }}>
       <div style={{ fontSize: 12, color: 'var(--ink3)' }}>Upload the supplier invoice — Excel, CSV, PDF or a photo. Or add each line by hand.</div>
       <div style={{ display: 'flex', gap: 8 }}>
-        <button type="button" onClick={downloadCsvTemplate} className="btn btn-secondary" style={{ fontSize: "var(--text-base)", display: 'flex', alignItems: 'center', gap: 6 }} data-ui-native-button="">
+        <Button variant="outline" type="button" onClick={downloadCsvTemplate} style={{ fontSize: "var(--text-base)", display: 'flex', alignItems: 'center', gap: 6 }}>
           <Icon name="download" size={13} /> Template
-        </button>
+        </Button>
         <label className="btn btn-secondary" style={{ fontSize: 12, display: 'flex', alignItems: 'center', gap: 6, cursor: importing ? 'progress' : 'pointer', opacity: importing ? 0.55 : 1 }}>
           <Icon name="upload" size={13} /> {importing ? 'Reading…' : 'Upload Invoice'}
           <input type="file" accept=".csv,.xlsx,.xlsm,.pdf,.png,.jpg,.jpeg,.webp" disabled={importing} style={{ display: 'none' }}
@@ -1503,23 +1510,23 @@ export const LandedCostPage: React.FC = () => {
 
         <div style={{ padding: '10px 14px', borderTop: '1px solid var(--border)', display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap' }}>
           {mapper.headerIdx != null && (
-            <button type="button" className="btn btn-secondary" style={{ fontSize: "var(--text-base)" }}
-              onClick={() => setMapper(m => (m ? { ...m, headerIdx: null, roles: undefined } : m))} data-ui-native-button="">
+            <Button variant="outline" type="button" style={{ fontSize: "var(--text-base)" }}
+              onClick={() => setMapper(m => (m ? { ...m, headerIdx: null, roles: undefined } : m))}>
               Pick a different row
-            </button>
+            </Button>
           )}
-          <button type="button" className="btn btn-primary" style={{ fontSize: "var(--text-base)" }} disabled={!ready}
+          <Button type="button" style={{ fontSize: "var(--text-base)" }} disabled={!ready}
             onClick={() => {
               importInvoiceGrid(mapper.rows, mapper.label, {
                 headerIdx: mapper.headerIdx!,
                 col: { desc: colOf('desc'), qty: colOf('qty'), price: colOf('price'), amt: colOf('amt'), hs: colOf('hs'), model: colOf('model'), unit: colOf('unit') },
               });
               setMapper(null);
-            }} data-ui-native-button="">
+            }}>
             Import these lines
-          </button>
-          <button type="button" className="btn btn-secondary" style={{ fontSize: "var(--text-base)", marginLeft: 'auto' }}
-            onClick={() => setMapper(null)} data-ui-native-button="">Cancel</button>
+          </Button>
+          <Button variant="outline" type="button" style={{ fontSize: "var(--text-base)", marginLeft: 'auto' }}
+            onClick={() => setMapper(null)}>Cancel</Button>
         </div>
       </div>
     );
@@ -1770,15 +1777,15 @@ export const LandedCostPage: React.FC = () => {
         {/* Offered only when word matching genuinely tied, because that is the
             only case it can improve on — and every line sent costs tokens. */}
         {tiedCount > 0 && (
-          <button type="button" className="btn btn-secondary" style={{ fontSize: "var(--text-base)" }} disabled={aiPicking} onClick={askAiToPick}
-            title={`${tiedCount} line${tiedCount === 1 ? '' : 's'} where two or more codes matched the same words equally well`} data-ui-native-button="">
+          <Button variant="outline" type="button" style={{ fontSize: "var(--text-base)" }} disabled={aiPicking} onClick={askAiToPick}
+            title={`${tiedCount} line${tiedCount === 1 ? '' : 's'} where two or more codes matched the same words equally well`}>
             {aiPicking ? 'Asking AI…' : `Ask AI to break ${tiedCount} tie${tiedCount === 1 ? '' : 's'}`}
-          </button>
+          </Button>
         )}
         {suggestedCount > 0 && (
-          <button type="button" className="btn btn-primary" style={{ fontSize: "var(--text-base)" }} onClick={acceptAllTopSuggestions} data-ui-native-button="">
+          <Button type="button" style={{ fontSize: "var(--text-base)" }} onClick={acceptAllTopSuggestions}>
             Accept top match on all {suggestedCount}
-          </button>
+          </Button>
         )}
         {aiPickError && (
           <div style={{ flexBasis: '100%', fontSize: 12, color: 'var(--red)', display: 'flex', gap: 6, alignItems: 'flex-start' }}>
@@ -2005,24 +2012,24 @@ export const LandedCostPage: React.FC = () => {
             {/* The slide-over listed fifty totals and could do nothing with
                 them. History is a page now: searchable, sortable, and every
                 entry reopens as the report it produced. */}
-            <button type="button" className="btn btn-secondary"
+            <Button variant="outline" type="button"
               onClick={() => navigate('/clearos/customs-tools/history')}
-              style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: "var(--text-base)", border: '1.5px solid var(--border)', color: 'var(--ink2)', background: 'var(--card-bg, var(--white))' }} data-ui-native-button="">
+              style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: "var(--text-base)", border: '1.5px solid var(--border)', color: 'var(--ink2)', background: 'var(--card-bg, var(--white))' }}>
               <Icon name="clock" size={14} color="var(--teal)" /> History
-            </button>
+            </Button>
             {result && (
-              <button type="button" className="btn btn-secondary"
+              <Button variant="outline" type="button"
                 onClick={async () => { const rc = await fetchRateCardDefaults(rateCardKeyFor(result.mode, container), icdOperatorId); const sc = await fetchSizeCards(result, icdOperatorId); const share = await createShareForReport(result, reportMeta, { result, qty, summary, extraItems, container, rateCard: rc, sizeCards: sc, meta: reportMeta }); setShareNotice(share.qrUnavailableReason ?? ''); printReport(result, qty, summary, extraItems, container, rc, { ...reportMeta, ...share }, sc); }}
-                style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: "var(--text-base)", border: '1.5px solid var(--teal)', color: 'var(--teal)', background: 'var(--card-bg, var(--white))' }} data-ui-native-button="">
+                style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: "var(--text-base)", border: '1.5px solid var(--teal)', color: 'var(--teal)', background: 'var(--card-bg, var(--white))' }}>
                 <Icon name="download" size={14} color="var(--teal)" /> Export PDF
-              </button>
+              </Button>
             )}
-            <button type="button" className="btn btn-primary"
+            <Button type="button"
               disabled={!result || aiPending} onClick={runAi}
-              style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: "var(--text-base)" }} data-ui-native-button="">
+              style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: "var(--text-base)" }}>
               <Icon name="sparkle" size={14} color="#fff" />
               {aiPending ? 'Analysing…' : 'AI Analysis'}
-            </button>
+            </Button>
           </div>
         }
       />
@@ -2044,6 +2051,11 @@ export const LandedCostPage: React.FC = () => {
           </div>
 
           {/* Live FX Rate Card */}
+          {fxUnavailable && !fxRate && (
+            <Banner variant="warning" title="Live exchange rate unavailable">
+              The rate feed could not be reached, so estimates can't be priced on a live rate. Enter a verified USD → TZS rate under Rate overrides to continue.
+            </Banner>
+          )}
           {fxRate && (
             <div style={{ background: 'var(--teal-l)', border: '1px solid var(--teal-m)', borderRadius: 'var(--r)', padding: '14px 16px', fontSize: 12, color: 'var(--ink)' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 6, color: 'var(--teal)', fontWeight: 700, marginBottom: 4 }}>
@@ -2053,7 +2065,7 @@ export const LandedCostPage: React.FC = () => {
                 1 USD = TZS {fxRate.toLocaleString()}
               </div>
               <div style={{ fontSize: 11, color: 'var(--ink3)' }}>
-                Source: open.er-api.com · EAC CET 2022
+                Source: open.er-api.com{fxPublishedAt ? ` · published ${new Date(fxPublishedAt).toLocaleString('en-GB', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}` : ''} · EAC CET 2022
               </div>
             </div>
           )}
@@ -2138,7 +2150,7 @@ export const LandedCostPage: React.FC = () => {
                 <Icon name="info" size={16} color="var(--teal)" style={{ flexShrink: 0 }} />
                 <div>
                   Rates: <strong>EAC CET 2022</strong> · VAT 18% · RDL 2% · CPF 1% (Finance Act 2026) · TPA Wharfage 1.6% ·{' '}
-                  {fxRate ? <><strong>Live rate: 1 USD = TZS {fxRate.toLocaleString()}</strong></> : 'Loading live FX rate…'}
+                  {fxRate ? <><strong>Live rate: 1 USD = TZS {fxRate.toLocaleString()}</strong></> : fxUnavailable ? <strong>Live rate unavailable: enter a verified rate override</strong> : 'Loading live FX rate…'}
                 </div>
               </div>
 
@@ -2473,10 +2485,10 @@ export const LandedCostPage: React.FC = () => {
                     })}
                   </div>
 
-                  <button type="button" onClick={addRow} disabled={multiItems.length >= MAX_CARGO_ROWS} className="btn btn-secondary"
-                    style={{ marginTop: 10, fontSize: "var(--text-base)", display: 'flex', alignItems: 'center', gap: 6, opacity: multiItems.length >= MAX_CARGO_ROWS ? 0.45 : 1, cursor: multiItems.length >= MAX_CARGO_ROWS ? 'not-allowed' : 'pointer' }} data-ui-native-button="">
+                  <Button variant="outline" type="button" onClick={addRow} disabled={multiItems.length >= MAX_CARGO_ROWS}
+                    style={{ marginTop: 10, fontSize: "var(--text-base)", display: 'flex', alignItems: 'center', gap: 6, opacity: multiItems.length >= MAX_CARGO_ROWS ? 0.45 : 1, cursor: multiItems.length >= MAX_CARGO_ROWS ? 'not-allowed' : 'pointer' }}>
                     <Icon name="plus" size={13} /> Add line item
-                  </button>
+                  </Button>
                   <div style={{ marginTop: 8, fontSize: 11.5, color: 'var(--ink3)', display: 'flex', justifyContent: 'space-between', gap: 12 }}>
                     <span>{multiItems.length} of {MAX_CARGO_ROWS} lines</span>
                     <span>Total FOB Value: <strong style={{ color: 'var(--ink)' }}>{fmtUsd(multiTotalFobUsd)}</strong></span>
@@ -2707,7 +2719,7 @@ export const LandedCostPage: React.FC = () => {
                       suffix="TZS"
                       value={ovFx}
                       onChange={setOvFx}
-                      placeholder={fxRate ? `live: ${fxRate.toLocaleString()}` : 'live rate'}
+                      placeholder={fxRate ? `live: ${fxRate.toLocaleString()}` : fxUnavailable ? 'required: live feed unavailable' : 'live rate'}
                       hint="Pin a rate when quoting against a fixed contract rate. Blank uses the live feed."
                     />
                   </div>

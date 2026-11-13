@@ -188,7 +188,7 @@ function PlatformBanner() {
   if (!PLATFORM_PATHS.has(location.pathname)) return null;
   return (
     <div className="nhr-platform-banner">
-      <Icon name="shield" size={13} color="#ef4444" />
+      <Icon name="shield" size={13} color="var(--red)" />
       <span className="nhr-platform-banner-label">Super Admin</span>
       <span className="nhr-platform-banner-desc">— Cross-tenant data, aggregated across every workspace on the platform, not just yours.</span>
     </div>

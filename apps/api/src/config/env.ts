@@ -125,6 +125,12 @@ const envSchema = z.object({
    *  CORS origin, which is already the frontend URL in every deployment. */
   PUBLIC_APP_URL: z.string().url().optional(),
 
+  /** The domain each workspace's signup subdomain lives under
+   *  ({subdomain}.PLATFORM_BASE_DOMAIN). The apps already sit on it as
+   *  {app}.hudumika.tz (deploy/contabo/Caddyfile), which is why every app
+   *  name is reserved at signup (onboarding.service.ts). */
+  PLATFORM_BASE_DOMAIN: z.string().regex(/^[a-z0-9.-]+\.[a-z]{2,}$/i).default('hudumika.tz'),
+
   OPS_BOARD_URL: z.string().url().default('http://localhost:5180'),
 
   /** This API's own externally-resolvable base URL. Unlike PUBLIC_APP_URL

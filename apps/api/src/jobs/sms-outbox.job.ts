@@ -1,6 +1,7 @@
 import { dbPlatform, withTenant } from '../db/client.js';
 import { SmsIntegration } from '../integrations/sms.js';
 import { formatTemplate } from '../lib/template.js';
+import { NotificationService } from '../services/notification.service.js';
 
 const BATCH_SIZE = 50;
 // A send that never got a real provider response (a network-level throw —
@@ -69,6 +70,14 @@ export async function runSmsOutboxJob(): Promise<void> {
       await withTenant(campaign.tenant_id, async (trx) => {
         if (!campaign.group_id) {
           await trx.updateTable('sms_campaigns').set({ status: 'failed', updated_at: new Date() }).where('id', '=', campaign.id).execute();
+          if (campaign.created_by) {
+            await NotificationService.createNotificationInTrx(trx, {
+              tenantId: campaign.tenant_id, userId: campaign.created_by, app: 'sms', type: 'warning',
+              title: `SMS campaign failed: ${campaign.name}`,
+              message: 'It has no recipient group, so nothing was sent.',
+              link: `/sms/campaigns/${campaign.id}`, entityType: 'sms_campaign', entityId: campaign.id, entityLabel: campaign.name,
+            });
+          }
           return;
         }
         const members = await trx.selectFrom('sms_group_members').select(['phone', 'name'])
@@ -101,13 +110,27 @@ export async function runSmsOutboxJob(): Promise<void> {
     // 'queued') is done — flip 'sending' -> 'sent' so the UI stops polling it
     // as in-progress. Cheap enough to check every pass: one row per tenant
     // with an active campaign, not per-message.
-    const inFlight = await dbPlatform.selectFrom('sms_campaigns').select(['id', 'tenant_id']).where('status', '=', 'sending').execute();
+    const inFlight = await dbPlatform.selectFrom('sms_campaigns').select(['id', 'tenant_id', 'name', 'created_by']).where('status', '=', 'sending').execute();
     for (const c of inFlight) {
       await withTenant(c.tenant_id, async (trx) => {
         const remaining = await trx.selectFrom('sms_messages').select(({ fn }) => fn.countAll<number>().as('c'))
           .where('campaign_id', '=', c.id).where('status', '=', 'queued').executeTakeFirst();
         if (Number(remaining?.c ?? 0) === 0) {
           await trx.updateTable('sms_campaigns').set({ status: 'sent', updated_at: new Date() }).where('id', '=', c.id).execute();
+          // Say how it went. A campaign where half the numbers failed looked
+          // identical in the list to one that fully delivered.
+          if (c.created_by) {
+            const tally = await trx.selectFrom('sms_messages')
+              .select(({ fn }) => [fn.countAll<number>().as('total'), fn.count<number>('id').filterWhere('status', '=', 'failed').as('failed')])
+              .where('campaign_id', '=', c.id).where('tenant_id', '=', c.tenant_id).executeTakeFirst();
+            const total = Number(tally?.total ?? 0), failed = Number(tally?.failed ?? 0);
+            await NotificationService.createNotificationInTrx(trx, {
+              tenantId: c.tenant_id, userId: c.created_by, app: 'sms', type: failed ? 'warning' : 'success',
+              title: failed ? `SMS campaign finished with failures: ${c.name}` : `SMS campaign sent: ${c.name}`,
+              message: failed ? `${failed} of ${total} messages could not be sent.` : `${total} message${total === 1 ? '' : 's'} sent.`,
+              link: `/sms/campaigns/${c.id}`, entityType: 'sms_campaign', entityId: c.id, entityLabel: c.name,
+            });
+          }
         }
       });
     }

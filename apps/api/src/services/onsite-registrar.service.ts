@@ -256,7 +256,7 @@ class CloudflareRegistrarProvider implements RegistrarProvider {
       },
       signal: AbortSignal.timeout(20000),
     });
-    const body = await res.json().catch(() => null);
+    const body: any = await res.json().catch(() => null);
     if (!res.ok || body?.success === false) {
       throw new Error(`Cloudflare: ${body?.errors?.[0]?.message || `HTTP ${res.status}`}`);
     }

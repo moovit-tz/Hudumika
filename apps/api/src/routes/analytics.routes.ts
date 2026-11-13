@@ -47,7 +47,7 @@ export async function analyticsRoutes(fastify: FastifyInstance) {
    */
   fastify.get('/kpi', { preHandler: requireRoleOrOrgPermission(ORG_PERMISSIONS.REPORTS_MANAGE, 'SUPER_ADMIN', 'ADMIN', 'TENANT_ADMIN', 'MANAGER', 'FINANCE', 'SENIOR', 'SALES') }, async (request, reply) => {
     const user = request.user;
-    const cacheKey = `tenant:${user.tenant_id}:kpis`;
+    const cacheKey = `tenant:${user.tenant_id}:kpis:v2`;
 
     // Try cache lookup
     if (redisClient) {
@@ -79,14 +79,23 @@ export async function analyticsRoutes(fastify: FastifyInstance) {
         .where('stage', 'not in', ['CLOSED', 'DELIVERY'])
         .executeTakeFirst())?.cnt ?? 0);
 
-      // Demurrage risk: free_time_end in next 48 hours and not delivered
-      const demurrage_risk = Number((await trx
+      // Upcoming free-time expiries are distinct from cases already overdue.
+      const free_time_due_48h = Number((await trx
         .selectFrom('shipment_cases')
         .select(trx.fn.count('id').as('cnt'))
         .where('tenant_id', '=', user.tenant_id)
         .where('stage', 'not in', ['CLOSED', 'DELIVERY'])
         .where('free_time_end', 'is not', null)
+        .where('free_time_end', '>=', now)
         .where('free_time_end', '<=', next48h)
+        .executeTakeFirst())?.cnt ?? 0);
+
+      const free_time_overdue = Number((await trx
+        .selectFrom('shipment_cases')
+        .select(trx.fn.count('id').as('cnt'))
+        .where('tenant_id', '=', user.tenant_id)
+        .where('stage', 'not in', ['CLOSED', 'DELIVERY'])
+        .where('free_time_end', '<', now)
         .executeTakeFirst())?.cnt ?? 0);
 
       // SLA Breached: stage SLA deadline exceeded
@@ -112,24 +121,6 @@ export async function analyticsRoutes(fastify: FastifyInstance) {
         )
         .where('updated_at', '>=', todayStart)
         .executeTakeFirst())?.cnt ?? 0);
-
-      // Penalty exposure (demurrage costs accumulating right now)
-      const shipments = await trx
-        .selectFrom('shipment_cases')
-        .select(['free_time_end', 'stage'])
-        .where('tenant_id', '=', user.tenant_id)
-        .where('stage', 'not in', ['CLOSED', 'DELIVERY'])
-        .where('free_time_end', '<', now)
-        .execute();
-
-      let penalty_exposure_tzs = 0;
-      for (const sh of shipments) {
-        if (sh.free_time_end) {
-          const ft = new Date(sh.free_time_end);
-          const days = Math.ceil((now.getTime() - ft.getTime()) / (1000 * 60 * 60 * 24));
-          penalty_exposure_tzs += days * 100000; // 100k TZS per day penalty baseline
-        }
-      }
 
       // Cases this month
       const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
@@ -180,11 +171,12 @@ export async function analyticsRoutes(fastify: FastifyInstance) {
 
       const computed: KPIResponse = {
         active_cases,
-        demurrage_risk,
+        free_time_due_48h,
+        free_time_overdue,
         sla_breached,
         delivered_today,
-        penalty_exposure_tzs,
         on_time_rate_pct,
+        closed_cases,
         cases_this_month,
         total_co2_emissions_kg,
         total_carbon_credits_saved,
@@ -348,7 +340,7 @@ export async function analyticsRoutes(fastify: FastifyInstance) {
 
       for (const off of officers) {
         const offShipments = shipments.filter((s) => s.assigned_to === off.id);
-        const active_cases = offShipments.filter((s) => s.stage !== 'CLOSED').length;
+        const active_cases = offShipments.filter((s) => s.stage !== 'CLOSED' && s.stage !== 'DELIVERY').length;
         const closedShipments = offShipments.filter((s) => s.stage === 'CLOSED');
         const cases_closed = closedShipments.length;
 
@@ -363,7 +355,7 @@ export async function analyticsRoutes(fastify: FastifyInstance) {
           ? parseFloat((cycleDays.reduce((s, d) => s + d, 0) / cycleDays.length).toFixed(1))
           : 0;
 
-        const penalties_caused = offShipments.filter((s) => demurrageShipmentIds.has(s.id)).length;
+        const cases_with_demurrage = offShipments.filter((s) => demurrageShipmentIds.has(s.id)).length;
 
         performanceList.push({
           user_id: off.id,
@@ -371,7 +363,7 @@ export async function analyticsRoutes(fastify: FastifyInstance) {
           cases_closed,
           active_cases,
           avg_days,
-          penalties_caused,
+          cases_with_demurrage,
         });
       }
 

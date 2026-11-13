@@ -3,6 +3,7 @@ import { Icon } from '../components/Icon.js';
 import { useCloud, DriveRole, DriveMemberCandidate } from './cloud-context.js';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '../components/ui/select.js';
 import { SectionLoading } from '../components/ui/spinner.js';
+import { Button } from '../components/ui/button.js';
 
 const ROLE_OPTIONS: { value: DriveRole; label: string }[] = [
   { value: 'manager', label: 'Manager' },
@@ -109,7 +110,7 @@ export function DriveMembersModal({ driveId, driveName, onClose }: { driveId: st
                 {ROLE_OPTIONS.map(r => <SelectItem key={r.value} value={r.value}>{r.label}</SelectItem>)}
               </SelectContent>
             </Select>
-            <button onClick={handleAdd} className="btn btn-primary btn-sm" disabled={!picked || busy}>Add</button>
+            <Button size="sm" onClick={handleAdd} disabled={!picked || busy}>Add</Button>
           </div>
         </div>
 
@@ -142,7 +143,7 @@ export function DriveMembersModal({ driveId, driveName, onClose }: { driveId: st
         </div>
 
         <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: 20, paddingTop: 14, borderTop: '1px solid var(--border)' }}>
-          <button onClick={onClose} className="btn btn-secondary btn-sm">Done</button>
+          <Button variant="outline" size="sm" onClick={onClose}>Done</Button>
         </div>
       </div>
     </div>

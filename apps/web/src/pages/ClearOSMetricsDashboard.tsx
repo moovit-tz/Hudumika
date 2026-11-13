@@ -1,5 +1,6 @@
-﻿import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import { useAuth } from '../hooks/useAuth.js';
+import { useNavigate } from 'react-router-dom';
 import {
   Chart as ChartJS, CategoryScale, LinearScale, BarElement, Tooltip,
 } from 'chart.js';
@@ -10,53 +11,80 @@ import { Banner } from '../components/ui/alert.js';
 import type { IconName } from '../components/Icon.js';
 import { MetricsRow } from '../components/MetricCard.js';
 import { exportCsv, ExportButton, StatTile, DataTable } from '../components/AnalyticsKit.js';
-import { formatAmount } from '../lib/currency.js';
 import type { ColumnDef } from '../components/AnalyticsKit.js';
-import type { StageBottleneck, OfficerPerformance, KPIResponse } from '@hudumika/types';
+import type { StageBottleneck, OfficerPerformance, KPIResponse, ShipmentCase } from '@hudumika/types';
 import { Button } from '../components/ui/button.js';
 import { Badge } from '../components/ui/badge.js';
 import { FeaturedIcon } from '../components/ui/featured-icon.js';
 import { showAlert } from '../lib/alert.js';
 import './OperationalDashboards.css';
 import './ClearOSDashboard.css';
+import './OndiPages.css';
 
 ChartJS.register(CategoryScale, LinearScale, BarElement, Tooltip);
 
-function fmtTZS(n: number) { return formatAmount(Math.round(n), 'TZS'); }
-
 function StageCycleAreaChart({ rows, onSelect }: { rows: StageBottleneck[]; onSelect: (row: StageBottleneck) => void }) {
   const data = rows.map(row => ({ ...row, label: row.stage_label.length > 14 ? `${row.stage_label.slice(0, 13)}…` : row.stage_label }));
-  return <div className="clearos-chart"><ResponsiveContainer width="100%" height="100%">
-    <AreaChart data={data} margin={{ top: 10, right: 12, left: -16, bottom: 42 }} onClick={(state: any) => {
-      if (state?.activeTooltipIndex != null && data[state.activeTooltipIndex]) onSelect(data[state.activeTooltipIndex]);
-    }}>
-      <CartesianGrid vertical={false} stroke="var(--border)" />
-      <XAxis dataKey="label" axisLine={false} tickLine={false} tick={{ fontSize: 9.5, fill: 'var(--ink3)' }} interval={0} angle={-28} textAnchor="end" height={58} />
-      <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: 'var(--ink3)' }} width={34} unit="h" />
-      <RechartsTooltip formatter={(value) => [`${Number(value).toFixed(1)} hours`, 'Average duration']} labelFormatter={(_, payload) => payload?.[0]?.payload?.stage_label || ''} contentStyle={{ background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 'var(--r)', boxShadow: 'none', fontSize: 12 }} />
-      <Area type="monotone" dataKey="avg_hours" stroke="var(--teal)" strokeWidth={2.5} fill="var(--teal-l)" activeDot={{ r: 5, cursor: 'pointer' }} />
-    </AreaChart>
-  </ResponsiveContainer></div>;
+  return (
+    <div className="clearos-chart">
+      <ResponsiveContainer width="100%" height="100%">
+        <AreaChart data={data} margin={{ top: 10, right: 12, left: -16, bottom: 42 }} onClick={(state: any) => {
+          if (state?.activeTooltipIndex != null && data[state.activeTooltipIndex]) onSelect(data[state.activeTooltipIndex]);
+        }}>
+          <CartesianGrid vertical={false} stroke="var(--border)" />
+          <XAxis dataKey="label" axisLine={false} tickLine={false} tick={{ fontSize: 9.5, fill: 'var(--ink3)' }} interval={0} angle={-28} textAnchor="end" height={58} />
+          <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: 'var(--ink3)' }} width={34} unit="h" />
+          <RechartsTooltip formatter={(value) => [`${Number(value).toFixed(1)} hours`, 'Average duration']} labelFormatter={(_, payload) => payload?.[0]?.payload?.stage_label || ''} contentStyle={{ background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 'var(--r)', boxShadow: 'none', fontSize: 12 }} />
+          <Area type="monotone" dataKey="avg_hours" stroke="var(--teal)" strokeWidth={2.5} fill="var(--teal-l)" activeDot={{ r: 5, cursor: 'pointer' }} />
+        </AreaChart>
+      </ResponsiveContainer>
+    </div>
+  );
 }
 
 const OFFICER_CHART_COLORS = ['var(--teal)', 'var(--blue)', 'var(--green)', 'var(--gold)', 'var(--purple)', 'var(--red)'];
 
+/**
+ * Each officer's caseload — open plus closed. It used to plot closed cases
+ * only, so a team that had not closed anything yet drew an empty chart and
+ * said "no active clearing officers" beside tiles showing active cases.
+ */
 function OfficerOutputDonut({ rows, onSelect }: { rows: OfficerPerformance[]; onSelect: (row: OfficerPerformance) => void }) {
-  const data = rows.filter(row => row.cases_closed > 0);
-  const total = data.reduce((sum, row) => sum + row.cases_closed, 0);
-  return <div className="clearos-donut-layout">
-    <div className="clearos-donut"><ResponsiveContainer width="100%" height="100%"><PieChart>
-      <Pie data={data} dataKey="cases_closed" nameKey="name" innerRadius={54} outerRadius={78} paddingAngle={2} stroke="none">
-        {data.map((row, index) => <Cell key={row.user_id} fill={OFFICER_CHART_COLORS[index % OFFICER_CHART_COLORS.length]} cursor="pointer" onClick={() => onSelect(row)} />)}
-      </Pie>
-      <RechartsTooltip contentStyle={{ background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 'var(--r)', boxShadow: 'none', fontSize: 12 }} />
-    </PieChart></ResponsiveContainer><div className="clearos-donut__center"><strong>{total}</strong><span>closed</span></div></div>
-    <div className="clearos-donut-legend">{data.slice(0, 6).map((row, index) => <button type="button" key={row.user_id} onClick={() => onSelect(row)} data-ui-native-button=""><span style={{ background: OFFICER_CHART_COLORS[index % OFFICER_CHART_COLORS.length] }} /><em>{row.name}</em><strong>{row.cases_closed}</strong></button>)}</div>
-  </div>;
+  const data = rows
+    .map(row => ({ ...row, caseload: row.active_cases + row.cases_closed }))
+    .filter(row => row.caseload > 0);
+  const total = data.reduce((sum, row) => sum + row.caseload, 0);
+  return (
+    <div className="clearos-donut-layout">
+      <div className="clearos-donut">
+        <ResponsiveContainer width="100%" height="100%">
+          <PieChart>
+            <Pie data={data} dataKey="caseload" nameKey="name" innerRadius={54} outerRadius={78} paddingAngle={2} stroke="none">
+              {data.map((row, index) => (
+                <Cell key={row.user_id} fill={OFFICER_CHART_COLORS[index % OFFICER_CHART_COLORS.length]} cursor="pointer" onClick={() => onSelect(row)} />
+              ))}
+            </Pie>
+            <RechartsTooltip contentStyle={{ background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 'var(--r)', boxShadow: 'none', fontSize: 12 }} />
+          </PieChart>
+        </ResponsiveContainer>
+        <div className="clearos-donut__center">
+          <strong>{total}</strong>
+          <span>cases</span>
+        </div>
+      </div>
+      <div className="clearos-donut-legend">
+        {data.slice(0, 6).map((row, index) => (
+          <button type="button" key={row.user_id} onClick={() => onSelect(row)} data-ui-native-button="">
+            <span style={{ background: OFFICER_CHART_COLORS[index % OFFICER_CHART_COLORS.length] }} />
+            <em>{row.name}</em>
+            <strong title={`${row.active_cases} open · ${row.cases_closed} closed`}>{row.caseload}</strong>
+          </button>
+        ))}
+      </div>
+    </div>
+  );
 }
 
-/* ── Collapsible section wrapper: stat tiles + clickable chart up top,
-     full sortable/paginated table revealed on demand or via a bar click ── */
 function MetricSection({ title, icon, variant, onExport, statTiles, chart, table, expanded, onToggle }: {
   title: string;
   icon: IconName;
@@ -80,7 +108,7 @@ function MetricSection({ title, icon, variant, onExport, statTiles, chart, table
         <div className="clearos-dashboard__panel-actions">
           <Button type="button" variant="ghost" size="sm" onClick={onToggle} aria-expanded={expanded}>
             <Icon name={expanded ? 'chevronUp' : 'chevronDown'} size={13} />
-            {expanded ? 'Hide details' : 'View details'}
+            {expanded ? 'Hide table' : 'Show table'}
           </Button>
           <ExportButton onClick={onExport} />
         </div>
@@ -186,7 +214,7 @@ function LedgerIntegrityAdminPanel() {
           <FeaturedIcon variant="warning" size="sm" shape="square">
             <Icon name="shield" size={15} strokeWidth={1.75} />
           </FeaturedIcon>
-          <h2 style={{ fontSize: 16, fontWeight: 700, color: 'var(--ink)' }}>Ledger Integrity</h2>
+          <h2 style={{ fontSize: 16, fontWeight: 700, color: 'var(--ink)' }}>Ledger Integrity &amp; Cryptographic Proofs</h2>
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap', justifyContent: 'flex-end' }}>
           <Button size="sm" variant="outline" aria-expanded={detailsOpen} onClick={() => setDetailsOpen(open => !open)}>
@@ -199,7 +227,7 @@ function LedgerIntegrityAdminPanel() {
         </div>
       </div>
       <div style={{ fontSize: 12.5, color: 'var(--ink3)', marginBottom: 14, lineHeight: 1.6 }}>
-        Every declaration's tamper-evident history is periodically anchored to Bitcoin via OpenTimestamps, so its state at a point in time can be verified independently of Hudumika's own database.
+        Every customs declaration&apos;s tamper-evident history is periodically anchored to Bitcoin via OpenTimestamps, enabling independent legal verification.
       </div>
       <div className="clearos-ledger-metrics">
         <div className="clearos-ledger-metric">
@@ -227,9 +255,9 @@ function LedgerIntegrityAdminPanel() {
       {detailsOpen && (loading ? (
         <div style={{ padding: 24, textAlign: 'center', color: 'var(--ink3)', fontSize: 13 }}>Loading anchor history…</div>
       ) : anchors.length === 0 ? (
-        <div style={{ padding: 24, textAlign: 'center', color: 'var(--ink3)', fontSize: 13 }}>No anchors yet — click "Anchor Now" to create the first one.</div>
+        <div style={{ padding: 24, textAlign: 'center', color: 'var(--ink3)', fontSize: 13 }}>No anchors yet — click &ldquo;Anchor Now&rdquo; to create the first one.</div>
       ) : (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginTop: 14 }}>
           {anchors.map(a => (
             <div key={a.id} style={{ display: 'flex', flexDirection: 'column', gap: 10, padding: '14px 16px', background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 'var(--r)' }}>
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap' }}>
@@ -272,18 +300,62 @@ function LedgerIntegrityAdminPanel() {
   );
 }
 
-/**
- * ClearOS management dashboard — the single, focused source of ops metrics.
- * Headline figures + a clickable chart lead each section; the full
- * sortable/paginated table is one click away (or jumped-to directly by
- * clicking a bar) rather than always-open with a duplicate totals row.
- */
+interface CustomerOverviewData {
+  kpis: {
+    active_shipments: number;
+    cleared_this_month: number;
+    pending_customs: number;
+    outstanding_duties_tzs: number;
+  };
+  status_cards: {
+    on_time_clearance_pct: number;
+    document_compliance_pct: number;
+    at_risk_shipments: number;
+    active_shipment_count: number;
+    freight_revenue_mtd_tzs: number;
+  };
+  shipment_status: {
+    IN_TRANSIT: number;
+    AT_PORT: number;
+    CUSTOMS_HOLD: number;
+    CLEARED: number;
+  };
+  declarations_today: {
+    filed: number;
+    approved: number;
+    pending_review: number;
+    cancelled: number;
+  };
+  top_customers: Array<{
+    name: string;
+    shipments: number;
+    invoiced_mtd: number;
+  }>;
+  finance_summary: {
+    total_invoiced_mtd: number;
+    collected_mtd: number;
+    outstanding_mtd: number;
+    overdue_30d: number;
+  };
+}
+
+function fmtMoney(amount: number | null | undefined, curr = 'TZS'): string {
+  if (amount == null || isNaN(amount)) return '—';
+  if (amount >= 1_000_000_000) return `${curr} ${(amount / 1_000_000_000).toFixed(1)}B`;
+  if (amount >= 1_000_000) return `${curr} ${(amount / 1_000_000).toFixed(1)}M`;
+  if (amount >= 1_000) return `${curr} ${(amount / 1_000).toFixed(1)}K`;
+  return `${curr} ${Math.round(amount).toLocaleString('en')}`;
+}
+
 export const ClearOSMetricsDashboard: React.FC = () => {
+  const navigate = useNavigate();
   const [bottlenecks, setBottlenecks] = useState<StageBottleneck[]>([]);
   const [officers, setOfficers] = useState<OfficerPerformance[]>([]);
   const [kpis, setKpis] = useState<KPIResponse | null>(null);
+  const [overview, setOverview] = useState<CustomerOverviewData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [dataErrors, setDataErrors] = useState({ bottlenecks: false, officers: false, kpis: false, overview: false });
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
 
   const [bottlenecksOpen, setBottlenecksOpen] = useState(false);
@@ -295,15 +367,30 @@ export const ClearOSMetricsDashboard: React.FC = () => {
     setLoading(true);
     setError(null);
     try {
-      const [bRes, oRes, kRes] = await Promise.all([
+      const [bRes, oRes, kRes, overviewRes] = await Promise.allSettled([
         apiFetch('/v1/analytics/bottlenecks'),
         apiFetch('/v1/analytics/officers'),
         apiFetch('/v1/analytics/kpi'),
+        apiFetch('/v1/analytics/customer-overview'),
       ]);
-      setBottlenecks(bRes.data || []);
-      setOfficers(oRes.data || []);
-      setKpis(kRes);
-      setLastUpdated(new Date());
+
+      const failures = {
+        bottlenecks: bRes.status === 'rejected',
+        officers: oRes.status === 'rejected',
+        kpis: kRes.status === 'rejected',
+        overview: overviewRes.status === 'rejected',
+      };
+      setDataErrors(failures);
+      if (bRes.status === 'fulfilled') setBottlenecks(bRes.value.data || []);
+      if (oRes.status === 'fulfilled') setOfficers(oRes.value.data || []);
+      if (kRes.status === 'fulfilled') setKpis(kRes.value);
+      if (overviewRes.status === 'fulfilled') setOverview(overviewRes.value);
+
+      if (Object.values(failures).some(Boolean)) {
+        setError('Some dashboard data could not be refreshed. Retry to load the latest figures.');
+      } else {
+        setLastUpdated(new Date());
+      }
     } catch (err: any) {
       setError(err.message || 'Failed to load operations metrics');
     } finally {
@@ -315,13 +402,14 @@ export const ClearOSMetricsDashboard: React.FC = () => {
 
   const exportBottlenecksCsv = () => exportCsv(
     'stage-cycle-times.csv',
-    ['Stage', 'Cases', 'Avg Hours', 'P90 Hours', 'SLA Breaches'],
+    ['Stage', 'Stage History Entries', 'Avg Hours', 'P90 Hours', 'SLA Breaches'],
     bottlenecks.map(b => [b.stage_label, b.case_count, b.avg_hours, b.p90_hours, b.sla_breaches]),
   );
+
   const exportOfficersCsv = () => exportCsv(
     'officer-output.csv',
-    ['Officer', 'Active Cases', 'Closed Cases', 'Avg Cycle Days', 'Demurrage Penalties'],
-    officers.map(o => [o.name, o.active_cases, o.cases_closed, o.avg_days, o.penalties_caused]),
+    ['Officer', 'Active Cases', 'Closed Cases', 'Avg Cycle Days', 'Cases with Demurrage'],
+    officers.map(o => [o.name, o.active_cases, o.cases_closed, o.avg_days, o.cases_with_demurrage]),
   );
 
   const slowest = bottlenecks.length > 0
@@ -333,20 +421,24 @@ export const ClearOSMetricsDashboard: React.FC = () => {
     ? bottlenecks.reduce((s, b) => s + b.avg_hours * b.case_count, 0) / totalCases
     : 0;
 
-  const topOfficer = officers.length > 0
-    ? officers.reduce((m, o) => (o.cases_closed > m.cases_closed ? o : m), officers[0])
-    : null;
+  // Most closures; with none closed yet, most open cases; nobody when the
+  // team has no cases at all. (It used to name whoever happened to be first.)
+  const anyClosed = officers.some(o => o.cases_closed > 0);
+  const topOfficer = officers
+    .filter(o => (anyClosed ? o.cases_closed : o.active_cases) > 0)
+    .reduce<OfficerPerformance | null>((m, o) => {
+      const score = (x: OfficerPerformance) => (anyClosed ? x.cases_closed : x.active_cases);
+      return !m || score(o) > score(m) ? o : m;
+    }, null);
   const totalActive = officers.reduce((s, o) => s + o.active_cases, 0);
   const totalClosed = officers.reduce((s, o) => s + o.cases_closed, 0);
-  const totalPenalties = officers.reduce((s, o) => s + o.penalties_caused, 0);
-  const avgClosed = officers.length > 0 ? Math.round(totalClosed / officers.length) : 0;
+  const totalPenalties = officers.reduce((s, o) => s + o.cases_with_demurrage, 0);
 
-  // Bar chart data — sorted worst-first so the bottleneck / most-penalised are visually obvious
-  const officersSortedForChart = [...officers].sort((a, b) => b.cases_closed - a.cases_closed);
+  const officersSortedForChart = [...officers].sort((a, b) => (b.active_cases + b.cases_closed) - (a.active_cases + a.cases_closed));
 
   const bottleneckColumns: ColumnDef<StageBottleneck>[] = [
     { key: 'stage', label: 'Clearance Stage', sortValue: b => b.stage_label, render: b => <strong>{b.stage_label}</strong> },
-    { key: 'cases', label: 'Cases', align: 'right', sortValue: b => b.case_count, render: b => `${b.case_count}` },
+    { key: 'entries', label: 'Stage History Entries', align: 'right', sortValue: b => b.case_count, render: b => `${b.case_count}` },
     {
       key: 'avg', label: 'Avg Duration', align: 'right', sortValue: b => b.avg_hours,
       render: b => <span style={{ color: b.avg_hours > 24 ? 'var(--red)' : 'var(--ink)', fontFamily: 'var(--font)' }}>{b.avg_hours}h</span>,
@@ -367,102 +459,270 @@ export const ClearOSMetricsDashboard: React.FC = () => {
       render: o => <span style={{ fontFamily: 'var(--font)' }}>{o.avg_days > 0 ? `${o.avg_days}d` : '—'}</span>,
     },
     {
-      key: 'penalties', label: 'Demurrage Penalties', align: 'right', sortValue: o => o.penalties_caused,
-      render: o => <span className={o.penalties_caused > 0 ? 'badge badge-red' : 'badge badge-green'}>{o.penalties_caused}</span>,
+      key: 'demurrage', label: 'Cases with Demurrage', align: 'right', sortValue: o => o.cases_with_demurrage,
+      render: o => <span className={o.cases_with_demurrage > 0 ? 'badge badge-red' : 'badge badge-green'}>{o.cases_with_demurrage}</span>,
     },
   ];
+
+  // Pipeline stages calculation
+  const totalShipmentsInStatus = (overview?.shipment_status?.AT_PORT ?? 0) +
+    (overview?.shipment_status?.CUSTOMS_HOLD ?? 0) +
+    (overview?.shipment_status?.IN_TRANSIT ?? 0) +
+    (overview?.shipment_status?.CLEARED ?? 0);
+
+  const atPortPct = totalShipmentsInStatus > 0 ? Math.round(((overview?.shipment_status?.AT_PORT ?? 0) / totalShipmentsInStatus) * 100) : 0;
+  const customsHoldPct = totalShipmentsInStatus > 0 ? Math.round(((overview?.shipment_status?.CUSTOMS_HOLD ?? 0) / totalShipmentsInStatus) * 100) : 0;
+  const inTransitPct = totalShipmentsInStatus > 0 ? Math.round(((overview?.shipment_status?.IN_TRANSIT ?? 0) / totalShipmentsInStatus) * 100) : 0;
+  const clearedPct = totalShipmentsInStatus > 0 ? Math.round(((overview?.shipment_status?.CLEARED ?? 0) / totalShipmentsInStatus) * 100) : 0;
 
   return (
     <div className="ops-dashboard clearos-dashboard" style={{ display: 'flex', flexDirection: 'column', height: '100%', overflow: 'hidden' }}>
 
-      <div className="clearos-dashboard__toolbar">
-        <div style={{ width: 34, height: 34, borderRadius: 'var(--r)', background: 'var(--teal-l)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-          <Icon name="barChart2" size={18} color="var(--teal)" strokeWidth={1.75} />
-        </div>
-        {/* A toolbar label, not a PageHeader. This component only ever renders
-            inside ClearOSLanding, which already opens with "Clearance
-            overview." -- a second PageHeader stacked a full page title (with
-            its own crumbs and 43px title block) inside a 60px toolbar row, so
-            the screen carried two titles and a large dead gap between them. */}
-        <div className="clearos-dashboard__toolbar-copy">
-          <div className="clearos-dashboard__toolbar-title">
-            Operations metrics
-          </div>
-          <div className="clearos-dashboard__toolbar-meta">
-            {lastUpdated ? `Updated ${lastUpdated.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })}` : 'Loading…'}
-          </div>
-        </div>
-        <div className="clearos-dashboard__toolbar-spacer" />
-        <Button size="sm" variant="outline" onClick={load} disabled={loading}>
-          <Icon name="refresh" size={13} />
-          Refresh
+      {/* Sync time + refresh. The page title lives in ClearOSLanding's PageHeader. */}
+      <div className="clearos-dashboard__syncbar">
+        <span>{lastUpdated ? `Updated ${lastUpdated.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })}` : 'Loading…'}</span>
+        <Button size="sm" variant="ghost" onClick={load} disabled={loading}>
+          <Icon name="refresh" size={13} /> Refresh
         </Button>
       </div>
 
       <div style={{ flex: 1, overflowY: 'auto' }}>
         <div className="clearos-dashboard__content">
-        {error && <Banner variant="error" className="mb-5">{error}</Banner>}
+          {error && <Banner variant="error" className="mb-5">{error}</Banner>}
 
-        {/* Tenant-wide command KPIs — deliberately distinct from the section stat tiles below
-            (those cover stage-cycle-time and per-officer detail; this row covers volume,
-            live risk exposure, and sustainability, none of which appear anywhere else). */}
-        <MetricsRow cards={[
-          {
-            title: 'Monthly Volume',
-            value: String(kpis?.cases_this_month ?? 0),
-            sub1Label: 'DELIVERED TODAY', sub1Value: String(kpis?.delivered_today ?? 0),
-            sub2Label: 'AVG / DAY',       sub2Value: kpis ? String(Math.round((kpis.cases_this_month || 0) / new Date().getDate())) : '—',
-            icon: 'package',
-            barColor: 'var(--teal-l)', barHighlight: 'var(--teal)',
-            onMenuClick: load, menuTitle: 'Refresh volume data',
-          },
-          {
-            title: 'On-Time Performance',
-            // The API returns null until at least one case has closed. "—" is
-            // the honest reading of no data; "100%" or "0%" would both be
-            // claims the figures do not support.
-            value: kpis?.on_time_rate_pct == null ? '—' : `${kpis.on_time_rate_pct}%`,
-            sub1Label: 'AT RISK (48H)',      sub1Value: String(kpis?.demurrage_risk ?? 0),
-            sub2Label: 'PENALTY EXPOSURE',   sub2Value: fmtTZS(kpis?.penalty_exposure_tzs ?? 0),
-            icon: 'checkCircle',
-            barColor: 'var(--blue-l)', barHighlight: 'var(--blue)',
-            onMenuClick: load, menuTitle: 'Refresh SLA data',
-          },
-          {
-            title: 'Carbon Footprint',
-            value: `${(kpis?.total_co2_emissions_kg ?? 0).toLocaleString('en')} kg`,
-            sub1Label: 'CREDITS SAVED', sub1Value: `${kpis?.total_carbon_credits_saved ?? 0}`,
-            icon: 'globe',
-            barColor: 'var(--green-l)', barHighlight: 'var(--green)',
-            onMenuClick: load, menuTitle: 'Refresh emissions data',
-          },
-        ]} />
+          {/* Top Operational Metrics Row */}
+          <MetricsRow cards={[
+            {
+              title: 'Monthly shipments',
+              value: kpis ? String(kpis.cases_this_month) : '—',
+              sub1Label: 'DELIVERED TODAY', sub1Value: kpis ? String(kpis.delivered_today) : '—',
+              sub2Label: 'ACTIVE CASES',   sub2Value: kpis ? String(kpis.active_cases ?? overview?.kpis?.active_shipments ?? 0) : '—',
+              icon: 'package',
+              barColor: 'var(--teal-l)', barHighlight: 'var(--teal)',
+              loading: loading && !kpis, error: dataErrors.kpis ? 'Unavailable' : undefined, onRetry: load,
+            },
+            {
+              title: 'On-time rate',
+              value: kpis?.on_time_rate_pct == null ? '—' : `${kpis.on_time_rate_pct}%`,
+              sub1Label: 'CLOSED CASES', sub1Value: kpis ? String(kpis.closed_cases) : '—',
+              sub2Label: 'ACTIVE OVERDUE', sub2Value: kpis ? String(kpis.sla_breached) : '—',
+              icon: 'checkCircle',
+              barColor: 'var(--blue-l)', barHighlight: 'var(--blue)',
+              loading: loading && !kpis, error: dataErrors.kpis ? 'Unavailable' : undefined, onRetry: load,
+            },
+            {
+              title: 'Free-time risk',
+              value: kpis ? String((kpis.free_time_due_48h ?? 0) + (kpis.free_time_overdue ?? 0)) : '—',
+              sub1Label: 'EXPIRING ≤48H', sub1Value: kpis ? String(kpis.free_time_due_48h ?? 0) : '—',
+              sub2Label: 'ALREADY OVERDUE', sub2Value: kpis ? String(kpis.free_time_overdue ?? 0) : '—',
+              icon: 'alertTriangle',
+              barColor: 'var(--gold-l)', barHighlight: 'var(--gold)',
+              loading: loading && !kpis, error: dataErrors.kpis ? 'Unavailable' : undefined, onRetry: load,
+            },
+            {
+              title: 'CO₂ emissions',
+              value: kpis ? `${(kpis.total_co2_emissions_kg ?? 0).toLocaleString('en')} kg` : '—',
+              sub1Label: 'CREDITS SAVED', sub1Value: kpis ? `${kpis.total_carbon_credits_saved ?? 0}` : '—',
+              icon: 'globe',
+              barColor: 'var(--teal-l)', barHighlight: 'var(--teal)',
+              onClick: () => navigate('/clearos/carbon'), loading: loading && !kpis,
+              error: dataErrors.kpis ? 'Unavailable' : undefined, onRetry: load,
+            },
+          ]} />
 
-        {loading ? (
-          <div style={{ padding: 40, textAlign: 'center', fontSize: 14, color: 'var(--ink3)' }}>
-            Loading operational metrics…
+          {/* Breakdown Section 1: Clearance Stage Lifecycle Pipeline */}
+          <div className="clearos-section-header">
+            <div className="clearos-section-title-wrap">
+              <FeaturedIcon variant="brand" size="sm" shape="square">
+                <Icon name="layers" size={15} />
+              </FeaturedIcon>
+              <div>
+                <h3 className="clearos-section-title">Shipment pipeline</h3>
+                <p className="clearos-section-desc">Active shipments by stage.</p>
+              </div>
+            </div>
+            <Button size="sm" variant="outline" onClick={() => navigate('/clearos/ops')}>
+              View Operations <Icon name="arrowRight" size={13} />
+            </Button>
           </div>
-        ) : (
-          <>
-          <div className="clearos-dashboard__analytics">
 
+          <div className="clearos-pipeline-grid">
+            {/* At Port */}
+            <button type="button" className="clearos-pipeline-card" onClick={() => navigate('/clearos/ops?status=port')}>
+              <div className="clearos-pipeline-head">
+                <span className="clearos-pipeline-name">At port</span>
+                <Badge variant="brand">{overview ? `${atPortPct}%` : '—'}</Badge>
+              </div>
+              <div className="clearos-pipeline-num">{overview ? (overview.shipment_status?.AT_PORT ?? 0) : '—'}</div>
+              <div className="clearos-pipeline-bar-wrap">
+                <div className="clearos-pipeline-bar" style={{ width: `${atPortPct}%`, background: 'var(--teal)' }} />
+              </div>
+              <span className="clearos-pipeline-stages-list">Docs · permits · customs entry</span>
+            </button>
+
+            {/* Customs Hold */}
+            <button type="button" className="clearos-pipeline-card" onClick={() => navigate('/clearos/ops?status=customs')}>
+              <div className="clearos-pipeline-head">
+                <span className="clearos-pipeline-name">Customs hold</span>
+                <Badge variant={customsHoldPct > 0 ? 'warning' : 'gray'}>{overview ? `${customsHoldPct}%` : '—'}</Badge>
+              </div>
+              <div className="clearos-pipeline-num">{overview ? (overview.shipment_status?.CUSTOMS_HOLD ?? 0) : '—'}</div>
+              <div className="clearos-pipeline-bar-wrap">
+                <div className="clearos-pipeline-bar" style={{ width: `${customsHoldPct}%`, background: 'var(--amber, #f59e0b)' }} />
+              </div>
+              <span className="clearos-pipeline-stages-list">Review · assessment · tax</span>
+            </button>
+
+            {/* In Transit */}
+            <button type="button" className="clearos-pipeline-card" onClick={() => navigate('/clearos/ops?status=transit')}>
+              <div className="clearos-pipeline-head">
+                <span className="clearos-pipeline-name">In transit</span>
+                <Badge variant="brand">{overview ? `${inTransitPct}%` : '—'}</Badge>
+              </div>
+              <div className="clearos-pipeline-num">{overview ? (overview.shipment_status?.IN_TRANSIT ?? 0) : '—'}</div>
+              <div className="clearos-pipeline-bar-wrap">
+                <div className="clearos-pipeline-bar" style={{ width: `${inTransitPct}%`, background: 'var(--blue, #3b82f6)' }} />
+              </div>
+              <span className="clearos-pipeline-stages-list">CFS · haulage · border</span>
+            </button>
+
+            {/* Cleared & Delivered */}
+            <button type="button" className="clearos-pipeline-card" onClick={() => navigate('/clearos/ops?status=cleared')}>
+              <div className="clearos-pipeline-head">
+                <span className="clearos-pipeline-name">Cleared</span>
+                <Badge variant="success">{overview ? `${clearedPct}%` : '—'}</Badge>
+              </div>
+              <div className="clearos-pipeline-num">{overview ? (overview.shipment_status?.CLEARED ?? 0) : '—'}</div>
+              <div className="clearos-pipeline-bar-wrap">
+                <div className="clearos-pipeline-bar" style={{ width: `${clearedPct}%`, background: 'var(--green, #10b981)' }} />
+              </div>
+              <span className="clearos-pipeline-stages-list">Delivered · empty return</span>
+            </button>
+          </div>
+
+          {/* Breakdown Section 3: Commercial Top Accounts & Declarations Pace */}
+          <div className="clearos-commercial-grid">
+            {/* Top Accounts */}
+            <div className="clearos-commercial-card">
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                  <FeaturedIcon variant="brand" size="sm" shape="square">
+                    <Icon name="users" size={13} />
+                  </FeaturedIcon>
+                  <h4 style={{ margin: 0, fontSize: 14, fontWeight: 700, color: 'var(--ink)' }}>
+                    Top clients
+                  </h4>
+                </div>
+              </div>
+
+              <div style={{ display: 'flex', flexDirection: 'column' }}>
+                {dataErrors.overview ? (
+                  <div style={{ padding: '20px 0', textAlign: 'center', color: 'var(--ink3)', fontSize: 13 }}>
+                    Client data unavailable. Retry to refresh.
+                  </div>
+                ) : (overview?.top_customers || []).length === 0 ? (
+                  <div style={{ padding: '20px 0', textAlign: 'center', color: 'var(--ink3)', fontSize: 13 }}>
+                    No customer shipment volume recorded this month.
+                  </div>
+                ) : (
+                  (overview?.top_customers || []).map((cust, idx) => (
+                    <div key={idx} className="clearos-customer-row">
+                      <div className="clearos-customer-info">
+                        <span className="clearos-customer-name">{cust.name}</span>
+                        <span className="clearos-customer-meta">
+                          shipment{cust.shipments !== 1 ? 's' : ''} handled
+                        </span>
+                      </div>
+                      <div className="clearos-customer-revenue">
+                        {cust.shipments}
+                      </div>
+                    </div>
+                  ))
+                )}
+              </div>
+            </div>
+
+            {/* Today's Declarations Activity */}
+            <div className="clearos-commercial-card">
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                  <FeaturedIcon variant="brand" size="sm" shape="square">
+                    <Icon name="fileText" size={13} />
+                  </FeaturedIcon>
+                  <h4 style={{ margin: 0, fontSize: 14, fontWeight: 700, color: 'var(--ink)' }}>
+                    Declarations today
+                  </h4>
+                </div>
+                <Button size="sm" variant="ghost" onClick={() => navigate('/clearos/ops?declared=1')}>
+                  Declarations <Icon name="arrowRight" size={12} />
+                </Button>
+              </div>
+
+              <div className="clearos-decl-strip">
+                <div className="clearos-decl-tile" style={{ borderColor: 'var(--blue, #3b82f6)' }}>
+                  <span className="clearos-decl-tile-val" style={{ color: 'var(--blue, #3b82f6)' }}>
+                    {overview ? (overview.declarations_today?.filed ?? 0) : '—'}
+                  </span>
+                  <span className="clearos-decl-tile-lbl">Filed Today</span>
+                </div>
+                <div className="clearos-decl-tile" style={{ borderColor: 'var(--green, #10b981)' }}>
+                  <span className="clearos-decl-tile-val" style={{ color: 'var(--green, #10b981)' }}>
+                    {overview ? (overview.declarations_today?.approved ?? 0) : '—'}
+                  </span>
+                  <span className="clearos-decl-tile-lbl">Approved</span>
+                </div>
+                <div className="clearos-decl-tile" style={{ borderColor: 'var(--amber, #f59e0b)' }}>
+                  <span className="clearos-decl-tile-val" style={{ color: 'var(--amber, #f59e0b)' }}>
+                    {overview ? (overview.declarations_today?.pending_review ?? 0) : '—'}
+                  </span>
+                  <span className="clearos-decl-tile-lbl">In Review</span>
+                </div>
+                <div className="clearos-decl-tile">
+                  <span className="clearos-decl-tile-val" style={{ color: 'var(--ink3)' }}>
+                    {overview ? (overview.declarations_today?.cancelled ?? 0) : '—'}
+                  </span>
+                  <span className="clearos-decl-tile-lbl">Cancelled</span>
+                </div>
+              </div>
+
+              <div style={{ fontSize: 12, color: 'var(--ink3)', lineHeight: 1.5, marginTop: 'auto' }}>
+                Declaration activity in this workspace. Ledger proofs are independently verifiable.
+              </div>
+            </div>
+          </div>
+
+          {/* Breakdown Section 4: Stage Cycle Times & Officer Performance Analytics */}
+          <div className="clearos-section-header">
+            <div className="clearos-section-title-wrap">
+              <FeaturedIcon variant="brand" size="sm" shape="square">
+                <Icon name="clock" size={15} />
+              </FeaturedIcon>
+              <div>
+                <h3 className="clearos-section-title">Performance</h3>
+                <p className="clearos-section-desc">Stage times, SLA breaches and team workload.</p>
+              </div>
+            </div>
+          </div>
+
+          <div className="clearos-dashboard__analytics" style={{ marginTop: 0 }}>
+            {/* Stage Cycle Times */}
             <MetricSection
-              title="Clearance Stage Cycle Times"
+              title="Stage times"
               icon="clock"
               variant="error"
               onExport={exportBottlenecksCsv}
               expanded={bottlenecksOpen}
               onToggle={() => setBottlenecksOpen(o => !o)}
               statTiles={<>
-                <StatTile label="Total Cases" value={String(totalCases)} />
-                <StatTile label="Avg Duration" value={totalCases > 0 ? `${weightedAvgHours.toFixed(1)}h` : '—'} />
-                <StatTile label="SLA Breaches" value={String(totalBreaches)} tone={totalBreaches > 0 ? 'red' : 'green'} />
-                <StatTile label="Slowest Stage" value={slowest ? slowest.stage_label : '—'} />
+                <StatTile label="Stage entries" value={dataErrors.bottlenecks ? '—' : String(totalCases)} />
+                <StatTile label="Avg duration" value={dataErrors.bottlenecks ? '—' : totalCases > 0 ? `${weightedAvgHours.toFixed(1)}h` : '—'} />
+                <StatTile label="SLA breaches" value={dataErrors.bottlenecks ? '—' : String(totalBreaches)} tone={totalBreaches > 0 ? 'red' : 'green'} />
+                <StatTile label="Slowest stage" value={dataErrors.bottlenecks ? '—' : slowest ? slowest.stage_label : '—'} />
               </>}
               chart={bottlenecks.length > 0 ? (
                 <StageCycleAreaChart rows={bottlenecks} onSelect={(row) => { setFocusStage(row.stage); setBottlenecksOpen(true); }} />
               ) : (
-                <div style={{ padding: 24, textAlign: 'center', color: 'var(--ink3)', fontSize: 13 }}>No stage history recorded yet.</div>
+                <div style={{ padding: 24, textAlign: 'center', color: dataErrors.bottlenecks ? 'var(--red)' : 'var(--ink3)', fontSize: 13 }}>{dataErrors.bottlenecks ? 'Stage data unavailable. Retry to refresh.' : 'No stage history recorded yet.'}</div>
               )}
               table={
                 <DataTable
@@ -475,23 +735,26 @@ export const ClearOSMetricsDashboard: React.FC = () => {
               }
             />
 
+            {/* Officer Output */}
             <MetricSection
-              title="Officer Output & Penalties"
+              title="Team workload"
               icon="checkCircle"
               variant="success"
               onExport={exportOfficersCsv}
               expanded={officersOpen}
               onToggle={() => setOfficersOpen(o => !o)}
               statTiles={<>
-                <StatTile label="Active Cases" value={String(totalActive)} />
-                <StatTile label="Closed Cases" value={String(totalClosed)} />
-                <StatTile label="Top Officer" value={topOfficer ? topOfficer.name.split(' ')[0] : '—'} />
-                <StatTile label="Total Penalties" value={String(totalPenalties)} tone={totalPenalties > 0 ? 'red' : 'green'} />
+                <StatTile label="Active cases" value={dataErrors.officers ? '—' : String(totalActive)} />
+                <StatTile label="Closed cases" value={dataErrors.officers ? '—' : String(totalClosed)} />
+                <StatTile label="Top officer" value={dataErrors.officers ? '—' : topOfficer ? topOfficer.name.split(' ')[0] : '—'} />
+                <StatTile label="Demurrage cases" value={dataErrors.officers ? '—' : String(totalPenalties)} tone={totalPenalties > 0 ? 'red' : 'green'} />
               </>}
-              chart={officersSortedForChart.some(o => o.cases_closed > 0) ? (
+              chart={officersSortedForChart.some(o => o.active_cases + o.cases_closed > 0) ? (
                 <OfficerOutputDonut rows={officersSortedForChart} onSelect={(row) => { setFocusOfficer(row.user_id); setOfficersOpen(true); }} />
               ) : (
-                <div style={{ padding: 24, textAlign: 'center', color: 'var(--ink3)', fontSize: 13 }}>No active clearing officers found.</div>
+                <div style={{ padding: 24, textAlign: 'center', color: 'var(--ink3)', fontSize: 13 }}>
+                  {dataErrors.officers ? 'Officer data unavailable. Retry to refresh.' : officers.length ? 'No cases are assigned to clearing officers yet.' : 'No active clearing officers found.'}
+                </div>
               )}
               table={
                 <DataTable
@@ -503,10 +766,10 @@ export const ClearOSMetricsDashboard: React.FC = () => {
                 />
               }
             />
-
           </div>
-          </>
-        )}
+
+          {/* Breakdown Section 5: Ledger Integrity Audit */}
+          <LedgerIntegritySection />
         </div>
       </div>
     </div>

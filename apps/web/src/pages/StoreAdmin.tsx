@@ -5,6 +5,7 @@ import { showAlert } from '../lib/alert.js';
 import { PageHeader } from '../components/PageHeader.js';
 import { PageLoading } from '../components/ui/spinner.js';
 import './Store.css';
+import { Button } from '../components/ui/button.js';
 
 export const StoreAdmin: React.FC = () => {
   const [apps, setApps] = useState<any[]>([]);
@@ -73,7 +74,7 @@ export const StoreAdmin: React.FC = () => {
                 <td style={{ padding: '16px', textTransform: 'capitalize' }}>{app.category}</td>
                 <td style={{ padding: '16px' }}>
                   <span style={{ 
-                    padding: '4px 8px', borderRadius: '12px', fontSize: '12px', fontWeight: 600,
+                    padding: '4px 8px', borderRadius: 'var(--r)', fontSize: '12px', fontWeight: 600,
                     background: app.status === 'approved' ? 'var(--green-l)' : app.status === 'rejected' ? 'var(--red-l)' : 'var(--gold-l)',
                     color: app.status === 'approved' ? 'var(--green)' : app.status === 'rejected' ? 'var(--red)' : 'var(--gold)'
                   }}>
@@ -83,15 +84,15 @@ export const StoreAdmin: React.FC = () => {
                 <td style={{ padding: '16px' }}>
                   {app.status === 'pending' && (
                     <div style={{ display: 'flex', gap: 8 }}>
-                      <button className="btn btn-primary" style={{ padding: 'var(--ds-btn-py-xs) 12px', fontSize: "var(--text-base)", minHeight: 'var(--ctl-h-xs)', boxSizing: 'border-box', lineHeight: 1.25}} onClick={() => handleUpdateStatus(app.id, 'approved')} data-ui-native-button="">Approve</button>
-                      <button className="btn btn-secondary" style={{ padding: 'var(--ds-btn-py-xs) 12px', fontSize: "var(--text-base)", minHeight: 'var(--ctl-h-xs)', boxSizing: 'border-box', lineHeight: 1.25}} onClick={() => handleUpdateStatus(app.id, 'rejected')} data-ui-native-button="">Reject</button>
+                      <Button style={{ padding: 'var(--ds-btn-py-xs) 12px', fontSize: "var(--text-base)", minHeight: 'var(--ctl-h-xs)', boxSizing: 'border-box', lineHeight: 1.25}} onClick={() => handleUpdateStatus(app.id, 'approved')}>Approve</Button>
+                      <Button variant="outline" style={{ padding: 'var(--ds-btn-py-xs) 12px', fontSize: "var(--text-base)", minHeight: 'var(--ctl-h-xs)', boxSizing: 'border-box', lineHeight: 1.25}} onClick={() => handleUpdateStatus(app.id, 'rejected')}>Reject</Button>
                     </div>
                   )}
                   {app.status === 'approved' && (
-                    <button className="btn btn-secondary" style={{ padding: 'var(--ds-btn-py-xs) 12px', fontSize: "var(--text-base)", minHeight: 'var(--ctl-h-xs)', boxSizing: 'border-box', lineHeight: 1.25}} onClick={() => handleUpdateStatus(app.id, 'rejected')} data-ui-native-button="">Revoke</button>
+                    <Button variant="outline" style={{ padding: 'var(--ds-btn-py-xs) 12px', fontSize: "var(--text-base)", minHeight: 'var(--ctl-h-xs)', boxSizing: 'border-box', lineHeight: 1.25}} onClick={() => handleUpdateStatus(app.id, 'rejected')}>Revoke</Button>
                   )}
                   {app.status === 'rejected' && (
-                    <button className="btn btn-secondary" style={{ padding: 'var(--ds-btn-py-xs) 12px', fontSize: "var(--text-base)", minHeight: 'var(--ctl-h-xs)', boxSizing: 'border-box', lineHeight: 1.25}} onClick={() => handleUpdateStatus(app.id, 'approved')} data-ui-native-button="">Approve</button>
+                    <Button variant="outline" style={{ padding: 'var(--ds-btn-py-xs) 12px', fontSize: "var(--text-base)", minHeight: 'var(--ctl-h-xs)', boxSizing: 'border-box', lineHeight: 1.25}} onClick={() => handleUpdateStatus(app.id, 'approved')}>Approve</Button>
                   )}
                 </td>
               </tr>

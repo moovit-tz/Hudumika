@@ -55,7 +55,7 @@
 .expense-metric-icon-wrap {
   width: 32px;
   height: 32px;
-  border-radius: 8px;
+  border-radius: var(--r-sm);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -173,7 +173,7 @@
 
 .expense-view-btn {
   padding: 6px 8px;
-  border-radius: 6px;
+  border-radius: var(--r-sm);
   background: transparent;
   border: none;
   color: var(--ink3);
@@ -253,7 +253,7 @@
 .expense-report-icon {
   width: 34px;
   height: 34px;
-  border-radius: 8px;
+  border-radius: var(--r-sm);
   background: var(--teal-l);
   color: var(--teal);
   display: flex;
@@ -533,7 +533,7 @@
 .expense-claim-icon {
   width: 36px;
   height: 36px;
-  border-radius: 8px;
+  border-radius: var(--r-sm);
   background: var(--bg);
   border: 1px solid var(--border);
   display: flex;
@@ -628,7 +628,7 @@
   max-width: 100%;
   max-height: 70vh;
   object-fit: contain;
-  border-radius: 6px;
+  border-radius: var(--r-sm);
 }
 
 /* ── Mobile Responsive Overrides ── */

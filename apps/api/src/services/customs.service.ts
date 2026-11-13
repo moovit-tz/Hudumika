@@ -16,7 +16,12 @@ import { dbPlatform } from '../db/client.js';
 // FX Rate (open.er-api.com — truly free, no key required)
 // ─────────────────────────────────────────────────────────────────────────────
 
-let _fxCache: { rate: number; fetchedAt: number } | null = null;
+let _fxCache: { rate: number; fetchedAt: number; publishedAt: string | null } | null = null;
+
+/** When the cached USD→TZS rate was fetched, and when the provider published it. */
+export function getFxRateInfo(): { fetchedAt: string | null; publishedAt: string | null } {
+  return { fetchedAt: _fxCache ? new Date(_fxCache.fetchedAt).toISOString() : null, publishedAt: _fxCache?.publishedAt ?? null };
+}
 let _ratesCache: { rates: Record<string, number>; fetchedAt: number } | null = null;
 
 /**
@@ -71,7 +76,8 @@ export async function getUsdToTzs(): Promise<number> {
     if (typeof rate !== 'number' || !Number.isFinite(rate) || rate <= 0) {
       throw new Error('Invalid FX provider response');
     }
-    _fxCache = { rate, fetchedAt: Date.now() };
+    const published = data?.time_last_update_utc ? new Date(data.time_last_update_utc) : null;
+    _fxCache = { rate, fetchedAt: Date.now(), publishedAt: published && !isNaN(published.getTime()) ? published.toISOString() : null };
     return rate;
   } catch {
     // An unverified or expired rate must not silently become a priced estimate.

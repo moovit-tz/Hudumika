@@ -267,9 +267,9 @@ export const ApiKeysSection: React.FC = () => {
   return (
     <>
       <Card title="API Keys" desc="Programmatic access for partner integrations and scripts. Each key is scoped to specific features and limited by your plan." action={
-        <button type="button" className="btn btn-primary btn-sm" onClick={() => setShowCreate(true)} data-ui-native-button="">
+        <Button size="sm" type="button" onClick={() => setShowCreate(true)}>
           <Icon name="plus" size={13} /> New Key
-        </button>
+        </Button>
       }>
         <div className="s-fld--full">
           {loading ? (
@@ -299,7 +299,7 @@ export const ApiKeysSection: React.FC = () => {
                     </td>
                     <td style={{ padding: '8px', textAlign: 'right' }}>
                       {!k.revoked_at && (
-                        <button type="button" className="btn btn-sm btn-ghost" onClick={() => revokeKey(k.id)} data-ui-native-button="">Revoke</button>
+                        <Button variant="ghost" size="sm" type="button" onClick={() => revokeKey(k.id)}>Revoke</Button>
                       )}
                     </td>
                   </tr>
@@ -337,7 +337,7 @@ export const ApiKeysSection: React.FC = () => {
                 <div style={{ fontSize: 15, fontWeight: 700, marginBottom: 10 }}>Key created</div>
                 <p style={{ fontSize: 12, color: 'var(--ink3)', marginBottom: 10 }}>Copy this now · it won't be shown again.</p>
                 <div style={{ padding: '10px 12px', background: 'var(--bg)', borderRadius: 'var(--r)', fontFamily: 'var(--font)', fontSize: 12, wordBreak: 'break-all', marginBottom: 16 }}>{mintedKey}</div>
-                <button type="button" className="btn btn-primary btn-sm" onClick={() => { setShowCreate(false); setMintedKey(null); }} data-ui-native-button="">Done</button>
+                <Button size="sm" type="button" onClick={() => { setShowCreate(false); setMintedKey(null); }}>Done</Button>
               </>
             ) : (
               <>
@@ -358,7 +358,7 @@ export const ApiKeysSection: React.FC = () => {
                   </div>
                 </div>
                 <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end' }}>
-                  <button type="button" className="btn btn-secondary btn-sm" onClick={() => setShowCreate(false)} data-ui-native-button="">Cancel</button>
+                  <Button variant="outline" size="sm" type="button" onClick={() => setShowCreate(false)}>Cancel</Button>
                   <Button size="sm" type="button" onClick={createKey} loading={creating} disabled={!newName.trim() || newScopes.length === 0} loadingText="Creating…">
                     Create Key
                   </Button>

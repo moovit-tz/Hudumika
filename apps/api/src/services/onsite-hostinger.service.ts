@@ -9,7 +9,7 @@ export async function listHostingerWebsites(token: string, page = 1): Promise<{ 
     signal: AbortSignal.timeout(15000),
   });
   if (!response.ok) throw new Error(`Hostinger inventory request failed (HTTP ${response.status})`);
-  const body = await response.json();
+  const body: any = await response.json();
   const rows = Array.isArray(body) ? body : body?.data;
   if (!Array.isArray(rows) || rows.some(row => typeof row?.domain !== 'string')) {
     throw new Error('Hostinger returned an unexpected website inventory response');
@@ -22,7 +22,7 @@ export async function readHostingerDns(token: string, domain: string) {
     headers: { Authorization: `Bearer ${token}`, Accept: 'application/json' }, signal: AbortSignal.timeout(15000),
   });
   if (!response.ok) throw new Error(`Hostinger DNS request failed (HTTP ${response.status})`);
-  const body = await response.json();
+  const body: any = await response.json();
   const groups = Array.isArray(body) ? body : body?.data;
   if (!Array.isArray(groups)) throw new Error('Unexpected Hostinger DNS response');
   return groups.flatMap(group => {

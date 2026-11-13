@@ -25,6 +25,7 @@ import { MY_MERGE_VARS, MKT_CAT_LABEL } from './email_templates/shared.js';
 import { PublishToStoreDialog, SimpleWysiwygEditor } from './email_templates/editors.js';
 import { AdvancedBuilderDialog } from './email_templates/builder.js';
 import { MyTemplatesTab, MarketplaceTab } from './email_templates/tabs.js';
+import { NotificationEventsTab } from './email_templates/events.js';
 
 // re-exports for external callers
 export { MY_MERGE_VARS };
@@ -34,7 +35,11 @@ export { MY_MERGE_VARS };
 // ═════════════════════════════════════════════════════════════════════════════
 
 export function EmailTemplates() {
-  const [tab, setTab] = useState<'mine' | 'marketplace'>('mine');
+  // ?tab=events is where the old Workspace Settings › Communications link lands.
+  const [tab, setTab] = useState<'mine' | 'marketplace' | 'events'>(() => {
+    const t = new URLSearchParams(window.location.search).get('tab');
+    return t === 'events' || t === 'marketplace' ? t : 'mine';
+  });
 
   return (
     <div className="email-templates-page">
@@ -56,6 +61,9 @@ export function EmailTemplates() {
               <TabsTrigger value="marketplace">
                 <Icon name="package" size={14} /> Marketplace
               </TabsTrigger>
+              <TabsTrigger value="events">
+                <Icon name="bell" size={14} /> Notification events
+              </TabsTrigger>
             </TabsList>
           </div>
         </div>
@@ -65,6 +73,9 @@ export function EmailTemplates() {
         </TabsContent>
         <TabsContent value="marketplace" className="email-templates-tabcontent">
           <MarketplaceTab onBack={() => setTab('mine')} />
+        </TabsContent>
+        <TabsContent value="events" className="email-templates-tabcontent">
+          <NotificationEventsTab />
         </TabsContent>
       </Tabs>
     </div>

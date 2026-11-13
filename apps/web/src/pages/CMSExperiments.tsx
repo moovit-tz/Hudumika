@@ -57,7 +57,7 @@ export function CMSExperimentsList() {
         titlePlain="A/B"
         titleEm="experiments"
         subtitle="Two block-array variants, a visitor sticky-assigned to one, a real view count per variant — placed on any page or entry with an A/B Test block."
-        actions={<button className="btn btn-primary btn-sm" onClick={() => setCreating(true)} data-ui-native-button=""><Icon name="plus" size={13} /> New experiment</button>}
+        actions={<Button size="sm" onClick={() => setCreating(true)}><Icon name="plus" size={13} /> New experiment</Button>}
       />
 
       <div style={{ flex: 1, overflowY: 'auto', padding: '18px 24px' }}>
@@ -70,7 +70,7 @@ export function CMSExperimentsList() {
               </FL>
               <div style={{ display: 'flex', gap: 8 }}>
                 <Button size="sm" onClick={handleCreate} loading={saving} loadingText="Creating…">Create experiment</Button>
-                <button className="btn btn-secondary btn-sm" onClick={() => setCreating(false)} data-ui-native-button="">Cancel</button>
+                <Button variant="outline" size="sm" onClick={() => setCreating(false)}>Cancel</Button>
               </div>
             </div>
           </div>
@@ -194,8 +194,8 @@ export function CMSExperimentDetail() {
         subtitle={`Placed anywhere with an A/B Test block — key "${experiment.key}".`}
         actions={
           <div style={{ display: 'flex', gap: 8 }}>
-            <button className="btn btn-secondary btn-sm" onClick={handleRename} data-ui-native-button="">Rename</button>
-            <button className="btn btn-secondary btn-sm" onClick={handleToggleStatus} data-ui-native-button="">{experiment.status === 'running' ? 'Stop' : 'Resume'}</button>
+            <Button variant="outline" size="sm" onClick={handleRename}>Rename</Button>
+            <Button variant="outline" size="sm" onClick={handleToggleStatus}>{experiment.status === 'running' ? 'Stop' : 'Resume'}</Button>
             <Button size="sm" onClick={handleSave} loading={saving} disabled={!dirty} loadingText="Saving…">{dirty ? 'Save changes' : 'Saved'}</Button>
           </div>
         }
@@ -207,7 +207,7 @@ export function CMSExperimentDetail() {
             <span><b>Variant A</b> — {experiment.variant_a_views.toLocaleString()} view{experiment.variant_a_views === 1 ? '' : 's'} ({aPct}%)</span>
             <span><b>Variant B</b> — {experiment.variant_b_views.toLocaleString()} view{experiment.variant_b_views === 1 ? '' : 's'} ({bPct}%)</span>
           </div>
-          <div style={{ display: 'flex', height: 10, borderRadius: 6, overflow: 'hidden', background: 'var(--border)' }}>
+          <div style={{ display: 'flex', height: 10, borderRadius: 'var(--r-sm)', overflow: 'hidden', background: 'var(--border)' }}>
             <div style={{ width: `${aPct}%`, background: 'var(--teal)' }} />
             <div style={{ width: `${bPct}%`, background: 'var(--gold, #c8920a)' }} />
           </div>

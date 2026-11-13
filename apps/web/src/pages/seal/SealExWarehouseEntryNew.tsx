@@ -8,6 +8,7 @@ import { DatePicker, toDateOnlyString } from '../../components/ui/date-picker.js
 import { apiFetch } from '../../lib/api.js';
 import { showAlert } from '../../lib/alert.js';
 import { SEAL_DECLARATION_PROCEDURE_LABELS } from '@hudumika/types';
+import { Button } from '../../components/ui/button.js';
 
 interface Lot { id: string; description: string; hsCode: string | null; ownerName?: string; qtyOnHand: number; uom: string; }
 interface DutyLineItem { code: string; label: string; base: number; ratePct: number; amount: number; }
@@ -134,9 +135,9 @@ export function SealExWarehouseEntryNew() {
           </div>
 
           <div style={{ display: 'flex', gap: 10, paddingTop: 10, borderTop: '1px solid var(--border)' }}>
-            <button type="submit" className="btn btn-primary" disabled={!isReady || saving} data-ui-native-button="">
+            <Button type="submit" disabled={!isReady || saving}>
               <Icon name="fileText" size={14} /> {saving ? 'Creating…' : 'Create Declaration'}
-            </button>
+            </Button>
           </div>
         </form>
 

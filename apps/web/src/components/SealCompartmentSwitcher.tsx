@@ -108,7 +108,7 @@ export function SealCompartmentSwitcher({ collapsed }: Props) {
               {c.name}
             </span>
             {c.code && (
-              <span style={{ fontSize: 10, fontWeight: 700, color: 'var(--ink3)', background: 'var(--bg)', padding: '2px 6px', borderRadius: 6 }}>
+              <span style={{ fontSize: 10, fontWeight: 700, color: 'var(--ink3)', background: 'var(--bg)', padding: '2px 6px', borderRadius: 'var(--r-sm)' }}>
                 {c.code}
               </span>
             )}
@@ -152,7 +152,7 @@ export function SealCompartmentSwitcher({ collapsed }: Props) {
         <span style={{ fontSize: 11, fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--ink3)' }}>
           Warehouse
         </span>
-        <span style={{ fontSize: 10, fontWeight: 700, background: 'var(--bg)', color: 'var(--ink3)', padding: '1px 6px', borderRadius: 10, border: '1px solid var(--border)' }}>
+        <span style={{ fontSize: 10, fontWeight: 700, background: 'var(--bg)', color: 'var(--ink3)', padding: '1px 6px', borderRadius: 'var(--r)', border: '1px solid var(--border)' }}>
           {compartments.length} Available
         </span>
       </div>

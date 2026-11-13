@@ -302,7 +302,7 @@ export function SealConsignments() {
           className={`seal-kpi-tile${stageTab === 'pre_arrival' ? ' active' : ''}`}
           onClick={() => setStageTab('pre_arrival')}
         >
-          <div className="seal-kpi-tile-icon" style={{ background: '#f1f5f9', color: '#475569' }}>
+          <div className="seal-kpi-tile-icon" style={{ background: 'var(--bg)', color: '#475569' }}>
             <Icon name="clock" size={19} />
           </div>
           <div className="seal-kpi-tile-info">
@@ -350,7 +350,7 @@ export function SealConsignments() {
           className={`seal-kpi-tile${stageTab === 'holds' ? ' active' : ''}`}
           onClick={() => setStageTab('holds')}
         >
-          <div className="seal-kpi-tile-icon" style={{ background: stats.held > 0 ? '#fee2e2' : '#f8fafc', color: stats.held > 0 ? '#dc2626' : '#64748b' }}>
+          <div className="seal-kpi-tile-icon" style={{ background: stats.held > 0 ? '#fee2e2' : 'var(--bg)', color: stats.held > 0 ? 'var(--red)' : '#64748b' }}>
             <Icon name="alertTriangle" size={19} />
           </div>
           <div className="seal-kpi-tile-info">
@@ -366,7 +366,7 @@ export function SealConsignments() {
           className={`seal-kpi-tile${stageTab === 'devanning' ? ' active' : ''}`}
           onClick={() => setStageTab('devanning')}
         >
-          <div className="seal-kpi-tile-icon" style={{ background: '#fef3c7', color: '#d97706' }}>
+          <div className="seal-kpi-tile-icon" style={{ background: '#fef3c7', color: 'var(--gold)' }}>
             <Icon name="scale" size={19} />
           </div>
           <div className="seal-kpi-tile-info">
@@ -413,7 +413,7 @@ export function SealConsignments() {
               <TabsTrigger value="holds" style={{ color: 'var(--red)' }}>
                 <Icon name="alertTriangle" size={12} />
                 <span>Issues &amp; Holds</span>
-                <span style={{ fontSize: 11, padding: '1px 6px', borderRadius: 99, background: '#fee2e2', color: '#dc2626', fontWeight: 700 }}>
+                <span style={{ fontSize: 11, padding: '1px 6px', borderRadius: 99, background: '#fee2e2', color: 'var(--red)', fontWeight: 700 }}>
                   {stats.held}
                 </span>
               </TabsTrigger>
@@ -551,7 +551,7 @@ export function SealConsignments() {
         </div>
       ) : filtered.length === 0 ? (
         <div className="seal-card" style={{ padding: '56px 24px', textAlign: 'center' }}>
-          <div style={{ width: 48, height: 48, borderRadius: 14, background: 'var(--teal-l)', color: 'var(--seal, var(--teal))', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 16px' }}>
+          <div style={{ width: 48, height: 48, borderRadius: 'var(--r-lg)', background: 'var(--teal-l)', color: 'var(--seal, var(--teal))', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 16px' }}>
             <Icon name="truck" size={24} />
           </div>
           <h3 style={{ fontSize: 16, fontWeight: 700, color: 'var(--ink)', margin: '0 0 8px' }}>
@@ -739,7 +739,7 @@ export function SealConsignments() {
                               {new Date(c.expected_arrival!).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}
                             </span>
                             {arrival.isUrgent && (
-                              <span style={{ fontSize: 10, fontWeight: 700, padding: '1px 6px', borderRadius: 99, background: arrival.variant === 'success' ? 'var(--green-l)' : '#fee2e2', color: arrival.variant === 'success' ? 'var(--green)' : '#dc2626' }}>
+                              <span style={{ fontSize: 10, fontWeight: 700, padding: '1px 6px', borderRadius: 99, background: arrival.variant === 'success' ? 'var(--green-l)' : '#fee2e2', color: arrival.variant === 'success' ? 'var(--green)' : 'var(--red)' }}>
                                 {arrival.text}
                               </span>
                             )}

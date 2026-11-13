@@ -437,7 +437,7 @@ export function PreviewPanel({ item, onClose, onStar, onDownload, onDelete, onSh
                           style={{ fontSize: "var(--text-base)", padding: "var(--ds-input-py) var(--space-md)", borderRadius: 'var(--r-sm)', border: '1px solid var(--border)', resize: 'vertical', minHeight: 50, fontFamily: "var(--font)" }}
                         />
                         <div style={{ display: 'flex', gap: 6 }}>
-                          <button onClick={() => saveEdit(c.id)} className="btn btn-primary btn-xs" data-ui-native-button="">Save</button>
+                          <Button size="xs" onClick={() => saveEdit(c.id)}>Save</Button>
                           <button onClick={() => setEditingId(null)} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: "var(--text-base)", color: 'var(--ink3)' }} data-ui-native-button="">Cancel</button>
                         </div>
                       </div>

@@ -870,6 +870,17 @@ body {
   border-color: var(--ink3);
   box-shadow: none;
 }
+/* Keyboard focus must be visible on its own, not only as a darker toolbar
+   border that looks the same whichever control inside it has focus. */
+.stb:has(.stb-input:focus-visible) {
+  border-color: var(--teal);
+  box-shadow: 0 0 0 1px var(--teal);
+}
+.stb-dropdown-btn:focus-visible,
+.stb-btn:focus-visible {
+  outline: 2px solid var(--teal);
+  outline-offset: -2px;
+}
 .stb-search {
   display: flex;
   align-items: center;
@@ -3093,10 +3104,14 @@ select.input-field { cursor: pointer; }
   transition: background 0.15s ease;
 }
 
+/* Phones: two per row. Three columns left ~110px per tile, so labels like
+   "SLA-compliant close rate" wrapped onto three lines. An odd last tile
+   spans the row (flex-grow); the bottom row drops its divider. */
 @media (max-width: 560px) {
-  .cc-pipeline-step { flex-basis: 33.333%; border-bottom: 1px solid var(--border); }
-  .cc-pipeline-step:nth-last-child(-n+1) { border-bottom: none; }
-  .cc-pipeline-step:nth-child(3n) { border-right: none; }
+  .cc-pipeline-step { flex-basis: 50%; border-bottom: 1px solid var(--border); }
+  .cc-pipeline-step:nth-child(2n) { border-right: none; }
+  .cc-pipeline-step:last-child,
+  .cc-pipeline-step:nth-last-child(2):nth-child(odd) { border-bottom: none; }
 }
 @media (min-width: 561px) {
   .cc-pipeline-step:last-child { border-bottom: none; }
@@ -6674,7 +6689,7 @@ select.input-field { cursor: pointer; }
 }
 
 .fin-modal-btn-confirm:disabled { opacity: 0.45; cursor: not-allowed; }
-.fin-modal-btn-confirm:not(:disabled):hover { background: #0f766e; }
+.fin-modal-btn-confirm:not(:disabled):hover { background: color-mix(in srgb, hsl(var(--primary)) 88%, black); }
 
 /* ── Sidebar nav increased padding ── */
 /* (duplicate override removed — padding set in primary rule above) */
@@ -7530,3 +7545,11 @@ html[data-expanded="true"] .fin-shell {
 .invoice-company-dark { background: var(--ink); color: var(--surface); }
 .invoice-company-dark .text-muted-foreground { color: inherit; opacity: .8; }
 [data-document-template="classic"] [data-slot="card-content"] { padding: 1.5rem; }
+
+/* Touch screens: text links and compact controls were 17-30px tall, below
+   WCAG 2.2's 24px minimum for the smallest. Mouse layouts are unchanged. */
+@media (pointer: coarse) {
+  .page-footer-link,
+  .page-header-crumb-link { display: inline-flex; align-items: center; min-height: 32px; }
+  .cc-view-btn { min-height: 36px; }
+}

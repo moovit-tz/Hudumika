@@ -67,7 +67,7 @@ export function CMSContentModelsList() {
         titlePlain="Content"
         titleEm="models"
         subtitle="Define your own content types — Product, Employee, Event, Property — beyond Pages and Posts."
-        actions={<button className="btn btn-primary btn-sm" onClick={() => setCreating(true)} data-ui-native-button=""><Icon name="plus" size={13} /> New model</button>}
+        actions={<Button size="sm" onClick={() => setCreating(true)}><Icon name="plus" size={13} /> New model</Button>}
       />
 
       <div style={{ flex: 1, overflowY: 'auto', padding: '18px 24px' }}>
@@ -92,7 +92,7 @@ export function CMSContentModelsList() {
               </FL>
               <div style={{ display: 'flex', gap: 8 }}>
                 <Button size="sm" onClick={handleCreate} loading={saving} loadingText="Creating…">Create model</Button>
-                <button className="btn btn-secondary btn-sm" onClick={() => setCreating(false)} data-ui-native-button="">Cancel</button>
+                <Button variant="outline" size="sm" onClick={() => setCreating(false)}>Cancel</Button>
               </div>
             </div>
           </div>
@@ -247,7 +247,7 @@ export function CMSContentModelDetail() {
         subtitle={model.description || `Define the fields every ${model.name} entry will have.`}
         actions={
           <div style={{ display: 'flex', gap: 8 }}>
-            <button className="btn btn-secondary btn-sm" onClick={handleRename} data-ui-native-button="">Rename</button>
+            <Button variant="outline" size="sm" onClick={handleRename}>Rename</Button>
             <Link to={`/cms/models/${model.id}/entries`} className="btn btn-primary btn-sm" style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
               <Icon name="list" size={13} /> View {model.name_plural.toLowerCase()}
             </Link>
@@ -377,13 +377,13 @@ export function CMSContentModelDetail() {
             )}
             <div style={{ display: 'flex', gap: 8 }}>
               <Button size="sm" onClick={handleAddField} loading={saving} loadingText="Adding…">Add field</Button>
-              <button className="btn btn-secondary btn-sm" onClick={() => setAddingField(false)} data-ui-native-button="">Cancel</button>
+              <Button variant="outline" size="sm" onClick={() => setAddingField(false)}>Cancel</Button>
             </div>
           </div>
         ) : (
-          <button className="btn btn-secondary btn-sm" style={{ marginTop: 14 }} onClick={() => setAddingField(true)} data-ui-native-button="">
+          <Button variant="outline" size="sm" style={{ marginTop: 14 }} onClick={() => setAddingField(true)}>
             <Icon name="plus" size={13} /> Add field
-          </button>
+          </Button>
         )}
 
         <div style={{ marginTop: 32, paddingTop: 18, borderTop: '1px solid var(--border)' }}>

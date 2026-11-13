@@ -30,6 +30,7 @@ import { deletionLock, deletionLockMessage } from '../lib/cloud-retention.js';
 import { gateStaffFile, canShareFile } from '../lib/cloud-file-access.js';
 import { scanStatusFor, servingBlock } from '../lib/cloud-scan-policy.js';
 import { MailService } from '../services/mail.service.js';
+import { NotificationService } from '../services/notification.service.js';
 
 /** Records one read of a file's bytes (download / preview / version /
  *  public-link) into cloud_file_access_log — the domain-event stream only
@@ -1452,6 +1453,21 @@ export async function filesRoutes(fastify: FastifyInstance) {
             },
             actorId: user.sub,
           });
+          // Tell the colleagues who were just added. Sharing was silent: the
+          // file simply appeared in "Shared with me" for whoever went looking.
+          const newlyShared = resolved.filter(r => r.principal_type === 'user' && !prev.has(key(r)) && r.principal_id !== user.sub);
+          if (newlyShared.length) {
+            const sharedFile = await trx.selectFrom('cloud_files').select(['name', 'type'])
+              .where('id', '=', id).where('tenant_id', '=', user.tenant_id).executeTakeFirst();
+            for (const r of newlyShared) {
+              await NotificationService.createNotificationInTrx(trx, {
+                tenantId: user.tenant_id, userId: r.principal_id, app: 'cloud', type: 'info',
+                title: `${user.name || 'A colleague'} shared a ${sharedFile?.type === 'folder' ? 'folder' : 'file'} with you`,
+                message: `${sharedFile?.name ?? 'Untitled'} — you can ${r.role === 'Editor' ? 'edit' : 'view'} it.`,
+                link: '/cloud', entityType: 'file', entityId: id, entityLabel: sharedFile?.name ?? undefined,
+              });
+            }
+          }
           const fresh = await trx.selectFrom('cloud_files').select('share_token').where('id', '=', id).executeTakeFirst();
           return { shared: resolved.map(r => ({ name: r.person_name, role: r.role, principal_type: r.principal_type, principal_id: r.principal_id })), share_token: fresh?.share_token ?? null, public_url: publicLinkUrl(fresh?.share_token ?? null) };
         }

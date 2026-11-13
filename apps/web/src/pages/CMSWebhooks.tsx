@@ -131,7 +131,7 @@ export function CMSWebhooks() {
             <div style={{ fontSize: 11.5, color: 'var(--ink2)' }}>Store this now; it won't be shown again. Use it to verify the <code>X-Hudumika-Signature</code> header (HMAC-SHA256 of the raw request body).</div>
             <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
               <code style={{ flex: 1, fontSize: 11.5, padding: '6px 10px', background: 'var(--white)', borderRadius: 'var(--r-sm)', border: '1px solid var(--border)', overflow: 'auto', whiteSpace: 'nowrap' }}>{revealedSecret.secret}</code>
-              <button onClick={() => copySecret(revealedSecret.secret)} className="btn btn-secondary btn-sm" data-ui-native-button=""><Icon name="copy" size={12} /> Copy</button>
+              <Button variant="outline" size="sm" onClick={() => copySecret(revealedSecret.secret)}><Icon name="copy" size={12} /> Copy</Button>
             </div>
           </div>
         )}
@@ -152,9 +152,9 @@ export function CMSWebhooks() {
                     </div>
                   </div>
                   <div style={{ display: 'flex', gap: 6, flexShrink: 0 }}>
-                    <button onClick={() => handleTest(hook)} disabled={testing === hook.id} className="btn btn-secondary btn-sm" data-ui-native-button="">
+                    <Button variant="outline" size="sm" onClick={() => handleTest(hook)} disabled={testing === hook.id}>
                       <Icon name="send" size={12} /> {testing === hook.id ? 'Sending…' : 'Send test'}
-                    </button>
+                    </Button>
                     <button onClick={() => handleDelete(hook)} title="Delete" style={{ background: 'var(--bg)', border: '1px solid var(--border)', borderRadius: 'var(--r-sm)', padding: '0 10px', cursor: 'pointer', color: 'var(--red)', display: 'flex', alignItems: 'center' }} data-ui-native-button="">
                       <Icon name="trash2" size={13} />
                     </button>

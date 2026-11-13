@@ -769,7 +769,7 @@ export function FormattedLandedCostBreakdown({
       <div style={{
         background: 'var(--teal-l)',
         border: '1.5px solid var(--teal-m)',
-        borderRadius: 16,
+        borderRadius: 'var(--r-lg)',
         padding: '24px 28px',
         display: 'flex',
         flexDirection: 'column',

@@ -145,7 +145,7 @@ export const LiveChatWidget: React.FC = () => {
           width: 360,
           height: 500,
           background: 'var(--white)',
-          borderRadius: 12,
+          borderRadius: 'var(--r)',
           boxShadow: 'var(--elev-lg)',
           display: 'flex',
           flexDirection: 'column',

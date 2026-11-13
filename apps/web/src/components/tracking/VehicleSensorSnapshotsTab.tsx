@@ -497,7 +497,7 @@ export function VehicleSensorSnapshotsTab({ vehicleId }: { vehicleId: string }) 
             <FeaturedIcon variant="brand" size="md" shape="circle">
               <Icon name="activity" size={18} />
             </FeaturedIcon>
-            <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--green)', background: 'var(--green-l)', padding: '2px 8px', borderRadius: 12 }}>
+            <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--green)', background: 'var(--green-l)', padding: '2px 8px', borderRadius: 'var(--r)' }}>
               ↑ 99.8% Signal
             </span>
           </div>
@@ -528,7 +528,7 @@ export function VehicleSensorSnapshotsTab({ vehicleId }: { vehicleId: string }) 
             <FeaturedIcon variant="success" size="md" shape="circle">
               <Icon name="bolt" size={18} />
             </FeaturedIcon>
-            <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--green)', background: 'var(--green-l)', padding: '2px 8px', borderRadius: 12 }}>
+            <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--green)', background: 'var(--green-l)', padding: '2px 8px', borderRadius: 'var(--r)' }}>
               ● Engine Active
             </span>
           </div>
@@ -558,7 +558,7 @@ export function VehicleSensorSnapshotsTab({ vehicleId }: { vehicleId: string }) 
             <FeaturedIcon variant="brand" size="md" shape="circle">
               <Icon name="container" size={18} />
             </FeaturedIcon>
-            <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--ink2)', background: 'var(--bg)', padding: '2px 8px', borderRadius: 12 }}>
+            <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--ink2)', background: 'var(--bg)', padding: '2px 8px', borderRadius: 'var(--r)' }}>
               74% Capacity
             </span>
           </div>
@@ -588,7 +588,7 @@ export function VehicleSensorSnapshotsTab({ vehicleId }: { vehicleId: string }) 
             <FeaturedIcon variant="info" size="md" shape="circle">
               <Icon name="zap" size={18} />
             </FeaturedIcon>
-            <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--green)', background: 'var(--green-l)', padding: '2px 8px', borderRadius: 12 }}>
+            <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--green)', background: 'var(--green-l)', padding: '2px 8px', borderRadius: 'var(--r)' }}>
               ↑ Charging Stable
             </span>
           </div>
@@ -866,7 +866,7 @@ export function VehicleSensorSnapshotsTab({ vehicleId }: { vehicleId: string }) 
                               alignItems: 'center',
                               gap: 6,
                               padding: '4px 9px',
-                              borderRadius: 12,
+                              borderRadius: 'var(--r)',
                               fontSize: 11.5,
                               fontWeight: 700,
                               background: sensor.status === 'critical' ? 'var(--red-l)' : sensor.status === 'warning' ? 'var(--gold-l)' : 'var(--green-l)',

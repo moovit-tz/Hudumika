@@ -69,7 +69,7 @@
 .ondi-kpi-icon-box {
   width: 36px;
   height: 36px;
-  border-radius: 10px;
+  border-radius: var(--r);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -151,7 +151,7 @@
   font-size: 11px;
   font-weight: 800;
   padding: 2px 7px;
-  border-radius: 12px;
+  border-radius: var(--r);
   background: var(--teal-l);
   color: var(--teal);
 }
@@ -308,12 +308,12 @@
 
 .ondi-kpi-icon-box.green {
   background: #e8f7ee;
-  color: #10b981;
+  color: var(--green);
 }
 
 .ondi-kpi-icon-box.gold {
   background: #fef6e6;
-  color: #f59e0b;
+  color: var(--gold);
 }
 
 .ondi-kpi-icon-box.blue {
@@ -323,7 +323,7 @@
 
 .ondi-kpi-icon-box.red {
   background: #fef2f2;
-  color: #ef4444;
+  color: var(--red);
 }
 
 .ondi-kpi-icon-box.teal {
@@ -342,7 +342,7 @@
 [data-theme="dark"] .ondi-kpi-icon-box.gold { background: rgba(245, 158, 11, 0.18); color: #fbbf24; }
 [data-theme="dark"] .ondi-kpi-icon-box.blue { background: rgba(37, 99, 235, 0.18); color: #60a5fa; }
 [data-theme="dark"] .ondi-kpi-icon-box.red { background: rgba(239, 68, 68, 0.18); color: #f87171; }
-[data-theme="dark"] .ondi-kpi-icon-box.teal { background: rgba(13, 148, 136, 0.18); color: #2dd4bf; }
+[data-theme="dark"] .ondi-kpi-icon-box.teal { background: color-mix(in srgb, var(--teal) 18%, transparent); color: #2dd4bf; }
 
 /* Role Pill Badges */
 .ondi-role-pill {
@@ -379,7 +379,7 @@
 
 .ondi-role-pill.finance {
   background: #ecfdf5;
-  color: #047857;
+  color: var(--green);
   border-color: #a7f3d0;
 }
 
@@ -391,14 +391,14 @@
 
 .ondi-role-pill.senior {
   background: #fffbeb;
-  color: #b45309;
+  color: var(--gold);
   border-color: #fde68a;
 }
 
 .ondi-role-pill.junior {
-  background: #f8fafc;
+  background: var(--bg);
   color: #475569;
-  border-color: #e2e8f0;
+  border-color: var(--border);
 }
 
 .ondi-role-pill.customer {
@@ -514,7 +514,7 @@ tr:hover .ondi-copy-btn,
   font-size: 11px;
   font-weight: 700;
   padding: 3px 9px;
-  border-radius: 6px;
+  border-radius: var(--r-sm);
   background: var(--blue-l);
   color: var(--blue);
   border: 1px solid color-mix(in srgb, var(--blue) 24%, transparent);
@@ -696,7 +696,7 @@ tr:hover .ondi-copy-btn,
 
 .ondi-provider-badge.google {
   background: #fef2f2;
-  color: #dc2626;
+  color: var(--red);
   border-color: #fecaca;
 }
 
@@ -708,7 +708,7 @@ tr:hover .ondi-copy-btn,
 
 .ondi-provider-badge.saml {
   background: #f0fdf4;
-  color: #16a34a;
+  color: var(--green);
   border-color: #bbf7d0;
 }
 

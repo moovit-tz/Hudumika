@@ -170,7 +170,7 @@
   align-items: center;
   gap: 16px;
   background: var(--bg);
-  border-radius: 10px;
+  border-radius: var(--r);
   padding: 8px 14px;
   border: 1px solid var(--border);
   flex-shrink: 0;
@@ -272,7 +272,7 @@
   padding: 0 16px !important;
   font-size: 13px !important;
   font-weight: 700 !important;
-  border-radius: 8px !important;
+  border-radius: var(--r-sm) !important;
   border: none !important;
   display: inline-flex !important;
   align-items: center !important;

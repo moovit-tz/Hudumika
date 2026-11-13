@@ -153,7 +153,7 @@
 .cnt-lifecycle-step:focus-visible {
   outline: 2px solid var(--teal);
   outline-offset: 4px;
-  border-radius: 8px;
+  border-radius: var(--r-sm);
 }
 
 @media (max-width: 1100px) {
@@ -247,7 +247,7 @@
 .cnt-tile-icon-box {
   width: 34px;
   height: 34px;
-  border-radius: 10px;
+  border-radius: var(--r);
   background: var(--white, #ffffff);
   border: 1px solid var(--border, #e2e8f0);
   display: flex;
@@ -268,7 +268,7 @@
 .cnt-calendar-badge {
   width: 48px;
   height: 52px;
-  border-radius: 10px;
+  border-radius: var(--r);
   background: var(--white, #ffffff);
   border: 1.5px solid var(--border, #e2e8f0);
   display: flex;
@@ -371,7 +371,7 @@
 
 .cnt-photo-item {
   position: relative;
-  border-radius: 10px;
+  border-radius: var(--r);
   overflow: hidden;
   aspect-ratio: 1 / 1;
   border: 1px solid var(--border, #e2e8f0);
@@ -411,7 +411,7 @@
   align-items: center;
   justify-content: space-between;
   padding: 10px 12px;
-  border-radius: 10px;
+  border-radius: var(--r);
   background: var(--bg, #f8fafc);
   border: 1px solid var(--border, #e2e8f0);
   margin-bottom: 8px;

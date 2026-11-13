@@ -3,25 +3,215 @@
   background: transparent;
 }
 
-.clearos-dashboard__toolbar {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  min-height: 64px;
-  padding: 12px 16px;
-  border: 1px solid var(--border);
-  border-radius: var(--r-lg);
-  background: var(--white);
-  box-shadow: none;
-}
-
-.clearos-dashboard__toolbar-copy { min-width: 0; }
-.clearos-dashboard__toolbar-title { color: var(--ink); font-size: 14px; font-weight: 700; line-height: 1.25; }
-.clearos-dashboard__toolbar-meta { margin-top: 2px; color: var(--ink3); font-size: 11.5px; }
-.clearos-dashboard__toolbar-spacer { flex: 1; }
-
 .clearos-dashboard__content {
   padding-top: 16px;
+}
+
+/* ── Section Headers ── */
+.clearos-section-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-top: 24px;
+  margin-bottom: 14px;
+  flex-wrap: wrap;
+}
+
+.clearos-section-title-wrap {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.clearos-section-title {
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--ink);
+  margin: 0;
+}
+
+.clearos-section-desc {
+  font-size: 12px;
+  color: var(--ink3);
+  margin: 2px 0 0;
+}
+
+/* ── Lifecycle Pipeline Grid ── */
+.clearos-pipeline-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.clearos-pipeline-card {
+  display: flex;
+  width: 100%;
+  flex-direction: column;
+  padding: 14px 16px;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  background: var(--white);
+  border: 1px solid var(--border);
+  border-radius: var(--r, 12px);
+  cursor: pointer;
+  transition: all 0.15s ease;
+  position: relative;
+  overflow: hidden;
+}
+
+.clearos-pipeline-card:hover {
+  border-color: var(--teal);
+  box-shadow: 0 4px 12px color-mix(in srgb, var(--teal) 8%, transparent);
+  transform: translateY(-1px);
+}
+
+.clearos-pipeline-card:focus-visible {
+  outline: 2px solid var(--teal);
+  outline-offset: 2px;
+}
+
+.clearos-pipeline-card.is-active {
+  border-color: var(--teal);
+  background: color-mix(in srgb, var(--teal) 3%, var(--white));
+}
+
+.clearos-pipeline-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 6px;
+}
+
+.clearos-pipeline-name {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--ink3);
+}
+
+.clearos-pipeline-num {
+  font-size: 24px;
+  font-weight: 800;
+  color: var(--ink);
+  line-height: 1.1;
+  margin-bottom: 4px;
+}
+
+.clearos-pipeline-bar-wrap {
+  height: 4px;
+  background: var(--surface2);
+  border-radius: 2px;
+  overflow: hidden;
+  margin: 6px 0 8px;
+}
+
+.clearos-pipeline-bar {
+  height: 100%;
+  border-radius: 2px;
+  transition: width 0.3s ease;
+}
+
+.clearos-pipeline-stages-list {
+  font-size: 11px;
+  color: var(--ink3);
+  line-height: 1.4;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* ── Declarations & Top Customers Grid ── */
+.clearos-commercial-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+  margin-top: 14px;
+}
+
+.clearos-commercial-card {
+  padding: 18px 20px;
+  background: var(--white);
+  border: 1px solid var(--border);
+  border-radius: var(--r-lg, 14px);
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.clearos-decl-strip {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.clearos-decl-tile {
+  display: flex;
+  flex-direction: column;
+  padding: 10px 12px;
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: var(--r-sm);
+}
+
+.clearos-decl-tile-val {
+  font-size: 18px;
+  font-weight: 800;
+  line-height: 1.2;
+}
+
+.clearos-decl-tile-lbl {
+  font-size: 10.5px;
+  font-weight: 600;
+  text-transform: uppercase;
+  color: var(--ink3);
+  margin-top: 2px;
+}
+
+.clearos-customer-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 8px 0;
+  border-bottom: 1px solid var(--border);
+}
+
+.clearos-customer-row:last-child {
+  border-bottom: none;
+}
+
+.clearos-customer-info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  flex: 1;
+  min-width: 0;
+}
+
+.clearos-customer-name {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--ink);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.clearos-customer-meta {
+  font-size: 11px;
+  color: var(--ink3);
+}
+
+.clearos-customer-revenue {
+  font-size: 12.5px;
+  font-weight: 700;
+  color: var(--ink);
+  text-align: right;
+  white-space: nowrap;
 }
 
 .clearos-dashboard__analytics {
@@ -141,27 +331,60 @@
   box-shadow: none;
 }
 
-.clearos-dashboard .mc-card,
-.clearos-dashboard__panel,
-.clearos-dashboard__ledger,
-.clearos-dashboard__toolbar { border-color: var(--border); }
-
 .clearos-dashboard .mc-value { font-size: clamp(22px, 2vw, 30px); }
 .clearos-dashboard .mc-sub-row { margin-top: 4px; }
+
+@media (max-width: 1080px) {
+
+  .clearos-pipeline-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
 
 @media (max-width: 980px) {
   .clearos-dashboard__analytics { grid-template-columns: minmax(0, 1fr); }
   .clearos-ledger-metrics { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .clearos-commercial-grid { grid-template-columns: minmax(0, 1fr); }
 }
 
 @media (max-width: 640px) {
-  .clearos-dashboard__toolbar { align-items: flex-start; flex-wrap: wrap; }
-  .clearos-dashboard__toolbar-spacer { display: none; }
-  .clearos-dashboard__toolbar-copy { flex: 1; }
   .clearos-dashboard__panel,
   .clearos-dashboard__ledger { padding: 14px; }
   .clearos-dashboard__panel-head { align-items: flex-start; }
   .clearos-dashboard__panel-actions { width: 100%; justify-content: space-between; }
-  .clearos-ledger-metrics { grid-template-columns: minmax(0, 1fr); }
+  .clearos-pipeline-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+  .clearos-pipeline-card { min-width: 0; padding: 12px; }
+  .clearos-pipeline-head { align-items: flex-start; }
+  .clearos-pipeline-name { font-size: 10px; }
+  .clearos-pipeline-num { font-size: 21px; }
+  .clearos-pipeline-stages-list { white-space: normal; display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; }
+  .clearos-section-desc { max-width: 100%; line-height: 1.4; }
+  .clearos-section-header > button { min-height: var(--ctl-h-sm); }
+  .clearos-commercial-card { min-width: 0; padding: 14px; }
+  .clearos-decl-strip { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .clearos-ledger-metrics { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .clearos-donut-layout { grid-template-columns: minmax(0, 1fr); }
+
+  /* These four KPIs share two columns on phones; wrapping preserves their
+     labels without squeezing the value or requiring horizontal scrolling. */
+  .clearos-dashboard .mc-head-left { gap: 6px; }
+  .clearos-dashboard .mc-title {
+    display: -webkit-box;
+    overflow: hidden;
+    white-space: normal;
+    text-overflow: clip;
+    line-height: 1.25;
+    letter-spacing: 0.02em;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+  }
+}
+
+/* Sync time + refresh, right-aligned above the KPI row. */
+.clearos-dashboard__syncbar {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+  padding: 6px 4px 0;
+  font-size: 11.5px;
+  color: var(--ink3);
 }

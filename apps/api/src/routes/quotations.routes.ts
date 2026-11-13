@@ -201,6 +201,18 @@ export async function quotationRoutes(app: FastifyInstance) {
     const { status, reason } = req.body as any;
     const quote = await quotationService.updateStatus(user.tenant_id, id, status, user.sub, reason);
     if (!quote) return reply.status(404).send({ error: 'Quotation not found' });
+    // Whoever prepared the quote hears what was decided about it.
+    const q: any = quote;
+    const outcome = ({ APPROVED: 'approved', REJECTED: 'rejected', ACCEPTED: 'accepted by the customer', DECLINED: 'declined by the customer', EXPIRED: 'expired' } as Record<string, string>)[String(status).toUpperCase()];
+    if (outcome && q.prepared_by && q.prepared_by !== user.sub) {
+      const { NotificationService } = await import('../services/notification.service.js');
+      void NotificationService.notifyUsers(user.tenant_id, [q.prepared_by], {
+        app: 'finops', type: /approved|accepted/.test(outcome) ? 'success' : 'warning',
+        title: `Quotation ${q.quote_number ?? ''} ${outcome}`.replace('  ', ' '),
+        message: [q.title, reason].filter(Boolean).join(' — ') || undefined,
+        link: `/finance/quotations/${id}`, entityType: 'quotation', entityId: id, entityLabel: q.quote_number ?? undefined,
+      }, user.sub);
+    }
     return quote;
   });
 

@@ -113,7 +113,7 @@ function ModeToggle({ mode, onChange, collapsed }: { mode: 'personal' | 'busines
         background: 'linear-gradient(135deg, var(--teal) 0%, var(--teal-d, var(--teal)) 100%)',
         borderRadius: 100,
         transition: 'all 0.22s cubic-bezier(0.4, 0, 0.2, 1)',
-        boxShadow: '0 2px 6px rgba(0, 181, 137, 0.2)'
+        boxShadow: '0 2px 6px color-mix(in srgb, var(--teal) 20%, transparent)'
       }} />
 
       {(['personal', 'business'] as const).map(m => {
@@ -122,6 +122,8 @@ function ModeToggle({ mode, onChange, collapsed }: { mode: 'personal' | 'busines
           <button
             key={m}
             type="button"
+            aria-pressed={active}
+            data-ui-native-button=""
             onClick={() => onChange(m)}
             style={{
               position: 'relative',
@@ -142,7 +144,8 @@ function ModeToggle({ mode, onChange, collapsed }: { mode: 'personal' | 'busines
               background: 'transparent',
               color: active ? '#fff' : 'var(--ink3)',
               transition: 'color 0.2s ease',
-              outline: 'none'
+              // The track clips outside it, so the shared focus ring sits inside.
+              outlineOffset: -2
             }}
           >
             <Icon 

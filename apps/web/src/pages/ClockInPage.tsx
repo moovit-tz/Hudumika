@@ -12,8 +12,10 @@ import { Button } from '../components/ui/button.js';
 import { Input } from '../components/ui/input.js';
 import { Textarea } from '../components/ui/textarea.js';
 import { Banner } from '../components/ui/alert.js';
+import { useIsMobile } from '../hooks/useIsMobile.js';
 import { useAuth } from '../hooks/useAuth.js';
 import { showAlert } from '../lib/alert.js';
+import { showConfirm } from '../lib/confirm.js';
 import { SectionCard } from '../components/SectionCard.js';
 
 interface TimesheetApproval {
@@ -81,7 +83,6 @@ export function ClockInPage() {
   const [activeBreak, setActiveBreak] = useState<ClockBreak | null>(null);
   const [loading, setLoading] = useState(true);
   const [clockAction, setClockAction] = useState<'start' | 'break' | 'stop' | null>(null);
-  const [projectInput, setProjectInput] = useState('');
   const [selectedProject, setSelectedProject] = useState('');
   
   // Timer calculation
@@ -91,7 +92,7 @@ export function ClockInPage() {
   const [weeklySessions, setWeeklySessions] = useState<ClockSession[]>([]);
   const [weeklyBreaks, setWeeklyBreaks] = useState<ClockBreak[]>([]);
   const [userProfile, setUserProfile] = useState<{ name: string; role?: string } | null>(null);
-  const [dateRangeFilter, setDateRangeFilter] = useState('7days');
+  const [dateRangeFilter, setDateRangeFilter] = useState('week');
   const [workedMinutesTotal, setWorkedMinutesTotal] = useState(0);
   const [reconciliation, setReconciliation] = useState<HrTimeReconciliation | null>(null);
   const [correctionSession, setCorrectionSession] = useState('');
@@ -107,7 +108,7 @@ export function ClockInPage() {
 
   // Manual entry modal
   const [showManualModal, setShowManualModal] = useState(false);
-  const [manualDate, setManualDate] = useState(() => new Date().toISOString().slice(0, 10));
+  const [manualDate, setManualDate] = useState(() => toDateOnlyString(new Date()));
   const [manualClockIn, setManualClockIn] = useState('09:00');
   const [manualClockOut, setManualClockOut] = useState('17:00');
   const [manualBreakMins, setManualBreakMins] = useState('60');
@@ -116,6 +117,10 @@ export function ClockInPage() {
 
   // Timesheet approval
   const { user } = useAuth();
+  const isMobile = useIsMobile();
+  // On a phone the track is narrow: slimmer side columns and three ticks.
+  const sideIn = isMobile ? 62 : 120;
+  const sideOut = isMobile ? 62 : 80;
   const isManager = !!user && MANAGER_ROLES.includes(user.role);
   const [myApproval, setMyApproval] = useState<TimesheetApproval | null>(null);
   const [approvals, setApprovals] = useState<TimesheetApproval[]>([]);
@@ -126,10 +131,20 @@ export function ClockInPage() {
   const [rejectTarget, setRejectTarget] = useState<string | null>(null);
   const [rejectNote, setRejectNote] = useState('');
 
+  // Timesheets are submitted in fixed Monday–Sunday weeks. The page used to
+  // work in a rolling "last 7 days", so the period's start date moved every
+  // day and two people submitting on different days covered different ranges.
   const now = new Date();
-  const periodEnd = toDateOnlyString(now);
-  const start = new Date(now.getFullYear(), now.getMonth(), dateRangeFilter === 'month' ? 1 : now.getDate() - (dateRangeFilter === '14days' ? 13 : 6));
+  const today = toDateOnlyString(now);
+  const isWeekView = dateRangeFilter !== 'month';
+  const start = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  if (isWeekView) start.setDate(start.getDate() - ((start.getDay() + 6) % 7) - (dateRangeFilter === 'lastweek' ? 7 : 0));
+  else start.setDate(1);
   const periodStart = toDateOnlyString(start);
+  // The whole period (what gets submitted)…
+  const fullEnd = isWeekView ? toDateOnlyString(new Date(start.getFullYear(), start.getMonth(), start.getDate() + 6)) : today;
+  // …and the part of it that has happened (what there is to show).
+  const periodEnd = fullEnd > today ? today : fullEnd;
   const periodDays = Math.round((Date.parse(periodEnd) - Date.parse(periodStart)) / 86400000) + 1;
 
   // Load Active Session
@@ -222,7 +237,7 @@ export function ClockInPage() {
     try {
       const res = await apiFetch('/v1/hr/clock-in/start', {
         method: 'POST',
-        body: JSON.stringify({ project_name: selectedProject || projectInput || undefined }),
+        body: JSON.stringify({ project_name: selectedProject.trim() || undefined }),
       });
       if (res && res.session) {
         setActiveSession(res.session);
@@ -262,6 +277,7 @@ export function ClockInPage() {
         setActiveSession(null);
         setActiveBreak(null);
         setElapsedSeconds(0);
+        setSelectedProject('');
         await Promise.all([loadActiveState(), loadWeeklyData()]);
         if (Array.isArray(res.warnings) && res.warnings.length > 0) {
           showAlert(`Clocked out. Review these items with HR: ${res.warnings.join(', ')}.`, { variant: 'warning' });
@@ -272,11 +288,11 @@ export function ClockInPage() {
     } finally { setClockAction(null); }
   };
 
-  const handleAddProject = () => {
-    if (projectInput.trim()) {
-      setSelectedProject(projectInput.trim());
-      setProjectInput('');
-    }
+  const openManualEntry = () => {
+    setCorrectionSession(''); setCorrectionReason('');
+    setManualDate(toDateOnlyString(new Date())); setManualClockIn('09:00'); setManualClockOut('17:00');
+    setManualBreakMins('60'); setManualProject('');
+    setShowManualModal(true);
   };
 
   const handleSaveManualEntry = async (e: React.FormEvent) => {
@@ -307,7 +323,7 @@ export function ClockInPage() {
   // ── Timesheet approval ──
   const loadApprovalState = useCallback(async () => {
     try {
-      const res = await apiFetch(`/v1/hr/clock-in/timesheet/status?period_start=${periodStart}`);
+      const res = await apiFetch(`/v1/hr/clock-in/timesheet/status?period_start=${periodStart}&period_end=${fullEnd}`);
       setMyApproval(res?.approval || null);
       setLoadErrors(previous => previous.filter(item => item !== 'timesheet approval'));
     } catch { setMyApproval(null); setLoadErrors(previous => previous.includes('timesheet approval') ? previous : [...previous, 'timesheet approval']); }
@@ -320,7 +336,7 @@ export function ClockInPage() {
       } catch { setApprovals([]); setLoadErrors(previous => previous.includes('approval queue') ? previous : [...previous, 'approval queue']); }
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isManager, myReportsOnly, periodStart, queueStatus]);
+  }, [isManager, myReportsOnly, periodStart, fullEnd, queueStatus]);
 
   useEffect(() => { loadApprovalState(); }, [loadApprovalState]);
 
@@ -329,9 +345,11 @@ export function ClockInPage() {
     try {
       const res = await apiFetch('/v1/hr/clock-in/timesheet/submit', {
         method: 'POST',
-        body: JSON.stringify({ period_start: periodStart, period_end: periodEnd }),
+        body: JSON.stringify({ period_start: periodStart, period_end: fullEnd }),
       });
       setMyApproval(res?.approval || null);
+      // A manager's own submission lands in the queue they are looking at.
+      loadApprovalState();
     } catch (err: any) {
       showAlert(err.message || 'Failed to submit timesheet', { variant: 'error' });
     } finally {
@@ -350,6 +368,22 @@ export function ClockInPage() {
       setApprovals(prev => prev.filter(a => a.id !== id));
     } catch (err: any) {
       showAlert(err.message || `Failed to ${action} timesheet`, { variant: 'error' });
+    } finally {
+      setReviewingId(null);
+    }
+  };
+
+  // Taking back your own pending submission. Without this a submission made
+  // by mistake could only be cleared by someone else rejecting it — and in a
+  // workspace with one administrator, by nobody.
+  const handleWithdraw = async (id: string) => {
+    if (!await showConfirm('Withdraw this timesheet? It leaves the review queue and you can submit the week again.')) return;
+    setReviewingId(id);
+    try {
+      await apiFetch(`/v1/hr/clock-in/timesheet/approvals/${id}`, { method: 'DELETE' });
+      await loadApprovalState();
+    } catch (err: any) {
+      showAlert(err.message || 'Could not withdraw timesheet', { variant: 'error' });
     } finally {
       setReviewingId(null);
     }
@@ -396,14 +430,14 @@ export function ClockInPage() {
   // Generate days of current week (last 7 days)
   const generateWeeklyRows = (): DayTimesheetRow[] => {
     const rows: DayTimesheetRow[] = [];
-    const today = new Date();
+    const last = new Date(periodEnd + 'T00:00:00');
     
     for (let i = 0; i < periodDays; i++) {
-      const d = new Date(today.getTime() - i * 86400000);
+      const d = new Date(last.getFullYear(), last.getMonth(), last.getDate() - i);
       const iso = toDateOnlyString(d);
       
       const daySessions = weeklySessions.filter(s => s.date === iso && s.status !== 'CANCELLED').sort((a, b) => Date.parse(b.clock_in_at) - Date.parse(a.clock_in_at));
-      const isToday = i === 0;
+      const isToday = iso === today;
 
       let dateLabel = d.toLocaleDateString('en-US', { weekday: 'long', day: 'numeric' });
       if (isToday) dateLabel = 'Today';
@@ -436,11 +470,13 @@ export function ClockInPage() {
           const outD = new Date(lastOut.clock_out_at);
           outTimeStr = outD.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
         } else if (lastOut.status === 'ACTIVE' || lastOut.status === 'ON_BREAK') {
-          outTimeStr = 'ETC';
+          outTimeStr = 'Now';
         }
 
         let dayWorkedMins = 0;
-        daySessions.forEach(s => { dayWorkedMins += (s.worked_minutes || 0); });
+        // A running session has no worked_minutes yet; without the live timer
+        // a day you have been clocked in for hours reads "0hrs 00mins".
+        daySessions.forEach(s => { dayWorkedMins += s.id === activeSession?.id ? Math.floor(elapsedSeconds / 60) : (s.worked_minutes || 0); });
         const duration = formatHoursMins(dayWorkedMins);
         const unknown = daySessions.some(s => s.status === 'COMPLETED' && s.worked_minutes == null);
 
@@ -463,10 +499,10 @@ export function ClockInPage() {
           }
 
           const startRel = Math.max(0, inMins - DAY_START_MINS);
-          const durRel = Math.max(15, outMins - inMins);
+          const durRel = Math.max(1, outMins - inMins);
 
           const startPercent = Math.min(95, Math.max(0, (startRel / RANGE_MINS) * 100));
-          const widthPercent = Math.min(100 - startPercent, Math.max(5, (durRel / RANGE_MINS) * 100));
+          const widthPercent = Math.min(100 - startPercent, Math.max(0.6, (durRel / RANGE_MINS) * 100));
 
           blocks.push({
             type: 'working',
@@ -491,7 +527,7 @@ export function ClockInPage() {
               endTime: item.end_at ? `${String(breakEnd.getHours()).padStart(2, '0')}:${String(breakEnd.getMinutes()).padStart(2, '0')}` : 'Now',
               durationMinutes: breakDuration,
               startPercent: Math.min(99, Math.max(0, (breakStartMins / RANGE_MINS) * 100)),
-              widthPercent: Math.min(100, Math.max(1, (breakDuration / RANGE_MINS) * 100)),
+              widthPercent: Math.min(100, Math.max(0.4, (breakDuration / RANGE_MINS) * 100)),
             });
           });
         });
@@ -512,6 +548,16 @@ export function ClockInPage() {
   };
 
   const dayRows = generateWeeklyRows();
+
+  const shortDate = (d: string) => new Date(String(d).slice(0, 10) + 'T00:00:00').toLocaleDateString('en-US', { month: 'short', day: '2-digit' });
+  const completedInRange = weeklySessions.filter(s => s.status === 'COMPLETED').length;
+  // Each of these is refused by the server; say so up front.
+  const submitBlocked =
+    unknownSessionCount > 0 ? 'Some sessions have unknown hours. Ask HR to correct them first.' :
+    !isWeekView ? 'Timesheets are submitted one week at a time. Choose a week.' :
+    fullEnd > today && Date.parse(fullEnd) - Date.parse(today) > 2 * 86400000 ? `This week can be submitted from ${new Date(Date.parse(fullEnd) - 2 * 86400000).toLocaleDateString('en-US', { weekday: 'long', day: 'numeric', month: 'short' })}.` :
+    activeSession && String(activeSession.date).slice(0, 10) >= periodStart && String(activeSession.date).slice(0, 10) <= fullEnd ? 'Clock out before submitting this week.' :
+    completedInRange === 0 ? 'No completed sessions in this week.' : '';
 
   return (
     <div style={{ flex: 1, overflowY: 'auto', background: 'var(--bg)', display: 'flex', flexDirection: 'column', gap: 'var(--space-md)' }}>
@@ -540,7 +586,7 @@ export function ClockInPage() {
               }[myApproval.status];
               return (
                 <span title={myApproval.note || undefined} style={{ display: 'inline-flex', alignItems: 'center', gap: 6, background: map.bg, color: map.fg, borderRadius: 'var(--r)', padding: '5px 10px', fontSize: 12.5, fontWeight: 600 }}>
-                  <Icon name={map.icon} size={13} /> {map.label}
+                  <Icon name={map.icon} size={13} /> {map.label} · {shortDate(myApproval.period_start)} – {shortDate(myApproval.period_end)}
                 </span>
               );
             })()}
@@ -550,12 +596,17 @@ export function ClockInPage() {
             </Button>
 
             {(!myApproval || myApproval.status === 'REJECTED') && (
-              <Button onClick={handleSubmitForApproval} disabled={submittingSheet || unknownSessionCount > 0}>
-                <Icon name="send" size={14} /> {submittingSheet ? 'Submitting…' : (myApproval?.status === 'REJECTED' ? 'Resubmit' : 'Submit for approval')}
+              <Button onClick={handleSubmitForApproval} loading={submittingSheet} loadingText="Submitting…"
+                disabled={!!submitBlocked} title={submitBlocked || undefined}>
+                <Icon name="send" size={14} /> {myApproval?.status === 'REJECTED' ? 'Resubmit' : 'Submit for approval'}
               </Button>
             )}
 
-            <Button variant="outline" onClick={() => { setCorrectionSession(''); setCorrectionReason(''); setShowManualModal(true); }}>
+            {myApproval?.status === 'SUBMITTED' && (
+              <Button variant="outline" onClick={() => handleWithdraw(myApproval.id)} disabled={reviewingId === myApproval.id}>Withdraw</Button>
+            )}
+
+            <Button variant="outline" onClick={openManualEntry}>
               <Icon name="plus" size={14} /> Entry log
             </Button>
           </div>
@@ -566,6 +617,18 @@ export function ClockInPage() {
         <Banner variant="error" title="Some time data could not be loaded">
           Unavailable: {loadErrors.join(', ')}. Refresh the page or try again shortly.
         </Banner>
+      )}
+
+      {submitBlocked && unknownSessionCount === 0 && (!myApproval || myApproval.status === 'REJECTED') && (
+        <div style={{ fontSize: 12, color: 'var(--ink3)', display: 'flex', alignItems: 'center', gap: 6 }}>
+          <Icon name="info" size={13} color="var(--ink3)" /> {submitBlocked}
+        </div>
+      )}
+
+      {!submitBlocked && isWeekView && fullEnd > today && (!myApproval || myApproval.status !== 'APPROVED') && (
+        <div style={{ fontSize: 12, color: 'var(--ink3)', display: 'flex', alignItems: 'center', gap: 6 }}>
+          <Icon name="info" size={13} color="var(--ink3)" /> This week isn't over yet. You can submit it now; it can be approved once it ends, and any time you record before then means withdrawing and resubmitting.
+        </div>
       )}
 
       {unknownSessionCount > 0 && <Banner variant="warning" title="Recorded time needs HR review">{unknownSessionCount} completed session(s) have unknown hours. Known totals exclude those sessions; submission is blocked until resolved.</Banner>}
@@ -579,7 +642,7 @@ export function ClockInPage() {
               Welcome, {userProfile?.name || user?.name || 'there'}
             </div>
             <div style={{ fontSize: 12, color: 'var(--ink3)' }}>
-              {userProfile?.role || user?.role || 'Team member'} · {new Date().toLocaleDateString('en-US', { month: 'short', day: '2-digit', year: 'numeric' })}
+              {(userProfile?.role || user?.role || 'Team member').toLowerCase().replace(/_/g, ' ').replace(/^\w/, c => c.toUpperCase())} · {new Date().toLocaleDateString('en-US', { month: 'short', day: '2-digit', year: 'numeric' })}
             </div>
           </div>
         </div>
@@ -588,15 +651,15 @@ export function ClockInPage() {
           <Select value={dateRangeFilter} onValueChange={setDateRangeFilter}>
             <SelectTrigger style={{ minHeight: "var(--ctl-h)", fontSize: "var(--text-base)", width: 'auto' }}><SelectValue /></SelectTrigger>
             <SelectContent>
-              <SelectItem value="7days">Last 7 days</SelectItem>
-              <SelectItem value="14days">Last 14 days</SelectItem>
-              <SelectItem value="month">This Month</SelectItem>
+              <SelectItem value="week">This week</SelectItem>
+              <SelectItem value="lastweek">Last week</SelectItem>
+              <SelectItem value="month">This month</SelectItem>
             </SelectContent>
           </Select>
           <div style={{ display: 'flex', alignItems: 'center', gap: 6, background: 'var(--white)', border: '1px solid var(--border)', padding: '6px 12px', borderRadius: 'var(--r)', fontSize: 13, color: 'var(--ink2)', fontWeight: 500 }}>
             <Icon name="calendar" size={14} color="var(--ink3)" />
             <span>
-              {new Date(periodStart + 'T00:00:00').toLocaleDateString('en-US', { month: 'short', day: '2-digit' })} – {new Date(periodEnd + 'T00:00:00').toLocaleDateString('en-US', { month: 'short', day: '2-digit', year: 'numeric' })}
+              {new Date(periodStart + 'T00:00:00').toLocaleDateString('en-US', { month: 'short', day: '2-digit' })} – {new Date(fullEnd + 'T00:00:00').toLocaleDateString('en-US', { month: 'short', day: '2-digit', year: 'numeric' })}
             </span>
           </div>
         </div>
@@ -607,7 +670,7 @@ export function ClockInPage() {
         <SectionCard
           title={`Timesheet reviews (${approvals.length})`}
           action={<div className="flex flex-wrap items-center gap-2">
-            <Select value={queueStatus} onValueChange={setQueueStatus}><SelectTrigger aria-label="Timesheet review status"><SelectValue /></SelectTrigger><SelectContent><SelectItem value="SUBMITTED">Awaiting review</SelectItem><SelectItem value="APPROVED">Approved</SelectItem></SelectContent></Select>
+            <Select value={queueStatus} onValueChange={setQueueStatus}><SelectTrigger aria-label="Timesheet review status" style={{ width: 'auto' }}><SelectValue /></SelectTrigger><SelectContent><SelectItem value="SUBMITTED">Awaiting review</SelectItem><SelectItem value="APPROVED">Approved</SelectItem></SelectContent></Select>
             <button data-ui-native-button=""
               type="button"
               onClick={() => setMyReportsOnly(v => !v)}
@@ -630,7 +693,12 @@ export function ClockInPage() {
                   </div>
                 </div>
                 <div style={{ display: 'flex', gap: 8 }}>
-                  {a.status === 'APPROVED' ? (['SUPER_ADMIN', 'ADMIN', 'TENANT_ADMIN'].includes(user?.role || '') && <Button size="sm" variant="outline" onClick={() => { setReopenTarget(a.id); setReopenReason(''); }}>Reopen for correction</Button>) : <>
+                  {a.user_id === user?.id ? (
+                    <span style={{ display: 'inline-flex', alignItems: 'center', gap: 10, flexWrap: 'wrap', fontSize: 12, color: 'var(--ink3)' }}>
+                      Your own timesheet — another reviewer must {a.status === 'APPROVED' ? 'reopen' : 'approve'} it.
+                      {a.status === 'SUBMITTED' && <Button size="sm" variant="outline" onClick={() => handleWithdraw(a.id)} disabled={reviewingId === a.id}>Withdraw</Button>}
+                    </span>
+                  ) : a.status === 'APPROVED' ? (['SUPER_ADMIN', 'ADMIN', 'TENANT_ADMIN'].includes(user?.role || '') && <Button size="sm" variant="outline" onClick={() => { setReopenTarget(a.id); setReopenReason(''); }}>Reopen for correction</Button>) : <>
                   <Button type="button" variant="outline" size="sm" onClick={() => handleReview(a.id, 'reject')} disabled={reviewingId === a.id} style={{ color: 'var(--red)', borderColor: 'var(--red)' }}>
                     <Icon name="x" size={13} /> Reject
                   </Button>
@@ -700,17 +768,15 @@ export function ClockInPage() {
             <div style={{ display: 'flex', gap: 6 }}>
               <Input
                 type="text"
-                value={selectedProject || projectInput}
-                onChange={e => { setProjectInput(e.target.value); setSelectedProject(e.target.value); }}
-                placeholder="Add projects you are working on..."
+                aria-label="Project"
+                value={selectedProject}
+                onChange={e => setSelectedProject(e.target.value)}
+                disabled={!!activeSession}
+                placeholder="What are you working on?"
                 style={{ flex: 1 }}
               />
-              {projectInput && (
-                <Button type="button" size="sm" aria-label="Add project" onClick={handleAddProject}>
-                  +
-                </Button>
-              )}
             </div>
+            {activeSession && <div style={{ fontSize: 11, color: 'var(--ink3)', marginTop: 6 }}>Set when you clock in. Clock out to change it.</div>}
           </div>
         </SectionCard>
 
@@ -718,7 +784,7 @@ export function ClockInPage() {
         <SectionCard title="Worked hours">
           <div>
             <div style={{ background: 'var(--card-sunken)', borderRadius: 'var(--r)', padding: '16px 18px', textAlign: 'center', border: '1px solid var(--border)', marginBottom: 14 }}>
-              <div style={{ fontSize: 12, color: 'var(--ink3)', marginBottom: 6 }}>Total hours (Until today)</div>
+              <div style={{ fontSize: 12, color: 'var(--ink3)', marginBottom: 6 }}>Total hours, {dateRangeFilter === 'month' ? 'this month' : dateRangeFilter === 'lastweek' ? 'last week' : 'this week'}</div>
               <div style={{ fontSize: 26, fontWeight: 800, color: 'var(--ink)' }}>
                 {formatHoursMins(workedMinutesTotal)}
               </div>
@@ -758,20 +824,12 @@ export function ClockInPage() {
                 <span>Working time</span>
               </div>
               <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                <span style={{ width: 10, height: 10, borderRadius: 'var(--r-sm)', background: 'var(--blue)' }}></span>
-                <span>Break</span>
-              </div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                 <span style={{ width: 10, height: 10, borderRadius: 'var(--r-sm)', background: 'var(--gold)' }}></span>
-                <span>Overtime</span>
-              </div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                <span style={{ width: 10, height: 10, borderRadius: 'var(--r-sm)', background: 'var(--red)' }}></span>
-                <span>Late</span>
+                <span>Break</span>
               </div>
             </div>
 
-            <Button type="button" variant="outline" size="sm" onClick={() => { setCorrectionSession(''); setCorrectionReason(''); setShowManualModal(true); }}>
+            <Button type="button" variant="outline" size="sm" onClick={openManualEntry}>
               + Entry log
             </Button>
           </div>
@@ -781,10 +839,16 @@ export function ClockInPage() {
         <div style={{ overflowX: 'auto', display: 'flex', flexDirection: 'column', gap: 16, paddingTop: 10 }}>
           
           {/* Time Ticks Header Scale */}
-          <div style={{ display: 'flex', alignItems: 'center', paddingLeft: 140, paddingRight: 80, fontSize: 11, color: 'var(--ink3)', borderBottom: '1px dashed var(--border)', paddingBottom: 8 }}>
-            {['00:00', '04:00', '08:00', '12:00', '16:00', '20:00', '24:00'].map((tick, index, ticks) => (
-              <div key={tick} style={{ flex: 1, textAlign: index === 0 ? 'left' : index === ticks.length - 1 ? 'right' : 'center' }}>{tick}</div>
-            ))}
+          {/* Same gutters as a row: 120px clock-in column and 80px clock-out
+              column, each 12px from the track. */}
+          <div style={{ display: 'flex', gap: 12, fontSize: 11, color: 'var(--ink3)', borderBottom: '1px dashed var(--border)', paddingBottom: 8 }}>
+            <div style={{ width: sideIn, flexShrink: 0 }} />
+            <div style={{ flex: 1, position: 'relative', height: 14 }}>
+              {(isMobile ? ['00:00', '12:00', '24:00'] : ['00:00', '04:00', '08:00', '12:00', '16:00', '20:00', '24:00']).map((tick, index, ticks) => (
+                <span key={tick} style={{ position: 'absolute', left: `${(index / (ticks.length - 1)) * 100}%`, transform: index === 0 ? undefined : index === ticks.length - 1 ? 'translateX(-100%)' : 'translateX(-50%)', whiteSpace: 'nowrap' }}>{tick}</span>
+              ))}
+            </div>
+            <div style={{ width: sideOut, flexShrink: 0 }} />
           </div>
 
           {/* Timeline Rows */}
@@ -801,7 +865,7 @@ export function ClockInPage() {
               <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
                 
                 {/* Left Clock In Badge */}
-                <div style={{ width: 120, fontSize: 11, color: 'var(--ink3)', flexShrink: 0 }}>
+                <div style={{ width: sideIn, fontSize: 11, color: 'var(--ink3)', flexShrink: 0 }}>
                   <span style={{ color: 'var(--ink3)' }}>Clock-in</span>
                   <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--ink)' }}>{row.clockInTime}</div>
                 </div>
@@ -809,7 +873,7 @@ export function ClockInPage() {
                 {/* Center Timeline Segment Bar */}
                 <div style={{ flex: 1, height: 16, background: 'var(--card-sunken)', borderRadius: 'var(--r)', position: 'relative', overflow: 'hidden', display: 'flex' }}>
                   {row.blocks.map((b, idx) => {
-                    const bg = b.type === 'working' ? 'var(--teal)' : b.type === 'break' ? 'var(--blue)' : b.type === 'overtime' ? 'var(--gold)' : 'var(--red)';
+                    const bg = b.type === 'working' ? 'var(--teal)' : b.type === 'break' ? 'var(--gold)' : 'var(--red)';
                     return (
                       <div
                         key={idx}
@@ -821,7 +885,7 @@ export function ClockInPage() {
                           left: `${b.startPercent}%`,
                           background: bg,
                           borderRadius: 'var(--r-sm)',
-                          opacity: b.type === 'break' ? 0.8 : 1,
+                          opacity: 1,
                           transition: 'opacity 0.2s',
                           cursor: 'pointer',
                         }}
@@ -831,7 +895,7 @@ export function ClockInPage() {
                 </div>
 
                 {/* Right Clock Out Badge */}
-                <div style={{ width: 80, fontSize: 11, color: 'var(--ink3)', textAlign: 'right', flexShrink: 0 }}>
+                <div style={{ width: sideOut, fontSize: 11, color: 'var(--ink3)', textAlign: 'right', flexShrink: 0 }}>
                   <span style={{ color: 'var(--ink3)' }}>Clock-out</span>
                   <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--ink)' }}>{row.clockOutTime}</div>
                 </div>

@@ -98,7 +98,7 @@ function PlatformBanner() {
   if (!PLATFORM_PATHS.has(location.pathname)) return null;
   return (
     <div className="hb-platform-banner">
-      <Icon name="shield" size={13} color="#ef4444" />
+      <Icon name="shield" size={13} color="var(--red)" />
       <span className="hb-platform-banner-label">Super Admin</span>
       <span className="hb-platform-banner-desc">— Cross-tenant data, aggregated across every workspace on the platform, not just yours.</span>
     </div>

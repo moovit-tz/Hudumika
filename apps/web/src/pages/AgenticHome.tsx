@@ -670,7 +670,7 @@ export const AgenticHome: React.FC = () => {
 
               <div className="ah-agent-feature-banner" onClick={() => setTab('agent')}>
                 <div className="ah-agent-feature-left">
-                  <div className="ah-app-icon-wrapper" style={{ backgroundColor: '#f59e0b' }}>
+                  <div className="ah-app-icon-wrapper" style={{ backgroundColor: 'var(--gold)' }}>
                     <Icon name="truck" size={14} color="#ffffff" />
                   </div>
                   <div>

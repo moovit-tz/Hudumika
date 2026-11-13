@@ -226,7 +226,7 @@ export function PettiSend() {
               {/* Transfer Connector */}
               <div style={{ textAlign: 'center', padding: '4px 0', color: 'var(--teal)', fontWeight: 800, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
                 <div style={{ height: 1, flex: 1, background: 'var(--border)' }} />
-                <span style={{ fontSize: 12, background: 'var(--teal-l)', padding: '3px 10px', borderRadius: 12 }}>
+                <span style={{ fontSize: 12, background: 'var(--teal-l)', padding: '3px 10px', borderRadius: 'var(--r)' }}>
                   ↓ {Number(amount) > 0 ? `${Number(amount).toLocaleString()} ${sourceWallet?.currency || ''}` : 'Instant Transfer'} ↓
                 </span>
                 <div style={{ height: 1, flex: 1, background: 'var(--border)' }} />

@@ -1567,7 +1567,7 @@ export const Leads: React.FC = () => {
                   </div>
                 </div>
                 <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8, marginTop: 20 }}>
-                  <button type="button" className="btn btn-secondary btn-md" onClick={() => { setShowAdd(false); setAddForm({ ...EMPTY_FORM }); setEditingId(null); }} data-ui-native-button="">Cancel</button>
+                  <Button variant="outline" type="button" onClick={() => { setShowAdd(false); setAddForm({ ...EMPTY_FORM }); setEditingId(null); }}>Cancel</Button>
                   <Button type="submit" loading={addSaving} loadingText="Saving…">{editingId ? 'Save Changes' : 'Add Lead'}</Button>
                 </div>
               </form>
@@ -1911,7 +1911,7 @@ export const Leads: React.FC = () => {
                 </div>
               </div>
               <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8, marginTop: 20 }}>
-                <button type="button" className="btn btn-secondary btn-md" onClick={() => { setShowAdd(false); setAddForm({ ...EMPTY_FORM }); setEditingId(null); }} data-ui-native-button="">Cancel</button>
+                <Button variant="outline" type="button" onClick={() => { setShowAdd(false); setAddForm({ ...EMPTY_FORM }); setEditingId(null); }}>Cancel</Button>
                 <Button type="submit" loading={addSaving} loadingText="Saving…">{editingId ? 'Save Changes' : 'Add Lead'}</Button>
               </div>
             </form>

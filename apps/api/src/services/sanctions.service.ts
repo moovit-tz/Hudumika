@@ -47,10 +47,30 @@ function asArray<T>(v: T | T[] | undefined | null): T[] {
   return Array.isArray(v) ? v : [v];
 }
 
+/**
+ * One network blip used to fail the whole day's refresh ("fetch failed" on
+ * roughly half the runs in a month), leaving screening on day-old lists with
+ * nobody told. Three attempts with a growing pause, each bounded so a hung
+ * connection can't pin the job either. A 4xx is the source refusing us, not
+ * a blip, so it is not retried.
+ */
 async function fetchText(url: string): Promise<string> {
-  const res = await fetch(url, { headers: FETCH_HEADERS });
-  if (!res.ok) throw new Error(`Fetch failed for ${url}: HTTP ${res.status}`);
-  return res.text();
+  let lastErr: unknown;
+  for (let attempt = 1; attempt <= 3; attempt++) {
+    try {
+      const res = await fetch(url, { headers: FETCH_HEADERS, signal: AbortSignal.timeout(120_000) });
+      if (res.ok) return await res.text();
+      const err = new Error(`Fetch failed for ${url}: HTTP ${res.status}`);
+      if (res.status >= 400 && res.status < 500) throw Object.assign(err, { permanent: true });
+      lastErr = err;
+    } catch (err: any) {
+      if (err?.permanent) throw err;
+      lastErr = err;
+    }
+    if (attempt < 3) await new Promise(r => setTimeout(r, attempt * 15_000));
+  }
+  const msg = lastErr instanceof Error ? lastErr.message : String(lastErr);
+  throw new Error(`${msg} (after 3 attempts)`);
 }
 
 function parseOfacSdn(xml: string): ParsedSanctionsEntry[] {
@@ -198,6 +218,13 @@ async function upsertEntries(entries: ParsedSanctionsEntry[]): Promise<number> {
 }
 
 async function syncSource(source: 'OFAC' | 'UN', fetchAndParse: () => Promise<ParsedSanctionsEntry[]>) {
+  // A run the process died during stays 'running' forever and reads as "a
+  // sync is in progress". Anything that old is not coming back.
+  await dbPlatform.updateTable('sanctions_sync_runs')
+    .set({ status: 'failed', completed_at: new Date(), error: 'Abandoned: the process stopped before this run finished.' })
+    .where('source', '=', source).where('status', '=', 'running')
+    .where('started_at', '<', new Date(Date.now() - 2 * 3_600_000))
+    .execute();
   const run = await dbPlatform
     .insertInto('sanctions_sync_runs')
     .values({ source, status: 'running' })
@@ -245,6 +272,43 @@ export interface ScreenMatch {
 export async function screenName(name: string): Promise<ScreenMatch[]> {
   const trimmed = name.trim();
   if (!trimmed) return [];
+  // Compare the distinctive part of each name (migration 760): shared words
+  // like "Holdings Ltd" otherwise decide the score. A name that is nothing
+  // but such words falls back to the whole-name comparison.
+  const core = trimmed.toLowerCase().replace(/\b(ltd|limited|liability|holdings?|co|company|companies|inc|incorporated|llc|llp|plc|group|trading|international|intl|corp|corporation|the|and|of|sa|s\.a|gmbh|bv|ag|enterprises?|services?|industries|global|ooo|zao|oao|pjsc|jsc|fze|fzco|pvt|private)\b\.?/g, ' ').replace(/\s+/g, ' ').trim();
+  if (!core) return screenWholeName(trimmed);
+
+  const rows = await sql<{
+    entry_id: string; matched_name: string; score: number;
+    source: string; entry_type: string; primary_name: string; programs: string | null;
+  }>`
+    SELECT * FROM (
+      SELECT e.id AS entry_id, e.primary_name AS matched_name, similarity(sanctions_core_name(e.primary_name), sanctions_core_name(${trimmed})) AS score,
+             e.source, e.entry_type, e.primary_name, e.programs
+      FROM sanctions_entries e
+      UNION ALL
+      SELECT a.entry_id, a.alias_name AS matched_name, similarity(sanctions_core_name(a.alias_name), sanctions_core_name(${trimmed})) AS score,
+             e.source, e.entry_type, e.primary_name, e.programs
+      FROM sanctions_aliases a
+      JOIN sanctions_entries e ON e.id = a.entry_id
+    ) matches
+    WHERE score >= ${SCREEN_MIN_SCORE}
+    ORDER BY score DESC
+    LIMIT 5
+  `.execute(dbPlatform);
+
+  return rows.rows.map((r) => ({
+    entryId: r.entry_id,
+    matchedName: r.matched_name,
+    score: Number(r.score),
+    source: r.source,
+    entryType: r.entry_type,
+    primaryName: r.primary_name,
+    programs: r.programs,
+  }));
+}
+
+async function screenWholeName(trimmed: string): Promise<ScreenMatch[]> {
 
   const rows = await sql<{
     entry_id: string; matched_name: string; score: number;
@@ -369,5 +433,22 @@ export async function getLastSyncStatus() {
     .selectFrom('sanctions_entries')
     .select(({ fn }) => fn.countAll().as('count'))
     .executeTakeFirst();
-  return { runs: rows, entriesTotal: Number(entriesTotal?.count ?? 0) };
+  // What a reviewer needs to trust a "clear" result: when each list was last
+  // actually refreshed. Both publish at most daily and the job runs daily, so
+  // older than 48h means refreshes have been failing.
+  const lists = await Promise.all((['OFAC', 'UN'] as const).map(async source => {
+    const ok = await dbPlatform.selectFrom('sanctions_sync_runs').select(['completed_at', 'entries_count'])
+      .where('source', '=', source).where('status', '=', 'success')
+      .orderBy('completed_at', 'desc').limit(1).executeTakeFirst();
+    const last = rows.find(r => r.source === source);
+    const updatedAt = ok?.completed_at ? new Date(ok.completed_at) : null;
+    return {
+      source,
+      lastSuccessAt: updatedAt ? updatedAt.toISOString() : null,
+      entries: ok?.entries_count ?? null,
+      stale: !updatedAt || Date.now() - updatedAt.getTime() > 48 * 3_600_000,
+      lastError: last && last.status === 'failed' ? last.error : null,
+    };
+  }));
+  return { runs: rows, entriesTotal: Number(entriesTotal?.count ?? 0), lists };
 }

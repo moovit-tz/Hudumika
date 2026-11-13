@@ -2,6 +2,7 @@
 import { apiFetch } from '../lib/api.js';
 import { PageHeader } from '../components/PageHeader.js';
 import { MetricsRow } from '../components/MetricCard.js';
+import { Button } from '../components/ui/button.js';
 
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
   return (
@@ -54,11 +55,12 @@ export const Reports: React.FC = () => {
     rows.push(`Active Shipments,${kpis.active_cases ?? ''}`);
     rows.push(`Cases This Month,${kpis.cases_this_month ?? ''}`);
     rows.push(`Delivered Today,${kpis.delivered_today ?? ''}`);
-    rows.push(`Demurrage Risk,${kpis.demurrage_risk ?? ''}`);
+    rows.push(`Free Time Due Within 48 Hours,${kpis.free_time_due_48h ?? ''}`);
     rows.push(`SLA Breached,${kpis.sla_breached ?? ''}`);
-    rows.push(`On-Time Rate %,${kpis.on_time_rate_pct ?? ''}`);
+    rows.push(`SLA-Compliant Close Rate %,${kpis.on_time_rate_pct ?? ''}`);
+    rows.push(`Closed Cases (rate denominator),${kpis.closed_cases ?? ''}`);
     rows.push(`Avg Clearance Days,${kpis.avg_clearance_days ?? ''}`);
-    rows.push(`Penalty Exposure TZS,${kpis.penalty_exposure_tzs ?? ''}`);
+    rows.push(`Free Time Overdue,${kpis.free_time_overdue ?? ''}`);
     rows.push(`Total CO2 Emissions kg,${kpis.total_co2_emissions_kg ?? ''}`);
     rows.push(`Carbon Credits Saved,${kpis.total_carbon_credits_saved ?? ''}`);
     rows.push('');
@@ -85,9 +87,9 @@ export const Reports: React.FC = () => {
         titleEm="analytics"
         subtitle="How this workspace is performing — officer workload, bottlenecks and clearance times."
         actions={
-          <button type="button" className="btn btn-secondary" onClick={exportCsv} disabled={loading} data-ui-native-button="">
+          <Button variant="outline" type="button" onClick={exportCsv} disabled={loading}>
             Export CSV
-          </button>
+          </Button>
         }
       />
 
@@ -105,16 +107,16 @@ export const Reports: React.FC = () => {
               sub2Label: 'DELIVERED TODAY', sub2Value: String(kpis.delivered_today ?? 0), barHighlight: 'var(--blue)',
             },
             {
-              title: 'Demurrage Risk',
-              value: String(kpis.demurrage_risk ?? 0),
+              title: 'Free-Time Exceptions',
+              value: String((kpis.free_time_due_48h ?? 0) + (kpis.free_time_overdue ?? 0)),
               invertTrend: true,
               sub1Label: 'SLA BREACHED', sub1Value: String(kpis.sla_breached ?? 0),
-              sub2Label: 'PENALTY EXPOSURE', sub2Value: kpis.penalty_exposure_tzs ? `TZS ${(kpis.penalty_exposure_tzs / 1_000_000).toFixed(1)}M` : '—', barHighlight: 'var(--red)',
+              sub2Label: 'ALREADY OVERDUE', sub2Value: String(kpis.free_time_overdue ?? 0), barHighlight: 'var(--red)',
             },
             {
-              title: 'On-Time Rate',
+              title: 'SLA-Compliant Close Rate',
               value: kpis.on_time_rate_pct == null ? '—' : `${kpis.on_time_rate_pct}%`,
-              sub1Label: 'TARGET', sub1Value: '95%',
+              sub1Label: 'CLOSED CASES', sub1Value: String(kpis.closed_cases ?? 0),
               sub2Label: 'ACTIVE CASES', sub2Value: String(kpis.active_cases ?? 0), barHighlight: 'var(--green)',
             },
           ]} />
@@ -129,11 +131,11 @@ export const Reports: React.FC = () => {
                 <KVRow label="Active Shipments"  value={kpis.active_cases ?? '—'} />
                 <KVRow label="Cases This Month"  value={kpis.cases_this_month ?? '—'} />
                 <KVRow label="Delivered Today"   value={kpis.delivered_today ?? '—'} />
-                <KVRow label="Demurrage Risk"    value={kpis.demurrage_risk ?? '—'} note="containers" />
+                <KVRow label="Free Time Due ≤48h" value={kpis.free_time_due_48h ?? '—'} note="active cases" />
+                <KVRow label="Free Time Overdue" value={kpis.free_time_overdue ?? '—'} note="active cases" />
                 <KVRow label="SLA Breached"      value={kpis.sla_breached ?? '—'} note="cases" />
-                <KVRow label="On-Time Rate"      value={kpis.on_time_rate_pct == null ? '—' : `${kpis.on_time_rate_pct}%`} />
+                <KVRow label="SLA-Compliant Close Rate" value={kpis.on_time_rate_pct == null ? '—' : `${kpis.on_time_rate_pct}%`} />
                 <KVRow label="Avg Clearance Days" value={kpis.avg_clearance_days ? `${kpis.avg_clearance_days}d` : '—'} />
-                <KVRow label="Penalty Exposure"  value={kpis.penalty_exposure_tzs ? `TZS ${Number(kpis.penalty_exposure_tzs).toLocaleString()}` : '—'} />
               </Section>
             </div>
 

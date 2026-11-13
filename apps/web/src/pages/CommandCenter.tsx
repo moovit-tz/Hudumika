@@ -125,7 +125,7 @@ function OfficerMentionInput({
   );
 }
 
-type Metric = 'active' | 'demurrage' | 'sla' | 'delivered' | 'checked_in' | 'pending' | 'penalty' | 'ontime' | 'month' | null;
+type Metric = 'active' | 'demurrage' | 'overdue' | 'sla' | 'delivered' | 'checked_in' | 'pending' | 'ontime' | 'month' | null;
 
 /* Shipment type, for the "Filter by" menu. Was seven chips in the toolbar. */
 const SHIPMENT_TYPES: { value: ShipmentType | 'ALL'; label: string }[] = [
@@ -395,13 +395,6 @@ function KanbanBoard({ groups, refresh, sortBy }: { groups: any[], refresh: () =
 function fmt(n: number | undefined | null) {
   return (n ?? 0).toLocaleString();
 }
-function fmtM(n: number | undefined | null) {
-  const v = n ?? 0;
-  if (v >= 1_000_000) return `${(v / 1_000_000).toFixed(1)}M`;
-  if (v >= 1_000) return `${(v / 1_000).toFixed(0)}k`;
-  return `${v}`;
-}
-
 export const CommandCenter: React.FC = () => {
   usePageSEO('Shipment Operations', 'Manage active shipments and operational work.');
   const navigate = useNavigate();
@@ -520,7 +513,8 @@ export const CommandCenter: React.FC = () => {
         // name). Re-filtering the response would only be able to narrow it.
         if (selectedType !== 'ALL' && s.type !== selectedType) return false;
         if (selectedRiskOnly && (!s.active_risk_types || s.active_risk_types.length === 0)) return false;
-        if (selectedMetric === 'demurrage' && !s.active_risk_types?.includes('DEMURRAGE')) return false;
+        if (selectedMetric === 'demurrage' && (!s.free_time_end || new Date(s.free_time_end) < now || new Date(s.free_time_end) > new Date(now.getTime() + 48 * 60 * 60 * 1000) || s.stage === 'CLOSED' || s.stage === 'DELIVERY')) return false;
+        if (selectedMetric === 'overdue' && (!s.free_time_end || new Date(s.free_time_end) >= now || s.stage === 'CLOSED' || s.stage === 'DELIVERY')) return false;
         if (selectedMetric === 'sla' && !s.active_risk_types?.includes('SLA_BREACH')) return false;
         if (selectedMetric === 'active' && (s.stage === 'CLOSED' || s.stage === 'DELIVERY')) return false;
         // Matches the KPI's own definition (analytics.routes.ts): delivered
@@ -530,13 +524,7 @@ export const CommandCenter: React.FC = () => {
           (s.stage !== 'DELIVERY' && s.stage !== 'CLOSED') ||
           new Date(s.updated_at) < todayStart
         )) return false;
-        // Penalty Exposure: shipments actively accruing demurrage cost right
-        // now — free time already elapsed and not yet closed/delivered.
-        if (selectedMetric === 'penalty' && (
-          !s.free_time_end || new Date(s.free_time_end) >= now ||
-          s.stage === 'CLOSED' || s.stage === 'DELIVERY'
-        )) return false;
-        // On-Time Rate is a percentage over closed cases — clicking it shows
+        // SLA-compliant close rate is measured over closed cases — clicking it shows
         // the population the rate is computed from.
         if (selectedMetric === 'ontime' && s.stage !== 'CLOSED') return false;
         if (selectedMetric === 'month' && new Date(s.created_at) < monthStart) return false;
@@ -645,11 +633,11 @@ export const CommandCenter: React.FC = () => {
   // KPI cells config — restyled as individual design-system cards
   const kpiCells = [
     { key: 'active',    label: 'Active Shipments',   value: loading ? '—' : fmt(kpis?.active_cases),           icon: 'package',       color: 'var(--teal)',  bg: 'var(--teal-l)',  metric: 'active' as Metric },
-    { key: 'dem',       label: 'Demurrage Risk',      value: loading ? '—' : fmt(kpis?.demurrage_risk),          icon: 'alertTriangle', color: 'var(--red)',   bg: 'var(--red-l)',   cell: 'alert', metric: 'demurrage' as Metric },
+    { key: 'dem',       label: 'Free Time Due ≤48h',   value: loading ? '—' : fmt(kpis?.free_time_due_48h),       icon: 'alertTriangle', color: 'var(--gold)',  bg: 'var(--gold-l)',  cell: 'alert', metric: 'demurrage' as Metric },
+    { key: 'overdue',   label: 'Free Time Overdue',    value: loading ? '—' : fmt(kpis?.free_time_overdue),       icon: 'clock',         color: 'var(--red)',   bg: 'var(--red-l)',   cell: 'alert', metric: 'overdue' as Metric },
     { key: 'sla',       label: 'SLA Breached',        value: loading ? '—' : fmt(kpis?.sla_breached),            icon: 'clock',         color: 'var(--red)',   bg: 'var(--red-l)',   cell: 'alert', metric: 'sla' as Metric },
     { key: 'del',       label: 'Delivered Today',     value: loading ? '—' : fmt(kpis?.delivered_today),         icon: 'checkCircle',   color: 'var(--green)', bg: 'var(--green-l)',        metric: 'delivered' as Metric },
-    { key: 'penalty',   label: 'Penalty Exposure',    value: loading ? '—' : `${fmtM(kpis?.penalty_exposure_tzs)} TZS`, icon: 'dollarSign', color: 'var(--gold)',  bg: 'var(--gold-l)',        cell: 'warn', metric: 'penalty' as Metric },
-    { key: 'ontime',    label: 'On-Time Rate',        value: loading || kpis?.on_time_rate_pct == null ? '—' : `${kpis.on_time_rate_pct}%`, icon: 'trendingUp', color: 'var(--blue)',  bg: 'var(--blue-l)',  metric: (kpis?.on_time_rate_pct == null ? null : 'ontime') as Metric },
+    { key: 'ontime',    label: 'SLA-Compliant Close Rate', value: loading || kpis?.on_time_rate_pct == null ? '—' : `${kpis.on_time_rate_pct}%`, icon: 'trendingUp', color: 'var(--blue)',  bg: 'var(--blue-l)',  metric: (kpis?.on_time_rate_pct == null ? null : 'ontime') as Metric },
     { key: 'month',     label: 'This Month',          value: loading ? '—' : fmt(kpis?.cases_this_month),        icon: 'calendar',      color: 'var(--ink)',  bg: 'var(--bg)',      metric: 'month' as Metric },
   ];
 

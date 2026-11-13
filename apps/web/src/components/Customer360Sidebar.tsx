@@ -284,7 +284,7 @@ export function Customer360Sidebar({
         {tab === 'profile' && (
           <>
             {/* 1. AI Assistant Control */}
-            <div style={{ background: 'var(--bg)', borderRadius: 10, padding: 14, border: '1px solid var(--border)' }}>
+            <div style={{ background: 'var(--bg)', borderRadius: 'var(--r)', padding: 14, border: '1px solid var(--border)' }}>
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 4 }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                   <Icon name="sparkle" size={14} color="var(--teal)" />
@@ -379,7 +379,7 @@ export function Customer360Sidebar({
                 {tags.map(tag => (
                   <span key={tag} style={{
                     display: 'inline-flex', alignItems: 'center', gap: 5, padding: '4px 10px',
-                    borderRadius: 16, background: 'var(--bg)', border: '1px solid var(--border)',
+                    borderRadius: 'var(--r-lg)', background: 'var(--bg)', border: '1px solid var(--border)',
                     fontSize: 11.5, fontWeight: 700, color: 'var(--ink2)'
                   }}>
                     {tag}
@@ -400,12 +400,12 @@ export function Customer360Sidebar({
             </div>
 
             {/* 5. E-Commerce Store Context */}
-            <div style={{ borderTop: '1px solid var(--border)', paddingTop: 16, background: 'var(--bg)', padding: 12, borderRadius: 10 }}>
+            <div style={{ borderTop: '1px solid var(--border)', paddingTop: 16, background: 'var(--bg)', padding: 12, borderRadius: 'var(--r)' }}>
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6 }}>
                 <span style={{ fontSize: 10.5, fontWeight: 800, color: 'var(--ink2)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
                   E-Commerce Store Context
                 </span>
-                <span style={{ fontSize: 10, fontWeight: 700, color: 'var(--green)', background: 'var(--green-l)', padding: '2px 6px', borderRadius: 10, border: '1px solid var(--green)' }}>
+                <span style={{ fontSize: 10, fontWeight: 700, color: 'var(--green)', background: 'var(--green-l)', padding: '2px 6px', borderRadius: 'var(--r)', border: '1px solid var(--green)' }}>
                   ● Connected
                 </span>
               </div>
@@ -447,12 +447,12 @@ export function Customer360Sidebar({
             ) : (
               <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
                 {invoices.map((inv) => (
-                  <div key={inv.id} style={{ background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 8, padding: '10px 12px' }}>
+                  <div key={inv.id} style={{ background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 'var(--r-sm)', padding: '10px 12px' }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 4 }}>
                       <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--ink)' }}>{inv.invoice_number}</div>
-                      <span style={{ fontSize: 9, fontWeight: 700, color: INV_STATUS_COLORS[inv.status] || '#64748b', background: `${INV_STATUS_COLORS[inv.status]}20`, padding: '2px 7px', borderRadius: 8 }}>{inv.status}</span>
+                      <span style={{ fontSize: 9, fontWeight: 700, color: INV_STATUS_COLORS[inv.status] || 'var(--ink3)', background: `${INV_STATUS_COLORS[inv.status]}20`, padding: '2px 7px', borderRadius: 'var(--r-sm)' }}>{inv.status}</span>
                     </div>
-                    <div style={{ fontSize: 13, fontWeight: 800, color: inv.status === 'Overdue' ? '#ef4444' : 'var(--teal)', marginBottom: 2 }}>
+                    <div style={{ fontSize: 13, fontWeight: 800, color: inv.status === 'Overdue' ? 'var(--red)' : 'var(--teal)', marginBottom: 2 }}>
                       TZS {Number(inv.total_amount || 0).toLocaleString()}
                     </div>
                     <div style={{ fontSize: 10, color: 'var(--ink3)' }}>Due: {inv.due_date ? new Date(inv.due_date).toLocaleDateString() : '—'}</div>
@@ -476,12 +476,12 @@ export function Customer360Sidebar({
               <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
                 {shipments.map((s) => (
                   <Link key={s.id} to={`/shipments/${s.id}`} style={{ textDecoration: 'none' }}>
-                    <div style={{ background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 8, padding: '10px 12px', cursor: 'pointer', transition: 'border-color 0.15s' }}
+                    <div style={{ background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 'var(--r-sm)', padding: '10px 12px', cursor: 'pointer', transition: 'border-color 0.15s' }}
                       onMouseEnter={e => (e.currentTarget.style.borderColor = 'var(--teal)')}
                       onMouseLeave={e => (e.currentTarget.style.borderColor = 'var(--border)')}>
                       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
                         <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--ink)' }}>{s.ref_number}</span>
-                        <span style={{ fontSize: 9, fontWeight: 700, color: STAGE_COLORS[s.stage] || '#64748b', background: `${STAGE_COLORS[s.stage]}20`, padding: '2px 7px', borderRadius: 8 }}>{s.stage}</span>
+                        <span style={{ fontSize: 9, fontWeight: 700, color: STAGE_COLORS[s.stage] || 'var(--ink3)', background: `${STAGE_COLORS[s.stage]}20`, padding: '2px 7px', borderRadius: 'var(--r-sm)' }}>{s.stage}</span>
                       </div>
                       {s.goods_desc && <div style={{ fontSize: 11, color: 'var(--ink2)', marginBottom: 4, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{s.goods_desc}</div>}
                       {(s.port_of_loading || s.port_of_discharge) && (
@@ -522,7 +522,7 @@ export function Customer360Sidebar({
                   )}
                 </div>
 
-                <div style={{ background: 'var(--green-l)', border: '1px solid var(--green)', borderRadius: 10, padding: 14, marginBottom: 12, position: 'relative' }}>
+                <div style={{ background: 'var(--green-l)', border: '1px solid var(--green)', borderRadius: 'var(--r)', padding: 14, marginBottom: 12, position: 'relative' }}>
                   <div style={{ position: 'absolute', top: 10, right: 12, opacity: 0.4 }}><Icon name="sparkle" size={20} /></div>
                   <div style={{ fontSize: 12, lineHeight: 1.6, color: 'var(--ink)', paddingRight: 24 }}>{aiSuggestion}</div>
                 </div>

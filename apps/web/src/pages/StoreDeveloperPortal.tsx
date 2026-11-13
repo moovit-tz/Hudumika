@@ -7,6 +7,7 @@ import { PageHeader } from '../components/PageHeader.js';
 import './Store.css';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '../components/ui/select.js';
 import { Button } from '../components/ui/button.js';
+import { Input } from '../components/ui/input.js';
 
 export const StoreDeveloperPortal: React.FC = () => {
   const navigate = useNavigate();
@@ -62,9 +63,9 @@ export const StoreDeveloperPortal: React.FC = () => {
         <Icon name="checkCircle" size={48} color="var(--green)" style={{ marginBottom: '20px' }} />
         <h2>Submission Successful!</h2>
         <p style={{ color: 'var(--ink3)', marginTop: '10px' }}>Your app has been submitted and is pending review by the Hudumika Admin team. You will be notified once it is approved.</p>
-        <button className="btn btn-primary" onClick={() => navigate('/store')} style={{ marginTop: '30px' }} data-ui-native-button="">
+        <Button onClick={() => navigate('/store')} style={{ marginTop: '30px' }}>
           Back to Store
-        </button>
+        </Button>
       </div>
     );
   }
@@ -85,11 +86,11 @@ export const StoreDeveloperPortal: React.FC = () => {
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px', marginBottom: '20px' }}>
             <div>
               <label style={{ display: 'block', fontSize: '13px', fontWeight: 600, marginBottom: '6px' }}>App Name *</label>
-              <input data-ui-field="input" data-field-appearance="bare" type="text" name="name" required value={formData.name} onChange={handleChange} className="store-search-input" style={{ width: '100%', minHeight: 'var(--ctl-h)' }} placeholder="e.g., My Awesome App" />
+              <Input type="text" name="name" required value={formData.name} onChange={handleChange} placeholder="e.g., My Awesome App" />
             </div>
             <div>
               <label style={{ display: 'block', fontSize: '13px', fontWeight: 600, marginBottom: '6px' }}>Developer / Company Name *</label>
-              <input data-ui-field="input" data-field-appearance="bare" type="text" name="developer_name" required value={formData.developer_name} onChange={handleChange} className="store-search-input" style={{ width: '100%', minHeight: 'var(--ctl-h)' }} placeholder="e.g., Acme Corp" />
+              <Input type="text" name="developer_name" required value={formData.developer_name} onChange={handleChange} placeholder="e.g., Acme Corp" />
             </div>
           </div>
 
@@ -97,7 +98,7 @@ export const StoreDeveloperPortal: React.FC = () => {
             <div>
               <label style={{ display: 'block', fontSize: '13px', fontWeight: 600, marginBottom: '6px' }}>Category *</label>
               <Select value={formData.category} onValueChange={v => setFormData({ ...formData, category: v })}>
-                <SelectTrigger className="store-search-input" style={{ width: '100%', minHeight: 'var(--ctl-h)' }}><SelectValue /></SelectTrigger>
+                <SelectTrigger style={{ width: '100%', minHeight: 'var(--ctl-h)' }}><SelectValue /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="business">Business Tools</SelectItem>
                   <SelectItem value="productivity">Productivity</SelectItem>
@@ -109,39 +110,39 @@ export const StoreDeveloperPortal: React.FC = () => {
             </div>
             <div>
               <label style={{ display: 'block', fontSize: '13px', fontWeight: 600, marginBottom: '6px' }}>App Icon URL</label>
-              <input data-ui-field="input" data-field-appearance="bare" type="url" name="icon_url" value={formData.icon_url} onChange={handleChange} className="store-search-input" style={{ width: '100%', minHeight: 'var(--ctl-h)' }} placeholder="https://example.com/icon.png" />
+              <Input type="url" name="icon_url" value={formData.icon_url} onChange={handleChange} placeholder="https://example.com/icon.png" />
             </div>
           </div>
 
           <div style={{ marginBottom: '20px' }}>
             <label style={{ display: 'block', fontSize: '13px', fontWeight: 600, marginBottom: '6px' }}>Short Description * (Max 150 chars)</label>
-            <input data-ui-field="input" data-field-appearance="bare" type="text" name="short_desc" required maxLength={150} value={formData.short_desc} onChange={handleChange} className="store-search-input" style={{ width: '100%', minHeight: 'var(--ctl-h)' }} placeholder="Briefly describe what your app does" />
+            <Input type="text" name="short_desc" required maxLength={150} value={formData.short_desc} onChange={handleChange} placeholder="Briefly describe what your app does" />
           </div>
 
           <div style={{ marginBottom: '20px' }}>
             <label style={{ display: 'block', fontSize: '13px', fontWeight: 600, marginBottom: '6px' }}>Long Description *</label>
-            <textarea data-ui-field="textarea" data-field-appearance="bare" name="long_desc" required value={formData.long_desc} onChange={handleChange} className="store-search-input" style={{ width: '100%', minHeight: '100px', padding: "var(--ds-input-py) var(--space-md)" }} placeholder="Provide a detailed description of your app and its benefits" />
+            <textarea data-ui-field="textarea" name="long_desc" required value={formData.long_desc} onChange={handleChange} style={{ width: '100%', minHeight: '100px', padding: "var(--ds-input-py) var(--space-md)" }} placeholder="Provide a detailed description of your app and its benefits" />
           </div>
 
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px', marginBottom: '20px' }}>
             <div>
               <label style={{ display: 'block', fontSize: '13px', fontWeight: 600, marginBottom: '6px' }}>Key Features (One per line)</label>
-              <textarea data-ui-field="textarea" data-field-appearance="bare" name="features" value={formData.features} onChange={handleChange} className="store-search-input" style={{ width: '100%', minHeight: '120px', padding: "var(--ds-input-py) var(--space-md)" }} placeholder="Feature 1&#10;Feature 2" />
+              <textarea data-ui-field="textarea" name="features" value={formData.features} onChange={handleChange} style={{ width: '100%', minHeight: '120px', padding: "var(--ds-input-py) var(--space-md)" }} placeholder="Feature 1&#10;Feature 2" />
             </div>
             <div>
               <label style={{ display: 'block', fontSize: '13px', fontWeight: 600, marginBottom: '6px' }}>Required Permissions (One per line)</label>
-              <textarea data-ui-field="textarea" data-field-appearance="bare" name="permissions" value={formData.permissions} onChange={handleChange} className="store-search-input" style={{ width: '100%', minHeight: '120px', padding: "var(--ds-input-py) var(--space-md)" }} placeholder="Read CRM contacts&#10;Write shipment statuses" />
+              <textarea data-ui-field="textarea" name="permissions" value={formData.permissions} onChange={handleChange} style={{ width: '100%', minHeight: '120px', padding: "var(--ds-input-py) var(--space-md)" }} placeholder="Read CRM contacts&#10;Write shipment statuses" />
             </div>
           </div>
 
           <div style={{ marginBottom: '30px' }}>
             <label style={{ display: 'block', fontSize: '13px', fontWeight: 600, marginBottom: '6px' }}>Webhook URL (Optional)</label>
-            <input data-ui-field="input" data-field-appearance="bare" type="url" name="webhook_url" value={formData.webhook_url} onChange={handleChange} className="store-search-input" style={{ width: '100%', minHeight: 'var(--ctl-h)' }} placeholder="https://your-api.com/hudumika/webhook" />
+            <Input type="url" name="webhook_url" value={formData.webhook_url} onChange={handleChange} placeholder="https://your-api.com/hudumika/webhook" />
             <p style={{ fontSize: '12px', color: 'var(--ink3)', marginTop: '4px' }}>We will send event notifications to this URL.</p>
           </div>
 
           <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '12px' }}>
-            <button type="button" className="btn btn-secondary" onClick={() => navigate('/store')} data-ui-native-button="">Cancel</button>
+            <Button variant="outline" type="button" onClick={() => navigate('/store')}>Cancel</Button>
             <Button type="submit" loading={loading} loadingText="Submitting…">
               Submit App for Review
             </Button>

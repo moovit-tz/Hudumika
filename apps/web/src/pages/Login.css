@@ -514,7 +514,7 @@
   color: var(--lp-page-text, #5f6368);
   cursor: pointer;
   outline: none;
-  border-radius: 6px;
+  border-radius: var(--r-sm);
 }
 .login-lang-trigger:hover { color: var(--lp-page-link, #5f6368); }
 

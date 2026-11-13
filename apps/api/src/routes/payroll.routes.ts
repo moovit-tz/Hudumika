@@ -26,6 +26,7 @@ import { overtimeAmount } from '../services/attendance.service.js';
 import { MailService } from '../services/mail.service.js';
 import { GLService } from '../services/gl.service.js';
 import { renderPayeReturnPdf } from '../services/paye-return-pdf.service.js';
+import { hrTimePolicySchema, readHrTimePolicy } from '../services/hr-time-policy.service.js';
 import {
   computePayslip, summariseRun,
   type TaxBand, type ContributionScheme, type PayslipResult, type Residency,
@@ -95,18 +96,27 @@ export async function payrollRoutes(fastify: FastifyInstance) {
   fastify.get('/policy', { preHandler: requireRole(...PAYROLL_ROLES) }, async req => withTenant(req.user.tenant_id, async trx => {
     const row = await trx.selectFrom('tenant_settings').select('settings').where('tenant_id', '=', req.user.tenant_id).executeTakeFirst();
     const settings = typeof row?.settings === 'string' ? JSON.parse(row.settings) : row?.settings || {};
-    return { salary_basis: settings['payroll-policy']?.salary_basis || 'calendar_days', separate_approver_required: true, currency: 'TZS', supported_pay_frequencies: ['MONTHLY','ANNUAL'] };
+    return { salary_basis: settings['payroll-policy']?.salary_basis || 'calendar_days', time_policy: readHrTimePolicy(settings), separate_approver_required: true, currency: 'TZS', supported_pay_frequencies: ['MONTHLY','ANNUAL'] };
   }));
   fastify.patch('/policy', { preHandler: requireRole('SUPER_ADMIN','ADMIN','TENANT_ADMIN') }, async (req, reply) => {
-    const body = z.object({ salary_basis: z.enum(['calendar_days','period_end']) }).strict().parse(req.body);
+    const body = z.object({ salary_basis: z.enum(['calendar_days','period_end']).optional(), time_policy: z.object({
+      restDays: z.array(z.number().int().min(0).max(6)).max(7).refine(days => new Set(days).size === days.length, 'Rest days cannot repeat.'),
+      overtimeMultipliers: z.object({ normal: z.number().min(1).max(3), restDay: z.number().min(1).max(3), publicHoliday: z.number().min(1).max(3) }).strict(),
+    }).strict().optional() }).strict().refine(value => value.salary_basis !== undefined || value.time_policy !== undefined, 'Provide a payroll setting to update.').parse(req.body);
     return withTenant(req.user.tenant_id, async trx => {
       await sql`SELECT pg_advisory_xact_lock(hashtextextended(${`tenant-settings:${req.user.tenant_id}`}, 0))`.execute(trx);
       const row = await trx.selectFrom('tenant_settings').select('settings').where('tenant_id', '=', req.user.tenant_id).forUpdate().executeTakeFirst();
       const settings = typeof row?.settings === 'string' ? JSON.parse(row.settings) : row?.settings || {};
-      const policy = { ...body, separate_approver_required: true };
-      await trx.insertInto('tenant_settings').values({ tenant_id: req.user.tenant_id, settings: JSON.stringify({...settings, 'payroll-policy':policy}) })
-        .onConflict(oc => oc.column('tenant_id').doUpdateSet({settings: JSON.stringify({...settings,'payroll-policy':policy})})).execute();
-      await trx.insertInto('hr_activity_log').values({tenant_id:req.user.tenant_id,user_id:req.user.sub,module:'Payroll',action:`Changed payroll salary basis to ${body.salary_basis}`}).execute();
+      const previousTimePolicy = readHrTimePolicy(settings);
+      const timePolicy = body.time_policy
+        ? hrTimePolicySchema.parse({ version: previousTimePolicy.version + 1, ...body.time_policy })
+        : previousTimePolicy;
+      const payrollPolicy = { ...(settings['payroll-policy'] || {}), ...(body.salary_basis ? { salary_basis: body.salary_basis } : {}), separate_approver_required: true };
+      const updatedSettings = { ...settings, 'payroll-policy': payrollPolicy, 'hr-time-policy': timePolicy };
+      await trx.insertInto('tenant_settings').values({ tenant_id: req.user.tenant_id, settings: JSON.stringify(updatedSettings) })
+        .onConflict(oc => oc.column('tenant_id').doUpdateSet({settings: JSON.stringify(updatedSettings)})).execute();
+      await trx.insertInto('hr_activity_log').values({tenant_id:req.user.tenant_id,user_id:req.user.sub,module:'Payroll',action:`Updated payroll policy${body.salary_basis ? ` (salary basis: ${body.salary_basis})` : ''} (time policy v${timePolicy.version})`}).execute();
+      const policy = { ...payrollPolicy, time_policy: timePolicy };
       return reply.send(policy);
     });
   });
@@ -396,7 +406,7 @@ export async function payrollRoutes(fastify: FastifyInstance) {
       // earning so the hours somebody actually worked reach their payslip —
       // until now the overtime engine computed a figure nothing ever paid.
       const overtime = await trx.selectFrom('hr_overtime_requests')
-        .select(['id', 'user_id', 'hours', 'rate_multiplier', 'kind'])
+        .select(['id', 'user_id', 'hours', 'rate_multiplier', 'kind', 'policy_version'])
         .where('tenant_id', '=', user.tenant_id)
         .where('status', '=', 'APPROVED')
         .where('paid_in_run_id', 'is', null)
@@ -431,22 +441,21 @@ export async function payrollRoutes(fastify: FastifyInstance) {
         // One line per rate, not per claim: a payslip listing eleven separate
         // overtime entries is unreadable, and the rate is what varies.
         const theirs = overtime.filter(o => o.user_id === person.id);
-        const byKind = new Map<string, { hours: number; multiplier: number; amount: number }>();
+        const byKind = new Map<string, { kind: string; hours: number; multiplier: number; policyVersion: number; amount: number }>();
         for (const o of theirs) {
           const { amount } = overtimeAmount(resolvedSalary.get(person.id)!, num(o.hours),
             num(o.rate_multiplier), WORKING_DAYS_PER_MONTH, WORKING_HOURS_PER_DAY);
-          const k = String(o.kind);
-          const acc = byKind.get(k) ?? { hours: 0, multiplier: num(o.rate_multiplier), amount: 0 };
+          const kind = String(o.kind);
+          const k = `${kind}:${o.rate_multiplier}:v${o.policy_version}`;
+          const acc = byKind.get(k) ?? { kind, hours: 0, multiplier: num(o.rate_multiplier), policyVersion: Number(o.policy_version), amount: 0 };
           acc.hours += num(o.hours);
           acc.amount += amount;
           byKind.set(k, acc);
           paidOvertimeIds.push(o.id);
         }
-        const overtimeEarnings = [...byKind.entries()].map(([kind, v]) => ({
-          code: `OT_${kind}`,
-          name: kind === 'NORMAL' ? `Overtime (${v.hours}h at ${v.multiplier}x)`
-              : kind === 'REST_DAY' ? `Rest-day overtime (${v.hours}h at ${v.multiplier}x)`
-              : `Public-holiday overtime (${v.hours}h at ${v.multiplier}x)`,
+        const overtimeEarnings = [...byKind.values()].map(v => ({
+          code: `OT_${v.kind}`,
+          name: `${v.kind === 'NORMAL' ? 'Overtime' : v.kind === 'REST_DAY' ? 'Rest-day overtime' : 'Public-holiday overtime'} (${v.hours}h at ${v.multiplier}x; policy v${v.policyVersion})`,
           amount: Math.round((v.amount + Number.EPSILON) * 100) / 100,
           // Overtime is employment income and is taxed.
           taxable: true,
@@ -498,7 +507,7 @@ export async function payrollRoutes(fastify: FastifyInstance) {
         total_employee_deductions: String(totals.totalEmployeeDeductions),
         total_employer_cost: String(totals.totalEmployerCost),
         total_remitted: String(totals.totalRemitted),
-        calculated_at: new Date(), calculation_policy: JSON.stringify({salary_basis:basis,currency:'TZS',bands:{resident:bandsResident,non_resident:bandsNonResident},schemes}), calculated_by: user.sub, approved_by: null, approved_at: null, updated_at: new Date(),
+        calculated_at: new Date(), calculation_policy: JSON.stringify({salary_basis:basis,currency:'TZS',time_policy:readHrTimePolicy(config),overtime_policy_versions:[...new Set(overtime.map(item => item.policy_version))],bands:{resident:bandsResident,non_resident:bandsNonResident},schemes}), calculated_by: user.sub, approved_by: null, approved_at: null, updated_at: new Date(),
       } as any).where('id', '=', id).where('tenant_id', '=', user.tenant_id)
         .returningAll().executeTakeFirstOrThrow();
 
@@ -649,8 +658,20 @@ export async function payrollRoutes(fastify: FastifyInstance) {
       }
       const slips = await trx.selectFrom('payroll_payslips as p')
         .innerJoin('users as u', 'u.id', 'p.user_id')
-        .select(['p.gross_pay', 'p.income_tax', 'p.total_deductions', 'p.net_pay', 'u.name', 'u.email'])
+        .select(['p.gross_pay', 'p.income_tax', 'p.total_deductions', 'p.net_pay', 'u.name', 'u.email', 'p.user_id'])
         .where('p.tenant_id', '=', user.tenant_id).where('p.run_id', '=', id).execute();
+
+      // In the bell as well as by email: an employee with no email on file
+      // (counted as "skipped" below) otherwise never learns it is ready.
+      for (const s of slips) {
+        const { NotificationService } = await import('../services/notification.service.js');
+        await NotificationService.createNotificationInTrx(trx, {
+          tenantId: user.tenant_id, userId: s.user_id, app: 'nexushr', type: 'info',
+          title: 'Your payslip is ready',
+          message: `${run.name} — net pay TZS ${Number(s.net_pay || 0).toLocaleString('en-US', { maximumFractionDigits: 0 })}`,
+          link: '/nexushr/me', entityType: 'payroll_run', entityId: id,
+        });
+      }
 
       const money = (v: any) => 'TZS ' + Number(v || 0).toLocaleString('en-US', { maximumFractionDigits: 0 });
       let sent = 0, skipped = 0;

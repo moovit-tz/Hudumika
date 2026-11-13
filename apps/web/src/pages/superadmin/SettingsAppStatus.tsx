@@ -2245,7 +2245,7 @@ export function AppStatusView() {
                 <span>All Systems Operational</span>
               </div>
             ) : (
-              <div style={{ display: 'inline-flex', alignItems: 'center', gap: 7, padding: '5px 12px', borderRadius: 'var(--r-sm)', background: '#fee2e2', border: '1px solid rgba(220, 38, 38, 0.3)', fontSize: 12.5, fontWeight: 700, color: '#dc2626' }}>
+              <div style={{ display: 'inline-flex', alignItems: 'center', gap: 7, padding: '5px 12px', borderRadius: 'var(--r-sm)', background: '#fee2e2', border: '1px solid rgba(220, 38, 38, 0.3)', fontSize: 12.5, fontWeight: 700, color: 'var(--red)' }}>
                 <span className="as-maint-pulse-dot" />
                 <span>{maintenanceCount} App(s) In Maintenance</span>
               </div>
@@ -2324,14 +2324,14 @@ export function AppStatusView() {
           <TabsTrigger value="apps" className="gap-2">
             <Icon name="grid" size={14} />
             <span>Platform Apps</span>
-            <span style={{ fontSize: 11, padding: '1px 6px', borderRadius: 10, background: 'var(--bg)', color: 'var(--ink2)', fontWeight: 700 }}>
+            <span style={{ fontSize: 11, padding: '1px 6px', borderRadius: 'var(--r)', background: 'var(--bg)', color: 'var(--ink2)', fontWeight: 700 }}>
               {rows.length}
             </span>
           </TabsTrigger>
           <TabsTrigger value="commercial" className="gap-2">
             <Icon name="package" size={14} />
             <span>Commercial Readiness</span>
-            <span style={{ fontSize: 11, padding: '1px 6px', borderRadius: 10, background: 'var(--bg)', color: 'var(--ink2)', fontWeight: 700 }}>
+            <span style={{ fontSize: 11, padding: '1px 6px', borderRadius: 'var(--r)', background: 'var(--bg)', color: 'var(--ink2)', fontWeight: 700 }}>
               {products.length}
             </span>
           </TabsTrigger>
@@ -2393,7 +2393,7 @@ export function AppStatusView() {
                 variant={statusFilter === 'maintenance' ? 'default' : 'outline'}
                 size="sm"
                 onClick={() => { setStatusFilter('maintenance'); setBetaOnly(false); }}
-                style={{ height: "var(--ctl-h)", color: statusFilter === 'maintenance' ? '#fff' : '#dc2626' }}
+                style={{ height: "var(--ctl-h)", color: statusFilter === 'maintenance' ? '#fff' : 'var(--red)' }}
               >
                 <Icon name="alertTriangle" size={13} style={{ marginRight: 6 }} />
                 Maintenance ({maintenanceCount})
@@ -2527,7 +2527,7 @@ export function AppStatusView() {
                       <Tip label={inMaintenance ? 'Application is in maintenance (Blocked)' : 'Application is live and operational'} side="bottom">
                         <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                           <span className={inMaintenance ? 'as-maint-pulse-dot' : 'as-live-pulse-dot'} />
-                          <span style={{ fontSize: 11.5, fontWeight: 700, color: inMaintenance ? '#dc2626' : 'var(--green)' }}>
+                          <span style={{ fontSize: 11.5, fontWeight: 700, color: inMaintenance ? 'var(--red)' : 'var(--green)' }}>
                             {inMaintenance ? 'Offline' : 'Online'}
                           </span>
                         </div>
@@ -2578,7 +2578,7 @@ export function AppStatusView() {
                     {inMaintenance ? (
                       <div className="as-status-box as-status-box--maint">
                         <div className="as-maint-banner-hdr">
-                          <Icon name="alertTriangle" size={14} color="#dc2626" />
+                          <Icon name="alertTriangle" size={14} color="var(--red)" />
                           <span>Tenant Access Blocked</span>
                         </div>
                         <p style={{ fontSize: 11.5, color: 'var(--ink2)', margin: 0 }}>
@@ -2664,7 +2664,7 @@ export function AppStatusView() {
                           {/* App Identity */}
                           <td style={{ padding: '12px 16px' }}>
                             <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                              <div style={{ width: 32, height: 32, borderRadius: 8, background: brandColor, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', flexShrink: 0 }}>
+                              <div style={{ width: 32, height: 32, borderRadius: 'var(--r-sm)', background: brandColor, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', flexShrink: 0 }}>
                                 <Icon name={APP_ICONS[row.app_id] ?? 'layers'} size={16} color="#fff" />
                               </div>
                               <div style={{ display: 'flex', flexDirection: 'column' }}>
@@ -2685,7 +2685,7 @@ export function AppStatusView() {
                                 disabled={busy}
                                 onCheckedChange={() => toggle(row)}
                               />
-                              <span style={{ fontSize: 12, fontWeight: 700, color: inMaintenance ? '#dc2626' : 'var(--green)' }}>
+                              <span style={{ fontSize: 12, fontWeight: 700, color: inMaintenance ? 'var(--red)' : 'var(--green)' }}>
                                 {inMaintenance ? 'Maintenance' : 'Live'}
                               </span>
                             </div>
@@ -2763,7 +2763,7 @@ export function AppStatusView() {
                   >
                     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 14, flexWrap: 'wrap' }}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                        <div style={{ width: 36, height: 36, borderRadius: 8, background: APP_BRAND_COLORS[p.product_key] || 'var(--teal)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff' }}>
+                        <div style={{ width: 36, height: 36, borderRadius: 'var(--r-sm)', background: APP_BRAND_COLORS[p.product_key] || 'var(--teal)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff' }}>
                           <Icon name="package" size={18} />
                         </div>
                         <div style={{ display: 'flex', flexDirection: 'column' }}>

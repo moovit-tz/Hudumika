@@ -235,7 +235,7 @@ export class AccountingIntegrationService {
         const { accessToken, orgId } = await this.getValidAccessToken(trx, tenantId, provider);
         const res = await providerFetch(`${adapter.apiBase(orgId)}${adapter.companyInfoPath(orgId)}`, { headers: adapter.authHeaders(accessToken, orgId) });
         if (!res.ok) throw new Error(`${provider} responded ${res.status}`);
-        const json = await res.json();
+        const json: any = await res.json();
         await logSync(trx, tenantId, provider, 'TEST_CONNECTION', orgId, 'SUCCESS');
         return { success: true, company: json };
       } catch (err: any) {
@@ -256,7 +256,7 @@ export class AccountingIntegrationService {
         const { accessToken, orgId } = await this.getValidAccessToken(trx, tenantId, provider);
         const res = await providerFetch(`${adapter.apiBase(orgId)}${adapter.accountsPath(orgId)}`, { headers: adapter.authHeaders(accessToken, orgId) });
         if (!res.ok) throw new Error(`${provider} responded ${res.status}`);
-        const json = await res.json();
+        const json = (await res.json()) as any;
         const accounts = provider === 'QUICKBOOKS' ? (json?.QueryResponse?.Account ?? []) : (json?.Accounts ?? []);
         if (row) await trx.updateTable('accounting_integrations').set({ last_sync_at: new Date(), last_error: null }).where('id', '=', row.id).execute();
         await logSync(trx, tenantId, provider, 'COA', row?.id ?? tenantId, 'SUCCESS', `${accounts.length} accounts`);
@@ -283,7 +283,7 @@ export class AccountingIntegrationService {
     if (!findRes.ok) throw new Error(`${provider} contact lookup failed (${findRes.status}); no contact was created.`);
     let externalId: string | null = null;
     if (findRes.ok) {
-      const findJson = await findRes.json();
+      const findJson = (await findRes.json()) as any;
       externalId = adapter.parseContactId(findJson);
     }
     if (!externalId) {
@@ -291,7 +291,7 @@ export class AccountingIntegrationService {
         method: 'POST', headers: adapter.authHeaders(accessToken, orgId), body: JSON.stringify(adapter.createContactBody(name, email)),
       });
       if (!createRes.ok) throw new Error(`Could not create ${provider} contact for "${name}" (${createRes.status})`);
-      const createJson = await createRes.json();
+      const createJson = (await createRes.json()) as any;
       externalId = adapter.parseContactId(createJson);
     }
     if (!externalId) throw new Error(`${provider} did not return a contact id for "${name}"`);
@@ -330,7 +330,7 @@ export class AccountingIntegrationService {
             })),
           });
           if (!res.ok) throw new Error(`${provider} responded ${res.status}: ${await res.text()}`);
-          const json = await res.json();
+          const json = (await res.json()) as any;
           const externalId = adapter.parseDocId(json);
           if (!externalId) throw new Error(`${provider} did not confirm a document ID; reconcile in the provider before retrying.`);
           await logSync(trx, tenantId, provider, 'INVOICE', invoiceId, 'SUCCESS', externalId);
@@ -368,7 +368,7 @@ export class AccountingIntegrationService {
             })),
           });
           if (!res.ok) throw new Error(`${provider} responded ${res.status}: ${await res.text()}`);
-          const json = await res.json();
+          const json = (await res.json()) as any;
           const externalId = adapter.parseDocId(json);
           if (!externalId) throw new Error(`${provider} did not confirm a document ID; reconcile in the provider before retrying.`);
           await logSync(trx, tenantId, provider, 'BILL', billId, 'SUCCESS', externalId);
@@ -419,7 +419,7 @@ export class AccountingIntegrationService {
             })),
           });
           if (!res.ok) throw new Error(`${provider} responded ${res.status}: ${await res.text()}`);
-          const json = await res.json();
+          const json = (await res.json()) as any;
           const externalId = adapter.parseDocId(json);
           if (!externalId) throw new Error(`${provider} did not confirm a document ID; reconcile in the provider before retrying.`);
           await logSync(trx, tenantId, provider, 'PAYMENT', paymentId, 'SUCCESS', externalId);

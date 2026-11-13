@@ -286,7 +286,7 @@ Tone: ${tone}. Format as clean, structured HTML with proper headings, sections, 
         {/* Modal Form Body */}
         <div style={{ flex: 1, overflowY: 'auto', padding: '20px 24px 28px', display: 'flex', flexDirection: 'column', gap: 16 }}>
           {error && (
-            <div style={{ padding: '10px 14px', background: 'var(--red-l)', border: '1px solid color-mix(in srgb, var(--red) 30%, var(--border))', borderRadius: 8, color: 'var(--red)', fontSize: 13 }}>
+            <div style={{ padding: '10px 14px', background: 'var(--red-l)', border: '1px solid color-mix(in srgb, var(--red) 30%, var(--border))', borderRadius: 'var(--r-sm)', color: 'var(--red)', fontSize: 13 }}>
               {error}
             </div>
           )}

@@ -363,14 +363,14 @@ function DealModal({ deal, onClose, onSaved }: { deal: Deal | null; onClose: () 
                 <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--ink2)', textTransform: 'uppercase', letterSpacing: '.4px' }}>Activity</div>
                 <div style={{ display: 'flex', gap: 6 }}>
                   <ComposeEmailButton subjectType="deal" subjectId={deal.id} onSent={() => setActivityRefresh(n => n + 1)}>
-                    <button type="button" className="btn btn-secondary btn-xs" data-ui-native-button="">
+                    <Button variant="outline" size="xs" type="button">
                       <Icon name="mail" size={11} /> Email
-                    </button>
+                    </Button>
                   </ComposeEmailButton>
                   <StartCallButton subjectType="deal" subjectId={deal.id} onLogged={() => setActivityRefresh(n => n + 1)}>
-                    <button type="button" className="btn btn-secondary btn-xs" data-ui-native-button="">
+                    <Button variant="outline" size="xs" type="button">
                       <Icon name="phone" size={11} /> Call
-                    </button>
+                    </Button>
                   </StartCallButton>
                 </div>
               </div>
@@ -381,11 +381,11 @@ function DealModal({ deal, onClose, onSaved }: { deal: Deal | null; onClose: () 
 
         <DialogFooter>
           {deal && (
-            <button type="button" className="btn btn-secondary btn-sm" style={{ color: 'var(--red)', marginRight: 'auto' }} disabled={saving} onClick={remove} data-ui-native-button="">
+            <Button variant="outline" size="sm" type="button" style={{ color: 'var(--red)', marginRight: 'auto' }} disabled={saving} onClick={remove}>
               <Icon name="trash" size={13} /> Delete
-            </button>
+            </Button>
           )}
-          <button type="button" className="btn btn-secondary btn-sm" onClick={onClose} data-ui-native-button="">Cancel</button>
+          <Button variant="outline" size="sm" type="button" onClick={onClose}>Cancel</Button>
           <Button size="sm" type="button" onClick={save} loading={saving} disabled={!name.trim()} loadingText="Saving…">
             {deal ? 'Save changes' : 'Create deal'}
           </Button>

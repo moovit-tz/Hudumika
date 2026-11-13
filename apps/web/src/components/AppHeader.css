@@ -197,7 +197,7 @@
   top: calc(100% + 8px);
   right: 0;
   background: var(--white);
-  border-radius: 10px;
+  border-radius: var(--r);
   border: 1px solid rgba(0, 0, 0, 0.1);
   box-shadow: var(--elev-lg);
   z-index: 300;
@@ -258,7 +258,7 @@
   color: var(--ink2);
   font-family: var(--font);
   text-decoration: none;
-  border-radius: 7px;
+  border-radius: var(--r-sm);
   text-align: left;
   transition: background 0.1s;
 }
@@ -279,7 +279,7 @@
   top: calc(100% + 8px);
   right: 0;
   background: var(--white);
-  border-radius: 10px;
+  border-radius: var(--r);
   border: 1px solid rgba(0, 0, 0, 0.1);
   box-shadow: var(--elev-lg);
   z-index: 300;
@@ -301,7 +301,7 @@
   font-size: 13px;
   color: var(--ink2);
   font-family: var(--font);
-  border-radius: 7px;
+  border-radius: var(--r-sm);
   text-align: left;
   transition: background 0.1s;
 }
@@ -423,7 +423,7 @@
   font-size: 13px;
   color: var(--ink2);
   font-family: var(--font);
-  border-radius: 6px;
+  border-radius: var(--r-sm);
   text-align: left;
   transition: background 0.1s;
 }
@@ -449,7 +449,7 @@
   width: 100%;
   max-width: 580px;
   background: var(--white);
-  border-radius: 10px;
+  border-radius: var(--r);
   border: 1px solid var(--border);
   box-shadow: var(--elev-lg);
   overflow: hidden;
@@ -782,7 +782,7 @@
   color: var(--ink);
 }
 
-.app-header-hub-search-clear--with-scope { right: 48px; }
+.app-header-hub-search-clear--with-scope { right: 92px; }
 .app-header-search-scope {
   flex-shrink: 0;
   border: 0;
@@ -792,6 +792,11 @@
   padding: 2px 8px;
   font: 700 10px/1 var(--font);
   cursor: pointer;
+  /* Holds an app name now ("ClearOS", "All apps"), not a fixed word. */
+  max-width: 84px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 .app-header-search-scope:hover { color: var(--teal); }
 
@@ -832,7 +837,7 @@
   gap: 9px;
   flex-shrink: 0;
   padding: 4px 10px 4px 4px;
-  border-radius: 10px;
+  border-radius: var(--r);
   transition: background 0.12s;
   cursor: default;
 }
@@ -887,7 +892,7 @@
     width: 36px;
     height: 36px;
     padding: 0;
-    border-radius: 8px;
+    border-radius: var(--r-sm);
     overflow: hidden;
   }
 
@@ -985,7 +990,7 @@
   padding: 4px 10px 4px 6px;
   background: var(--white);
   border: 1px solid var(--border);
-  border-radius: 12px;
+  border-radius: var(--r);
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
   cursor: pointer;
   transition: all 0.2s ease;
@@ -1003,7 +1008,7 @@
 .app-header-clock-icon-badge {
   width: 28px;
   height: 28px;
-  border-radius: 8px;
+  border-radius: var(--r-sm);
   background: var(--teal);
   display: flex;
   align-items: center;
@@ -1067,7 +1072,7 @@
   justify-content: center;
   width: 22px;
   height: 22px;
-  border-radius: 6px;
+  border-radius: var(--r-sm);
   color: var(--ink2);
   transition: background 0.15s, color 0.15s;
   flex-shrink: 0;

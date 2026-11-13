@@ -46,7 +46,7 @@ export interface ModuleCatalogEntry {
 }
 
 export const MODULE_CATALOG: Record<string, ModuleCatalogEntry> = {
-  clearos:      { name: 'ClearOS',       desc: 'Customs clearance platform, declarations & TANCIS integration.', category: 'Logistics & Trade', color: '#ea580c' },
+  clearos:      { name: 'ClearOS',       desc: 'Customs clearance platform, declarations & TANCIS lodgement tracking.', category: 'Logistics & Trade', color: '#ea580c' },
   tracking:     { name: 'HuduFreight',   desc: 'Fleet, vehicle and driver tracking — live GPS positions & trips.', category: 'Logistics & Trade', color: '#0891b2' },
   cargotracker: { name: 'CargoTracker',  desc: 'AWB & Bill of Lading shipment tracking across sea & air carriers.', category: 'Logistics & Trade', color: '#4f46e5' },
   seal:         { name: 'SEAL',          desc: 'Bonded warehousing ledger, customs examination & storage clock.', category: 'Logistics & Trade', color: '#0f766e' },

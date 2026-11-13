@@ -79,6 +79,35 @@
   to   { opacity: 1; transform: translateY(0); }
 }
 
+/* The window the items slide through. Clips them so an item rising in from
+   below, or leaving through the top, is never drawn over the controls. */
+.app-header-pill-stage {
+  position: relative;
+  display: flex;
+  align-items: center;
+  flex: 1;
+  min-width: 0;
+  height: 30px;
+  overflow: hidden;
+}
+
+/* A swap: the new item slides up from below as the old one leaves through
+   the top (reversed when stepping back). 320ms — SLIDE_MS in HeaderPill.tsx. */
+.app-header-pill-body--from-below { animation: pill-in-from-below .32s cubic-bezier(.2, .8, .2, 1); }
+.app-header-pill-body--from-above { animation: pill-in-from-above .32s cubic-bezier(.2, .8, .2, 1); }
+.app-header-pill-body--leaving {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+.app-header-pill-body--to-above { animation: pill-out-to-above .32s cubic-bezier(.4, 0, .6, 1) forwards; }
+.app-header-pill-body--to-below { animation: pill-out-to-below .32s cubic-bezier(.4, 0, .6, 1) forwards; }
+
+@keyframes pill-in-from-below { from { opacity: 0; transform: translateY(100%); } to { opacity: 1; transform: translateY(0); } }
+@keyframes pill-in-from-above { from { opacity: 0; transform: translateY(-100%); } to { opacity: 1; transform: translateY(0); } }
+@keyframes pill-out-to-above  { from { opacity: 1; transform: translateY(0); } to { opacity: 0; transform: translateY(-100%); } }
+@keyframes pill-out-to-below  { from { opacity: 1; transform: translateY(0); } to { opacity: 0; transform: translateY(100%); } }
+
 /* Colored keyword badge — NEW / MAINTENANCE / RELEASE / etc. */
 .app-header-pill-badge {
   flex-shrink: 0;
@@ -112,6 +141,21 @@
   overflow: hidden;
   text-overflow: ellipsis;
   min-width: 0;
+}
+
+/* The phone row under the header. Shown only below the mobile breakpoint,
+   where the in-header copy (.desktop-search) is hidden. */
+.app-header-pill-row { display: none; }
+@media (max-width: 767px) {
+  .app-header-pill-row {
+    display: block;
+    padding: 6px 10px;
+    background: var(--white);
+    border-bottom: 1px solid var(--border);
+  }
+  .app-header-pill--compact { max-width: none; height: 36px; padding-left: 8px; }
+  .app-header-pill--compact .app-header-pill-sub { display: none; }
+  .app-header-pill--compact .app-header-pill-title { max-width: 100%; flex-shrink: 1; }
 }
 
 /* Right-side controls — count + pause/prev/next/dismiss. */
@@ -148,5 +192,8 @@
 /* Reduced motion: JS already stops rotation; this also cancels the enter
    animation so nothing moves for users who requested stillness. */
 @media (prefers-reduced-motion: reduce) {
-  .app-header-pill-body { animation: none; }
+  .app-header-pill-body,
+  .app-header-pill-body--from-below,
+  .app-header-pill-body--from-above { animation: none; }
+  .app-header-pill-body--leaving { display: none; }
 }

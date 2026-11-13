@@ -134,13 +134,14 @@ export interface ShipmentPnL {
 
 export interface KPIResponse {
   active_cases: number;
-  demurrage_risk: number;     // free_time_end < 48h
+  free_time_due_48h: number;  // active cases expiring within the next 48 hours
+  free_time_overdue: number;  // active cases whose free time has already expired
   sla_breached: number;
   delivered_today: number;
-  penalty_exposure_tzs: number;
   /** Null when no case has closed yet — a rate over zero events is not 100%,
    *  it is no measurement. Callers must render "no data", never a number. */
   on_time_rate_pct: number | null;
+  closed_cases: number;
   cases_this_month: number;
   total_cases?: number;
   customer_count?: number;
@@ -223,7 +224,7 @@ export interface OfficerPerformance {
   name: string;
   cases_closed: number;
   avg_days: number;
-  penalties_caused: number;
+  cases_with_demurrage: number;
   active_cases: number;
 }
 

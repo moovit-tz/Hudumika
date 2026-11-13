@@ -21,8 +21,8 @@ import { requireUuidParams } from '../middleware/uuid-params.js';
 import { HolidaysService } from '../services/holidays.service.js';
 import {
   overtimeKindFor, overtimeAmount, checkOvertimeCap, fourWeekWindow,
-  OVERTIME_MULTIPLIER,
 } from '../services/attendance.service.js';
+import { overtimeMultiplier, readHrTimePolicy } from '../services/hr-time-policy.service.js';
 
 const APPROVERS = ['SUPER_ADMIN', 'ADMIN', 'TENANT_ADMIN', 'MANAGER'] as const;
 const canSeeOthers = (role: string) =>
@@ -110,7 +110,7 @@ export async function overtimeRoutes(fastify: FastifyInstance) {
       let qb = trx.selectFrom('hr_overtime_requests as o')
         .innerJoin('users as u', 'u.id', 'o.user_id')
         .leftJoin('users as a', 'a.id', 'o.approved_by')
-        .select(['o.id', 'o.user_id', 'o.date', 'o.hours', 'o.kind', 'o.rate_multiplier',
+        .select(['o.id', 'o.user_id', 'o.date', 'o.hours', 'o.kind', 'o.rate_multiplier', 'o.policy_version',
                  'o.reason', 'o.status', 'o.decision_note', 'o.approved_at', 'o.paid_in_run_id',
                  'u.name as employee_name', 'a.name as approved_by_name'])
         .where('o.tenant_id', '=', user.tenant_id);
@@ -153,9 +153,13 @@ export async function overtimeRoutes(fastify: FastifyInstance) {
     }
 
     // The rate, from the calendar rather than from the request.
+    const policy = await withTenant(user.tenant_id, async trx => {
+      const settings = await trx.selectFrom('tenant_settings').select('settings').where('tenant_id', '=', user.tenant_id).executeTakeFirst();
+      return readHrTimePolicy(settings?.settings);
+    });
     const closed = await HolidaysService.nonWorkingDates(user.tenant_id, date, date);
-    const kind = overtimeKindFor(date, closed);
-    const multiplier = OVERTIME_MULTIPLIER[kind];
+    const kind = overtimeKindFor(date, closed, policy.restDays);
+    const multiplier = overtimeMultiplier(policy, kind);
 
     const already = await approvedHoursInWindow(user.tenant_id, subjectId, date);
     const cap = checkOvertimeCap(already, hours);
@@ -178,7 +182,7 @@ export async function overtimeRoutes(fastify: FastifyInstance) {
 
       const row = await trx.insertInto('hr_overtime_requests').values({
         tenant_id: user.tenant_id, user_id: subjectId, date, hours: String(hours),
-        kind, rate_multiplier: String(multiplier), reason: b.reason || null,
+        kind, rate_multiplier: String(multiplier), policy_version: policy.version, reason: b.reason || null,
         status: 'PENDING', requested_by: user.sub,
       } as any).returningAll().executeTakeFirstOrThrow();
 
@@ -186,11 +190,8 @@ export async function overtimeRoutes(fastify: FastifyInstance) {
         ...row, date: isoDate(row.date),
         // Said plainly, because the rate is the thing being agreed and it was
         // not chosen by whoever filled the form in.
-        rate_explanation: kind === 'NORMAL'
-          ? 'An ordinary working day — 1.5x the normal hourly rate.'
-          : kind === 'REST_DAY'
-            ? 'A weekly rest day — 2x the normal hourly rate.'
-            : 'A public holiday — 2x the normal hourly rate.',
+        policy_version: policy.version,
+        rate_explanation: `${kind === 'NORMAL' ? 'Ordinary day' : kind === 'REST_DAY' ? 'Configured rest day' : 'Public holiday'} — ${multiplier}x the normal hourly rate under payroll policy v${policy.version}.`,
         remaining_in_window: cap.remaining,
       };
     });
@@ -257,7 +258,7 @@ export async function overtimeRoutes(fastify: FastifyInstance) {
     const settings = { daysPerMonth: 26, hoursPerDay: 8 };
     const rows = await withTenant(user.tenant_id, trx => trx.selectFrom('hr_overtime_requests as o')
       .innerJoin('users as u', 'u.id', 'o.user_id')
-      .select(['o.id', 'o.user_id', 'o.date', 'o.hours', 'o.kind', 'o.rate_multiplier',
+      .select(['o.id', 'o.user_id', 'o.date', 'o.hours', 'o.kind', 'o.rate_multiplier', 'o.policy_version',
                'u.name', 'u.basic_salary'])
       .where('o.tenant_id', '=', user.tenant_id)
       .where('o.status', '=', 'APPROVED')
@@ -271,7 +272,7 @@ export async function overtimeRoutes(fastify: FastifyInstance) {
         settings.daysPerMonth, settings.hoursPerDay,
       );
       return {
-        id: r.id, user_id: r.user_id, name: r.name, date: isoDate(r.date),
+        id: r.id, user_id: r.user_id, name: r.name, date: isoDate(r.date), policy_version: r.policy_version,
         hours: num(r.hours), kind: r.kind, multiplier: num(r.rate_multiplier),
         hourly_rate: hourlyRate, amount,
         // Absent, not zero: somebody with no basic salary cannot be paid for

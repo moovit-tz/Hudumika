@@ -24,6 +24,7 @@ import { showAlert } from '../lib/alert.js';
 import { showConfirm } from '../lib/confirm.js';
 import { showPrompt } from '../lib/prompt.js';
 import type { CmsContentModel, CmsContentEntry, CmsContentField, CmsBlock, CmsComponent, CmsSavedFilter, CmsSite, CmsWorkflowState } from '@hudumika/types';
+import { Button } from '../components/ui/button.js';
 
 const PAGE_SIZE = 50;
 const ENTRY_FIELD_LABELS = { slug: 'Slug', title: 'Title', status: 'Status', data: 'Fields', seo_description: 'SEO description', publish_at: 'Scheduled for' };
@@ -159,9 +160,9 @@ function FieldInput({ field, value, onChange, components, componentBlocks, relat
               </button>
             </div>
           ))}
-          <button type="button" className="btn btn-secondary btn-sm" style={{ alignSelf: 'flex-start' }} onClick={() => onChange([...items, ''])} data-ui-native-button="">
+          <Button variant="outline" size="sm" type="button" style={{ alignSelf: 'flex-start' }} onClick={() => onChange([...items, ''])}>
             <Icon name="plus" size={12} /> Add
-          </button>
+          </Button>
         </div>
       );
     }
@@ -315,7 +316,7 @@ export function CMSContentEntries() {
         titlePlain={model.name_plural}
         titleEm="entries"
         subtitle={<>Managed by the fields defined on this model. <Link to={`/cms/models/${model.id}`}>Edit fields →</Link></>}
-        actions={<button className="btn btn-primary btn-sm" onClick={() => setEditingId('new')} data-ui-native-button=""><Icon name="plus" size={13} /> New {model.name.toLowerCase()}</button>}
+        actions={<Button size="sm" onClick={() => setEditingId('new')}><Icon name="plus" size={13} /> New {model.name.toLowerCase()}</Button>}
       />
 
       <div style={{ padding: '14px 24px 0' }}>
@@ -361,12 +362,12 @@ export function CMSContentEntries() {
               <Icon name="search" size={13} style={{ position: 'absolute', left: 9, top: '50%', transform: 'translateY(-50%)', color: 'var(--ink3)' } as React.CSSProperties} />
               <input data-ui-field="input" value={search} onChange={e => setSearch(e.target.value)} placeholder="Search…" style={{ border: '1px solid var(--border)', borderRadius: 'var(--r)', padding: "var(--ds-input-py) var(--space-md)", fontSize: "var(--text-base)", outline: 'none', width: 170, background: 'var(--white)' }} />
             </div>
-            <button className="btn btn-secondary btn-sm" onClick={handleSaveFilter} style={{ display: 'inline-flex', alignItems: 'center', gap: 5 }} data-ui-native-button="">
+            <Button variant="outline" size="sm" onClick={handleSaveFilter} style={{ display: 'inline-flex', alignItems: 'center', gap: 5 }}>
               <Icon name="bookmark" size={13} /> Save filter
-            </button>
-            <button className="btn btn-secondary btn-sm" onClick={handleExportEntries} style={{ display: 'inline-flex', alignItems: 'center', gap: 5 }} data-ui-native-button="">
+            </Button>
+            <Button variant="outline" size="sm" onClick={handleExportEntries} style={{ display: 'inline-flex', alignItems: 'center', gap: 5 }}>
               <Icon name="download" size={13} /> Export CSV
-            </button>
+            </Button>
             <div style={{ display: 'flex', border: '1px solid var(--border)', borderRadius: 'var(--r)', overflow: 'hidden' }}>
               <Tip label="Table view"><button aria-label="Table view" onClick={() => setView('table')}
                 style={{ padding: "var(--action-py) var(--space-md)", background: view === 'table' ? 'var(--teal-l, var(--bg))' : 'var(--white)', color: view === 'table' ? 'var(--teal)' : 'var(--ink3)', border: 'none', cursor: 'pointer', display: 'flex' }} data-ui-native-button="">
@@ -395,10 +396,10 @@ export function CMSContentEntries() {
         {selected.size > 0 && (
           <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '8px 14px', marginBottom: 12, borderRadius: 'var(--r)', background: 'var(--teal-l)', border: '1px solid var(--teal)' }}>
             <span style={{ fontSize: 13, fontWeight: 600 }}>{selected.size} selected</span>
-            <button className="btn btn-secondary btn-sm" onClick={() => bulkStatus('published')} data-ui-native-button="">Publish</button>
-            <button className="btn btn-secondary btn-sm" onClick={() => bulkStatus('draft')} data-ui-native-button="">Draft</button>
-            <button className="btn btn-secondary btn-sm" onClick={() => bulkStatus('trash')} data-ui-native-button="">Trash</button>
-            <button className="btn btn-secondary btn-sm" style={{ color: 'var(--red)' }} onClick={bulkDelete} data-ui-native-button="">Delete</button>
+            <Button variant="outline" size="sm" onClick={() => bulkStatus('published')}>Publish</Button>
+            <Button variant="outline" size="sm" onClick={() => bulkStatus('draft')}>Draft</Button>
+            <Button variant="outline" size="sm" onClick={() => bulkStatus('trash')}>Trash</Button>
+            <Button variant="outline" size="sm" style={{ color: 'var(--red)' }} onClick={bulkDelete}>Delete</Button>
             <button onClick={() => setSelected(new Set())} style={{ marginLeft: 'auto', background: 'none', border: 'none', color: 'var(--ink3)', fontSize: "var(--text-base)", cursor: 'pointer' }} data-ui-native-button="">Clear</button>
           </div>
         )}
@@ -480,45 +481,41 @@ export function CMSContentEntries() {
                       <td style={{ padding: '11px 16px', color: 'var(--ink3)', fontSize: 12 }}>{fmtDate(e.updated_at)}</td>
                       <td style={{ padding: '11px 16px', textAlign: 'right' }}>
                         <div style={{ display: 'inline-flex', gap: 6 }} onClick={ev => ev.stopPropagation()}>
-                          <button
+                          <Button variant="outline" size="sm"
                             onClick={() => setActiveCommentsDrawer({ open: true, id: e.id, title: e.title })}
-                            className="btn btn-secondary btn-sm"
+                           
                             title="Comments"
-                            style={{ padding: "var(--action-py) var(--space-md)" }}
-                           data-ui-native-button="">
+                            style={{ padding: "var(--action-py) var(--space-md)" }}>
                             <Icon name="messageSquare" size={12} />
-                          </button>
-                          <button
+                          </Button>
+                          <Button variant="outline" size="sm"
                             onClick={() => setActiveTranslateModal({ open: true, id: e.id, title: e.title, locale: (e as any).locale || 'en', group: (e as any).translation_group_id })}
-                            className="btn btn-secondary btn-sm"
+                           
                             title="Translate with AI"
-                            style={{ padding: "var(--action-py) var(--space-md)" }}
-                           data-ui-native-button="">
+                            style={{ padding: "var(--action-py) var(--space-md)" }}>
                             <Icon name="sparkle" size={12} />
-                          </button>
-                          <button
+                          </Button>
+                          <Button variant="outline" size="sm"
                             onClick={() => setActiveApprovalModal({ open: true, id: e.id, title: e.title })}
-                            className="btn btn-secondary btn-sm"
+                           
                             title="Request Approval"
-                            style={{ padding: "var(--action-py) var(--space-md)" }}
-                           data-ui-native-button="">
+                            style={{ padding: "var(--action-py) var(--space-md)" }}>
                             <Icon name="checkCircle" size={12} />
-                          </button>
-                          <button
+                          </Button>
+                          <Button variant="outline" size="sm"
                             onClick={() => setActiveReleaseModal({ open: true, id: e.id, title: e.title })}
-                            className="btn btn-secondary btn-sm"
+                           
                             title="Add to Release"
-                            style={{ padding: "var(--action-py) var(--space-md)" }}
-                           data-ui-native-button="">
+                            style={{ padding: "var(--action-py) var(--space-md)" }}>
                             <Icon name="package" size={12} />
-                          </button>
+                          </Button>
                           {e.status === 'published' && tenantSlug && model && (
                             <a href={`/site/${tenantSlug}/m/${model.key}/${e.slug}`} target="_blank" rel="noopener noreferrer"
                               className="btn btn-secondary btn-sm" style={{ fontSize: 11, display: 'inline-flex', alignItems: 'center', gap: 4 }}>
                               <Icon name="eye" size={11} /> View
                             </a>
                           )}
-                          <button onClick={() => setEditingId(e.id)} className="btn btn-secondary btn-sm" style={{ fontSize: "var(--text-xs)" }} data-ui-native-button=""><Icon name="edit" size={11} /> Edit</button>
+                          <Button variant="outline" size="sm" onClick={() => setEditingId(e.id)} style={{ fontSize: "var(--text-xs)" }}><Icon name="edit" size={11} /> Edit</Button>
                         </div>
                       </td>
                     </tr>
@@ -529,7 +526,7 @@ export function CMSContentEntries() {
                 </tbody>
               </table>
             </div>
-            {hasMore && <div style={{ padding: 14, textAlign: 'center' }}><button className="btn btn-secondary btn-sm" onClick={() => load(entries.length)} data-ui-native-button="">Load more</button></div>}
+            {hasMore && <div style={{ padding: 14, textAlign: 'center' }}><Button variant="outline" size="sm" onClick={() => load(entries.length)}>Load more</Button></div>}
           </div>
         ) : (
           <>
@@ -549,15 +546,15 @@ export function CMSContentEntries() {
                       <span style={{ fontSize: 11, color: 'var(--ink3)' }}>{fmtDate(e.updated_at)}</span>
                     </div>
                     <div style={{ display: 'flex', gap: 6, marginTop: 'auto' }} onClick={ev => ev.stopPropagation()}>
-                      <button onClick={() => setActiveCommentsDrawer({ open: true, id: e.id, title: e.title })} className="btn btn-secondary btn-xs" title="Comments" data-ui-native-button=""><Icon name="messageSquare" size={12} /></button>
-                      <button onClick={() => setActiveApprovalModal({ open: true, id: e.id, title: e.title })} className="btn btn-secondary btn-xs" title="Request Approval" data-ui-native-button=""><Icon name="checkCircle" size={12} /></button>
-                      <button onClick={() => setEditingId(e.id)} className="btn btn-secondary btn-sm" style={{ fontSize: "var(--text-xs)", flex: 1 }} data-ui-native-button=""><Icon name="edit" size={11} /> Edit</button>
+                      <Button variant="outline" size="xs" onClick={() => setActiveCommentsDrawer({ open: true, id: e.id, title: e.title })} title="Comments"><Icon name="messageSquare" size={12} /></Button>
+                      <Button variant="outline" size="xs" onClick={() => setActiveApprovalModal({ open: true, id: e.id, title: e.title })} title="Request Approval"><Icon name="checkCircle" size={12} /></Button>
+                      <Button variant="outline" size="sm" onClick={() => setEditingId(e.id)} style={{ fontSize: "var(--text-xs)", flex: 1 }}><Icon name="edit" size={11} /> Edit</Button>
                     </div>
                   </div>
                 ))}
               </div>
             )}
-            {hasMore && <div style={{ padding: 14, textAlign: 'center' }}><button className="btn btn-secondary btn-sm" onClick={() => load(entries.length)} data-ui-native-button="">Load more</button></div>}
+            {hasMore && <div style={{ padding: 14, textAlign: 'center' }}><Button variant="outline" size="sm" onClick={() => load(entries.length)}>Load more</Button></div>}
           </>
         )}
       </div>
@@ -726,36 +723,36 @@ function EntryEditor({
           )}
           {entryId && (
             <>
-              <button className="btn btn-secondary btn-sm" onClick={() => setShowComments(true)} title="Comments" data-ui-native-button="">
+              <Button variant="outline" size="sm" onClick={() => setShowComments(true)} title="Comments">
                 <Icon name="messageSquare" size={13} /> Comments
-              </button>
-              <button className="btn btn-secondary btn-sm" onClick={() => setShowTranslate(true)} title="Translate (AI)" data-ui-native-button="">
+              </Button>
+              <Button variant="outline" size="sm" onClick={() => setShowTranslate(true)} title="Translate (AI)">
                 <Icon name="sparkle" size={13} /> Translate
-              </button>
-              <button className="btn btn-secondary btn-sm" onClick={() => setShowRequestApproval(true)} title="Request Approval" data-ui-native-button="">
+              </Button>
+              <Button variant="outline" size="sm" onClick={() => setShowRequestApproval(true)} title="Request Approval">
                 <Icon name="checkCircle" size={13} /> Request Review
-              </button>
-              <button className="btn btn-secondary btn-sm" onClick={() => setShowAddToRelease(true)} title="Add to Release" data-ui-native-button="">
+              </Button>
+              <Button variant="outline" size="sm" onClick={() => setShowAddToRelease(true)} title="Add to Release">
                 <Icon name="package" size={13} /> Add to Release
-              </button>
-              <button className="btn btn-secondary btn-sm" onClick={() => setShowActivity(true)} title="Who did what" data-ui-native-button="">
+              </Button>
+              <Button variant="outline" size="sm" onClick={() => setShowActivity(true)} title="Who did what">
                 <Icon name="activity" size={13} /> Activity
-              </button>
-              <button className="btn btn-secondary btn-sm" onClick={() => setShowHistory(true)} title="Version history" data-ui-native-button="">
+              </Button>
+              <Button variant="outline" size="sm" onClick={() => setShowHistory(true)} title="Version history">
                 <Icon name="clock" size={13} /> History
-              </button>
+              </Button>
               {tenantSlug && (
-                <button className="btn btn-secondary btn-sm" onClick={handlePreview} data-ui-native-button="">
+                <Button variant="outline" size="sm" onClick={handlePreview}>
                   <Icon name="eye" size={13} /> Preview
-                </button>
+                </Button>
               )}
             </>
           )}
-          <button className="btn btn-secondary btn-sm" disabled={saving} onClick={() => save('draft')} data-ui-native-button="">Save draft</button>
+          <Button variant="outline" size="sm" disabled={saving} onClick={() => save('draft')}>Save draft</Button>
           {entry.status === 'scheduled'
-            ? <button className="btn btn-primary btn-sm" disabled={saving} onClick={() => save('scheduled')} data-ui-native-button="">Schedule</button>
-            : <button className="btn btn-secondary btn-sm" onClick={() => setEntry(f => f && ({ ...f, status: 'scheduled' }))} data-ui-native-button="">Schedule…</button>}
-          <button className="btn btn-primary btn-sm" disabled={saving} onClick={() => save('published')} data-ui-native-button="">Publish</button>
+            ? <Button size="sm" disabled={saving} onClick={() => save('scheduled')}>Schedule</Button>
+            : <Button variant="outline" size="sm" onClick={() => setEntry(f => f && ({ ...f, status: 'scheduled' }))}>Schedule…</Button>}
+          <Button size="sm" disabled={saving} onClick={() => save('published')}>Publish</Button>
         </div>
       </div>
 

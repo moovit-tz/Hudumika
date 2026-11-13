@@ -39,8 +39,8 @@ export function SkeletonHeader() {
           <Skeleton style={{ width: 380, height: 14 }} />
         </div>
         <div style={{ display: 'flex', gap: 10 }}>
-          <Skeleton style={{ width: 100, height: 36, borderRadius: 8 }} />
-          <Skeleton style={{ width: 120, height: 36, borderRadius: 8 }} />
+          <Skeleton style={{ width: 100, height: 36, borderRadius: 'var(--r-sm)' }} />
+          <Skeleton style={{ width: 120, height: 36, borderRadius: 'var(--r-sm)' }} />
         </div>
       </div>
     </div>
@@ -56,7 +56,7 @@ export function SkeletonMetrics({ count = 3 }: { count?: number }) {
           style={{
             background: 'var(--white)',
             border: '1px solid var(--border)',
-            borderRadius: 10,
+            borderRadius: 'var(--r)',
             padding: '18px 20px',
             display: 'flex',
             flexDirection: 'column',
@@ -80,13 +80,13 @@ export function SkeletonMetrics({ count = 3 }: { count?: number }) {
 
 export function SkeletonTable({ rows = 6, cols = 5 }: { rows?: number; cols?: number }) {
   return (
-    <div style={{ background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 10, overflow: 'hidden' }}>
+    <div style={{ background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 'var(--r)', overflow: 'hidden' }}>
       {/* Toolbar / Search placeholder */}
       <div style={{ padding: '14px 20px', borderBottom: '1px solid var(--border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12 }}>
-        <Skeleton style={{ width: 240, height: 36, borderRadius: 8 }} />
+        <Skeleton style={{ width: 240, height: 36, borderRadius: 'var(--r-sm)' }} />
         <div style={{ display: 'flex', gap: 8 }}>
-          <Skeleton style={{ width: 90, height: 36, borderRadius: 8 }} />
-          <Skeleton style={{ width: 90, height: 36, borderRadius: 8 }} />
+          <Skeleton style={{ width: 90, height: 36, borderRadius: 'var(--r-sm)' }} />
+          <Skeleton style={{ width: 90, height: 36, borderRadius: 'var(--r-sm)' }} />
         </div>
       </div>
       {/* Header row */}
@@ -111,9 +111,9 @@ export function SkeletonCardsGrid({ count = 6 }: { count?: number }) {
   return (
     <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: 20 }}>
       {Array.from({ length: count }).map((_, i) => (
-        <div key={i} style={{ background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 10, padding: 20, display: 'flex', flexDirection: 'column', gap: 14 }}>
+        <div key={i} style={{ background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 'var(--r)', padding: 20, display: 'flex', flexDirection: 'column', gap: 14 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-            <Skeleton style={{ width: 40, height: 40, borderRadius: 8 }} />
+            <Skeleton style={{ width: 40, height: 40, borderRadius: 'var(--r-sm)' }} />
             <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 6 }}>
               <Skeleton style={{ width: '70%', height: 14 }} />
               <Skeleton style={{ width: '40%', height: 12 }} />
@@ -121,8 +121,8 @@ export function SkeletonCardsGrid({ count = 6 }: { count?: number }) {
           </div>
           <SkeletonText lines={2} />
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 6 }}>
-            <Skeleton style={{ width: 70, height: 20, borderRadius: 12 }} />
-            <Skeleton style={{ width: 80, height: 30, borderRadius: 6 }} />
+            <Skeleton style={{ width: 70, height: 20, borderRadius: 'var(--r)' }} />
+            <Skeleton style={{ width: 80, height: 30, borderRadius: 'var(--r-sm)' }} />
           </div>
         </div>
       ))}
@@ -134,20 +134,20 @@ export function SkeletonDetail() {
   return (
     <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: 24 }}>
       <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
-        <div style={{ background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 10, padding: 24, display: 'flex', flexDirection: 'column', gap: 16 }}>
+        <div style={{ background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 'var(--r)', padding: 24, display: 'flex', flexDirection: 'column', gap: 16 }}>
           <Skeleton style={{ width: 200, height: 20 }} />
           <SkeletonText lines={4} />
         </div>
-        <div style={{ background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 10, padding: 24, display: 'flex', flexDirection: 'column', gap: 16 }}>
+        <div style={{ background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 'var(--r)', padding: 24, display: 'flex', flexDirection: 'column', gap: 16 }}>
           <Skeleton style={{ width: 180, height: 18 }} />
           <SkeletonTable rows={3} cols={4} />
         </div>
       </div>
       <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
-        <div style={{ background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 10, padding: 20, display: 'flex', flexDirection: 'column', gap: 14 }}>
+        <div style={{ background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 'var(--r)', padding: 20, display: 'flex', flexDirection: 'column', gap: 14 }}>
           <Skeleton style={{ width: 140, height: 16 }} />
           <SkeletonText lines={3} />
-          <Skeleton style={{ width: '100%', height: 36, borderRadius: 8, marginTop: 8 }} />
+          <Skeleton style={{ width: '100%', height: 36, borderRadius: 'var(--r-sm)', marginTop: 8 }} />
         </div>
       </div>
     </div>
@@ -172,13 +172,13 @@ export function SkeletonPage({
         {variant === 'dashboard' && (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 20 }}>
-              <div style={{ background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 10, padding: 20, height: 260 }}>
+              <div style={{ background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 'var(--r)', padding: 20, height: 260 }}>
                 <Skeleton style={{ width: 160, height: 16, marginBottom: 16 }} />
-                <Skeleton style={{ width: '100%', height: 180, borderRadius: 8 }} />
+                <Skeleton style={{ width: '100%', height: 180, borderRadius: 'var(--r-sm)' }} />
               </div>
-              <div style={{ background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 10, padding: 20, height: 260 }}>
+              <div style={{ background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 'var(--r)', padding: 20, height: 260 }}>
                 <Skeleton style={{ width: 160, height: 16, marginBottom: 16 }} />
-                <Skeleton style={{ width: '100%', height: 180, borderRadius: 8 }} />
+                <Skeleton style={{ width: '100%', height: 180, borderRadius: 'var(--r-sm)' }} />
               </div>
             </div>
             <SkeletonTable rows={5} cols={5} />

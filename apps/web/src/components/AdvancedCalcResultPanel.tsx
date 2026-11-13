@@ -8,6 +8,7 @@ import { apiFetch } from '../lib/api.js';
 import type { AdvancedCalcResult } from '../lib/advancedCalculators.js';
 import { groupBreakdown, fmt } from '../lib/advancedCalculators.js';
 import { buildAiSummaryText, printAdvancedCalcReport, type AdvancedCalcReportMeta } from '../lib/advancedCalcReport.js';
+import { Button } from './ui/button.js';
 
 /** Shared results renderer for the LCL, Air Freight and Transit calculators —
  *  headline stat tiles, the full section-grouped breakdown, an AI Analysis
@@ -31,7 +32,7 @@ export function AdvancedCalcResultPanel({ result, loading, error, meta, onAmend,
 
   if (loading) {
     return (
-      <div style={{ background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 16, padding: 48, textAlign: 'center', color: 'var(--ink3)' }}>
+      <div style={{ background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 'var(--r-lg)', padding: 48, textAlign: 'center', color: 'var(--ink3)' }}>
         <Icon name="sliders" size={28} color="var(--teal)" style={{ display: 'block', margin: '0 auto 12px', animation: 'ds-spin 1.2s linear infinite' }} />
         <div style={{ fontSize: 13.5 }}>Calculating…</div>
       </div>
@@ -40,7 +41,7 @@ export function AdvancedCalcResultPanel({ result, loading, error, meta, onAmend,
 
   if (!result) {
     return (
-      <div style={{ background: 'var(--white)', border: '1px dashed var(--border)', borderRadius: 16, padding: 48, textAlign: 'center', color: 'var(--ink3)' }}>
+      <div style={{ background: 'var(--white)', border: '1px dashed var(--border)', borderRadius: 'var(--r-lg)', padding: 48, textAlign: 'center', color: 'var(--ink3)' }}>
         <Icon name="calculator" size={28} color="var(--ink3)" style={{ display: 'block', margin: '0 auto 12px' }} />
         <div style={{ fontSize: 13.5 }}>Fill in the shipment details and calculate.</div>
       </div>
@@ -62,7 +63,7 @@ export function AdvancedCalcResultPanel({ result, loading, error, meta, onAmend,
     <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 14 }}>
         {tiles.map(t => (
-          <div key={t.label} style={{ background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 16, padding: '18px 20px' }}>
+          <div key={t.label} style={{ background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 'var(--r-lg)', padding: '18px 20px' }}>
             <FeaturedIcon variant={t.variant} size="sm" shape="square"><Icon name="dollarSign" size={15} /></FeaturedIcon>
             <div style={{ fontSize: 20, fontWeight: 800, color: 'var(--ink)', marginTop: 12, letterSpacing: '-0.4px' }}>{t.value}</div>
             {t.sub && <div style={{ fontSize: 11.5, color: 'var(--ink3)', marginTop: 2 }}>{t.sub}</div>}
@@ -72,7 +73,7 @@ export function AdvancedCalcResultPanel({ result, loading, error, meta, onAmend,
       </div>
 
       {result.per_unit && (
-        <div style={{ display: 'flex', gap: 24, padding: '12px 16px', background: 'var(--teal-l)', border: '1px solid var(--teal-m)', borderRadius: 12, fontSize: 12.5, color: 'var(--ink2)', flexWrap: 'wrap' }}>
+        <div style={{ display: 'flex', gap: 24, padding: '12px 16px', background: 'var(--teal-l)', border: '1px solid var(--teal-m)', borderRadius: 'var(--r)', fontSize: 12.5, color: 'var(--ink2)', flexWrap: 'wrap' }}>
           <span>Cost per {result.per_unit.unit_label} (incl. VAT): <strong>{cur} {result.per_unit.cost_incl_vat.toFixed(4)}</strong></span>
           <span>Cost per {result.per_unit.unit_label} (net VAT): <strong>{cur} {result.per_unit.cost_net_vat.toFixed(4)}</strong></span>
           <span>Landed ÷ EXW multiple: <strong>{result.landed_multiplier.toFixed(2)}x</strong></span>
@@ -138,24 +139,24 @@ export function AdvancedCalcResultPanel({ result, loading, error, meta, onAmend,
 
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: 10 }}>
         {onAmend && (
-          <button type="button" onClick={onAmend} className="btn btn-secondary"
-            style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, height: "var(--action-h)", fontSize: "var(--text-base)", fontWeight: 700 }} data-ui-native-button="">
+          <Button variant="outline" type="button" onClick={onAmend}
+            style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, height: "var(--action-h)", fontSize: "var(--text-base)", fontWeight: 700 }}>
             <Icon name="edit" size={14} color="var(--ink2)" /> Amend details
-          </button>
+          </Button>
         )}
         <button type="button" onClick={() => printAdvancedCalcReport(result, meta)}
           style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, height: "var(--action-h)", borderRadius: 'var(--r-sm)', border: '1.5px solid var(--teal)', background: 'var(--white)', color: 'var(--teal)', fontWeight: 700, fontSize: "var(--text-base)", cursor: 'pointer' }} data-ui-native-button="">
           <Icon name="download" size={14} color="var(--teal)" /> Export PDF
         </button>
-        <button type="button" onClick={() => navigate('/clearos/report-issue')} className="btn btn-secondary"
-          style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, height: "var(--action-h)", fontSize: "var(--text-base)", fontWeight: 600 }} data-ui-native-button="">
+        <Button variant="outline" type="button" onClick={() => navigate('/clearos/report-issue')}
+          style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, height: "var(--action-h)", fontSize: "var(--text-base)", fontWeight: 600 }}>
           <Icon name="alertCircle" size={14} color="var(--ink2)" /> Report an issue
-        </button>
+        </Button>
         {onNewCalculation && (
-          <button type="button" onClick={onNewCalculation} className="btn btn-secondary"
-            style={{ height: "var(--action-h)", fontSize: "var(--text-base)", fontWeight: 600 }} data-ui-native-button="">
+          <Button variant="outline" type="button" onClick={onNewCalculation}
+            style={{ height: "var(--action-h)", fontSize: "var(--text-base)", fontWeight: 600 }}>
             New Calculation
-          </button>
+          </Button>
         )}
       </div>
     </div>
@@ -206,11 +207,11 @@ function AiAnalysisCard({ result }: { result: AdvancedCalcResult }) {
           <Banner variant="error">{aiError}{aiError.toLowerCase().includes('not configured') && ' Ask an admin to add an AI provider key under Settings → Integrations → AI Integration.'}</Banner>
         </div>
       )}
-      <button type="button" onClick={runAi} disabled={pending} className="btn btn-primary"
-        style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, height: "var(--action-h)", fontSize: "var(--text-base)", fontWeight: 700 }} data-ui-native-button="">
+      <Button type="button" onClick={runAi} disabled={pending}
+        style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, height: "var(--action-h)", fontSize: "var(--text-base)", fontWeight: 700 }}>
         <Icon name="sparkle" size={14} color="#fff" />
         {pending ? 'Analysing…' : aiError ? 'Retry AI Analysis' : 'Run AI Analysis'}
-      </button>
+      </Button>
     </SectionCard>
   );
 }

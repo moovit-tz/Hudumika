@@ -248,7 +248,7 @@ export function CMSWorkflow() {
         ) : (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 32 }}>
             {/* States Section */}
-            <div style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 16, padding: 24 }}>
+            <div style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 'var(--r-lg)', padding: 24 }}>
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
                 <div>
                   <h3 style={{ fontSize: 16, fontWeight: 700, margin: 0, color: 'var(--text)' }}>Workflow States</h3>
@@ -264,7 +264,7 @@ export function CMSWorkflow() {
                     key={st.id}
                     style={{
                       border: '1px solid var(--border)',
-                      borderRadius: 10,
+                      borderRadius: 'var(--r)',
                       padding: '12px 14px',
                       background: 'var(--bg)',
                       display: 'flex',
@@ -298,7 +298,7 @@ export function CMSWorkflow() {
             </div>
 
             {/* Transitions Matrix Section */}
-            <div style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 16, padding: 24 }}>
+            <div style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 'var(--r-lg)', padding: 24 }}>
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
                 <div>
                   <h3 style={{ fontSize: 16, fontWeight: 700, margin: 0, color: 'var(--text)' }}>Permitted State Transitions</h3>
@@ -324,7 +324,7 @@ export function CMSWorkflow() {
                         padding: '12px 16px',
                         background: 'var(--bg)',
                         border: '1px solid var(--border)',
-                        borderRadius: 10,
+                        borderRadius: 'var(--r)',
                       }}
                     >
                       <div style={{ display: 'flex', alignItems: 'center', gap: 16, flex: 1 }}>
@@ -332,7 +332,7 @@ export function CMSWorkflow() {
                           <span
                             style={{
                               padding: '3px 8px',
-                              borderRadius: 6,
+                              borderRadius: 'var(--r-sm)',
                               fontSize: 12,
                               fontWeight: 600,
                               background: tr.from_state?.color ? `${tr.from_state.color}20` : 'var(--bg-muted)',
@@ -345,7 +345,7 @@ export function CMSWorkflow() {
                           <span
                             style={{
                               padding: '3px 8px',
-                              borderRadius: 6,
+                              borderRadius: 'var(--r-sm)',
                               fontSize: 12,
                               fontWeight: 600,
                               background: tr.to_state?.color ? `${tr.to_state.color}20` : 'var(--bg-muted)',
@@ -407,7 +407,7 @@ export function CMSWorkflow() {
             backdropFilter: 'blur(2px)',
           }}
         >
-          <div style={{ background: 'var(--surface)', borderRadius: 16, padding: 24, width: '100%', maxWidth: 440, border: '1px solid var(--border)' }}>
+          <div style={{ background: 'var(--surface)', borderRadius: 'var(--r-lg)', padding: 24, width: '100%', maxWidth: 440, border: '1px solid var(--border)' }}>
             <h3 style={{ fontSize: 16, fontWeight: 700, margin: '0 0 16px 0', color: 'var(--text)' }}>Add Workflow State</h3>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
               <div>
@@ -485,7 +485,7 @@ export function CMSWorkflow() {
             backdropFilter: 'blur(2px)',
           }}
         >
-          <div style={{ background: 'var(--surface)', borderRadius: 16, padding: 24, width: '100%', maxWidth: 460, border: '1px solid var(--border)' }}>
+          <div style={{ background: 'var(--surface)', borderRadius: 'var(--r-lg)', padding: 24, width: '100%', maxWidth: 460, border: '1px solid var(--border)' }}>
             <h3 style={{ fontSize: 16, fontWeight: 700, margin: '0 0 16px 0', color: 'var(--text)' }}>Add Workflow Transition</h3>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>

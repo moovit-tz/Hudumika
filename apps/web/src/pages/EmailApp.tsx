@@ -1975,9 +1975,9 @@ export const EmailApp: React.FC = () => {
             </div>
           )}
           <div style={{ display: 'flex', alignItems: 'center', gap: 8, position: 'relative' }}>
-            <button type="button" className="btn btn-primary" style={{ display: 'flex', alignItems: 'center', gap: 6, borderRadius: "var(--r-sm)" }} onClick={sendReply} disabled={replyAttachments.some(a => a.uploading)} data-ui-native-button="">
+            <Button type="button" style={{ display: 'flex', alignItems: 'center', gap: 6, borderRadius: "var(--r-sm)" }} onClick={sendReply} disabled={replyAttachments.some(a => a.uploading)}>
               <Icon name="send" size={13} /> {replySendAt ? 'Schedule send' : 'Send'}
-            </button>
+            </Button>
             <Tip label="Schedule send for later">
               <button type="button" className="em-icon-btn em-icon-btn--ghost" onClick={() => setReplySendAt(prev => prev !== null ? null : new Date(Date.now() + 3600000 - new Date().getTimezoneOffset() * 60000).toISOString().slice(0, 16))} data-ui-native-button="">
                 <Icon name="clock" size={15} />
@@ -2892,7 +2892,7 @@ export const EmailApp: React.FC = () => {
                               <div key={t.id} className="em-label-manage-row">
                                 <span className="em-label-name">{t.name}</span>
                                 <div className="em-label-actions">
-                                  <button type="button" className="btn btn-secondary btn-sm" onClick={() => setTemplateEditing(t)} data-ui-native-button="">Edit</button>
+                                  <Button variant="outline" size="sm" type="button" onClick={() => setTemplateEditing(t)}>Edit</Button>
                                   <button type="button" className="em-icon-btn em-icon-btn--ghost em-btn-danger" onClick={() => deleteTemplate(t.id)} title="Delete template" data-ui-native-button="">
                                     <Icon name="trash" size={14} />
                                   </button>
@@ -2919,16 +2919,16 @@ export const EmailApp: React.FC = () => {
                                   onChange={e => setTemplateEditing(prev => prev ? { ...prev, body: e.target.value } : prev)} />
                               </div>
                               <div className="em-form-actions">
-                                <button type="button" className="btn btn-primary btn-sm" onClick={saveTemplate} data-ui-native-button="">Save Template</button>
-                                <button type="button" className="btn btn-secondary btn-sm" onClick={() => setTemplateEditing(null)} data-ui-native-button="">Cancel</button>
+                                <Button size="sm" type="button" onClick={saveTemplate}>Save Template</Button>
+                                <Button variant="outline" size="sm" type="button" onClick={() => setTemplateEditing(null)}>Cancel</Button>
                               </div>
                             </div>
                           ) : (
                             <div>
-                              <button type="button" className="btn btn-secondary btn-sm" onClick={() => setTemplateEditing({ id: null, name: '', subject: '', body: '' })} data-ui-native-button="">
+                              <Button variant="outline" size="sm" type="button" onClick={() => setTemplateEditing({ id: null, name: '', subject: '', body: '' })}>
                                 <Icon name="plus" size={14} />
                                 <span>New quick reply</span>
-                              </button>
+                              </Button>
                             </div>
                           )}
                         </div>
@@ -3002,10 +3002,10 @@ export const EmailApp: React.FC = () => {
                             <input data-ui-field="input" className="em-settings-input" value={newLabelName} onChange={e => setNewLabelName(e.target.value)}
                               onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); createLabel(); } }}
                               placeholder="New label name" />
-                            <button type="button" className="btn btn-primary btn-sm" onClick={createLabel} disabled={!newLabelName.trim()} data-ui-native-button="">
+                            <Button size="sm" type="button" onClick={createLabel} disabled={!newLabelName.trim()}>
                               <Icon name="plus" size={14} />
                               <span>Add Label</span>
-                            </button>
+                            </Button>
                           </div>
                           <div className="em-label-manage-list">
                             {labelDefs.map(l => {
@@ -3121,9 +3121,9 @@ export const EmailApp: React.FC = () => {
                                 onCheckedChange={v => setSettings({ ...settings, imapMarkAsRead: v })}
                               />
                               <div className="em-settings-action-row">
-                                <button type="button" className="btn btn-secondary btn-sm" onClick={testImapConnection} disabled={imapTesting || !settings.imapHost || !settings.imapUser} data-ui-native-button="">
+                                <Button variant="outline" size="sm" type="button" onClick={testImapConnection} disabled={imapTesting || !settings.imapHost || !settings.imapUser}>
                                   {imapTesting ? <><Spinner size={13} /><span>Testing…</span></> : 'Test connection'}
-                                </button>
+                                </Button>
                                 {imapTestResult && (
                                   <Badge variant={imapTestResult.success ? 'success' : 'destructive'} className="em-test-result-badge">
                                     <Icon name={imapTestResult.success ? 'check' : 'alertCircle'} size={13} />
@@ -3256,14 +3256,13 @@ export const EmailApp: React.FC = () => {
                                   <div className="em-protocol-form-label"></div>
                                   <div className="em-protocol-form-content">
                                     <div className="flex items-center gap-3">
-                                      <button
+                                      <Button variant="outline" size="sm"
                                         type="button"
-                                        className="btn btn-secondary btn-sm"
+                                       
                                         onClick={testSmtpConnection}
-                                        disabled={smtpTesting || !settings.smtpHost || !settings.smtpUser}
-                                       data-ui-native-button="">
+                                        disabled={smtpTesting || !settings.smtpHost || !settings.smtpUser}>
                                         {smtpTesting ? <><Spinner size={13} /><span>Testing SMTP…</span></> : 'Test SMTP Connection'}
-                                      </button>
+                                      </Button>
                                       {smtpTestResult && (
                                         <Badge variant={smtpTestResult.success ? 'success' : 'destructive'}>
                                           <Icon name={smtpTestResult.success ? 'check' : 'alertCircle'} size={12} />
@@ -3310,13 +3309,12 @@ export const EmailApp: React.FC = () => {
                                         {settings.outlookStatus === 'authorized' ? 'Authorized' : 'Unauthorized'}
                                       </Badge>
                                       {settings.outlookStatus !== 'authorized' && (
-                                        <button
+                                        <Button variant="outline" size="sm"
                                           type="button"
-                                          className="btn btn-secondary btn-sm"
-                                          onClick={() => connectPersonalMail('outlook')}
-                                         data-ui-native-button="">
+                                         
+                                          onClick={() => connectPersonalMail('outlook')}>
                                           Connect Outlook
-                                        </button>
+                                        </Button>
                                       )}
                                     </div>
                                   </div>
@@ -3358,13 +3356,12 @@ export const EmailApp: React.FC = () => {
                                         {settings.gmailStatus === 'authorized' ? 'Authorized' : 'Unauthorized'}
                                       </Badge>
                                       {settings.gmailStatus !== 'authorized' && (
-                                        <button
+                                        <Button variant="outline" size="sm"
                                           type="button"
-                                          className="btn btn-secondary btn-sm"
-                                          onClick={() => connectPersonalMail('gmail')}
-                                         data-ui-native-button="">
+                                         
+                                          onClick={() => connectPersonalMail('gmail')}>
                                           Connect Gmail
-                                        </button>
+                                        </Button>
                                       )}
                                     </div>
                                   </div>
@@ -3388,14 +3385,13 @@ export const EmailApp: React.FC = () => {
                                     onChange={e => setSendTestMailTo(e.target.value)}
                                     placeholder="youremail@address.com"
                                   />
-                                  <button
+                                  <Button variant="outline" size="sm"
                                     type="button"
-                                    className="btn btn-secondary btn-sm"
+                                   
                                     onClick={sendTestEmail}
-                                    disabled={testMailSending || !sendTestMailTo.trim()}
-                                   data-ui-native-button="">
+                                    disabled={testMailSending || !sendTestMailTo.trim()}>
                                     {testMailSending ? <><Spinner size={13} /><span>Sending…</span></> : 'Send Test Mail'}
-                                  </button>
+                                  </Button>
                                 </div>
                                 {testMailResult && (
                                   <Badge variant={testMailResult.success ? 'success' : 'destructive'} className="mt-1 self-start">
@@ -3440,10 +3436,10 @@ export const EmailApp: React.FC = () => {
                             <input data-ui-field="input" className="em-settings-input" value={blocklistInput} onChange={e => setBlocklistInput(e.target.value)}
                               onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); addBlocklistEntry(); } }}
                               placeholder="spam@example.com, badomain.com, or a keyword" />
-                            <button type="button" className="btn btn-primary btn-sm" onClick={addBlocklistEntry} disabled={!blocklistInput.trim()} data-ui-native-button="">
+                            <Button size="sm" type="button" onClick={addBlocklistEntry} disabled={!blocklistInput.trim()}>
                               <Icon name="plus" size={14} />
                               <span>Block</span>
-                            </button>
+                            </Button>
                           </div>
                           <div className="em-blocklist-chips">
                             {settings.spamBlocklist.map(v => (

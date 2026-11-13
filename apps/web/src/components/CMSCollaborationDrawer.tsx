@@ -189,7 +189,7 @@ export function CMSCollaborationDrawer({
               style={{
                 background: c.resolved ? 'var(--bg-muted)' : 'var(--bg)',
                 border: '1px solid var(--border)',
-                borderRadius: 10,
+                borderRadius: 'var(--r)',
                 padding: 12,
                 opacity: c.resolved ? 0.75 : 1,
               }}
@@ -229,7 +229,7 @@ export function CMSCollaborationDrawer({
                     alignItems: 'center',
                     gap: 4,
                     fontSize: "var(--text-xs)",
-                    color: c.resolved ? '#059669' : 'var(--text-muted)',
+                    color: c.resolved ? 'var(--green)' : 'var(--text-muted)',
                     background: 'transparent',
                     border: 'none',
                     cursor: 'pointer',
@@ -277,7 +277,7 @@ export function CMSCollaborationDrawer({
               {c.replies && c.replies.length > 0 && (
                 <div style={{ marginTop: 8, paddingLeft: 12, borderLeft: '2px solid var(--teal-l)', display: 'flex', flexDirection: 'column', gap: 8 }}>
                   {c.replies.map(rep => (
-                    <div key={rep.id} style={{ fontSize: 12, background: 'var(--surface)', padding: 8, borderRadius: 6, border: '1px solid var(--border)' }}>
+                    <div key={rep.id} style={{ fontSize: 12, background: 'var(--surface)', padding: 8, borderRadius: 'var(--r-sm)', border: '1px solid var(--border)' }}>
                       <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 2 }}>
                         <strong style={{ color: 'var(--text)' }}>{rep.author_name || 'Author'}</strong>
                         <span style={{ fontSize: 10, color: 'var(--text-muted)' }}>

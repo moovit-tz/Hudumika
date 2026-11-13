@@ -218,13 +218,13 @@ function OfficialManifestModal({
           <div className="cargo-manifest-header">
             <div>
               <div className="cargo-manifest-carrier-brand">HUDUFREIGHT CARRIER MANIFEST</div>
-              <div style={{ fontSize: 12, color: '#475569', marginTop: 2 }}>
+              <div style={{ fontSize: 12, color: 'var(--ink2)', marginTop: 2 }}>
                 Official Transport Bill of Lading &amp; Security Seal Verification Document
               </div>
             </div>
             <div style={{ textAlign: 'right' }}>
               <div style={{ fontSize: 13, fontWeight: 800 }}>MANIFEST #{manifest.id.slice(0, 8).toUpperCase()}</div>
-              <div style={{ fontSize: 11, color: '#64748b' }}>Date: {new Date().toLocaleDateString()}</div>
+              <div style={{ fontSize: 11, color: 'var(--ink3)' }}>Date: {new Date().toLocaleDateString()}</div>
               <Badge variant={manifest.status === 'DISPATCHED' ? 'success' : manifest.status === 'LOADED' ? 'brand' : 'outline'} style={{ marginTop: 4 }}>
                 {manifest.status}
               </Badge>
@@ -233,22 +233,22 @@ function OfficialManifestModal({
 
           <div className="cargo-manifest-meta-grid">
             <div>
-              <span style={{ fontSize: 10, fontWeight: 700, color: '#64748b', textTransform: 'uppercase' }}>Fleet Vehicle &amp; Trailer</span>
+              <span style={{ fontSize: 10, fontWeight: 700, color: 'var(--ink3)', textTransform: 'uppercase' }}>Fleet Vehicle &amp; Trailer</span>
               <div style={{ fontWeight: 800, fontSize: 13 }}>{vehicle?.name || manifest.vehicle_name || 'Fleet Truck'}</div>
-              <div style={{ color: '#475569', fontSize: 11 }}>Plate: {vehicle?.plate_number || manifest.vehicle_plate || '—'}</div>
-              {trailer && <div style={{ color: '#475569', fontSize: 11 }}>Trailer: {trailer.name} ({trailer.registration_number})</div>}
+              <div style={{ color: 'var(--ink2)', fontSize: 11 }}>Plate: {vehicle?.plate_number || manifest.vehicle_plate || '—'}</div>
+              {trailer && <div style={{ color: 'var(--ink2)', fontSize: 11 }}>Trailer: {trailer.name} ({trailer.registration_number})</div>}
             </div>
             <div>
-              <span style={{ fontSize: 10, fontWeight: 700, color: '#64748b', textTransform: 'uppercase' }}>Assigned Driver</span>
+              <span style={{ fontSize: 10, fontWeight: 700, color: 'var(--ink3)', textTransform: 'uppercase' }}>Assigned Driver</span>
               <div style={{ fontWeight: 800, fontSize: 13 }}>{driver?.name || manifest.driver_name || 'Assigned Driver'}</div>
-              <div style={{ color: '#475569', fontSize: 11 }}>License: {driver?.license_number || manifest.driver_license || '—'}</div>
-              <div style={{ color: '#475569', fontSize: 11 }}>Contact: {driver?.phone || manifest.driver_phone || '—'}</div>
+              <div style={{ color: 'var(--ink2)', fontSize: 11 }}>License: {driver?.license_number || manifest.driver_license || '—'}</div>
+              <div style={{ color: 'var(--ink2)', fontSize: 11 }}>Contact: {driver?.phone || manifest.driver_phone || '—'}</div>
             </div>
             <div>
-              <span style={{ fontSize: 10, fontWeight: 700, color: '#64748b', textTransform: 'uppercase' }}>Loading Point &amp; Security Seals</span>
+              <span style={{ fontSize: 10, fontWeight: 700, color: 'var(--ink3)', textTransform: 'uppercase' }}>Loading Point &amp; Security Seals</span>
               <div style={{ fontWeight: 800, fontSize: 13, color: '#0891b2' }}>Primary: {sealNumber || 'NOT RECORDED'}</div>
               {secondarySeal && <div style={{ color: '#0891b2', fontSize: 11, fontWeight: 700 }}>Sec: {secondarySeal}</div>}
-              <div style={{ color: '#475569', fontSize: 11 }}>Location/Dock: {dockNumber || manifest.loading_bay || 'Dock #1'}</div>
+              <div style={{ color: 'var(--ink2)', fontSize: 11 }}>Location/Dock: {dockNumber || manifest.loading_bay || 'Dock #1'}</div>
             </div>
           </div>
 
@@ -289,7 +289,7 @@ function OfficialManifestModal({
             </table>
           </div>
 
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: 12, padding: '12px 16px', background: '#f8fafc', borderRadius: 6, fontSize: 12, border: '1px solid #e2e8f0' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: 12, padding: '12px 16px', background: 'var(--bg)', borderRadius: 'var(--r-sm)', fontSize: 12, border: '1px solid var(--border)' }}>
             <div>
               Total Planned Weight: <strong>{totalWeight.toLocaleString()} kg</strong>
             </div>
@@ -308,7 +308,7 @@ function OfficialManifestModal({
           </div>
 
           {manifest.discrepancy_notes && (
-            <div style={{ marginTop: 12, padding: '8px 12px', background: '#fffbeb', border: '1px solid #fef3c7', borderRadius: 6, fontSize: 11.5 }}>
+            <div style={{ marginTop: 12, padding: '8px 12px', background: '#fffbeb', border: '1px solid #fef3c7', borderRadius: 'var(--r-sm)', fontSize: 11.5 }}>
               <strong>Discrepancy Notes:</strong> {manifest.discrepancy_notes}
             </div>
           )}
@@ -531,7 +531,7 @@ function DriverPickerModal({
                   alignItems: 'center',
                   gap: 12,
                   padding: '10px 14px',
-                  borderRadius: 8,
+                  borderRadius: 'var(--r-sm)',
                   border: isSel ? '2px solid var(--teal)' : '1px solid var(--border)',
                   background: isSel ? 'var(--teal-l)' : 'var(--card-bg)',
                   cursor: 'pointer',
@@ -1235,7 +1235,7 @@ export const TrackingCargoLoading: React.FC = () => {
                           onClick={() => handleSelectJob('SHIPMENT', s)}
                           style={{
                             padding: 14,
-                            borderRadius: 8,
+                            borderRadius: 'var(--r-sm)',
                             border: isSel ? '2px solid var(--teal)' : '1px solid var(--border)',
                             background: isSel ? 'var(--teal-l)' : 'var(--card-bg)',
                             cursor: 'pointer',
@@ -1277,7 +1277,7 @@ export const TrackingCargoLoading: React.FC = () => {
                           onClick={() => handleSelectJob('BOOKING', b)}
                           style={{
                             padding: 14,
-                            borderRadius: 8,
+                            borderRadius: 'var(--r-sm)',
                             border: isSel ? '2px solid var(--teal)' : '1px solid var(--border)',
                             background: isSel ? 'var(--teal-l)' : 'var(--card-bg)',
                             cursor: 'pointer',
@@ -1317,7 +1317,7 @@ export const TrackingCargoLoading: React.FC = () => {
                           onClick={() => handleSelectJob('RELEASE', r)}
                           style={{
                             padding: 14,
-                            borderRadius: 8,
+                            borderRadius: 'var(--r-sm)',
                             border: isSel ? '2px solid var(--teal)' : '1px solid var(--border)',
                             background: isSel ? 'var(--teal-l)' : 'var(--card-bg)',
                             cursor: 'pointer',
@@ -1345,7 +1345,7 @@ export const TrackingCargoLoading: React.FC = () => {
               </div>
 
               {/* Direct / Ad-hoc Transport Fallback Card */}
-              <div style={{ padding: 16, background: 'var(--card-sunken)', borderRadius: 8, border: '1px dashed var(--border)' }}>
+              <div style={{ padding: 16, background: 'var(--card-sunken)', borderRadius: 'var(--r-sm)', border: '1px dashed var(--border)' }}>
                 <div style={{ fontWeight: 700, fontSize: 13, marginBottom: 8 }}>Or Specify Direct Transport Parameters:</div>
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 12 }}>
                   <div>
@@ -1412,7 +1412,7 @@ export const TrackingCargoLoading: React.FC = () => {
                           alignItems: 'center',
                           gap: 12,
                           padding: 12,
-                          borderRadius: 8,
+                          borderRadius: 'var(--r-sm)',
                           border: isSel ? '2px solid var(--teal)' : '1px solid var(--border)',
                           background: isSel ? 'var(--teal-l)' : 'var(--card-bg)',
                           cursor: 'pointer',
@@ -1506,7 +1506,7 @@ export const TrackingCargoLoading: React.FC = () => {
               </div>
 
               {/* Equipment Capacity Check Card */}
-              <div style={{ padding: 14, background: 'var(--card-sunken)', borderRadius: 8, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <div style={{ padding: 14, background: 'var(--card-sunken)', borderRadius: 'var(--r-sm)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                 <div>
                   <div style={{ fontWeight: 700, fontSize: 13 }}>Payload Capability Verification</div>
                   <div style={{ fontSize: 12, color: 'var(--ink3)' }}>
@@ -1551,7 +1551,7 @@ export const TrackingCargoLoading: React.FC = () => {
               </div>
 
               {/* Items Table */}
-              <div style={{ overflowX: 'auto', border: '1px solid var(--border)', borderRadius: 8 }}>
+              <div style={{ overflowX: 'auto', border: '1px solid var(--border)', borderRadius: 'var(--r-sm)' }}>
                 <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12.5 }}>
                   <thead style={{ background: 'var(--card-sunken)' }}>
                     <tr style={{ borderBottom: '1px solid var(--border)', textAlign: 'left', color: 'var(--ink3)' }}>
@@ -1639,7 +1639,7 @@ export const TrackingCargoLoading: React.FC = () => {
 
               {/* Capacity & Volume Progress */}
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 14 }}>
-                <div style={{ padding: 14, background: 'var(--card-sunken)', borderRadius: 8 }}>
+                <div style={{ padding: 14, background: 'var(--card-sunken)', borderRadius: 'var(--r-sm)' }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12, fontWeight: 700, marginBottom: 6 }}>
                     <span>Payload Mass Utilization</span>
                     <span style={{ color: weightUtilPct > 100 ? 'var(--red)' : 'var(--teal)' }}>{weightUtilPct}%</span>
@@ -1652,7 +1652,7 @@ export const TrackingCargoLoading: React.FC = () => {
                   </div>
                 </div>
 
-                <div style={{ padding: 14, background: 'var(--card-sunken)', borderRadius: 8 }}>
+                <div style={{ padding: 14, background: 'var(--card-sunken)', borderRadius: 'var(--r-sm)' }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12, fontWeight: 700, marginBottom: 6 }}>
                     <span>Compartment Volume Utilization</span>
                     <span style={{ color: volumeUtilPct > 100 ? 'var(--red)' : 'var(--teal)' }}>{volumeUtilPct}%</span>
@@ -1724,7 +1724,7 @@ export const TrackingCargoLoading: React.FC = () => {
 
           {/* Load Balance & Physical Telemetry Panel */}
           <div className="cargo-metrics-grid" style={{ marginTop: 18 }}>
-            <div style={{ padding: '12px 14px', background: 'var(--card-sunken)', borderRadius: 8 }}>
+            <div style={{ padding: '12px 14px', background: 'var(--card-sunken)', borderRadius: 'var(--r-sm)' }}>
               <span style={{ fontSize: 10, fontWeight: 700, color: 'var(--ink3)', textTransform: 'uppercase' }}>
                 Axle Distribution (Steer &amp; Tandem)
               </span>
@@ -1734,7 +1734,7 @@ export const TrackingCargoLoading: React.FC = () => {
               <span style={{ fontSize: 10.5, color: 'var(--ink3)' }}>Requires certified weighbridge telemetry</span>
             </div>
 
-            <div style={{ padding: '12px 14px', background: 'var(--card-sunken)', borderRadius: 8 }}>
+            <div style={{ padding: '12px 14px', background: 'var(--card-sunken)', borderRadius: 'var(--r-sm)' }}>
               <span style={{ fontSize: 10, fontWeight: 700, color: 'var(--ink3)', textTransform: 'uppercase' }}>
                 Geometric Load Centroid
               </span>
@@ -1744,7 +1744,7 @@ export const TrackingCargoLoading: React.FC = () => {
               <span style={{ fontSize: 10.5, color: 'var(--ink3)' }}>Geometric center of placed masses</span>
             </div>
 
-            <div style={{ padding: '12px 14px', background: 'var(--card-sunken)', borderRadius: 8 }}>
+            <div style={{ padding: '12px 14px', background: 'var(--card-sunken)', borderRadius: 'var(--r-sm)' }}>
               <span style={{ fontSize: 10, fontWeight: 700, color: 'var(--ink3)', textTransform: 'uppercase' }}>
                 Gross Cargo Mass
               </span>
@@ -1756,7 +1756,7 @@ export const TrackingCargoLoading: React.FC = () => {
               </span>
             </div>
 
-            <div style={{ padding: '12px 14px', background: 'var(--card-sunken)', borderRadius: 8 }}>
+            <div style={{ padding: '12px 14px', background: 'var(--card-sunken)', borderRadius: 'var(--r-sm)' }}>
               <span style={{ fontSize: 10, fontWeight: 700, color: 'var(--ink3)', textTransform: 'uppercase' }}>
                 Compartment Fill
               </span>
@@ -1794,8 +1794,8 @@ export const TrackingCargoLoading: React.FC = () => {
 
               {/* Warning if discrepancies exist */}
               {hasDiscrepancies && (
-                <div style={{ padding: '12px 16px', background: '#fffbeb', border: '1px solid #fef3c7', borderRadius: 8, display: 'flex', alignItems: 'center', gap: 12 }}>
-                  <Icon name="alertTriangle" size={20} style={{ color: '#d97706', flexShrink: 0 }} />
+                <div style={{ padding: '12px 16px', background: '#fffbeb', border: '1px solid #fef3c7', borderRadius: 'var(--r-sm)', display: 'flex', alignItems: 'center', gap: 12 }}>
+                  <Icon name="alertTriangle" size={20} style={{ color: 'var(--gold)', flexShrink: 0 }} />
                   <div style={{ flex: 1, fontSize: 12.5, color: '#92400e' }}>
                     <strong>Discrepancies detected:</strong> Actual loaded quantities differ from planned handling units, or cargo damage has been logged. Explicit exception authorization is required below.
                   </div>
@@ -1803,7 +1803,7 @@ export const TrackingCargoLoading: React.FC = () => {
               )}
 
               {/* Physical Tally Table */}
-              <div style={{ overflowX: 'auto', border: '1px solid var(--border)', borderRadius: 8 }}>
+              <div style={{ overflowX: 'auto', border: '1px solid var(--border)', borderRadius: 'var(--r-sm)' }}>
                 <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12.5 }}>
                   <thead style={{ background: 'var(--card-sunken)' }}>
                     <tr style={{ borderBottom: '1px solid var(--border)', textAlign: 'left', color: 'var(--ink3)' }}>
@@ -1934,7 +1934,7 @@ export const TrackingCargoLoading: React.FC = () => {
               </div>
 
               {/* Physical Verification Checklist */}
-              <div style={{ padding: 16, background: 'var(--card-sunken)', borderRadius: 8 }}>
+              <div style={{ padding: 16, background: 'var(--card-sunken)', borderRadius: 'var(--r-sm)' }}>
                 <div style={{ fontWeight: 700, fontSize: 13, marginBottom: 10 }}>Physical Dock Verification Checklist</div>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
                   {[
@@ -1959,7 +1959,7 @@ export const TrackingCargoLoading: React.FC = () => {
 
               {/* Exception Acknowledgment (if discrepancies) */}
               {hasDiscrepancies && (
-                <div style={{ padding: 16, background: '#fffbeb', border: '1px solid #fde68a', borderRadius: 8 }}>
+                <div style={{ padding: 16, background: '#fffbeb', border: '1px solid #fde68a', borderRadius: 'var(--r-sm)' }}>
                   <label style={{ display: 'flex', alignItems: 'flex-start', gap: 10, cursor: 'pointer' }}>
                     <input
                       type="checkbox"
@@ -1994,7 +1994,7 @@ export const TrackingCargoLoading: React.FC = () => {
             <div style={{ maxWidth: 960, display: 'flex', flexDirection: 'column', gap: 20 }}>
               {/* Dispatch Status Banner */}
               {activeManifest.status === 'DISPATCHED' ? (
-                <div style={{ padding: 18, background: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: 8, display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 12 }}>
+                <div style={{ padding: 18, background: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: 'var(--r-sm)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 12 }}>
                   <div>
                     <div style={{ fontWeight: 800, fontSize: 16, color: '#166534' }}>Vehicle Officially Dispatched</div>
                     <div style={{ fontSize: 12.5, color: '#15803d', marginTop: 2 }}>
@@ -2010,7 +2010,7 @@ export const TrackingCargoLoading: React.FC = () => {
                   )}
                 </div>
               ) : (
-                <div style={{ padding: 16, background: 'var(--card-sunken)', borderRadius: 8, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <div style={{ padding: 16, background: 'var(--card-sunken)', borderRadius: 'var(--r-sm)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                   <div>
                     <div style={{ fontWeight: 700, fontSize: 14 }}>Load Verified &amp; Ready for Vehicle Release</div>
                     <div style={{ fontSize: 12, color: 'var(--ink3)' }}>
@@ -2022,7 +2022,7 @@ export const TrackingCargoLoading: React.FC = () => {
               )}
 
               {/* Pre-Departure Checklist */}
-              <div style={{ padding: 18, background: 'var(--card-bg)', border: '1px solid var(--border)', borderRadius: 8 }}>
+              <div style={{ padding: 18, background: 'var(--card-bg)', border: '1px solid var(--border)', borderRadius: 'var(--r-sm)' }}>
                 <div style={{ fontWeight: 700, fontSize: 13, marginBottom: 10 }}>Driver Pre-Departure Safety Inspection</div>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
                   {[
@@ -2046,21 +2046,21 @@ export const TrackingCargoLoading: React.FC = () => {
 
               {/* Transit & Equipment Dossier Summary */}
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: 14 }}>
-                <div style={{ padding: 14, background: 'var(--card-sunken)', borderRadius: 8 }}>
+                <div style={{ padding: 14, background: 'var(--card-sunken)', borderRadius: 'var(--r-sm)' }}>
                   <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--ink3)', textTransform: 'uppercase' }}>Fleet Equipment</div>
                   <div style={{ fontWeight: 800, fontSize: 14, marginTop: 4 }}>{activeVehicle?.name || 'Fleet Truck'}</div>
                   <div style={{ fontSize: 12, color: 'var(--ink2)' }}>Plate: {activeVehicle?.plate_number || '—'}</div>
                   {activeTrailer && <div style={{ fontSize: 12, color: 'var(--ink2)' }}>Trailer: {activeTrailer.name}</div>}
                 </div>
 
-                <div style={{ padding: 14, background: 'var(--card-sunken)', borderRadius: 8 }}>
+                <div style={{ padding: 14, background: 'var(--card-sunken)', borderRadius: 'var(--r-sm)' }}>
                   <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--ink3)', textTransform: 'uppercase' }}>Carrier Driver</div>
                   <div style={{ fontWeight: 800, fontSize: 14, marginTop: 4 }}>{activeDriver?.name || 'Assigned Driver'}</div>
                   <div style={{ fontSize: 12, color: 'var(--ink2)' }}>Phone: {activeDriver?.phone || '—'}</div>
                   <div style={{ fontSize: 12, color: 'var(--ink2)' }}>License: {activeDriver?.license_number || '—'}</div>
                 </div>
 
-                <div style={{ padding: 14, background: 'var(--card-sunken)', borderRadius: 8 }}>
+                <div style={{ padding: 14, background: 'var(--card-sunken)', borderRadius: 'var(--r-sm)' }}>
                   <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--ink3)', textTransform: 'uppercase' }}>Transit Route &amp; Seal</div>
                   <div style={{ fontWeight: 800, fontSize: 14, color: 'var(--teal)', marginTop: 4 }}>
                     Seal: {primarySeal || activeManifest.seal_number || '—'}

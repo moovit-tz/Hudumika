@@ -6,6 +6,7 @@ import { Badge } from './ui/badge.js';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from './ui/select.js';
 import { apiFetch } from '../lib/api.js';
 import { showAlert } from '../lib/alert.js';
+import { Button } from './ui/button.js';
 
 interface SealDoc {
   id: string; doc_type: string; filename: string; size_bytes: number | null;
@@ -106,10 +107,10 @@ export function SealDocumentPanel({ entityType, entityId }: { entityType: 'lot' 
       <div className="seal-card-hdr">
         <h2 className="seal-card-title">Documents</h2>
         {cloudLinked && (
-          <button type="button" className="btn btn-secondary" disabled={resolvingFolder} onClick={openCloudFolder} data-ui-native-button="">
+          <Button variant="outline" type="button" disabled={resolvingFolder} onClick={openCloudFolder}>
             <Icon name="externalLink" size={13} />
             <span>{resolvingFolder ? 'Opening…' : 'Open Drive'}</span>
-          </button>
+          </Button>
         )}
       </div>
       <div style={{ padding: 16, display: 'flex', flexDirection: 'column', gap: 12 }}>
@@ -137,7 +138,7 @@ export function SealDocumentPanel({ entityType, entityId }: { entityType: 'lot' 
         ) : (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
             {docs.map(d => (
-              <div key={d.id} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 12px', border: '1px solid var(--border)', borderRadius: 8 }}>
+              <div key={d.id} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 12px', border: '1px solid var(--border)', borderRadius: 'var(--r-sm)' }}>
                 <Icon name="fileText" size={16} color="var(--ink3)" />
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <button type="button" onClick={() => handleDownloadClick(d.id)}
@@ -152,11 +153,11 @@ export function SealDocumentPanel({ entityType, entityId }: { entityType: 'lot' 
                 <Badge variant={d.status === 'VERIFIED' ? 'success' : d.status === 'REJECTED' ? 'error' : 'gray'}>{d.status}</Badge>
                 {d.status === 'UPLOADED' && (
                   <>
-                    <button type="button" className="btn btn-secondary" onClick={() => handleVerify(d.id, 'VERIFIED')} data-ui-native-button="">Verify</button>
-                    <button type="button" className="btn btn-secondary" onClick={() => handleVerify(d.id, 'REJECTED')} data-ui-native-button="">Reject</button>
+                    <Button variant="outline" type="button" onClick={() => handleVerify(d.id, 'VERIFIED')}>Verify</Button>
+                    <Button variant="outline" type="button" onClick={() => handleVerify(d.id, 'REJECTED')}>Reject</Button>
                   </>
                 )}
-                <button type="button" className="btn btn-secondary" onClick={() => handleDelete(d.id)} data-ui-native-button=""><Icon name="trash" size={12} /></button>
+                <Button variant="outline" type="button" onClick={() => handleDelete(d.id)}><Icon name="trash" size={12} /></Button>
               </div>
             ))}
           </div>

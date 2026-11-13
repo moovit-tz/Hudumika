@@ -157,7 +157,7 @@ export function RevisionHistory({ open, onOpenChange, resourceType, resourceId, 
               Restore this version
             </Button>
           ) : (
-            <button className="btn btn-secondary btn-sm" onClick={() => onOpenChange(false)} data-ui-native-button="">Close</button>
+            <Button variant="outline" size="sm" onClick={() => onOpenChange(false)}>Close</Button>
           )}
         </DialogFooter>
       </DialogContent>

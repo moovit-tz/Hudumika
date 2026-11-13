@@ -1,6 +1,7 @@
 import type { FastifyInstance } from 'fastify';
 import { withTenant, dbPlatform } from '../db/client.js';
 import { requireRole } from '../middleware/rbac.js';
+import { SHIPMENT_FINANCE_ROLES } from './shipments.routes.js';
 import {
   hsMemory, chargePriors, shipmentVariance, wizardAccuracy, complianceAccuracy,
   CHARGE_HEADS, MIN_SAMPLE,
@@ -109,7 +110,7 @@ export async function intelligenceRoutes(fastify: FastifyInstance) {
   });
 
   // ── GET /v1/intel/variance/:shipmentId ────────────────────────────────────
-  fastify.get<{ Params: { shipmentId: string } }>('/variance/:shipmentId', async (request) => {
+  fastify.get<{ Params: { shipmentId: string } }>('/variance/:shipmentId', { preHandler: requireRole(...SHIPMENT_FINANCE_ROLES) }, async (request) => {
     const user = request.user as any;
     return withTenant(user.tenant_id, trx => shipmentVariance(trx, user.tenant_id, request.params.shipmentId));
   });

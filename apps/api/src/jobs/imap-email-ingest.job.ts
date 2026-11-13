@@ -10,6 +10,7 @@ import { normalizeSubjectForThread } from '../routes/email.routes.js';
 import { MinioIntegration } from '../integrations/minio.js';
 import { MailService } from '../services/mail.service.js';
 import { resolveImapAuth } from '../services/email-imap-auth.service.js';
+import { notifyUser } from '../lib/ws-broadcast.js';
 
 interface EnabledAccount {
   claimToken?: string;
@@ -339,6 +340,38 @@ export async function processMessage(account: EnabledAccount, source: Buffer, op
       thread_id: threadId ?? id,
       created_at: parsed.date ?? new Date(),
     }).execute();
+
+    // New mail in the bell — ONE unread notice per person, updated in place.
+    // A notice per message would bury everything else; this reads "4 new
+    // emails, latest from …" until it is opened. Only for mail that landed
+    // unread in the inbox and is actually recent: a first sync imports months
+    // of history, none of which is news.
+    const storedUnread = !(filterOutcome.markRead || options?.read);
+    const inInbox = !isSpam && !filterOutcome.archive && (options?.folder ?? 'inbox') === 'inbox';
+    const recent = Date.now() - (parsed.date ?? new Date()).getTime() < 30 * 60_000;
+    if (storedUnread && inInbox && recent) {
+      const latest = `${fromName || fromEmail} — ${subject || '(no subject)'}`.slice(0, 300);
+      const open = await trx.selectFrom('notifications').select(['id', 'metadata'])
+        .where('tenant_id', '=', account.tenantId).where('user_id', '=', account.userId)
+        .where('app', '=', 'email').where('entity_type', '=', 'email_inbox').where('read', '=', false)
+        .executeTakeFirst();
+      if (open) {
+        const meta = typeof open.metadata === 'string' ? JSON.parse(open.metadata || '{}') : (open.metadata ?? {});
+        const count = (Number(meta.count) || 1) + 1;
+        await trx.updateTable('notifications')
+          .set({ title: `${count} new emails`, message: `Latest: ${latest}`, metadata: JSON.stringify({ count }), created_at: new Date() } as any)
+          .where('id', '=', open.id).where('tenant_id', '=', account.tenantId).execute();
+        notifyUser(account.tenantId, account.userId);
+      } else {
+        await trx.insertInto('notifications').values({
+          tenant_id: account.tenantId, user_id: account.userId, app: 'email', type: 'info',
+          title: 'New email', message: latest, link: '/email', metadata: JSON.stringify({ count: 1 }),
+          entity_type: 'email_inbox', entity_id: null, entity_label: null, expires_at: null,
+          shipment_id: null, customer_id: null, trigger_type: null, channel: null, recipient: null, content: null,
+        } as any).execute();
+        notifyUser(account.tenantId, account.userId);
+      }
+    }
     if (options) {
       await options.onStored(trx, id);
       const folder = isSpam ? 'spam' : filterOutcome.archive ? 'archive' : options.folder;

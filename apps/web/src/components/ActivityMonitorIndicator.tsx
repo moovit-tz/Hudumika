@@ -115,7 +115,7 @@ export function ActivityMonitorIndicator({ appId }: { appId: string }) {
       <span style={{ width: 7, height: 7, borderRadius: '50%', background: 'var(--teal, #0d9488)', boxShadow: '0 0 0 0 rgba(13,148,136,.6)', animation: 'amPulse 2s infinite' }} />
       Activity on
       <span style={{ opacity: .7, fontWeight: 600 }}>· {live.keystrokes}k {live.clicks}c</span>
-      <style>{`@keyframes amPulse{0%{box-shadow:0 0 0 0 rgba(13,148,136,.5)}70%{box-shadow:0 0 0 6px rgba(13,148,136,0)}100%{box-shadow:0 0 0 0 rgba(13,148,136,0)}}`}</style>
+      <style>{`@keyframes amPulse{0%{box-shadow:0 0 0 0 color-mix(in srgb, var(--teal) 50%, transparent)}70%{box-shadow:0 0 0 6px transparent}100%{box-shadow:0 0 0 0 transparent}}`}</style>
     </a>
   );
 }

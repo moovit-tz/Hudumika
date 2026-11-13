@@ -60,9 +60,16 @@ export const zktecoAdapter: DeviceProviderAdapter = {
       // "YYYY-MM-DD HH:MM:SS" — device-local time, no timezone in the wire
       // format. Treated as the tenant's own local time (same assumption
       // isoDate() elsewhere in hr.routes.ts makes for a bare `date` column).
-      const punchedAt = new Date(time.replace(' ', 'T'));
-      if (Number.isNaN(punchedAt.getTime())) continue;
-      punches.push({ externalPin: pin.trim(), punchedAt, rawStatus: status?.trim() || null });
+      // Parse the wall-clock components as UTC only as a transport placeholder;
+      // attendance-device.service resolves the original wall clock against
+      // the device's configured IANA timezone. Never use the API host zone.
+      const match = /^(\d{4})-(\d{2})-(\d{2}) (\d{2}):(\d{2}):(\d{2})$/.exec(time.trim());
+      if (!match) continue;
+      const [, y, mo, d, h, mi, s] = match;
+      const punchedAt = new Date(Date.UTC(+y, +mo - 1, +d, +h, +mi, +s));
+      if (Number.isNaN(punchedAt.getTime()) || punchedAt.getUTCFullYear() !== +y || punchedAt.getUTCMonth() !== +mo - 1 || punchedAt.getUTCDate() !== +d
+          || punchedAt.getUTCHours() !== +h || punchedAt.getUTCMinutes() !== +mi || punchedAt.getUTCSeconds() !== +s) continue;
+      punches.push({ externalPin: pin.trim(), punchedAt, sourceLocalTime: time.trim(), rawStatus: status?.trim() || null });
     }
     return punches;
   },

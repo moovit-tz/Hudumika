@@ -905,7 +905,7 @@
   align-items: center;
   background: var(--white);
   border: 1px solid var(--border);
-  border-radius: 6px;
+  border-radius: var(--r-sm);
   padding: 0 6px 0 8px;
   height: 32px;
   transition: border-color 0.15s ease, box-shadow 0.15s ease;
@@ -969,7 +969,7 @@
   padding: 3px;
   background: var(--bg);
   border: 1px solid var(--border);
-  border-radius: 8px;
+  border-radius: var(--r-sm);
 }
 
 .ds-mode-tab {
@@ -979,7 +979,7 @@
   border: none;
   background: transparent;
   padding: 5px 12px;
-  border-radius: 6px;
+  border-radius: var(--r-sm);
   font-size: 12px;
   font-weight: 600;
   color: var(--ink3);
@@ -1049,7 +1049,7 @@
   gap: 5px;
   background: var(--white);
   border: 1px solid var(--border);
-  border-radius: 6px;
+  border-radius: var(--r-sm);
   padding: 0 8px;
   height: 32px;
   flex-shrink: 0;
@@ -1232,7 +1232,7 @@
 .ds-shadow-sample {
   width: 44px;
   height: 44px;
-  border-radius: 8px;
+  border-radius: var(--r-sm);
   background: var(--white);
   border: 1px solid var(--border);
 }
@@ -1426,7 +1426,7 @@
   padding: 2px;
   background: var(--white);
   border: 1px solid var(--border);
-  border-radius: 6px;
+  border-radius: var(--r-sm);
 }
 
 .ds-preview-toggle .ds-tab {
@@ -1558,7 +1558,7 @@
   margin: 0;
   padding: 6px 12px;
   background: var(--red-l);
-  border-radius: 6px;
+  border-radius: var(--r-sm);
   border: 1px solid var(--red);
 }
 
@@ -1759,7 +1759,7 @@
   justify-content: center;
   width: 22px;
   height: 22px;
-  border-radius: 6px;
+  border-radius: var(--r-sm);
   border: none;
   background: transparent;
   color: currentColor;
@@ -2003,7 +2003,7 @@
   background-image: linear-gradient(90deg, var(--bg) 25%, var(--border) 50%, var(--bg) 75%);
   background-size: 200% 100%;
   animation: oscarShimmer 1.4s ease-in-out infinite;
-  border-radius: 6px;
+  border-radius: var(--r-sm);
   display: block;
 }
 
@@ -2627,7 +2627,7 @@
 .anim-shimmer-bar {
   width: 80px;
   height: 12px;
-  border-radius: 6px;
+  border-radius: var(--r-sm);
   background: var(--bg);
   background-image: linear-gradient(90deg, var(--bg) 25%, var(--border) 50%, var(--bg) 75%);
   background-size: 200% 100%;
@@ -2746,7 +2746,7 @@
   justify-content: center;
   width: 26px;
   height: 26px;
-  border-radius: 6px;
+  border-radius: var(--r-sm);
   border: 1px solid var(--border);
   background: transparent;
   color: var(--ink3);
@@ -2818,14 +2818,14 @@
   border-radius: 9999px;
   font-size: 13px;
   font-weight: 600;
-  box-shadow: 0 4px 14px rgba(13, 148, 136, 0.4);
+  box-shadow: 0 4px 14px color-mix(in srgb, var(--teal) 40%, transparent);
   cursor: pointer;
   transition: all 0.2s ease;
 }
 
 .ds-mobile-preview-fab:hover {
   transform: translateY(-2px);
-  box-shadow: 0 6px 20px rgba(13, 148, 136, 0.5);
+  box-shadow: 0 6px 20px color-mix(in srgb, var(--teal) 50%, transparent);
 }
 
 /* The FAB's own Dialog — referenced by the JSX but never actually given a

@@ -71,9 +71,9 @@ export function StepResults({ draft, onBack }: StepProps) {
 
   return (
     <div>
-      <button type="button" onClick={onBack} className="btn btn-ghost btn-sm" style={{ marginBottom: 16 }} data-ui-native-button="">
+      <Button variant="ghost" size="sm" type="button" onClick={onBack} style={{ marginBottom: 16 }}>
         <Icon name="chevronLeft" size={13} /> Back
-      </button>
+      </Button>
 
       <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 12, marginBottom: 12, flexWrap: 'wrap' }}>
         <div style={{ minWidth: 0 }}>
@@ -103,14 +103,12 @@ export function StepResults({ draft, onBack }: StepProps) {
       <SectionCard
         title="Process flow"
         action={
-          <button
+          <Button variant="outline" size="sm"
             type="button"
-            onClick={() => setShowDetails(v => !v)}
-            className="btn btn-secondary btn-sm"
-           data-ui-native-button="">
+            onClick={() => setShowDetails(v => !v)}>
             <Icon name={showDetails ? 'chevronUp' : 'chevronDown'} size={13} />
             {showDetails ? 'Hide' : 'View'} certificates, timing & offices
-          </button>
+          </Button>
         }
       >
         <Accordion type="single" collapsible className="flex flex-col gap-2">
@@ -207,7 +205,7 @@ export function StepResults({ draft, onBack }: StepProps) {
         <div style={{
           background: 'linear-gradient(135deg, var(--teal-l) 0%, var(--green-l) 100%)',
           border: '1px solid var(--teal-m)',
-          borderRadius: 16,
+          borderRadius: 'var(--r-lg)',
           padding: 'clamp(18px, 4vw, 24px)',
           boxShadow: '0 4px 20px var(--teal-l)',
         }}>
@@ -230,15 +228,15 @@ export function StepResults({ draft, onBack }: StepProps) {
                 <Icon name="checkCircle" size={15} /> Draft invoice created — find it in Billing to review and send.
               </div>
             ) : !showRequestForm ? (
-              <button type="button" className="btn btn-primary" style={{ width: '100%' }} onClick={() => setShowRequestForm(true)} data-ui-native-button="">
+              <Button type="button" style={{ width: '100%' }} onClick={() => setShowRequestForm(true)}>
                 <Icon name="fileText" size={15} /> Request Consultation Invoice
-              </button>
+              </Button>
             ) : (
               <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
                 <EntityPicker label="Customer" value={customer} onChange={setCustomer} search={searchCustomers} placeholder="Search customers…" />
                 {postError && <div style={{ color: 'var(--red)', fontSize: 12.5 }}>{postError}</div>}
                 <div style={{ display: 'flex', gap: 8 }}>
-                  <button type="button" className="btn btn-secondary" onClick={() => setShowRequestForm(false)} data-ui-native-button="">Cancel</button>
+                  <Button variant="outline" type="button" onClick={() => setShowRequestForm(false)}>Cancel</Button>
                   <Button type="button" onClick={requestConsultation} loading={posting} loadingText="Creating…">
                     Send Request
                   </Button>

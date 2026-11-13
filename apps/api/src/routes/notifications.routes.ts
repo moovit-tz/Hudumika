@@ -16,6 +16,12 @@ const customerScope = async (u: any) => (await resolveCustomerId(u)) ?? NOTHING;
 const NOTIFICATION_SEND_ROLES = new Set(['SUPER_ADMIN', 'ADMIN', 'TENANT_ADMIN', 'MANAGER']);
 const isSafeInternalLink = (value: string | undefined) => !value || (/^\/(?!\/)/.test(value) && !/[\u0000-\u001f]/.test(value));
 import { withTenant } from '../db/client.js';
+import { notifyUser } from '../lib/ws-broadcast.js';
+
+/** How far back the header bar looks. It is a nudge about what is current;
+ *  the bell is where older unread items are worked through. */
+const TICKER_WINDOW_DAYS = 14;
+const TICKER_MAX = 5;
 
 export async function notificationRoutes(fastify: FastifyInstance) {
   fastify.addHook('preHandler', fastify.authenticate);
@@ -69,9 +75,13 @@ export async function notificationRoutes(fastify: FastifyInstance) {
         countQ = countQ.where('customer_id', '=', await customerScope(user));
         totalQ = totalQ.where('customer_id', '=', await customerScope(user));
       } else {
-        q = q.where('user_id', '=', user.sub);
-        countQ = countQ.where('user_id', '=', user.sub);
-        totalQ = totalQ.where('user_id', '=', user.sub);
+        // Muted apps are filtered on the way out, not skipped on the way in:
+        // unmuting brings the history back.
+        const muted = trx.selectFrom('notification_mutes').select('app')
+          .where('tenant_id', '=', user.tenant_id).where('user_id', '=', user.sub);
+        q = q.where('user_id', '=', user.sub).where('app', 'not in', muted);
+        countQ = countQ.where('user_id', '=', user.sub).where('app', 'not in', muted);
+        totalQ = totalQ.where('user_id', '=', user.sub).where('app', 'not in', muted);
       }
 
       if (unread_only === 'true') q = q.where('read', '=', false);
@@ -119,11 +129,93 @@ export async function notificationRoutes(fastify: FastifyInstance) {
       if (user.role === 'CUSTOMER') {
         q = q.where('customer_id', '=', await customerScope(user));
       } else {
-        q = q.where('user_id', '=', user.sub);
+        q = q.where('user_id', '=', user.sub).where('app', 'not in',
+          trx.selectFrom('notification_mutes').select('app')
+            .where('tenant_id', '=', user.tenant_id).where('user_id', '=', user.sub));
       }
 
       const result = await q.executeTakeFirst();
       return { count: Number(result?.cnt ?? 0) };
+    });
+  });
+
+  /**
+   * GET /v1/notifications/ticker
+   * What the header bar should announce: unread, still current, not muted,
+   * one row per thing.
+   *
+   * The header used to take the newest 50 notifications, read or not, and
+   * keep the unread ones — so anything unread but older than the 50th row
+   * could never appear. One account had 29 unread and was shown 1. This asks
+   * for unread rows directly.
+   */
+  fastify.get('/ticker', async (request) => {
+    const user = request.user;
+    return withTenant(user.tenant_id, async (trx) => {
+      const since = new Date(Date.now() - TICKER_WINDOW_DAYS * 86_400_000);
+      let q = trx.selectFrom('notifications')
+        .select(['id', 'app', 'type', 'title', 'message', 'link', 'shipment_id', 'entity_type', 'entity_id', 'entity_label', 'created_at'])
+        .where('tenant_id', '=', user.tenant_id)
+        .where('read', '=', false)
+        .where('title', 'is not', null)
+        .where((eb) => eb.or([eb('channel', 'is', null), eb('channel', '=', 'IN_APP')]))
+        .where('created_at', '>=', since)
+        .where((eb) => eb.or([eb('expires_at', 'is', null), eb('expires_at', '>', new Date())]));
+      if (user.role === 'CUSTOMER') {
+        q = q.where('customer_id', '=', await customerScope(user));
+      } else {
+        q = q.where('user_id', '=', user.sub).where('app', 'not in',
+          trx.selectFrom('notification_mutes').select('app')
+            .where('tenant_id', '=', user.tenant_id).where('user_id', '=', user.sub));
+      }
+      // Read more than we show, then keep one per subject: several rows can be
+      // about the same shipment or event, and rotating the same sentence is
+      // not five pieces of news.
+      const rows = await q.orderBy('created_at', 'desc').limit(60).execute();
+      const seen = new Set<string>();
+      const items = rows.filter((n) => {
+        const key = `${n.title}|${n.shipment_id ?? n.entity_id ?? ''}`;
+        if (seen.has(key)) return false;
+        seen.add(key);
+        return true;
+      }).slice(0, TICKER_MAX);
+      return { items };
+    });
+  });
+
+  /**
+   * GET /v1/notifications/mutes — the apps this person has muted, and the
+   * apps that have ever notified them (so the settings list offers real
+   * choices rather than every app on the platform).
+   */
+  fastify.get('/mutes', async (request, reply) => {
+    const user = request.user;
+    if (user.role === 'CUSTOMER') return reply.status(403).send({ error: 'Not available for this account type.' });
+    return withTenant(user.tenant_id, async (trx) => {
+      const muted = await trx.selectFrom('notification_mutes').select('app')
+        .where('tenant_id', '=', user.tenant_id).where('user_id', '=', user.sub).execute();
+      const seen = await trx.selectFrom('notifications').select('app').distinct()
+        .where('tenant_id', '=', user.tenant_id).where('user_id', '=', user.sub)
+        .where('title', 'is not', null).execute();
+      const mutedApps = muted.map(m => m.app);
+      return { muted: mutedApps, apps: [...new Set([...seen.map(s => s.app), ...mutedApps])].sort() };
+    });
+  });
+
+  /** PUT /v1/notifications/mutes — replace this person's muted-app list. */
+  fastify.put('/mutes', async (request, reply) => {
+    const user = request.user;
+    if (user.role === 'CUSTOMER') return reply.status(403).send({ error: 'Not available for this account type.' });
+    const { apps } = z.object({ apps: z.array(z.string().trim().min(1).max(50).regex(/^[a-z0-9_-]+$/)).max(60) }).parse(request.body);
+    const wanted = [...new Set(apps)];
+    return withTenant(user.tenant_id, async (trx) => {
+      await trx.deleteFrom('notification_mutes')
+        .where('tenant_id', '=', user.tenant_id).where('user_id', '=', user.sub).execute();
+      if (wanted.length) {
+        await trx.insertInto('notification_mutes')
+          .values(wanted.map(app => ({ tenant_id: user.tenant_id, user_id: user.sub, app }))).execute();
+      }
+      return { muted: wanted };
     });
   });
 
@@ -227,7 +319,7 @@ export async function notificationRoutes(fastify: FastifyInstance) {
         .values({
           tenant_id,
           user_id: body.user_id,
-          app: body.app ?? 'clearos',
+          app: body.app ?? 'workspace',
           type: body.type ?? 'info',
           title: body.title,
           message: body.message ?? null,
@@ -246,6 +338,7 @@ export async function notificationRoutes(fastify: FastifyInstance) {
         } as any)
         .returningAll()
         .execute();
+      notifyUser(tenant_id, body.user_id);
 
       return { notification: row };
     });

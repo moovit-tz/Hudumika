@@ -6,6 +6,7 @@ import { showConfirm } from '../../../lib/confirm.js';
 import type { CloudFile, Crumb, CloudView } from '../../../shells/cloud-context.js';
 import { FileMenuItems, type FileMenuHandlers } from './FileMenu.js';
 import { Tip } from '../../../components/ui/tooltip.js';
+import { Button } from '../../../components/ui/button.js';
 
 type SortBy = 'name' | 'size' | 'modified';
 type ViewMode = 'grid' | 'list';
@@ -53,18 +54,18 @@ export function BrowserToolbar(props: {
         <div className="fb-selection-actions">
           {isTrashView ? (
             <>
-              <button className="btn btn-ghost btn-sm" onClick={onBulkRestore} data-ui-native-button=""><Icon name="refresh" size={14} /> Restore</button>
+              <Button variant="ghost" size="sm" onClick={onBulkRestore}><Icon name="refresh" size={14} /> Restore</Button>
               {canPermanentlyDelete && (
-                <button className="btn btn-ghost btn-sm fb-danger-action" onClick={onBulkPermanentDelete} data-ui-native-button=""><Icon name="trash2" size={14} /> Delete forever</button>
+                <Button variant="ghost" size="sm" className="fb-danger-action" onClick={onBulkPermanentDelete}><Icon name="trash2" size={14} /> Delete forever</Button>
               )}
             </>
           ) : (
             <>
-              <button className="btn btn-ghost btn-sm" onClick={onBulkDownload} data-ui-native-button=""><Icon name="download" size={14} /> Download</button>
-              {selectedCount === 1 && <button className="btn btn-ghost btn-sm" onClick={onBulkShare} data-ui-native-button=""><Icon name="userPlus" size={14} /> Share</button>}
-              <button className="btn btn-ghost btn-sm" onClick={onBulkMove} data-ui-native-button=""><Icon name="folderOpen" size={14} /> Move to</button>
-              <button className="btn btn-ghost btn-sm" onClick={onBulkStar} data-ui-native-button=""><Icon name="star" size={14} /> Star</button>
-              <button className="btn btn-ghost btn-sm fb-danger-action" onClick={onBulkTrash} data-ui-native-button=""><Icon name="trash" size={14} /> Move to trash</button>
+              <Button variant="ghost" size="sm" onClick={onBulkDownload}><Icon name="download" size={14} /> Download</Button>
+              {selectedCount === 1 && <Button variant="ghost" size="sm" onClick={onBulkShare}><Icon name="userPlus" size={14} /> Share</Button>}
+              <Button variant="ghost" size="sm" onClick={onBulkMove}><Icon name="folderOpen" size={14} /> Move to</Button>
+              <Button variant="ghost" size="sm" onClick={onBulkStar}><Icon name="star" size={14} /> Star</Button>
+              <Button variant="ghost" size="sm" className="fb-danger-action" onClick={onBulkTrash}><Icon name="trash" size={14} /> Move to trash</Button>
             </>
           )}
         </div>
@@ -122,12 +123,10 @@ export function BrowserToolbar(props: {
 
         <div className="fb-toolbar-actions">
           {isTrashView && trashedCount > 0 && canPermanentlyDelete && (
-            <button
-              onClick={async () => { if (await showConfirm('Empty trash? This permanently deletes all items in Trash.', { confirmLabel: 'Empty Trash' })) onEmptyTrash(); }}
-              className="btn btn-secondary btn-sm fb-empty-trash-btn"
-             data-ui-native-button="">
+            <Button variant="outline" size="sm" className="fb-empty-trash-btn"
+              onClick={async () => { if (await showConfirm('Empty trash? This permanently deletes all items in Trash.', { confirmLabel: 'Empty Trash' })) onEmptyTrash(); }}>
               <Icon name="trash2" size={13} /> Empty trash
-            </button>
+            </Button>
           )}
 
           <Select value={sortBy} onValueChange={v => setSortBy(v as SortBy)}>

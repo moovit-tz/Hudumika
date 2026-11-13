@@ -204,7 +204,7 @@ export function PettiRequest() {
 
             <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
               <div style={{ display: 'flex', gap: 12, alignItems: 'flex-start', padding: 10, background: 'var(--bg)', borderRadius: 'var(--r)' }}>
-                <span style={{ fontSize: 11, fontWeight: 800, padding: '2px 8px', borderRadius: 10, background: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))' }}>1</span>
+                <span style={{ fontSize: 11, fontWeight: 800, padding: '2px 8px', borderRadius: 'var(--r)', background: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))' }}>1</span>
                 <div style={{ flex: 1, fontSize: 12 }}>
                   <strong style={{ color: 'var(--ink)' }}>Voucher Submission:</strong>
                   <div style={{ color: 'var(--ink3)', marginTop: 2 }}>Staff requests an expense advance or reimbursement with target vault and justification.</div>
@@ -212,7 +212,7 @@ export function PettiRequest() {
               </div>
 
               <div style={{ display: 'flex', gap: 12, alignItems: 'flex-start', padding: 10, background: 'var(--bg)', borderRadius: 'var(--r)' }}>
-                <span style={{ fontSize: 11, fontWeight: 800, padding: '2px 8px', borderRadius: 10, background: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))' }}>2</span>
+                <span style={{ fontSize: 11, fontWeight: 800, padding: '2px 8px', borderRadius: 'var(--r)', background: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))' }}>2</span>
                 <div style={{ flex: 1, fontSize: 12 }}>
                   <strong style={{ color: 'var(--ink)' }}>Department Verification:</strong>
                   <div style={{ color: 'var(--ink3)', marginTop: 2 }}>Assigned department approver reviews the voucher. Approver backups act automatically if on leave.</div>
@@ -220,7 +220,7 @@ export function PettiRequest() {
               </div>
 
               <div style={{ display: 'flex', gap: 12, alignItems: 'flex-start', padding: 10, background: 'var(--bg)', borderRadius: 'var(--r)' }}>
-                <span style={{ fontSize: 11, fontWeight: 800, padding: '2px 8px', borderRadius: 10, background: 'var(--green)', color: 'hsl(var(--primary-foreground))' }}>3</span>
+                <span style={{ fontSize: 11, fontWeight: 800, padding: '2px 8px', borderRadius: 'var(--r)', background: 'var(--green)', color: 'hsl(var(--primary-foreground))' }}>3</span>
                 <div style={{ flex: 1, fontSize: 12 }}>
                   <strong style={{ color: 'var(--ink)' }}>Finance Release & Posting:</strong>
                   <div style={{ color: 'var(--ink3)', marginTop: 2 }}>Finance disburses cash. The transaction posts instantly into <strong>FinOps Expenses</strong> with auto-generated receipt vouchers.</div>

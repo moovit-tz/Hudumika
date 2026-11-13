@@ -53,7 +53,7 @@ export function ActivityMonitorPage() {
   const cell = (r: number, cc: number) => {
     const v = summary?.zones[`r${r}c${cc}`] ?? 0;
     const t = v / maxZone;
-    return <div key={`r${r}c${cc}`} title={`zone ${r},${cc}: ${v}`} style={{ background: `rgba(13,148,136,${v ? 0.1 + 0.85 * t : 0})`, borderRadius: 'var(--r-sm)'}} />;
+    return <div key={`r${r}c${cc}`} title={`zone ${r},${cc}: ${v}`} style={{ background: v ? `color-mix(in srgb, var(--teal) ${Math.round((0.1 + 0.85 * t) * 100)}%, transparent)` : 'transparent', borderRadius: 'var(--r-sm)'}} />;
   };
 
   return (

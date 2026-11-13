@@ -1,4 +1,4 @@
-﻿import React, { useState, useEffect, useRef, useCallback, createContext, useContext, useMemo } from 'react';
+import React, { useState, useEffect, useRef, useCallback, createContext, useContext, useMemo } from 'react';
 import { useSearchParams, Link } from 'react-router-dom';
 import { useIsMobile } from '../../hooks/useIsMobile.js';
 import { Icon } from '../../components/Icon.js';
@@ -72,7 +72,6 @@ export const NAV: Array<{ group: string; icon: IconName; items: Array<{ key: str
     { key: 'data-access',        label: 'Data Access',          icon: 'shield'        },
     { key: 'email',              label: 'Email',                icon: 'mail'          },
     { key: 'notifications',      label: 'Notifications',        icon: 'bell'          },
-    { key: 'communications',     label: 'Communications',       icon: 'zap'           },
   ]},
   { group: 'Finance', icon: 'dollarSign', items: [
     { key: 'finance-general',    label: 'General',              icon: 'dollarSign',    entitlementKey: 'finops' },
@@ -183,20 +182,94 @@ export const ToggleRow: React.FC<{ label: string; hint?: string; value: boolean;
   </div>
 );
 
-export const Card: React.FC<{ title: string; desc?: string; children: React.ReactNode; twoCol?: boolean; action?: React.ReactNode }> = ({ title, desc, children, twoCol, action }) => (
-  <div className="s-card">
-    <div className={`s-card-hdr${action ? ' s-card-hdr--row' : ''}`}>
-      <div>
-        <h3 className="s-card-title">{title}</h3>
-        {desc && <p className="s-card-desc">{desc}</p>}
+export const Card: React.FC<{
+  title: string;
+  desc?: string;
+  children: React.ReactNode;
+  twoCol?: boolean;
+  action?: React.ReactNode;
+  collapsible?: boolean;
+  defaultOpen?: boolean;
+  open?: boolean;
+  onToggle?: () => void;
+  badge?: React.ReactNode;
+  icon?: IconName;
+  className?: string;
+}> = ({
+  title,
+  desc,
+  children,
+  twoCol,
+  action,
+  collapsible = false,
+  defaultOpen = true,
+  open: controlledOpen,
+  onToggle,
+  badge,
+  icon,
+  className = '',
+}) => {
+  const [uncontrolledOpen, setUncontrolledOpen] = useState(defaultOpen);
+  const isControlled = controlledOpen !== undefined;
+  const isOpen = isControlled ? controlledOpen : uncontrolledOpen;
+
+  const handleHeaderClick = () => {
+    if (!collapsible) return;
+    if (onToggle) onToggle();
+    if (!isControlled) setUncontrolledOpen(o => !o);
+  };
+
+  return (
+    <div className={`s-card ${collapsible ? 's-card--collapsible' : ''} ${!isOpen ? 's-card--closed' : ''} ${className}`}>
+      <div
+        className={`s-card-hdr${action || collapsible || badge ? ' s-card-hdr--row' : ''}`}
+        onClick={handleHeaderClick}
+        style={collapsible ? { cursor: 'pointer', userSelect: 'none' } : undefined}
+      >
+        <div style={{ display: 'flex', alignItems: 'flex-start', gap: 10, flex: 1, minWidth: 0 }}>
+          {icon && (
+            <div className="s-card-icon" style={{ marginTop: 1, color: 'var(--teal)', flexShrink: 0 }}>
+              <Icon name={icon} size={16} />
+            </div>
+          )}
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+              <h3 className="s-card-title">{title}</h3>
+              {badge}
+            </div>
+            {desc && <p className="s-card-desc">{desc}</p>}
+          </div>
+        </div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0 }}>
+          {action && <div onClick={e => e.stopPropagation()}>{action}</div>}
+          {collapsible && (
+            <span
+              className="s-card-chevron"
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                width: 24,
+                height: 24,
+                borderRadius: 'var(--r-sm)',
+                color: 'var(--ink3)',
+                transition: 'transform 0.2s ease',
+                transform: isOpen ? 'rotate(0deg)' : 'rotate(-90deg)',
+              }}
+            >
+              <Icon name="chevronDown" size={16} />
+            </span>
+          )}
+        </div>
       </div>
-      {action}
+      {isOpen && (
+        <div className={`s-card-grid${twoCol ? ' s-card-grid--2' : ''}`}>
+          {children}
+        </div>
+      )}
     </div>
-    <div className={`s-card-grid${twoCol ? ' s-card-grid--2' : ''}`}>
-      {children}
-    </div>
-  </div>
-);
+  );
+};
 
 export const SaveRow: React.FC<{ extra?: React.ReactNode; onSave?: () => void; saving?: boolean; saved?: boolean }> = ({ extra, onSave, saving, saved }) => (
   <div className="s-save-row">

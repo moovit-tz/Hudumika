@@ -147,12 +147,12 @@ export function ProviderFilesPanel({ provider }: { provider: StorageProvider }) 
           ))}
           {conn?.account_label && <span style={{ fontSize:'var(--text-xs)', color: 'var(--ink3)' }}>· {conn.account_label}</span>}
         </div>
-        <button onClick={handleSync} disabled={busy} className="btn btn-secondary btn-sm" style={{ gap: 6 }} data-ui-native-button="">
+        <Button variant="outline" size="sm" onClick={handleSync} disabled={busy} style={{ gap: 6 }}>
           <Icon name="refresh" size={13} /> {busy ? 'Syncing…' : 'Sync now'}
-        </button>
-        <button onClick={handleDisconnect} disabled={busy} className="btn btn-secondary btn-sm" style={{ gap: 6, color: 'var(--red)' }} data-ui-native-button="">
+        </Button>
+        <Button variant="outline" size="sm" onClick={handleDisconnect} disabled={busy} style={{ gap: 6, color: 'var(--red)' }}>
           Disconnect
-        </button>
+        </Button>
       </div>
 
       {conn?.last_synced_at && (

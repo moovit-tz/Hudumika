@@ -169,22 +169,27 @@ export function FreightQuoteGeneratorPage() {
       reader.readAsDataURL(file);
       const base64 = await base64Promise;
 
-      const ocrRes: any = await apiFetch('/v1/ocr/scan', {
+      // The extracted fields become a real quote, so a made-up sample
+      // document (returned when no OCR key is set) must never fill it.
+      const scan: any = await apiFetch('/v1/ocr/scan', {
         method: 'POST',
         body: JSON.stringify({
           image_base64: base64,
           media_type: file.type || 'image/jpeg',
-          allow_simulated: true,
+          allow_simulated: false,
         }),
       });
+      // The API nests the fields under `result`; reading them off the top
+      // level meant an upload never filled anything in.
+      const ocrRes: any = scan?.result ?? null;
 
-      if (ocrRes && (ocrRes.overview || ocrRes.transport || ocrRes.financial || ocrRes.parties)) {
-        const origin = ocrRes.overview?.loading_port || ocrRes.transport?.loading_port || ocrRes.parties?.shipper_address || form.origin_port;
-        const dest = ocrRes.overview?.discharge_port || ocrRes.transport?.discharge_port || ocrRes.parties?.consignee_address || form.destination_port;
-        const weight = ocrRes.overview?.gross_weight_kg || ocrRes.transport?.gross_weight_kg || form.weight_kg;
+      if (ocrRes && (ocrRes.overview || ocrRes.financial || ocrRes.parties)) {
+        const origin = ocrRes.overview?.origin_port || ocrRes.overview?.loading_port || ocrRes.parties?.shipper_address || form.origin_port;
+        const dest = ocrRes.overview?.dest_port || ocrRes.overview?.discharge_port || ocrRes.parties?.consignee_address || form.destination_port;
+        const weight = ocrRes.overview?.gross_weight_kg || form.weight_kg;
         const val = ocrRes.financial?.invoice_value_usd || form.cargo_value_usd;
         const terms = ocrRes.financial?.incoterms || form.incoterms;
-        const cType = ocrRes.overview?.package_type || ocrRes.overview?.cargo_description || form.cargo_type;
+        const cType = ocrRes.overview?.goods_desc || ocrRes.overview?.package_type || form.cargo_type;
 
         setForm(prev => ({
           ...prev,

@@ -45,6 +45,7 @@ import { SwitchRow } from '../../components/ui/list-item-row.js';
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '../../components/ui/sheet.js';
 import { clockGate, fdate, ftime, fdatetime, fmtTZS, avatarBg, initials, isUUID, friendlyAssignee, Av, DOC_TYPE_LABEL, Card, type DeclParty, type DeclGeneral, type DeclParties, type DeclFinancial, type DeclTransport, type HsLine, emptyParty, emptyGeneral, emptyFinancial, emptyTransport, emptyHsLine } from './utils.js';
 import { ListenersSidebar } from './TeamWorkflow.js';
+import { Button } from '../../components/ui/button.js';
 export function buildDeclarationPayload(general: DeclGeneral, parties: DeclParties, financial: DeclFinancial, transport: DeclTransport, items: HsLine[]) {
   const tansad = `${general.tansad_prefix}-${general.tansad_year}-${general.tansad_seq}`;
   const toDate = (s: string) => (s ? new Date(s) : null);
@@ -1185,12 +1186,12 @@ export function DeclarationTab({ job, shipmentId, isLive, onRefresh }: { job: Cl
               )}
 
               <div style={{ display: 'flex', gap: 8, marginTop: 11 }}>
-                <button type="button" className="btn btn-primary btn-sm" onClick={applyPrefill} data-ui-native-button="">
+                <Button size="sm" type="button" onClick={applyPrefill}>
                   Fill the form
-                </button>
-                <button type="button" className="btn btn-secondary btn-sm" onClick={() => setPrefill(null)} data-ui-native-button="">
+                </Button>
+                <Button variant="outline" size="sm" type="button" onClick={() => setPrefill(null)}>
                   Start blank
-                </button>
+                </Button>
               </div>
             </div>
           </div>
@@ -1426,9 +1427,9 @@ export function DeclarationTab({ job, shipmentId, isLive, onRefresh }: { job: Cl
         <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
             <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--ink)' }}>HS Code Lines — {items.length} item(s)</span>
-            <button type="button" className="btn btn-secondary btn-sm" onClick={() => setItems(p => [...p, emptyHsLine()])} style={{ display: 'flex', alignItems: 'center', gap: 4 }} data-ui-native-button="">
+            <Button variant="outline" size="sm" type="button" onClick={() => setItems(p => [...p, emptyHsLine()])} style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
               <Icon name="plus" size={12} /> Add Line
-            </button>
+            </Button>
           </div>
           {items.map((line, i) => (
             <div key={i} className="decl-block" style={{ position: 'relative' }}>
@@ -1472,10 +1473,10 @@ export function DeclarationTab({ job, shipmentId, isLive, onRefresh }: { job: Cl
 
       {/* Save button */}
       <div style={{ marginTop: 20, paddingTop: 14, borderTop: '1px solid var(--border)', display: 'flex', alignItems: 'center', gap: 12 }}>
-        <button type="submit" className="btn btn-primary btn-sm" disabled={saving || !loadedDeclaration} style={{ display: 'flex', alignItems: 'center', gap: 7, padding: 'var(--ds-btn-py) 20px', fontSize: 13, minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}} data-ui-native-button="">
+        <Button size="sm" type="submit" disabled={saving || !loadedDeclaration} style={{ display: 'flex', alignItems: 'center', gap: 7, padding: 'var(--ds-btn-py) 20px', fontSize: 13, minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}}>
           <Icon name="save" size={14} />
           {!loadedDeclaration ? 'Loading…' : saving ? 'Saving…' : saved ? '✓ Saved' : 'Save Declaration'}
-        </button>
+        </Button>
       </div>
     </form>
   );

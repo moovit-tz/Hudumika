@@ -154,7 +154,7 @@ export function MentionInput({ value, onChange, users, placeholder, disabled, on
           left: 0,
           background: 'var(--white)',
           border: '1px solid var(--border)',
-          borderRadius: 8,
+          borderRadius: 'var(--r-sm)',
           boxShadow: 'var(--elev-lg)',
           zIndex: 1000,
           minWidth: 230,

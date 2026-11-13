@@ -39,7 +39,7 @@
 .inv-kpi-card {
   background: var(--white);
   border: 1px solid var(--border);
-  border-radius: 12px;
+  border-radius: var(--r);
   padding: 16px 18px;
   box-shadow: var(--elev-sm);
 }
@@ -50,7 +50,7 @@
 .inv-card {
   background: var(--white);
   border: 1px solid var(--border);
-  border-radius: 12px;
+  border-radius: var(--r);
   overflow: hidden;
   box-shadow: var(--elev-sm);
 }

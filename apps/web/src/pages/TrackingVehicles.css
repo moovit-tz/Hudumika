@@ -30,7 +30,7 @@
 
 .trk-select {
   padding: 8px 12px;
-  border-radius: 8px;
+  border-radius: var(--r-sm);
   border: 1px solid var(--border);
   background: var(--white);
   font-family: var(--font);
@@ -111,7 +111,7 @@
 
 .trk-kpi-card {
   background: var(--white);
-  border-radius: 12px;
+  border-radius: var(--r);
   padding: 16px 20px;
   box-shadow: var(--elev-sm);
   display: flex;
@@ -145,7 +145,7 @@
   font-size: 11px;
   font-weight: 700;
   padding: 2px 6px;
-  border-radius: 12px;
+  border-radius: var(--r);
 }
 
 .trk-kpi-trend.positive {
@@ -178,7 +178,7 @@
 /* Left Column Cards */
 .trk-card {
   background: var(--white);
-  border-radius: 12px;
+  border-radius: var(--r);
   padding: 16px;
   box-shadow: var(--elev-sm);
   margin-bottom: 24px;
@@ -187,7 +187,7 @@
 .trk-live-feed {
   width: 100%;
   height: 200px;
-  border-radius: 8px;
+  border-radius: var(--r-sm);
   object-fit: cover;
   margin-top: 12px;
 }
@@ -195,7 +195,7 @@
 .trk-map-container {
   width: 100%;
   height: 240px;
-  border-radius: 8px;
+  border-radius: var(--r-sm);
   overflow: hidden;
   margin-top: 12px;
   border: 1px solid var(--border);
@@ -284,7 +284,7 @@
 
 .trk-vcard {
   background: var(--white);
-  border-radius: 12px;
+  border-radius: var(--r);
   padding: 16px;
   box-shadow: var(--elev-sm);
   border: 1px solid var(--border);
@@ -322,7 +322,7 @@
   font-size: var(--badge-fs-sm);
   font-weight: 700;
   padding: var(--badge-py-sm) var(--badge-px-sm);
-  border-radius: 12px;
+  border-radius: var(--r);
   text-transform: uppercase;
   border: 1px solid currentColor;
 }
@@ -361,7 +361,7 @@
   align-items: center;
   gap: 6px;
   padding: 3px 8px;
-  border-radius: 12px;
+  border-radius: var(--r);
   background: rgba(15, 23, 42, 0.78);
   backdrop-filter: blur(4px);
   color: #fff;
@@ -387,7 +387,7 @@
 }
 
 .trk-telemetry-dot.active {
-  background: #10b981;
+  background: var(--green);
   box-shadow: 0 0 6px #10b981;
 }
 
@@ -472,7 +472,7 @@
 
 .trk-vlist-item {
   background: var(--white);
-  border-radius: 12px;
+  border-radius: var(--r);
   padding: 16px;
   box-shadow: var(--elev-sm);
   border: 1px solid var(--border);
@@ -566,7 +566,7 @@
   min-width: 32px;
   height: 32px;
   padding: 0 8px;
-  border-radius: 8px;
+  border-radius: var(--r-sm);
   border: 1px solid var(--border);
   background: var(--white);
   color: var(--ink2);

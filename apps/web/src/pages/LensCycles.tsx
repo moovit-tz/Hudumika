@@ -4,6 +4,7 @@ import { Icon } from '../components/Icon.js';
 import { SectionLoading } from '../components/ui/spinner.js';
 import { apiFetch } from '../lib/api.js';
 import type { LensCycle } from '@hudumika/types';
+import { Button } from '../components/ui/button.js';
 
 export default function LensCycles() {
   const [cycles, setCycles] = useState<LensCycle[]>([]);
@@ -28,7 +29,7 @@ export default function LensCycles() {
         titlePlain="Planning"
         titleEm="cycles"
         subtitle="Time-boxed iterations for execution."
-        actions={<button className="btn btn-primary" onClick={() => alert('New cycle modal')} data-ui-native-button="">New Cycle</button>}
+        actions={<Button onClick={() => alert('New cycle modal')}>New Cycle</Button>}
       />
 
       <div style={{ maxWidth: 900, margin: '0 auto', paddingTop: 20 }}>
@@ -57,7 +58,7 @@ export default function LensCycles() {
                   </div>
                   <div>
                     <span style={{ 
-                      fontSize: 12, fontWeight: 600, padding: '4px 10px', borderRadius: 12,
+                      fontSize: 12, fontWeight: 600, padding: '4px 10px', borderRadius: 'var(--r)',
                       background: cycle.status === 'ACTIVE' ? 'var(--green-l)' : cycle.status === 'CLOSED' ? 'var(--bg)' : 'var(--teal-l)',
                       color: cycle.status === 'ACTIVE' ? 'var(--green)' : cycle.status === 'CLOSED' ? 'var(--ink2)' : 'var(--teal)',
                     }}>

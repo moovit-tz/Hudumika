@@ -12,6 +12,7 @@ import { loadScoringRules, scoreLead } from './crm-lead-scoring.routes.js';
 import { ensurePipelineStages, defaultStageKey } from './crm-pipeline-stages.routes.js';
 import { emitDomainEvent } from '../services/domain-events.service.js';
 import { assertCrmReferencesInTenant } from '../lib/crm-tenant-references.js';
+import { NotificationService } from '../services/notification.service.js';
 
 // SENIOR/JUNIOR/OFFICER added alongside the original CRM-pipeline roles —
 // the landed-cost calculators (OPS_ROLES-gated) let clearing staff create a
@@ -314,6 +315,14 @@ export async function leadsRoutes(fastify: FastifyInstance) {
           meta: { from: existing.assigned_to_id, to: b.assigned_to_id || null },
           actorId: request.user.sub, actorName: request.user.name,
         });
+        if (b.assigned_to_id && b.assigned_to_id !== request.user.sub) {
+          await NotificationService.createNotificationInTrx(trx, {
+            tenantId, userId: b.assigned_to_id, app: 'crm', type: 'task',
+            title: 'A lead was assigned to you',
+            message: `${existing.company || 'A lead'}${request.user.name ? ` — from ${request.user.name}` : ''}`,
+            link: `/crm/leads/${id}`, entityType: 'lead', entityId: id, entityLabel: existing.company ?? undefined,
+          });
+        }
       }
       return false;
     });

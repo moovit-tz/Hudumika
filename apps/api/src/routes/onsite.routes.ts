@@ -1845,6 +1845,7 @@ export async function onsiteRoutes(fastify: FastifyInstance) {
         .values({
           tenant_id: tenantId,
           domain: cleanDomain,
+          origin: 'bought',
           status: registrar ? 'active' : 'pending',
           registrar: registrar?.label ?? null,
           notes: registrar ? null : 'Registration requested. Connect a domain registrar under Settings → Provider connections to complete the purchase.',
@@ -1909,6 +1910,7 @@ export async function onsiteRoutes(fastify: FastifyInstance) {
         .values({
           tenant_id: tenantId,
           domain: cleanDomain,
+          origin: 'transfer',
           status: 'pending',
           registrar: registrar?.label ?? null,
           notes: JSON.stringify({ transfer: true, epp_cipher: eppCipher, epp_provided: !!body.eppCode }),
@@ -2445,7 +2447,7 @@ export async function onsiteRoutes(fastify: FastifyInstance) {
           signal: AbortSignal.timeout(10000),
         });
         if (res.ok) {
-          const sites = await res.json();
+          const sites: any = await res.json();
           const rows = Array.isArray(sites) ? sites : sites?.data ?? [];
           const match = rows.find((s: any) => s.domain === website.url?.replace(/^https?:\/\//, '').replace(/\/$/, ''));
           if (match) {

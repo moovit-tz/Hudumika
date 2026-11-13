@@ -152,7 +152,7 @@ export function StepGoal({ draft, update, onNext }: StepProps) {
                 style={{
                   background: 'var(--card-bg, var(--white))',
                   border: '1px solid var(--border)',
-                  borderRadius: 14,
+                  borderRadius: 'var(--r-lg)',
                   padding: 16,
                   cursor: 'pointer',
                   display: 'flex',
@@ -280,7 +280,7 @@ export function StepGoal({ draft, update, onNext }: StepProps) {
 
       {/* Empty State */}
       {!loading && results.length === 0 && (
-        <div style={{ padding: '36px 20px', textAlign: 'center', background: 'var(--card-bg, var(--white))', border: '1px solid var(--border)', borderRadius: 14 }}>
+        <div style={{ padding: '36px 20px', textAlign: 'center', background: 'var(--card-bg, var(--white))', border: '1px solid var(--border)', borderRadius: 'var(--r-lg)' }}>
           <Icon name="search" size={24} color="var(--ink3)" style={{ display: 'block', margin: '0 auto 10px' }} />
           <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--ink)' }}>No matching procedure found</div>
           <div style={{ fontSize: 12.5, color: 'var(--ink3)', marginTop: 4 }}>Try clearing your search query or selecting a different procedure category filter.</div>

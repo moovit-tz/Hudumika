@@ -1281,12 +1281,21 @@ export async function posRoutes(fastify: FastifyInstance) {
 
         return { sale, reversalId, restockLocationId, itemLevel: false as const };
       });
-      await emitDomainEventStandalone(user.tenant_id, {
-        type: result.itemLevel ? 'pos.sale_line_returned' : 'pos.sale_refunded', sourceApp:'finops', entityType:'pos_sale', entityId:id, actorId:user.sub,
-        payload:{ saleNumber:result.sale.sale_number, customerId:result.sale.customer_id,
-          total:Number(result.itemLevel ? result.refundTotal : result.sale.grand_total), currency:result.sale.currency, reason:body.reason,
-          inventoryReturned: result.itemLevel ? result.restockedAny : !!result.restockLocationId },
-      });
+      if (result.itemLevel) {
+        await emitDomainEventStandalone(user.tenant_id, {
+          type: 'pos.sale_line_returned', sourceApp:'finops', entityType:'pos_sale', entityId:id, actorId:user.sub,
+          payload:{ saleNumber:result.sale.sale_number, customerId:result.sale.customer_id,
+            total:Number(result.refundTotal), currency:result.sale.currency, reason:body.reason,
+            inventoryReturned:result.restockedAny },
+        });
+      } else {
+        await emitDomainEventStandalone(user.tenant_id, {
+          type: 'pos.sale_refunded', sourceApp:'finops', entityType:'pos_sale', entityId:id, actorId:user.sub,
+          payload:{ saleNumber:result.sale.sale_number, customerId:result.sale.customer_id,
+            total:Number(result.sale.grand_total), currency:result.sale.currency, reason:body.reason,
+            inventoryReturned:!!result.restockLocationId },
+        });
+      }
       return result.itemLevel
         ? { success: true, reversal_journal_entry_id: result.reversalId, refund_total: result.refundTotal, fully_refunded: result.fullyRefunded, lines: result.lineResults }
         : { success: true, reversal_journal_entry_id: result.reversalId };

@@ -4,6 +4,7 @@ import { TwotoneIcon } from '../components/ui/twotone-icon.js';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '../components/ui/select.js';
 import { Checkbox } from '../components/ui/checkbox.js';
 import { RadioGroup, RadioGroupItem } from '../components/ui/radio-group.js';
+import { Button } from '../components/ui/button.js';
 
 // ── Style switcher (Hudumika ↔ Oscar) ─────────────────────────────────────
 function StyleSwitcher({
@@ -169,16 +170,16 @@ function ButtonsDemo({ style }: { style: 'hudumika' | 'oscar' }) {
   return (
     <div className="flex flex-col gap-4">
       <div className="flex flex-wrap gap-2">
-        <button type="button" className="btn btn-primary" data-ui-native-button="">Primary</button>
-        <button type="button" className="btn btn-secondary" data-ui-native-button="">Secondary</button>
-        <button type="button" className="btn btn-ghost" data-ui-native-button="">Ghost</button>
-        <button type="button" className="btn btn-danger" data-ui-native-button="">Danger</button>
+        <Button type="button">Primary</Button>
+        <Button variant="outline" type="button">Secondary</Button>
+        <Button variant="ghost" type="button">Ghost</Button>
+        <Button variant="destructive" type="button">Danger</Button>
       </div>
       <div className="flex flex-wrap gap-2 items-center">
-        <button type="button" className="btn btn-secondary" onClick={triggerLoad} data-ui-native-button="">
+        <Button variant="outline" type="button" onClick={triggerLoad}>
           {loading ? <span className="oscar-spinner-sm" style={{ borderTopColor: 'var(--teal)' }} /> : 'Click me'}
-        </button>
-        <button type="button" className="btn btn-primary" disabled data-ui-native-button="">Disabled</button>
+        </Button>
+        <Button type="button" disabled>Disabled</Button>
       </div>
     </div>
   );
@@ -277,7 +278,7 @@ function CardsDemo({ style }: { style: 'hudumika' | 'oscar' }) {
         <TwotoneIcon name="building" size={28} color="var(--teal)" secondaryColor="var(--teal)" />
         <h5 className="font-semibold text-sm mt-3 mb-1">Standard Card</h5>
         <p className="text-xs text-muted-foreground">Hudumika default card surface with border and subtle shadow.</p>
-        <button type="button" className="btn btn-primary btn-sm mt-4" data-ui-native-button="">Learn more</button>
+        <Button size="sm" className="mt-4" type="button">Learn more</Button>
       </div>
       <div className="card p-5 border-t-2" style={{ borderTopColor: 'var(--teal)' }}>
         <h5 className="font-semibold text-sm mb-1">Accent Card</h5>
@@ -546,11 +547,11 @@ function PaginationDemo({ style }: { style: 'hudumika' | 'oscar' }) {
 
   return (
     <div className="flex items-center gap-1">
-      <button type="button" className="btn btn-secondary btn-sm" onClick={() => go(page - 1)} disabled={page === 1} data-ui-native-button=""><Icon name="chevronLeft" size={14} /></button>
+      <Button variant="outline" size="sm" type="button" onClick={() => go(page - 1)} disabled={page === 1}><Icon name="chevronLeft" size={14} /></Button>
       {pages.map(p => (
         <button key={p} type="button" className={`btn btn-sm ${page === p ? 'btn-primary' : 'btn-secondary'}`} style={{ minWidth: 34 }} onClick={() => go(p)} data-ui-native-button="">{p}</button>
       ))}
-      <button type="button" className="btn btn-secondary btn-sm" onClick={() => go(page + 1)} disabled={page === 5} data-ui-native-button=""><Icon name="chevronRight" size={14} /></button>
+      <Button variant="outline" size="sm" type="button" onClick={() => go(page + 1)} disabled={page === 5}><Icon name="chevronRight" size={14} /></Button>
     </div>
   );
 }

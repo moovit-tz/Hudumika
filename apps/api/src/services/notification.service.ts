@@ -8,6 +8,7 @@ import { MailService } from './mail.service.js';
 import { SmsService } from './sms.service.js';
 import type { NotificationTrigger, MessageChannel } from '@hudumika/types';
 import { env } from '../config/env.js';
+import { notifyUser } from '../lib/ws-broadcast.js';
 
 /** Maps each matrix trigger to the bell's icon type and a deep-link builder. */
 const TRIGGER_BELL_CONFIG: Partial<Record<NotificationTrigger, { type: string; title: string; buildLink: (shipmentId: string) => string }>> = {
@@ -21,6 +22,7 @@ const TRIGGER_BELL_CONFIG: Partial<Record<NotificationTrigger, { type: string; t
   PAYMENT_RECEIVED:     { type: 'tag',      title: 'Payment received',           buildLink: (id) => `/clearance/${id}?tab=ledger` },
   DOCUMENT_UPLOADED:    { type: 'task',     title: 'Document uploaded',          buildLink: (id) => `/clearance/${id}?tab=files` },
   MESSAGE_RECEIVED:     { type: 'chat',     title: 'New message',                buildLink: (id) => `/clearance/${id}?tab=updates` },
+  KEY_DATE_CHANGED:     { type: 'info',     title: 'Key date changed',           buildLink: (id) => `/clearance/${id}` },
 };
 
 export interface CreateNotificationOptions {
@@ -34,6 +36,10 @@ export interface CreateNotificationOptions {
   entityType?: string;
   entityId?: string;
   entityLabel?: string;
+  /** After this the header bar stops announcing it (the bell keeps it).
+   *  Set it for anything that is only true for a while — a meeting about
+   *  to start, a window that closes. */
+  expiresAt?: Date;
 }
 
 export class NotificationService {
@@ -61,6 +67,7 @@ export class NotificationService {
         entity_type: opts.entityType ?? null,
         entity_id: opts.entityId ?? null,
         entity_label: opts.entityLabel ?? null,
+        expires_at: opts.expiresAt ?? null,
         shipment_id: null,
         customer_id: null,
         trigger_type: null,
@@ -69,6 +76,49 @@ export class NotificationService {
         content: null,
       } as any)
       .execute();
+    notifyUser(opts.tenantId, opts.userId);
+  }
+
+  /**
+   * Best-effort fan-out to a set of people. Opens its own transaction, skips
+   * the actor, de-duplicates, and never throws — callers put this beside a
+   * real mutation, and a notification must not be able to fail it.
+   */
+  static async notifyUsers(
+    tenantId: string,
+    userIds: Array<string | null | undefined>,
+    opts: Omit<CreateNotificationOptions, 'tenantId' | 'userId'>,
+    exceptUserId?: string | null,
+  ): Promise<void> {
+    const ids = [...new Set(userIds.filter((id): id is string => !!id && id !== exceptUserId))];
+    if (!ids.length) return;
+    try {
+      await withTenant(tenantId, async (trx) => {
+        // Only people who still belong to this workspace and can sign in.
+        const live = await trx.selectFrom('users').select('id')
+          .where('tenant_id', '=', tenantId).where('active', '=', true).where('id', 'in', ids).execute();
+        for (const u of live) await NotificationService.createNotificationInTrx(trx, { ...opts, tenantId, userId: u.id });
+      });
+    } catch (err: any) {
+      console.error('[NotificationService] notifyUsers failed:', err?.message);
+    }
+  }
+
+  /** As notifyUsers, addressed to everyone holding one of `roles` (plus any
+   *  named individuals), e.g. "finance, and whoever raised the invoice". */
+  static async notifyRoles(
+    tenantId: string,
+    roles: string[],
+    opts: Omit<CreateNotificationOptions, 'tenantId' | 'userId'>,
+    extra: { alsoUserIds?: Array<string | null | undefined>; exceptUserId?: string | null } = {},
+  ): Promise<void> {
+    try {
+      const holders = roles.length ? await withTenant(tenantId, (trx) => trx.selectFrom('users').select('id')
+        .where('tenant_id', '=', tenantId).where('active', '=', true).where('role', 'in', roles as any).execute()) : [];
+      await NotificationService.notifyUsers(tenantId, [...holders.map(h => h.id), ...(extra.alsoUserIds ?? [])], opts, extra.exceptUserId);
+    } catch (err: any) {
+      console.error('[NotificationService] notifyRoles failed:', err?.message);
+    }
   }
 
   /**
@@ -261,6 +311,9 @@ export class NotificationService {
     // never surface as bell items regardless.
     const cfg = TRIGGER_BELL_CONFIG[trigger];
     const isInApp = channel === 'IN_APP';
+    // A bell row addressed to nobody can never be read by anyone; it only
+    // inflates the unread count of the table.
+    if (isInApp && !target.userId && !target.customerId) return;
 
     await trx
       .insertInto('notifications')
@@ -272,11 +325,14 @@ export class NotificationService {
         trigger_type: trigger,
         channel,
         recipient: (channel === 'WHATSAPP' || channel === 'SMS') ? (target.phone || '') : (target.email || 'IN_APP'),
-        title: cfg?.title ?? String(trigger).replace(/_/g, ' '),
+        title: cfg?.title ?? String(trigger).replace(/_/g, ' ').toLowerCase().replace(/^\w/, ch => ch.toUpperCase()),
         content: bodyContent,
         message: isInApp ? bodyContent : null,
         type: cfg?.type ?? 'info',
-        link: isInApp && cfg ? cfg.buildLink(shipmentId) : null,
+        // Every bell row about a shipment opens that shipment, whether or not
+        // its trigger has an entry above — a row with no link can only be
+        // marked read, never acted on.
+        link: isInApp ? (cfg ? cfg.buildLink(shipmentId) : `/clearance/${shipmentId}`) : null,
         entity_type: isInApp ? 'shipment' : null,
         entity_id: isInApp ? shipmentId : null,
         entity_label: isInApp ? refNumber : null,
@@ -285,6 +341,7 @@ export class NotificationService {
         created_at: new Date(),
       } as any)
       .execute();
+    if (isInApp) notifyUser(tenantId, target.userId);
   }
 
   /**

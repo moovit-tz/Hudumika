@@ -14,6 +14,7 @@ import { useIsMobile } from '../hooks/useIsMobile.js';
 import { CUSTOMS_STATUS_ENTRY_POINTS, CUSTOMS_STATUS_LABELS, type CustomsStatus, type SealCatalogProduct } from '@hudumika/types';
 import './Seal.css';
 import { PageHeader } from '../components/PageHeader.js';
+import { Button } from '../components/ui/button.js';
 
 interface Compartment { id: string; code: string; name: string; warehouse_type: string; }
 interface Location { id: string; code: string; }
@@ -295,10 +296,10 @@ export function SealReceiveLot() {
           </div>
 
           <div style={{ display: 'flex', gap: 10, paddingTop: 10, borderTop: '1px solid var(--border)' }}>
-            <button type="submit" className="btn btn-primary" disabled={!isReady || saving} data-ui-native-button="">
+            <Button type="submit" disabled={!isReady || saving}>
               <Icon name="package" size={14} />
               <span>{saving ? 'Receiving…' : 'Receive Lot'}</span>
-            </button>
+            </Button>
           </div>
         </div>
       </form>

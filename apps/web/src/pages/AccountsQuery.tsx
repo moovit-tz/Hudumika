@@ -7,6 +7,7 @@ import { SectionLoading } from '../components/ui/spinner.js';
 import { Banner } from '../components/ui/alert.js';
 import { RadioGroup, RadioGroupItem } from '../components/ui/radio-group.js';
 import { useIsMobile } from '../hooks/useIsMobile.js';
+import { Button } from '../components/ui/button.js';
 
 type ReportType = 'receivables' | 'payables' | 'revenue' | 'expenses' | 'summary';
 
@@ -300,16 +301,15 @@ export function AccountsQuery() {
         </div>
 
         {/* Run button */}
-        <button
-          className="btn btn-primary"
+        <Button
+         
           type="button"
           onClick={runReport}
           disabled={loading}
-          style={{ width: '100%', padding: 'var(--ds-btn-py-lg) 0', fontSize: "var(--text-base)", fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, minHeight: 'var(--ctl-h-lg)', boxSizing: 'border-box', lineHeight: 1.25}}
-         data-ui-native-button="">
+          style={{ width: '100%', padding: 'var(--ds-btn-py-lg) 0', fontSize: "var(--text-base)", fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, minHeight: 'var(--ctl-h-lg)', boxSizing: 'border-box', lineHeight: 1.25}}>
           <Icon name="refresh" size={15} color="#fff" />
           {loading ? 'Running…' : 'Run Report'}
-        </button>
+        </Button>
       </aside>
 
       {/* Right panel */}
@@ -362,15 +362,14 @@ export function AccountsQuery() {
                   {result.date_to && <span>To: {fmtDate(result.date_to)}</span>}
                 </div>
               </div>
-              <button
-                className="btn btn-secondary"
+              <Button variant="outline"
+               
                 type="button"
                 onClick={() => exportCSV(result.report_type, result.data)}
-                style={{ display: 'flex', alignItems: 'center', gap: 7, fontSize: "var(--text-base)" }}
-               data-ui-native-button="">
+                style={{ display: 'flex', alignItems: 'center', gap: 7, fontSize: "var(--text-base)" }}>
                 <Icon name="download" size={14} color="var(--teal)" />
                 Export CSV
-              </button>
+              </Button>
             </div>
 
             {/* Summary cards */}

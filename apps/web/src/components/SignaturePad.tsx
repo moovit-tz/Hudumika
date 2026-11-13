@@ -157,7 +157,7 @@ export function SignaturePad({ onCapture, kind = 'signature' }: { onCapture: (da
   return (
     <div>
       {/* Mode tabs */}
-      <div style={{ display: 'flex', marginBottom: 12, borderRadius: 8, overflow: 'hidden', border: '1px solid var(--border)' }}>
+      <div style={{ display: 'flex', marginBottom: 12, borderRadius: 'var(--r-sm)', overflow: 'hidden', border: '1px solid var(--border)' }}>
         {(['draw', 'type', 'upload'] as SignMode[]).map(m => (
           <button key={m} onClick={() => { setMode(m); clearCanvas(); }}
             style={{ flex: 1, padding: "var(--action-py) var(--space-md)", border: 'none', cursor: 'pointer', fontSize: "var(--text-base)", fontWeight: 600, background: mode === m ? 'var(--teal)' : 'var(--bg)', color: mode === m ? 'hsl(var(--primary-foreground))' : 'var(--ink)', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 5 }} data-ui-native-button="">
@@ -176,7 +176,7 @@ export function SignaturePad({ onCapture, kind = 'signature' }: { onCapture: (da
         </div>
       )}
 
-      <div style={{ border: '2px solid var(--border)', borderRadius: 8, overflow: 'hidden', background: 'var(--bg)', position: 'relative', touchAction: 'none', height: canvasH, maxWidth: kind === 'stamp' ? canvasW : undefined, margin: kind === 'stamp' ? '0 auto' : undefined }}>
+      <div style={{ border: '2px solid var(--border)', borderRadius: 'var(--r-sm)', overflow: 'hidden', background: 'var(--bg)', position: 'relative', touchAction: 'none', height: canvasH, maxWidth: kind === 'stamp' ? canvasW : undefined, margin: kind === 'stamp' ? '0 auto' : undefined }}>
         <canvas ref={canvasRef} width={canvasW} height={canvasH}
           style={{ display: 'block', width: '100%', height: canvasH, touchAction: 'none' }}
           onMouseDown={startDraw} onMouseMove={draw} onMouseUp={stopDraw} onMouseLeave={stopDraw}
@@ -191,7 +191,7 @@ export function SignaturePad({ onCapture, kind = 'signature' }: { onCapture: (da
             role="button" tabIndex={0} onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); fileInputRef.current?.click(); } }}
             onDragOver={e => e.preventDefault()}
             onDrop={e => { e.preventDefault(); const file = e.dataTransfer.files?.[0]; if (file) drawImageFile(file); }}
-            style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', background: 'var(--bg)', cursor: 'pointer', gap: 6, border: '1.5px dashed var(--border)', borderRadius: 8, textAlign: 'center', padding: '0 20px' }}>
+            style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', background: 'var(--bg)', cursor: 'pointer', gap: 6, border: '1.5px dashed var(--border)', borderRadius: 'var(--r-sm)', textAlign: 'center', padding: '0 20px' }}>
             <Icon name="upload" size={24} style={{ color: 'var(--teal)', opacity: 0.7 }} />
             <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--teal)' }}>{copy.uploadLabel}</span>
             <span style={{ fontSize: 11, color: 'var(--ink3)' }}>{copy.uploadHint}</span>

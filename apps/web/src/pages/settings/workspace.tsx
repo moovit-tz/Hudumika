@@ -355,7 +355,7 @@ export const LocationsSection: React.FC = () => {
                   alignItems: 'center',
                   gap: 6,
                   padding: '2px 8px',
-                  borderRadius: 6,
+                  borderRadius: 'var(--r-sm)',
                   fontSize: 11,
                   background: 'var(--bg)',
                   border: '1px solid var(--border)',
@@ -380,7 +380,7 @@ export const LocationsSection: React.FC = () => {
                   alignItems: 'center',
                   gap: 6,
                   padding: '2px 8px',
-                  borderRadius: 6,
+                  borderRadius: 'var(--r-sm)',
                   fontSize: 11,
                   background: 'var(--bg)',
                   border: '1px solid var(--border)',
@@ -1207,8 +1207,30 @@ export const EmailSection: React.FC = () => {
     }
   }
 
+  const [openCards, setOpenCards] = useState<Record<string, boolean>>({
+    protocol: true,
+    config: true,
+    sender: true,
+    inbound: true,
+  });
+
+  const toggleCard = (key: string) => {
+    setOpenCards(prev => ({ ...prev, [key]: !prev[key] }));
+  };
+
+  const allOpen = Object.values(openCards).every(Boolean);
+  const toggleAll = () => {
+    const next = !allOpen;
+    setOpenCards({
+      protocol: next,
+      config: next,
+      sender: next,
+      inbound: next,
+    });
+  };
+
   return (
-    <>
+    <div className="email-settings">
       {oauthNotice && (
         <div style={{
           padding: '10px 14px', borderRadius: 'var(--r-sm)', marginBottom: 12, fontSize: 13, fontWeight: 600,
@@ -1218,7 +1240,34 @@ export const EmailSection: React.FC = () => {
           {oauthNotice.msg}
         </div>
       )}
-      <Card title="Email Protocol">
+
+      {/* Top action toolbar */}
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12, flexWrap: 'wrap', gap: 8 }}>
+        <div style={{ fontSize: 13, color: 'var(--ink3)' }}>
+          Manage outgoing delivery transport, sender branding, and inbound ticket mailbox polling.
+        </div>
+        <Button
+          type="button"
+          variant="outline"
+          size="sm"
+          onClick={toggleAll}
+          className="h-8 gap-1.5 text-xs font-semibold"
+        >
+          <Icon name={allOpen ? 'chevronUp' : 'chevronDown'} size={13} />
+          <span>{allOpen ? 'Collapse All' : 'Expand All'}</span>
+        </Button>
+      </div>
+
+      <Card
+        title="Email Protocol"
+        desc="Select your outgoing mail transport and server type."
+        icon="mail"
+        collapsible
+        open={openCards.protocol}
+        onToggle={() => toggleCard('protocol')}
+        badge={<Badge variant="brand">{protocol === 'mail' ? 'Platform Mail' : protocol.toUpperCase()}</Badge>}
+        twoCol
+      >
         <Field label="Protocol">
           <Select value={protocol} onValueChange={setProtocol}>
             <SelectTrigger className="input-field"><SelectValue /></SelectTrigger>
@@ -1231,8 +1280,18 @@ export const EmailSection: React.FC = () => {
           </Select>
         </Field>
       </Card>
+
       {protocol === 'smtp' && (
-        <Card title="SMTP Configuration">
+        <Card
+          title="SMTP Configuration"
+          desc="Outgoing SMTP mail server credentials and connection port."
+          icon="server"
+          collapsible
+          open={openCards.config}
+          onToggle={() => toggleCard('config')}
+          badge={<Badge variant="gray">{f.host ? `${f.host}:${f.port || '587'}` : 'Port 587'}</Badge>}
+          twoCol
+        >
           <Field label="SMTP Host"><input data-ui-field="input" className="input-field" placeholder="mail.example.com" value={f.host} onChange={e => set('host', e.target.value)} /></Field>
           <Field label="Port"><input data-ui-field="input" className="input-field" type="number" value={f.port} onChange={e => set('port', e.target.value)} /></Field>
           <Field label="Username"><input data-ui-field="input" className="input-field" placeholder="your@email.com" value={f.user} onChange={e => set('user', e.target.value)} /></Field>
@@ -1251,17 +1310,41 @@ export const EmailSection: React.FC = () => {
           </Field>
         </Card>
       )}
+
       {protocol === 'mail' && (
-        <Card title="Mail (system default)">
-          <p style={{ fontSize: 13, color: 'var(--ink3)', margin: 0, lineHeight: 1.6 }}>
+        <Card
+          title="Mail (system default)"
+          desc="Hudumika managed outgoing mail server — zero setup required."
+          icon="send"
+          collapsible
+          open={openCards.config}
+          onToggle={() => toggleCard('config')}
+          badge={<Badge variant="brand">Platform Managed</Badge>}
+          twoCol
+        >
+          <p style={{ gridColumn: '1 / -1', fontSize: 13, color: 'var(--ink3)', margin: 0, lineHeight: 1.6 }}>
             Sends through Hudumika's own outgoing mail server — no extra setup needed here. Your platform administrator configures the server credentials once in the SuperAdmin panel.
             Switch to <strong>SMTP</strong>, <strong>Outlook</strong> or <strong>Gmail</strong> above if you'd rather send from your own domain or mailbox.<br />
             <span style={{ color: 'var(--ink2)' }}>Use "Send Test Email" below (after saving) to confirm mail is working.</span>
           </p>
         </Card>
       )}
+
       {(protocol === 'outlook' || protocol === 'gmail') && (
-        <Card title={`${OAUTH_PROVIDER_LABEL[protocol]} Connection`}>
+        <Card
+          title={`${OAUTH_PROVIDER_LABEL[protocol]} Connection`}
+          desc={`OAuth client authentication credentials for ${OAUTH_PROVIDER_LABEL[protocol]}.`}
+          icon="globe"
+          collapsible
+          open={openCards.config}
+          onToggle={() => toggleCard('config')}
+          badge={
+            <Badge variant={(protocol === 'outlook' ? f.outlookStatus : f.gmailStatus) === 'authorized' ? 'success' : 'gray'}>
+              {(protocol === 'outlook' ? f.outlookStatus : f.gmailStatus) === 'authorized' ? 'Authorized' : 'Unauthorized'}
+            </Badge>
+          }
+          twoCol
+        >
           <Field label="Client ID">
             <input data-ui-field="input" className="input-field" value={protocol === 'outlook' ? f.outlookClientId : f.gmailClientId}
               onChange={e => set(protocol === 'outlook' ? 'outlookClientId' : 'gmailClientId', e.target.value)} />
@@ -1271,24 +1354,44 @@ export const EmailSection: React.FC = () => {
             <input data-ui-field="input" className="input-field" type="password" value={protocol === 'outlook' ? f.outlookClientSecret : f.gmailClientSecret}
               onChange={e => set(protocol === 'outlook' ? 'outlookClientSecret' : 'gmailClientSecret', e.target.value)} />
           </Field>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginTop: 4 }}>
+          <div style={{ gridColumn: '1 / -1', display: 'flex', alignItems: 'center', gap: 10, marginTop: 4, flexWrap: 'wrap' }}>
             <Badge variant={(protocol === 'outlook' ? f.outlookStatus : f.gmailStatus) === 'authorized' ? 'success' : 'gray'}>
               {(protocol === 'outlook' ? f.outlookStatus : f.gmailStatus) === 'authorized' ? 'Authorized' : 'Unauthorized'}
             </Badge>
-            <button type="button" className="btn btn-primary btn-sm" onClick={() => handleConnect(protocol as 'outlook' | 'gmail')} disabled={connecting === protocol} data-ui-native-button="">
+            <Button size="sm" type="button" onClick={() => handleConnect(protocol as 'outlook' | 'gmail')} disabled={connecting === protocol}>
               {connecting === protocol ? 'Connecting…' : 'Save & Authorize'}
-            </button>
+            </Button>
           </div>
         </Card>
       )}
-      <Card title="Sender Identity">
+
+      <Card
+        title="Sender Identity"
+        desc="Default outgoing display name, email address, and signature."
+        icon="user"
+        collapsible
+        open={openCards.sender}
+        onToggle={() => toggleCard('sender')}
+        badge={f.fromEmail ? <Badge variant="gray">{f.fromName || 'Hudumika'} &lt;{f.fromEmail}&gt;</Badge> : undefined}
+        twoCol
+      >
         <Field label="From Name"><input data-ui-field="input" className="input-field" value={f.fromName} onChange={e => set('fromName', e.target.value)} /></Field>
         <Field label="From Email"><input data-ui-field="input" className="input-field" type="email" value={f.fromEmail} onChange={e => set('fromEmail', e.target.value)} /></Field>
         <Field label="Email Signature" full>
           <textarea className="input-field s-resize-v s-font-mono" rows={4} value={f.sig} onChange={e => set('sig', e.target.value)} placeholder="HTML signature appended to outgoing emails" />
         </Field>
       </Card>
-      <Card title="Inbound Mail (Support Tickets)">
+
+      <Card
+        title="Inbound Mail (Support Tickets)"
+        desc="Poll mailbox to convert customer incoming emails into support tickets."
+        icon="inbox"
+        collapsible
+        open={openCards.inbound}
+        onToggle={() => toggleCard('inbound')}
+        badge={<Badge variant={imapEnabled ? 'success' : 'gray'}>{imapEnabled ? 'Active (IMAP)' : 'Disabled'}</Badge>}
+        twoCol
+      >
         <ToggleRow
           label="Convert incoming email into support tickets"
           hint="Polls this mailbox every few minutes — a reply referencing an existing ticket is appended to it; anything else from a known customer opens a new one."
@@ -1320,9 +1423,10 @@ export const EmailSection: React.FC = () => {
           </>
         )}
       </Card>
+      <div className="email-settings-actions">
       <SaveRow
         extra={
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          <div className="email-settings-test-actions" style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
             {protocol !== 'smtp' && (
               <input data-ui-field="input"
                 className="input-field"
@@ -1345,7 +1449,8 @@ export const EmailSection: React.FC = () => {
         }
         saving={saving} saved={saved} onSave={handleSave}
       />
-    </>
+      </div>
+    </div>
   );
 };
 

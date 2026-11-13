@@ -15,6 +15,8 @@ export interface RawPunch {
    *  enrolled on the unit itself) — not our internal user UUID. */
   externalPin: string;
   punchedAt: Date;
+  /** Original device-local wall clock when the protocol omits an offset. */
+  sourceLocalTime?: string;
   /** The device's own status code, if it sends one (0/1/2/3 for
    *  check-in/out/break-out/break-in on most ZKT firmware) — kept as a raw
    *  string since it varies by vendor and firmware, and pairing logic falls

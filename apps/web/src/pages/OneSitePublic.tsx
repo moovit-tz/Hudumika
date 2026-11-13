@@ -607,7 +607,7 @@ export function OneSitePublic() {
                           : f.field_type === 'richtext'
                           ? <div className="lp-cms-body" dangerouslySetInnerHTML={{ __html: String(value) }} />
                           : f.field_type === 'boolean' ? (value ? 'Yes' : 'No')
-                          : f.field_type === 'image' ? <img src={String(value)} alt={f.label} style={{ maxWidth: '100%', borderRadius: 8 }} />
+                          : f.field_type === 'image' ? <img src={String(value)} alt={f.label} style={{ maxWidth: '100%', borderRadius: 'var(--r-sm)' }} />
                           : f.field_type === 'url' ? <a href={String(value)} target="_blank" rel="noopener noreferrer">{String(value)}</a>
                           : f.field_type === 'color'
                           ? <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}>

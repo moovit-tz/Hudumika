@@ -609,10 +609,10 @@
 }
 .pos-rank-1 {
   background: #fef3c7;
-  color: #b45309;
+  color: var(--gold);
 }
 .pos-rank-2 {
-  background: #f1f5f9;
+  background: var(--bg);
   color: #475569;
 }
 .pos-rank-3 {

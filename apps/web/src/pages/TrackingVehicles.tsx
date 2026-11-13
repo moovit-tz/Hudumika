@@ -138,7 +138,7 @@ function VehicleGps({ vehicle }: { vehicle: Vehicle }) {
                 width: 8,
                 height: 8,
                 borderRadius: '50%',
-                background: stale ? '#f59e0b' : 'var(--teal)',
+                background: stale ? 'var(--gold)' : 'var(--teal)',
                 display: 'inline-block',
                 flexShrink: 0,
               }}

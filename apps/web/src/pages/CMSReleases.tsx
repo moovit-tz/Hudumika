@@ -199,7 +199,7 @@ export function CMSReleases() {
           {loading ? (
             <SectionLoading />
           ) : !releases || releases.length === 0 ? (
-            <div style={{ textAlign: 'center', padding: '60px 20px', background: 'var(--surface)', borderRadius: 12, border: '1px dashed var(--border)' }}>
+            <div style={{ textAlign: 'center', padding: '60px 20px', background: 'var(--surface)', borderRadius: 'var(--r)', border: '1px dashed var(--border)' }}>
               <Icon name="package" size={40} style={{ color: 'var(--text-muted)', marginBottom: 12 }} />
               <h3 style={{ fontSize: 16, fontWeight: 600, color: 'var(--text)', margin: '0 0 4px 0' }}>No Content Releases</h3>
               <p style={{ fontSize: 13, color: 'var(--text-secondary)', marginBottom: 16 }}>
@@ -221,7 +221,7 @@ export function CMSReleases() {
                   style={{
                     background: 'var(--surface)',
                     border: selectedRelease?.id === rel.id ? '2px solid var(--teal)' : '1px solid var(--border)',
-                    borderRadius: 14,
+                    borderRadius: 'var(--r-lg)',
                     padding: 20,
                     cursor: 'pointer',
                     display: 'flex',
@@ -348,7 +348,7 @@ export function CMSReleases() {
               </div>
 
               {!selectedRelease.items || selectedRelease.items.length === 0 ? (
-                <div style={{ textAlign: 'center', padding: '30px 10px', color: 'var(--text-muted)', fontSize: 13, border: '1px dashed var(--border)', borderRadius: 8 }}>
+                <div style={{ textAlign: 'center', padding: '30px 10px', color: 'var(--text-muted)', fontSize: 13, border: '1px dashed var(--border)', borderRadius: 'var(--r-sm)' }}>
                   No items in this release yet. Click "+ Add Item" to bundle pages or posts.
                 </div>
               ) : (
@@ -360,7 +360,7 @@ export function CMSReleases() {
                         padding: '10px 12px',
                         background: 'var(--bg)',
                         border: '1px solid var(--border)',
-                        borderRadius: 8,
+                        borderRadius: 'var(--r-sm)',
                         display: 'flex',
                         alignItems: 'center',
                         justifyContent: 'space-between',
@@ -443,7 +443,7 @@ export function CMSReleases() {
             backdropFilter: 'blur(2px)',
           }}
         >
-          <div style={{ background: 'var(--surface)', borderRadius: 16, padding: 24, width: '100%', maxWidth: 440, border: '1px solid var(--border)' }}>
+          <div style={{ background: 'var(--surface)', borderRadius: 'var(--r-lg)', padding: 24, width: '100%', maxWidth: 440, border: '1px solid var(--border)' }}>
             <h3 style={{ fontSize: 16, fontWeight: 700, margin: '0 0 16px 0', color: 'var(--text)' }}>Create Content Release</h3>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
               <div>
@@ -511,7 +511,7 @@ export function CMSReleases() {
             backdropFilter: 'blur(2px)',
           }}
         >
-          <div style={{ background: 'var(--surface)', borderRadius: 16, padding: 24, width: '100%', maxWidth: 440, border: '1px solid var(--border)' }}>
+          <div style={{ background: 'var(--surface)', borderRadius: 'var(--r-lg)', padding: 24, width: '100%', maxWidth: 440, border: '1px solid var(--border)' }}>
             <h3 style={{ fontSize: 16, fontWeight: 700, margin: '0 0 16px 0', color: 'var(--text)' }}>Add Content to Release</h3>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
               <div>

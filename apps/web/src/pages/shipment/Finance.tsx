@@ -814,7 +814,7 @@ export function LedgerTab({ job, shipmentId, isLive, onRefresh }: { job: Clearan
             </div>
             <div style={{ display: 'flex', gap: 8 }}>
               <Button size="sm" type="submit" style={{ flex: 1 }} loading={ledgSaving} loadingText="Saving…">Add Entry</Button>
-              <button type="button" onClick={() => setShowForm(false)} className="btn btn-secondary btn-sm" data-ui-native-button="">Cancel</button>
+              <Button variant="outline" size="sm" type="button" onClick={() => setShowForm(false)}>Cancel</Button>
             </div>
           </form>
           </Card>

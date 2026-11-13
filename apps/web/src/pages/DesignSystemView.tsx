@@ -28,6 +28,7 @@ const OscarCatalog        = React.lazy(() => import('./OscarCatalog.js'));
 const AnimationsShowcase  = React.lazy(() => import('./AnimationsShowcase.js'));
 const BuildingBlocksShowcase = React.lazy(() => import('./BuildingBlocksShowcase.js'));
 import { ColorField, NumberField, IconSystemSection } from './design_system/helpers.js';
+import { Button } from '../components/ui/button.js';
 
 type SectionGroup = 'foundations' | 'components' | 'layout' | 'branding' | 'resources';
 const SECTIONS: { id: string; group: SectionGroup; label: string; icon: IconName; desc: string }[] = [
@@ -386,14 +387,13 @@ export function DesignSystemView() {
         actions={
           <div className="ds-header-actions">
             {!PANEL_ONLY_SECTIONS.has(activeSection) && (
-              <button
+              <Button variant="outline" className="ds-btn-reset"
                 type="button"
-                className="btn btn-secondary ds-btn-reset"
-                onClick={() => resetToDefaults()}
-               data-ui-native-button="">
+               
+                onClick={() => resetToDefaults()}>
                 <Icon name="refresh" size={14} />
                 <span>Reset to defaults</span>
-              </button>
+              </Button>
             )}
             <div className="ds-version-chip">
               <span className="ds-version-dot" />
@@ -629,14 +629,13 @@ export function DesignSystemView() {
                   </p>
                   <div className="ds-seed-control-group">
                     <ColorSwatchPicker value={seed} onChange={setSeed} />
-                    <button
+                    <Button className="ds-btn-generate"
                       type="button"
-                      className="btn btn-primary ds-btn-generate"
-                      onClick={handleGenerateFromSeed}
-                     data-ui-native-button="">
+                     
+                      onClick={handleGenerateFromSeed}>
                       <Icon name="sparkle" size={14} />
                       <span>Generate Tonal Scale</span>
-                    </button>
+                    </Button>
                   </div>
                 </div>
               </div>
@@ -1181,14 +1180,13 @@ export function DesignSystemView() {
               <div className="ds-interactive-preview-card" style={{ marginTop: 20 }}>
                 <div className="ds-motion-sandbox-top">
                   <span className="ds-preview-mini-label">LIVE ANIMATION SANDBOX</span>
-                  <button
+                  <Button size="sm"
                     type="button"
-                    className="btn btn-primary btn-sm"
-                    onClick={() => setMotionTrigger(c => c + 1)}
-                   data-ui-native-button="">
+                   
+                    onClick={() => setMotionTrigger(c => c + 1)}>
                     <Icon name="zap" size={13} />
                     <span>Trigger Animation Test</span>
-                  </button>
+                  </Button>
                 </div>
 
                 <div className="ds-motion-sandbox-track">
@@ -1584,10 +1582,10 @@ export function DesignSystemView() {
               <div className="ds-playground-block">
                 <span className="ds-playground-label">BUTTON PRIMITIVES</span>
                 <div className="ds-preview-row">
-                  <button type="button" className="btn btn-primary" data-ui-native-button="">Primary</button>
-                  <button type="button" className="btn btn-secondary" data-ui-native-button="">Secondary</button>
-                  <button type="button" className="btn btn-ghost" data-ui-native-button="">Ghost</button>
-                  <button type="button" className="btn btn-danger" data-ui-native-button="">Danger</button>
+                  <Button type="button">Primary</Button>
+                  <Button variant="outline" type="button">Secondary</Button>
+                  <Button variant="ghost" type="button">Ghost</Button>
+                  <Button variant="destructive" type="button">Danger</Button>
                 </div>
               </div>
 
@@ -1701,10 +1699,10 @@ export function DesignSystemView() {
             <div className="ds-playground-block">
               <span className="ds-playground-label">BUTTON PRIMITIVES</span>
               <div className="ds-preview-row">
-                <button type="button" className="btn btn-primary" data-ui-native-button="">Primary</button>
-                <button type="button" className="btn btn-secondary" data-ui-native-button="">Secondary</button>
-                <button type="button" className="btn btn-ghost" data-ui-native-button="">Ghost</button>
-                <button type="button" className="btn btn-danger" data-ui-native-button="">Danger</button>
+                <Button type="button">Primary</Button>
+                <Button variant="outline" type="button">Secondary</Button>
+                <Button variant="ghost" type="button">Ghost</Button>
+                <Button variant="destructive" type="button">Danger</Button>
               </div>
             </div>
 

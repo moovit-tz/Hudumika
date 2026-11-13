@@ -69,6 +69,14 @@ export default async function platformSupportRoutes(fastify: FastifyInstance) {
         reply.status(400);
         return { error: 'Subject and message are required' };
       }
+      // Accept any casing; anything else is a clear 400, not a raw
+      // database constraint name.
+      const PRIORITIES = ['LOW', 'NORMAL', 'HIGH', 'URGENT'] as const;
+      const priority = String(b.priority || 'NORMAL').toUpperCase() as (typeof PRIORITIES)[number];
+      if (!PRIORITIES.includes(priority)) {
+        reply.status(400);
+        return { error: 'Priority must be LOW, NORMAL, HIGH or URGENT' };
+      }
       return withTenant(user.tenant_id, async (trx) => {
         // Only a record this tenant actually owns. An id supplied by the
         // caller is not evidence of anything, and a bug report is a normal
@@ -85,7 +93,7 @@ export default async function platformSupportRoutes(fastify: FastifyInstance) {
           created_by: user.sub,
           subject: b.subject.trim(),
           category: b.category || 'general',
-          priority: b.priority || 'NORMAL',
+          priority,
           status: 'OPEN',
           kind: b.kind === 'bug' ? 'bug' : 'general',
           app: typeof b.app === 'string' ? b.app.slice(0, 40) : null,

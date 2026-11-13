@@ -60,7 +60,7 @@
 .bnc-kpi-icon-wrap {
   width: 42px;
   height: 42px;
-  border-radius: 12px;
+  border-radius: var(--r);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -125,7 +125,7 @@
   width: 7px;
   height: 7px;
   border-radius: 50%;
-  background: #dc2626;
+  background: var(--red);
   box-shadow: 0 0 0 0 rgba(220, 38, 38, 0.5);
   animation: bnc-pulse-red 1.8s infinite;
 }
@@ -296,7 +296,7 @@
 .bnc-item-icon-squircle {
   width: 40px;
   height: 40px;
-  border-radius: 11px;
+  border-radius: var(--r);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -392,7 +392,7 @@
   color: var(--teal);
   text-decoration: none;
   padding: 3px 8px;
-  border-radius: 6px;
+  border-radius: var(--r-sm);
   background: color-mix(in srgb, var(--teal) 8%, transparent);
   transition: background 0.12s ease;
 }
@@ -406,7 +406,7 @@
   border: none;
   cursor: pointer;
   padding: 4px;
-  border-radius: 6px;
+  border-radius: var(--r-sm);
   color: var(--ink3);
   display: inline-flex;
   align-items: center;
@@ -435,7 +435,7 @@
 .bnc-empty-icon-wrap {
   width: 52px;
   height: 52px;
-  border-radius: 14px;
+  border-radius: var(--r-lg);
   background: var(--teal-l);
   color: var(--teal);
   display: flex;
@@ -478,7 +478,7 @@
 
 .bnc-drawer-callout {
   padding: 14px 16px;
-  border-radius: 10px;
+  border-radius: var(--r);
   border-left: 3.5px solid var(--teal);
   background: color-mix(in srgb, var(--teal) 5%, var(--card-bg, #ffffff));
   font-size: 13.5px;
@@ -524,8 +524,8 @@
 
 /* ── Dark Mode Tweaks ── */
 [data-theme="dark"] .bnc-item-row.unread {
-  background: rgba(13, 148, 136, 0.08);
-  border-color: rgba(13, 148, 136, 0.35);
+  background: color-mix(in srgb, var(--teal) 8%, transparent);
+  border-color: color-mix(in srgb, var(--teal) 35%, transparent);
 }
 
 [data-theme="dark"] .bnc-drawer-hero {

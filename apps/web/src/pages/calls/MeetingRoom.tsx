@@ -837,7 +837,7 @@ export function MeetingRoom({ meetingId, title, kind, role, iceServers, initialA
             onMouseMove={onStageMouseMove}
             onMouseUp={onStageMouseUp}
             onMouseLeave={onStageMouseUp}
-            style={{ flex: 1, background: '#111214', borderRadius: 16, overflow: 'hidden', position: 'relative', display: 'flex', alignItems: 'center', justifyContent: 'center', border: '1px solid #3c4043', cursor: annotationTool ? 'crosshair' : 'default' }}
+            style={{ flex: 1, background: '#111214', borderRadius: 'var(--r-lg)', overflow: 'hidden', position: 'relative', display: 'flex', alignItems: 'center', justifyContent: 'center', border: '1px solid #3c4043', cursor: annotationTool ? 'crosshair' : 'default' }}
           >
             {/* Screen-share annotation overlay — real strokes broadcast live
                 (normalized coordinates), not a decorative drawing demo. */}
@@ -1030,7 +1030,7 @@ export function MeetingRoom({ meetingId, title, kind, role, iceServers, initialA
                       <div style={{ fontSize: 12.5, color: '#f1f5f9', marginBottom: 6 }}>Meeting password {hostSettings.hasPassword && <span style={{ color: 'var(--green)', fontSize: 11 }}>(set)</span>}</div>
                       <div style={{ display: 'flex', gap: 6 }}>
                         <input data-ui-field="input" value={hostPasswordInput} onChange={e => setHostPasswordInput(e.target.value)} placeholder="New password" style={{ flex: 1, height: "var(--ctl-h)", background: '#2d2f31', border: "var(--border-width) solid var(--border)", borderRadius: 'var(--r)', padding: '0 10px', color: '#fff', fontSize: "var(--text-base)", outline: 'none' }} />
-                        <button onClick={() => updateHostSetting({ password: hostPasswordInput })} className="btn btn-primary btn-xs" data-ui-native-button="">Set</button>
+                        <Button size="xs" onClick={() => updateHostSetting({ password: hostPasswordInput })}>Set</Button>
                         {hostSettings.hasPassword && <button onClick={() => { setHostPasswordInput(''); updateHostSetting({ password: '' }); }} className="btn btn-xs" style={{ background: 'none', border: '1px solid #3c4043', color: '#cbd5e1' }} data-ui-native-button="">Clear</button>}
                       </div>
                     </div>
@@ -1050,10 +1050,9 @@ export function MeetingRoom({ meetingId, title, kind, role, iceServers, initialA
                           readOnly value={`${window.location.origin}/meet/${meetingId}`}
                           style={{ flex: 1, height: "var(--ctl-h)", background: '#2d2f31', border: "var(--border-width) solid var(--border)", borderRadius: 'var(--r)', padding: '0 10px', color: '#cbd5e1', fontSize: "var(--text-base)", outline: 'none' }}
                         />
-                        <button
+                        <Button size="xs"
                           onClick={() => { navigator.clipboard?.writeText(`${window.location.origin}/meet/${meetingId}`); }}
-                          className="btn btn-primary btn-xs" style={{ whiteSpace: 'nowrap' }}
-                         data-ui-native-button="">Copy guest link</button>
+                          style={{ whiteSpace: 'nowrap' }}>Copy guest link</Button>
                       </div>
                     )}
                   </>
@@ -1141,7 +1140,7 @@ export function MeetingRoom({ meetingId, title, kind, role, iceServers, initialA
                 </div>
                 <div style={{ padding: 16, display: 'flex', flexDirection: 'column', gap: 12 }}>
                   {isHost && !showNewPoll && (
-                    <button onClick={() => setShowNewPoll(true)} className="btn btn-primary" data-ui-native-button="">+ New poll</button>
+                    <Button onClick={() => setShowNewPoll(true)}>+ New poll</Button>
                   )}
                   {isHost && showNewPoll && (
                     <div style={{ background: '#2d2f31', borderRadius: 'var(--r)', padding: 12, display: 'flex', flexDirection: 'column', gap: 8 }}>
@@ -1153,7 +1152,7 @@ export function MeetingRoom({ meetingId, title, kind, role, iceServers, initialA
                         <button onClick={() => setNewPollOptions(prev => [...prev, ''])} className="btn btn-xs" style={{ background: 'none', border: '1px solid #3c4043', color: '#cbd5e1' }} data-ui-native-button="">+ Option</button>
                         <div style={{ flex: 1 }} />
                         <button onClick={() => setShowNewPoll(false)} className="btn btn-xs" style={{ background: 'none', border: 'none', color: '#94a3b8' }} data-ui-native-button="">Cancel</button>
-                        <button onClick={createPoll} className="btn btn-primary btn-xs" data-ui-native-button="">Launch</button>
+                        <Button size="xs" onClick={createPoll}>Launch</Button>
                       </div>
                     </div>
                   )}
@@ -1343,14 +1342,14 @@ export function MeetingRoom({ meetingId, title, kind, role, iceServers, initialA
                       <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                         <input data-ui-field="input" type="number" min={1} max={20} value={breakoutCount} onChange={e => setBreakoutCount(Math.max(1, Number(e.target.value) || 1))} style={{ width: 56, height: "var(--ctl-h)", textAlign: 'center', background: '#2d2f31', border: "var(--border-width) solid var(--border)", borderRadius: 'var(--r)', color: '#fff', fontSize: "var(--text-base)" }} />
                         <span style={{ fontSize: 12.5, color: '#cbd5e1' }}>rooms</span>
-                        <button onClick={createBreakoutRooms} className="btn btn-primary btn-sm" style={{ marginLeft: 'auto' }} data-ui-native-button="">Create</button>
+                        <Button size="sm" onClick={createBreakoutRooms} style={{ marginLeft: 'auto' }}>Create</Button>
                       </div>
                       <div style={{ fontSize: 11.5, color: '#94a3b8' }}>Everyone currently in the main room can be auto-distributed evenly once rooms exist.</div>
                     </>
                   ) : (
                     <>
                       <div style={{ display: 'flex', gap: 8 }}>
-                        <button onClick={autoAssignBreakout} className="btn btn-primary btn-sm" style={{ flex: 1 }} data-ui-native-button="">Auto-assign everyone</button>
+                        <Button size="sm" onClick={autoAssignBreakout} style={{ flex: 1 }}>Auto-assign everyone</Button>
                         <button onClick={closeAllBreakouts} className="btn btn-sm" style={{ background: '#3c4043', color: 'var(--red)', border: 'none' }} data-ui-native-button="">Close all</button>
                       </div>
                       {breakoutRooms.map(r => (

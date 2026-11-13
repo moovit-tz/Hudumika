@@ -178,10 +178,25 @@ export async function ocrRoutes(fastify: FastifyInstance) {
       };
     }
 
+    // The provider sheds load with 503 "high demand" / 429 at busy times; a
+    // single overload used to fail the scan and hand the user Google's raw
+    // error JSON. Each overloaded attempt takes about a minute to fail, so
+    // retrying the same busy model kept people waiting ~3 minutes. Instead,
+    // move straight to the next model. A model Google has retired (404 —
+    // models.list still showed gemini-2.5-flash after it stopped serving new
+    // keys) also moves on, so a retirement can't silently break scanning.
+    // The lite model is the last resort: fastest and least loaded, slightly
+    // less thorough on dense documents.
+    const MODELS = ['gemini-flash-latest', 'gemini-3.5-flash', 'gemini-flash-lite-latest'];
+    const isRetired = (e: any) => /\b404\b|NOT_FOUND|no longer available/i.test(String(e?.message ?? e));
+    const isOverload = (e: any) => /\b(503|429)\b|UNAVAILABLE|RESOURCE_EXHAUSTED|high demand|overloaded/i.test(String(e?.message ?? e));
     try {
       const ai = new GoogleGenAI({ apiKey });
-      const response = await ai.models.generateContent({
-        model: 'gemini-flash-latest',
+      let response: Awaited<ReturnType<typeof ai.models.generateContent>> | undefined;
+      for (let attempt = 0; ; attempt++) {
+        try {
+          response = await ai.models.generateContent({
+        model: MODELS[attempt],
         contents: [
           {
             role: 'user',
@@ -198,14 +213,26 @@ export async function ocrRoutes(fastify: FastifyInstance) {
           responseMimeType: 'application/json',
         },
       });
+          break;
+        } catch (e: any) {
+          if (attempt >= MODELS.length - 1 || !(isOverload(e) || isRetired(e))) throw e;
+          fastify.log.warn(`OCR model ${MODELS[attempt]} unavailable (${isRetired(e) ? 'retired' : 'overloaded'}); trying ${MODELS[attempt + 1]}`);
+        }
+      }
 
-      const raw = (response.text ?? '{}').trim();
+      const raw = (response!.text ?? '{}').trim();
       const result = JSON.parse(raw);
 
       return { success: true, simulated: false, result };
     } catch (err: any) {
       fastify.log.error(err, 'OCR scan failed');
-      return reply.status(500).send({ error: err.message || 'OCR scan failed' });
+      if (isOverload(err)) {
+        return reply.status(503).send({ error: 'The document reader is busy right now. Try again in a minute, or enter the details by hand.' });
+      }
+      if (err instanceof SyntaxError) {
+        return reply.status(502).send({ error: 'The document reader returned an unreadable answer. Try again, or enter the details by hand.' });
+      }
+      return reply.status(500).send({ error: 'Could not read this document. Try a clearer scan, or enter the details by hand.' });
     }
   });
 }

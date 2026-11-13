@@ -37,7 +37,7 @@ export function FileCard({ item, selected, onClick, onDoubleClick, onContextMenu
           style={{
             display: 'flex',
             flexDirection: 'column',
-            borderRadius: 14,
+            borderRadius: 'var(--r-lg)',
             border: selected ? '2px solid var(--cloud-blue)' : '1px solid var(--border)',
             background: selected ? 'rgba(26, 115, 232, 0.08)' : 'var(--card-bg)',
             overflow: 'hidden',

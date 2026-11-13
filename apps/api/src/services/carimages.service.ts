@@ -74,7 +74,7 @@ export class CarImagesService {
       throw new Error(`CarImages API returned HTTP ${res.status}: ${errorText || res.statusText}`);
     }
 
-    const data = await res.json();
+    const data: any = await res.json();
     const makes = Array.isArray(data) ? data : (data.makes || []);
     const totalMakes = Number(data.total) || makes.length;
 
@@ -106,7 +106,7 @@ export class CarImagesService {
       throw new Error(`Failed to fetch makes: ${res.statusText}`);
     }
 
-    const data = await res.json();
+    const data: any = await res.json();
     const makes = Array.isArray(data) ? data : (data.makes || []);
     return {
       total: Number(data.total) || makes.length,
@@ -147,7 +147,7 @@ export class CarImagesService {
       throw new Error(`CarImages signed-url failed: ${err || res.statusText}`);
     }
 
-    const data = await res.json();
+    const data: any = await res.json();
     return {
       url: data.url,
       make: params.make,
@@ -188,7 +188,7 @@ export class CarImagesService {
       throw new Error(`CarImages signed-model-url failed: ${err || res.statusText}`);
     }
 
-    const data = await res.json();
+    const data: any = await res.json();
     const url = Array.isArray(data.urls) && data.urls.length > 0 ? data.urls[0] : null;
     return {
       url,

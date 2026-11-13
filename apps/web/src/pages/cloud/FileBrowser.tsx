@@ -23,6 +23,7 @@ import type { FileMenuHandlers } from './components/FileMenu.js';
 
 import { CloudHome } from './CloudHome.js';
 import { useCloudStrings } from './locale/index.js';
+import { Button } from '../../components/ui/button.js';
 
 const PROVIDER_VIEWS: StorageProvider[] = ['box', 'dropbox', 'mega', 'onedrive'];
 
@@ -421,9 +422,9 @@ export const FileBrowser: React.FC = () => {
               <div ref={loadMoreSentinelRef} className="fb-load-more">
                 {folderLoading
                   ? <span className="fb-load-more-label">{t('fb.loadingMore')}</span>
-                  : <button className="btn btn-secondary btn-sm" onClick={() => void loadMoreFolderContents()} data-ui-native-button="">
+                  : <Button variant="outline" size="sm" onClick={() => void loadMoreFolderContents()}>
                       {t('fb.loadMore')}
-                    </button>
+                    </Button>
                 }
               </div>
             )}

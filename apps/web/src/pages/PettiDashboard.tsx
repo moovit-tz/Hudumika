@@ -306,14 +306,14 @@ export function PettiDashboard() {
                   <div style={{ fontSize: 20, fontWeight: 800, color: '#ffffff', marginTop: 4 }}>
                     {enabledGateways.length} active
                   </div>
-                  <div style={{ fontSize: 11, color: enabledGateways.length > 0 ? '#10b981' : 'rgba(255,255,255,0.6)', marginTop: 2 }}>
+                  <div style={{ fontSize: 11, color: enabledGateways.length > 0 ? 'var(--green)' : 'rgba(255,255,255,0.6)', marginTop: 2 }}>
                     {enabledGateways.length > 0 ? enabledGateways.map(g => g.name).join(', ') : 'None configured'}
                   </div>
                 </div>
               </div>
 
               <div style={{ background: 'rgba(255,255,255,0.1)', padding: '10px 14px', borderRadius: 'var(--r-sm)', backdropFilter: 'blur(4px)', display: 'flex', alignItems: 'center', gap: 10 }}>
-                <Icon name="sparkle" size={15} color="#10b981" />
+                <Icon name="sparkle" size={15} color="var(--green)" />
                 <span style={{ fontSize: 12, color: 'rgba(255,255,255,0.9)' }}>
                   {pendingWithdrawals.length > 0
                     ? `${pendingWithdrawals.length} pending expense voucher${pendingWithdrawals.length !== 1 ? 's' : ''} awaiting approval.`

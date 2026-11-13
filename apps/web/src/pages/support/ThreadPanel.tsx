@@ -16,6 +16,7 @@ import { Popover, PopoverTrigger, PopoverContent } from '../../components/ui/pop
 import { showAlert } from '../../lib/alert.js';
 import type { ChannelId, Ticket, Message, MessageAttachment } from './shared.js';
 import { PRIORITY_CFG, STATUS_CFG, CHANNEL_CFG, COMPOSER_EMOJIS, cachedSupportDriveId, setCachedSupportDriveId, relTime, channelKey, fmtAttachmentSize, Av, PBadge, SBadge, ChPill } from './shared.js';
+import { Button } from '../../components/ui/button.js';
 
 export function ThreadPanel({ ticket, authorName, onClose, onOpenDetails, aiSuggestionToUse }: {
   ticket: Ticket;
@@ -577,7 +578,7 @@ export function ThreadPanel({ ticket, authorName, onClose, onOpenDetails, aiSugg
                       <input data-ui-field="input" autoFocus value={newMacroTitle} onChange={e => setNewMacroTitle(e.target.value)}
                         onKeyDown={e => { if (e.key === 'Enter') saveMacro(); if (e.key === 'Escape') setNewMacroOpen(false); }}
                         placeholder="Macro title…" style={{ flex: 1, fontSize: "var(--text-base)", padding: "var(--ds-input-py) var(--space-md)", border: '1px solid var(--border)', borderRadius: 'var(--r-sm)', background: 'var(--white)', color: 'var(--ink)' }} />
-                      <button type="button" onClick={saveMacro} disabled={!newMacroTitle.trim() || !compose.trim()} className="btn btn-primary btn-sm" data-ui-native-button="">Save</button>
+                      <Button size="sm" type="button" onClick={saveMacro} disabled={!newMacroTitle.trim() || !compose.trim()}>Save</Button>
                     </div>
                   ) : (
                     <button type="button" onClick={() => setNewMacroOpen(true)} disabled={!compose.trim()}

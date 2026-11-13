@@ -173,7 +173,7 @@ export function DPODashboard() {
                 marginLeft: 6,
                 background: 'var(--red)',
                 color: '#fff',
-                borderRadius: 10,
+                borderRadius: 'var(--r)',
                 fontSize: 10,
                 padding: '1px 5px',
                 fontWeight: 700,

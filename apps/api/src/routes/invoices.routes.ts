@@ -1657,7 +1657,7 @@ export async function invoiceRoutes(fastify: FastifyInstance) {
               body: params.toString(),
               signal: ctrl.signal,
             });
-            const session = await res.json();
+            const session: any = await res.json();
             if (!res.ok) throw new Error(session?.error?.message || `Stripe returned ${res.status}`);
             checkoutUrl = session.url;
           } finally { clearTimeout(timer); }
@@ -1681,7 +1681,7 @@ export async function invoiceRoutes(fastify: FastifyInstance) {
               }),
               signal: ctrl.signal,
             });
-            const data = await res.json();
+            const data: any = await res.json();
             if (data?.status !== 'success' || !data?.data?.link) throw new Error(data?.message || `Flutterwave returned ${res.status}`);
             checkoutUrl = data.data.link;
           } finally { clearTimeout(timer); }
@@ -1706,7 +1706,7 @@ export async function invoiceRoutes(fastify: FastifyInstance) {
               }),
               signal: ctrl.signal,
             });
-            const data = await res.json();
+            const data: any = await res.json();
             if (!data?.status || !data?.data?.authorization_url) throw new Error(data?.message || `Paystack returned ${res.status}`);
             checkoutUrl = data.data.authorization_url;
           } finally { clearTimeout(timer); }

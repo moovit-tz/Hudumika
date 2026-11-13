@@ -3,6 +3,7 @@ import { apiFetch } from '../../lib/api.js';
 import { Icon } from '../Icon.js';
 import { Popover, PopoverTrigger, PopoverContent } from '../ui/popover.js';
 import { showAlert } from '../../lib/alert.js';
+import { Button } from '../ui/button.js';
 
 type SubjectType = 'lead' | 'deal' | 'customer';
 
@@ -116,9 +117,9 @@ export function LabelChips({ subjectType, subjectId }: { subjectType: SubjectTyp
               placeholder="New label…" value={newName} onChange={e => setNewName(e.target.value)}
               onKeyDown={e => { if (e.key === 'Enter') createAndAssign(); }}
             />
-            <button type="button" className="btn btn-primary btn-sm" disabled={creating || !newName.trim()} onClick={createAndAssign} data-ui-native-button="">
+            <Button size="sm" type="button" disabled={creating || !newName.trim()} onClick={createAndAssign}>
               Add
-            </button>
+            </Button>
           </div>
         </PopoverContent>
       </Popover>

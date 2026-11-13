@@ -64,7 +64,7 @@ export const TwoFaSetupRequired: React.FC = () => {
 
   return (
     <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'var(--bg)', padding: 20 }}>
-      <div style={{ width: '100%', maxWidth: 440, background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 16, boxShadow: 'var(--elev-lg)', padding: 32 }}>
+      <div style={{ width: '100%', maxWidth: 440, background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 'var(--r-lg)', boxShadow: 'var(--elev-lg)', padding: 32 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 6 }}>
           <Icon name="shield" size={20} color="var(--teal)" />
           <span style={{ fontSize: 18, fontWeight: 700, color: 'var(--ink)' }}>Two-factor authentication required</span>

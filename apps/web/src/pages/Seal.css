@@ -215,7 +215,7 @@
   gap: 6px;
   background: var(--bg);
   padding: 4px;
-  border-radius: 10px;
+  border-radius: var(--r);
   border: 1px solid var(--border);
 }
 
@@ -769,7 +769,7 @@
 .seal-kpi-tile-icon {
   width: 40px;
   height: 40px;
-  border-radius: 10px;
+  border-radius: var(--r);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -887,7 +887,7 @@
   font-size: 10.5px;
   font-weight: 800;
   padding: 2px 7px;
-  border-radius: 6px;
+  border-radius: var(--r-sm);
   background: color-mix(in srgb, var(--seal, var(--teal)) 14%, var(--bg));
   color: var(--seal, var(--teal));
   letter-spacing: 0.03em;
@@ -905,7 +905,7 @@
   align-items: center;
   gap: 9px;
   padding: 8px 10px;
-  border-radius: 8px;
+  border-radius: var(--r-sm);
   background: var(--bg);
 }
 

@@ -717,7 +717,7 @@
 .onsite-unprovisioned-icon {
   width: 48px;
   height: 48px;
-  border-radius: 12px;
+  border-radius: var(--r);
   background: var(--bg);
   display: flex;
   align-items: center;

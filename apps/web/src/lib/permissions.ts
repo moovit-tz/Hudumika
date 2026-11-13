@@ -8,6 +8,15 @@ export const CRM_ROLES: UserRole[]  = ['SUPER_ADMIN', 'ADMIN', 'TENANT_ADMIN', '
 export const ALL_STAFF: UserRole[]  = ['SUPER_ADMIN', 'ADMIN', 'TENANT_ADMIN', 'MANAGER', 'FINANCE', 'SALES', 'SENIOR', 'JUNIOR', 'OFFICER'];
 export const CFA_ROLES: UserRole[]  = ['SUPER_ADMIN', 'ADMIN', 'TENANT_ADMIN', 'MANAGER', 'SENIOR', 'JUNIOR', 'OFFICER', 'FINANCE'];
 
+/**
+ * Who sees a shipment's money — the Ledger tab and the charge totals on the
+ * overview. Mirrors SHIPMENT_FINANCE_ROLES in the API's shipments routes,
+ * which is what actually withholds the figures; this only hides the UI.
+ */
+export const SHIPMENT_FINANCE_ROLES: UserRole[] = [...MGMT_ROLES, 'SENIOR', 'FINANCE', 'OFFICER', 'SALES'];
+export const canSeeShipmentFinance = (role: string | undefined): boolean =>
+  !!role && (SHIPMENT_FINANCE_ROLES as string[]).includes(role);
+
 // ── Where each role lands after login ─────────────────────────
 const ROLE_HOME_MAP: Partial<Record<string, string>> = {
   FINANCE: '/finance/overview',

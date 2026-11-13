@@ -318,7 +318,7 @@ export const FinanceLedger: React.FC = () => {
           {cashTZS !== 0 ? (
             <div className="acct-bank-sync-row">
               <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                <div style={{ width: 34, height: 34, borderRadius: 6, background: 'var(--teal-l)', color: 'var(--teal)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <div style={{ width: 34, height: 34, borderRadius: 'var(--r-sm)', background: 'var(--teal-l)', color: 'var(--teal)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                   <Icon name="building" size={16} />
                 </div>
                 <div>
@@ -333,7 +333,7 @@ export const FinanceLedger: React.FC = () => {
           {cashUSD !== 0 ? (
             <div className="acct-bank-sync-row">
               <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                <div style={{ width: 34, height: 34, borderRadius: 6, background: 'var(--blue-l)', color: 'var(--blue)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <div style={{ width: 34, height: 34, borderRadius: 'var(--r-sm)', background: 'var(--blue-l)', color: 'var(--blue)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                   <Icon name="building" size={16} />
                 </div>
                 <div>
@@ -348,7 +348,7 @@ export const FinanceLedger: React.FC = () => {
           {cashOnHand !== 0 ? (
             <div className="acct-bank-sync-row">
               <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                <div style={{ width: 34, height: 34, borderRadius: 6, background: 'var(--gold-l)', color: 'var(--gold)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <div style={{ width: 34, height: 34, borderRadius: 'var(--r-sm)', background: 'var(--gold-l)', color: 'var(--gold)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                   <Icon name="wallet" size={16} />
                 </div>
                 <div>

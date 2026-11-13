@@ -20,7 +20,7 @@
   -webkit-backdrop-filter: blur(20px);
   backdrop-filter: blur(20px);
   border: 1px solid var(--border);
-  border-radius: 16px;
+  border-radius: var(--r-lg);
   box-shadow: 0 16px 40px -8px rgba(0, 0, 0, 0.16), 0 4px 12px -2px rgba(0, 0, 0, 0.06);
   outline: 1px solid rgba(0, 0, 0, 0.04);
   outline-offset: -1px;
@@ -218,7 +218,7 @@
   justify-content: center;
   gap: 5px;
   padding: 5px 2px 4px 2px;
-  border-radius: 12px;
+  border-radius: var(--r);
   cursor: pointer;
   transition: background 0.15s ease, transform 0.15s ease;
   font-family: var(--font);
@@ -294,7 +294,7 @@
 .app-lnch-adobe-footer-card {
   margin-top: 8px;
   background: var(--card-sunken);
-  border-radius: 10px;
+  border-radius: var(--r);
   padding: 8px 6px;
   display: flex;
   align-items: center;

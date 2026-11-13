@@ -4,6 +4,7 @@ import { Icon } from '../components/Icon.js';
 import { Badge } from '../components/ui/badge.js';
 import { Banner } from '../components/ui/alert.js';
 import { apiFetch } from '../lib/api.js';
+import { Button } from '../components/ui/button.js';
 
 interface Check { name: string; ok: boolean; detail: string; remedy?: string; skipped?: boolean }
 interface Preflight { provider: string; ok: boolean; checks: Check[]; nextStep: string | null }
@@ -148,7 +149,7 @@ export function LensIntegrations() {
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
                     <span style={{ fontSize: 15, fontWeight: 700, color: 'var(--ink)' }}>{p.label}</span>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 4, background: statusBg, padding: '3px 8px', borderRadius: 12 }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 4, background: statusBg, padding: '3px 8px', borderRadius: 'var(--r)' }}>
                       <div style={{ width: 6, height: 6, borderRadius: '50%', background: statusColor, boxShadow: p.status === 'connected' ? `0 0 0 2px var(--green-l)` : 'none' }} />
                       <span style={{ fontSize: 10, fontWeight: 700, color: statusColor, textTransform: 'uppercase', letterSpacing: '0.04em' }}>{p.status}</span>
                     </div>
@@ -210,20 +211,20 @@ export function LensIntegrations() {
                     </div>
 
                     <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
-                      <button type="button" className="btn btn-primary" style={{ height: 'var(--ctl-h-sm)' }}
-                        disabled={busy === p.provider} onClick={() => save(p)} data-ui-native-button="">
+                      <Button type="button" style={{ height: 'var(--ctl-h-sm)' }}
+                        disabled={busy === p.provider} onClick={() => save(p)}>
                         {busy === p.provider ? 'Testing…' : 'Save & Test'}
-                      </button>
-                      <button type="button" className="btn btn-secondary" style={{ height: 'var(--ctl-h-sm)' }}
-                        disabled={busy === p.provider || !p.has_credential} onClick={() => test(p)} data-ui-native-button="">
+                      </Button>
+                      <Button variant="outline" type="button" style={{ height: 'var(--ctl-h-sm)' }}
+                        disabled={busy === p.provider || !p.has_credential} onClick={() => test(p)}>
                         Test Connection
-                      </button>
+                      </Button>
                       {/* The one worth running. "Test connection" only proves the
                           token authenticates; this proves it can do the job. */}
-                      <button type="button" className="btn btn-secondary" style={{ height: 'var(--ctl-h-sm)' }}
-                        disabled={busy === p.provider || !p.has_credential} onClick={() => runPreflight(p)} data-ui-native-button="">
+                      <Button variant="outline" type="button" style={{ height: 'var(--ctl-h-sm)' }}
+                        disabled={busy === p.provider || !p.has_credential} onClick={() => runPreflight(p)}>
                         Run full check
-                      </button>
+                      </Button>
                     </div>
 
                     {flight[p.provider] && (

@@ -308,11 +308,11 @@ export const SuperAdminIssues: React.FC = () => {
                     <span style={{ fontFamily: 'var(--mono, monospace)', fontWeight: 700, color: 'var(--teal)' }}>{open.lens_ref}</span>
                   </div>
                 ) : (
-                  <button type="button" className="btn btn-secondary" disabled={sendingToLens}
-                    style={{ fontSize: "var(--text-base)", gap: 6 }} onClick={sendToLens} data-ui-native-button="">
+                  <Button variant="outline" type="button" disabled={sendingToLens}
+                    style={{ fontSize: "var(--text-base)", gap: 6 }} onClick={sendToLens}>
                     <Icon name="externalLink" size={13} />
                     {sendingToLens ? 'Sending…' : 'Send to Lens'}
-                  </button>
+                  </Button>
                 )}
               </div>
 
@@ -383,10 +383,10 @@ export const SuperAdminIssues: React.FC = () => {
                 <textarea data-ui-field="textarea" className="input-field" rows={2} value={resolution} onChange={e => setResolution(e.target.value)}
                   placeholder="What was actually done. Shown to the tenant beside the status — 'Resolved' on its own is not an answer."
                   style={{ width: '100%', boxSizing: 'border-box', fontSize: "var(--text-base)", resize: 'vertical' }} />
-                <button type="button" className="btn btn-primary" disabled={saving}
-                  style={{ marginTop: 8, fontSize: "var(--text-base)" }} onClick={() => patch({ resolution })} data-ui-native-button="">
+                <Button type="button" disabled={saving}
+                  style={{ marginTop: 8, fontSize: "var(--text-base)" }} onClick={() => patch({ resolution })}>
                   Save outcome
-                </button>
+                </Button>
               </div>
             </div>
           )}

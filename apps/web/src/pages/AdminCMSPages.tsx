@@ -104,9 +104,9 @@ export function AdminCMSPages() {
         title="CMS Pages"
         sub="Manage legal terms, privacy policies, and public content pages across the platform."
         action={
-          <button type="button" className="btn btn-primary btn-sm sa-btn-gap-md" onClick={() => setCreating(true)} data-ui-native-button="">
+          <Button size="sm" className="sa-btn-gap-md" type="button" onClick={() => setCreating(true)}>
             <Icon name="plus" size={13} /> Add Page
-          </button>
+          </Button>
         }
       />
 
@@ -137,7 +137,7 @@ export function AdminCMSPages() {
             <Button size="sm" type="button" onClick={handleCreate} loading={saving} loadingText="Creating…">
               {'Create & Edit'}
             </Button>
-            <button type="button" className="btn btn-secondary btn-sm" onClick={() => setCreating(false)} data-ui-native-button="">Cancel</button>
+            <Button variant="outline" size="sm" type="button" onClick={() => setCreating(false)}>Cancel</Button>
           </div>
         </SectionCard>
         </div>
@@ -159,7 +159,7 @@ export function AdminCMSPages() {
               <Button size="sm" type="button" onClick={() => handleSave(editing)} loading={saving} loadingText="Saving…">
                 Save Changes
               </Button>
-              <button type="button" className="btn btn-secondary btn-sm" onClick={() => setEditing(null)} data-ui-native-button="">Close</button>
+              <Button variant="outline" size="sm" type="button" onClick={() => setEditing(null)}>Close</Button>
             </div>
           }
         >
@@ -216,7 +216,7 @@ export function AdminCMSPages() {
                     </td>
                     <td style={{ padding: '12px 16px' }}>
                       <span style={{
-                        display: 'inline-block', padding: '2px 8px', borderRadius: 12, fontSize: 11, fontWeight: 700,
+                        display: 'inline-block', padding: '2px 8px', borderRadius: 'var(--r)', fontSize: 11, fontWeight: 700,
                         background: page.status === 'published' ? 'var(--green-l)' : 'var(--bg)',
                         color: page.status === 'published' ? 'var(--green)' : 'var(--ink3)',
                       }}>
@@ -225,9 +225,9 @@ export function AdminCMSPages() {
                     </td>
                     <td style={{ padding: '12px 16px', textAlign: 'right' }}>
                       <div style={{ display: 'flex', gap: 6, justifyContent: 'flex-end' }}>
-                        <button type="button" className="btn btn-secondary btn-xs" onClick={() => setEditing(page)} data-ui-native-button="">Edit</button>
+                        <Button variant="outline" size="xs" type="button" onClick={() => setEditing(page)}>Edit</Button>
                         {!PUBLIC_ROUTES.has(page.slug) && (
-                          <button type="button" className="btn btn-secondary btn-xs" style={{ color: 'var(--red)' }} onClick={() => handleDelete(page.slug)} data-ui-native-button="">Delete</button>
+                          <Button variant="outline" size="xs" type="button" style={{ color: 'var(--red)' }} onClick={() => handleDelete(page.slug)}>Delete</Button>
                         )}
                       </div>
                     </td>

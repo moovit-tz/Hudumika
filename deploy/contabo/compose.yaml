@@ -18,6 +18,7 @@ x-api-environment: &api-environment
   FILE_SIGNING_SECRET: ${FILE_SIGNING_SECRET:?Run init.py}
   CORS_ORIGINS: https://${APP_DOMAIN:?Set your domain}
   PUBLIC_APP_URL: https://${APP_DOMAIN}
+  PLATFORM_BASE_DOMAIN: ${PLATFORM_BASE_DOMAIN:-hudumika.tz}
   API_BASE_URL: https://${APP_DOMAIN}
   OPS_BOARD_URL: https://${APP_DOMAIN}/clearos/ops
   GOOGLE_OAUTH_CLIENT_ID: ${GOOGLE_OAUTH_CLIENT_ID:-}

@@ -158,9 +158,9 @@ export function SignatureManager({ onChange }: { onChange?: (sigs: EmailSignatur
                 </div>
 
                 <div className="em-sig-header-actions" onClick={e => e.stopPropagation()}>
-                  <button type="button" className="btn btn-secondary btn-sm" onClick={() => startEdit(sig)} data-ui-native-button="">
+                  <Button variant="outline" size="sm" type="button" onClick={() => startEdit(sig)}>
                     Edit
-                  </button>
+                  </Button>
                   <button type="button" className="em-icon-btn em-icon-btn--ghost em-btn-danger" onClick={() => deleteSig(sig.id)} title="Delete signature" data-ui-native-button="">
                     <Icon name="trash" size={14} />
                   </button>
@@ -273,18 +273,18 @@ export function SignatureManager({ onChange }: { onChange?: (sigs: EmailSignatur
               <Button size="sm" type="button" onClick={saveDraft} loading={saving} loadingText="Saving…">
                 Save Signature
               </Button>
-              <button type="button" className="btn btn-secondary btn-sm" onClick={() => setEditingId(null)} data-ui-native-button="">
+              <Button variant="outline" size="sm" type="button" onClick={() => setEditingId(null)}>
                 Cancel
-              </button>
+              </Button>
             </div>
           </div>
         </div>
       ) : (
         <div className="em-sig-add-bar">
-          <button type="button" className="btn btn-secondary btn-sm" onClick={startNew} data-ui-native-button="">
+          <Button variant="outline" size="sm" type="button" onClick={startNew}>
             <Icon name="plus" size={14} />
             <span>Create New Signature</span>
-          </button>
+          </Button>
         </div>
       )}
     </div>

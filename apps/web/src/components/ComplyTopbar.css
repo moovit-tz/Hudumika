@@ -34,7 +34,7 @@
   justify-content: center;
   border: none;
   background: var(--bg);
-  border-radius: 10px;
+  border-radius: var(--r);
   cursor: pointer;
   color: var(--ink2);
   flex-shrink: 0;
@@ -133,7 +133,7 @@
   justify-content: center;
   border: none;
   background: transparent;
-  border-radius: 10px;
+  border-radius: var(--r);
   cursor: pointer;
   color: var(--ink2);
   transition: background 0.14s, color 0.14s;

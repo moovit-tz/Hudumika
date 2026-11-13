@@ -17,6 +17,7 @@ import { Checkbox } from '../components/ui/checkbox.js';
 import { Switch } from '../components/ui/switch.js';
 import { apiFetch } from '../lib/api.js';
 import { PageHeader } from '../components/PageHeader.js';
+import { Button } from '../components/ui/button.js';
 
 type FlowNodeData = {
   title?: string;
@@ -350,9 +351,9 @@ export function AIAutomations() {
       subtitle="Build automated workflows triggered by events across the platform."
       actions={
         <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
-          <button className="btn btn-secondary btn-xs" onClick={handleNewPage} data-ui-native-button="">
+          <Button variant="outline" size="xs" onClick={handleNewPage}>
             New page <Icon name="plus" size={12} style={{ marginLeft: 4 }} />
-          </button>
+          </Button>
 
           <label style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 12, color: 'var(--ink2)', fontWeight: 500, cursor: 'pointer' }}>
             Testing mode:
@@ -381,7 +382,7 @@ export function AIAutomations() {
               />
               {aiError && <div className="aia-ai-error">{aiError}</div>}
               <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8, marginTop: 8 }}>
-                <button className="btn btn-secondary btn-sm" onClick={() => setAiOpen(false)} data-ui-native-button="">Cancel</button>
+                <Button variant="outline" size="sm" onClick={() => setAiOpen(false)}>Cancel</Button>
                 <button className="aia-btn-try-ai" style={{ opacity: aiLoading ? 0.7 : 1 }} onClick={handleGenerate} disabled={aiLoading} data-ui-native-button="">
                   {aiLoading ? 'Generating…' : 'Generate'}
                 </button>
@@ -527,9 +528,9 @@ export function AIAutomations() {
                       ? 'Fires a real HTTP request to the URL configured in Setup and shows the real response.'
                       : 'Run this step in isolation to confirm it behaves as expected before publishing.'}
                   </p>
-                  <button className="btn btn-secondary btn-sm" onClick={runTest} disabled={testRunning} style={{ width: '100%', justifyContent: 'center', opacity: testRunning ? 0.7 : 1 }} data-ui-native-button="">
+                  <Button variant="outline" size="sm" onClick={runTest} disabled={testRunning} style={{ width: '100%', justifyContent: 'center', opacity: testRunning ? 0.7 : 1 }}>
                     <Icon name="play" size={13} style={{ marginRight: 6 }} /> {testRunning ? 'Running…' : 'Run test'}
-                  </button>
+                  </Button>
                   {testRunMessage && <div className="aia-test-result" style={{ whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}>{testRunMessage}</div>}
                 </div>
               )}

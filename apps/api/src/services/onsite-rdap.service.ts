@@ -33,7 +33,7 @@ export async function checkDomainAvailability(domain: string): Promise<RdapLooku
         const response = await fetch(url, { headers: { Accept: 'application/rdap+json' }, signal: AbortSignal.timeout(TIMEOUT_MS) });
         if (response.status === 404) return { domain, available: true, error: null };
         if (response.ok) {
-          const record = await response.json();
+          const record: any = await response.json();
           if (record.objectClassName === 'domain') return { domain, available: false, error: null };
           error = 'The registry returned an unexpected response. Please retry.';
         } else error = response.status === 429 ? 'The registry is rate limiting lookups. Please retry later.' : `The registry rejected the lookup (HTTP ${response.status}). Please retry or check with your registrar.`;

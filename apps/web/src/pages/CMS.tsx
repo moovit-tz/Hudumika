@@ -28,6 +28,7 @@ import type { Post, Page, Comment } from './cms_editors/shared.js';
 import { PAGE_SIZE, uid, now, ago, fmtDate, toLocalInput, SUPPORTED_LOCALES, cmsPageToLocal, cmsPostToLocal, cmsCommentToLocal, Av, StatusBadge, FL, SelectBox, BulkBar, useMediaPicker } from './cms_editors/shared.js';
 import { PostEditor, PageEditor } from './cms_editors/editors.js';
 import { CustomizeView } from './cms_editors/customize.js';
+import { Button } from '../components/ui/button.js';
 
 /* ══ Main CMS component ══ */
 export const CMS: React.FC = () => {
@@ -501,25 +502,25 @@ export const CMS: React.FC = () => {
             <>
               <input ref={wpImportInputRef} type="file" accept=".xml,text/xml,application/xml" style={{ display: 'none' }}
                 onChange={e => { const f = e.target.files?.[0]; if (f) handleWordPressFile(f); e.target.value = ''; }} />
-              <button onClick={() => wpImportInputRef.current?.click()} disabled={importingWp} className="btn btn-secondary btn-sm" title="Import posts from a WordPress export (.xml)" data-ui-native-button="">
+              <Button variant="outline" size="sm" onClick={() => wpImportInputRef.current?.click()} disabled={importingWp} title="Import posts from a WordPress export (.xml)">
                 <Icon name="upload" size={13} /> {importingWp ? 'Importing…' : 'Import from WordPress'}
-              </button>
-              <button onClick={handleExportPosts} className="btn btn-secondary btn-sm" data-ui-native-button="">
+              </Button>
+              <Button variant="outline" size="sm" onClick={handleExportPosts}>
                 <Icon name="download" size={13} /> Export CSV
-              </button>
-              <button onClick={() => { setEditPost(null); goTo('post-editor'); }} className="btn btn-primary btn-sm" style={{ display: 'flex', alignItems: 'center', gap: 6 }} data-ui-native-button="">
+              </Button>
+              <Button size="sm" onClick={() => { setEditPost(null); goTo('post-editor'); }} style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                 <Icon name="plus" size={13} /> Add New Post
-              </button>
+              </Button>
             </>
           )}
           {view === 'pages' && (
             <>
-              <button onClick={handleExportPages} className="btn btn-secondary btn-sm" data-ui-native-button="">
+              <Button variant="outline" size="sm" onClick={handleExportPages}>
                 <Icon name="download" size={13} /> Export CSV
-              </button>
-              <button onClick={() => { setEditPage({}); goTo('page-editor'); }} className="btn btn-primary btn-sm" style={{ display: 'flex', alignItems: 'center', gap: 6 }} data-ui-native-button="">
+              </Button>
+              <Button size="sm" onClick={() => { setEditPage({}); goTo('page-editor'); }} style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                 <Icon name="plus" size={13} /> Add New Page
-              </button>
+              </Button>
             </>
           )}
         </div>
@@ -595,14 +596,13 @@ export const CMS: React.FC = () => {
                       <div style={{ fontSize: 13.5, fontWeight: 700, color: 'var(--ink)', marginBottom: 5 }}>{t.name}</div>
                       <div style={{ fontSize: 12, color: 'var(--ink3)', marginBottom: 10, lineHeight: 1.5 }}>{t.description}</div>
                       <div style={{ fontSize: 11, color: 'var(--ink3)', marginBottom: 12 }}>{t.seeds.join(' · ')}</div>
-                      <button
+                      <Button size="sm"
                         onClick={() => installTemplate(t.key)}
                         disabled={installingTemplate !== null}
-                        className="btn btn-primary btn-sm"
-                        style={{ opacity: installingTemplate && installingTemplate !== t.key ? 0.5 : 1 }}
-                       data-ui-native-button="">
+                       
+                        style={{ opacity: installingTemplate && installingTemplate !== t.key ? 0.5 : 1 }}>
                         {installingTemplate === t.key ? 'Installing…' : 'Use this template'}
-                      </button>
+                      </Button>
                     </div>
                   ))}
                 </div>
@@ -615,7 +615,7 @@ export const CMS: React.FC = () => {
                 <div>
                   <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--ink)', marginBottom: 8 }}>Get Started</div>
                   <div style={{ fontSize: 12, color: 'var(--ink3)', marginBottom: 14, lineHeight: 1.5 }}>You can customise your site from here.</div>
-                  <button onClick={() => goTo('customize')} className="btn btn-primary btn-sm" data-ui-native-button="">Customize Site</button>
+                  <Button size="sm" onClick={() => goTo('customize')}>Customize Site</Button>
                 </div>
 
                 <div>
@@ -679,7 +679,7 @@ export const CMS: React.FC = () => {
                     <textarea data-ui-field="textarea" value={draftContent} onChange={e => setDraftContent(e.target.value)} placeholder="What's on your mind?!" rows={6}
                       style={{ width: '100%', border: '1px solid var(--border)', borderRadius: 'var(--r)', padding: "var(--ds-input-py) var(--space-md)", fontSize: "var(--text-base)", lineHeight: 1.6, resize: 'none', fontFamily: 'var(--font)', color: 'var(--ink)', outline: 'none', boxSizing: 'border-box', background: 'var(--white)' }} />
                   </FL>
-                  <button onClick={saveDraft} className="btn btn-primary btn-sm" style={{ alignSelf: 'flex-start' }} data-ui-native-button="">Save Draft</button>
+                  <Button size="sm" onClick={saveDraft} style={{ alignSelf: 'flex-start' }}>Save Draft</Button>
                 </div>
                 {posts.filter(p => p.status === 'draft').length > 0 && (
                   <div style={{ marginTop: 16, paddingTop: 12, borderTop: '1px solid var(--border)' }}>
@@ -814,41 +814,37 @@ export const CMS: React.FC = () => {
                       <td style={{ padding: '11px 16px', textAlign: 'right' }}>
                         {post.status !== 'trash' && (
                           <div style={{ display: 'inline-flex', gap: 6 }}>
-                            <button
+                            <Button variant="outline" size="sm"
                               onClick={() => setActiveCommentsDrawer({ open: true, type: 'post', id: post.id, title: post.title })}
-                              className="btn btn-secondary btn-sm"
+                             
                               title="Comments"
-                              style={{ padding: "var(--action-py) var(--space-md)" }}
-                             data-ui-native-button="">
+                              style={{ padding: "var(--action-py) var(--space-md)" }}>
                               <Icon name="messageSquare" size={12} />
-                            </button>
-                            <button
+                            </Button>
+                            <Button variant="outline" size="sm"
                               onClick={() => setActiveTranslateModal({ open: true, type: 'post', id: post.id, title: post.title, locale: post.locale || 'en', group: post.translation_group_id || undefined })}
-                              className="btn btn-secondary btn-sm"
+                             
                               title="Translate with AI"
-                              style={{ padding: "var(--action-py) var(--space-md)" }}
-                             data-ui-native-button="">
+                              style={{ padding: "var(--action-py) var(--space-md)" }}>
                               <Icon name="sparkle" size={12} />
-                            </button>
-                            <button
+                            </Button>
+                            <Button variant="outline" size="sm"
                               onClick={() => setActiveApprovalModal({ open: true, type: 'post', id: post.id, title: post.title })}
-                              className="btn btn-secondary btn-sm"
+                             
                               title="Request Approval"
-                              style={{ padding: "var(--action-py) var(--space-md)" }}
-                             data-ui-native-button="">
+                              style={{ padding: "var(--action-py) var(--space-md)" }}>
                               <Icon name="checkCircle" size={12} />
-                            </button>
-                            <button
+                            </Button>
+                            <Button variant="outline" size="sm"
                               onClick={() => setActiveReleaseModal({ open: true, type: 'post', id: post.id, title: post.title })}
-                              className="btn btn-secondary btn-sm"
+                             
                               title="Add to Release"
-                              style={{ padding: "var(--action-py) var(--space-md)" }}
-                             data-ui-native-button="">
+                              style={{ padding: "var(--action-py) var(--space-md)" }}>
                               <Icon name="package" size={12} />
-                            </button>
-                            <button onClick={() => { setEditPost(post); goTo('post-editor'); }} className="btn btn-secondary btn-sm" style={{ fontSize: "var(--text-xs)", display: 'inline-flex', alignItems: 'center', gap: 4 }} data-ui-native-button="">
+                            </Button>
+                            <Button variant="outline" size="sm" onClick={() => { setEditPost(post); goTo('post-editor'); }} style={{ fontSize: "var(--text-xs)", display: 'inline-flex', alignItems: 'center', gap: 4 }}>
                               <Icon name="edit" size={11} /> Edit
-                            </button>
+                            </Button>
                           </div>
                         )}
                       </td>
@@ -862,7 +858,7 @@ export const CMS: React.FC = () => {
               </div>
               {postsHasMore && (
                 <div style={{ padding: 14, textAlign: 'center' }}>
-                  <button type="button" className="btn btn-secondary btn-sm" onClick={() => loadPosts({ search: pSearchDebounced, site_id: selectedSiteFilter, locale: selectedLocaleFilter, offset: posts.length })} data-ui-native-button="">Load more</button>
+                  <Button variant="outline" size="sm" type="button" onClick={() => loadPosts({ search: pSearchDebounced, site_id: selectedSiteFilter, locale: selectedLocaleFilter, offset: posts.length })}>Load more</Button>
                 </div>
               )}
             </div>
@@ -945,41 +941,37 @@ export const CMS: React.FC = () => {
                       <td style={{ padding: '11px 16px', textAlign: 'right' }}>
                         {pg.status !== 'trash' && (
                           <div style={{ display: 'inline-flex', gap: 6 }}>
-                            <button
+                            <Button variant="outline" size="sm"
                               onClick={() => setActiveCommentsDrawer({ open: true, type: 'page', id: pg.id, title: pg.title })}
-                              className="btn btn-secondary btn-sm"
+                             
                               title="Comments"
-                              style={{ padding: "var(--action-py) var(--space-md)" }}
-                             data-ui-native-button="">
+                              style={{ padding: "var(--action-py) var(--space-md)" }}>
                               <Icon name="messageSquare" size={12} />
-                            </button>
-                            <button
+                            </Button>
+                            <Button variant="outline" size="sm"
                               onClick={() => setActiveTranslateModal({ open: true, type: 'page', id: pg.id, title: pg.title, locale: pg.locale || 'en', group: pg.translation_group_id || undefined })}
-                              className="btn btn-secondary btn-sm"
+                             
                               title="Translate with AI"
-                              style={{ padding: "var(--action-py) var(--space-md)" }}
-                             data-ui-native-button="">
+                              style={{ padding: "var(--action-py) var(--space-md)" }}>
                               <Icon name="sparkle" size={12} />
-                            </button>
-                            <button
+                            </Button>
+                            <Button variant="outline" size="sm"
                               onClick={() => setActiveApprovalModal({ open: true, type: 'page', id: pg.id, title: pg.title })}
-                              className="btn btn-secondary btn-sm"
+                             
                               title="Request Approval"
-                              style={{ padding: "var(--action-py) var(--space-md)" }}
-                             data-ui-native-button="">
+                              style={{ padding: "var(--action-py) var(--space-md)" }}>
                               <Icon name="checkCircle" size={12} />
-                            </button>
-                            <button
+                            </Button>
+                            <Button variant="outline" size="sm"
                               onClick={() => setActiveReleaseModal({ open: true, type: 'page', id: pg.id, title: pg.title })}
-                              className="btn btn-secondary btn-sm"
+                             
                               title="Add to Release"
-                              style={{ padding: "var(--action-py) var(--space-md)" }}
-                             data-ui-native-button="">
+                              style={{ padding: "var(--action-py) var(--space-md)" }}>
                               <Icon name="package" size={12} />
-                            </button>
-                            <button onClick={() => { setEditPage(pg); goTo('page-editor'); }} className="btn btn-secondary btn-sm" style={{ fontSize: "var(--text-xs)", display: 'inline-flex', alignItems: 'center', gap: 4 }} data-ui-native-button="">
+                            </Button>
+                            <Button variant="outline" size="sm" onClick={() => { setEditPage(pg); goTo('page-editor'); }} style={{ fontSize: "var(--text-xs)", display: 'inline-flex', alignItems: 'center', gap: 4 }}>
                               <Icon name="edit" size={11} /> Edit
-                            </button>
+                            </Button>
                           </div>
                         )}
                       </td>
@@ -993,7 +985,7 @@ export const CMS: React.FC = () => {
               </div>
               {pagesHasMore && (
                 <div style={{ padding: 14, textAlign: 'center' }}>
-                  <button type="button" className="btn btn-secondary btn-sm" onClick={() => loadPages({ search: pagesSearchDebounced, site_id: selectedSiteFilter, locale: selectedLocaleFilter, offset: pages.length })} data-ui-native-button="">Load more</button>
+                  <Button variant="outline" size="sm" type="button" onClick={() => loadPages({ search: pagesSearchDebounced, site_id: selectedSiteFilter, locale: selectedLocaleFilter, offset: pages.length })}>Load more</Button>
                 </div>
               )}
             </div>
@@ -1025,16 +1017,16 @@ export const CMS: React.FC = () => {
                   </div>
                   <div style={{ fontSize: 13.5, color: 'var(--ink)', lineHeight: 1.55, marginBottom: 10 }}>{c.content}</div>
                   <div style={{ display: 'flex', gap: 8 }}>
-                    {c.status !== 'approved' && <button onClick={() => approveCmt(c.id)} className="btn btn-secondary btn-sm" style={{ fontSize: "var(--text-base)", color: 'var(--green)' }} data-ui-native-button="">Approve</button>}
-                    {c.status !== 'spam'     && <button onClick={() => spamCmt(c.id)}    className="btn btn-secondary btn-sm" style={{ fontSize: "var(--text-base)", color: 'var(--gold)' }} data-ui-native-button="">Mark Spam</button>}
-                    <button onClick={() => deleteCmt(c.id)} className="btn btn-secondary btn-sm" style={{ fontSize: "var(--text-base)", color: 'var(--red)' }} data-ui-native-button="">Delete</button>
+                    {c.status !== 'approved' && <Button variant="outline" size="sm" onClick={() => approveCmt(c.id)} style={{ fontSize: "var(--text-base)", color: 'var(--green)' }}>Approve</Button>}
+                    {c.status !== 'spam'     && <Button variant="outline" size="sm" onClick={() => spamCmt(c.id)}    style={{ fontSize: "var(--text-base)", color: 'var(--gold)' }}>Mark Spam</Button>}
+                    <Button variant="outline" size="sm" onClick={() => deleteCmt(c.id)} style={{ fontSize: "var(--text-base)", color: 'var(--red)' }}>Delete</Button>
                   </div>
                 </div>
               </div>
             ))}
             {commentsHasMore && (
               <div style={{ textAlign: 'center' }}>
-                <button type="button" className="btn btn-secondary btn-sm" onClick={() => loadComments({ offset: comments.length })} data-ui-native-button="">Load more</button>
+                <Button variant="outline" size="sm" type="button" onClick={() => loadComments({ offset: comments.length })}>Load more</Button>
               </div>
             )}
           </div>

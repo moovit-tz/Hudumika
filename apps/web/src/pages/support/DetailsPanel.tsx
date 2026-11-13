@@ -66,7 +66,7 @@ function SendToComplyOSModal({ ticket, onClose }: { ticket: Ticket; onClose: () 
           {error && <div style={{ fontSize: 12.5, color: 'var(--red)' }}>{error}</div>}
         </div>
         <DialogFooter style={{ padding: '14px 22px', borderTop: '1px solid var(--border)' }}>
-          <button type="button" className="btn btn-secondary" onClick={onClose} data-ui-native-button="">Cancel</button>
+          <Button variant="outline" type="button" onClick={onClose}>Cancel</Button>
           <Button type="button" onClick={handleSend} loading={sending} loadingText="Opening…">
             Open Application
           </Button>
@@ -243,7 +243,7 @@ function EditAttributesDialog({ open, onClose, ticket, onSave }: {
           {error && <div style={{ fontSize: 12.5, color: 'var(--red)' }}>{error}</div>}
         </div>
         <DialogFooter style={{ padding: '14px 20px', borderTop: '1px solid var(--border)' }}>
-          <button type="button" className="btn btn-secondary" onClick={onClose} disabled={saving} data-ui-native-button="">Cancel</button>
+          <Button variant="outline" type="button" onClick={onClose} disabled={saving}>Cancel</Button>
           <Button type="button" onClick={handleSave} loading={saving} loadingText="Saving…">
             Save changes
           </Button>

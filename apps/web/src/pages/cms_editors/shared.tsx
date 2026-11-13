@@ -135,9 +135,9 @@ export function BulkBar({ count, onClear, actions }: { count: number; onClear: (
     <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '8px 14px', marginBottom: 12, borderRadius: 'var(--r)', background: 'var(--teal-l)', border: '1px solid var(--teal)' }}>
       <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--teal-deep, var(--teal))' }}>{count} selected</span>
       {actions.map(a => (
-        <button key={a.label} type="button" onClick={a.onClick} className="btn btn-secondary btn-sm" style={{ fontSize: "var(--text-base)", color: a.danger ? 'var(--red)' : undefined }} data-ui-native-button="">
+        <Button variant="outline" size="sm" key={a.label} type="button" onClick={a.onClick} style={{ fontSize: "var(--text-base)", color: a.danger ? 'var(--red)' : undefined }}>
           {a.label}
-        </button>
+        </Button>
       ))}
       <button type="button" onClick={onClear} style={{ marginLeft: 'auto', background: 'none', border: 'none', color: 'var(--ink3)', fontSize: "var(--text-base)", cursor: 'pointer' }} data-ui-native-button="">Clear</button>
     </div>

@@ -858,7 +858,7 @@ export function AgenticExecutionStage({
                   <div className="r6-attachment-chip">
                     <span className="r6-pdf-badge">PDF</span>
                     <span>{currentStep.data.attachment}</span>
-                    <span style={{ color: '#16a34a', marginLeft: 4 }}>✓</span>
+                    <span style={{ color: 'var(--green)', marginLeft: 4 }}>✓</span>
                   </div>
 
                   <div className="r6-gmail-actions">

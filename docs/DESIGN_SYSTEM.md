@@ -516,6 +516,16 @@ perimeters heavier or change their colour/radius.
 
 ## Page titles (full detail)
 
+```tsx
+<PageHeader
+  crumbs={['ClearOS', 'Declarations']}
+  titlePlain="Customs"
+  titleEm="declarations"
+  subtitle="Every TANSAD lodged for this workspace — its assessment, lane and release."
+  actions={<Button>New declaration</Button>}   // optional
+/>
+```
+
 The title uses **one selected product font**, with colour providing emphasis:
 
 - `titlePlain` — the leading word(s), using the shared `--page-title-font` token, which inherits the font selected in the Hudumika design system through `--font`.
@@ -556,6 +566,25 @@ Every `PersonAvatar` for a real account (`kind: 'people'` with a `userId` — th
 The three surfaces where a signed-in user's own avatar appears — the ESS hub card, the header trigger, and the header's dropdown identity block — read the *same* live state by construction (one shared, cached poll per screen), so they can't drift out of sync with each other; if you ever see them disagree, the bug is a duplicate hand-rolled dot like the one above, not a real desync to "fix" by adding another poll.
 
 A user can turn their own presence off (Profile → Personal Info → Privacy → "Show my online status") — when off, everyone else always sees them as offline; they still see their own real state. Respect that toggle by not building a second, unofficial way to show someone's status that bypasses it.
+
+## Which component replaces what
+
+Before hand-building any of these, use the shared component (paths under `apps/web/src/components/`):
+
+- Native `<select>`, short static list → `Select` (`ui/select.tsx`)
+- Native `<select>` over a long/growing list (API `.map()`) → `Combobox` (`ui/combobox.tsx`)
+- Async search-as-you-type picker with inline create → `EntityPicker` (`EntityPicker.tsx`)
+- Hand-built action/kebab menu → `DropdownMenu` (`ui/dropdown-menu.tsx`)
+- Filter-toolbar pill ("Status: Open ▾") → `SingleSelectFilter` / `MultiSelectFilter` (`ui/filter-dropdown.tsx`)
+- Full-width search bar with filter-count badge → `SearchToolbar` (`ui/filter-dropdown.tsx`)
+- Right-click context menu → `ui/context-menu.tsx`
+- Native `<input type="date">` → `DatePicker` / `DateRangePicker` (`ui/date-picker.tsx`)
+- Collapsible grouped sections → `Accordion` (`ui/accordion.tsx`)
+- Checkbox/switch settings row → `CheckboxRow` / `SwitchRow` (`ui/list-item-row.tsx`)
+- Icon in a coloured circle → `FeaturedIcon` (`ui/featured-icon.tsx`)
+- Status pill → `Badge` (`ui/badge.tsx`), soft-tint variants only
+- Multi-step popup with tabs/steps → `Dialog`, **must** pass an explicit `size`
+- Loading state → `SectionLoading` / `PageLoading` / `Skeleton*`, never a hand-rolled spinner
 
 ## Component mapping — token rules and traps (full detail)
 

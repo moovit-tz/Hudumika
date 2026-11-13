@@ -4,6 +4,17 @@ import { withTenant, type Database } from '../db/client.js';
 import { sql, type Transaction } from 'kysely';
 import { requireEntitlement } from '../middleware/entitlement.js';
 import { GLService } from '../services/gl.service.js';
+import { NotificationService } from '../services/notification.service.js';
+
+/** The clerk who booked a parcel in hears when it reaches the other end. */
+async function notifyParcelCreator(trx: any, tenantId: string, actorId: string, parcel: any, title: string, type: string): Promise<void> {
+  if (!parcel?.created_by || parcel.created_by === actorId) return;
+  await NotificationService.createNotificationInTrx(trx, {
+    tenantId, userId: parcel.created_by, app: 'tuma', type, title,
+    message: `${parcel.parcel_number}${parcel.recipient_name ? ` — for ${parcel.recipient_name}` : ''}`,
+    link: '/tuma/parcels', entityType: 'parcel', entityId: parcel.id, entityLabel: parcel.parcel_number,
+  });
+}
 
 const PARCEL_TRANSITIONS: Record<string, string[]> = {
   RECEIVED:   ['DISPATCHED', 'CANCELED'],
@@ -275,6 +286,8 @@ export async function tumaParcelsRoutes(fastify: FastifyInstance) {
         })
         .execute();
 
+      await notifyParcelCreator(trx, request.user.tenant_id, request.user.sub, updated, 'Parcel arrived at destination', 'info');
+
       return updated;
     });
   });
@@ -314,6 +327,8 @@ export async function tumaParcelsRoutes(fastify: FastifyInstance) {
           actor_id: request.user.sub,
         })
         .execute();
+
+      await notifyParcelCreator(trx, request.user.tenant_id, request.user.sub, updated, 'Parcel delivered', 'success');
 
       return updated;
     });

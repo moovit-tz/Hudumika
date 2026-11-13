@@ -286,6 +286,48 @@ export const TRIGGERS: TriggerDef[] = [
     samplePayload: { saleNumber:'POS-261008120000-A1B2', customerId:null, total:45000, currency:'TZS', reason:'Customer return', inventoryReturned:true },
   },
   {
+    id: 'pos.sale_line_returned', kind: 'DOMAIN_EVENT', app: 'finops',
+    label: 'POS sale line returned', description: 'One or more items from a posted till sale were returned and accounted for.', entityType: 'pos_sale',
+    payloadSchema: z.object({ saleNumber: z.string(), customerId: z.string().nullable(), total: z.number(), currency: z.string(), reason: z.string(), inventoryReturned: z.boolean() }).passthrough(),
+    samplePayload: { saleNumber: 'POS-261008120000-A1B2', customerId: null, total: 12000, currency: 'TZS', reason: 'Damaged item', inventoryReturned: true },
+  },
+  {
+    id: 'pos.promotion_created', kind: 'DOMAIN_EVENT', app: 'finops',
+    label: 'POS promotion created', description: 'A manager created a discount promotion.', entityType: 'pos_promotion',
+    payloadSchema: z.object({ name: z.string(), product_id: z.string().nullable(), category: z.string().nullable(), discount_type: z.string(), discount_value: z.number(), site_id: z.string().nullable() }).passthrough(),
+    samplePayload: { name: 'Seasonal offer', product_id: null, category: 'Accessories', discount_type: 'PERCENT', discount_value: 10, site_id: null },
+  },
+  {
+    id: 'pos.promotion_updated', kind: 'DOMAIN_EVENT', app: 'finops',
+    label: 'POS promotion updated', description: 'A manager changed a promotion.', entityType: 'pos_promotion',
+    payloadSchema: z.object({ active: z.boolean(), ends_at: z.string().nullable() }).passthrough(),
+    samplePayload: { active: true, ends_at: null },
+  },
+  {
+    id: 'pos.promotion_deleted', kind: 'DOMAIN_EVENT', app: 'finops',
+    label: 'POS promotion deleted', description: 'A manager deleted a promotion.', entityType: 'pos_promotion',
+    payloadSchema: z.object({ name: z.string() }).passthrough(),
+    samplePayload: { name: 'Seasonal offer' },
+  },
+  {
+    id: 'pos.site_price_set', kind: 'DOMAIN_EVENT', app: 'finops',
+    label: 'POS outlet price set', description: 'A manager set a product price override for an outlet.', entityType: 'pos_site_product_price',
+    payloadSchema: z.object({ site_id: z.string(), product_id: z.string(), price: z.number(), currency: z.string() }).passthrough(),
+    samplePayload: { site_id: '00000000-0000-0000-0000-000000000000', product_id: '00000000-0000-0000-0000-000000000001', price: 25000, currency: 'TZS' },
+  },
+  {
+    id: 'pos.site_price_removed', kind: 'DOMAIN_EVENT', app: 'finops',
+    label: 'POS outlet price removed', description: 'A manager removed an outlet product price override.', entityType: 'pos_site_product_price',
+    payloadSchema: z.object({ site_id: z.string(), product_id: z.string() }).passthrough(),
+    samplePayload: { site_id: '00000000-0000-0000-0000-000000000000', product_id: '00000000-0000-0000-0000-000000000001' },
+  },
+  {
+    id: 'pos.sale_voided', kind: 'DOMAIN_EVENT', app: 'finops',
+    label: 'POS sale voided', description: 'A manager voided a sale in an open register shift.', entityType: 'pos_sale',
+    payloadSchema: z.object({ saleNumber: z.string(), customerId: z.string().nullable(), total: z.number(), currency: z.string(), reason: z.string(), inventoryReturned: z.boolean() }).passthrough(),
+    samplePayload: { saleNumber: 'POS-261008120000-A1B2', customerId: null, total: 45000, currency: 'TZS', reason: 'Wrong item', inventoryReturned: true },
+  },
+  {
     id: 'comply.renewal_started',
     kind: 'DOMAIN_EVENT',
     app: 'complyos',
@@ -959,8 +1001,8 @@ export const TRIGGERS: TriggerDef[] = [
     id: 'user.joined', kind: 'DOMAIN_EVENT', app: 'ondi',
     label: 'User joined', description: 'An invited person completed signup and set their password — self-service, not something done to them by staff.',
     entityType: 'user',
-    payloadSchema: z.object({ userId: z.string(), name: z.string(), email: z.string(), role: z.string() }).passthrough(),
-    samplePayload: { userId: '00000000-0000-0000-0000-000000000000', name: 'Jane Mwangi', email: 'jane@example.com', role: 'JUNIOR' },
+    payloadSchema: z.object({ userId: z.string(), name: z.string(), email: z.string(), role: z.string(), method: z.string().optional() }).passthrough(),
+    samplePayload: { userId: '00000000-0000-0000-0000-000000000000', name: 'Jane Mwangi', email: 'jane@example.com', role: 'JUNIOR', method: 'direct' },
   },
 
   // ── Workspace (tenant settings) ──────────────────────────────────────

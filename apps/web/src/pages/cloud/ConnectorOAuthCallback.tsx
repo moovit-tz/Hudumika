@@ -2,6 +2,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { Icon } from '../../components/Icon.js';
 import { useCloud, type StorageProvider } from '../../shells/cloud-context.js';
+import { Button } from '../../components/ui/button.js';
 
 /**
  * Landing page for a storage-connector OAuth redirect
@@ -40,7 +41,7 @@ export function ConnectorOAuthCallback() {
         color={state === 'error' ? 'var(--red)' : state === 'done' ? 'var(--green)' : 'var(--teal)'} />
       <div style={{ fontSize: 14, color: 'var(--ink)', maxWidth: 420 }}>{message}</div>
       {state === 'error' && (
-        <button className="btn btn-sm" onClick={() => navigate('/cloud', { replace: true })} data-ui-native-button="">Back to Drive</button>
+        <Button variant="outline" size="sm" onClick={() => navigate('/cloud', { replace: true })}>Back to Drive</Button>
       )}
     </div>
   );

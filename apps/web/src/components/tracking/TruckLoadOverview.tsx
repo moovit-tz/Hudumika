@@ -432,7 +432,7 @@ export function TruckLoadOverview({
                         e.stopPropagation();
                         onUnloadItem(it.id);
                       }}
-                      style={{ height: "var(--ctl-h)", fontSize: "var(--text-xs)", color: '#ef4444' }}
+                      style={{ height: "var(--ctl-h)", fontSize: "var(--text-xs)", color: 'var(--red)' }}
                     >
                       Unload
                     </Button>

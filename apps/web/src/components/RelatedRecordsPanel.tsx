@@ -62,7 +62,7 @@ export function RelatedRecordsPanel({ entityType, entityId, title = 'Related', i
     <SectionCard title={title}>
       <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(2, 1fr)', gap: 10 }}>
         {groups.map(group => (
-          <Link key={group.appLabel} to={group.appHref} style={{ display: 'block', padding: '12px 14px', borderRadius: 8, border: '1px solid var(--border)', background: 'var(--bg)', textDecoration: 'none' }}>
+          <Link key={group.appLabel} to={group.appHref} style={{ display: 'block', padding: '12px 14px', borderRadius: 'var(--r-sm)', border: '1px solid var(--border)', background: 'var(--bg)', textDecoration: 'none' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 7, marginBottom: 6 }}>
               <Icon name={group.appIcon} size={13} color={group.appColor} />
               <span style={{ fontSize: 11.5, fontWeight: 700, color: group.appColor }}>{group.appLabel}</span>

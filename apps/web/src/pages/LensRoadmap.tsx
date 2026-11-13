@@ -46,7 +46,7 @@ export default function LensRoadmap() {
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
                   <div>
                     <div style={{ display: 'flex', gap: 8, alignItems: 'center', marginBottom: 8 }}>
-                      <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--teal)', background: 'var(--teal-l)', padding: '2px 8px', borderRadius: 12 }}>
+                      <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--teal)', background: 'var(--teal-l)', padding: '2px 8px', borderRadius: 'var(--r)' }}>
                         {epic.ref}
                       </span>
                       <span style={{ fontSize: 12, color: 'var(--ink3)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
@@ -62,7 +62,7 @@ export default function LensRoadmap() {
                   </div>
                   <div>
                     <span style={{ 
-                      fontSize: 12, fontWeight: 600, padding: '4px 10px', borderRadius: 12,
+                      fontSize: 12, fontWeight: 600, padding: '4px 10px', borderRadius: 'var(--r)',
                       background: epic.status === 'DONE' ? 'var(--green-l)' : 'var(--bg)',
                       color: epic.status === 'DONE' ? 'var(--green)' : 'var(--ink2)',
                     }}>

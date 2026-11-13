@@ -4,6 +4,10 @@ import { withTenant } from '../db/client.js';
 import { sql } from 'kysely';
 import { requireEntitlement } from '../middleware/entitlement.js';
 import { executeRightsRequestAction } from '../services/dsr.service.js';
+import { NotificationService } from '../services/notification.service.js';
+
+/** Who answers for privacy matters in a workspace. */
+const PRIVACY_ROLES = ['ADMIN', 'TENANT_ADMIN', 'MANAGER'];
 
 const ASSESSMENT_TYPES = ['dpia', 'pia', 'tia', 'lia'] as const;
 const ASSESSMENT_STATUSES = ['draft', 'in_progress', 'review', 'approved', 'rejected'] as const;
@@ -267,6 +271,15 @@ export async function ngaoCrudRoutes(fastify: FastifyInstance) {
         })
         .returningAll()
         .execute();
+      // A personal-data breach has a regulator clock on it (72 hours under
+      // most data-protection laws, Tanzania's PDPA included). Filing one used
+      // to tell nobody; the people who must act now hear about it at once.
+      void NotificationService.notifyRoles(request.user.tenant_id, PRIVACY_ROLES, {
+        app: 'ngao', type: 'security',
+        title: `Data incident reported: ${row.incident_number}`,
+        message: `${body.title} — ${body.severity} severity${body.data_subjects_affected ? `, ${body.data_subjects_affected} people affected` : ''}.`,
+        link: '/ngao/incidents', entityType: 'privacy_incident', entityId: row.id, entityLabel: row.incident_number ?? undefined,
+      }, { exceptUserId: request.user.sub });
       reply.status(201);
       return row;
     });
@@ -357,6 +370,14 @@ export async function ngaoCrudRoutes(fastify: FastifyInstance) {
         })
         .returningAll()
         .execute();
+      // A rights request must be answered by a legal deadline; make sure the
+      // people who answer it know it exists.
+      void NotificationService.notifyRoles(request.user.tenant_id, PRIVACY_ROLES, {
+        app: 'ngao', type: 'task',
+        title: `Data rights request: ${String(body.request_type).toLowerCase()}`,
+        message: `${body.subject_name} — respond by ${deadline.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}.`,
+        link: '/ngao/rights', entityType: 'privacy_rights_request', entityId: row.id, entityLabel: body.subject_name,
+      }, { exceptUserId: request.user.sub });
       reply.status(201);
       return row;
     });

@@ -134,7 +134,7 @@ export const BlissReportExportModal: React.FC<BlissReportExportModalProps> = ({
           </div>
         ) : (
           <div style={{ textAlign: 'center', padding: '16px 0 8px' }}>
-            <div style={{ width: 52, height: 52, borderRadius: '50%', background: 'rgba(16, 185, 129, 0.12)', color: '#10b981', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 12px' }}>
+            <div style={{ width: 52, height: 52, borderRadius: '50%', background: 'rgba(16, 185, 129, 0.12)', color: 'var(--green)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 12px' }}>
               <Icon name="checkCircle" size={28} />
             </div>
             <div style={{ fontSize: 15, fontWeight: 700, color: 'var(--ink)', marginBottom: 4 }}>

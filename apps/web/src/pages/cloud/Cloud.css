@@ -247,7 +247,7 @@
   color: var(--ink);
   border: 1px solid var(--border);
   padding: 12px 20px;
-  border-radius: 16px;
+  border-radius: var(--r-lg);
   font-size: 14px;
   font-weight: 700;
   cursor: pointer;
@@ -257,7 +257,7 @@
 }
 
 .cloud-new-btn:hover {
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12), 0 8px 24px rgba(13, 148, 136, 0.15);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12), 0 8px 24px color-mix(in srgb, var(--teal) 15%, transparent);
   border-color: var(--cloud-accent);
   background: var(--hover-bg);
   transform: translateY(-1px);
@@ -287,13 +287,13 @@
 }
 
 .cloud-nav-item.active {
-  background: rgba(13, 148, 136, 0.12);
+  background: color-mix(in srgb, var(--teal) 12%, transparent);
   color: var(--cloud-accent);
   font-weight: 700;
 }
 
 [data-theme="dark"] .cloud-nav-item.active {
-  background: rgba(13, 148, 136, 0.22);
+  background: color-mix(in srgb, var(--teal) 22%, transparent);
   color: var(--teal);
 }
 
@@ -314,7 +314,7 @@
   padding: 14px 16px;
   background: var(--white);
   border: 1px solid var(--border);
-  border-radius: 12px;
+  border-radius: var(--r);
   cursor: pointer;
   transition: all 0.2s ease;
   user-select: none;
@@ -329,7 +329,7 @@
 
 .drive-folder-card.selected {
   border-color: var(--cloud-accent) !important;
-  background: rgba(13, 148, 136, 0.08) !important;
+  background: color-mix(in srgb, var(--teal) 8%, transparent) !important;
   box-shadow: inset 0 0 0 1px var(--cloud-accent);
 }
 
@@ -350,7 +350,7 @@
   flex-direction: column;
   background: var(--white);
   border: 1px solid var(--border);
-  border-radius: 14px;
+  border-radius: var(--r-lg);
   overflow: hidden;
   cursor: pointer;
   transition: all 0.2s ease;
@@ -364,7 +364,7 @@
 
 .drive-file-card.selected {
   border-color: var(--cloud-accent) !important;
-  box-shadow: inset 0 0 0 1px var(--cloud-accent), 0 4px 14px rgba(13, 148, 136, 0.15);
+  box-shadow: inset 0 0 0 1px var(--cloud-accent), 0 4px 14px color-mix(in srgb, var(--teal) 15%, transparent);
 }
 
 .drive-file-preview-header {
@@ -393,7 +393,7 @@
   font-size: 10px;
   font-weight: 800;
   padding: 2px 8px;
-  border-radius: 6px;
+  border-radius: var(--r-sm);
   text-transform: uppercase;
   letter-spacing: 0.04em;
 }
@@ -455,7 +455,7 @@
 }
 
 .drive-table-container tbody tr.selected {
-  background: rgba(13, 148, 136, 0.08) !important;
+  background: color-mix(in srgb, var(--teal) 8%, transparent) !important;
 }
 
 /* ── Mobile Floating Action Button (FAB) ── */
@@ -466,11 +466,11 @@
   right: 24px;
   width: 56px;
   height: 56px;
-  border-radius: 16px;
+  border-radius: var(--r-lg);
   background: var(--cloud-accent);
   color: hsl(var(--primary-foreground));
   border: none;
-  box-shadow: 0 4px 20px rgba(13, 148, 136, 0.4);
+  box-shadow: 0 4px 20px color-mix(in srgb, var(--teal) 40%, transparent);
   align-items: center;
   justify-content: center;
   cursor: pointer;
@@ -533,7 +533,7 @@
   font-size: 10px;
   font-weight: 800;
   padding: 3px 8px;
-  border-radius: 6px;
+  border-radius: var(--r-sm);
   text-transform: uppercase;
   letter-spacing: 0.06em;
   flex-shrink: 0;
@@ -563,7 +563,7 @@
   gap: 4px;
   background: rgba(255, 255, 255, 0.07);
   border: 1px solid rgba(255, 255, 255, 0.1);
-  border-radius: 8px;
+  border-radius: var(--r-sm);
   padding: 4px 8px;
 }
 
@@ -606,7 +606,7 @@
   height: 32px;
   padding: 0;
   border: none;
-  border-radius: 8px;
+  border-radius: var(--r-sm);
   background: transparent;
   color: var(--ink3);
   cursor: pointer;
@@ -672,7 +672,7 @@
   gap: 7px;
   padding: 7px 16px;
   border: none;
-  border-radius: 8px;
+  border-radius: var(--r-sm);
   background: var(--cloud-accent);
   color: hsl(var(--primary-foreground));
   font-size: 13px;
@@ -742,7 +742,7 @@
   align-items: center;
   gap: 4px;
   cursor: pointer;
-  border-radius: 6px;
+  border-radius: var(--r-sm);
   padding: 4px;
   border: 2px solid transparent;
   transition: background 0.13s;
@@ -754,7 +754,7 @@
 
 .pdf-thumb--active {
   border-color: var(--cloud-accent);
-  background: rgba(13, 148, 136, 0.12);
+  background: color-mix(in srgb, var(--teal) 12%, transparent);
 }
 
 .pdf-thumb-page {
@@ -1087,7 +1087,7 @@
 .fb-selection-count { color: var(--teal); font-size: 13px; font-weight: 750; white-space: nowrap; }
 .fb-selection-actions { display: flex; gap: 4px; margin-left: auto; overflow-x: auto; scrollbar-width: none; }
 .fb-selection-actions::-webkit-scrollbar { display: none; }
-.fb-selection-actions .btn { flex-shrink: 0; }
+.fb-selection-actions :is(.btn, [data-ui-button]) { flex-shrink: 0; }
 .fb-danger-action { color: var(--red) !important; }
 
 .fb-scroll {

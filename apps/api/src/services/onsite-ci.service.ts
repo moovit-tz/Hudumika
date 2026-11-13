@@ -235,7 +235,7 @@ export async function verifyProviderConnection(
           signal: AbortSignal.timeout(15000),
         });
         if (!res.ok) return { ok: false, detail: `Hostinger website access failed (HTTP ${res.status}). Check token permissions and hosting access.` };
-        const body = await res.json();
+        const body = (await res.json()) as any;
         if (!Array.isArray(body) && !Array.isArray(body?.data)) {
           return { ok: false, detail: 'Hostinger returned an unexpected website inventory response.' };
         }
@@ -375,7 +375,7 @@ class GitHubActionsProvider implements CIProvider {
         `/repos/${this.owner}/${this.repo}/actions/workflows/${encodeURIComponent(this.workflowId)}/runs?event=workflow_dispatch&branch=${encodeURIComponent(ref)}&per_page=5`,
       );
       if (!listRes.ok) continue;
-      const body = await listRes.json();
+      const body: any = await listRes.json();
       const run = (body?.workflow_runs ?? []).find((r: any) => new Date(r.created_at).getTime() >= dispatchedAt - 5000);
       if (run) return { id: String(run.id), url: run.html_url ?? null };
     }
@@ -385,7 +385,7 @@ class GitHubActionsProvider implements CIProvider {
   async poll(pipelineId: string): Promise<CIPipelineState | null> {
     const res = await this.api(`/repos/${this.owner}/${this.repo}/actions/runs/${encodeURIComponent(pipelineId)}`);
     if (!res.ok) return null;
-    const run = await res.json();
+    const run: any = await res.json();
     if (!run?.status) return null;
 
     const status = run.conclusion
@@ -429,7 +429,7 @@ class CloudflarePagesProvider implements CIProvider {
         ...(init.headers ?? {}),
       },
     });
-    const body = await res.json().catch(() => null);
+    const body = (await res.json().catch(() => null)) as any;
     if (!res.ok || body?.success === false) {
       const detail = body?.errors?.[0]?.message || `HTTP ${res.status}`;
       throw new Error(`Cloudflare Pages: ${detail}`);

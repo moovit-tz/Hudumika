@@ -16,6 +16,7 @@ import { hashPassword } from '../lib/password.js';
 import { webauthnOrigin } from '../lib/webauthn-config.js';
 import { computeComplianceRollup } from '../lib/compliance-rollup.js';
 import { emitDomainEvent, emitDomainEventStandalone } from '../services/domain-events.service.js';
+import { NotificationService } from '../services/notification.service.js';
 
 // Ondi feature-gap pass (M5) — same escaping convention hr.routes.ts's own
 // timesheet export already uses; kept local rather than newly shared, same
@@ -605,7 +606,7 @@ export async function ondiRoutes(fastify: FastifyInstance) {
   });
 
   // Admin review queue — pending submissions across the tenant.
-  fastify.get('/kyc/queue', { preHandler: requireRoleOrOrgPermission(ORG_PERMISSIONS.KYC_REVIEW, 'ADMIN', 'TENANT_ADMIN') }, async (req) => {
+  fastify.get('/kyc/queue', { preHandler: requireRoleOrOrgPermission(ORG_PERMISSIONS.KYC_REVIEW, 'SUPER_ADMIN', 'ADMIN', 'TENANT_ADMIN') }, async (req) => {
     const user = req.user;
     return withTenant(user.tenant_id, async (trx) => {
       return trx.selectFrom('ondi_kyc_submissions as k')
@@ -645,7 +646,7 @@ export async function ondiRoutes(fastify: FastifyInstance) {
     return reply.send(bytes);
   });
 
-  fastify.post('/kyc/:id/approve', { preHandler: requireRoleOrOrgPermission(ORG_PERMISSIONS.KYC_REVIEW, 'ADMIN', 'TENANT_ADMIN') }, async (req, reply) => {
+  fastify.post('/kyc/:id/approve', { preHandler: requireRoleOrOrgPermission(ORG_PERMISSIONS.KYC_REVIEW, 'SUPER_ADMIN', 'ADMIN', 'TENANT_ADMIN') }, async (req, reply) => {
     const user = req.user;
     const { id } = req.params as { id: string };
     const result = await withTenant(user.tenant_id, async (trx) => {
@@ -667,7 +668,7 @@ export async function ondiRoutes(fastify: FastifyInstance) {
     return { success: true };
   });
 
-  fastify.post('/kyc/:id/reject', { preHandler: requireRoleOrOrgPermission(ORG_PERMISSIONS.KYC_REVIEW, 'ADMIN', 'TENANT_ADMIN') }, async (req, reply) => {
+  fastify.post('/kyc/:id/reject', { preHandler: requireRoleOrOrgPermission(ORG_PERMISSIONS.KYC_REVIEW, 'SUPER_ADMIN', 'ADMIN', 'TENANT_ADMIN') }, async (req, reply) => {
     const user = req.user;
     const { id } = req.params as { id: string };
     const { reason } = z.object({ reason: z.string().trim().min(1).max(500) }).parse(req.body);
@@ -1176,12 +1177,20 @@ export async function ondiRoutes(fastify: FastifyInstance) {
         expires_in_hours: isBreakGlass ? (expires_in_hours ?? 4) : null,
       }).returningAll().executeTakeFirstOrThrow();
       await recordAuthEvent(user.tenant_id, user.sub, 'access_request_submitted', { metadata: { request_id: created.id, role_id, break_glass: isBreakGlass } });
+      // Reviewers had to open the Roles page to discover a request existed —
+      // including emergency (break-glass) ones, which are the urgent kind.
+      void NotificationService.notifyRoles(user.tenant_id, ['ADMIN', 'TENANT_ADMIN'], {
+        app: 'ondi', type: isBreakGlass ? 'security' : 'task',
+        title: isBreakGlass ? 'Emergency access requested' : 'Access request awaiting review',
+        message: `${user.name || 'A colleague'} asked for a role${reason ? `: ${reason}` : '.'}`,
+        link: '/ondi/roles', entityType: 'access_request', entityId: created.id,
+      }, { exceptUserId: user.sub });
       reply.status(201);
       return created;
     });
   });
 
-  fastify.get('/org/access-requests', { preHandler: requireRoleOrOrgPermission(ORG_PERMISSIONS.ACCESS_REQUESTS_REVIEW, 'ADMIN', 'TENANT_ADMIN') }, async (req) => {
+  fastify.get('/org/access-requests', { preHandler: requireRoleOrOrgPermission(ORG_PERMISSIONS.ACCESS_REQUESTS_REVIEW, 'SUPER_ADMIN', 'ADMIN', 'TENANT_ADMIN') }, async (req) => {
     const user = req.user;
     return withTenant(user.tenant_id, async (trx) => {
       const rows = await trx.selectFrom('ondi_org_access_requests as a')
@@ -1202,7 +1211,7 @@ export async function ondiRoutes(fastify: FastifyInstance) {
     });
   });
 
-  fastify.post('/org/access-requests/:id/approve', { preHandler: requireRoleOrOrgPermission(ORG_PERMISSIONS.ACCESS_REQUESTS_REVIEW, 'ADMIN', 'TENANT_ADMIN') }, async (req, reply) => {
+  fastify.post('/org/access-requests/:id/approve', { preHandler: requireRoleOrOrgPermission(ORG_PERMISSIONS.ACCESS_REQUESTS_REVIEW, 'SUPER_ADMIN', 'ADMIN', 'TENANT_ADMIN') }, async (req, reply) => {
     const user = req.user;
     const { id } = req.params as { id: string };
     const outcome = await withTenant(user.tenant_id, async (trx) => {
@@ -1228,6 +1237,12 @@ export async function ondiRoutes(fastify: FastifyInstance) {
       await trx.updateTable('ondi_org_access_requests')
         .set({ status: 'approved', reviewed_by: user.sub, reviewed_at: new Date() })
         .where('id', '=', id).execute();
+      await NotificationService.createNotificationInTrx(trx, {
+        tenantId: user.tenant_id, userId: request.user_id, app: 'ondi', type: 'success',
+        title: 'Access request approved',
+        message: request.expires_in_hours ? `Your access is active for ${request.expires_in_hours} hour(s).` : 'The role you asked for has been granted.',
+        link: '/ondi/personal', entityType: 'access_request', entityId: id,
+      });
       const expiresAt = request.expires_in_hours ? new Date(Date.now() + request.expires_in_hours * 3600_000) : null;
       await trx.insertInto('ondi_org_role_members').values({
         tenant_id: user.tenant_id, role_id: request.role_id, user_id: request.user_id, granted_by: user.sub, expires_at: expiresAt,
@@ -1245,7 +1260,7 @@ export async function ondiRoutes(fastify: FastifyInstance) {
     return { success: true, finalized: true };
   });
 
-  fastify.post('/org/access-requests/:id/deny', { preHandler: requireRoleOrOrgPermission(ORG_PERMISSIONS.ACCESS_REQUESTS_REVIEW, 'ADMIN', 'TENANT_ADMIN') }, async (req, reply) => {
+  fastify.post('/org/access-requests/:id/deny', { preHandler: requireRoleOrOrgPermission(ORG_PERMISSIONS.ACCESS_REQUESTS_REVIEW, 'SUPER_ADMIN', 'ADMIN', 'TENANT_ADMIN') }, async (req, reply) => {
     const user = req.user;
     const { id } = req.params as { id: string };
     // A single reviewer can always shut a request down — dual control gates
@@ -1266,6 +1281,11 @@ export async function ondiRoutes(fastify: FastifyInstance) {
     });
     if (!result) return reply.status(404).send({ error: 'Request not found or already reviewed' });
     await recordAuthEvent(user.tenant_id, result.user_id, 'access_request_denied', { metadata: { request_id: id, role_id: result.role_id, reviewed_by: user.sub } });
+    void NotificationService.notifyUsers(user.tenant_id, [result.user_id], {
+      app: 'ondi', type: 'warning', title: 'Access request declined',
+      message: 'The role you asked for was not granted.',
+      link: '/ondi/personal', entityType: 'access_request', entityId: id,
+    }, user.sub);
     return { success: true };
   });
 
@@ -1277,7 +1297,7 @@ export async function ondiRoutes(fastify: FastifyInstance) {
   // Unlike ondi_org_access_requests this flow notifies (see
   // onboarding.service.ts's createJoinRequest and the two calls below) —
   // that gap in the older flow was deliberate, not repeated here.
-  fastify.get('/org/join-requests', { preHandler: requireRoleOrOrgPermission(ORG_PERMISSIONS.ACCESS_REQUESTS_REVIEW, 'ADMIN', 'TENANT_ADMIN') }, async (req) => {
+  fastify.get('/org/join-requests', { preHandler: requireRoleOrOrgPermission(ORG_PERMISSIONS.ACCESS_REQUESTS_REVIEW, 'SUPER_ADMIN', 'ADMIN', 'TENANT_ADMIN') }, async (req) => {
     const user = req.user;
     return withTenant(user.tenant_id, (trx) =>
       trx.selectFrom('tenant_join_requests')
@@ -1293,7 +1313,7 @@ export async function ondiRoutes(fastify: FastifyInstance) {
     role: z.enum(['ADMIN', 'MANAGER', 'FINANCE', 'SALES', 'SENIOR', 'JUNIOR', 'CUSTOMER']).default('JUNIOR'),
   });
 
-  fastify.post('/org/join-requests/:id/approve', { preHandler: requireRoleOrOrgPermission(ORG_PERMISSIONS.ACCESS_REQUESTS_REVIEW, 'ADMIN', 'TENANT_ADMIN') }, async (req, reply) => {
+  fastify.post('/org/join-requests/:id/approve', { preHandler: requireRoleOrOrgPermission(ORG_PERMISSIONS.ACCESS_REQUESTS_REVIEW, 'SUPER_ADMIN', 'ADMIN', 'TENANT_ADMIN') }, async (req, reply) => {
     const user = req.user;
     const { id } = req.params as { id: string };
     // The requester never chooses their own role — the admin picks it here,
@@ -1343,7 +1363,7 @@ export async function ondiRoutes(fastify: FastifyInstance) {
     return { success: true };
   });
 
-  fastify.post('/org/join-requests/:id/deny', { preHandler: requireRoleOrOrgPermission(ORG_PERMISSIONS.ACCESS_REQUESTS_REVIEW, 'ADMIN', 'TENANT_ADMIN') }, async (req, reply) => {
+  fastify.post('/org/join-requests/:id/deny', { preHandler: requireRoleOrOrgPermission(ORG_PERMISSIONS.ACCESS_REQUESTS_REVIEW, 'SUPER_ADMIN', 'ADMIN', 'TENANT_ADMIN') }, async (req, reply) => {
     const user = req.user;
     const { id } = req.params as { id: string };
     const { reason } = z.object({ reason: z.string().trim().max(300).optional() }).parse(req.body ?? {});

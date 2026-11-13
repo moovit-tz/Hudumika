@@ -53,7 +53,7 @@ export function HuduBIDataSources() {
                       <Icon name="layers" size={18} color="var(--teal)" />
                       <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--ink)' }}>{s.name}</span>
                     </div>
-                    <span style={{ fontSize: 11, fontWeight: 700, padding: '2px 8px', borderRadius: 10, background: 'var(--green-l)', color: 'var(--green)' }}>{s.status}</span>
+                    <span style={{ fontSize: 11, fontWeight: 700, padding: '2px 8px', borderRadius: 'var(--r)', background: 'var(--green-l)', color: 'var(--green)' }}>{s.status}</span>
                   </div>
                   <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12, color: 'var(--ink3)' }}>
                     <span>Type: <strong style={{ color: 'var(--ink)' }}>{s.type}</strong></span>

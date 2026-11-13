@@ -3,6 +3,7 @@ import { useNavigate, useSearchParams } from 'react-router-dom';
 import { Icon } from '../components/Icon.js';
 import { apiFetch } from '../lib/api.js';
 import { Spinner } from '../components/ui/spinner.js';
+import { Button } from '../components/ui/button.js';
 
 const STATE_KEY = 'hudumika_outlook_contacts_oauth_state';
 
@@ -62,7 +63,7 @@ export const ContactsOutlookCallback: React.FC = () => {
         <>
           <Icon name="alertCircle" size={32} color="var(--red)" />
           <div style={{ fontSize: 13.5, color: 'var(--ink)', maxWidth: 380, textAlign: 'center' }}>{message}</div>
-          <button type="button" className="btn btn-primary btn-sm" onClick={() => navigate('/contacts')} data-ui-native-button="">Back to Contacts</button>
+          <Button size="sm" type="button" onClick={() => navigate('/contacts')}>Back to Contacts</Button>
         </>
       )}
     </div>

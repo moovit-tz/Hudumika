@@ -10,6 +10,7 @@ import {
 import { SkeletonTable } from './skeleton.js';
 import { Checkbox } from './checkbox.js';
 import { FeaturedIcon } from './featured-icon.js';
+import { Button } from '../ui/button.js';
 
 /* ── Column descriptor ───────────────────────────────────────────────────── */
 
@@ -132,9 +133,9 @@ function EmptyState({
       <p className="dt-empty-title">{title}</p>
       {message && <p className="dt-empty-msg">{message}</p>}
       {action && (
-        <button type="button" className="btn btn-primary btn-sm" onClick={action.onClick}>
+        <Button size="sm" type="button" onClick={action.onClick}>
           {action.label}
-        </button>
+        </Button>
       )}
     </div>
   );
@@ -147,9 +148,9 @@ function ErrorState({ message, onRetry }: { message: string; onRetry?: () => voi
       <p className="dt-empty-title">Failed to load data</p>
       <p className="dt-empty-msg">{message}</p>
       {onRetry && (
-        <button type="button" className="btn btn-ghost btn-sm" onClick={onRetry}>
+        <Button variant="ghost" size="sm" type="button" onClick={onRetry}>
           <Icon name="refresh" size={14} strokeWidth={2} /> Try again
-        </button>
+        </Button>
       )}
     </div>
   );

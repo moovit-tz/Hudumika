@@ -40,9 +40,14 @@ interface Props {
   onDismiss: (item: PillItem) => void;
   /** Hand the space back to the search box. */
   onExpandSearch: () => void;
+  /** The phone layout: a row of its own under the header, with the rotation
+   *  controls dropped so the title keeps the width. */
+  compact?: boolean;
 }
 
 const ROTATE_MS = 5000;
+/** Must match the slide keyframes' duration in HeaderPill.css. */
+const SLIDE_MS = 320;
 
 /** Live, not read once: someone can turn reduced motion on mid-session, and a
  *  component that only checked at mount would keep animating at them. */
@@ -60,7 +65,7 @@ function usePrefersReducedMotion(): boolean {
   return reduced;
 }
 
-export const HeaderPill: React.FC<Props> = ({ items, onOpen, onDismiss, onExpandSearch }) => {
+export const HeaderPill: React.FC<Props> = ({ items, onOpen, onDismiss, onExpandSearch, compact = false }) => {
   const [index, setIndex] = useState(0);
   const [hovered, setHovered] = useState(false);
   const [focused, setFocused] = useState(false);
@@ -86,42 +91,65 @@ export const HeaderPill: React.FC<Props> = ({ items, onOpen, onDismiss, onExpand
   // still a carousel. The arrows below remain, so nothing becomes unreachable.
   const frozen = reducedMotion || paused || hovered || focused || tabHidden || items.length < 2;
 
+  // Which way the last swap went: forward slides the new item up from below
+  // and the old one out of the top; back reverses it.
+  const direction = useRef<1 | -1>(1);
+
   useEffect(() => {
     if (frozen) return;
-    const t = setInterval(() => setIndex(i => (i + 1) % items.length), ROTATE_MS);
+    const t = setInterval(() => { direction.current = 1; setIndex(i => (i + 1) % items.length); }, ROTATE_MS);
     return () => clearInterval(t);
   }, [frozen, items.length]);
 
   const go = useCallback((delta: number) => {
+    direction.current = delta < 0 ? -1 : 1;
     setIndex(i => (i + delta + items.length) % items.length);
   }, [items.length]);
 
-  if (items.length === 0) return null;
-  const item = items[Math.min(index, items.length - 1)];
-  if (!item) return null;
+  const current = items.length ? items[Math.min(index, items.length - 1)] : undefined;
+
+  // The item on its way out, kept on screen for the length of the exit
+  // animation so the two pass each other instead of the text just changing.
+  const [outgoing, setOutgoing] = useState<{ item: PillItem; dir: 1 | -1 } | null>(null);
+  const shown = useRef<PillItem | undefined>(current);
+  useEffect(() => {
+    const previous = shown.current;
+    shown.current = current;
+    if (!previous || !current || previous.id === current.id || reducedMotion) return;
+    setOutgoing({ item: previous, dir: direction.current });
+    const t = setTimeout(() => setOutgoing(null), SLIDE_MS);
+    return () => clearTimeout(t);
+  }, [current?.id, reducedMotion]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  if (!current) return null;
+  const item = current;
+  const enterClass = outgoing ? (outgoing.dir === 1 ? ' app-header-pill-body--from-below' : ' app-header-pill-body--from-above') : '';
 
   const showControls = items.length > 1;
 
   return (
     <div
-      className="app-header-pill desktop-search"
+      className={compact ? 'app-header-pill app-header-pill--compact' : 'app-header-pill desktop-search'}
       onMouseEnter={() => setHovered(true)}
       onMouseLeave={() => setHovered(false)}
       onFocusCapture={() => setFocused(true)}
       onBlurCapture={() => setFocused(false)}
     >
       {/* Search is one click away, in the place the magnifier has always been. */}
-      <Tip label="Search (/)" side="bottom">
-        <button
-          type="button"
-          className="app-header-pill-search"
-          onClick={onExpandSearch}
-          aria-label="Search (/)"
-          data-ui-native-button=""
-        >
-          <Icon name="search" size={15} />
-        </button>
-      </Tip>
+      {/* The phone header keeps its own search button right above this row. */}
+      {!compact && (
+        <Tip label="Search (/)" side="bottom">
+          <button
+            type="button"
+            className="app-header-pill-search"
+            onClick={onExpandSearch}
+            aria-label="Search (/)"
+            data-ui-native-button=""
+          >
+            <Icon name="search" size={15} />
+          </button>
+        </Tip>
+      )}
 
       {/*
         aria-live is deliberately off. The rotation is decorative repetition of
@@ -129,6 +157,17 @@ export const HeaderPill: React.FC<Props> = ({ items, onOpen, onDismiss, onExpand
         five seconds would talk over whatever the user is actually doing. The
         bell, with its count, is the accessible surface.
       */}
+      <div className="app-header-pill-stage">
+      {outgoing && (
+        <div
+          aria-hidden="true"
+          className={`app-header-pill-body app-header-pill-body--leaving ${outgoing.dir === 1 ? 'app-header-pill-body--to-above' : 'app-header-pill-body--to-below'}`}
+        >
+          <span className="app-header-pill-badge">{outgoing.item.badge || 'NEW'}</span>
+          <span className="app-header-pill-title">{outgoing.item.title}</span>
+          {outgoing.item.message && <span className="app-header-pill-sub">{outgoing.item.message}</span>}
+        </div>
+      )}
       <TooltipProvider delayDuration={300}>
         <Tooltip>
           <TooltipTrigger asChild>
@@ -137,7 +176,7 @@ export const HeaderPill: React.FC<Props> = ({ items, onOpen, onDismiss, onExpand
               // enter animation. Without it the text would change with no transition.
               key={item.id}
               type="button"
-              className="app-header-pill-body"
+              className={`app-header-pill-body${enterClass}`}
               onClick={() => onOpen(item)}
               data-ui-native-button=""
             >
@@ -157,9 +196,20 @@ export const HeaderPill: React.FC<Props> = ({ items, onOpen, onDismiss, onExpand
           </TooltipContent>
         </Tooltip>
       </TooltipProvider>
+      </div>
 
       <div ref={liveRef} className="app-header-pill-controls">
-        {showControls && (
+        {showControls && compact && (
+          <>
+            <span className="app-header-pill-count">{index + 1}/{items.length}</span>
+            <Tip label="Next notification" side="bottom">
+              <button type="button" className="app-header-pill-icon" onClick={() => go(1)} aria-label="Next notification" data-ui-native-button="">
+                <Icon name="chevronRight" size={13} />
+              </button>
+            </Tip>
+          </>
+        )}
+        {showControls && !compact && (
           <>
             <span className="app-header-pill-count">{index + 1}/{items.length}</span>
             <Tip label={paused ? 'Resume ticker' : 'Pause ticker'} side="bottom">

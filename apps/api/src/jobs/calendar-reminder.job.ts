@@ -78,7 +78,10 @@ export async function runCalendarReminderJob(): Promise<void> {
             await NotificationService.createNotification({
               tenantId: event.tenant_id, userId: event.user_id, app: 'calendar', type: 'info',
               title: offsetMinutes === 0 ? `Starting now: ${occTitle}` : `Upcoming: ${occTitle}`,
-              message: occStart.toLocaleString(),
+              // Was occStart.toLocaleString(): "02/09/2026, 09:00:00".
+              message: occStart.toLocaleString('en-GB', { weekday: 'short', day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }),
+              // An hour in, nobody needs telling it is starting.
+              expiresAt: new Date(occStart.getTime() + 60 * 60_000),
               link: '/calendar', entityType: 'calendar_event', entityId: event.id,
             });
             await trx.insertInto('calendar_event_reminder_sends').values({

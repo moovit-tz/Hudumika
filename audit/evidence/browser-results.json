@@ -1,66 +1,203 @@
 {
   "results": [
     {
+      "path": "/clearos",
+      "currentPath": "/clearos",
+      "width": 1440,
+      "heading": "Clearance overview.",
+      "documentOverflow": false
+    },
+    {
       "path": "/clearos/ops",
+      "currentPath": "/clearos/ops",
       "width": 1440,
       "heading": "Ops operations.",
       "documentOverflow": false
     },
     {
+      "path": "/clearos/ops/new",
+      "currentPath": "/clearos/ops/new",
+      "width": 1440,
+      "heading": "Scan document.",
+      "documentOverflow": false
+    },
+    {
       "path": "/clearos/duty-check",
+      "currentPath": "/clearos/duty-check",
       "width": 1440,
       "heading": "Duty check.",
       "documentOverflow": false
     },
     {
+      "path": "/clearos/clearance/6b49c2f5-9421-4b87-b0c3-3d3140b4f768",
+      "currentPath": "/clearos/clearance/6b49c2f5-9421-4b87-b0c3-3d3140b4f768",
+      "width": 1440,
+      "heading": "Synthetic route audit cargo",
+      "documentOverflow": false
+    },
+    {
+      "path": "/clearos/clearance/6b49c2f5-9421-4b87-b0c3-3d3140b4f768/edit",
+      "currentPath": "/clearos/clearance/6b49c2f5-9421-4b87-b0c3-3d3140b4f768/edit",
+      "width": 1440,
+      "heading": "Cargo details.",
+      "documentOverflow": false
+    },
+    {
+      "path": "/clearos/customs-tools",
+      "currentPath": "/clearos/customs-tools",
+      "width": 1440,
+      "heading": "Landed cost calculator.",
+      "documentOverflow": false
+    },
+    {
+      "path": "/clearos/customs-tools/lcl",
+      "currentPath": "/clearos/customs-tools/lcl",
+      "width": 1440,
+      "heading": "LCL calculator.",
+      "documentOverflow": false
+    },
+    {
+      "path": "/clearos/customs-tools/air",
+      "currentPath": "/clearos/customs-tools/air",
+      "width": 1440,
+      "heading": "Air freight calculator.",
+      "documentOverflow": false
+    },
+    {
+      "path": "/clearos/customs-tools/transit",
+      "currentPath": "/clearos/customs-tools/transit",
+      "width": 1440,
+      "heading": "Transit calculator.",
+      "documentOverflow": false
+    },
+    {
       "path": "/clearos/customs-tools/history",
+      "currentPath": "/clearos/customs-tools/history",
       "width": 1440,
       "heading": "Calculation history.",
       "documentOverflow": false
     },
     {
+      "path": "/clearos/compliance",
+      "currentPath": "/clearos/compliance",
+      "width": 1440,
+      "heading": "Compliance centre.",
+      "documentOverflow": false
+    },
+    {
+      "path": "/clearos/compliance/quick",
+      "currentPath": "/clearos/compliance/quick",
+      "width": 1440,
+      "heading": "Compliance check.",
+      "documentOverflow": false
+    },
+    {
+      "path": "/clearos/compliance/advanced",
+      "currentPath": "/clearos/compliance/advanced",
+      "width": 1440,
+      "heading": "Trade compliance wizard.",
+      "documentOverflow": false
+    },
+    {
       "path": "/clearos/compliance/screening",
+      "currentPath": "/clearos/compliance/screening",
       "width": 1440,
       "heading": "Sanctions screening.",
       "documentOverflow": false
     },
     {
+      "path": "/clearos/compliance/origin",
+      "currentPath": "/clearos/compliance/origin",
+      "width": 1440,
+      "heading": "Certificate of origin.",
+      "documentOverflow": false
+    },
+    {
+      "path": "/clearos/penalty",
+      "currentPath": "/clearos/penalty",
+      "width": 1440,
+      "heading": "Penalty Estimator.",
+      "documentOverflow": false
+    },
+    {
+      "path": "/clearos/carbon",
+      "currentPath": "/clearos/carbon",
+      "width": 1440,
+      "heading": "Carbon portfolio.",
+      "documentOverflow": false
+    },
+    {
+      "path": "/clearos/reference",
+      "currentPath": "/clearos/reference",
+      "width": 1440,
+      "heading": "Customs reference.",
+      "documentOverflow": false
+    },
+    {
       "path": "/clearos/rate-card",
+      "currentPath": "/clearos/rate-card",
       "width": 1440,
       "heading": "Clearing rate card.",
       "documentOverflow": false
     },
     {
+      "path": "/clearos/products",
+      "currentPath": "/clearos/products",
+      "width": 1440,
+      "heading": "Products & catalog.",
+      "documentOverflow": false
+    },
+    {
+      "path": "/clearos/report-issue",
+      "currentPath": "/clearos/report-issue",
+      "width": 1440,
+      "heading": "Report an Issue.",
+      "documentOverflow": false
+    },
+    {
+      "path": "/clearos",
+      "currentPath": "/clearos",
+      "width": 390,
+      "heading": "Clearance overview.",
+      "documentOverflow": false
+    },
+    {
       "path": "/clearos/ops",
+      "currentPath": "/clearos/ops",
       "width": 390,
       "heading": "Ops operations.",
       "documentOverflow": false
     },
     {
-      "path": "/clearos/duty-check",
+      "path": "/clearos/clearance/6b49c2f5-9421-4b87-b0c3-3d3140b4f768",
+      "currentPath": "/clearos/clearance/6b49c2f5-9421-4b87-b0c3-3d3140b4f768",
       "width": 390,
-      "heading": "Duty check.",
+      "heading": "Synthetic route audit cargo",
       "documentOverflow": false
     },
     {
-      "path": "/clearos/customs-tools/history",
+      "path": "/clearos/customs-tools",
+      "currentPath": "/clearos/customs-tools",
       "width": 390,
-      "heading": "Calculation history.",
+      "heading": "Landed cost calculator.",
       "documentOverflow": false
     },
     {
-      "path": "/clearos/compliance/screening",
+      "path": "/clearos/compliance",
+      "currentPath": "/clearos/compliance",
       "width": 390,
-      "heading": "Sanctions screening.",
+      "heading": "Compliance centre.",
       "documentOverflow": false
     },
     {
-      "path": "/clearos/rate-card",
+      "path": "/clearos/products",
+      "currentPath": "/clearos/products",
       "width": 390,
-      "heading": "Clearing rate card.",
+      "heading": "Products & catalog.",
       "documentOverflow": false
     }
   ],
   "errors": [],
-  "limitations": "Real API handlers via Fastify inject; synthetic empty tenant, no external providers, no persisted browser CRUD verification."
+  "apiFailures": [],
+  "limitations": "Real API handlers via Fastify inject; synthetic tenant fixtures; no external government or third-party providers."
 }

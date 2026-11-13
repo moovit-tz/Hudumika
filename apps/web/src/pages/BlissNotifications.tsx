@@ -5,6 +5,7 @@ import { Icon, type IconName } from '../components/Icon.js';
 import { apiFetch } from '../lib/api.js';
 import { NOTIF_TYPE_CFG, notifRelTime } from '../components/NotificationListItem.js';
 import { PageHeader } from '../components/PageHeader.js';
+import { NotificationMuteMenu } from '../components/NotificationMuteMenu.js';
 import { Tabs, TabsList, TabsTrigger } from '../components/ui/tabs.js';
 import { Spinner } from '../components/ui/spinner.js';
 import { Button } from '../components/ui/button.js';
@@ -211,6 +212,7 @@ export function BlissNotifications() {
                 <span>Mark All Read</span>
               </Button>
             )}
+            <NotificationMuteMenu onChange={() => void load(0, tab, true)} />
             <Tip label="Refresh notification feed" side="bottom">
               <Button
                 variant="outline"
@@ -252,7 +254,7 @@ export function BlissNotifications() {
             className="bnc-kpi-icon-wrap"
             style={{
               background: unreadCount > 0 ? '#fee2e2' : 'var(--green-l)',
-              color: unreadCount > 0 ? '#dc2626' : 'var(--green)',
+              color: unreadCount > 0 ? 'var(--red)' : 'var(--green)',
             }}
           >
             <Icon name="bell" size={20} />
@@ -274,7 +276,7 @@ export function BlissNotifications() {
           className={`bnc-kpi-card${tab === 'task' || tab === 'security' ? ' active' : ''}`}
           onClick={() => switchTab('task')}
         >
-          <div className="bnc-kpi-icon-wrap" style={{ background: '#fef3c7', color: '#d97706' }}>
+          <div className="bnc-kpi-icon-wrap" style={{ background: '#fef3c7', color: 'var(--gold)' }}>
             <Icon name="shield" size={20} />
           </div>
           <div className="bnc-kpi-info">
@@ -320,7 +322,7 @@ export function BlissNotifications() {
                           borderRadius: 99,
                           fontWeight: 700,
                           background: t.key === 'unread' && unreadCount > 0 ? '#fee2e2' : 'var(--bg)',
-                          color: t.key === 'unread' && unreadCount > 0 ? '#dc2626' : 'var(--ink2)',
+                          color: t.key === 'unread' && unreadCount > 0 ? 'var(--red)' : 'var(--ink2)',
                         }}
                       >
                         {count}
@@ -536,7 +538,7 @@ export function BlissNotifications() {
                     style={{
                       width: 36,
                       height: 36,
-                      borderRadius: 10,
+                      borderRadius: 'var(--r)',
                       background: `${(NOTIF_TYPE_CFG[selected.type] ?? NOTIF_TYPE_CFG.info).color}18`,
                       color: (NOTIF_TYPE_CFG[selected.type] ?? NOTIF_TYPE_CFG.info).color,
                       display: 'flex',

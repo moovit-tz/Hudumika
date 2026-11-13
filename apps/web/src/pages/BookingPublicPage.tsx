@@ -75,7 +75,7 @@ export function BookingPublicPage() {
 
   return (
     <div style={{ minHeight: '100vh', background: 'var(--bg)', display: 'flex', alignItems: 'flex-start', justifyContent: 'center', padding: '48px 16px', boxSizing: 'border-box' }}>
-      <div style={{ width: 'min(720px, 100%)', background: 'var(--white)', borderRadius: 16, boxShadow: 'var(--elev-lg)', overflow: 'hidden' }}>
+      <div style={{ width: 'min(720px, 100%)', background: 'var(--white)', borderRadius: 'var(--r-lg)', boxShadow: 'var(--elev-lg)', overflow: 'hidden' }}>
         {page === undefined && (
           <PageLoading />
         )}

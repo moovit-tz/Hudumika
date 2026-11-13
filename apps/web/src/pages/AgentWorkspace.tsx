@@ -253,7 +253,7 @@ export function AgentWorkspace() {
           <span className="agent-brand-section">Agent</span>
         </button>
 
-        <div style={{ display: 'flex', alignItems: 'center', gap: 6, background: 'var(--card-sunken)', padding: '3px', borderRadius: 8 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 6, background: 'var(--card-sunken)', padding: '3px', borderRadius: 'var(--r-sm)' }}>
           <button
             type="button"
             onClick={() => setViewMode('stage')}

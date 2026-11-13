@@ -25,6 +25,7 @@ import {
   calculatePenalty,
   getVesselPosition,
   getUsdToTzs,
+  getFxRateInfo,
   getUsdRates,
   type ShipmentMode,
   type RateOverrides,
@@ -519,7 +520,9 @@ ${items.map((i: any) => `- id ${i.id} | goods: "${i.text}"\n  candidates:\n${i.c
       to: 'TZS',
       rate,
       source: 'open.er-api.com',
-      cached: true,
+      // When the provider published this rate and when we fetched it, so the
+      // page can say how current it is instead of just "live".
+      ...(() => { const i = getFxRateInfo(); return { published_at: i.publishedAt, fetched_at: i.fetchedAt }; })(),
     };
   });
 

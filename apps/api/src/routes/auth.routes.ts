@@ -138,9 +138,26 @@ export async function recordLogin(tenantId: string, userId: string, status: 'SUC
         await trx.updateTable('hr_devices').set({ last_used_at: new Date(), revoked_at: null }).where('id', '=', existing.id).execute();
         return existing.id;
       } else {
+        // Has this person signed in from anywhere before? On a first ever
+        // sign-in every device is new, and telling them so is noise.
+        const knownDevice = await trx.selectFrom('hr_devices').select('id')
+          .where('user_id', '=', userId).where('tenant_id', '=', tenantId).executeTakeFirst();
         const created = await trx.insertInto('hr_devices').values({
           tenant_id: tenantId, user_id: userId, device_label: label, device_type: type, user_agent: ua, trusted: true,
         }).returning('id').executeTakeFirst();
+        // Every sign-in method (password, code, magic link, passkey, Google,
+        // SSO) comes through here, so this is the one place the alert covers
+        // them all. If it was them, they dismiss it; if not, this is how they
+        // find out.
+        if (knownDevice) {
+          const { NotificationService } = await import('../services/notification.service.js');
+          await NotificationService.createNotificationInTrx(trx, {
+            tenantId, userId, app: 'ondi', type: 'security',
+            title: 'New sign-in to your account',
+            message: `${label}${ip ? ` from ${ip}` : ''} signed in for the first time. If this was not you, change your password and sign that device out.`,
+            link: '/ondi/personal/devices', entityType: 'device', entityId: created?.id ?? undefined,
+          });
+        }
         return created?.id ?? null;
       }
     });

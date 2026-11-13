@@ -12,7 +12,7 @@
      browser chrome makes vh taller than the visible area. */
   max-height: calc(100dvh - 74px);
   background: var(--white);
-  border-radius: 16px;
+  border-radius: var(--r-lg);
   border: 1px solid var(--border);
   box-shadow: 0 20px 35px -10px rgba(0, 0, 0, 0.25);
   display: flex;
@@ -53,7 +53,7 @@
   color: var(--teal);
   font-size: 11px;
   font-weight: 700;
-  border-radius: 10px;
+  border-radius: var(--r);
   padding: 2px 7px;
   font-family: var(--font);
   white-space: nowrap;
@@ -188,7 +188,7 @@
   align-items: flex-start;
   gap: 10px;
   padding: 7px 10px;
-  border-radius: 10px;
+  border-radius: var(--r);
   text-decoration: none;
   color: inherit;
   transition: background 0.15s ease;
@@ -334,7 +334,7 @@
 }
 
 [data-theme="dark"] .notif-panel-item--unread {
-  background: rgba(13, 148, 136, 0.08);
+  background: color-mix(in srgb, var(--teal) 8%, transparent);
 }
 
 [data-theme="dark"] .notif-panel-item--clickable:hover {
@@ -384,7 +384,7 @@
     bottom: 0;
     left: 0;
     right: 0;
-    border-radius: 16px 16px 0 0;
+    border-radius: var(--r-lg) var(--r-lg) 0 0;
     border-bottom: none;
     transform-origin: bottom center;
     transform: translateY(100%);
@@ -397,7 +397,7 @@
   }
 
   .notif-panel-hdr {
-    border-radius: 16px 16px 0 0;
+    border-radius: var(--r-lg) var(--r-lg) 0 0;
   }
 }
 

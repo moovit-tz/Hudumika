@@ -31,16 +31,18 @@ export async function deviceIngestRoutes(fastify: FastifyInstance) {
 
   async function resolveDevice(sn: string | undefined, token: string | undefined) {
     if (!sn || !token) return null;
-    const device = await dbPlatform.selectFrom('attendance_devices').selectAll()
+    const device = await dbPlatform.selectFrom('attendance_devices').select(['id', 'tenant_id', 'provider', 'status', 'serial_number', 'push_token', 'push_token_hash', 'timezone'])
       .where('serial_number', '=', sn).executeTakeFirst();
-    if (!device || !device.push_token) return null;
+    if (!device || (!device.push_token_hash && !device.push_token)) return null;
     // Constant-time compare — a plain !== leaks how many leading bytes of
     // the real token a guess matched via response-time, the same class of
     // bug password/API-key comparisons in this codebase are already careful
     // about. Buffers of different length can never be equal, checked first
     // since timingSafeEqual throws rather than returning false for that case.
-    const a = Buffer.from(device.push_token);
-    const b = Buffer.from(token);
+    const expected = device.push_token_hash ?? device.push_token!;
+    const presented = device.push_token_hash ? crypto.createHash('sha256').update(token).digest('hex') : token;
+    const a = Buffer.from(expected);
+    const b = Buffer.from(presented);
     if (a.length !== b.length || !crypto.timingSafeEqual(a, b)) return null;
     return device;
   }
@@ -56,7 +58,7 @@ export async function deviceIngestRoutes(fastify: FastifyInstance) {
 
     await dbPlatform.updateTable('attendance_devices')
       .set({ last_heartbeat_at: new Date(), status: device.status === 'unregistered' ? 'online' : device.status, updated_at: new Date() })
-      .where('id', '=', device.id).execute();
+      .where('tenant_id', '=', device.tenant_id).where('id', '=', device.id).execute();
 
     reply.type('text/plain');
     return provider.handshakeReply();
@@ -102,11 +104,11 @@ export async function deviceIngestRoutes(fastify: FastifyInstance) {
       const { received, matched } = await recordDevicePunches(device.tenant_id, device.id, punches);
       await dbPlatform.updateTable('attendance_device_sync_logs')
         .set({ finished_at: new Date(), records_received: received, records_matched: matched, status: 'ok' })
-        .where('id', '=', log.id).execute();
+        .where('id', '=', log.id).where('tenant_id', '=', device.tenant_id).execute();
     } catch (err: any) {
       await dbPlatform.updateTable('attendance_device_sync_logs')
         .set({ finished_at: new Date(), status: 'error', error: String(err?.message ?? err) })
-        .where('id', '=', log.id).execute();
+        .where('id', '=', log.id).where('tenant_id', '=', device.tenant_id).execute();
       // The punch transaction rolled back. Do not acknowledge data we did not persist.
       return reply.header('Retry-After', '30').status(503).send('retry attendance batch');
     }

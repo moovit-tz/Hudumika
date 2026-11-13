@@ -130,7 +130,7 @@
   height: 24px;
   display: grid;
   place-items: center;
-  border-radius: 6px;
+  border-radius: var(--r-sm);
 }
 
 .store-search-clear:hover { background: var(--hover-bg); color: var(--ink); }
@@ -196,7 +196,7 @@
     color-mix(in srgb, var(--teal-fill, #334155) 42%, #07101f) 0%,
     color-mix(in srgb, var(--teal-fill, #334155) 64%, #15102b) 100%
   );
-  border-radius: 16px;
+  border-radius: var(--r-lg);
   padding: 32px 40px;
   /* Always-dark surface: foreground must always be light regardless of theme */
   color: rgba(255,255,255,0.95);
@@ -241,7 +241,7 @@
   font-weight: 800;
   background: rgba(255,255,255,0.2);
   padding: var(--badge-py-sm) var(--badge-px-sm);
-  border-radius: 12px;
+  border-radius: var(--r);
   text-transform: uppercase;
   letter-spacing: 0.5px;
 }
@@ -266,7 +266,7 @@
   color: #1e293b;
   border: none;
   padding: var(--ds-btn-py) 20px;
-  border-radius: 8px;
+  border-radius: var(--r-sm);
   font-family: var(--font);
   font-weight: 700;
   font-size: 13px;
@@ -286,7 +286,7 @@
 .store-hero-icon-box {
   background: rgba(255,255,255,0.92);
   padding: 16px;
-  border-radius: 16px;
+  border-radius: var(--r-lg);
   box-shadow: var(--elev-lg);
 }
 
@@ -371,7 +371,7 @@
 
 .store-app-card {
   background: var(--white);
-  border-radius: 12px;
+  border-radius: var(--r);
   border: 1px solid var(--border);
   padding: 20px;
   cursor: pointer;
@@ -398,7 +398,7 @@
 .store-app-icon-wrap {
   width: 44px;
   height: 44px;
-  border-radius: 10px;
+  border-radius: var(--r);
   overflow: hidden;
   flex-shrink: 0;
 }
@@ -407,7 +407,7 @@
   font-size: var(--badge-fs);
   font-weight: 700;
   padding: var(--badge-py) var(--badge-px);
-  border-radius: 12px;
+  border-radius: var(--r);
 }
 
 .store-badge-installed {
@@ -478,7 +478,7 @@
 
 .store-detail-modal {
   background: var(--white);
-  border-radius: 16px;
+  border-radius: var(--r-lg);
   width: 720px;
   max-width: 100%;
   max-height: 90vh;
@@ -506,7 +506,7 @@
 .store-detail-app-icon {
   width: 64px;
   height: 64px;
-  border-radius: 12px;
+  border-radius: var(--r);
   overflow: hidden;
   flex-shrink: 0;
 }
@@ -557,7 +557,7 @@
   color: hsl(var(--primary-foreground));
   border: none;
   padding: var(--ds-btn-py) 20px;
-  border-radius: 8px;
+  border-radius: var(--r-sm);
   font-family: var(--font);
   font-weight: 700;
   font-size: 13px;
@@ -572,7 +572,7 @@
   color: var(--red);
   border: 1px solid rgba(207, 34, 46, 0.25);
   padding: var(--ds-btn-py) 16px;
-  border-radius: 8px;
+  border-radius: var(--r-sm);
   font-family: var(--font);
   font-weight: 700;
   font-size: 13px;
@@ -587,7 +587,7 @@
   cursor: pointer;
   color: var(--ink3);
   padding: 4px;
-  border-radius: 6px;
+  border-radius: var(--r-sm);
   line-height: 1;
 }
 
@@ -662,7 +662,7 @@
 .store-secure-box {
   padding: 16px;
   background: var(--bg);
-  border-radius: 8px;
+  border-radius: var(--r-sm);
   border: 1px solid var(--border);
   display: flex;
   gap: 12px;
@@ -836,7 +836,7 @@
   padding: 14px;
   background: var(--red-l);
   border: 1px solid rgba(207, 34, 46, 0.2);
-  border-radius: 8px;
+  border-radius: var(--r-sm);
   color: var(--red);
   font-size: 12px;
   line-height: 1.4;
@@ -858,7 +858,7 @@
 
 .store-consent-dialog {
   background: var(--white);
-  border-radius: 12px;
+  border-radius: var(--r);
   width: 440px;
   max-width: 100%;
   box-shadow: var(--elev-lg);
@@ -905,14 +905,14 @@
 .store-consent-icon {
   width: 32px;
   height: 32px;
-  border-radius: 6px;
+  border-radius: var(--r-sm);
   overflow: hidden;
 }
 
 .store-consent-scopes {
   background: var(--bg);
   border: 1px solid var(--border);
-  border-radius: 8px;
+  border-radius: var(--r-sm);
   padding: 16px;
   margin-bottom: 24px;
   display: flex;
@@ -940,7 +940,7 @@
 .store-consent-allow-btn {
   flex: 1;
   padding: var(--ds-btn-py) 0;
-  border-radius: 8px;
+  border-radius: var(--r-sm);
   border: none;
   background: hsl(var(--primary));
   color: hsl(var(--primary-foreground));
@@ -965,7 +965,7 @@
   background: #1e293b;
   color: rgba(255,255,255,0.95);
   padding: 12px 24px;
-  border-radius: 8px;
+  border-radius: var(--r-sm);
   font-size: 13px;
   font-weight: 600;
   z-index: 2000;

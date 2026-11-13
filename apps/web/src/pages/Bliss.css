@@ -414,7 +414,7 @@
   align-items: center;
   justify-content: center;
   border: 1px solid var(--border);
-  border-radius: 7px;
+  border-radius: var(--r-sm);
   background: var(--white);
   cursor: pointer;
   color: var(--ink3);
@@ -641,7 +641,7 @@
   display: flex;
   align-items: center;
   border: 1px solid var(--border);
-  border-radius: 7px;
+  border-radius: var(--r-sm);
   overflow: hidden;
 }
 
@@ -1012,7 +1012,7 @@
 
 .spt-status-select {
   padding: 4px 10px;
-  border-radius: 7px;
+  border-radius: var(--r-sm);
   border: 1.5px solid var(--border);
   font-size: 12px;
   font-family: var(--font);
@@ -1055,7 +1055,7 @@
   gap: 5px;
   padding: var(--ds-btn-py-sm) 12px;
   border: 1px solid var(--border);
-  border-radius: 7px;
+  border-radius: var(--r-sm);
   background: var(--white);
   font-size: 12px;
   font-weight: 600;
@@ -1203,7 +1203,7 @@
   padding: var(--badge-py) var(--badge-px);
   background: var(--gold-l);
   border: 1px solid color-mix(in srgb, var(--gold) 53%, transparent);
-  border-radius: 6px;
+  border-radius: var(--r-sm);
   font-size: var(--badge-fs);
   font-weight: 700;
   color: var(--gold);
@@ -1295,7 +1295,7 @@
 
 .spt-bubble {
   padding: 9px 14px;
-  border-radius: 2px 12px 12px 12px;
+  border-radius: 2px var(--r) var(--r) var(--r);
   background: var(--white);
   color: var(--ink);
   font-size: 13px;
@@ -1305,7 +1305,7 @@
 }
 
 .spt-msg--officer .spt-bubble {
-  border-radius: 12px 2px 12px 12px;
+  border-radius: var(--r) 2px var(--r) var(--r);
   background: var(--nav-header-bg);
   color: #fff;
   border: none;
@@ -1465,7 +1465,7 @@
   flex: 1;
   padding: 4px 8px;
   border: 1px solid var(--border);
-  border-radius: 6px;
+  border-radius: var(--r-sm);
   font-size: 12.5px;
   font-family: var(--font);
   color: var(--ink);
@@ -1722,7 +1722,7 @@
 
 .spt-broadcast-btn {
   padding: var(--ds-btn-py-sm) 10px;
-  border-radius: 8px;
+  border-radius: var(--r-sm);
   border: 1.5px solid var(--border);
   background: var(--white);
   color: var(--ink3);
@@ -1770,7 +1770,7 @@
 
 .spt-note-toggle-btn {
   padding: var(--ds-btn-py-sm) 10px;
-  border-radius: 8px;
+  border-radius: var(--r-sm);
   border: 1.5px solid var(--border);
   background: var(--white);
   color: var(--ink3);
@@ -1932,7 +1932,7 @@
   min-height: unset;
   height: auto;
   padding: 3px 8px;
-  border-radius: 7px;
+  border-radius: var(--r-sm);
   border: 1.5px solid var(--border);
   font-size: 12px;
   font-family: var(--font);
@@ -1956,7 +1956,7 @@
   padding: var(--badge-py) var(--badge-px);
   background: var(--bg);
   border: 1px solid var(--border);
-  border-radius: 10px;
+  border-radius: var(--r);
   font-size: var(--badge-fs);
   color: var(--ink2);
 }
@@ -2050,7 +2050,7 @@
   width: 26px;
   height: 26px;
   border: 1px solid var(--border);
-  border-radius: 7px;
+  border-radius: var(--r-sm);
   background: var(--white);
   color: var(--ink3);
   cursor: pointer;
@@ -2222,7 +2222,7 @@
   position: relative;
   width: 36px;
   height: 20px;
-  border-radius: 10px;
+  border-radius: var(--r);
   background: var(--border);
   border: none;
   cursor: pointer;
@@ -2874,7 +2874,7 @@
   justify-content: center;
   width: 28px;
   height: 28px;
-  border-radius: 6px;
+  border-radius: var(--r-sm);
   border: none;
   background: transparent;
   color: var(--ink2);
@@ -2893,7 +2893,7 @@
   gap: 6px;
   background: var(--bg);
   border: 1px solid var(--border);
-  border-radius: 6px;
+  border-radius: var(--r-sm);
   padding: 5px 8px;
 }
 
@@ -3102,7 +3102,7 @@
   align-items: center;
   justify-content: center;
   padding: 2px 8px;
-  border-radius: 12px;
+  border-radius: var(--r);
   border: 1px solid var(--border);
   font-size: 11px;
   font-weight: 700;
@@ -3152,7 +3152,7 @@
   gap: 5px;
   background: var(--bg);
   border: 1px solid var(--border);
-  border-radius: 6px;
+  border-radius: var(--r-sm);
   padding: 2px 8px;
 }
 
@@ -3182,7 +3182,7 @@
   width: 28px;
   height: 28px;
   padding: 0;
-  border-radius: 6px;
+  border-radius: var(--r-sm);
   border: 1px solid var(--border);
   background: var(--white);
   color: var(--ink2);
@@ -3207,7 +3207,7 @@
 .spt-bedesk-internal-note-card {
   background: var(--gold-l);
   border: 1px solid color-mix(in srgb, var(--gold) 30%, transparent);
-  border-radius: 8px;
+  border-radius: var(--r-sm);
   padding: 12px 16px;
   margin: 6px 0;
 }
@@ -3239,7 +3239,7 @@
 
 .spt-bedesk-msg-bubble {
   padding: 10px 14px;
-  border-radius: 10px;
+  border-radius: var(--r);
   font-size: 13px;
   line-height: 1.55;
   background: var(--white);
@@ -3290,7 +3290,7 @@
   display: flex;
   background: var(--bg);
   border: 1px solid var(--border);
-  border-radius: 6px;
+  border-radius: var(--r-sm);
   padding: 2px;
 }
 
@@ -3331,7 +3331,7 @@
   width: 26px;
   height: 26px;
   padding: 0;
-  border-radius: 6px;
+  border-radius: var(--r-sm);
   border: 1px solid var(--border);
   background: transparent;
   color: var(--ink3);
@@ -3355,7 +3355,7 @@
   background: color-mix(in srgb, var(--gold) 10%, transparent);
   color: var(--gold);
   padding: 5px 10px;
-  border-radius: 6px 6px 0 0;
+  border-radius: var(--r-sm) var(--r-sm) 0 0;
   font-size: 11px;
   font-weight: 700;
   border: 1px solid color-mix(in srgb, var(--gold) 30%, transparent);
@@ -3368,7 +3368,7 @@
 .spt-bedesk-ta {
   width: 100%;
   padding: 10px 12px;
-  border-radius: 6px;
+  border-radius: var(--r-sm);
   border: 1px solid var(--border);
   background: var(--white);
   color: var(--ink);
@@ -3385,7 +3385,7 @@
 }
 
 .spt-bedesk-ta.note {
-  border-radius: 0 0 6px 6px;
+  border-radius: 0 0 var(--r-sm) var(--r-sm);
   background: color-mix(in srgb, var(--gold) 5%, transparent);
   border-color: color-mix(in srgb, var(--gold) 30%, transparent);
 }
@@ -3426,7 +3426,7 @@
   align-items: center;
   gap: 6px;
   padding: 7px 16px;
-  border-radius: 6px;
+  border-radius: var(--r-sm);
   border: none;
   background: var(--border);
   color: var(--ink3);
@@ -3627,7 +3627,7 @@
   align-items: center;
   gap: 4px;
   padding: 3px 8px;
-  border-radius: 12px;
+  border-radius: var(--r);
   background: var(--bg);
   border: 1px solid var(--border);
   font-size: 11px;
@@ -3710,7 +3710,7 @@
 
 .spt-bedesk-btn-secondary {
   padding: 6px 12px;
-  border-radius: 6px;
+  border-radius: var(--r-sm);
   border: 1px solid var(--border);
   background: var(--bg);
   color: var(--ink);
@@ -3770,7 +3770,7 @@
 [data-theme="dark"] .spt-bedesk-msg--officer .spt-bedesk-msg-bubble {
   background: var(--white);
   color: var(--ink);
-  border-color: rgba(13, 148, 136, 0.4);
+  border-color: color-mix(in srgb, var(--teal) 40%, transparent);
 }
 
 [data-theme="dark"] .spt-bedesk-ta {

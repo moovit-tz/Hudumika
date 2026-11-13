@@ -105,19 +105,19 @@ export function CMSApprovals() {
       <div style={{ flex: 1, overflowY: 'auto', padding: '24px 32px' }}>
         {/* KPI Strip */}
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 16, marginBottom: 24 }}>
-          <div style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 12, padding: 16 }}>
+          <div style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 'var(--r)', padding: 16 }}>
             <div style={{ fontSize: 12, color: 'var(--text-muted)', marginBottom: 4, fontWeight: 500 }}>PENDING REVIEWS</div>
             <div style={{ fontSize: 24, fontWeight: 700, color: pendingCount > 0 ? 'var(--teal)' : 'var(--text)' }}>
               {pendingCount}
             </div>
           </div>
-          <div style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 12, padding: 16 }}>
+          <div style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 'var(--r)', padding: 16 }}>
             <div style={{ fontSize: 12, color: 'var(--text-muted)', marginBottom: 4, fontWeight: 500 }}>ASSIGNED TO ME</div>
             <div style={{ fontSize: 24, fontWeight: 700, color: myActionCount > 0 ? 'var(--gold)' : 'var(--text)' }}>
               {myActionCount}
             </div>
           </div>
-          <div style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 12, padding: 16 }}>
+          <div style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 'var(--r)', padding: 16 }}>
             <div style={{ fontSize: 12, color: 'var(--text-muted)', marginBottom: 4, fontWeight: 500 }}>TOTAL REVIEW LOGS</div>
             <div style={{ fontSize: 24, fontWeight: 700, color: 'var(--text)' }}>
               {approvals?.length ?? 0}
@@ -155,7 +155,7 @@ export function CMSApprovals() {
                 <span
                   style={{
                     padding: '2px 6px',
-                    borderRadius: 10,
+                    borderRadius: 'var(--r)',
                     fontSize: 11,
                     background: filterTab === tab.id ? 'rgba(255,255,255,0.3)' : 'var(--bg-muted)',
                     color: filterTab === tab.id ? '#fff' : 'var(--text)',
@@ -171,7 +171,7 @@ export function CMSApprovals() {
         {loading ? (
           <SectionLoading />
         ) : filteredApprovals.length === 0 ? (
-          <div style={{ textAlign: 'center', padding: '60px 20px', background: 'var(--surface)', borderRadius: 12, border: '1px dashed var(--border)' }}>
+          <div style={{ textAlign: 'center', padding: '60px 20px', background: 'var(--surface)', borderRadius: 'var(--r)', border: '1px dashed var(--border)' }}>
             <Icon name="checkCircle" size={40} style={{ color: 'var(--teal)', marginBottom: 12 }} />
             <h3 style={{ fontSize: 16, fontWeight: 600, color: 'var(--text)', margin: '0 0 4px 0' }}>All Clear</h3>
             <p style={{ fontSize: 13, color: 'var(--text-muted)' }}>No items in this review view.</p>
@@ -184,7 +184,7 @@ export function CMSApprovals() {
                 style={{
                   background: 'var(--surface)',
                   border: '1px solid var(--border)',
-                  borderRadius: 12,
+                  borderRadius: 'var(--r)',
                   padding: '16px 20px',
                   display: 'flex',
                   alignItems: 'center',
@@ -197,7 +197,7 @@ export function CMSApprovals() {
                     style={{
                       width: 40,
                       height: 40,
-                      borderRadius: 10,
+                      borderRadius: 'var(--r)',
                       background: app.status === 'approved' ? 'var(--green-l)' : app.status === 'rejected' ? 'var(--red-l)' : app.status === 'cancelled' ? 'var(--bg-muted)' : 'var(--gold-l)',
                       color: app.status === 'approved' ? 'var(--green)' : app.status === 'rejected' ? 'var(--red)' : app.status === 'cancelled' ? 'var(--text-muted)' : 'var(--gold)',
                       display: 'flex',
@@ -230,7 +230,7 @@ export function CMSApprovals() {
                     </div>
 
                     {app.decision_note && (
-                      <div style={{ fontSize: 12, color: 'var(--text-secondary)', marginTop: 6, fontStyle: 'italic', background: 'var(--bg-muted)', padding: '4px 8px', borderRadius: 6 }}>
+                      <div style={{ fontSize: 12, color: 'var(--text-secondary)', marginTop: 6, fontStyle: 'italic', background: 'var(--bg-muted)', padding: '4px 8px', borderRadius: 'var(--r-sm)' }}>
                         Note: "{app.decision_note}"
                       </div>
                     )}
@@ -318,7 +318,7 @@ export function CMSApprovals() {
             backdropFilter: 'blur(2px)',
           }}
         >
-          <div style={{ background: 'var(--surface)', borderRadius: 16, padding: 24, width: '100%', maxWidth: 440, border: '1px solid var(--border)' }}>
+          <div style={{ background: 'var(--surface)', borderRadius: 'var(--r-lg)', padding: 24, width: '100%', maxWidth: 440, border: '1px solid var(--border)' }}>
             <h3 style={{ fontSize: 16, fontWeight: 700, margin: '0 0 8px 0', color: 'var(--text)' }}>
               {decisionModal.decision === 'approved' ? 'Approve Content' : 'Reject & Return to Draft'}
             </h3>

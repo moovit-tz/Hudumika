@@ -194,7 +194,7 @@ function RuleForm({ type, agents, onCancel, onSave, saving }: {
       )}
 
       <div className="ssg-form-actions">
-        <button type="button" className="btn btn-secondary btn-sm" onClick={onCancel} data-ui-native-button="">Cancel</button>
+        <Button variant="outline" size="sm" type="button" onClick={onCancel}>Cancel</Button>
         <Button size="sm" type="button" onClick={handleSave} loading={saving} disabled={!name.trim()} loadingText="Saving…">
           Create rule
         </Button>

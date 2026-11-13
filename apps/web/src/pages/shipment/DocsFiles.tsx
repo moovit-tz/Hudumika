@@ -673,10 +673,10 @@ export function CO2Tab({ job, shipmentId, isLive, onRefresh }: { job: ClearanceJ
           <div style={{ flex: 1, minWidth: 220, background: 'var(--gold-l)', border: '1px solid var(--gold)', borderRadius: 'var(--r)', padding: '20px' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8, color: 'var(--gold)' }}>
               <Icon name="sun" size={16} />
-              <span style={{ fontSize: 13, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Carbon Credits Saved</span>
+              <span style={{ fontSize: 13, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Estimated CO₂ savings</span>
             </div>
             <div style={{ fontSize: 32, fontWeight: 800, color: 'var(--gold)', fontFamily: 'var(--font)' }}>
-              {job.carbonCreditsSaved?.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} <span style={{ fontSize: 16, fontWeight: 600 }}>credits</span>
+              {job.carbonCreditsSaved?.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} <span style={{ fontSize: 16, fontWeight: 600 }}>tCO₂e est.</span>
             </div>
           </div>
         </div>

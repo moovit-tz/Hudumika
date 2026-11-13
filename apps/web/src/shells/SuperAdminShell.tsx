@@ -74,7 +74,7 @@ function AdminContent() {
   return (
     <div className="sa-shell-content">
       <div className="sa-shell-banner">
-        <Icon name="shield" size={13} color="#ef4444" />
+        <Icon name="shield" size={13} color="var(--red)" />
         <span className="sa-shell-banner-label">Super Admin</span>
         <span className="sa-shell-banner-desc">— Platform-wide controls. Changes affect all tenants.</span>
       </div>

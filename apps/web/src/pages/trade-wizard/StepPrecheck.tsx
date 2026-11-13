@@ -3,6 +3,7 @@ import { Icon } from '../../components/Icon.js';
 import { Banner } from '../../components/ui/alert.js';
 import { apiFetch } from '../../lib/api.js';
 import type { StepProps } from './types.js';
+import { Button } from '../../components/ui/button.js';
 
 export function StepPrecheck({ draft, update, onNext, onBack }: StepProps) {
   const [running, setRunning] = useState(false);
@@ -31,9 +32,9 @@ export function StepPrecheck({ draft, update, onNext, onBack }: StepProps) {
 
   return (
     <div>
-      <button type="button" onClick={onBack} className="btn btn-ghost btn-sm" style={{ marginBottom: 16 }} data-ui-native-button="">
+      <Button variant="ghost" size="sm" type="button" onClick={onBack} style={{ marginBottom: 16 }}>
         <Icon name="chevronLeft" size={13} /> Back
-      </button>
+      </Button>
 
       <div style={{ marginBottom: 20 }}>
         <div style={{ fontSize: 16, fontWeight: 800, color: 'var(--ink)' }}>{procedure.name}</div>
@@ -71,9 +72,9 @@ export function StepPrecheck({ draft, update, onNext, onBack }: StepProps) {
 
       {error && <Banner variant="error" className="mb-3.5">{error}</Banner>}
 
-      <button type="button" className="btn btn-primary btn-lg" onClick={run} disabled={running} data-ui-native-button="">
+      <Button size="lg" type="button" onClick={run} disabled={running}>
         {running ? 'Checking…' : 'Show me what I need'} <Icon name="arrowRight" size={15} />
-      </button>
+      </Button>
     </div>
   );
 }

@@ -258,9 +258,9 @@ export function CMSAddToReleaseModal({
               </div>
 
               <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 10, marginTop: 8, paddingTop: 14, borderTop: '1px solid var(--border)' }}>
-                <button type="button" onClick={onClose} className="btn btn-secondary btn-sm" disabled={submitting} data-ui-native-button="">
+                <Button variant="outline" size="sm" type="button" onClick={onClose} disabled={submitting}>
                   Cancel
-                </button>
+                </Button>
                 <Button size="sm" type="submit" loading={submitting} loadingText="Adding…">
                   Add to Release
                 </Button>

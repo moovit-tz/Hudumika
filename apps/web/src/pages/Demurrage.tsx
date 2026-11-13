@@ -280,9 +280,9 @@ export const Demurrage: React.FC = () => {
             title="Container Demurrage Tracker"
             padded={false}
             action={
-              <button type="button" className="btn btn-primary btn-sm" onClick={startAddC} data-ui-native-button="">
+              <Button size="sm" type="button" onClick={startAddC}>
                 <Icon name="plus" size={13} /> Add Container
-              </button>
+              </Button>
             }
           >
             <div className="flex flex-wrap gap-x-4 gap-y-1 px-4 py-3 text-sm text-(--ink2)">
@@ -346,12 +346,12 @@ export const Demurrage: React.FC = () => {
                   </label>
                 </div>
                 <div style={{ display: 'flex', gap: 8, marginTop: 14, justifyContent: 'flex-end' }}>
-                  <button type="button" className="btn btn-secondary btn-sm" onClick={() => { setShowCForm(false); setEditCId(null); }} data-ui-native-button="">
+                  <Button variant="outline" size="sm" type="button" onClick={() => { setShowCForm(false); setEditCId(null); }}>
                     Cancel
-                  </button>
-                  <button type="button" className="btn btn-primary btn-sm" onClick={submitCForm} data-ui-native-button="">
+                  </Button>
+                  <Button size="sm" type="button" onClick={submitCForm}>
                     {editCId ? 'Save Changes' : 'Start Tracking'}
-                  </button>
+                  </Button>
                 </div>
               </div>
             )}
@@ -535,8 +535,8 @@ export const Demurrage: React.FC = () => {
             <DatePicker date={parseDateOnly(returnDate)} onChange={d => setReturnDate(toDateOnlyString(d))} />
           </div>
           <DialogFooter>
-            <button type="button" className="btn btn-secondary" onClick={() => setReturnModal(null)} data-ui-native-button="">Cancel</button>
-            <button type="button" className="btn btn-primary" onClick={handleMarkReturned} data-ui-native-button="">Confirm Return</button>
+            <Button variant="outline" type="button" onClick={() => setReturnModal(null)}>Cancel</Button>
+            <Button type="button" onClick={handleMarkReturned}>Confirm Return</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
@@ -567,7 +567,7 @@ export const Demurrage: React.FC = () => {
             </div>
           )}
           <DialogFooter>
-            <button type="button" className="btn btn-secondary" onClick={() => setRechargeContainer(null)} data-ui-native-button="">Cancel</button>
+            <Button variant="outline" type="button" onClick={() => setRechargeContainer(null)}>Cancel</Button>
             <Button type="button" onClick={submitRecharge} loading={rechargeSaving} disabled={!rechargeInvoiceId} loadingText="Recharging…">
               Recharge
             </Button>

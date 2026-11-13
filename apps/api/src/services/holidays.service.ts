@@ -110,7 +110,7 @@ export const HolidaysService = {
             signal: AbortSignal.timeout(15000),
           });
           if (res.ok) {
-            const rows: any[] = await res.json();
+            const rows = await res.json() as any[];
             for (const h of rows) {
               incoming.push({
                 date: String(h.date), name: String(h.name), localName: h.localName ?? undefined,
