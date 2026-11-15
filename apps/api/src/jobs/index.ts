@@ -26,6 +26,11 @@ import { runMailOutboxJob } from './mail-outbox.job.js';
 import { runZentraOutboxJob } from '../services/zentra-outbox.service.js';
 import { runZentraRetentionJob } from '../services/zentra-event.service.js';
 import { evaluateZentraTelemetryGaps } from '../services/zentra-risk.service.js';
+import { runPulseCampaignJob } from '../services/pulse-campaigns.service.js';
+import { runPulseJourneyJob } from '../services/pulse-journeys.service.js';
+import { runPulseSocialJob } from '../routes/pulse-social.routes.js';
+import { runPulseAdsJob } from '../routes/pulse-ads.routes.js';
+import { runPulseAbmJob } from '../services/pulse-abm.service.js';
 import { runImapTicketIngestJob } from './imap-ticket-ingest.job.js';
 import { runImapEmailIngestJob } from './imap-email-ingest.job.js';
 import { runScheduledEmailSendJob } from './scheduled-email-send.job.js';
@@ -421,6 +426,24 @@ function startBullMQ(): void {
     const zentraGapQueue = track(new Queue('zentra-telemetry-gaps', { connection: redisConnection as any }));
     track(new Worker('zentra-telemetry-gaps', async () => { await evaluateZentraTelemetryGaps(); }, { connection: redisConnection as any }));
     zentraGapQueue.add('hourly', {}, { repeat: { every: 60 * 60 * 1000 }, removeOnComplete: 10, removeOnFail: 10 }).catch(console.error);
+    // Pulse: start due campaigns, hand queued sends to the mail/SMS outboxes,
+    // settle A/B tests and record bounces.
+    const pulseQueue = track(new Queue('pulse-campaigns', { connection: redisConnection as any }));
+    track(new Worker('pulse-campaigns', async () => { await runPulseCampaignJob(); }, { connection: redisConnection as any }));
+    pulseQueue.add('sweep', {}, { repeat: { every: 30 * 1000 }, removeOnComplete: 20, removeOnFail: 20 }).catch(console.error);
+    // Pulse journeys: enter newcomers, run due steps.
+    const pulseJourneyQueue = track(new Queue('pulse-journeys', { connection: redisConnection as any }));
+    track(new Worker('pulse-journeys', async () => { await runPulseJourneyJob(); }, { connection: redisConnection as any }));
+    const pulseSocialQueue = track(new Queue('pulse-social', { connection: redisConnection as any }));
+    track(new Worker('pulse-social', async () => { await runPulseSocialJob(); }, { connection: redisConnection as any }));
+    const pulseAdsQueue = track(new Queue('pulse-ads', { connection: redisConnection as any }));
+    track(new Worker('pulse-ads', async () => { await runPulseAdsJob(); }, { connection: redisConnection as any }));
+    const pulseAbmQueue = track(new Queue('pulse-abm', { connection: redisConnection as any }));
+    track(new Worker('pulse-abm', async () => { await runPulseAbmJob(); }, { connection: redisConnection as any }));
+    pulseAbmQueue.add('hourly', {}, { repeat: { every: 60 * 60 * 1000 }, removeOnComplete: 10, removeOnFail: 10 }).catch(console.error);
+    pulseAdsQueue.add('sweep', {}, { repeat: { every: 30 * 60 * 1000 }, removeOnComplete: 10, removeOnFail: 10 }).catch(console.error);
+    pulseSocialQueue.add('sweep', {}, { repeat: { every: 60 * 1000 }, removeOnComplete: 20, removeOnFail: 20 }).catch(console.error);
+    pulseJourneyQueue.add('sweep', {}, { repeat: { every: 60 * 1000 }, removeOnComplete: 20, removeOnFail: 20 }).catch(console.error);
 
     // Worker for the mail outbox sweep — its own queue since it polls far
     // more frequently (1 min, mail needs to go out promptly) than the
@@ -1002,6 +1025,11 @@ function startIntervalFallback(): void {
   setInterval(() => { runZentraOutboxJob().catch(console.error); }, 60 * 1000);
   setInterval(() => { evaluateZentraTelemetryGaps().catch(console.error); }, 60 * 60 * 1000);
   setInterval(() => { runZentraRetentionJob().catch(console.error); }, 24 * 60 * 60 * 1000);
+  setInterval(() => { runPulseCampaignJob().catch(console.error); }, 30 * 1000);
+  setInterval(() => { runPulseJourneyJob().catch(console.error); }, 60 * 1000);
+  setInterval(() => { runPulseSocialJob().catch(console.error); }, 60 * 1000);
+  setInterval(() => { runPulseAdsJob().catch(console.error); }, 30 * 60 * 1000);
+  setInterval(() => { runPulseAbmJob().catch(console.error); }, 60 * 60 * 1000);
 
   // Mail outbox sweep — every minute. Safe to also run immediately on
   // startup (above): each row is processed exactly once and marked sent/

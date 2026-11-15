@@ -2576,12 +2576,12 @@ function ConstructionPanels({ workId, data, reload }: { workId: string; data: an
         </div>
         {showAddItem && (
           <form onSubmit={submitItem} style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(110px, 1fr))', gap: 8, marginTop: 10, padding: 10, border: '1px solid var(--border)', borderRadius: 'var(--r)' }}>
-            <div><Label>Item no.</Label><Input value={itemForm.item_no} onChange={e => setItemForm(f => ({ ...f, item_no: e.target.value }))} required /></div>
-            <div style={{ gridColumn: 'span 2' }}><Label>Description</Label><Input value={itemForm.description} onChange={e => setItemForm(f => ({ ...f, description: e.target.value }))} required /></div>
-            <div><Label>Unit</Label><Input value={itemForm.unit} onChange={e => setItemForm(f => ({ ...f, unit: e.target.value }))} placeholder="M3" /></div>
-            <div><Label>Quantity</Label><Input type="number" min="0" step="any" value={itemForm.quantity} onChange={e => setItemForm(f => ({ ...f, quantity: e.target.value }))} required /></div>
-            <div><Label>Rate</Label><Input type="number" min="0" step="any" value={itemForm.rate} onChange={e => setItemForm(f => ({ ...f, rate: e.target.value }))} required /></div>
-            <div><Label>Retention %</Label><Input type="number" min="0" max="100" step="any" value={itemForm.retention_pct} onChange={e => setItemForm(f => ({ ...f, retention_pct: e.target.value }))} /></div>
+            <div><Label>Item no.</Label><Input aria-label="Item number" value={itemForm.item_no} onChange={e => setItemForm(f => ({ ...f, item_no: e.target.value }))} required /></div>
+            <div style={{ gridColumn: 'span 2' }}><Label>Description</Label><Input aria-label="Item description" value={itemForm.description} onChange={e => setItemForm(f => ({ ...f, description: e.target.value }))} required /></div>
+            <div><Label>Unit</Label><Input aria-label="Unit" value={itemForm.unit} onChange={e => setItemForm(f => ({ ...f, unit: e.target.value }))} placeholder="M3" /></div>
+            <div><Label>Quantity</Label><Input aria-label="Quantity" type="number" min="0" step="any" value={itemForm.quantity} onChange={e => setItemForm(f => ({ ...f, quantity: e.target.value }))} required /></div>
+            <div><Label>Rate</Label><Input aria-label="Rate" type="number" min="0" step="any" value={itemForm.rate} onChange={e => setItemForm(f => ({ ...f, rate: e.target.value }))} required /></div>
+            <div><Label>Retention %</Label><Input aria-label="Retention percentage" type="number" min="0" max="100" step="any" value={itemForm.retention_pct} onChange={e => setItemForm(f => ({ ...f, retention_pct: e.target.value }))} /></div>
             <div style={{ display: 'flex', alignItems: 'flex-end', gap: 6 }}>
               <Button type="submit" size="sm" disabled={busy === 'add-item'}>{busy === 'add-item' ? 'Adding…' : 'Add'}</Button>
               <Button type="button" size="sm" variant="ghost" onClick={() => setShowAddItem(false)}>Cancel</Button>
@@ -2644,8 +2644,8 @@ function ConstructionPanels({ workId, data, reload }: { workId: string; data: an
           {showNewCert && (
             <form onSubmit={submitCert} style={{ marginTop: 10, padding: 10, border: '1px solid var(--border)', borderRadius: 'var(--r)', display: 'flex', flexDirection: 'column', gap: 10 }}>
               <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
-                <div><Label>Period start</Label><DatePicker date={certPeriod.start} onChange={d => setCertPeriod(p => ({ ...p, start: d }))} /></div>
-                <div><Label>Period end</Label><DatePicker date={certPeriod.end} onChange={d => setCertPeriod(p => ({ ...p, end: d }))} /></div>
+                <div><Label>Period start</Label><DatePicker aria-label="Period start" date={certPeriod.start} onChange={d => setCertPeriod(p => ({ ...p, start: d }))} /></div>
+                <div><Label>Period end</Label><DatePicker aria-label="Period end" date={certPeriod.end} onChange={d => setCertPeriod(p => ({ ...p, end: d }))} /></div>
               </div>
               <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
                 {boqItems.map(b => (

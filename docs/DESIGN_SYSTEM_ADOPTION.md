@@ -48,10 +48,17 @@ drift and is migrated when the file is next touched.
 | CRM customer tab format | `CustomerDetailPage.tsx` (`data-ds-tabs-exempt`) | Established customer navigation | CRM | Different tab look on one page | 2027-02-14 |
 | No `PageHeader` | Email, Drive, Calendar, Tasks, Studio builder, POS till | Full-screen tools; a title block lands inside the tool | Platform | None | 2027-05-14 |
 | Dark meeting stage colours | `pages/calls/MeetingRoom.tsx` | Video stage is intentionally dark in both themes | Bliss | Raw colours (84 in slop report) | 2027-02-14 |
+| Guest meeting stage colours | `pages/calls/GuestMeetingRoom.tsx` | Guest video, chat, and meeting controls share the dark live-call canvas | Bliss | 18 dark-stage literals; same exception as the authenticated meeting room | 2027-02-14 |
 | Switch off-track `#6b7280` | `ui/switch.tsx` | Documented neutral; no token yet | Platform | None | 2027-02-14 |
 | Numeric radii and hex colours in chart configs | Chart.js / Recharts dataset options | Drawn on canvas: CSS variables don't resolve there and the typed options need numbers. Recharts tooltip `contentStyle` is DOM and does use tokens | Platform | None | 2027-05-14 |
 | Hairline radii (1–3px) | Thumbnails, progress bars, swatches | The smallest shape token (8px) would turn them into pills | Platform | None | 2027-05-14 |
 | Raw colours in standalone documents | Print/certificate windows, email templates, Sign document content | CSS variables don't exist in a separate document or a mail client | Product owner of each | None | 2027-05-14 |
+| Tracking report PDF palette | `pages/Tracker.tsx` (`generatePDF`) | The HTML report is opened in a separate print document; its explicit brand, paper, and table colours are self-contained by design | Tracking | 25 report-only literals; review if report branding changes | 2027-05-14 |
+| Login provider and selectable backdrop colours | `pages/Login.tsx` | Google sign-in marks and its control follow Google's visual identity; the backdrop choices are tenant branding settings rendered before workspace tokens load | Ondi | Remaining auth-surface colours need separate contrast and branding review | 2027-05-14 |
+| Compliance chart series palette | `pages/compliance/ComplianceOverview.tsx` | Distinct semantic series are passed to the chart renderer; DOM risk-status labels now use design tokens instead | ClearOS | 10 chart-palette literals retained intentionally | 2027-05-14 |
+| Third-party integration marks | `pages/Store.tsx` | Provider logo colours identify the actual third-party brand and must not be recoloured as Hudumika accents | Platform | 20 provider-mark literals | 2027-05-14 |
+| Document thumbnail illustrations | `pages/cloud/components/DocThumbnail.tsx` | Small mock previews depict familiar document and spreadsheet surfaces; they are illustrative document content, not application chrome | Cloud | 18 preview literals and 11 hairline radii | 2027-05-14 |
+| Carbon dashboard series palette | `pages/CarbonPortfolio.tsx` | Chart series distinguish separate emissions scopes and reporting categories | Seal | 16 chart literals; verify series mapping if the chart changes | 2027-05-14 |
 | `color:` values that are data | Org-chart node colours, CRM stage colours, category palettes | Saved to the database or used as distinct series; a token would break pickers or merge categories | Product owner of each | None | 2027-05-14 |
 
 ## 3. Ownership and review gates
@@ -103,9 +110,18 @@ accepted and ignored.
      `DateRangePicker`) labelled from their `<label>`; the gate covers them.
      Still not covered: labels rendered as styled `<span>`/`<div>` text and
      labels containing JSX — screen-by-screen.
+     Manual batch on 15 November 2026 added accessible names to custom HR
+     asset, employment, and performance fields; Finance construction form
+     controls; and inventory movement controls. More styled-label instances
+     outside this batch remain for review.
    - **Generic icon labels made specific where the row names its item:** 48
      (e.g. `Delete ${todo.title}`, falling back to the verb when empty); 74
      stay generic because no item name is in scope.
+     Manual batch on 15 November 2026 added record-specific names to CMS,
+     email filters and sender identities, CRM tags, purchase orders, rate
+     cards, wallet entries, SMS campaigns, tracking records, and other rows.
+     Recount the remaining generic names before treating the prior 74 as
+     current; that baseline predates this batch.
    - **Raw radii:** the report counted every `borderRadius: '50%'` as a 5px
      radius (regex backtracking) — fixed; the real count was 238, not 494.
      116 replaced with `--r-sm`/`--r`/`--r-lg`; the rest are registered
@@ -115,7 +131,17 @@ accepted and ignored.
      ~780 are data values (saved node/stage colours, category palettes), chart
      configs, standalone documents, or the calls stage — see the exception
      register; the remainder needs per-screen review.
-   - **RTL:** `scripts/check-ui-zoom-rtl.mjs` (200% zoom at 640px; Arabic at
+     On 15 November 2026, `ComplianceOverview.tsx`'s status-label fallback
+     colours were removed in favour of the semantic `--red`, `--gold`, and
+     `--green` tokens. Its chart series palette remains intentionally distinct.
+     This is a targeted review, not clearance of the remaining colour queue.
+     The same day's `check:slop` scan reports 777 raw non-palette literals
+     across 103 files; use its current top-file report as the triage queue,
+     then record a rationale for each screen before accepting an exception.
+   - **RTL:** `PageHeader` subtitles now use `text-align: start`, so English
+     subtitles follow the page direction in RTL layouts. Translation and a
+     rendered Arabic-page review remain pending. `scripts/check-ui-zoom-rtl.mjs`
+     (200% zoom at 640px; Arabic at
      375/1440) — 30/30 pass for overflow. A visual check found mixed-language
      ordering bugs it can't measure (a negative balance shown as
      "TSh 9,442,000 -"); fixed with `unicode-bidi: plaintext` on text-level
@@ -154,6 +180,12 @@ NexusHR, Bliss, Ondi, Zentra, and the component catalogue, signed in as the
 platform SuperAdmin so every family renders. Not covered by any automated
 check yet: 200% zoom, screen-reader task completion, tenant-theme variations
 beyond the default, and RTL (Arabic) layout.
+
+Follow-up on 15 November 2026: the existing 200% zoom/RTL browser script was
+run on NexusHR, Finance, and Tracking (9 route/mode combinations); all passed
+with no horizontal overflow, off-screen controls, or page errors. This is a
+focused follow-up and does not replace the 13-route release audit above. It
+does not perform a screen-reader task walkthrough.
 
 Track these per release; a number that rises needs a reason in the review.
 

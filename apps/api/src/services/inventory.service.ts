@@ -49,7 +49,7 @@ export class InvalidMovement extends Error {
 export interface RecordMovementInput {
   actorId: string | null;
   actorType?: 'user' | 'system' | 'api_client';
-  movementType: 'receipt' | 'issue' | 'return' | 'transfer' | 'adjust' | 'count_correction';
+  movementType: 'receipt' | 'issue' | 'return' | 'supplier_return' | 'transfer' | 'adjust' | 'count_correction';
   itemId: string;
   fromLocationId?: string | null;
   toLocationId?: string | null;
@@ -59,8 +59,7 @@ export interface RecordMovementInput {
   expiryDate?: string | null;
   reasonCode?: string | null;
   reference?: string | null;
-  /** Only meaningful on a 'receipt' — omit to leave the item's
-   *  weighted-average cost unchanged (e.g. a transfer or correction). */
+  /** Base-unit cost for a receipt or an unbilled supplier return. */
   unitCost?: number | null;
   /** Optional Finance reporting dimension inherited from the source document. */
   businessLineId?: string | null;
@@ -104,6 +103,7 @@ export class InventoryService {
         toLocationId = input.toLocationId;
         break;
       case 'issue':
+      case 'supplier_return':
         if (!input.fromLocationId) throw new InvalidMovement('An issue requires a source location.');
         qtyDelta = -baseQty;
         fromLocationId = input.fromLocationId;
@@ -130,28 +130,31 @@ export class InventoryService {
         throw new InvalidMovement(`Unknown movement type: ${input.movementType}`);
     }
 
-    // Weighted-average costing — recomputed on 'receipt' (a new average
-    // blending what's already on hand with what's arriving), read
-    // unchanged on 'issue'/'adjust'/'count_correction' (each costed at the
-    // average as it stood at that moment, not recomputed later). Nothing
-    // but a receipt moves the average: a transfer changes location, not what
-    // was paid for it, and a correction is fixing a count error, not a
-    // purchase — recomputing the average from it would let a shrinkage event
-    // quietly change what every future issue is costed at.
+    // Receipts add their actual value to the weighted average. Supplier returns
+    // remove original receipt value, while issues and corrections use the current average.
     let unitCost: number | null = null;
     let totalCost: number | null = null;
     let newAvgCost: number | null = null;
-    if (input.movementType === 'receipt' && input.unitCost != null && input.unitCost >= 0) {
+    if (input.movementType === 'supplier_return' || (input.movementType === 'receipt' && input.unitCost != null && input.unitCost >= 0)) {
+      if (input.unitCost == null || input.unitCost < 0) throw new InvalidMovement('A supplier return requires its original stock cost.');
       unitCost = input.unitCost;
       const onHandRow = await trx.selectFrom('inventory_stock_levels')
         .select(({ fn }) => fn.coalesce(fn.sum<string>('qty_on_hand'), sql.lit('0')).as('total'))
         .where('tenant_id', '=', tenantId).where('item_id', '=', input.itemId).executeTakeFirst();
       const currentQty = Number(onHandRow?.total ?? 0);
       const currentAvg = Number(item.avg_cost);
-      const newTotalQty = currentQty + baseQty;
-      newAvgCost = newTotalQty > 0 ? (currentQty * currentAvg + baseQty * unitCost) / newTotalQty : unitCost;
-      newAvgCost = Math.round(newAvgCost * 10000) / 10000;
       totalCost = Math.round(baseQty * unitCost * 100) / 100;
+      const newTotalQty = currentQty + qtyDelta;
+      if (input.movementType === 'supplier_return') {
+        const remainingValue = currentQty * currentAvg - totalCost;
+        if (remainingValue < -0.01 || (newTotalQty <= 0 && Math.abs(remainingValue) > 0.01)) {
+          throw new InvalidMovement('The original return value cannot be reconciled with the remaining inventory value.');
+        }
+        newAvgCost = newTotalQty > 0 ? Math.max(0, remainingValue) / newTotalQty : 0;
+      } else {
+        newAvgCost = newTotalQty > 0 ? (currentQty * currentAvg + baseQty * unitCost) / newTotalQty : unitCost;
+      }
+      newAvgCost = Math.round(newAvgCost * 10000) / 10000;
     } else if (input.movementType === 'issue' || input.movementType === 'return') {
       totalCost = Math.round(baseQty * Number(item.avg_cost) * 100) / 100;
     } else if (input.movementType === 'adjust' || input.movementType === 'count_correction') {
@@ -234,6 +237,15 @@ export class InventoryService {
           lines: [
             { accountCode: input.productionId ? '1310' : COGS_ACCOUNT, debit: totalCost, credit: 0, description: input.productionId ? 'Production material consumed' : 'Cost of goods sold', dimensions },
             { accountCode: INVENTORY_ASSET_ACCOUNT, debit: 0, credit: totalCost, description: 'Inventory reduced', dimensions },
+          ],
+        }, trx);
+      } else if (input.movementType === 'supplier_return') {
+        await GLService.post(tenantId, {
+          ...common,
+          description: `Supplier return: ${baseQty} ${item.base_uom}`,
+          lines: [
+            { accountCode: GRNI_ACCOUNT, debit: totalCost, credit: 0, description: 'Unbilled receipt reversed', dimensions },
+            { accountCode: INVENTORY_ASSET_ACCOUNT, debit: 0, credit: totalCost, description: 'Inventory returned to supplier', dimensions },
           ],
         }, trx);
       } else if (input.movementType === 'return') {

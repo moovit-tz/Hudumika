@@ -465,14 +465,20 @@ export async function renderVendorStatementPdf(tenantId: string, id: string): Pr
     const bills = await trx.selectFrom('supplier_bills').selectAll().where('tenant_id', '=', tenantId).where('supplier_id', '=', id).where('status', 'not in', ['DRAFT', 'PENDING_APPROVAL', 'VOID']).execute();
     const payments = await trx.selectFrom('bill_payments as p').innerJoin('supplier_bills as b', join => join.onRef('b.id', '=', 'p.bill_id').on('b.tenant_id', '=', tenantId))
       .select(['p.id', 'p.payment_date', 'p.reference', 'p.amount', 'p.currency']).where('p.tenant_id', '=', tenantId).where('b.supplier_id', '=', id).execute();
+    const credits = await trx.selectFrom('supplier_return_credit_evidence as credit')
+      .innerJoin('supplier_bills as bill', join => join.onRef('bill.id', '=', 'credit.bill_id').onRef('bill.tenant_id', '=', 'credit.tenant_id'))
+      .select(['credit.credit_date', 'credit.supplier_reference', 'credit.currency', 'credit.net_amount', 'credit.tax_amount'])
+      .where('credit.tenant_id', '=', tenantId).where('bill.supplier_id', '=', id)
+      .where('credit.journal_entry_id', 'is not', null).execute();
     const events = [...bills.map(b => ({date: dateFmt(b.bill_date), sort: String(b.bill_date ?? b.created_at), ref: b.bill_number, currency: b.currency, debit: Number(b.total), credit: 0})),
-      ...payments.map(p => ({date: dateFmt(p.payment_date), sort: String(p.payment_date ?? ''), ref: p.reference || `PAY-${p.id.slice(0,8)}`, currency: p.currency, debit: 0, credit: Number(p.amount)}))].sort((a,b) => a.sort.localeCompare(b.sort) || a.ref.localeCompare(b.ref));
+      ...payments.map(p => ({date: dateFmt(p.payment_date), sort: String(p.payment_date ?? ''), ref: p.reference || `PAY-${p.id.slice(0,8)}`, currency: p.currency, debit: 0, credit: Number(p.amount)})),
+      ...credits.map(c => ({date: dateFmt(c.credit_date), sort: String(c.credit_date), ref: c.supplier_reference, currency: c.currency, debit: 0, credit: Number(c.net_amount) + Number(c.tax_amount)}))].sort((a,b) => a.sort.localeCompare(b.sort) || a.ref.localeCompare(b.ref));
     const balances = new Map<string, number>();
     const rows = events.map(e => { const balance = (balances.get(e.currency) ?? 0) + e.debit - e.credit; balances.set(e.currency, balance); return [e.date, e.ref, e.currency, money(e.debit), money(e.credit), money(balance)]; });
     const co = await company(trx, tenantId, 'vendor_statement');
     return { branding: co.branding, companyName: co.name, companyAddress: co.address, title: 'VENDOR STATEMENT', number: vendor.ref_code || id.slice(0,8),
-      meta: [['Vendor', vendor.name], ['Generated', dateFmt(new Date())], ['Basis', 'Posted bills and recorded payments; balances separated by currency']] as [string,string][],
-      columns: [{label:'Date',w:.16},{label:'Reference',w:.24},{label:'CCY',w:.10},{label:'Billed',w:.16,align:'right' as const},{label:'Paid',w:.16,align:'right' as const},{label:'Balance',w:.18,align:'right' as const}],
+      meta: [['Vendor', vendor.name], ['Generated', dateFmt(new Date())], ['Basis', 'Posted bills, payments and supplier credits by currency']] as [string,string][],
+      columns: [{label:'Date',w:.16},{label:'Reference',w:.24},{label:'CCY',w:.10},{label:'Billed',w:.16,align:'right' as const},{label:'Paid / credited',w:.16,align:'right' as const},{label:'Balance',w:.18,align:'right' as const}],
       rows, summary: Array.from(balances, ([currency, value]) => [`Balance (${currency})`, money(value)] as [string,string]),
       notes: 'Current account statement. Draft and void bills are excluded. No exchange-rate conversion is applied.',
     };

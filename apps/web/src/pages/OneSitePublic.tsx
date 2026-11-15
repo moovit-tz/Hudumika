@@ -4,7 +4,7 @@ import { apiFetch, BASE_URL } from '../lib/api.js';
 import { CompanyAvatar } from '../components/PersonAvatar.js';
 import { usePageSEO } from '../hooks/usePageSEO.js';
 import { PageLoading } from '../components/ui/spinner.js';
-import { BlockPreview, getVisitorSegment } from '../components/BlockPreview.js';
+import { BlockPreview, getVisitorSegment, rememberUtm } from '../components/BlockPreview.js';
 import type { CmsPublicSite, CmsPage, CmsPublicPost, CmsPublicContentEntry, CmsPublicContentEntrySummary, CmsBlock, CmsPublicComment, CmsPublicNavItem, CmsPublicSearchResult, CmsPublicArchiveMonth, CmsPublicPostSummary, CmsFontId } from '@hudumika/types';
 import { CMS_FONT_STACKS, CMS_FONT_URLS, CMS_RADIUS_PX } from '../lib/cmsDesignTokens.js';
 
@@ -283,6 +283,9 @@ export function OneSitePublic() {
   // shouldn't inflate a real view count). navigator.sendBeacon is
   // fire-and-forget by design — exactly what a pageview counter needs,
   // and it survives the page unloading, which a plain fetch() wouldn't.
+  // Remember the landing link's UTM tags for any form sent later in this tab.
+  useEffect(() => { rememberUtm(); }, []);
+
   useEffect(() => {
     if (!tenantSlug || previewToken) return;
     const target = page ? { resource_type: 'page' as const, resource_id: page.id }

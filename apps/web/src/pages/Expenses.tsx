@@ -184,7 +184,7 @@ function ExpenseDetailPanel({ expense, onClose, onChanged, shipments, customers,
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 16px', borderBottom: '1px solid var(--border)' }}>
         <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--ink)' }}>Expense Details</div>
         <div style={{ display: 'flex', gap: 6 }}>
-          <Tip label="Delete"><button type="button" aria-label="Delete" onClick={handleDelete} disabled={deleting} style={{ background: 'var(--red-l)', border: 'none', borderRadius: 'var(--r)', padding: 'var(--ds-btn-py-sm) 8px', cursor: deleting ? 'wait' : 'pointer', color: 'var(--red)', minHeight: 'var(--ctl-h-sm)', boxSizing: 'border-box', lineHeight: 1.25}} data-ui-native-button=""><Icon name="trash" size={14} /></button></Tip>
+          <Tip label="Delete expense"><button type="button" aria-label={`Delete expense ${expense.name}`} onClick={handleDelete} disabled={deleting} style={{ background: 'var(--red-l)', border: 'none', borderRadius: 'var(--r)', padding: 'var(--ds-btn-py-sm) 8px', cursor: deleting ? 'wait' : 'pointer', color: 'var(--red)', minHeight: 'var(--ctl-h-sm)', boxSizing: 'border-box', lineHeight: 1.25}} data-ui-native-button=""><Icon name="trash" size={14} /></button></Tip>
           <Tip label="Close"><button type="button" aria-label="Close" onClick={onClose} style={{ background: 'var(--bg)', border: 'none', borderRadius: 'var(--r)', padding: 'var(--ds-btn-py-sm) 8px', cursor: 'pointer', color: 'var(--ink)', minHeight: 'var(--ctl-h-sm)', boxSizing: 'border-box', lineHeight: 1.25}} data-ui-native-button=""><Icon name="x" size={14} /></button></Tip>
         </div>
       </div>

@@ -81,6 +81,22 @@ const envSchema = z.object({
    *  app is configured, in which case the signature check is skipped rather
    *  than rejecting every webhook against a secret that doesn't exist yet. */
   META_APP_SECRET: z.string().optional(),
+  /** Pulse social publishing — the platform's own developer apps, through
+   *  which each workspace connects its pages. All optional: a network whose
+   *  credentials are unset shows as "not available yet" rather than failing.
+   *  Meta (Facebook + Instagram) reuses META_APP_SECRET above. */
+  META_APP_ID: z.string().optional(),
+  LINKEDIN_CLIENT_ID: z.string().optional(),
+  LINKEDIN_CLIENT_SECRET: z.string().optional(),
+  X_CLIENT_ID: z.string().optional(),
+  X_CLIENT_SECRET: z.string().optional(),
+  /** Pulse ads. Meta ads reuse META_APP_ID/META_APP_SECRET (the app needs
+   *  ads_read/ads_management approved). Google Ads needs its own OAuth client
+   *  plus a developer token Google approves per company — weeks, not minutes. */
+  GOOGLE_ADS_CLIENT_ID: z.string().optional(),
+  GOOGLE_ADS_CLIENT_SECRET: z.string().optional(),
+  GOOGLE_ADS_DEVELOPER_TOKEN: z.string().optional(),
+  GOOGLE_ADS_API_VERSION: z.string().default('v21'),
   /** Shared secret GPSWOX must send back (as ?token=) on every webhook call —
    *  GPSWOX has no HMAC-signature scheme of its own, so this is the simplest
    *  proof the request actually came from the configured GPSWOX account and

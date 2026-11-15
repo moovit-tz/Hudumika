@@ -401,11 +401,11 @@ function CompensationPanel({ userId, who, defaultCurrency, defaultFrequency, onC
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(150px,1fr))', gap: 10 }}>
             <div>
               <div style={{ ...label, marginBottom: 4 }}>Base salary</div>
-              <Input value={salary} onChange={e => setSalary(e.target.value.replace(/[^\d.]/g, ''))} placeholder="0" />
+              <Input aria-label="Base salary" value={salary} onChange={e => setSalary(e.target.value.replace(/[^\d.]/g, ''))} placeholder="0" />
             </div>
             <div>
               <div style={{ ...label, marginBottom: 4 }}>Currency</div>
-              <Input value={currency} onChange={e => setCurrency(e.target.value.toUpperCase())} />
+              <Input aria-label="Salary currency" value={currency} onChange={e => setCurrency(e.target.value.toUpperCase())} />
             </div>
             <div>
               <div style={{ ...label, marginBottom: 4 }}>Paid</div>
@@ -420,7 +420,7 @@ function CompensationPanel({ userId, who, defaultCurrency, defaultFrequency, onC
             </div>
             <div>
               <div style={{ ...label, marginBottom: 4 }}>Effective from</div>
-              <DatePicker date={effective} onChange={setEffective} />
+              <DatePicker aria-label="Effective from" date={effective} onChange={setEffective} />
             </div>
           </div>
           <div style={{ fontSize: 11.5, color: 'var(--ink3)', marginTop: 9, lineHeight: 1.5 }}>
@@ -655,19 +655,19 @@ function EntityPane({ entities, busy, onCreate }: { entities: LegalEntity[]; bus
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(160px,1fr))', gap: 10, marginTop: 14 }}>
         <div>
           <div style={{ ...label, marginBottom: 4 }}>Legal name</div>
-          <Input value={legalName} onChange={e => setLegalName(e.target.value)} placeholder="e.g. Moovit Mobility Limited" />
+          <Input aria-label="Legal name" value={legalName} onChange={e => setLegalName(e.target.value)} placeholder="e.g. Moovit Mobility Limited" />
         </div>
         <div>
           <div style={{ ...label, marginBottom: 4 }}>Country</div>
-          <Combobox options={COUNTRIES.map(c => ({ value: c.code, label: c.name }))} value={country} onChange={setCountry} />
+          <Combobox aria-label="Country" options={COUNTRIES.map(c => ({ value: c.code, label: c.name }))} value={country} onChange={setCountry} />
         </div>
         <div>
           <div style={{ ...label, marginBottom: 4 }}>Currency</div>
-          <Input value={currency} onChange={e => setCurrency(e.target.value.toUpperCase())} placeholder="TZS" />
+          <Input aria-label="Currency" value={currency} onChange={e => setCurrency(e.target.value.toUpperCase())} placeholder="TZS" />
         </div>
         <div>
           <div style={{ ...label, marginBottom: 4 }}>Tax ID <span style={{ fontWeight: 400, textTransform: 'none' }}>(optional)</span></div>
-          <Input value={taxId} onChange={e => setTaxId(e.target.value)} />
+          <Input aria-label="Tax ID (optional)" value={taxId} onChange={e => setTaxId(e.target.value)} />
         </div>
       </div>
       <Button type="button" style={{ marginTop: 12 }} disabled={!legalName.trim() || !!busy}

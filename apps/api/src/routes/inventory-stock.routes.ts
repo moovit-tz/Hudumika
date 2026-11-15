@@ -32,7 +32,8 @@ function mapStockLevel(row: any) {
     itemId: row.item_id, locationId: row.location_id, batchNo: row.batch_no || null,
     expiryDate: row.expiry_date, qtyOnHand,
     itemName: row.item_name ?? undefined, itemSku: row.item_sku ?? undefined, baseUom: row.base_uom ?? undefined,
-    locationCode: row.location_code ?? undefined, warehouseName: row.warehouse_name ?? undefined,
+    locationCode: row.location_code ?? undefined, warehouseId: row.warehouse_id ?? undefined,
+    warehouseName: row.warehouse_name ?? undefined,
     avgCost, value: Math.round(qtyOnHand * avgCost * 100) / 100,
   };
 }
@@ -66,27 +67,65 @@ export async function inventoryStockRoutes(fastify: FastifyInstance) {
   // a stored flag that could drift stale as stock moves.
   fastify.get('/reorder-alerts', async (request: any, reply) => {
     try {
-      const rows = await withTenant(request.user.tenant_id, trx =>
-        trx.selectFrom('inventory_items')
-          .leftJoin('inventory_stock_levels', 'inventory_stock_levels.item_id', 'inventory_items.id')
-          .select(({ fn }) => [
-            'inventory_items.id', 'inventory_items.sku', 'inventory_items.name', 'inventory_items.base_uom',
-            'inventory_items.reorder_point', 'inventory_items.reorder_qty',
-            fn.coalesce(fn.sum<string>('inventory_stock_levels.qty_on_hand'), sql.lit('0')).as('total_qty_on_hand'),
+      const tenantId = request.user.tenant_id;
+      const enteredUom = sql<string>`coalesce(nullif(line.item_uom, ''), 'each')`;
+      const factor = sql<number>`case when ${enteredUom} = item.base_uom then 1 else uom.conversion_factor end`;
+      const rows = await withTenant(tenantId, trx => trx
+        .with('incoming', qb => qb.selectFrom('purchase_orders as po')
+          .innerJoin('purchase_order_lines as line', 'line.po_id', 'po.id')
+          .innerJoin('inventory_items as item', 'item.id', 'line.item_id')
+          .leftJoin('inventory_item_uoms as uom', join => join
+            .onRef('uom.item_id', '=', 'item.id')
+            .onRef('uom.uom_code', '=', enteredUom)
+            .on('uom.tenant_id', '=', tenantId))
+          .where('po.tenant_id', '=', tenantId)
+          .where('item.tenant_id', '=', tenantId)
+          .where('po.status', 'in', ['SENT', 'PARTIAL'])
+          .whereRef('line.qty', '>', 'line.received_qty')
+          .where('item.active', '=', true)
+          .where('item.reorder_point', 'is not', null)
+          .select([
+            'item.id as item_id',
+            sql<string>`coalesce(sum((line.qty - line.received_qty) * ${factor}) filter (where ${factor} > 0), 0)`.as('quantity'),
+            sql<string>`count(*) filter (where ${factor} is null or ${factor} <= 0)`.as('unconverted_lines'),
           ])
-          .where('inventory_items.tenant_id', '=', request.user.tenant_id)
-          .where('inventory_items.active', '=', true)
-          .where('inventory_items.reorder_point', 'is not', null)
-          .groupBy(['inventory_items.id', 'inventory_items.sku', 'inventory_items.name', 'inventory_items.base_uom', 'inventory_items.reorder_point', 'inventory_items.reorder_qty'])
-          .execute()
-      );
+          .groupBy('item.id'))
+        .with('on_hand', qb => qb.selectFrom('inventory_stock_levels')
+          .where('tenant_id', '=', tenantId)
+          .select(({ fn }) => ['item_id', fn.sum<string>('qty_on_hand').as('quantity')])
+          .groupBy('item_id'))
+        .selectFrom('inventory_items')
+        .leftJoin('on_hand', 'on_hand.item_id', 'inventory_items.id')
+        .leftJoin('incoming', 'incoming.item_id', 'inventory_items.id')
+        .select([
+          'inventory_items.id', 'inventory_items.sku', 'inventory_items.name', 'inventory_items.base_uom',
+          'inventory_items.product_id',
+          'inventory_items.reorder_point', 'inventory_items.reorder_qty',
+          'on_hand.quantity as total_qty_on_hand', 'incoming.quantity as inbound_qty', 'incoming.unconverted_lines',
+        ])
+        .where('inventory_items.tenant_id', '=', tenantId)
+        .where('inventory_items.active', '=', true)
+        .where('inventory_items.reorder_point', 'is not', null)
+        .execute());
       const alerts = rows
         .map(r => ({
           itemId: r.id, sku: r.sku, name: r.name, baseUom: r.base_uom,
+          productId: r.product_id,
           reorderPoint: Number(r.reorder_point), reorderQty: r.reorder_qty != null ? Number(r.reorder_qty) : null,
           totalQtyOnHand: Number(r.total_qty_on_hand),
+          inboundQty: Number(r.inbound_qty),
+          unconvertedLines: Number(r.unconverted_lines),
         }))
         .filter(a => a.totalQtyOnHand <= a.reorderPoint)
+        .map(alert => {
+          const projectedQty = alert.totalQtyOnHand + alert.inboundQty;
+          return {
+            ...alert,
+            projectedQty,
+            suggestedQty: alert.unconvertedLines > 0 ? null : projectedQty > alert.reorderPoint ? 0
+              : Math.max(alert.reorderQty ?? 0, alert.reorderPoint - projectedQty),
+          };
+        })
         .sort((a, b) => (a.totalQtyOnHand - a.reorderPoint) - (b.totalQtyOnHand - b.reorderPoint));
       return alerts;
     } catch (err: any) {
@@ -200,6 +239,7 @@ export async function inventoryStockRoutes(fastify: FastifyInstance) {
             'inventory_stock_levels.expiry_date', 'inventory_stock_levels.qty_on_hand',
             'inventory_items.name as item_name', 'inventory_items.sku as item_sku', 'inventory_items.base_uom',
             'inventory_items.avg_cost', 'inventory_locations.code as location_code', 'inventory_warehouses.name as warehouse_name',
+            'inventory_warehouses.id as warehouse_id',
           ])
           .where('inventory_stock_levels.tenant_id', '=', request.user.tenant_id)
           .where('inventory_stock_levels.qty_on_hand', '!=', '0')
@@ -217,7 +257,9 @@ export async function inventoryStockRoutes(fastify: FastifyInstance) {
 
   fastify.get('/movements', async (request: any, reply) => {
     try {
-      const { item_id } = request.query as { item_id?: string };
+      const { item_id, location_id, batch_no } = request.query as {
+        item_id?: string; location_id?: string; batch_no?: string;
+      };
       const rows = await withTenant(request.user.tenant_id, trx => {
         let q = trx.selectFrom('inventory_movements')
           .innerJoin('inventory_items', 'inventory_items.id', 'inventory_movements.item_id')
@@ -233,9 +275,24 @@ export async function inventoryStockRoutes(fastify: FastifyInstance) {
             'from_loc.code as from_location_code', 'to_loc.code as to_location_code',
           ])
           .where('inventory_movements.tenant_id', '=', request.user.tenant_id)
+          .orderBy('inventory_movements.occurred_at', 'desc')
           .orderBy('inventory_movements.id', 'desc')
           .limit(200);
         if (item_id) q = q.where('inventory_movements.item_id', '=', item_id);
+        if (location_id) {
+          q = q.where(eb => eb.or([
+            eb('inventory_movements.from_location_id', '=', location_id),
+            eb('inventory_movements.to_location_id', '=', location_id),
+          ]));
+        }
+        if (batch_no !== undefined) {
+          q = batch_no
+            ? q.where('inventory_movements.batch_no', '=', batch_no)
+            : q.where(eb => eb.or([
+              eb('inventory_movements.batch_no', 'is', null),
+              eb('inventory_movements.batch_no', '=', ''),
+            ]));
+        }
         return q.execute();
       });
       return rows.map(mapMovement);

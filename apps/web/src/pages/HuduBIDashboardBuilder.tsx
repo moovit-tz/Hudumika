@@ -64,7 +64,7 @@ function WidgetCard({ widget, onDelete }: { widget: Widget; onDelete: (id: strin
     <SectionCard
       title={widget.name}
       collapsible={false}
-      action={<Button aria-label="Delete" size="icon" variant="ghost" onClick={() => onDelete(widget.id)}><Icon name="trash" size={14} /></Button>}
+      action={<Button aria-label={`Delete ${widget.name} widget`} size="icon" variant="ghost" onClick={() => onDelete(widget.id)}><Icon name="trash" size={14} /></Button>}
     >
       {loading ? (
         <SectionLoading />

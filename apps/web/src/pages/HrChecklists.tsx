@@ -223,7 +223,7 @@ function Templates() {
                     <span style={{ flex: 1, fontSize: 13, color: 'var(--ink)' }}>{label}</span>
                     <button aria-label="Move up" type="button" disabled={saving || i === 0} onClick={() => moveItem(i, -1)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink3)', opacity: i === 0 ? 0.3 : 1 }} data-ui-native-button=""><Icon name="chevronUp" size={14} /></button>
                     <button aria-label="Move down" type="button" disabled={saving || i === items.length - 1} onClick={() => moveItem(i, 1)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink3)', opacity: i === items.length - 1 ? 0.3 : 1 }} data-ui-native-button=""><Icon name="chevronDown" size={14} /></button>
-                    <button aria-label="Remove" type="button" disabled={saving} onClick={() => removeItem(i)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--red)' }} data-ui-native-button=""><Icon name="x" size={14} /></button>
+                    <button aria-label={`Remove task ${label}`} type="button" disabled={saving} onClick={() => removeItem(i)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--red)' }} data-ui-native-button=""><Icon name="x" size={14} /></button>
                   </div>
                 ))}
               </div>

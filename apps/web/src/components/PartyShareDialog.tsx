@@ -137,7 +137,7 @@ export function PartyShareDialog({ open, onOpenChange, partyId, name }: {
                         </SelectContent>
                       </Select>
                     </div>
-                    <Button size="xs" variant="ghost" onClick={() => setShares(list => list.filter((_, j) => j !== i))} aria-label="Remove">
+                    <Button size="xs" variant="ghost" onClick={() => setShares(list => list.filter((_, j) => j !== i))} aria-label={`Remove access for ${nameOf(s)}`}>
                       <Icon name="x" size={14} />
                     </Button>
                   </div>

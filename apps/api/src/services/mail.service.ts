@@ -35,6 +35,10 @@ interface EnqueueInput {
   /** See EmailIntegration.sendEmail's own doc — an explicit "Send mail as"
    *  alias for this one send, only ever set alongside userId. */
   fromIdentityId?: string | null;
+  /** Extra message headers, kept on the outbox row so a retry sends them too.
+   *  Pulse uses it for List-Unsubscribe / List-Unsubscribe-Post (RFC 8058)
+   *  and Reply-To. */
+  headers?: Record<string, string>;
   /** Compatibility bridge while legacy business actions move to the
    * communication registry. New callers should call CommEventsService. */
   communication?: {
@@ -112,6 +116,7 @@ export const MailService = {
         template_key: input.templateKey ?? null,
         source_app: input.sourceApp,
         attachments: JSON.stringify(input.attachments ?? []),
+        headers: input.headers && Object.keys(input.headers).length ? JSON.stringify(input.headers) : null,
         communication_delivery_id: input.communicationDeliveryId ?? null,
         attachment_storage_key: input.attachmentStorageKey ?? null,
         attachment_filename: input.attachmentFilename ?? null,
@@ -155,7 +160,7 @@ export const MailService = {
         cc: input.cc, bcc: input.bcc, tenantId,
         attachments: attachments.length ? attachments : undefined,
         inReplyToMessageId: input.inReplyToMessageId, referencesMessageIds: input.referencesMessageIds,
-        userId: input.userId, fromIdentityId: input.fromIdentityId,
+        userId: input.userId, fromIdentityId: input.fromIdentityId, headers: input.headers,
       });
     } catch (error) {
       result = { success: false, error: error instanceof Error ? error.message : 'Email delivery failed' };

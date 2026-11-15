@@ -529,7 +529,7 @@ export function DetailsPanel({ ticket, agents, onReassign, onStatusChange, onUpd
               {tags.map(t => (
                 <span key={t} className="spt-bedesk-tag-chip">
                   <span>{t}</span>
-                  <button aria-label="Remove" type="button" onClick={() => removeTag(t)} data-ui-native-button="">
+                  <button aria-label={`Remove tag ${t}`} type="button" onClick={() => removeTag(t)} data-ui-native-button="">
                     <Icon name="x" size={10} />
                   </button>
                 </span>

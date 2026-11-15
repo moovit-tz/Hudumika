@@ -508,7 +508,7 @@ export function InvoiceDetailPanel({ inv, onClose, onEdit, onCopy, onDelete, onR
 
         <div className="flex-1" />
 
-        <Tip label="Edit"><Button type="button" size="icon" variant="outline" onClick={onEdit} aria-label="Edit"><Icon name="edit" size={13} /></Button></Tip>
+        <Tip label="Edit invoice"><Button type="button" size="icon" variant="outline" onClick={onEdit} aria-label={`Edit invoice ${inv.id}`}><Icon name="edit" size={13} /></Button></Tip>
         <Tip label="Duplicate"><Button type="button" size="icon" variant="outline" onClick={onCopy} aria-label="Duplicate"><Icon name="copy" size={13} /></Button></Tip>
 
         <DropdownMenu>

@@ -1799,7 +1799,7 @@ export function Contacts() {
                       </SelectContent>
                     </Select>
                     <input data-ui-field="input" className="input-field" type="email" placeholder="Additional email" value={row.email} onChange={e => setFormExtraEmails(prev => prev.map((r, j) => j === i ? { ...r, email: e.target.value } : r))} />
-                    <button aria-label="Remove" type="button" onClick={() => setFormExtraEmails(prev => prev.filter((_, j) => j !== i))} style={{ border: 'none', background: 'none', cursor: 'pointer', padding: "var(--action-py) var(--space-md)", flexShrink: 0 }} data-ui-native-button="">
+                    <button aria-label={`Remove additional email ${row.email || i + 1}`} type="button" onClick={() => setFormExtraEmails(prev => prev.filter((_, j) => j !== i))} style={{ border: 'none', background: 'none', cursor: 'pointer', padding: "var(--action-py) var(--space-md)", flexShrink: 0 }} data-ui-native-button="">
                       <Icon name="x" size={14} color="var(--ink3)" />
                     </button>
                   </div>
@@ -1821,7 +1821,7 @@ export function Contacts() {
                       </SelectContent>
                     </Select>
                     <input data-ui-field="input" className="input-field" placeholder="Additional phone" value={row.phone} onChange={e => setFormExtraPhones(prev => prev.map((r, j) => j === i ? { ...r, phone: e.target.value } : r))} />
-                    <button aria-label="Remove" type="button" onClick={() => setFormExtraPhones(prev => prev.filter((_, j) => j !== i))} style={{ border: 'none', background: 'none', cursor: 'pointer', padding: "var(--action-py) var(--space-md)", flexShrink: 0 }} data-ui-native-button="">
+                    <button aria-label={`Remove additional phone ${row.phone || i + 1}`} type="button" onClick={() => setFormExtraPhones(prev => prev.filter((_, j) => j !== i))} style={{ border: 'none', background: 'none', cursor: 'pointer', padding: "var(--action-py) var(--space-md)", flexShrink: 0 }} data-ui-native-button="">
                       <Icon name="x" size={14} color="var(--ink3)" />
                     </button>
                   </div>

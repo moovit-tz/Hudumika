@@ -81,6 +81,7 @@ import {
 } from '../services/vat-period.service.js';
 import type { Transaction } from 'kysely';
 import type { Database } from '../db/client.js';
+import { accountForBillCategory } from '../services/supplier-bill-accounts.js';
 
 /**
  * Bill lines, with each line's tax split into what can be claimed and what
@@ -151,7 +152,7 @@ async function buildBillLines(
 
     // Non-recoverable tax is part of the cost of *this* line, so it follows the
     // line's own account rather than being dumped on a default one.
-    const acct = accountForCategory(it.category);
+    const acct = accountForBillCategory(it.category);
     byAccount.set(acct, (byAccount.get(acct) ?? 0) + net + split.nonRecoverable);
 
     return {
@@ -182,22 +183,6 @@ async function buildBillLines(
  * without a natural home stays on 5000 rather than posting to an account that
  * does not exist.
  */
-const CATEGORY_ACCOUNT: Record<string, string> = {
-  FREIGHT:      '5001',  // Freight Costs
-  CUSTOMS:      '5000',  // Port & Customs Charges
-  PORT:         '5000',
-  TRANSPORT:    '5002',  // Transport Costs
-  WAREHOUSE:    '5003',  // Storage & Demurrage
-  UTILITIES:    '5102',  // Utilities
-  PROFESSIONAL: '5100',  // Salaries & Wages is the closest seeded account
-  INSURANCE:    '5000',
-  OTHER:        '5000',
-};
-
-function accountForCategory(category: string | null | undefined): string {
-  return CATEGORY_ACCOUNT[String(category ?? '').toUpperCase()] ?? '5000';
-}
-
 /** Rebuilds the same byAccount/recoverable/nonRecoverable shape
  * buildBillLines() produces at creation time, but from the *stored* lines
  * of an already-persisted bill (M9's approve step posts off what was
@@ -219,7 +204,7 @@ async function recomputeBillPosting(trx: Transaction<Database>, tenantId: string
     const lineTax = net * (Number(l.tax_rate) / 100);
     const split = splitInputTax(lineTax, l.tax_code_id ? { input_tax_recoverable: recoverableByCode.get(l.tax_code_id) ?? false } : null);
     recoverable += split.recoverable; nonRecoverable += split.nonRecoverable;
-    const acct = accountForCategory(l.category);
+    const acct = accountForBillCategory(l.category);
     byAccount.set(acct, (byAccount.get(acct) ?? 0) + net + split.nonRecoverable);
   }
   return { recoverable, nonRecoverable, byAccount };
@@ -272,7 +257,7 @@ async function validateBusinessLine(
 async function resolveTenantPurchaseOrder(trx: Transaction<Database>, tenantId: string, poId: string) {
   return trx.selectFrom('purchase_orders')
     .select(['id', 'po_number', 'supplier_id', 'business_line_id'])
-    .where('tenant_id', '=', tenantId).where('id', '=', poId).executeTakeFirst();
+    .where('tenant_id', '=', tenantId).where('id', '=', poId).forUpdate().executeTakeFirst();
 }
 
 export async function billRoutes(fastify: FastifyInstance) {
@@ -303,9 +288,9 @@ export async function billRoutes(fastify: FastifyInstance) {
       const today = await tenantAccountingDate(trx, user.tenant_id);
       const result = await sql<{ status: string; currency: string; count: string; paid: string; outstanding: string; overdue_count: string; overdue_amount: string }>`
         SELECT status, currency, count(*) count, sum(coalesce(paid_amount,0)) paid,
-          sum(greatest(0,coalesce(total,0)-coalesce(paid_amount,0))) outstanding,
+          sum(greatest(0,coalesce(total,0)-coalesce(paid_amount,0)-credited_amount)) outstanding,
           count(*) FILTER (WHERE status IN ('POSTED','PARTIAL') AND due_date < ${today}::date) overdue_count,
-          coalesce(sum(greatest(0,coalesce(total,0)-coalesce(paid_amount,0))) FILTER (WHERE status IN ('POSTED','PARTIAL') AND due_date < ${today}::date),0) overdue_amount
+          coalesce(sum(greatest(0,coalesce(total,0)-coalesce(paid_amount,0)-credited_amount)) FILTER (WHERE status IN ('POSTED','PARTIAL') AND due_date < ${today}::date),0) overdue_amount
         FROM supplier_bills WHERE tenant_id=${user.tenant_id} GROUP BY status,currency
       `.execute(trx);
       const status_counts: Record<string, number> = {};
@@ -869,9 +854,10 @@ export async function billRoutes(fastify: FastifyInstance) {
       return reply.status(409).send({ error: 'Bill status cannot be changed through edit. Use submit, approve, reject, payment, or void.' });
     }
     return withTenant(user.tenant_id, async (trx) => {
-      const existing = await trx.selectFrom('supplier_bills').select(['id', 'bill_date', 'supplier_id', 'status', 'business_line_id', 'po_id'])
-        .where('id', '=', id).where('tenant_id', '=', user.tenant_id).executeTakeFirst();
+      const existing = await trx.selectFrom('supplier_bills').select(['id', 'bill_date', 'supplier_id', 'status', 'business_line_id', 'po_id', 'credited_amount'])
+        .where('id', '=', id).where('tenant_id', '=', user.tenant_id).forUpdate().executeTakeFirst();
       if (!existing) return reply.status(404).send({ error: 'Bill not found' });
+      if (Number(existing.credited_amount) > 0) return reply.status(409).send({ error: 'This bill has a posted supplier return credit and cannot be edited independently.' });
       if (body.po_id !== undefined && body.po_id !== existing.po_id && existing.status !== 'DRAFT') {
         return reply.status(409).send({ error: 'The linked purchase order cannot be changed after a bill is submitted.' });
       }
@@ -989,7 +975,7 @@ export async function billRoutes(fastify: FastifyInstance) {
             const s = splitInputTax(lineTax, l.input_tax_recoverable === null ? null : { input_tax_recoverable: l.input_tax_recoverable });
             recoverable += s.recoverable;
             nonRecoverable += s.nonRecoverable;
-            const acct = accountForCategory(l.category);
+            const acct = accountForBillCategory(l.category);
             byAccount.set(acct, (byAccount.get(acct) ?? 0) + net + s.nonRecoverable);
           }
 
@@ -1031,10 +1017,11 @@ export async function billRoutes(fastify: FastifyInstance) {
     }
     return withTenant(user.tenant_id, async (trx) => {
       const bill = await trx.selectFrom('supplier_bills')
-        .select(['id', 'status', 'bill_number', 'bill_date'])
-        .where('id', '=', id).where('tenant_id', '=', user.tenant_id).executeTakeFirst();
+        .select(['id', 'status', 'bill_number', 'bill_date', 'credited_amount'])
+        .where('id', '=', id).where('tenant_id', '=', user.tenant_id).forUpdate().executeTakeFirst();
       if (!bill) return reply.status(404).send({ error: 'Bill not found' });
       if (bill.status === 'VOID') return reply.status(409).send({ error: 'That bill is already void.' });
+      if (Number(bill.credited_amount) > 0) return reply.status(409).send({ error: 'This bill has a posted supplier return credit and cannot be voided independently.' });
 
       try {
         await assertPeriodOpenForJurisdictions(trx, user.tenant_id, bill.bill_date, await billJurisdictions(trx, user.tenant_id, id));
@@ -1128,7 +1115,7 @@ export async function billRoutes(fastify: FastifyInstance) {
         if (recentDup) return reply.status(409).send({ error: 'A payment with the same amount was recorded moments ago. Use an Idempotency-Key header to safely retry.' });
       }
 
-      if (amount > Number(bill.total) - Number(bill.paid_amount) + 1e-8) return reply.status(409).send({ error: 'Payment exceeds the bill balance. Record supplier advances separately.' });
+      if (amount > Number(bill.total) - Number(bill.paid_amount) - Number(bill.credited_amount) + 1e-8) return reply.status(409).send({ error: 'Payment exceeds the bill balance. Record supplier advances separately.' });
       const payment = await trx.insertInto('bill_payments').values({
         request_key: requestKey ?? null,
         tenant_id: user.tenant_id,
@@ -1155,7 +1142,7 @@ export async function billRoutes(fastify: FastifyInstance) {
       const billTotal = Number(bill.total) || 0;
 
       let newStatus: string;
-      if (totalPaid >= billTotal && billTotal > 0) newStatus = 'PAID';
+      if (totalPaid + Number(bill.credited_amount) >= billTotal - 1e-8 && billTotal > 0) newStatus = 'PAID';
       else if (totalPaid > 0) newStatus = 'PARTIAL';
       else newStatus = 'POSTED';
 

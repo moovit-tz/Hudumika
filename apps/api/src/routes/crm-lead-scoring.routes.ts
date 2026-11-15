@@ -1,6 +1,6 @@
 import type { FastifyInstance } from 'fastify';
 import { z } from 'zod';
-import type { Transaction } from 'kysely';
+import { sql, type Transaction } from 'kysely';
 import { withTenant, type Database } from '../db/client.js';
 import { requireRole } from '../middleware/rbac.js';
 import { requireEntitlement } from '../middleware/entitlement.js';
@@ -19,20 +19,38 @@ export const SCORING_FIELDS: Record<string, { kind: 'text' | 'num' | 'date'; ops
   value:          { kind: 'num',  ops: ['gt', 'gte', 'lt', 'lte'] },
   activity_count: { kind: 'num',  ops: ['gt', 'gte'] },
   age_days:       { kind: 'num',  ops: ['gt', 'gte', 'lt', 'lte'] },
+  // Pulse: opens + clicks on Pulse messages to the lead's email in the last 30 days.
+  email_engagement: { kind: 'num', ops: ['gt', 'gte'] },
 };
+
+/** Pulse opens + clicks in the last 30 days per lead, matched on the lead's email. */
+export async function pulseEngagementByLead(trx: Transaction<Database>, tenantId: string, leads: { id: string; contact_email: string | null }[]): Promise<Map<string, number>> {
+  const byEmail = new Map<string, string[]>();
+  for (const l of leads) { const e = l.contact_email?.trim().toLowerCase(); if (e) byEmail.set(e, [...(byEmail.get(e) ?? []), l.id]); }
+  const out = new Map<string, number>();
+  if (!byEmail.size) return out;
+  const since = new Date(Date.now() - 30 * 86_400_000);
+  const rows = await trx.selectFrom('pulse_sends').select(['address',
+      sql<string>`count(*) FILTER (WHERE opened_at >= ${since})`.as('opens'),
+      sql<string>`count(*) FILTER (WHERE clicked_at >= ${since})`.as('clicks')])
+    .where('tenant_id', '=', tenantId).where('address', 'in', [...byEmail.keys()]).groupBy('address').execute();
+  for (const r of rows) for (const id of byEmail.get(r.address) ?? []) out.set(id, Number(r.opens) + Number(r.clicks));
+  return out;
+}
 
 type Rule = { field: string; op: string; value: string | null; points: number };
 
 /** One lead's score = sum of the points of every active rule it matches,
  *  clamped 0-100. `lead` is a mapped lead object; `activityCount` is
  *  looked up in bulk by the caller. */
-export function scoreLead(rules: Rule[], lead: any, activityCount: number): number {
+export function scoreLead(rules: Rule[], lead: any, activityCount: number, emailEngagement = 0): number {
   let total = 0;
   const ageDays = lead.created_at ? Math.floor((Date.now() - new Date(lead.created_at).getTime()) / 86_400_000) : 0;
   for (const r of rules) {
     const spec = SCORING_FIELDS[r.field];
     if (!spec || !spec.ops.includes(r.op)) continue;
     const actual = r.field === 'activity_count' ? activityCount
+      : r.field === 'email_engagement' ? emailEngagement
       : r.field === 'age_days' ? ageDays
       : (lead as any)[r.field];
     if (matches(spec.kind, r.op, actual, r.value)) total += r.points;

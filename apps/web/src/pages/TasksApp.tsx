@@ -1443,7 +1443,7 @@ function TaskRow({ todo, list, expanded, onToggleExpand, newSubtaskTitle, setNew
                 <span key={tag} className="task-tag-chip">
                   #{tag}
                   {!readOnly && (
-                    <button aria-label="Remove"
+                    <button aria-label={`Remove tag ${tag}`}
                       type="button"
                       onClick={() => removeTag(tag)}
                       className="hover:text-red-500 cursor-pointer p-0.5 ml-0.5"

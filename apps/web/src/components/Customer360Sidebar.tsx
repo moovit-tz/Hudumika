@@ -383,7 +383,7 @@ export function Customer360Sidebar({
                     fontSize: 11.5, fontWeight: 700, color: 'var(--ink2)'
                   }}>
                     {tag}
-                    <button aria-label="Remove" type="button" onClick={() => handleRemoveTag(tag)} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0, color: 'var(--ink3)', display: 'flex', alignItems: 'center' }} data-ui-native-button="">
+                    <button aria-label={`Remove tag ${tag}`} type="button" onClick={() => handleRemoveTag(tag)} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0, color: 'var(--ink3)', display: 'flex', alignItems: 'center' }} data-ui-native-button="">
                       <Icon name="x" size={11} />
                     </button>
                   </span>

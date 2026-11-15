@@ -8,7 +8,7 @@ import { requireEntitlement } from '../middleware/entitlement.js';
 import { dealSelect, mapDeal } from './deals.routes.js';
 import { logCrmActivity } from './crm-activity.routes.js';
 import { applyAssignmentRules } from './crm-assignment-rules.routes.js';
-import { loadScoringRules, scoreLead } from './crm-lead-scoring.routes.js';
+import { loadScoringRules, scoreLead, pulseEngagementByLead } from './crm-lead-scoring.routes.js';
 import { ensurePipelineStages, defaultStageKey } from './crm-pipeline-stages.routes.js';
 import { emitDomainEvent } from '../services/domain-events.service.js';
 import { assertCrmReferencesInTenant } from '../lib/crm-tenant-references.js';
@@ -133,7 +133,7 @@ export async function leadsRoutes(fastify: FastifyInstance) {
       if (!parsed.success) return reply.status(400).send({ error: 'Invalid lead pagination.' });
       const { page, page_size = 100 } = parsed.data;
       const tenantId = request.user.tenant_id;
-      const { rows, total, rules, activityCounts } = await withTenant(tenantId, async trx => {
+      const { rows, total, rules, activityCounts, engagement } = await withTenant(tenantId, async trx => {
         const totalRow = await trx.selectFrom('leads').select(trx.fn.countAll<string>().as('total'))
           .where('tenant_id', '=', tenantId).executeTakeFirst();
         const rows = await leadSelect(trx).where('leads.tenant_id', '=', tenantId)
@@ -148,11 +148,14 @@ export async function leadsRoutes(fastify: FastifyInstance) {
               .where('subject_id', 'in', rows.map((row: any) => row.id))
               .groupBy('subject_id').execute()
           : [];
-        return { rows, total: Number(totalRow?.total ?? 0), rules, activityCounts: new Map(counts.map(c => [c.subject_id, Number(c.n)])) };
+        const engagement = rules.some(r => r.field === 'email_engagement') && rows.length
+          ? await pulseEngagementByLead(trx, tenantId, rows.map((row: any) => ({ id: row.id, contact_email: row.contact_email ?? null })))
+          : new Map<string, number>();
+        return { rows, total: Number(totalRow?.total ?? 0), rules, activityCounts: new Map(counts.map(c => [c.subject_id, Number(c.n)])), engagement };
       });
       const items = rows.map((r: any) => {
         const mapped = mapLead(r);
-        return rules.length ? { ...mapped, score: scoreLead(rules, mapped, activityCounts.get(r.id) ?? 0) } : mapped;
+        return rules.length ? { ...mapped, score: scoreLead(rules, mapped, activityCounts.get(r.id) ?? 0, engagement.get(r.id) ?? 0) } : mapped;
       });
       return page === undefined && parsed.data.page_size === undefined
         ? items
@@ -246,8 +249,11 @@ export async function leadsRoutes(fastify: FastifyInstance) {
             .where('tenant_id', '=', tenantId).where('subject_type', '=', 'lead')
             .where('subject_id', '=', id).executeTakeFirst()
         : null;
+      const engagement = rules.some(rule => rule.field === 'email_engagement')
+        ? (await pulseEngagementByLead(trx, tenantId, [{ id: r.id, contact_email: (r as any).contact_email ?? null }])).get(r.id) ?? 0
+        : 0;
       const mapped = mapLead(r);
-      return rules.length ? { ...mapped, score: scoreLead(rules, mapped, Number(activityCount?.n ?? 0)) } : mapped;
+      return rules.length ? { ...mapped, score: scoreLead(rules, mapped, Number(activityCount?.n ?? 0), engagement) } : mapped;
     });
     if (!row) return reply.status(404).send({ error: 'Lead not found' });
     return row;

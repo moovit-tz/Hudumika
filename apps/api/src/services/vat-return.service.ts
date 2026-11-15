@@ -249,6 +249,23 @@ export async function computeVatReturn(
     else inputTaxBlocked += tax;
   }
 
+  const supplierCredits = await db.selectFrom('supplier_return_credit_evidence')
+    .select(['currency', 'vat_code', 'vat_kind', 'vat_jurisdiction', 'vat_recoverable', 'net_amount', 'tax_amount'])
+    .where('tenant_id', '=', tenantId).where('journal_entry_id', 'is not', null)
+    .where('vat_code', 'is not', null).where('credit_date', '>=', from)
+    .where('credit_date', '<=', to).execute();
+  for (const credit of supplierCredits) {
+    if (!credit.vat_kind || (juris && credit.vat_jurisdiction !== juris)) continue;
+    if (credit.currency.toUpperCase() !== base) {
+      fxSkipped.bills += 1;
+      continue;
+    }
+    const tax = Number(credit.tax_amount);
+    addTo(inputs, credit.vat_kind, credit.vat_code, -Number(credit.net_amount), -tax);
+    if (credit.vat_recoverable) inputTaxClaimable -= tax;
+    else inputTaxBlocked -= tax;
+  }
+
   // ── Partial exemption ───────────────────────────────────────────────────
   // Standard (turnover) method: recoverable proportion = taxable / total
   // supplies. Direct attribution would be more accurate, but nothing in this

@@ -3788,6 +3788,7 @@ export interface SupplierBillsTable {
   tax_amount: Generated<number>;
   total: Generated<number>;
   paid_amount: Generated<number>;
+  credited_amount: Generated<number>;
   recurring_id: string | null;
   notes: string | null;
   created_by: string | null;
@@ -6929,6 +6930,10 @@ export interface Database {
   // Purchase Orders
   purchase_orders: PurchaseOrdersTable;
   purchase_order_lines: PurchaseOrderLinesTable;
+  purchase_order_receipts: PurchaseOrderReceiptsTable;
+  purchase_order_receipt_lines: PurchaseOrderReceiptLinesTable;
+  purchase_order_returns: PurchaseOrderReturnsTable;
+  supplier_return_credit_evidence: SupplierReturnCreditEvidenceTable;
   // Accounting Integrations
   accounting_integrations: AccountingIntegrationsTable;
   accounting_marketplace_requests: AccountingMarketplaceRequestsTable;
@@ -7970,6 +7975,26 @@ export interface Database {
   zentra_settings: ZentraSettingsTable;
   zentra_platform_audit: ZentraPlatformAuditTable;
   zentra_case_events: ZentraCaseEventsTable;
+  pulse_segments: PulseSegmentsTable;
+  pulse_consents: PulseConsentsTable;
+  pulse_campaigns: PulseCampaignsTable;
+  pulse_sends: PulseSendsTable;
+  pulse_links: PulseLinksTable;
+  pulse_events: PulseEventsTable;
+  pulse_journeys: PulseJourneysTable;
+  pulse_journey_enrollments: PulseJourneyEnrollmentsTable;
+  pulse_journey_step_runs: PulseJourneyStepRunsTable;
+  pulse_form_settings: PulseFormSettingsTable;
+  pulse_touchpoints: PulseTouchpointsTable;
+  pulse_conversions: PulseConversionsTable;
+  pulse_social_accounts: PulseSocialAccountsTable;
+  pulse_social_posts: PulseSocialPostsTable;
+  pulse_social_post_targets: PulseSocialPostTargetsTable;
+  pulse_ad_accounts: PulseAdAccountsTable;
+  pulse_ad_campaigns: PulseAdCampaignsTable;
+  pulse_ad_metrics_daily: PulseAdMetricsDailyTable;
+  pulse_ad_audiences: PulseAdAudiencesTable;
+  pulse_target_accounts: PulseTargetAccountsTable;
 }
 
 // ─── Shared Org Model Tables (Migration 641) ─────────────────────────────────
@@ -10379,6 +10404,8 @@ export interface EmailOutboxTable {
   message_id:              string | null;
   communication_delivery_id: string | null;
   attachments: Generated<any>;
+  /** Migration 772 — extra headers (List-Unsubscribe) kept for retries. */
+  headers: any | null;
   claim_token: string | null;
 }
 
@@ -11190,6 +11217,61 @@ export interface PurchaseOrderLinesTable {
   sort_order: Generated<number>;
   item_id: string | null;
   item_uom: string | null;
+}
+
+export interface PurchaseOrderReceiptsTable {
+  tenant_id: string;
+  po_id: string;
+  request_key: string;
+  request_hash: string;
+  resulting_status: string;
+  movements_posted: number;
+  created_by: string | null;
+  created_at: Generated<Date>;
+}
+
+export interface PurchaseOrderReceiptLinesTable {
+  tenant_id: string;
+  po_id: string;
+  request_key: string;
+  po_line_id: string;
+  description: string;
+  received_qty: number;
+  movement_id: string | null;
+}
+
+export interface PurchaseOrderReturnsTable {
+  id: string;
+  tenant_id: string;
+  po_id: string;
+  receipt_movement_id: string;
+  quantity: number;
+  reason: string;
+  created_by: string | null;
+  created_at: Generated<Date>;
+  cancelled_at: Date | null;
+  posted_at: Date | null;
+  posted_by: string | null;
+  stock_movement_id: string | null;
+}
+
+export interface SupplierReturnCreditEvidenceTable {
+  return_id: string;
+  tenant_id: string;
+  bill_id: string;
+  bill_line_id: string | null;
+  supplier_reference: string;
+  credit_date: string;
+  net_amount: number;
+  tax_amount: number;
+  currency: string;
+  recorded_by: string | null;
+  recorded_at: Generated<Date>;
+  journal_entry_id: string | null;
+  vat_code: string | null;
+  vat_kind: TaxCodeKind | null;
+  vat_jurisdiction: string | null;
+  vat_recoverable: boolean | null;
 }
 
 export interface HrTasksTable {
@@ -14921,4 +15003,261 @@ export interface ZentraCaseEventsTable {
   actor_id: string | null; actor_name: string; body: string | null;
   data: Generated<Record<string, unknown>>; prev_hash: string | null; hash: string;
   created_at: Generated<Date>;
+}
+
+// ── Pulse (migrations 771–772) ──────────────────────────────────────────────
+export type PulseSource = 'contacts' | 'leads' | 'customers';
+export type PulseChannel = 'email' | 'sms' | 'whatsapp';
+export interface PulseSegmentsTable {
+  id: Generated<string>;
+  tenant_id: string;
+  name: string;
+  description: string | null;
+  source: PulseSource;
+  match_type: Generated<'all' | 'any'>;
+  rules: Generated<any>;
+  created_by: string | null;
+  created_at: Generated<Date>;
+  updated_at: Generated<Date>;
+}
+export interface PulseConsentsTable {
+  id: Generated<string>;
+  tenant_id: string;
+  channel: PulseChannel;
+  address: string;
+  status: 'subscribed' | 'unsubscribed' | 'bounced' | 'complained';
+  source: string;
+  evidence: Generated<any>;
+  changed_by: string | null;
+  created_at: Generated<Date>;
+  updated_at: Generated<Date>;
+}
+export interface PulseCampaignsTable {
+  id: Generated<string>;
+  tenant_id: string;
+  name: string;
+  channel: PulseChannel;
+  status: Generated<'draft' | 'scheduled' | 'sending' | 'sent' | 'cancelled' | 'failed'>;
+  segment_id: string | null;
+  subject: string | null;
+  preheader: string | null;
+  from_name: string | null;
+  reply_to: string | null;
+  body_html: string | null;
+  body_text: string | null;
+  whatsapp_template: any | null;
+  ab_test: any | null;
+  utm_campaign: string | null;
+  scheduled_at: Date | null;
+  started_at: Date | null;
+  sent_at: Date | null;
+  total_recipients: Generated<number>;
+  last_error: string | null;
+  /** Migration 773 — set on the hidden campaign behind a journey message step. */
+  journey_id: string | null;
+  journey_step_id: string | null;
+  created_by: string | null;
+  updated_by: string | null;
+  created_at: Generated<Date>;
+  updated_at: Generated<Date>;
+}
+export interface PulseSendsTable {
+  id: Generated<string>;
+  tenant_id: string;
+  campaign_id: string;
+  variant: string | null;
+  source: string;
+  source_id: string | null;
+  recipient_name: string | null;
+  address: string;
+  token: string;
+  short_code: string;
+  status: Generated<'queued' | 'held' | 'sent' | 'failed' | 'skipped'>;
+  skip_reason: string | null;
+  outbox_id: string | null;
+  error: string | null;
+  sent_at: Date | null;
+  opened_at: Date | null;
+  open_count: Generated<number>;
+  clicked_at: Date | null;
+  click_count: Generated<number>;
+  unsubscribed_at: Date | null;
+  bounced_at: Date | null;
+  /** Migration 773 — the journey enrollment this send belongs to. */
+  enrollment_id: string | null;
+  created_at: Generated<Date>;
+}
+export interface PulseLinksTable {
+  id: Generated<string>;
+  tenant_id: string;
+  campaign_id: string;
+  position: number;
+  url: string;
+  click_count: Generated<number>;
+}
+export interface PulseEventsTable {
+  id: Generated<string>;
+  tenant_id: string;
+  campaign_id: string;
+  send_id: string;
+  type: 'open' | 'click' | 'unsubscribe' | 'bounce' | 'complaint';
+  link_id: string | null;
+  ip_hash: string | null;
+  user_agent: string | null;
+  created_at: Generated<Date>;
+}
+export interface PulseJourneysTable {
+  id: Generated<string>;
+  tenant_id: string;
+  name: string;
+  description: string | null;
+  status: Generated<'draft' | 'active' | 'paused' | 'archived'>;
+  source: PulseSource;
+  trigger: any;
+  steps: Generated<any>;
+  goal: any | null;
+  reentry: Generated<'never' | 'after_exit'>;
+  quiet_hours: any | null;
+  version: Generated<number>;
+  published_at: Date | null;
+  created_by: string | null;
+  updated_by: string | null;
+  created_at: Generated<Date>;
+  updated_at: Generated<Date>;
+}
+export interface PulseJourneyEnrollmentsTable {
+  id: Generated<string>;
+  tenant_id: string;
+  journey_id: string;
+  source: string;
+  source_id: string;
+  name: string | null;
+  email: string | null;
+  phone: string | null;
+  status: Generated<'active' | 'completed' | 'exited' | 'failed' | 'excluded'>;
+  step_index: Generated<number>;
+  next_run_at: Generated<Date>;
+  exit_reason: string | null;
+  entered_at: Generated<Date>;
+  finished_at: Date | null;
+}
+export interface PulseJourneyStepRunsTable {
+  id: Generated<string>;
+  tenant_id: string;
+  journey_id: string;
+  enrollment_id: string;
+  step_id: string;
+  step_type: string;
+  status: 'done' | 'skipped' | 'failed';
+  detail: Generated<any>;
+  ran_at: Generated<Date>;
+}
+export interface PulseFormSettingsTable {
+  id: Generated<string>;
+  tenant_id: string;
+  form_id: string;
+  enabled: Generated<boolean>;
+  create_lead: Generated<boolean>;
+  email_field: string | null;
+  name_field: string | null;
+  phone_field: string | null;
+  company_field: string | null;
+  consent_field: string | null;
+  consent_value: string | null;
+  updated_by: string | null;
+  updated_at: Generated<Date>;
+}
+export interface PulseTouchpointsTable {
+  id: Generated<string>;
+  tenant_id: string;
+  person_key: string;
+  channel: 'email' | 'sms' | 'whatsapp' | 'form';
+  campaign_id: string | null;
+  form_id: string | null;
+  utm_source: string | null;
+  utm_medium: string | null;
+  utm_campaign: string | null;
+  occurred_at: Generated<Date>;
+}
+export interface PulseConversionsTable {
+  id: Generated<string>;
+  tenant_id: string;
+  kind: 'lead' | 'deal_won' | 'payment';
+  entity_id: string;
+  person_key: string | null;
+  value: Generated<string>;
+  first_touch_id: string | null;
+  last_touch_id: string | null;
+  occurred_at: Generated<Date>;
+  event_id: Generated<string>;
+}
+export type PulseNetwork = 'facebook' | 'instagram' | 'linkedin' | 'x';
+export interface PulseSocialAccountsTable {
+  id: Generated<string>;
+  tenant_id: string;
+  network: PulseNetwork;
+  external_id: string;
+  name: string;
+  handle: string | null;
+  avatar_url: string | null;
+  access_token: string;
+  refresh_token: string | null;
+  token_expires_at: Date | null;
+  status: Generated<'connected' | 'expired' | 'disconnected'>;
+  last_error: string | null;
+  connected_by: string | null;
+  created_at: Generated<Date>;
+  updated_at: Generated<Date>;
+}
+export interface PulseSocialPostsTable {
+  id: Generated<string>;
+  tenant_id: string;
+  status: Generated<'draft' | 'scheduled' | 'publishing' | 'published' | 'partly_published' | 'failed' | 'cancelled'>;
+  body: Generated<string>;
+  link_url: string | null;
+  image_url: string | null;
+  scheduled_at: Date | null;
+  published_at: Date | null;
+  created_by: string | null;
+  updated_by: string | null;
+  created_at: Generated<Date>;
+  updated_at: Generated<Date>;
+}
+export interface PulseSocialPostTargetsTable {
+  id: Generated<string>;
+  tenant_id: string;
+  post_id: string;
+  account_id: string;
+  body_override: string | null;
+  status: Generated<'pending' | 'published' | 'failed'>;
+  external_post_id: string | null;
+  external_url: string | null;
+  error: string | null;
+  published_at: Date | null;
+  metrics: any | null;
+  metrics_at: Date | null;
+}
+export interface PulseAdAccountsTable {
+  id: Generated<string>; tenant_id: string; network: 'google' | 'meta'; external_id: string; name: string; currency: string | null;
+  access_token: string; refresh_token: string | null; token_expires_at: Date | null;
+  status: Generated<'connected' | 'expired' | 'disconnected'>; last_error: string | null; synced_at: Date | null;
+  connected_by: string | null; created_at: Generated<Date>; updated_at: Generated<Date>;
+}
+export interface PulseAdCampaignsTable {
+  id: Generated<string>; tenant_id: string; account_id: string; external_id: string; name: string; status: string;
+  daily_budget: string | null; budget_ref: string | null; objective: string | null; synced_at: Generated<Date>;
+}
+export interface PulseAdMetricsDailyTable {
+  id: Generated<string>; tenant_id: string; campaign_id: string; day: string;
+  impressions: Generated<string>; clicks: Generated<string>; spend: Generated<string>; conversions: Generated<string>;
+}
+export interface PulseAdAudiencesTable {
+  id: Generated<string>; tenant_id: string; account_id: string; segment_id: string | null; external_id: string | null; name: string;
+  uploaded: Generated<number>; status: Generated<'pending' | 'synced' | 'failed'>; last_error: string | null; synced_at: Date | null;
+  created_by: string | null; created_at: Generated<Date>;
+}
+export interface PulseTargetAccountsTable {
+  id: Generated<string>; tenant_id: string; customer_id: string; tier: Generated<number>; owner_id: string | null; notes: string | null;
+  score: Generated<number>; score_detail: Generated<any>; scored_at: Date | null; hot_since: Date | null;
+  created_by: string | null; created_at: Generated<Date>;
 }

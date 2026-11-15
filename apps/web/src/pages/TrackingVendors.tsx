@@ -662,7 +662,7 @@ export const TrackingVendors: React.FC = () => {
                         >
                           <Link to={`/tracking/vendors/${v.id}`}>View</Link>
                         </Button>
-                        <Button aria-label="Edit"
+                        <Button aria-label={`Edit ${v.name}`}
                           variant="ghost"
                           size="sm"
                           onClick={() => {
@@ -672,7 +672,7 @@ export const TrackingVendors: React.FC = () => {
                         >
                           <Icon name="edit" size={13} />
                         </Button>
-                        <Button aria-label="Delete"
+                        <Button aria-label={`Delete ${v.name}`}
                           variant="ghost"
                           size="sm"
                           onClick={() => remove(v)}

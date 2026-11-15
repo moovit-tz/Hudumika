@@ -101,6 +101,9 @@ const APP_META: Record<AppId, { name: string; color: string }> = {
   tasks:        { name: 'Tasks',        color: '#0f766e' },
   projects:     { name: 'Projects',     color: '#0f766e' },
   workspace:    { name: 'Admin',        color: '#64748b' },
+  onesite:      { name: 'CMS',          color: '#06b6d4' },
+  pulse:        { name: 'Pulse',        color: '#e11d48' },
+  petti:        { name: 'Petti',        color: '#16a34a' },
 };
 
 /** Top-level field names of an action's input schema, for the UI's form builder. */

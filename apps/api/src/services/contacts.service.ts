@@ -611,7 +611,7 @@ export class ContactsService {
   // one that's authoritative — a rule that isn't in this map is rejected on
   // save and ignored on evaluation, whatever the client sent.
 
-  private static SMART_FIELDS: Record<string, { kind: 'text' | 'uuid' | 'bool' | 'date' | 'label'; col?: string; ops: string[] }> = {
+  static SMART_FIELDS: Record<string, { kind: 'text' | 'uuid' | 'bool' | 'date' | 'label'; col?: string; ops: string[] }> = {
     company:        { kind: 'text',  col: 'company',            ops: ['eq', 'neq', 'contains', 'not_contains', 'is_set', 'is_empty'] },
     job_title:      { kind: 'text',  col: 'job_title',          ops: ['eq', 'neq', 'contains', 'not_contains', 'is_set', 'is_empty'] },
     industry:       { kind: 'text',  col: 'industry',           ops: ['eq', 'neq', 'contains', 'not_contains', 'is_set', 'is_empty'] },
@@ -633,7 +633,7 @@ export class ContactsService {
   // Compiles one rule to a boolean SQL fragment, or throws (strict, on
   // save) / returns null (lenient, on evaluation of an already-stored group
   // whose catalog may have since changed).
-  private static compileSmartRule(rule: any, strict: boolean): any {
+  static compileSmartRule(rule: any, strict: boolean): any {
     const bail = (msg: string) => { if (strict) throw new Error(msg); return null; };
 
     if (!rule || typeof rule !== 'object') return bail('Malformed rule');
@@ -701,7 +701,8 @@ export class ContactsService {
   // Combines every rule into one predicate. `strict` throws on the first
   // bad rule (save path); non-strict drops bad rules and, if nothing
   // survives, matches nobody rather than everybody.
-  private static buildSmartPredicate(rules: any[], matchType: 'all' | 'any', strict: boolean): any {
+  // Public so Pulse segments over contacts use exactly these rules (pulse-segments.service.ts).
+  static buildSmartPredicate(rules: any[], matchType: 'all' | 'any', strict: boolean): any {
     const parts = (Array.isArray(rules) ? rules : [])
       .map((r) => this.compileSmartRule(r, strict))
       .filter((p): p is any => p != null);

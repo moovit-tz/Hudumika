@@ -213,12 +213,12 @@ function AssetPane({ busy, onCreate }: { busy: string; onCreate: (d: any) => voi
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(170px,1fr))', gap: 10 }}>
         <div>
           <div style={{ ...label, marginBottom: 4 }}>What it is</div>
-          <Input value={name} onChange={e => setName(e.target.value)} placeholder="e.g. Dell Latitude 5440" />
+          <Input aria-label="Asset name" value={name} onChange={e => setName(e.target.value)} placeholder="e.g. Dell Latitude 5440" />
         </div>
         <div>
           <div style={{ ...label, marginBottom: 4 }}>Type</div>
           <Select value={type} onValueChange={setType}>
-            <SelectTrigger><SelectValue /></SelectTrigger>
+            <SelectTrigger aria-label="Asset type"><SelectValue /></SelectTrigger>
             <SelectContent>
               {['LAPTOP', 'PHONE', 'VEHICLE', 'TOOL', 'OTHER'].map(t => (
                 <SelectItem key={t} value={t}>{t.toLowerCase()}</SelectItem>
@@ -230,11 +230,11 @@ function AssetPane({ busy, onCreate }: { busy: string; onCreate: (d: any) => voi
           {/* Required: an asset with no serial cannot be told apart from
               another of the same model when one comes back damaged. */}
           <div style={{ ...label, marginBottom: 4 }}>Serial number</div>
-          <Input value={serial} onChange={e => setSerial(e.target.value)} placeholder="Its unique identifier" />
+          <Input aria-label="Serial number" value={serial} onChange={e => setSerial(e.target.value)} placeholder="Its unique identifier" />
         </div>
         <div style={{ gridColumn: '1 / -1' }}>
           <div style={{ ...label, marginBottom: 4 }}>Condition <span style={{ fontWeight: 400, textTransform: 'none' }}>(optional)</span></div>
-          <Textarea rows={2} value={notes} onChange={e => setNotes(e.target.value)} placeholder="Any marks or faults it already has" />
+          <Textarea aria-label="Condition (optional)" rows={2} value={notes} onChange={e => setNotes(e.target.value)} placeholder="Any marks or faults it already has" />
         </div>
       </div>
       <Button type="button" style={{ marginTop: 12 }} disabled={!name.trim() || !serial.trim() || !!busy}
@@ -261,14 +261,14 @@ function AssignPane({ asset, people, busy, onSubmit }: {
             <div style={{ ...label, marginBottom: 4 }}>Hand it to</div>
             <Combobox
               options={people.map(p => ({ value: p.employment_id, label: `${p.first_name} ${p.last_name}` }))}
-              value={who} onChange={setWho}
+              value={who} onChange={setWho} aria-label="Assign to staff member"
               placeholder={people.length ? 'Choose a person…' : 'Nobody has a contract yet'}
               emptyText="No person found." />
           </div>
         )}
         <div>
           <div style={{ ...label, marginBottom: 4 }}>{returning ? 'Returned on' : 'Handed over on'}</div>
-          <DatePicker date={when} onChange={setWhen} />
+          <DatePicker aria-label={returning ? 'Returned on' : 'Handed over on'} date={when} onChange={setWhen} />
         </div>
       </div>
       {returning && (

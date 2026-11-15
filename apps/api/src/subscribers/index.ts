@@ -22,6 +22,8 @@ import './studio.subscribers.js';
 // Turns the events other apps already emit into bell notifications for the
 // person each one concerns.
 import './notifications.subscribers.js';
+// Starts Pulse journeys on CRM, finance and website events.
+import './pulse.subscribers.js';
 
 export function bootstrapSubscribers(): void {
   // Imports above already ran registerSubscriber() as a module side effect;

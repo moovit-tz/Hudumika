@@ -33,7 +33,7 @@ const OP_LABEL: Record<string, string> = {
 
 const FIELD_LABEL: Record<string, string> = {
   stage: 'Lead stage', source: 'Lead source', priority: 'Priority', industry: 'Industry',
-  value: 'Potential value', activity_count: 'Activity count', age_days: 'Lead age (days)',
+  value: 'Potential value', activity_count: 'Activity count', age_days: 'Lead age (days)', email_engagement: 'Pulse opens + clicks (30 days)',
 };
 
 const EMPTY_DRAFT = { label: '', field: 'stage', op: 'eq', value: '', points: 10 };

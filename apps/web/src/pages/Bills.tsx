@@ -51,7 +51,7 @@ interface BillLine {
 interface Bill {
   id: string; bill_number: string; supplier_id: string; supplier_name: string;
   bill_date: string; due_date: string; status: BillStatus; currency: string;
-  subtotal: number; tax_amount: number; total: number; paid_amount: number;
+  subtotal: number; tax_amount: number; total: number; paid_amount: number; credited_amount?: number;
   lines: BillLine[]; po_id?: string; po_number?: string; shipment_ref?: string; notes?: string;
   recurring_id?: string; created_at: string;
   business_line_id?: string;
@@ -150,7 +150,7 @@ function mapApiBill(d: any): Bill {
     status: (d.status || 'DRAFT') as BillStatus,
     currency: d.currency || 'USD',
     subtotal: Number(d.subtotal) || 0, tax_amount: Number(d.tax_amount) || 0,
-    total: Number(d.total) || 0, paid_amount: Number(d.paid_amount) || 0,
+    total: Number(d.total) || 0, paid_amount: Number(d.paid_amount) || 0, credited_amount: Number(d.credited_amount) || 0,
     po_id: d.po_id || undefined, po_number: d.po_number || undefined, shipment_ref: d.shipment_ref || undefined,
     notes: d.notes || undefined, recurring_id: d.recurring_id || undefined,
     business_line_id: d.business_line_id || undefined,
@@ -241,7 +241,7 @@ function PayModal({ bill, onPay, onClose }: {
 }) {
   const fmt = formatAmount;
   const [saving, setSaving] = useState(false);
-  const balance = bill.total - bill.paid_amount;
+  const balance = Math.max(0, bill.total - bill.paid_amount - (bill.credited_amount ?? 0));
   const [amount, setAmount]   = useState(balance);
   const [date, setDate]       = useState(new Date().toISOString().split('T')[0]);
   const [method, setMethod]   = useState('Bank Transfer');
@@ -707,7 +707,7 @@ function DetailView({ bill, payments, supplierMap, onBack, onEdit, onPay, onPost
   const financeConfiguration = useFinanceConfiguration();
   const businessLine = financeConfiguration.data?.businessLines.find(line => line.id === bill.business_line_id);
   const myPmts = payments.filter(p => p.bill_id === bill.id);
-  const balance = bill.total - bill.paid_amount;
+  const balance = Math.max(0, bill.total - bill.paid_amount - (bill.credited_amount ?? 0));
   const over = isOverdue(bill);
 
   const [efdInput, setEfdInput] = useState(bill.efd_receipt_number || '');
@@ -791,6 +791,7 @@ function DetailView({ bill, payments, supplierMap, onBack, onEdit, onPay, onPost
               <div style={{ fontSize:13, color:'var(--ink2)' }}>Tax: <strong style={{ color:'var(--ink)', minWidth:100, display:'inline-block', textAlign:'right' }}>{fmt(bill.tax_amount, bill.currency)}</strong></div>
               <div style={{ fontSize:16, fontWeight:800, color:'var(--ink)' }}>Total: <span style={{ minWidth:100, display:'inline-block', textAlign:'right', color:'var(--teal)' }}>{fmt(bill.total, bill.currency)}</span></div>
               {bill.paid_amount > 0 && <div style={{ fontSize:13, color:'var(--green)' }}>Paid: <strong style={{ minWidth:100, display:'inline-block', textAlign:'right' }}>{fmt(bill.paid_amount, bill.currency)}</strong></div>}
+              {(bill.credited_amount ?? 0) > 0 && <div>Supplier credits <strong>{fmt(bill.credited_amount ?? 0, bill.currency)}</strong></div>}
               {balance > 0 && <div style={{ fontSize:14, fontWeight:800, color: over ? 'var(--red)' : 'var(--gold)' }}>Balance Due: <span style={{ minWidth:100, display:'inline-block', textAlign:'right' }}>{fmt(balance, bill.currency)}</span></div>}
             </div>
           </div>
@@ -1267,8 +1268,8 @@ export const Bills: React.FC = () => {
   const overdueBills = effectiveBills.filter(b => b.status === 'OVERDUE');
   const currentMonthStr = new Date().toISOString().slice(0, 7);
   const paidThisMonth= effectiveBills.filter(b => b.status === 'PAID' && b.bill_date.startsWith(currentMonthStr));
-  const outstanding  = unpaidBills.reduce((a,b) => a + (b.total - b.paid_amount), 0);
-  const overdueAmt   = overdueBills.reduce((a,b) => a + (b.total - b.paid_amount), 0);
+  const outstanding  = unpaidBills.reduce((a,b) => a + Math.max(0, b.total - b.paid_amount - (b.credited_amount ?? 0)), 0);
+  const overdueAmt   = overdueBills.reduce((a,b) => a + Math.max(0, b.total - b.paid_amount - (b.credited_amount ?? 0)), 0);
 
   const thS: React.CSSProperties = { padding:'10px 14px', textAlign:'left', fontWeight:700, color:'var(--ink2)', fontSize:11, textTransform:'uppercase', letterSpacing:'0.03em', borderBottom:'1px solid var(--border)', whiteSpace:'nowrap', cursor:'pointer', userSelect:'none' };
 
@@ -1422,7 +1423,7 @@ export const Bills: React.FC = () => {
                       </thead>
                       <tbody>
                         {displayed.map(b => {
-                          const bal = b.total - b.paid_amount;
+                          const bal = Math.max(0, b.total - b.paid_amount - (b.credited_amount ?? 0));
                           const over = b.status === 'OVERDUE';
                           return (
                             <tr key={b.id}

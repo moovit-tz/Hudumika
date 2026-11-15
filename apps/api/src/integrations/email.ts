@@ -238,7 +238,18 @@ export class EmailIntegration {
      *  default for this send only. Unset (the common case) uses the
      *  default, exactly as before this feature existed. */
     fromIdentityId?: string | null;
+    /** Extra headers (Pulse: List-Unsubscribe, List-Unsubscribe-Post). A
+     *  'Reply-To' entry becomes nodemailer's replyTo rather than a raw header,
+     *  and 'From-Name' renames the tenant sender for this message. */
+    headers?: Record<string, string>;
   }): Promise<{ success: boolean; messageId?: string; error?: string; simulated?: boolean }> {
+    // 'From-Name' is not sent as a header: it renames the tenant sender for
+    // this one message (a Pulse campaign's "from" name), keeping the address.
+    const { 'Reply-To': replyTo, 'From-Name': fromNameOverride, ...extraHeaders } = input.headers ?? {};
+    const envelopeExtras = {
+      ...(replyTo ? { replyTo } : {}),
+      ...(Object.keys(extraHeaders).length ? { headers: extraHeaders } : {}),
+    };
     try {
       if (input.tenantId && input.userId) {
         const userIdentity = await buildUserTransporter(input.tenantId, input.userId, input.fromIdentityId).catch(() => null);
@@ -253,6 +264,7 @@ export class EmailIntegration {
             attachments: input.attachments,
             inReplyTo: input.inReplyToMessageId ?? undefined,
             references: input.referencesMessageIds?.length ? input.referencesMessageIds : undefined,
+            ...envelopeExtras,
           });
           return { success: true, messageId: info.messageId };
         }
@@ -281,7 +293,7 @@ export class EmailIntegration {
       const protocol = emailConfig?.protocol || 'mail'; // 'smtp', 'sendmail', or 'mail' (system default)
       let transporter: EmailTransporter;
 
-      let fromName = emailConfig?.fromName || 'Hudumika';
+      let fromName = (fromNameOverride || '').replace(/["\r\n<>]/g, '').trim() || emailConfig?.fromName || 'Hudumika';
       let fromAddress = emailConfig?.fromEmail || env.SMTP_USER;
 
       // 2. Instantiate the correct transporter based on the protocol
@@ -380,6 +392,7 @@ export class EmailIntegration {
         attachments: input.attachments,
         inReplyTo: input.inReplyToMessageId ?? undefined,
         references: input.referencesMessageIds?.length ? input.referencesMessageIds : undefined,
+        ...envelopeExtras,
       });
 
       console.log(`✉️ Email sent successfully to ${input.to}. Message ID: ${info.messageId}`);

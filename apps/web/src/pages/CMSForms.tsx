@@ -252,7 +252,7 @@ export function CMSFormDetail() {
                   <label style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, flexShrink: 0, paddingTop: 8 }}>
                     <Checkbox checked={Boolean(f.required)} onCheckedChange={checked => updateField(i, { required: Boolean(checked) })} /> Required
                   </label>
-                  <button aria-label="Remove" type="button" onClick={() => removeField(i)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink3)', flexShrink: 0, paddingTop: "var(--action-py)" }} data-ui-native-button="">
+                  <button aria-label={`Remove ${f.label || f.key || `field ${i + 1}`}`} type="button" onClick={() => removeField(i)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink3)', flexShrink: 0, paddingTop: "var(--action-py)" }} data-ui-native-button="">
                     <Icon name="x" size={14} />
                   </button>
                   {f.type === 'select' && (

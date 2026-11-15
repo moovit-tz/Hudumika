@@ -423,7 +423,7 @@ export function SmsCampaigns() {
                             </Button>
                           </Link>
                           {c.status !== 'sending' && (
-                            <Button aria-label="Delete" size="sm" variant="ghost" onClick={() => handleDelete(c.id, c.name)}>
+                            <Button aria-label={`Delete campaign ${c.name}`} size="sm" variant="ghost" onClick={() => handleDelete(c.id, c.name)}>
                               <Icon name="trash" size={13} color="var(--red)" />
                             </Button>
                           )}

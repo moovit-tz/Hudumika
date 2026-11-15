@@ -127,12 +127,28 @@ function renderFormField(f: { key: string; label: string; type: string; required
  *  and posts a real submission. The admin's own render is a disabled
  *  preview of the same fields instead, so "what will visitors see" is
  *  still honestly shown without risking a fake row in someone's inbox. */
+/** The UTM tags of the link this visitor arrived on, remembered for the
+ *  browser tab (sessionStorage only — no cookie, nothing kept after the tab
+ *  closes), so a form sent from another page can still credit the campaign. */
+const UTM_KEY = 'pulse_utm';
+export function rememberUtm(): Record<string, string> {
+  const fromUrl: Record<string, string> = {};
+  try {
+    const q = new URLSearchParams(window.location.search);
+    for (const k of ['source', 'medium', 'campaign']) { const v = q.get(`utm_${k}`); if (v) fromUrl[`_utm_${k}`] = v.slice(0, 80); }
+    if (Object.keys(fromUrl).length) { sessionStorage.setItem(UTM_KEY, JSON.stringify(fromUrl)); return fromUrl; }
+    return JSON.parse(sessionStorage.getItem(UTM_KEY) || '{}');
+  } catch { return fromUrl; }
+}
+
 function FormBlockRenderer({ formKey, tenantSlug, interactive, buttonClassName }: { formKey: string; tenantSlug?: string; interactive?: boolean; buttonClassName: string }) {
   const [form, setForm] = useState<CmsPublicForm | null>(null);
   const [loaded, setLoaded] = useState(false);
   const [values, setValues] = useState<Record<string, string>>({});
   const [status, setStatus] = useState<'idle' | 'submitting' | 'done' | 'error'>('idle');
   const [errorMsg, setErrorMsg] = useState('');
+
+  useEffect(() => { if (interactive) rememberUtm(); }, [interactive]);
 
   useEffect(() => {
     setLoaded(false);
@@ -169,7 +185,7 @@ function FormBlockRenderer({ formKey, tenantSlug, interactive, buttonClassName }
     if (status === 'submitting') return;
     setStatus('submitting'); setErrorMsg('');
     try {
-      await apiFetch(`/v1/cms/public/${tenantSlug}/forms/${formKey}/submit`, { method: 'POST', body: JSON.stringify(values) });
+      await apiFetch(`/v1/cms/public/${tenantSlug}/forms/${formKey}/submit`, { method: 'POST', body: JSON.stringify({ ...rememberUtm(), ...values }) });
       setStatus('done');
     } catch (err: any) {
       setStatus('error'); setErrorMsg(err.message || 'Something went wrong — please try again.');

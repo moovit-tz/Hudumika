@@ -17,7 +17,8 @@ import { z } from 'zod';
 export type AppId =
   | 'clearos' | 'finops' | 'nexushr' | 'bliss' | 'complyos' | 'crm'
   | 'tracking' | 'cargotracker' | 'seal' | 'inventory' | 'studio' | 'ondi'
-  | 'cloud' | 'email' | 'onsite' | 'tasks' | 'workspace' | 'projects';
+  | 'cloud' | 'email' | 'onsite' | 'tasks' | 'workspace' | 'projects'
+  | 'onesite' | 'pulse' | 'petti';
 
 export type TriggerKind = 'DOMAIN_EVENT' | 'SCHEDULE' | 'MANUAL';
 
@@ -401,6 +402,89 @@ export const TRIGGERS: TriggerDef[] = [
     samplePayload: { from: 'PROPOSAL', to: 'NEGOTIATION', name: 'Msomi annual clearing contract', value: 5000000 },
   },
   {
+    id: 'expense.approved', kind: 'DOMAIN_EVENT', app: 'finops',
+    label: 'Expense approved', description: 'An expense was approved — e.g. tell the person who filed it, or queue it for payment.',
+    entityType: 'expense', payloadSchema: z.object({ amount: z.number(), status: z.string() }).passthrough(),
+    samplePayload: { amount: 45000, status: 'approved' },
+  },
+  {
+    id: 'expense_report.reimbursed', kind: 'DOMAIN_EVENT', app: 'finops',
+    label: 'Expense report reimbursed', description: 'An expense report was paid back to the employee.',
+    entityType: 'expense_report', payloadSchema: z.object({ amount: z.number(), status: z.string() }).passthrough(),
+    samplePayload: { amount: 120000, status: 'reimbursed' },
+  },
+  {
+    id: 'payroll.run_approved', kind: 'DOMAIN_EVENT', app: 'nexushr',
+    label: 'Payroll run approved', description: 'A payroll run was approved for payment.',
+    entityType: 'payroll_run', payloadSchema: z.object({ amount: z.number(), total: z.number(), count: z.number() }).passthrough(),
+    samplePayload: { amount: 25000000, total: 19800000, count: 42 },
+  },
+  {
+    id: 'petti.withdrawal_approved', kind: 'DOMAIN_EVENT', app: 'petti',
+    label: 'Petty cash request approved', description: 'A petty cash withdrawal was approved and is waiting to be released.',
+    entityType: 'petti_withdrawal', payloadSchema: z.object({ amount: z.number(), status: z.string() }).passthrough(),
+    samplePayload: { amount: 30000, status: 'approved' },
+  },
+  {
+    id: 'petti.withdrawal_disbursed', kind: 'DOMAIN_EVENT', app: 'petti',
+    label: 'Petty cash released', description: 'Petty cash was paid out from a wallet.',
+    entityType: 'petti_withdrawal', payloadSchema: z.object({ amount: z.number(), status: z.string() }).passthrough(),
+    samplePayload: { amount: 30000, status: 'disbursed' },
+  },
+  {
+    id: 'user.role_changed', kind: 'DOMAIN_EVENT', app: 'ondi',
+    label: 'User role changed (identity)', description: 'An administrator changed a person’s role in Account & Security.',
+    entityType: 'user', payloadSchema: z.object({ userId: z.string(), role: z.string(), previous_role: z.string().nullable(), new_role: z.string() }).passthrough(),
+    samplePayload: { userId: '00000000-0000-0000-0000-000000000000', role: 'MANAGER', previous_role: 'SENIOR', new_role: 'MANAGER' },
+  },
+  {
+    id: 'cms.form_submitted',
+    kind: 'DOMAIN_EVENT',
+    app: 'onesite',
+    label: 'Website form submitted',
+    description: 'Someone sent a form on your website — e.g. alert sales, or reply to them.',
+    entityType: 'cms_form_submission',
+    payloadSchema: z.object({
+      formId: z.string(),
+      formKey: z.string(),
+    }).passthrough(),
+    samplePayload: { formId: '3213be7c-2327-4c7b-8154-04417d7eefa1', formKey: 'contact_us' },
+  },
+  {
+    id: 'pulse.campaign_launched',
+    kind: 'DOMAIN_EVENT',
+    app: 'pulse',
+    label: 'Marketing campaign launched',
+    description: 'A Pulse campaign was sent or scheduled — e.g. tell the sales team what just went out.',
+    entityType: 'pulse_campaign',
+    payloadSchema: z.object({
+      name: z.string(),
+      channel: z.string(),
+      scheduled_at: z.string().nullable(),
+    }).passthrough(),
+    samplePayload: { name: 'March rate update', channel: 'email', scheduled_at: null },
+  },
+  {
+    id: 'pulse.journey_step_reached',
+    kind: 'DOMAIN_EVENT',
+    app: 'pulse',
+    label: 'Person reached a journey step',
+    description: 'Someone in a Pulse journey reached a "Start a Studio workflow" step — hand them to any automation.',
+    entityType: 'pulse_journey',
+    payloadSchema: z.object({
+      journeyId: z.string(),
+      journeyName: z.string(),
+      stepId: z.string(),
+      stepLabel: z.string().nullable(),
+      source: z.string(),
+      personId: z.string(),
+      personName: z.string().nullable(),
+      email: z.string().nullable(),
+      phone: z.string().nullable(),
+    }).passthrough(),
+    samplePayload: { journeyId: '3213be7c-2327-4c7b-8154-04417d7eefa1', journeyName: 'New lead nurture', stepId: 'handoff', stepLabel: 'Hand to sales', source: 'leads', personId: '5e2c6a88-c036-4b82-abbc-8f46771c6b33', personName: 'Amina Mollel', email: 'amina@example.com', phone: null },
+  },
+  {
     id: 'deal.won',
     kind: 'DOMAIN_EVENT',
     app: 'crm',
@@ -534,6 +618,7 @@ export const TRIGGERS: TriggerDef[] = [
     payloadSchema: z.object({
       userId: z.string(), name: z.string().nullable(), email: z.string().nullable(),
       role: z.string(), changedBy: z.string(),
+      previous_role: z.string().nullable().optional(), new_role: z.string().optional(),
     }).passthrough(),
     samplePayload: { userId: '00000000-0000-0000-0000-000000000000', name: 'Jane Mwangi', email: 'jane@example.com', role: 'SENIOR', changedBy: '00000000-0000-0000-0000-000000000000' },
   },

@@ -123,6 +123,8 @@ export const ALL_FEATURE_KEYS = [
   // Trust, risk & audit (migration 768). Without a key here every tenant saw it
   // regardless of plan — the same drift documented above for petti/notes/sign.
   'zentra',
+  // Marketing suite (migration 770): granted to plans that carry both CRM and SMS.
+  'pulse',
 ] as const;
 
 /** Feature keys correspond 1:1 with the appId strings the API gates on. */

@@ -1,3 +1,4 @@
+import { emitDomainEventStandalone } from './domain-events.service.js';
 import { dbPlatform, withTenant } from '../db/client.js';
 import { EmailIntegration } from '../integrations/email.js';
 import type { CmsForm, CmsFormField, CmsFormFieldType, CmsFormSubmission, CreateCmsFormInput, UpdateCmsFormInput } from '@hudumika/types';
@@ -188,7 +189,16 @@ export class CMSFormsService {
       return { ok: true, success_message: null }; // honeypot tripped — silently discard, look successful
     }
 
-    return withTenant(tenant.id, async (trx) => {
+    // Where the visitor came from, if the link they arrived on was tagged —
+    // kept with the submission so marketing can credit the campaign. The
+    // page sends these; they are only ever short tag strings.
+    const utm: Record<string, string> = {};
+    for (const k of ['source', 'medium', 'campaign'] as const) {
+      const v = rawData?.[`_utm_${k}`];
+      if (typeof v === 'string' && /^[\w .:/+-]{1,80}$/.test(v.trim())) utm[k] = v.trim();
+    }
+
+    const stored = await withTenant(tenant.id, async (trx) => {
       const form = await trx.selectFrom('cms_forms').selectAll()
         .where('tenant_id', '=', tenant.id).where('key', '=', formKey).executeTakeFirst();
       if (!form) return null;
@@ -211,9 +221,10 @@ export class CMSFormsService {
         data[field.key] = value.slice(0, 5000);
       }
 
-      await trx.insertInto('cms_form_submissions').values({
+      if (Object.keys(utm).length) data._utm = utm;
+      const submission = await trx.insertInto('cms_form_submissions').values({
         tenant_id: tenant.id, form_id: form.id, data: JSON.stringify(data),
-      }).execute();
+      }).returning('id').executeTakeFirstOrThrow();
 
       if (form.notify_email) {
         const rows = fields.map(f => `<p><strong>${f.label}:</strong> ${String(data[f.key] ?? '').replace(/[<>&]/g, c => ({ '<': '&lt;', '>': '&gt;', '&': '&amp;' }[c]!))}</p>`).join('');
@@ -227,7 +238,15 @@ export class CMSFormsService {
         }).catch(() => {});
       }
 
-      return { ok: true, success_message: form.success_message };
+      return { ok: true as const, success_message: form.success_message, formId: form.id, submissionId: submission.id };
     });
+    if (!stored) return null;
+    // After commit, so a listener (Pulse) always finds the stored submission.
+    // The payload carries ids only; the answers stay in cms_form_submissions.
+    void emitDomainEventStandalone(tenant.id, {
+      type: 'cms.form_submitted', sourceApp: 'onesite', entityType: 'cms_form_submission', entityId: stored.submissionId,
+      payload: { formId: stored.formId, formKey },
+    }).catch(() => {});
+    return { ok: true, success_message: stored.success_message };
   }
 }

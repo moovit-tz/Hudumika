@@ -79,6 +79,7 @@ const APP_META: Record<string, Pick<HudumikaApp, 'desc' | 'category'>> = {
   ngao:         { desc: 'Privacy & data protection compliance — assessments, registers & incident response', category: 'Compliance' },
   stride:       { desc: 'Race operations, live telemetry and ticketing', category: 'Sports' },
   gereji:       { desc: 'Automotive workshop — vehicle records, job cards, estimates, labour & parts', category: 'Automotive' },
+  pulse:        { desc: 'Marketing — audiences, email & SMS campaigns, journeys, social, ads and attribution', category: 'Sales' },
 };
 
 const apps: HudumikaApp[] = [

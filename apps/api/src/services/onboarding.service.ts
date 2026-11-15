@@ -62,7 +62,7 @@ const RESERVED_SUBDOMAINS = new Set([
   'bliss', 'calendar', 'clearos', 'cloud', 'cms', 'complyos', 'contacts', 'crm',
   'developer', 'email', 'esign', 'finops', 'hudubi', 'hudufreight', 'lens',
   'nexushr', 'ondi', 'onsite', 'petti', 'pos', 'projects', 'safetracker', 'seal',
-  'sms', 'studio', 'tasks', 'workspace', 'gereji', 'tuma', 'ngao', 'lexcore', 'zentra',
+  'sms', 'studio', 'tasks', 'workspace', 'gereji', 'tuma', 'ngao', 'lexcore', 'zentra', 'pulse',
   'store', 'drive', 'notes', 'sign', 'travel', 'tracking', 'finance', 'hr',
   'ns1', 'ns2', 'smtp', 'imap', 'webmail', 'auth', 'login', 'sso', 'id',
 ]);

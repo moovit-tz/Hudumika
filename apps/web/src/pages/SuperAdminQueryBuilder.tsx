@@ -257,7 +257,7 @@ export function SuperAdminQueryBuilder() {
                       {f.operator !== 'is_null' && f.operator !== 'is_not_null' && (
                         <Input value={f.value} onChange={e => updateFilter(i, { value: e.target.value })} placeholder="Value" className="qb-filter-value" />
                       )}
-                      <button aria-label="Remove" type="button" className="qb-filter-remove" onClick={() => removeFilter(i)} data-ui-native-button=""><Icon name="x" size={13} /></button>
+                      <button aria-label={`Remove filter for ${f.column}`} type="button" className="qb-filter-remove" onClick={() => removeFilter(i)} data-ui-native-button=""><Icon name="x" size={13} /></button>
                     </div>
                   ))}
                   <Button size="sm" variant="outline" onClick={addFilter}>+ Add filter</Button>

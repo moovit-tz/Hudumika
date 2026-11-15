@@ -375,7 +375,7 @@ function RightPanel({wf, step, allSteps, customers, onUpdateStep, onDeleteStep, 
                       {SHIPMENT_FIELDS.map(f=><SelectItem key={f.value} value={f.value}>{f.label}</SelectItem>)}
                     </SelectContent>
                   </Select>
-                  <button aria-label="Delete" className="wf-icon-btn danger" style={{flexShrink:0,width:'var(--ctl-h-xs)',height:'var(--ctl-h-xs)'}} onClick={()=>delCond(cond.id)} data-ui-native-button=""><Icon name="trash" size={11}/></button>
+                  <button aria-label={`Delete condition ${cond.label}`} className="wf-icon-btn danger" style={{flexShrink:0,width:'var(--ctl-h-xs)',height:'var(--ctl-h-xs)'}} onClick={()=>delCond(cond.id)} data-ui-native-button=""><Icon name="trash" size={11}/></button>
                 </div>
                 <Select value={cond.operator} onValueChange={v=>updCond(cond.id,{operator:v as FieldCondition['operator']})}>
                   <SelectTrigger className="h-11 text-sm" style={{fontSize:"var(--text-base)"}}>
@@ -408,7 +408,7 @@ function RightPanel({wf, step, allSteps, customers, onUpdateStep, onDeleteStep, 
                 <div className="wfb-comm-card-head">
                   <span className="wfb-comm-ch-badge" style={{background:ch?.color,display:'inline-flex',alignItems:'center',gap:4}}>{ch&&<Icon name={ch.icon} size={11} />} {ch?.label}</span>
                   <span style={{flex:1,fontSize:11,color:'var(--ink3)'}}>→ {RECIPIENTS.find(r=>r.value===comm.recipient)?.label}</span>
-                  <button aria-label="Delete" className="wf-icon-btn danger" style={{width:'var(--ctl-h-xs)',height:'var(--ctl-h-xs)'}} onClick={()=>delComm(comm.id)} data-ui-native-button=""><Icon name="trash" size={11}/></button>
+                  <button aria-label={`Delete ${ch?.label ?? 'notification'} action`} className="wf-icon-btn danger" style={{width:'var(--ctl-h-xs)',height:'var(--ctl-h-xs)'}} onClick={()=>delComm(comm.id)} data-ui-native-button=""><Icon name="trash" size={11}/></button>
                 </div>
                 <div className="wfb-comm-card-body">
                   <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:5}}>

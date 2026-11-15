@@ -352,24 +352,24 @@ export function ComplianceOverview() {
     const upper = result.toUpperCase();
     if (upper === 'HIGH') {
       return (
-        <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 11.5, fontWeight: 700, color: 'var(--red, #cf222e)' }}>
-          <span style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--red, #cf222e)', flexShrink: 0 }} />
+        <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 11.5, fontWeight: 700, color: 'var(--red)' }}>
+          <span style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--red)', flexShrink: 0 }} />
           HIGH
         </span>
       );
     }
     if (upper === 'MEDIUM') {
       return (
-        <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 11.5, fontWeight: 600, color: 'var(--gold, #b45309)' }}>
-          <span style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--gold, #b45309)', flexShrink: 0 }} />
+        <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 11.5, fontWeight: 600, color: 'var(--gold)' }}>
+          <span style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--gold)', flexShrink: 0 }} />
           MEDIUM
         </span>
       );
     }
     if (upper === 'LOW') {
       return (
-        <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 11.5, fontWeight: 600, color: 'var(--green, #16a34a)' }}>
-          <span style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--green, #16a34a)', flexShrink: 0 }} />
+        <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 11.5, fontWeight: 600, color: 'var(--green)' }}>
+          <span style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--green)', flexShrink: 0 }} />
           LOW
         </span>
       );

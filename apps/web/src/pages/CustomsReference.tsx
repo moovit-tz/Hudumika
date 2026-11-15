@@ -20,7 +20,7 @@ import { Tip } from '../components/ui/tooltip.js';
 function InlineEditActions({ saving, onSave, onCancel }: { saving: boolean; onSave: () => void; onCancel: () => void }) {
   return (
     <>
-      <Tip label="Save"><button type="button" aria-label="Save" onClick={onSave} disabled={saving} style={{ background: 'none', border: 'none', cursor: saving ? 'wait' : 'pointer', color: 'var(--green)', padding: "var(--action-py) var(--space-md)" }} data-ui-native-button=""><Icon name="check" size={15} /></button></Tip>
+      <Tip label="Save changes"><button type="button" aria-label="Save changes" onClick={onSave} disabled={saving} style={{ background: 'none', border: 'none', cursor: saving ? 'wait' : 'pointer', color: 'var(--green)', padding: "var(--action-py) var(--space-md)" }} data-ui-native-button=""><Icon name="check" size={15} /></button></Tip>
       <Tip label="Cancel"><button type="button" aria-label="Cancel" onClick={onCancel} disabled={saving} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink3)', padding: "var(--action-py) var(--space-md)" }} data-ui-native-button=""><Icon name="x" size={15} /></button></Tip>
     </>
   );

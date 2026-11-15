@@ -185,7 +185,7 @@ export function SmsCampaignDetail() {
               </Button>
             )}
             {campaign.status !== 'sending' && (
-              <Button aria-label="Delete" variant="ghost" onClick={remove}>
+              <Button aria-label={`Delete campaign ${campaign.name}`} variant="ghost" onClick={remove}>
                 <Icon name="trash" size={14} color="var(--red)" />
               </Button>
             )}

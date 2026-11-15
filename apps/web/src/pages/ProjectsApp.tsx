@@ -2253,7 +2253,7 @@ export const ProjectsApp: React.FC<ProjectsAppProps> = ({ initialMode = 'command
                       <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                         <span style={{ fontSize: 11, color: 'var(--ink3)' }}>{new Date(d.created_at).toLocaleString()}</span>
                         {user?.id === d.author_id && (
-                          <Button aria-label="Delete" variant="ghost" size="xs" onClick={() => removeDiscussion(d.id)} style={{ color: 'var(--red)' }}>
+                          <Button aria-label="Delete your comment" variant="ghost" size="xs" onClick={() => removeDiscussion(d.id)} style={{ color: 'var(--red)' }}>
                             <Icon name="trash" size={12} />
                           </Button>
                         )}

@@ -314,7 +314,7 @@ export function CMSSites() {
                       Edit
                     </button>
                     {!site.is_default && (
-                      <button aria-label="Delete"
+                      <button aria-label={`Delete site ${site.name}`}
                         onClick={() => handleDelete(site)}
                         style={{
                           padding: "var(--action-py) var(--space-md)",

@@ -270,12 +270,12 @@ function CheckInForm({ goal, onDone }: { goal: Goal; onDone: () => void }) {
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(150px,1fr))', gap: 10 }}>
         <div>
           <div style={{ ...label, marginBottom: 4 }}>Where it stands now ({goal.unit})</div>
-          <Input value={value} onChange={e => setValue(e.target.value.replace(/[^\d.-]/g, ''))} />
+          <Input aria-label={`Current value for ${goal.title}`} value={value} onChange={e => setValue(e.target.value.replace(/[^\d.-]/g, ''))} />
         </div>
         <div>
           <div style={{ ...label, marginBottom: 4 }}>Status</div>
           <Select value={status} onValueChange={setStatus}>
-            <SelectTrigger><SelectValue /></SelectTrigger>
+            <SelectTrigger aria-label="Goal type"><SelectValue /></SelectTrigger>
             <SelectContent>
               {['ACTIVE', 'AT_RISK', 'BEHIND', 'ACHIEVED', 'CANCELLED'].map(s => (
                 <SelectItem key={s} value={s}>{s.replace(/_/g, ' ').toLowerCase()}</SelectItem>
@@ -286,7 +286,7 @@ function CheckInForm({ goal, onDone }: { goal: Goal; onDone: () => void }) {
       </div>
       <div style={{ marginTop: 10 }}>
         <div style={{ ...label, marginBottom: 4 }}>Comment <span style={{ fontWeight: 400, textTransform: 'none' }}>(optional)</span></div>
-        <Textarea rows={2} value={comment} onChange={e => setComment(e.target.value)} placeholder="What changed since the last check-in?" />
+        <Textarea aria-label="Progress comment" rows={2} value={comment} onChange={e => setComment(e.target.value)} placeholder="What changed since the last check-in?" />
       </div>
       <Button type="button" size="sm" style={{ marginTop: 11 }} disabled={value === '' || busy} onClick={save}>
         {busy ? 'Saving…' : 'Record check-in'}
@@ -317,18 +317,18 @@ function GoalPane({ people, busy, onCreate }: {
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(180px,1fr))', gap: 10 }}>
         <div style={{ gridColumn: '1 / -1' }}>
           <div style={{ ...label, marginBottom: 4 }}>What is the goal</div>
-          <Input value={title} onChange={e => setTitle(e.target.value)} placeholder="e.g. Clear 40 containers this quarter" />
+          <Input aria-label="Goal" value={title} onChange={e => setTitle(e.target.value)} placeholder="e.g. Clear 40 containers this quarter" />
         </div>
         <div>
           <div style={{ ...label, marginBottom: 4 }}>Whose goal</div>
           <Combobox
             options={people.map(p => ({ value: p.id, label: p.name }))}
-            value={owner} onChange={setOwner} placeholder="Choose a person…" emptyText="No person found." />
+            value={owner} onChange={setOwner} placeholder="Choose a person…" emptyText="No person found." aria-label="Goal owner" />
         </div>
         <div>
           <div style={{ ...label, marginBottom: 4 }}>Type</div>
           <Select value={type} onValueChange={setType}>
-            <SelectTrigger><SelectValue /></SelectTrigger>
+            <SelectTrigger aria-label="Review cycle type"><SelectValue /></SelectTrigger>
             <SelectContent>
               {['OKR_OBJECTIVE', 'KPI', 'PERSONAL_DEVELOPMENT', 'PROJECT'].map(t => (
                 <SelectItem key={t} value={t}>{t.replace(/_/g, ' ').toLowerCase()}</SelectItem>
@@ -338,19 +338,19 @@ function GoalPane({ people, busy, onCreate }: {
         </div>
         <div>
           <div style={{ ...label, marginBottom: 4 }}>Measured in</div>
-          <Input value={unit} onChange={e => setUnit(e.target.value)} placeholder="% / containers / shipments" />
+          <Input aria-label="Measurement unit" value={unit} onChange={e => setUnit(e.target.value)} placeholder="% / containers / shipments" />
         </div>
         <div>
           <div style={{ ...label, marginBottom: 4 }}>Target{needsTarget ? '' : ' (percent defaults to 100)'}</div>
-          <Input value={target} onChange={e => setTarget(e.target.value.replace(/[^\d.]/g, ''))} placeholder="40" />
+          <Input aria-label={needsTarget ? 'Target' : 'Target (percentage defaults to 100)'} value={target} onChange={e => setTarget(e.target.value.replace(/[^\d.]/g, ''))} placeholder="40" />
         </div>
         <div>
           <div style={{ ...label, marginBottom: 4 }}>Due <span style={{ fontWeight: 400, textTransform: 'none' }}>(optional)</span></div>
-          <DatePicker date={due} onChange={setDue} />
+          <DatePicker aria-label="Due date (optional)" date={due} onChange={setDue} />
         </div>
         <div style={{ gridColumn: '1 / -1' }}>
           <div style={{ ...label, marginBottom: 4 }}>Detail <span style={{ fontWeight: 400, textTransform: 'none' }}>(optional)</span></div>
-          <Textarea rows={2} value={description} onChange={e => setDescription(e.target.value)} />
+          <Textarea aria-label="Detail (optional)" rows={2} value={description} onChange={e => setDescription(e.target.value)} />
         </div>
       </div>
       {needsTarget && target === '' && (
@@ -498,7 +498,7 @@ function CyclePane({ busy, onCreate }: { busy: string; onCreate: (d: any) => voi
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(170px,1fr))', gap: 10 }}>
         <div>
           <div style={{ ...label, marginBottom: 4 }}>Name</div>
-          <Input value={name} onChange={e => setName(e.target.value)} placeholder="e.g. H2 2026" />
+          <Input aria-label="Review cycle name" value={name} onChange={e => setName(e.target.value)} placeholder="e.g. H2 2026" />
         </div>
         <div>
           <div style={{ ...label, marginBottom: 4 }}>Type</div>
@@ -513,11 +513,11 @@ function CyclePane({ busy, onCreate }: { busy: string; onCreate: (d: any) => voi
         </div>
         <div>
           <div style={{ ...label, marginBottom: 4 }}>Starts</div>
-          <DatePicker date={start} onChange={setStart} />
+          <DatePicker aria-label="Review start date" date={start} onChange={setStart} />
         </div>
         <div>
           <div style={{ ...label, marginBottom: 4 }}>Ends</div>
-          <DatePicker date={end} onChange={setEnd} />
+          <DatePicker aria-label="Review end date" date={end} onChange={setEnd} />
         </div>
       </div>
       {backwards && (

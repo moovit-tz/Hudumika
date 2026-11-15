@@ -81,6 +81,7 @@ const APP_ICONS: Record<AppId, IconName> = {
   ngao:      'shield',
   gereji:    'tool',
   zentra:    'shield',
+  pulse:     'activity',
 };
 
 const APP_SUBTITLES: Partial<Record<AppId, string>> = {
@@ -90,6 +91,7 @@ const APP_SUBTITLES: Partial<Record<AppId, string>> = {
   bliss:     'Support & Helpdesk',
   nexushr:     'People & HR',
   zentra:    'Trust, Risk & Audit',
+  pulse:     'Marketing',
   onesite:   'Web & CMS',
   ondi:     'Identity & Access',
   tracking:  'Vehicle & Fleet Tracking',

@@ -33,7 +33,7 @@ export async function runSmsOutboxJob(): Promise<void> {
     const candidates = dbPlatform.selectFrom('sms_messages').select('id')
       .where('status', '=', 'queued').orderBy('created_at', 'asc').limit(BATCH_SIZE);
     const due = await dbPlatform.updateTable('sms_messages')
-      .set({ status: 'processing', processing_at: new Date() })
+      .set({ status: 'processing', processing_at: new Date().toISOString() })
       .where('id', 'in', candidates).where('status', '=', 'queued')
       .returningAll().execute();
 

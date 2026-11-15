@@ -57,15 +57,19 @@ export async function computePoMatch(tenantId: string, billId: string): Promise<
       };
     }
 
-    const [billLines, poLines] = await Promise.all([
+    const [billLines, poLines, returned] = await Promise.all([
       trx.selectFrom('supplier_bill_lines').select(['qty']).where('bill_id', '=', billId).execute(),
       trx.selectFrom('purchase_order_lines').select(['qty', 'received_qty', 'line_total']).where('po_id', '=', po.id).execute(),
+      trx.selectFrom('purchase_order_returns')
+        .select(({ fn }) => fn.sum<number>('quantity').as('quantity'))
+        .where('tenant_id', '=', tenantId).where('po_id', '=', po.id)
+        .where('posted_at', 'is not', null).executeTakeFirst(),
     ]);
 
     const billQty = billLines.reduce((s, l) => s + Number(l.qty), 0);
     const billTotal = Number(bill.total);
     const poOrderedQty = poLines.reduce((s, l) => s + Number(l.qty), 0);
-    const poReceivedQty = poLines.reduce((s, l) => s + Number(l.received_qty), 0);
+    const poReceivedQty = Math.max(0, poLines.reduce((s, l) => s + Number(l.received_qty), 0) - Number(returned?.quantity ?? 0));
     const poTotal = poLines.reduce((s, l) => s + Number(l.line_total), 0);
 
     // A bill often covers only part of a PO's ordered quantity (partial

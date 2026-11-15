@@ -64,6 +64,7 @@ export const APP_LABELS: Record<AppId, string> = {
   ngao:          'Ngao',
   gereji:        'Gereji',
   zentra:        'Zentra',
+  pulse:         'Pulse',
 };
 
 // Every app defaults to the single brand accent (matches --teal in index.css)
@@ -105,6 +106,7 @@ export const APP_COLORS: Record<AppId, string> = {
   ngao: '#059669',
   gereji: '#d97706',
   zentra: '#0f766e',
+  pulse: '#e11d48',
 };
 
 /**
@@ -150,6 +152,7 @@ export const APP_PALETTE_SLOT: Record<AppId, number> = {
   ngao: 2,    // compliance & legal — privacy/data protection
   gereji: 3,  // warehouse & stock — automotive workshop uses shared inventory
   zentra: 2,  // compliance, trust & risk
+  pulse: 6,   // support, comms & relationships — marketing sits with CRM, Email, SMS
 };
 
 export const ActiveAppContext = React.createContext<AppId | null>(null);

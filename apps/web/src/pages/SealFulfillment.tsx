@@ -121,7 +121,7 @@ export function SealFulfillment() {
                     <tr key={l.lotId}>
                       <td>{l.description}</td>
                       <td>{l.qty} {l.uom}</td>
-                      <td><Button aria-label="Remove" type="button" variant="ghost" size="sm" onClick={() => handleRemoveLine(l.lotId)}><Icon name="x" size={13} /></Button></td>
+                      <td><Button aria-label={`Remove ${l.description}`} type="button" variant="ghost" size="sm" onClick={() => handleRemoveLine(l.lotId)}><Icon name="x" size={13} /></Button></td>
                     </tr>
                   ))}
                 </tbody>

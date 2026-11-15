@@ -154,7 +154,7 @@ function FieldInput({ field, value, onChange, components, componentBlocks, relat
                 placeholder={itemType === 'url' ? 'https://…' : itemType}
                 value={item === undefined || item === null ? '' : String(item)}
                 onChange={e => { const next = [...items]; next[idx] = e.target.value; onChange(next); }} />
-              <button aria-label="Remove" type="button" onClick={() => onChange(items.filter((_, i2) => i2 !== idx))}
+              <button aria-label={`Remove item ${idx + 1}`} type="button" onClick={() => onChange(items.filter((_, i2) => i2 !== idx))}
                 style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink3)', display: 'flex', flexShrink: 0 }} data-ui-native-button="">
                 <Icon name="x" size={13} />
               </button>

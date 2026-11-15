@@ -458,7 +458,7 @@ export function StirlingPdfTools({ documentSrc, fileName, onExport, onClose, emb
                         <input data-ui-field="input" type="number" placeholder="Page #" value={b.pageNumber} min={1}
                           onChange={e => setBookmarks(prev => prev.map((x, idx) => idx === i ? { ...x, pageNumber: e.target.value } : x))}
                           style={{ ...inputStyle, width: 90 }} />
-                        <Button aria-label="Remove" variant="outline" size="icon" onClick={() => setBookmarks(prev => prev.length > 1 ? prev.filter((_, idx) => idx !== i) : prev)} disabled={bookmarks.length <= 1}>
+                        <Button aria-label={`Remove bookmark ${b.title || i + 1}`} variant="outline" size="icon" onClick={() => setBookmarks(prev => prev.length > 1 ? prev.filter((_, idx) => idx !== i) : prev)} disabled={bookmarks.length <= 1}>
                           <Icon name="x" size={13} />
                         </Button>
                       </div>

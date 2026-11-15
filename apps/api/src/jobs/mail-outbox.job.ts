@@ -10,6 +10,11 @@ function parseJsonArray(value: unknown): any[] {
   return [];
 }
 
+function parseHeaders(value: unknown): Record<string, string> | undefined {
+  const v = typeof value === 'string' ? (() => { try { return JSON.parse(value); } catch { return null; } })() : value;
+  return v && typeof v === 'object' && !Array.isArray(v) ? v as Record<string, string> : undefined;
+}
+
 /** Claim one item at a time so a waiting batch cannot outlive its leases. */
 export async function runMailOutboxJob(tenantId?: string): Promise<void> {
   for (let count = 0; count < 50; count++) {
@@ -48,6 +53,7 @@ export async function runMailOutboxJob(tenantId?: string): Promise<void> {
         attachments: attachments.length ? attachments : undefined,
         userId: item.user_id ?? undefined, fromIdentityId: item.from_identity_id ?? undefined,
         inReplyToMessageId: item.in_reply_to_message_id ?? undefined, referencesMessageIds: parseJsonArray(item.references_ids),
+        headers: parseHeaders(item.headers),
       });
     } catch (error) {
       result = { success: false, error: error instanceof Error ? error.message : 'Email delivery failed' };

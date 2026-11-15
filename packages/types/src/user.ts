@@ -45,6 +45,7 @@ export type AppId =
   | 'ngao'       // Ngao — PDPC privacy/data-protection compliance: assessments, registers, incidents
   | 'gereji'     // Gereji — automotive workshop: vehicle records, job cards, estimates, labour, parts
   | 'zentra'     // Zentra — Trust, Risk, Audit & Compliance platform
+  | 'pulse'      // Pulse — marketing: segments, campaigns, journeys, social, ads, attribution
   | 'lens';        // Internal developer record — SuperAdmin only, never customer-facing
 
 export const ALL_APP_IDS: AppId[] = [
@@ -52,7 +53,7 @@ export const ALL_APP_IDS: AppId[] = [
   'nexushr', 'onesite', 'onsite', 'ondi', 'tracking', 'cloud', 'workspace', 'admin', 'email', 'crm', 'contacts', 'store',
   'calendar', 'tasks', 'notes', 'sign', 'sms',
   'demurrage', 'cargotracker', 'seal', 'studio', 'hudubi', 'petti', 'pos', 'projects', 'developer', 'travel',
-  'tuma', 'lexcore', 'ngao', 'gereji', 'zentra',
+  'tuma', 'lexcore', 'ngao', 'gereji', 'zentra', 'pulse',
   // Internal tooling. Present so the app shell and design system can resolve it
   // like any other app; the launcher filters it out for non-SuperAdmins and
   // both its route and its endpoints require that role.

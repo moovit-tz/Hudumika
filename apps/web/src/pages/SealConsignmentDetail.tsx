@@ -431,7 +431,7 @@ export function SealConsignmentDetail() {
                             </SelectContent>
                           </Select>
                         )}
-                        <Button aria-label="Delete" variant="ghost" size="icon" onClick={() => setTallyLines(lines => lines.filter((_, idx) => idx !== i))}>
+                        <Button aria-label={`Delete tally line ${line.description || i + 1}`} variant="ghost" size="icon" onClick={() => setTallyLines(lines => lines.filter((_, idx) => idx !== i))}>
                           <Icon name="trash" size={14} />
                         </Button>
                       </div>

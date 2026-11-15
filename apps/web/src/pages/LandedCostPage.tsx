@@ -2325,7 +2325,7 @@ export const LandedCostPage: React.FC = () => {
                                 onCheckedChange={c => updateRow(row.id, { excluded: c !== true })} />
                               {row.excluded ? 'Excluded' : 'Include'}
                             </label>
-                            <button aria-label="Delete" type="button" onClick={() => removeRow(row.id)} disabled={multiItems.length === 1}
+                            <button aria-label={`Delete ${row.description || `line item ${idx + 1}`}`} type="button" onClick={() => removeRow(row.id)} disabled={multiItems.length === 1}
                               style={{ background: 'none', border: 'none', cursor: multiItems.length === 1 ? 'default' : 'pointer', opacity: multiItems.length === 1 ? 0.3 : 1, color: 'var(--red)', display: 'flex', alignItems: 'center' }} data-ui-native-button="">
                               <Icon name="trash" size={13} color="var(--red)" />
                             </button>

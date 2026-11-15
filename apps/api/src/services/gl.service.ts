@@ -325,6 +325,20 @@ export class GLService {
         .where('tenant_id', '=', tenantId).where('id', '=', entryId).forUpdate().executeTakeFirst();
       if (!entry) throw new Error('Journal entry not found');
       if (entry.voided_at) throw new Error('This entry has already been voided');
+      if (entry.source_module === 'AP') {
+        const attachedCredit = await trx.selectFrom('supplier_return_credit_evidence').select('return_id')
+          .where('tenant_id', '=', tenantId).where('journal_entry_id', 'is not', null)
+          .where(eb => eb.or([
+            eb('journal_entry_id', '=', entryId),
+            ...(entry.source_id ? [eb('bill_id', '=', entry.source_id)] : []),
+          ])).executeTakeFirst();
+        if (attachedCredit) throw new Error('This journal belongs to a bill or supplier return with an applied credit.');
+      } else if (entry.source_module === 'EXPENSE' && entry.reference && /^\d+$/.test(entry.reference)) {
+        const attachedReturn = await trx.selectFrom('purchase_order_returns').select('id')
+          .where('tenant_id', '=', tenantId).where('stock_movement_id', '=', entry.reference)
+          .where('posted_at', 'is not', null).executeTakeFirst();
+        if (attachedReturn) throw new Error('This journal belongs to a posted supplier return.');
+      }
 
       const allocations = await trx.selectFrom('finance_work_cost_allocations as c')
         .innerJoin('journal_lines as l', 'l.id', 'c.source_journal_line_id')
@@ -933,15 +947,15 @@ export class GLService {
       // Fetch supplier bills
       const bills = await trx
         .selectFrom('supplier_bills')
-        .select(['id', 'supplier_name', 'total', 'paid_amount', 'due_date', 'bill_date'])
+        .select(['id', 'supplier_name', 'total', 'paid_amount', 'credited_amount', 'due_date', 'bill_date'])
         .where('tenant_id', '=', tenantId)
-        .where('status', 'in', ['UNPAID', 'PARTIAL', 'OVERDUE'])
+        .where('status', 'in', ['POSTED', 'UNPAID', 'PARTIAL', 'OVERDUE'])
         .execute();
 
       const supplierMap: Record<string, any> = {};
 
       bills.forEach(b => {
-        const unpaid = Number(b.total) - Number(b.paid_amount || 0);
+        const unpaid = Number(b.total) - Number(b.paid_amount || 0) - Number(b.credited_amount);
         if (unpaid <= 0) return;
 
         const name = b.supplier_name || 'Unknown Supplier';

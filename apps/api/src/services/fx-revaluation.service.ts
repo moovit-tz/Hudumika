@@ -132,7 +132,7 @@ export async function computeAndPostFxRevaluation(tenantId: string, periodDate: 
       .where('status', 'not in', ['DRAFT', 'PENDING_APPROVAL', 'VOID']).execute();
     const apSubjects: RevaluationSubject[] = [];
     for (const bill of bills) {
-      const openFc = Number(bill.total) - Number(bill.paid_amount);
+      const openFc = Number(bill.total) - Number(bill.paid_amount) - Number(bill.credited_amount);
       if (openFc > 0.01) apSubjects.push({ subjectType: 'AP_BILL', subjectId: bill.id, currency: bill.currency, openBalanceFc: openFc, glAccountCode: '2000' });
     }
 

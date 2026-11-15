@@ -289,12 +289,12 @@ export const OndiWallet: React.FC = () => {
               </button></Tip>
             )}
             {opts.canEdit && (
-              <Tip label="Edit"><button type="button" aria-label="Edit" onClick={() => startEdit(item)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink3)', padding: "var(--action-py) var(--space-md)" }} data-ui-native-button="">
+              <Tip label="Edit"><button type="button" aria-label={`Edit ${item.label}`} onClick={() => startEdit(item)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink3)', padding: "var(--action-py) var(--space-md)" }} data-ui-native-button="">
                 <Icon name="edit" size={16} />
               </button></Tip>
             )}
             {opts.canDelete && (
-              <Tip label="Delete"><button type="button" aria-label="Delete" onClick={() => remove(item)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--red)', padding: "var(--action-py) var(--space-md)" }} data-ui-native-button="">
+              <Tip label="Delete"><button type="button" aria-label={`Delete ${item.label}`} onClick={() => remove(item)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--red)', padding: "var(--action-py) var(--space-md)" }} data-ui-native-button="">
                 <Icon name="trash2" size={16} />
               </button></Tip>
             )}

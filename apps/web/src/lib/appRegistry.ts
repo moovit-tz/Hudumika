@@ -49,6 +49,7 @@ const SLOGANS: Partial<Record<AppId, string>> = {
   lexcore:      'Legal practice management — matters, time/billing, trust accounts & conflicts',
   ngao:         'Privacy & data protection compliance — assessments, registers & incident response',
   gereji:       'Automotive workshop — vehicle records, job cards, estimates, labour & parts',
+  pulse:        'Marketing — audiences, email & SMS campaigns, journeys, social, ads and attribution',
 };
 
 /** Last-resort name for an app id added to ALL_APP_IDS but not yet to

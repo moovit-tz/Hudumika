@@ -656,6 +656,7 @@ export async function invoiceRoutes(fastify: FastifyInstance) {
             'due_date',
             'total',
             'paid_amount',
+            'credited_amount',
             'status',
           ])
           .where('tenant_id', '=', user.tenant_id);
@@ -670,7 +671,7 @@ export async function invoiceRoutes(fastify: FastifyInstance) {
           due_date: r.due_date,
           total_amount: Number(r.total) || 0,
           paid_amount: Number(r.paid_amount) || 0,
-          balance: (Number(r.total) || 0) - (Number(r.paid_amount) || 0),
+          balance: Math.max(0, (Number(r.total) || 0) - (Number(r.paid_amount) || 0) - (Number(r.credited_amount) || 0)),
           status: r.status,
         }));
 
@@ -721,10 +722,10 @@ export async function invoiceRoutes(fastify: FastifyInstance) {
         const recPartial = recRows.filter((r: any) => r.status === 'Partial').length;
 
         // Payables summary
-        const payRows = await trx.selectFrom('supplier_bills').select(['status', 'total', 'paid_amount']).where('tenant_id', '=', user.tenant_id).execute();
+        const payRows = await trx.selectFrom('supplier_bills').select(['status', 'total', 'paid_amount', 'credited_amount']).where('tenant_id', '=', user.tenant_id).execute();
         const payTotal = payRows.length;
         const payPaid = payRows.reduce((s: number, r: any) => s + (Number(r.paid_amount) || 0), 0);
-        const payOutstanding = payRows.reduce((s: number, r: any) => s + Math.max(0, (Number(r.total) || 0) - (Number(r.paid_amount) || 0)), 0);
+        const payOutstanding = payRows.reduce((s: number, r: any) => s + Math.max(0, (Number(r.total) || 0) - (Number(r.paid_amount) || 0) - (Number(r.credited_amount) || 0)), 0);
 
         // Revenue (last 12 months)
         const revRows = await trx

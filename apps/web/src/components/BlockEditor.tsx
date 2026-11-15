@@ -440,7 +440,7 @@ function BlockContent({ block, onChange, onSlash, components, componentBlocks, i
             <div key={idx} className="be-list-row">
               <span className="be-list-marker">{p.ordered ? `${idx + 1}.` : '•'}</span>
               <input data-ui-field="input" className="be-input" value={item} onChange={e => { const next = [...items]; next[idx] = e.target.value; onChange({ items: next }); }} />
-              <button aria-label="Remove" type="button" onClick={() => onChange({ items: items.filter((_, i2) => i2 !== idx) })} data-ui-native-button=""><Icon name="x" size={11} /></button>
+              <button aria-label={`Remove list item ${idx + 1}`} type="button" onClick={() => onChange({ items: items.filter((_, i2) => i2 !== idx) })} data-ui-native-button=""><Icon name="x" size={11} /></button>
             </div>
           ))}
           <button type="button" className="be-add-btn" onClick={() => onChange({ items: [...items, ''] })} data-ui-native-button=""><Icon name="plus" size={11} /> Add item</button>

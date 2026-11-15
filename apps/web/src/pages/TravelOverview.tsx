@@ -497,7 +497,7 @@ export const TravelOverview: React.FC = () => {
                       </Badge>
                     </td>
                     <td style={{ textAlign: 'right' }}>
-                      <Button aria-label="Open" variant="ghost" size="xs" onClick={() => navigate(`/travel/trips`)}>
+                      <Button aria-label="View all trips" variant="ghost" size="xs" onClick={() => navigate(`/travel/trips`)}>
                         <Icon name="arrowRight" size={13} />
                       </Button>
                     </td>

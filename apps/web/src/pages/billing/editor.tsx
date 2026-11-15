@@ -301,7 +301,7 @@ function ChargeSectionEditor({ title, color, group, currency, items, onChange, c
                 </td>
                 <td style={{ padding: '6px 4px', verticalAlign: 'middle' }}>
                   {items.length > 0 && (
-                    <button aria-label="Delete" type="button" onClick={() => remove(item.uid)}
+                    <button aria-label={`Delete ${item.description || 'line item'}`} type="button" onClick={() => remove(item.uid)}
                       style={{ width: "var(--ctl-h-xs)", height: "var(--ctl-h-xs)", border: 'none', background: 'none', cursor: 'pointer', borderRadius: 'var(--r-sm)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
                       onMouseEnter={e => (e.currentTarget.style.background = 'var(--red-l)')}
                       onMouseLeave={e => (e.currentTarget.style.background = 'none')} data-ui-native-button="">

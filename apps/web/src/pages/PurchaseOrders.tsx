@@ -1,6 +1,6 @@
 import { FinanceDocumentListExport } from '../components/FinanceDocumentListExport.js';
 import { useFinanceDraft, clearFinanceDrafts, hasFinanceDraft } from '../hooks/useFinanceDraft.js';
-import { Link } from 'react-router-dom';
+import { Link, useSearchParams } from 'react-router-dom';
 import { useFinanceDocumentRoute } from '../hooks/useFinanceDocumentRoute.js';
 import { downloadDocument } from '../lib/financeDocuments.js';
 import { FinanceDocumentActions } from '../components/FinanceDocumentActions.js';
@@ -30,6 +30,8 @@ import { useFinanceCapabilities } from '../hooks/useFinanceCapabilities.js';
 import { useFinanceConfiguration } from '../hooks/useFinanceConfiguration.js';
 import { SearchToolbar } from '../components/ui/filter-dropdown.js';
 import { Button } from '../components/ui/button.js';
+import { Input } from '../components/ui/input.js';
+import { PurchaseOrderReceiptHistory, PurchaseOrderReceiving } from '../components/PurchaseOrderReceiving.js';
 
 // Types and Interfaces
 // Mirrors the backend's purchase_orders.status CHECK constraint
@@ -42,8 +44,12 @@ const fromApiStatus = (s: string): POStatus => {
 };
 
 interface POItem {
+  lineId?: string;
+  receivedQty?: number;
   description?: string;
   taxRate?: number;
+  inventoryItemId?: string;
+  inventoryUom?: string;
   productId: string;
   qty: number;
   unitPrice: number;
@@ -115,9 +121,13 @@ function mapApiWarehouse(w: any): Warehouse {
 function apiLineToItem(line: any, products: Product[]): POItem {
   const prod = products.find(p => p.sku === line.category);
   return {
+    lineId: line.id,
+    receivedQty: Number(line.received_qty) || 0,
     productId: prod?.id || '',
     description: line.description || '',
     taxRate: Number(line.tax_rate) || 0,
+    inventoryItemId: line.item_id ?? undefined,
+    inventoryUom: line.item_uom ?? undefined,
     qty: Number(line.qty) || 1,
     unitPrice: Number(line.unit_price) || 0,
     discountPct: 0, // discount is baked into unit_price before it's sent to the backend
@@ -133,6 +143,8 @@ function itemToApiLine(item: POItem, products: Product[]) {
     qty: item.qty,
     unit_price: item.unitPrice * (1 - (item.discountPct || 0) / 100),
     tax_rate: taxRate,
+    item_id: item.inventoryItemId ?? null,
+    item_uom: item.inventoryUom ?? null,
   };
 }
 
@@ -171,6 +183,7 @@ const formatUSD = (amount: number) => {
 
 export const PurchaseOrders: React.FC = () => {
   const documentRoute=useFinanceDocumentRoute("purchase-orders");
+  const [searchParams, setSearchParams] = useSearchParams();
   const co = useCompany();
   const isDark = useIsDarkMode();
   const docLogoSrc = co.logoUrl || co.logoVerticalLight;
@@ -298,6 +311,41 @@ export const PurchaseOrders: React.FC = () => {
   const [formPaymentTerms, setFormPaymentTerms] = useFinanceDraft('formPaymentTerms','');
   const [formNotes, setFormNotes] = useFinanceDraft('formNotes','');
   const [formItems, setFormItems] = useFinanceDraft<POItem[]>('formItems',[]);
+  const [savingPo, setSavingPo] = useState(false);
+  const saveInProgress = React.useRef(false);
+  const reorderItemId = documentRoute.mode === 'new' ? searchParams.get('reorderItem') : null;
+  useEffect(() => {
+    if (!reorderItemId || readOnly) return;
+    let current = true;
+    apiFetch('/v1/inventory/reorder-alerts').then((alerts: {
+      itemId: string; name: string; sku: string; baseUom: string;
+      productId: string | null; suggestedQty: number | null;
+    }[]) => {
+      if (!current) return;
+      const alert = alerts.find(row => row.itemId === reorderItemId);
+      if (!alert?.suggestedQty || alert.suggestedQty <= 0) {
+        showAlert('This item no longer has a positive reorder recommendation.');
+        return;
+      }
+      const line: POItem = {
+        inventoryItemId: alert.itemId, inventoryUom: alert.baseUom,
+        productId: alert.productId ?? '', description: `${alert.name} [${alert.sku}]`,
+        qty: alert.suggestedQty, unitPrice: 0, discountPct: 0,
+      };
+      setFormItems(items => items.some(item => item.inventoryItemId === line.inventoryItemId)
+        ? items : [...items, line]);
+    }).catch(() => {
+      if (current) showAlert('Could not load the reorder recommendation.');
+    }).finally(() => {
+      if (!current) return;
+      setSearchParams(previous => {
+        const next = new URLSearchParams(previous);
+        next.delete('reorderItem');
+        return next;
+      }, { replace: true });
+    });
+    return () => { current = false; };
+  }, [reorderItemId, readOnly, setFormItems, setSearchParams]);
 
   // Reference date for Overdue checking
   const REF_DATE = new Date();
@@ -316,10 +364,8 @@ export const PurchaseOrders: React.FC = () => {
         const disc = base * (item.discountPct / 100);
         const taxable = base - disc;
 
-        let itemTax = 0;
-        prod?.taxRates.forEach(tr => {
-          itemTax += taxable * (tr.rate / 100);
-        });
+        const rate = item.taxRate ?? prod?.taxRates.reduce((sum, tr) => sum + tr.rate, 0) ?? 0;
+        const itemTax = taxable * rate / 100;
 
         subtotal += base;
         discount += disc;
@@ -496,6 +542,8 @@ export const PurchaseOrders: React.FC = () => {
 
       // If product changes, auto-populate SKU/description price
       if (field === 'productId') {
+        updated.inventoryItemId = undefined;
+        updated.inventoryUom = undefined;
         const prod = products.find(p => p.id === value);
         if (prod) {
           updated.unitPrice = prod.unitPrice;
@@ -508,21 +556,9 @@ export const PurchaseOrders: React.FC = () => {
     }));
   };
 
-  // Save/Create Form PO
-  const nextPoNumber = () => {
-    const sortedNumbers = [...pos]
-      .map(p => {
-        const m = p.po_number.match(/PO-2026-01-(\d+)/);
-        return m ? parseInt(m[1], 10) : 0;
-      })
-      .sort((a, b) => b - a);
-    const nextId = (sortedNumbers[0] || 0) + 1;
-    return `PO-2026-01-${String(nextId).padStart(3, '0')}`;
-  };
-
   const handleSavePO = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (readOnly) return;
+    if (readOnly || reorderItemId || saveInProgress.current) return;
 
     if (!formVendor || !formOrderDate || !formDueDate) {
       showToast('Please fill out all required fields', 'error');
@@ -549,10 +585,11 @@ export const PurchaseOrders: React.FC = () => {
       lines: formItems.map(item => itemToApiLine(item, products)),
     };
 
+    saveInProgress.current = true;
+    setSavingPo(true);
     try {
       let savedId = selectedPoId;
       if (viewMode === 'CREATE') {
-        payload.po_number = nextPoNumber();
         const created: any = await apiFetch('/v1/purchase-orders', { method: 'POST', body: JSON.stringify(payload) });
         savedId = created.id;
         await loadPOs(); fetchStats();
@@ -565,6 +602,9 @@ export const PurchaseOrders: React.FC = () => {
       clearFinanceDrafts();documentRoute.open('detail',savedId);
     } catch (err) {
       showToast(err instanceof Error ? err.message : 'Failed to save purchase order', 'error');
+    } finally {
+      saveInProgress.current = false;
+      setSavingPo(false);
     }
   };
 
@@ -590,7 +630,6 @@ export const PurchaseOrders: React.FC = () => {
     const today = new Date();
     const due = new Date(today.getTime() + 30 * 86400000);
     const payload = {
-      po_number: nextPoNumber(),
       supplier_id: original.vendorId,
       supplier_name: vendor?.name || null,
       warehouse_id: original.warehouseId || null,
@@ -956,12 +995,12 @@ export const PurchaseOrders: React.FC = () => {
                               </Button>
                             </Tip>
                             <Tip label="Edit">
-                              <Button type="button" variant="outline" size="icon" iconOnly aria-label="Edit" onClick={() => handleEditInit(po.id)}>
+                              <Button type="button" variant="outline" size="icon" iconOnly aria-label={`Edit purchase order ${po.po_number}`} onClick={() => handleEditInit(po.id)}>
                                 <Icon name="edit" size={13} color="var(--blue)" />
                               </Button>
                             </Tip>
                             <Tip label="Delete">
-                              <Button type="button" variant="outline" size="icon" iconOnly aria-label="Delete" onClick={() => handleDeletePO(po.id)}>
+                              <Button type="button" variant="outline" size="icon" iconOnly aria-label={`Delete purchase order ${po.po_number}`} onClick={() => handleDeletePO(po.id)}>
                                 <Icon name="trash" size={13} color="var(--red)" />
                               </Button>
                             </Tip>
@@ -1127,12 +1166,12 @@ export const PurchaseOrders: React.FC = () => {
                                       </Button>
                                     </Tip>
                                     <Tip label="Edit">
-                                      <Button type="button" variant="outline" size="icon" iconOnly aria-label="Edit" onClick={() => handleEditInit(po.id)}>
+                                      <Button type="button" variant="outline" size="icon" iconOnly aria-label={`Edit purchase order ${po.po_number}`} onClick={() => handleEditInit(po.id)}>
                                         <Icon name="edit" size={12.5} color="var(--blue)" />
                                       </Button>
                                     </Tip>
                                     <Tip label="Delete">
-                                      <Button type="button" variant="outline" size="icon" iconOnly aria-label="Delete" onClick={() => handleDeletePO(po.id)}>
+                                      <Button type="button" variant="outline" size="icon" iconOnly aria-label={`Delete purchase order ${po.po_number}`} onClick={() => handleDeletePO(po.id)}>
                                         <Icon name="trash" size={12.5} color="var(--red)" />
                                       </Button>
                                     </Tip>
@@ -1347,7 +1386,9 @@ export const PurchaseOrders: React.FC = () => {
                   <thead>
                     <tr style={{ background: 'var(--bg)', borderBottom: '1px solid var(--border)', fontSize: 11, fontWeight: 600, color: 'var(--ink2)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
                       <th style={{ padding: '12px 20px', textAlign: 'left' }}>Product</th>
-                      <th style={{ padding: '12px 20px', textAlign: 'center' }}>Qty</th>
+                      <th style={{ padding: '12px 20px', textAlign: 'center' }}>Ordered</th>
+                      <th style={{ padding: '12px 20px', textAlign: 'center' }}>Received</th>
+                      <th style={{ padding: '12px 20px', textAlign: 'center' }}>Outstanding</th>
                       <th style={{ padding: '12px 20px', textAlign: 'right' }}>Unit Price</th>
                       <th style={{ padding: '12px 20px', textAlign: 'right' }}>Discount</th>
                       <th style={{ padding: '12px 20px', textAlign: 'right' }}>Tax</th>
@@ -1357,14 +1398,15 @@ export const PurchaseOrders: React.FC = () => {
                   <tbody>
                     {currentDetailsPo.items.map((item, idx) => {
                       const prod = products.find(p => p.id === item.productId);
-                      if (!prod) return null;
 
                       const base = item.qty * item.unitPrice;
                       const discAmount = base * (item.discountPct / 100);
                       const taxable = base - discAmount;
 
                       let totalTax = 0;
-                      const taxDetails = prod.taxRates.map(tr => {
+                      const taxDetails = (item.taxRate !== undefined
+                        ? [{ name: 'Tax', rate: item.taxRate }]
+                        : prod?.taxRates ?? []).map(tr => {
                         const amt = taxable * (tr.rate / 100);
                         totalTax += amt;
                         return { name: tr.name, rate: tr.rate, amt };
@@ -1375,11 +1417,13 @@ export const PurchaseOrders: React.FC = () => {
                       return (
                         <tr key={idx} style={{ borderBottom: '1px solid var(--border)' }}>
                           <td style={{ padding: '16px 20px' }}>
-                            <div style={{ fontWeight: 700, color: 'var(--ink)' }}>{prod.name}</div>
-                            <div style={{ fontSize: 11, color: 'var(--ink3)', marginTop: 2, fontFamily: 'monospace' }}>SKU: {prod.sku}</div>
-                            <div style={{ fontSize: 11, color: 'var(--ink3)', marginTop: 2 }}>{prod.description}</div>
+                            <div style={{ fontWeight: 700, color: 'var(--ink)' }}>{prod?.name || item.description || 'Item'}</div>
+                            {prod && <div style={{ fontSize: 11, color: 'var(--ink3)', marginTop: 2, fontFamily: 'monospace' }}>SKU: {prod.sku}</div>}
+                            {prod && <div style={{ fontSize: 11, color: 'var(--ink3)', marginTop: 2 }}>{prod.description}</div>}
                           </td>
                           <td style={{ padding: '16px 20px', textAlign: 'center', color: 'var(--ink)' }}>{item.qty}</td>
+                          <td className="text-center">{item.receivedQty ?? 0}</td>
+                          <td className="text-center">{Math.max(0, Number((item.qty - (item.receivedQty ?? 0)).toFixed(4)))}</td>
                           <td style={{ padding: '16px 20px', textAlign: 'right', fontFamily: 'monospace', color: 'var(--ink)' }}>{formatUSD(item.unitPrice)}</td>
                           <td style={{ padding: '16px 20px', textAlign: 'right', fontFamily: 'monospace', color: 'var(--red)' }}>
                             {item.discountPct > 0 ? `-${formatUSD(discAmount)}` : '—'}
@@ -1407,6 +1451,31 @@ export const PurchaseOrders: React.FC = () => {
               </div>
             </SectionCard>
 
+            {currentDetailsPo.items.some(item => (item.receivedQty ?? 0) > 0) && (
+              <PurchaseOrderReceiptHistory
+                key={`${currentDetailsPo.id}:${currentDetailsPo.items.map(item => item.receivedQty ?? 0).join(',')}`}
+                orderId={currentDetailsPo.id}
+                readOnly={readOnly || currentDetailsPo.status === 'Cancelled'}
+              />
+            )}
+            {!readOnly && (currentDetailsPo.status === 'Sent' || currentDetailsPo.status === 'Partial') && (
+              <PurchaseOrderReceiving
+                key={`${currentDetailsPo.id}:${currentDetailsPo.items.map(item => item.receivedQty ?? 0).join(',')}`}
+                orderId={currentDetailsPo.id}
+                lines={currentDetailsPo.items.flatMap(item => item.lineId ? [{
+                  id: item.lineId, description: item.description || 'Item',
+                  inventoryItemId: item.inventoryItemId, inventoryUom: item.inventoryUom,
+                  qty: item.qty, receivedQty: item.receivedQty ?? 0,
+                }] : [])}
+                onReceived={async () => {
+                  const detail = await apiFetch(`/v1/purchase-orders/${currentDetailsPo.id}`);
+                  const updated = apiToPO(detail, detail.lines ?? [], products);
+                  setPOs(previous => previous.map(po => po.id === updated.id ? updated : po));
+                  fetchStats();
+                  showToast('Receipt recorded', 'success');
+                }}
+              />
+            )}
           </div>
         )}
 
@@ -1419,7 +1488,7 @@ export const PurchaseOrders: React.FC = () => {
             actions={
               <>
                 <Button type="button" variant="outline" onClick={() => documentRoute.open('list')}>Cancel</Button>
-                <Button type="submit" form="po-form">{viewMode === 'CREATE' ? 'Create' : 'Save changes'}</Button>
+                <Button type="submit" form="po-form" disabled={Boolean(reorderItemId) || savingPo}>{viewMode === 'CREATE' ? 'Create' : 'Save changes'}</Button>
               </>
             }
           >
@@ -1543,7 +1612,10 @@ export const PurchaseOrders: React.FC = () => {
 
                       let taxSum = 0;
                       let taxDesc = 'No tax';
-                      if (prod) {
+                      if (item.taxRate !== undefined) {
+                        taxSum = taxable * item.taxRate / 100;
+                        taxDesc = item.taxRate ? `${item.taxRate}%` : 'No tax';
+                      } else if (prod) {
                         prod.taxRates.forEach(tr => {
                           taxSum += taxable * (tr.rate / 100);
                         });
@@ -1559,20 +1631,26 @@ export const PurchaseOrders: React.FC = () => {
 
                           {/* Product select */}
                           <td style={{ padding: '12px 12px' }}>
-                            <Combobox
+                            {item.inventoryItemId ? (
+                              <div>
+                                {item.description || prod?.name || 'Inventory item'}
+                                {item.inventoryUom && <div className="text-sm">Unit: {item.inventoryUom}</div>}
+                              </div>
+                            ) : <Combobox
                               options={products.map(p => ({ value: p.id, label: `${p.name} [${p.sku}]` }))}
                               value={item.productId} onChange={v => handleFormItemChange(idx, 'productId', v)}
-                            />
+                            />}
                           </td>
 
                           {/* Quantity */}
                           <td style={{ padding: '12px 12px', textAlign: 'center' }}>
                             <input data-ui-field="input"
                               type="number"
-                              min={1}
+                              min={0.0001}
+                              step="any"
                               required
                               value={item.qty}
-                              onChange={e => handleFormItemChange(idx, 'qty', parseInt(e.target.value, 10) || 1)}
+                              onChange={e => handleFormItemChange(idx, 'qty', Number(e.target.value))}
                               style={{ width: '100%', padding: "var(--ds-input-py) var(--space-md)", borderRadius: 'var(--r-sm)', border: '1px solid var(--border)', background: 'var(--bg)', color: 'var(--ink)', fontSize: "var(--text-base)", outline: 'none', textAlign: 'center' }}
                             />
                           </td>
@@ -1610,7 +1688,12 @@ export const PurchaseOrders: React.FC = () => {
 
                           {/* Tax Text */}
                           <td style={{ padding: '12px 12px', textAlign: 'right', fontSize: 12, color: 'var(--ink2)' }}>
-                            <div style={{ fontWeight: 600 }}>{taxDesc}</div>
+                            {item.inventoryItemId ? (
+                              <Input type="number" min={0} step="any" aria-label={`Tax rate (%) for line ${idx + 1}`}
+                                value={item.taxRate ?? prod?.taxRates.reduce((sum, rate) => sum + rate.rate, 0) ?? 0}
+                                onChange={event => handleFormItemChange(idx, 'taxRate', Number(event.target.value))}
+                              />
+                            ) : <div style={{ fontWeight: 600 }}>{taxDesc}</div>}
                             {taxSum > 0 && <div style={{ fontSize: 11, color: 'var(--ink3)', marginTop: 2, fontFamily: 'monospace' }}>({formatUSD(taxSum)})</div>}
                           </td>
 
