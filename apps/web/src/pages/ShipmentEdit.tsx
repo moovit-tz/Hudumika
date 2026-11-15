@@ -500,9 +500,9 @@ export const ShipmentEdit: React.FC = () => {
                   <div style={fldStyle}><label style={lblStyle}>Port of Loading</label><input data-ui-field="input" style={inpStyle} value={form.port_of_loading || ''} onChange={set('port_of_loading')} /></div>
                   <div style={fldStyle}><label style={lblStyle}>Destination Port</label><input data-ui-field="input" style={inpStyle} value={form.dest_port || ''} onChange={set('dest_port')} /></div>
                   <div style={fldStyle}><label style={lblStyle}>Port of Discharge</label><input data-ui-field="input" style={inpStyle} value={form.port_of_discharge || ''} onChange={set('port_of_discharge')} /></div>
-                  <div style={fldStyle}><label style={lblStyle}>ETA</label><DatePicker date={parseDateOnly(form.eta)} onChange={d => setForm(f => ({...f, eta: toDateOnlyString(d)}))} /></div>
-                  <div style={fldStyle}><label style={lblStyle}>Free Time Ends</label><DatePicker date={parseDateOnly(form.free_time_end)} onChange={d => setForm(f => ({...f, free_time_end: toDateOnlyString(d)}))} /></div>
-                  <div style={fldStyle}><label style={lblStyle}>SLA Deadline</label><DatePicker date={parseDateOnly(form.sla_deadline)} onChange={d => setForm(f => ({...f, sla_deadline: toDateOnlyString(d)}))} /></div>
+                  <div style={fldStyle}><label style={lblStyle}>ETA</label><DatePicker date={parseDateOnly(form.eta)} onChange={d => setForm(f => ({...f, eta: toDateOnlyString(d)}))} aria-label="ETA" /></div>
+                  <div style={fldStyle}><label style={lblStyle}>Free Time Ends</label><DatePicker date={parseDateOnly(form.free_time_end)} onChange={d => setForm(f => ({...f, free_time_end: toDateOnlyString(d)}))} aria-label="Free Time Ends" /></div>
+                  <div style={fldStyle}><label style={lblStyle}>SLA Deadline</label><DatePicker date={parseDateOnly(form.sla_deadline)} onChange={d => setForm(f => ({...f, sla_deadline: toDateOnlyString(d)}))} aria-label="SLA Deadline" /></div>
                 </div>
               </>
             )}
@@ -525,8 +525,7 @@ export const ShipmentEdit: React.FC = () => {
                   <Combobox
                     options={[{ value: '', label: 'Unassigned' }, ...officers.map((o: any) => ({ value: o.id, label: o.name }))]}
                     value={form.assigned_to || ''}
-                    onChange={v => setForm(f => ({ ...f, assigned_to: v }))}
-                  />
+                    onChange={v => setForm(f => ({ ...f, assigned_to: v }))} aria-label="Assigned Officer" />
                 </div>
                 <div style={fldStyle}>
                   <label style={lblStyle}>Internal Notes</label>

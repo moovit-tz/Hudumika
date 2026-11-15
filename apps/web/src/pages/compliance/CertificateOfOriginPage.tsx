@@ -196,7 +196,7 @@ export function CertificateOfOriginPage() {
               </div>
               <div>
                 <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: 'var(--ink2)', marginBottom: 6 }}>Country of origin</label>
-                <Input value={form.countryOfOrigin} onChange={e => setForm(p => ({ ...p, countryOfOrigin: e.target.value.toUpperCase() }))} placeholder="TZ" maxLength={2} />
+                <Input value={form.countryOfOrigin} onChange={e => setForm(p => ({ ...p, countryOfOrigin: e.target.value.toUpperCase() }))} placeholder="TZ" maxLength={2} aria-label="Country of origin" />
               </div>
             </div>
 
@@ -226,27 +226,27 @@ export function CertificateOfOriginPage() {
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, marginBottom: 16 }}>
               <div>
                 <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: 'var(--ink2)', marginBottom: 6 }}>Exporter name</label>
-                <Input value={form.exporterName} onChange={e => setForm(p => ({ ...p, exporterName: e.target.value }))} />
+                <Input value={form.exporterName} onChange={e => setForm(p => ({ ...p, exporterName: e.target.value }))} aria-label="Exporter name" />
               </div>
               <div>
                 <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: 'var(--ink2)', marginBottom: 6 }}>Exporter address</label>
-                <Input value={form.exporterAddress} onChange={e => setForm(p => ({ ...p, exporterAddress: e.target.value }))} />
+                <Input value={form.exporterAddress} onChange={e => setForm(p => ({ ...p, exporterAddress: e.target.value }))} aria-label="Exporter address" />
               </div>
               <div>
                 <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: 'var(--ink2)', marginBottom: 6 }}>Consignee name</label>
-                <Input value={form.consigneeName} onChange={e => setForm(p => ({ ...p, consigneeName: e.target.value }))} />
+                <Input value={form.consigneeName} onChange={e => setForm(p => ({ ...p, consigneeName: e.target.value }))} aria-label="Consignee name" />
               </div>
               <div>
                 <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: 'var(--ink2)', marginBottom: 6 }}>Consignee address</label>
-                <Input value={form.consigneeAddress} onChange={e => setForm(p => ({ ...p, consigneeAddress: e.target.value }))} />
+                <Input value={form.consigneeAddress} onChange={e => setForm(p => ({ ...p, consigneeAddress: e.target.value }))} aria-label="Consignee address" />
               </div>
               <div>
                 <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: 'var(--ink2)', marginBottom: 6 }}>Goods description</label>
-                <Input value={form.goodsDescription} onChange={e => setForm(p => ({ ...p, goodsDescription: e.target.value }))} />
+                <Input value={form.goodsDescription} onChange={e => setForm(p => ({ ...p, goodsDescription: e.target.value }))} aria-label="Goods description" />
               </div>
               <div>
                 <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: 'var(--ink2)', marginBottom: 6 }}>Invoice number</label>
-                <Input value={form.invoiceNumber} onChange={e => setForm(p => ({ ...p, invoiceNumber: e.target.value }))} />
+                <Input value={form.invoiceNumber} onChange={e => setForm(p => ({ ...p, invoiceNumber: e.target.value }))} aria-label="Invoice number" />
               </div>
             </div>
 

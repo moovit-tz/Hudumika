@@ -188,7 +188,7 @@ export const ReportIssuePage: React.FC = () => {
         .ri-page { padding: 0; }
         .ri-grid { display: grid; grid-template-columns: minmax(0, 1.35fr) minmax(0, 1fr); gap: 20px; align-items: start; margin-top: 12px; }
         .ri-card { min-width: 0; background: var(--card-bg, var(--white)); border: 1px solid var(--border);
-                   border-radius: 16px; padding: 24px; box-shadow: 0 4px 20px rgba(0,0,0,0.04); --ctl-h: 44px; }
+                   border-radius: var(--r-lg); padding: 24px; box-shadow: 0 4px 20px rgba(0,0,0,0.04); --ctl-h: 44px; }
         .ri-card .input-field, .ri-card .btn, .ri-card [data-slot="select-trigger"] {
           height: var(--ctl-h); border-radius: var(--r-sm); padding-top: 0; padding-bottom: 0;
         }
@@ -279,7 +279,7 @@ export const ReportIssuePage: React.FC = () => {
                 <div>
                   <label className="ri-lab">Where in the app</label>
                   <Select value={area} onValueChange={setArea}>
-                    <SelectTrigger><SelectValue /></SelectTrigger>
+                    <SelectTrigger aria-label="Where in the app"><SelectValue /></SelectTrigger>
                     <SelectContent>
                       <SelectItem value="Landed Cost calculator">Landed Cost calculator</SelectItem>
                       <SelectItem value="Printed report / PDF">Printed report / PDF</SelectItem>
@@ -333,7 +333,7 @@ export const ReportIssuePage: React.FC = () => {
                     <Icon name={f.type.startsWith('image/') ? 'image' : 'fileText'} size={14} color="var(--teal)" />
                     <span style={{ flex: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', color: 'var(--ink)' }}>{f.name}</span>
                     <span style={{ color: 'var(--ink3)', whiteSpace: 'nowrap' }}>{(f.size / 1024).toFixed(0)} KB</span>
-                    <button type="button" onClick={() => setFiles(fs => fs.filter((_, j) => j !== i))}
+                    <button aria-label={`Remove ${f.name ?? ''}`.trim()} type="button" onClick={() => setFiles(fs => fs.filter((_, j) => j !== i))}
                       style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--red)', display: 'flex' }} data-ui-native-button="">
                       <Icon name="x" size={14} color="var(--red)" />
                     </button>
@@ -399,7 +399,7 @@ export const ReportIssuePage: React.FC = () => {
             <div style={{ marginTop: 18, paddingTop: 16, borderTop: '1px solid var(--border)' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
                 <strong style={{ fontSize: 13, color: 'var(--ink)' }}>{open.ref_number} · thread</strong>
-                <button type="button" onClick={() => setOpen(null)} style={{ background: 'none', border: 'none', cursor: 'pointer', display: 'flex' }} data-ui-native-button="">
+                <button aria-label="Close" type="button" onClick={() => setOpen(null)} style={{ background: 'none', border: 'none', cursor: 'pointer', display: 'flex' }} data-ui-native-button="">
                   <Icon name="x" size={14} color="var(--ink3)" />
                 </button>
               </div>

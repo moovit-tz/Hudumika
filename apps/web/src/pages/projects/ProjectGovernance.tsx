@@ -626,8 +626,7 @@ export const ProjectGovernance: React.FC<ProjectGovernanceProps> = ({
                   value={riskPlan}
                   onChange={(e) => setRiskPlan(e.target.value)}
                   placeholder="Preventative actions and fallback contingencies..."
-                  className="w-full text-xs px-3 py-2 rounded-lg border border-border bg-slate-50 dark:bg-slate-900"
-                />
+                  className="w-full text-xs px-3 py-2 rounded-lg border border-border bg-slate-50 dark:bg-slate-900" aria-label="Mitigation Plan" />
               </div>
 
               <div className="flex justify-end gap-2 pt-2 border-t border-border">
@@ -688,8 +687,7 @@ export const ProjectGovernance: React.FC<ProjectGovernanceProps> = ({
                     type="number"
                     value={issueImpactDays}
                     onChange={(e) => setIssueImpactDays(e.target.value)}
-                    className="w-full text-xs px-3 py-2 rounded-lg border border-border bg-slate-50 dark:bg-slate-900"
-                  />
+                    className="w-full text-xs px-3 py-2 rounded-lg border border-border bg-slate-50 dark:bg-slate-900" aria-label="Schedule Delay (Days)" />
                 </div>
                 <div>
                   <label className="text-xs font-semibold text-foreground block mb-1">
@@ -713,8 +711,7 @@ export const ProjectGovernance: React.FC<ProjectGovernanceProps> = ({
                   value={issueRootCause}
                   onChange={(e) => setIssueRootCause(e.target.value)}
                   placeholder="Primary root cause and corrective action..."
-                  className="w-full text-xs px-3 py-2 rounded-lg border border-border bg-slate-50 dark:bg-slate-900"
-                />
+                  className="w-full text-xs px-3 py-2 rounded-lg border border-border bg-slate-50 dark:bg-slate-900" aria-label="Root Cause Analysis" />
               </div>
 
               <div className="flex justify-end gap-2 pt-2 border-t border-border">
@@ -753,8 +750,7 @@ export const ProjectGovernance: React.FC<ProjectGovernanceProps> = ({
                     value={crNumber}
                     disabled={Boolean(editingCr)}
                     onChange={(e) => setCrNumber(e.target.value)}
-                    className="w-full text-xs px-3 py-2 rounded-lg border border-border bg-slate-50 dark:bg-slate-900 font-mono"
-                  />
+                    className="w-full text-xs px-3 py-2 rounded-lg border border-border bg-slate-50 dark:bg-slate-900 font-mono" aria-label="CR Number" />
                 </div>
                 <div className="col-span-2">
                   <label className="text-xs font-semibold text-foreground block mb-1">
@@ -793,8 +789,7 @@ export const ProjectGovernance: React.FC<ProjectGovernanceProps> = ({
                     value={crScheduleImpact}
                     onChange={(e) => setCrScheduleImpact(e.target.value)}
                     placeholder="14"
-                    className="w-full text-xs px-3 py-2 rounded-lg border border-border bg-slate-50 dark:bg-slate-900"
-                  />
+                    className="w-full text-xs px-3 py-2 rounded-lg border border-border bg-slate-50 dark:bg-slate-900" aria-label="Schedule Impact (Days)" />
                 </div>
               </div>
 

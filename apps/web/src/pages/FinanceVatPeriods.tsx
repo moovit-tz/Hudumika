@@ -224,11 +224,11 @@ export function FinanceVatPeriods() {
           <div style={{ display: 'flex', gap: 12, alignItems: 'flex-end', flexWrap: 'wrap' }}>
             <div>
               <label style={{ fontSize: 10.5, fontWeight: 700, color: 'var(--ink3)', textTransform: 'uppercase', letterSpacing: '0.06em', display: 'block', marginBottom: 4 }}>From</label>
-              <DatePicker date={parseDateOnly(from)} onChange={d => setFrom(toDateOnlyString(d))} />
+              <DatePicker date={parseDateOnly(from)} onChange={d => setFrom(toDateOnlyString(d))} aria-label="From" />
             </div>
             <div>
               <label style={{ fontSize: 10.5, fontWeight: 700, color: 'var(--ink3)', textTransform: 'uppercase', letterSpacing: '0.06em', display: 'block', marginBottom: 4 }}>To</label>
-              <DatePicker date={parseDateOnly(to)} onChange={d => setTo(toDateOnlyString(d))} />
+              <DatePicker date={parseDateOnly(to)} onChange={d => setTo(toDateOnlyString(d))} aria-label="To" />
             </div>
             <Button type="button" size="sm" disabled={busy === 'create'} onClick={create}>
               <Icon name="plus" size={13} /> {busy === 'create' ? 'Creating…' : 'New period'}

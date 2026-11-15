@@ -476,7 +476,7 @@ export function ShiftsPage() {
 
         <div style={{ display: 'flex', gap: 16, alignItems: 'center', flexWrap: 'wrap' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-            <Button size="xs" variant="outline" onClick={() => {
+            <Button aria-label="Previous" size="xs" variant="outline" onClick={() => {
               const d = new Date(startDate);
               d.setDate(d.getDate() - (view === 'week' ? 7 : 30));
               setStartDate(d);
@@ -486,7 +486,7 @@ export function ShiftsPage() {
               {startDate.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })} - {days[days.length-1].toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}
             </span>
             
-            <Button size="xs" variant="outline" onClick={() => {
+            <Button aria-label="Next" size="xs" variant="outline" onClick={() => {
               const d = new Date(startDate);
               d.setDate(d.getDate() + (view === 'week' ? 7 : 30));
               setStartDate(d);
@@ -633,18 +633,18 @@ export function ShiftsPage() {
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(180px, 1fr))', gap: 12, marginBottom: 16 }}>
                   <div>
                     <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: 'var(--ink2)', marginBottom: 6 }}>Start Date</label>
-                    <DatePicker name="startDate" defaultDate={startDate} />
+                    <DatePicker name="startDate" defaultDate={startDate} aria-label="Start Date" />
                   </div>
                   <div>
                     <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: 'var(--ink2)', marginBottom: 6 }}>End Date</label>
-                    <DatePicker name="endDate" defaultDate={days[days.length-1]} />
+                    <DatePicker name="endDate" defaultDate={days[days.length-1]} aria-label="End Date" />
                   </div>
                 </div>
 
                 <div style={{ marginBottom: 24 }}>
                   <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: 'var(--ink2)', marginBottom: 6 }}>Assign Shift</label>
                   <Select name="shiftId" required>
-                    <SelectTrigger className="input-field"><SelectValue placeholder="-- Select Shift --" /></SelectTrigger>
+                    <SelectTrigger className="input-field" aria-label="Assign Shift"><SelectValue placeholder="-- Select Shift --" /></SelectTrigger>
                     <SelectContent>
                       {shiftTypes.map(s => <SelectItem key={s.id} value={s.id}>{s.name} ({s.startTime}-{s.endTime})</SelectItem>)}
                     </SelectContent>
@@ -763,7 +763,7 @@ export function HolidaysPage() {
           }} style={{ padding: 16, display: 'flex', gap: 12, alignItems: 'flex-end', flexWrap: 'wrap' }}>
             <div>
               <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: 'var(--ink2)', marginBottom: 4 }}>Date</label>
-              <DatePicker name="date" triggerClassName="w-auto" />
+              <DatePicker name="date" triggerClassName="w-auto" aria-label="Date" />
             </div>
             <div style={{ flex: 1, minWidth: 180 }}>
               <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: 'var(--ink2)', marginBottom: 4 }}>Holiday Name</label>
@@ -772,7 +772,7 @@ export function HolidaysPage() {
             <div>
               <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: 'var(--ink2)', marginBottom: 4 }}>Type</label>
               <Select name="type" defaultValue="Public">
-                <SelectTrigger style={{ width: 140 }}><SelectValue /></SelectTrigger>
+                <SelectTrigger style={{ width: 140 }} aria-label="Type"><SelectValue /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="Public">Public</SelectItem>
                   <SelectItem value="Company">Company</SelectItem>

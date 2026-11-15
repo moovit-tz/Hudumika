@@ -373,7 +373,7 @@ export function SignPublicPage() {
   // their signed copy, rather than a broken page.
   if (data.already_completed) return (
     <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'var(--bg)', fontFamily: 'var(--font)', padding: 32 }}>
-      <div style={{ background: 'var(--card-bg)', borderRadius: 20, padding: 40, maxWidth: 480, width: '100%', boxShadow: 'var(--elev-lg)', textAlign: 'center' }}>
+      <div style={{ background: 'var(--card-bg)', borderRadius: 'var(--r-lg)', padding: 40, maxWidth: 480, width: '100%', boxShadow: 'var(--elev-lg)', textAlign: 'center' }}>
         <div style={{ width: 64, height: 64, borderRadius: '50%', background: 'var(--sign-green-l)', border: '2px solid var(--sign-green)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 16px' }}>
           <Icon name="checkCircle" size={32} style={{ color: 'var(--sign-green)' }} />
         </div>
@@ -578,14 +578,14 @@ export function SignPublicPage() {
                 </div>
                 {isPdf && pdfNumPages > 1 && (
                   <div style={{ display: 'flex', alignItems: 'center', gap: 8, background: '#1e293b', borderRadius: 'var(--badge-radius)', padding: '3px 10px', flexShrink: 0 }}>
-                    <button onClick={() => setCurrentPdfPage(p => Math.max(1, p - 1))} disabled={currentPdfPage <= 1}
+                    <button aria-label="Previous" onClick={() => setCurrentPdfPage(p => Math.max(1, p - 1))} disabled={currentPdfPage <= 1}
                       style={{ background: 'none', border: 'none', cursor: currentPdfPage <= 1 ? 'default' : 'pointer', opacity: currentPdfPage <= 1 ? 0.3 : 1, display: 'flex', padding: "var(--action-py) var(--space-md)" }} data-ui-native-button="">
                       <Icon name="chevronLeft" size={14} color="#f8fafc" />
                     </button>
                     <span style={{ fontSize: 12, color: '#f8fafc', fontWeight: 600, whiteSpace: 'nowrap', fontFamily: 'var(--font)' }}>
                       {currentPdfPage} / {pdfNumPages}
                     </span>
-                    <button onClick={() => setCurrentPdfPage(p => Math.min(pdfNumPages, p + 1))} disabled={currentPdfPage >= pdfNumPages}
+                    <button aria-label="Next" onClick={() => setCurrentPdfPage(p => Math.min(pdfNumPages, p + 1))} disabled={currentPdfPage >= pdfNumPages}
                       style={{ background: 'none', border: 'none', cursor: currentPdfPage >= pdfNumPages ? 'default' : 'pointer', opacity: currentPdfPage >= pdfNumPages ? 0.4 : 1, display: 'flex', padding: "var(--action-py) var(--space-md)" }} data-ui-native-button="">
                       <Icon name="chevronRight" size={14} color="#f8fafc" />
                     </button>

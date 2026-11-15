@@ -169,7 +169,7 @@ export function MeetingLobby({ title, kind, onJoin, onCancel, hideWorkspaceLinks
                 {/* Microphone toggle */}
                 <Popover>
                   <PopoverTrigger asChild>
-                    <button
+                    <button aria-label={audioEnabled ? 'Mute microphone' : 'Unmute microphone'}
                       type="button"
                       onClick={() => setAudioEnabled(v => !v)}
                       style={{ width: "var(--ctl-h)", height: "var(--ctl-h)", borderRadius: '50%', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', background: audioEnabled ? 'rgba(255,255,255,0.12)' : 'var(--red)', color: audioEnabled ? '#fff' : 'hsl(var(--red-foreground))', transition: 'all 0.15s ease' }}
@@ -186,7 +186,7 @@ export function MeetingLobby({ title, kind, onJoin, onCancel, hideWorkspaceLinks
                 {kind === 'VIDEO' && (
                   <Popover>
                     <PopoverTrigger asChild>
-                      <button
+                      <button aria-label={videoEnabled ? 'Turn camera off' : 'Turn camera on'}
                         type="button"
                         onClick={() => setVideoEnabled(v => !v)}
                         style={{ width: "var(--ctl-h)", height: "var(--ctl-h)", borderRadius: '50%', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', background: videoEnabled ? 'rgba(255,255,255,0.12)' : 'var(--red)', color: videoEnabled ? '#fff' : 'hsl(var(--red-foreground))', transition: 'all 0.15s ease' }}
@@ -294,7 +294,7 @@ export function MeetingLobby({ title, kind, onJoin, onCancel, hideWorkspaceLinks
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
                   <label style={{ fontSize: 10.5, fontWeight: 700, color: 'var(--ink3)' }}>Link NexusHR CRM Candidate</label>
                   <Select value={linkCandidate} onValueChange={setLinkCandidate}>
-                    <SelectTrigger className="h-8 text-xs"><SelectValue /></SelectTrigger>
+                    <SelectTrigger className="h-8 text-xs" aria-label="Link NexusHR CRM Candidate"><SelectValue /></SelectTrigger>
                     <SelectContent>
                       <SelectItem value="none">-- Select Candidate / Employee --</SelectItem>
                       <SelectItem value="viden_remi">Viden Remi (Figma Designer Candidate)</SelectItem>
@@ -308,7 +308,7 @@ export function MeetingLobby({ title, kind, onJoin, onCancel, hideWorkspaceLinks
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
                   <label style={{ fontSize: 10.5, fontWeight: 700, color: 'var(--ink3)' }}>Associate with Bliss Support Ticket</label>
                   <Select value={linkTicket} onValueChange={setLinkTicket}>
-                    <SelectTrigger className="h-8 text-xs"><SelectValue /></SelectTrigger>
+                    <SelectTrigger className="h-8 text-xs" aria-label="Associate with Bliss Support Ticket"><SelectValue /></SelectTrigger>
                     <SelectContent>
                       <SelectItem value="none">-- Select Bliss Ticket --</SelectItem>
                       <SelectItem value="t-10842">#10842 - Figma Component Review</SelectItem>

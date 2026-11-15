@@ -56,7 +56,7 @@ const SUPPORTED_LOCALES = [
 function SelectBox({ checked, onToggle }: { checked: boolean; onToggle: (evt: React.MouseEvent) => void }) {
   return (
     <div onClick={onToggle} role="checkbox" aria-checked={checked} tabIndex={0}
-      style={{ width: 16, height: 16, borderRadius: 4, border: `1.5px solid ${checked ? 'hsl(var(--primary))' : 'var(--border)'}`, background: checked ? 'hsl(var(--primary))' : 'var(--white)', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}>
+      style={{ width: 16, height: 16, borderRadius: 'var(--r-sm)', border: `1.5px solid ${checked ? 'hsl(var(--primary))' : 'var(--border)'}`, background: checked ? 'hsl(var(--primary))' : 'var(--white)', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}>
       {checked && <Icon name="check" size={10} color="hsl(var(--primary-foreground))" />}
     </div>
   );
@@ -154,7 +154,7 @@ function FieldInput({ field, value, onChange, components, componentBlocks, relat
                 placeholder={itemType === 'url' ? 'https://…' : itemType}
                 value={item === undefined || item === null ? '' : String(item)}
                 onChange={e => { const next = [...items]; next[idx] = e.target.value; onChange(next); }} />
-              <button type="button" onClick={() => onChange(items.filter((_, i2) => i2 !== idx))}
+              <button aria-label="Remove" type="button" onClick={() => onChange(items.filter((_, i2) => i2 !== idx))}
                 style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink3)', display: 'flex', flexShrink: 0 }} data-ui-native-button="">
                 <Icon name="x" size={13} />
               </button>
@@ -469,7 +469,7 @@ export function CMSContentEntries() {
                       <td style={{ padding: '11px 16px', width: 34 }}><SelectBox checked={selected.has(e.id)} onToggle={ev => toggleSelect(e.id, ev)} /></td>
                       <td style={{ padding: '11px 16px', fontWeight: 600 }}>{e.title}</td>
                       <td style={{ padding: '11px 16px', color: 'var(--ink3)' }}>
-                        <span style={{ fontSize: 11.5, fontFamily: 'var(--font)', background: 'var(--bg)', padding: '2px 6px', borderRadius: 4 }}>
+                        <span style={{ fontSize: 11.5, fontFamily: 'var(--font)', background: 'var(--bg)', padding: '2px 6px', borderRadius: 'var(--r-sm)' }}>
                           {((e as any).locale || 'EN').toUpperCase()}
                         </span>
                       </td>

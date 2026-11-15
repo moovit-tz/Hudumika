@@ -25,7 +25,7 @@ async function sendViaAfricasTalking(cfg: Record<string, any>, to: string, messa
   const data: any = await res.json().catch(() => ({}));
   const recipient = data?.SMSMessageData?.Recipients?.[0];
   if (res.ok && recipient?.status === 'Success') {
-    console.log(`📱 [SMS sent via Africa's Talking] to=${to} messageId=${recipient.messageId}`);
+    console.log(`📱 [SMS sent via Africa's Talking] messageId=${recipient.messageId}`);
     return { success: true, messageId: recipient.messageId };
   }
   return { success: false, error: recipient?.status || data?.error || `Africa's Talking rejected the request (HTTP ${res.status})` };
@@ -41,7 +41,7 @@ async function sendViaTwilio(cfg: Record<string, any>, to: string, message: stri
   });
   const data: any = await res.json().catch(() => ({}));
   if (res.ok && data?.sid) {
-    console.log(`📱 [SMS sent via Twilio] to=${to} sid=${data.sid}`);
+    console.log(`📱 [SMS sent via Twilio] sid=${data.sid}`);
     return { success: true, messageId: data.sid };
   }
   return { success: false, error: data?.message || `Twilio rejected the request (HTTP ${res.status})` };
@@ -65,7 +65,7 @@ async function sendViaNexmo(cfg: Record<string, any>, to: string, message: strin
   const data: any = await res.json().catch(() => ({}));
   const msg = data?.messages?.[0];
   if (res.ok && msg?.status === '0') {
-    console.log(`📱 [SMS sent via Nexmo] to=${to} messageId=${msg['message-id']}`);
+    console.log(`📱 [SMS sent via Nexmo] messageId=${msg['message-id']}`);
     return { success: true, messageId: msg['message-id'] };
   }
   return { success: false, error: msg?.['error-text'] || `Nexmo rejected the request (status ${msg?.status ?? res.status})` };
@@ -103,7 +103,7 @@ async function sendViaBeem(cfg: Record<string, any>, to: string, message: string
   const data: any = await res.json().catch(() => ({}));
   if (res.ok && (data?.successful || data?.code === 100 || (data?.valid && Number(data.valid) > 0))) {
     const messageId = String(data.request_id || data.message_id || `beem-${Date.now()}`);
-    console.log(`📱 [SMS sent via Beem Africa] to=${to} messageId=${messageId}`);
+    console.log(`📱 [SMS sent via Beem Africa] messageId=${messageId}`);
     return { success: true, messageId };
   }
   return { success: false, error: data?.message || data?.error || `Beem Africa rejected the request (HTTP ${res.status})` };
@@ -163,7 +163,7 @@ export class SmsIntegration {
             .where('tenant_id', '=', tenantId).where('phone_normalized', '=', normalizedTo).executeTakeFirst()
         : undefined;
       if (optedOut) {
-        console.log(`📱 [SMS blocked — opted out] to=${to}`);
+        console.log('📱 [SMS blocked — recipient opted out]');
         return { success: false, error: 'This recipient has opted out of SMS and cannot be messaged.' };
       }
 
@@ -178,7 +178,7 @@ export class SmsIntegration {
 
       if (gateways.length === 0) {
         const reason = opts?.gatewayId ? `SMS gateway ${opts.gatewayId} not found or inactive` : 'No SMS gateway configured for this tenant';
-        console.log(`📱 [SMS not configured] Would send to ${to}: ${message}`);
+        console.log('📱 [SMS not configured] Message was not sent.');
         return { success: false, error: reason };
       }
 
@@ -203,7 +203,7 @@ export class SmsIntegration {
           await trx.updateTable('sms_gateways').set({ last_error: lastError }).where('id', '=', gateway.id).execute().catch(() => {});
         }
       }
-      console.error(`❌ All SMS gateways failed for tenant ${tenantId}: ${lastError}`);
+      console.error(`❌ All SMS gateways failed: ${lastError}`);
       return {
         success: false,
         error: gateways.length > 1 ? `All ${gateways.length} gateways failed — last error: ${lastError}` : lastError,

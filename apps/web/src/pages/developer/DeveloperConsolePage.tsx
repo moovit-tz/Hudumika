@@ -473,7 +473,7 @@ function DeveloperProjectsTab({
           <div className="dev-modal-content" onClick={e => e.stopPropagation()}>
             <div className="dev-modal-hdr">
               <span style={{ fontWeight: 800, fontSize: 15 }}>Create Developer Project</span>
-              <button type="button" onClick={() => setIsModalOpen(false)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink3)' }} data-ui-native-button="">
+              <button aria-label="Close" type="button" onClick={() => setIsModalOpen(false)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink3)' }} data-ui-native-button="">
                 <Icon name="x" size={16} />
               </button>
             </div>
@@ -666,7 +666,7 @@ function DeveloperCredentialsTab({
               <span style={{ fontWeight: 800, fontSize: 15 }}>
                 {newKeyRevealed ? 'API Key Generated' : `Create ${environment} API Key`}
               </span>
-              <button type="button" onClick={() => setIsCreateOpen(false)} style={{ background: 'none', border: 'none', cursor: 'pointer' }} data-ui-native-button="">
+              <button aria-label="Close" type="button" onClick={() => setIsCreateOpen(false)} style={{ background: 'none', border: 'none', cursor: 'pointer' }} data-ui-native-button="">
                 <Icon name="x" size={16} />
               </button>
             </div>
@@ -1125,7 +1125,7 @@ function DeveloperBillingTab({ account }: { account: DeveloperAccount }) {
           <div className="dev-modal-content" onClick={e => e.stopPropagation()}>
             <div className="dev-modal-hdr">
               <span style={{ fontWeight: 800, fontSize: 15 }}>Top Up Prepaid API Balance</span>
-              <button type="button" onClick={() => setIsTopUpOpen(false)} style={{ background: 'none', border: 'none', cursor: 'pointer' }} data-ui-native-button="">
+              <button aria-label="Close" type="button" onClick={() => setIsTopUpOpen(false)} style={{ background: 'none', border: 'none', cursor: 'pointer' }} data-ui-native-button="">
                 <Icon name="x" size={16} />
               </button>
             </div>
@@ -1257,7 +1257,7 @@ function DeveloperOrganizationTab({ account }: { account: DeveloperAccount }) {
           <div className="dev-modal-content" onClick={e => e.stopPropagation()}>
             <div className="dev-modal-hdr">
               <span style={{ fontWeight: 800, fontSize: 15 }}>Add Organization Member</span>
-              <button type="button" onClick={() => setIsInviteOpen(false)} style={{ background: 'none', border: 'none', cursor: 'pointer' }} data-ui-native-button="">
+              <button aria-label="Close" type="button" onClick={() => setIsInviteOpen(false)} style={{ background: 'none', border: 'none', cursor: 'pointer' }} data-ui-native-button="">
                 <Icon name="x" size={16} />
               </button>
             </div>

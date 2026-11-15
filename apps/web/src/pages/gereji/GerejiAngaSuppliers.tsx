@@ -117,7 +117,7 @@ export function GerejiAngaSuppliers() {
                         <td style={{ ...TD, color: 'var(--ink3)' }}>{s.approval_scope ?? '—'}</td>
                         <td style={{ ...TD, textAlign: 'right' }}>
                           <DropdownMenu>
-                            <DropdownMenuTrigger asChild><Button variant="ghost" size="icon"><Icon name="moreHorizontal" size={16} /></Button></DropdownMenuTrigger>
+                            <DropdownMenuTrigger asChild><Button aria-label={`More actions ${s.name ?? ''}`.trim()} variant="ghost" size="icon"><Icon name="moreHorizontal" size={16} /></Button></DropdownMenuTrigger>
                             <DropdownMenuContent align="end">
                               {(TRANSITIONS[s.approval_status] ?? []).map(status => (
                                 <DropdownMenuItem key={status} onClick={() => setApproval(s.id, status)}>Mark {status}</DropdownMenuItem>
@@ -162,10 +162,10 @@ export function GerejiAngaSuppliers() {
           <DialogHeader><DialogTitle>New supplier</DialogTitle></DialogHeader>
           <DialogBody>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-              <div><label style={LABEL}>Name</label><Input value={name} onChange={e => setName(e.target.value)} /></div>
+              <div><label style={LABEL}>Name</label><Input value={name} onChange={e => setName(e.target.value)} aria-label="Name" /></div>
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
-                <div><label style={LABEL}>Contact email</label><Input value={email} onChange={e => setEmail(e.target.value)} /></div>
-                <div><label style={LABEL}>Contact phone</label><Input value={phone} onChange={e => setPhone(e.target.value)} /></div>
+                <div><label style={LABEL}>Contact email</label><Input value={email} onChange={e => setEmail(e.target.value)} aria-label="Contact email" /></div>
+                <div><label style={LABEL}>Contact phone</label><Input value={phone} onChange={e => setPhone(e.target.value)} aria-label="Contact phone" /></div>
               </div>
             </div>
           </DialogBody>

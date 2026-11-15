@@ -306,7 +306,7 @@ export function GuestMeetingRoom({
         <div style={{ position: 'absolute', top: 0, right: 0, bottom: 0, width: 300, maxWidth: '100vw', background: '#1f2937', borderLeft: '1px solid #374151', display: 'flex', flexDirection: 'column' }}>
           <div style={{ padding: '12px 14px', borderBottom: '1px solid #374151', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
             <span style={{ fontSize: 13, fontWeight: 700, color: '#f9fafb' }}>In-call messages</span>
-            <button onClick={() => setChatOpen(false)} style={{ background: 'none', border: 'none', color: '#9ca3af', cursor: 'pointer' }} data-ui-native-button=""><Icon name="x" size={16} /></button>
+            <button aria-label="Close" onClick={() => setChatOpen(false)} style={{ background: 'none', border: 'none', color: '#9ca3af', cursor: 'pointer' }} data-ui-native-button=""><Icon name="x" size={16} /></button>
           </div>
           <div style={{ flex: 1, overflowY: 'auto', padding: 12, display: 'flex', flexDirection: 'column', gap: 8 }}>
             {chat.map((c, i) => (

@@ -338,8 +338,7 @@ export function SignJournalPage() {
               <Textarea
                 required rows={4} value={correctionNote}
                 onChange={e => setCorrectionNote(e.target.value)}
-                placeholder="Explain why this correction is being appended (e.g., Typo in commissioner roll number, clarified firm name…)"
-              />
+                placeholder="Explain why this correction is being appended (e.g., Typo in commissioner roll number, clarified firm name…)" aria-label="Correction / Clarification Note" />
               <div style={{ display: 'flex', alignItems: 'flex-start', gap: 8, marginTop: 10, padding: '8px 12px', background: 'var(--gold-l)', borderRadius: 'var(--r-sm)', fontSize: 12, color: 'var(--ink2)' }}>
                 <Icon name="alertCircle" size={14} style={{ color: 'var(--gold)', flexShrink: 0, marginTop: 1 }} />
                 This correction will be permanently logged under your identity ({user?.name || user?.email}) and timestamped in the audit chain.

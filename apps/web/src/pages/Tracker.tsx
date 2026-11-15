@@ -192,20 +192,20 @@ function generatePDF(result: TrackingResult) {
   .tracking-type { font-size: 10px; font-weight: 700; color: #64748b; text-transform: uppercase; letter-spacing: .1em; margin-bottom: 4px; }
   .tracking-num  { font-size: 26px; font-weight: 900; letter-spacing: .02em; font-family: monospace; color: ${NAVY}; }
   .carrier-line  { font-size: 13px; color: #64748b; margin-top: 4px; }
-  .status-pill   { padding: 5px 14px; border-radius: 20px; font-size: 11px; font-weight: 700; border: 1.5px solid; }
+  .status-pill   { padding: 5px 14px; border-radius: var(--r-lg); font-size: 11px; font-weight: 700; border: 1.5px solid; }
 
-  .journey-box { background: ${NAVY}; border-radius: 12px; padding: 20px 24px; margin-bottom: 22px; color: #f1f5f9; }
+  .journey-box { background: ${NAVY}; border-radius: var(--r); padding: 20px 24px; margin-bottom: 22px; color: #f1f5f9; }
   .journey-route { display: flex; align-items: center; gap: 16px; margin-bottom: 14px; }
   .port { text-align: center; min-width: 70px; }
   .port-code { font-size: 22px; font-weight: 900; font-family: monospace; }
   .port-name { font-size: 10px; color: #64748b; margin-top: 2px; }
-  .track-line  { flex: 1; position: relative; height: 6px; background: rgba(255,255,255,.08); border-radius: 6px; }
-  .track-fill  { height: 100%; background: linear-gradient(90deg,${NAVY2},${BRAND}); border-radius: 6px; }
+  .track-line  { flex: 1; position: relative; height: 6px; background: rgba(255,255,255,.08); border-radius: var(--r-sm); }
+  .track-fill  { height: 100%; background: linear-gradient(90deg,${NAVY2},${BRAND}); border-radius: var(--r-sm); }
   .journey-loc { text-align: center; font-size: 12px; color: #94a3b8; }
   .journey-loc strong { color: #f1f5f9; }
 
   .kpi-grid { display: grid; grid-template-columns: repeat(4,1fr); gap: 12px; margin-bottom: 22px; }
-  .kpi { background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 10px; padding: 12px 14px; }
+  .kpi { background: #f8fafc; border: 1px solid #e2e8f0; border-radius: var(--r); padding: 12px 14px; }
   .kpi-label { font-size: 9px; font-weight: 700; text-transform: uppercase; letter-spacing: .08em; color: #94a3b8; margin-bottom: 4px; }
   .kpi-value { font-size: 17px; font-weight: 800; color: ${NAVY}; }
   .kpi-sub   { font-size: 10px; color: #64748b; margin-top: 2px; }

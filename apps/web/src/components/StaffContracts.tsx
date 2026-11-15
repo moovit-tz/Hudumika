@@ -116,7 +116,7 @@ export function StaffContracts({ userId, canEdit }: { userId: string; canEdit: b
           </div>
           <div>
             <label style={{ fontSize: 11, color: 'var(--ink3)', display: 'block', marginBottom: 4 }}>Starts</label>
-            <DatePicker date={parseDateOnly(form.start_date)} onChange={d => setForm((f: any) => ({ ...f, start_date: toDateOnlyString(d) }))} />
+            <DatePicker date={parseDateOnly(form.start_date)} onChange={d => setForm((f: any) => ({ ...f, start_date: toDateOnlyString(d) }))} aria-label="Starts" />
           </div>
           <div>
             <label style={{ fontSize: 11, color: 'var(--ink3)', display: 'block', marginBottom: 4 }}>

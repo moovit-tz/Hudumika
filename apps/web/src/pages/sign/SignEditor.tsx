@@ -1191,7 +1191,7 @@ export function SignEditor() {
             <>
               <div className="sign-panel-title" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                 <span>AI Scan</span>
-                <Button variant="ghost" size="icon" onClick={() => setAiAssist(null)} style={{ height: "var(--ctl-h-xs)", width: "var(--ctl-h-xs)", minHeight: "var(--ctl-h-xs)", color: 'var(--ink3)' }}><Icon name="x" size={13} /></Button>
+                <Button aria-label="Close" variant="ghost" size="icon" onClick={() => setAiAssist(null)} style={{ height: "var(--ctl-h-xs)", width: "var(--ctl-h-xs)", minHeight: "var(--ctl-h-xs)", color: 'var(--ink3)' }}><Icon name="x" size={13} /></Button>
               </div>
               <div style={{ margin: '0 12px 16px' }}>
                 {!aiAssist.available ? (
@@ -1465,7 +1465,7 @@ export function SignEditor() {
                 <label style={{ fontSize: 11.5, fontWeight: 600, color: 'var(--ink3)', display: 'block', marginBottom: 4 }}>Placeholder Text</label>
                 <Input value={selectedFieldData.placeholder ?? ''}
                   onChange={e => setFields(prev => prev.map(f => f.id === selectedField ? { ...f, placeholder: e.target.value } : f))}
-                  placeholder="e.g. Sign here" />
+                  placeholder="e.g. Sign here" aria-label="Placeholder Text" />
               </div>
               <label style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer' }}>
                 <Checkbox checked={selectedFieldData.required}

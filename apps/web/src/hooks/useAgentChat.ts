@@ -58,7 +58,7 @@ export function useAgentChat() {
       setRunId(res.id);
       apply(res.status, res);
     } catch (err: any) {
-      setError(err?.message || 'Could not reach the AI assistant.');
+      setError(err?.message || 'Could not reach Hudu.');
     } finally {
       setBusy(false);
     }

@@ -1840,7 +1840,7 @@ export const ProductsServices: React.FC = () => {
                         <DropdownMenuTrigger asChild>
                           <button data-ui-native-button=""
                             type="button"
-                            aria-label="More actions"
+                            aria-label={`More actions ${p.name ?? ''}`.trim()}
                             className="w-7 h-7 inline-flex items-center justify-center rounded text-muted-foreground hover:bg-accent hover:text-foreground transition-colors"
                           >
                             <Icon name="moreHorizontal" size={14} />

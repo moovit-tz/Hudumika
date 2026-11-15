@@ -59,11 +59,11 @@ function AddGeofenceModal({ onClose, onAdded }: { onClose: () => void; onAdded: 
         </div>
         <form onSubmit={submit} style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
           <div style={{ display: 'flex', gap: 10 }}>
-            <div style={{ flex: 1 }}><label style={labelStyle}>Name</label><Input required value={name} onChange={e => setName(e.target.value)} /></div>
+            <div style={{ flex: 1 }}><label style={labelStyle}>Name</label><Input required value={name} onChange={e => setName(e.target.value)} aria-label="Name" /></div>
             <div style={{ flex: 1 }}>
               <label style={labelStyle}>Zone type</label>
               <Select value={zoneType} onValueChange={setZoneType}>
-                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectTrigger aria-label="Zone type"><SelectValue /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="CUSTOM">CUSTOM</SelectItem>
                   <SelectItem value="DEPOT">DEPOT</SelectItem>
@@ -72,7 +72,7 @@ function AddGeofenceModal({ onClose, onAdded }: { onClose: () => void; onAdded: 
                 </SelectContent>
               </Select>
             </div>
-            <div style={{ width: 120 }}><label style={labelStyle}>Radius (km)</label><Input type="number" step="0.1" value={radiusKm} onChange={e => setRadiusKm(e.target.value)} /></div>
+            <div style={{ width: 120 }}><label style={labelStyle}>Radius (km)</label><Input type="number" step="0.1" value={radiusKm} onChange={e => setRadiusKm(e.target.value)} aria-label="Radius (km)" /></div>
           </div>
           {error && <div style={{ fontSize: 12, color: 'var(--red)' }}>{error}</div>}
           <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end', marginTop: 4 }}>

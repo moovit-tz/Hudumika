@@ -80,13 +80,13 @@ export const TrackingVehicleNew: React.FC = () => {
       <SectionCard>
       <form onSubmit={submit} style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
         <div style={sectionStyle}>Basics</div>
-        <div><label style={labelStyle}>Name</label><Input required value={name} onChange={e => setName(e.target.value)} placeholder="e.g. Truck 07" /></div>
+        <div><label style={labelStyle}>Name</label><Input required value={name} onChange={e => setName(e.target.value)} placeholder="e.g. Truck 07" aria-label="Name" /></div>
         <div style={{ display: 'flex', gap: 10 }}>
-          <div style={{ flex: 1 }}><label style={labelStyle}>Plate number</label><Input value={plate} onChange={e => setPlate(e.target.value)} placeholder="e.g. T123ABC" /></div>
+          <div style={{ flex: 1 }}><label style={labelStyle}>Plate number</label><Input value={plate} onChange={e => setPlate(e.target.value)} placeholder="e.g. T123ABC" aria-label="Plate number" /></div>
           <div style={{ flex: 1 }}>
             <label style={labelStyle}>Type</label>
             <Select value={type} onValueChange={setType}>
-              <SelectTrigger><SelectValue /></SelectTrigger>
+              <SelectTrigger aria-label="Type"><SelectValue /></SelectTrigger>
               <SelectContent>
                 {VEHICLE_TYPES.map(t => <SelectItem key={t} value={t}>{t}</SelectItem>)}
               </SelectContent>
@@ -97,50 +97,50 @@ export const TrackingVehicleNew: React.FC = () => {
           <div style={{ flex: 1 }}>
             <label style={labelStyle}>Fuel type</label>
             <Select value={fuelType} onValueChange={setFuelType}>
-              <SelectTrigger><SelectValue /></SelectTrigger>
+              <SelectTrigger aria-label="Fuel type"><SelectValue /></SelectTrigger>
               <SelectContent>
                 {FUEL_TYPES.map(t => <SelectItem key={t} value={t}>{t}</SelectItem>)}
               </SelectContent>
             </Select>
           </div>
-          <div style={{ flex: 1 }}><label style={labelStyle}>Fleet group</label><Input value={groupName} onChange={e => setGroupName(e.target.value)} placeholder="e.g. Dar Regional" /></div>
+          <div style={{ flex: 1 }}><label style={labelStyle}>Fleet group</label><Input value={groupName} onChange={e => setGroupName(e.target.value)} placeholder="e.g. Dar Regional" aria-label="Fleet group" /></div>
         </div>
         <div style={{ display: 'flex', gap: 10 }}>
-          <div style={{ flex: 1 }}><label style={labelStyle}>Driver name</label><Input value={driverName} onChange={e => setDriverName(e.target.value)} /></div>
-          <div style={{ flex: 1 }}><label style={labelStyle}>Driver phone</label><Input value={driverPhone} onChange={e => setDriverPhone(e.target.value)} /></div>
+          <div style={{ flex: 1 }}><label style={labelStyle}>Driver name</label><Input value={driverName} onChange={e => setDriverName(e.target.value)} aria-label="Driver name" /></div>
+          <div style={{ flex: 1 }}><label style={labelStyle}>Driver phone</label><Input value={driverPhone} onChange={e => setDriverPhone(e.target.value)} aria-label="Driver phone" /></div>
         </div>
         <div>
           <label style={labelStyle}>Device ID</label>
-          <Input required value={deviceId} onChange={e => setDeviceId(e.target.value)} placeholder="GPS/GPRS device identifier" />
+          <Input required value={deviceId} onChange={e => setDeviceId(e.target.value)} placeholder="GPS/GPRS device identifier" aria-label="Device ID" />
         </div>
 
         <div style={sectionStyle}>Vehicle details</div>
         <div style={{ display: 'flex', gap: 10 }}>
-          <div style={{ flex: 1 }}><label style={labelStyle}>VIN</label><Input title="VIN" value={vin} onChange={e => setVin(e.target.value)} /></div>
-          <div style={{ flex: 1 }}><label style={labelStyle}>Year</label><Input title="Year" type="number" value={year} onChange={e => setYear(e.target.value)} /></div>
+          <div style={{ flex: 1 }}><label style={labelStyle}>VIN</label><Input title="VIN" value={vin} onChange={e => setVin(e.target.value)} aria-label="VIN" /></div>
+          <div style={{ flex: 1 }}><label style={labelStyle}>Year</label><Input title="Year" type="number" value={year} onChange={e => setYear(e.target.value)} aria-label="Year" /></div>
         </div>
         <div style={{ display: 'flex', gap: 10 }}>
-          <div style={{ flex: 1 }}><label style={labelStyle}>Make</label><Input title="Make" value={make} onChange={e => setMake(e.target.value)} /></div>
-          <div style={{ flex: 1 }}><label style={labelStyle}>Model</label><Input title="Model" value={model} onChange={e => setModel(e.target.value)} /></div>
+          <div style={{ flex: 1 }}><label style={labelStyle}>Make</label><Input title="Make" value={make} onChange={e => setMake(e.target.value)} aria-label="Make" /></div>
+          <div style={{ flex: 1 }}><label style={labelStyle}>Model</label><Input title="Model" value={model} onChange={e => setModel(e.target.value)} aria-label="Model" /></div>
         </div>
         <div style={{ display: 'flex', gap: 10 }}>
-          <div style={{ flex: 1 }}><label style={labelStyle}>Trim</label><Input title="Trim" value={trim} onChange={e => setTrim(e.target.value)} /></div>
-          <div style={{ flex: 1 }}><label style={labelStyle}>Color</label><Input title="Color" value={color} onChange={e => setColor(e.target.value)} /></div>
+          <div style={{ flex: 1 }}><label style={labelStyle}>Trim</label><Input title="Trim" value={trim} onChange={e => setTrim(e.target.value)} aria-label="Trim" /></div>
+          <div style={{ flex: 1 }}><label style={labelStyle}>Color</label><Input title="Color" value={color} onChange={e => setColor(e.target.value)} aria-label="Color" /></div>
         </div>
         <div style={{ display: 'flex', gap: 10 }}>
           <div style={{ flex: 1 }}>
             <label style={labelStyle}>Ownership</label>
             <Select value={ownership} onValueChange={setOwnership}>
-              <SelectTrigger><SelectValue /></SelectTrigger>
+              <SelectTrigger aria-label="Ownership"><SelectValue /></SelectTrigger>
               <SelectContent>
                 {OWNERSHIP_TYPES.map(o => <SelectItem key={o} value={o}>{o}</SelectItem>)}
               </SelectContent>
             </Select>
           </div>
-          <div style={{ flex: 1 }}><label style={labelStyle}>Mileage (km)</label><Input title="Mileage (km)" type="number" value={mileageKm} onChange={e => setMileageKm(e.target.value)} /></div>
+          <div style={{ flex: 1 }}><label style={labelStyle}>Mileage (km)</label><Input title="Mileage (km)" type="number" value={mileageKm} onChange={e => setMileageKm(e.target.value)} aria-label="Mileage (km)" /></div>
         </div>
         <div style={{ display: 'flex', gap: 10 }}>
-          <div style={{ flex: 1 }}><label style={labelStyle}>Speed limit (km/h)</label><Input title="Speed limit (km/h)" type="number" min={1} max={300} value={speedLimitKmh} onChange={e => setSpeedLimitKmh(e.target.value)} placeholder="e.g. 80" /></div>
+          <div style={{ flex: 1 }}><label style={labelStyle}>Speed limit (km/h)</label><Input title="Speed limit (km/h)" type="number" min={1} max={300} value={speedLimitKmh} onChange={e => setSpeedLimitKmh(e.target.value)} placeholder="e.g. 80" aria-label="Speed limit (km/h)" /></div>
           <div style={{ flex: 1 }} />
         </div>
 

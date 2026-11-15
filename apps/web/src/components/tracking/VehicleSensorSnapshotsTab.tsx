@@ -1133,7 +1133,7 @@ export function VehicleSensorSnapshotsTab({ vehicleId }: { vehicleId: string }) 
                   {activeChartSensor.code} · Normal Operating Bounds: {activeChartSensor.minSafe} to {activeChartSensor.maxSafe} {activeChartSensor.unit}
                 </div>
               </div>
-              <button data-ui-native-button=""
+              <button aria-label="Close" data-ui-native-button=""
                 onClick={() => setActiveChartSensor(null)}
                 style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink3)' }}
               >
@@ -1245,7 +1245,7 @@ export function VehicleSensorSnapshotsTab({ vehicleId }: { vehicleId: string }) 
                   Configure automatic alerting limits and telematics safety bounds.
                 </div>
               </div>
-              <button data-ui-native-button="" onClick={() => setActiveThresholdSensor(null)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink3)' }}>
+              <button aria-label="Close" data-ui-native-button="" onClick={() => setActiveThresholdSensor(null)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink3)' }}>
                 <Icon name="x" size={16} />
               </button>
             </div>
@@ -1332,7 +1332,7 @@ export function VehicleSensorSnapshotsTab({ vehicleId }: { vehicleId: string }) 
                   Persist a diagnostic snapshot event to the vehicle telematics registry.
                 </div>
               </div>
-              <button data-ui-native-button="" onClick={() => setShowLogSnapshotModal(false)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink3)' }}>
+              <button aria-label="Close" data-ui-native-button="" onClick={() => setShowLogSnapshotModal(false)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink3)' }}>
                 <Icon name="x" size={16} />
               </button>
             </div>
@@ -1342,7 +1342,7 @@ export function VehicleSensorSnapshotsTab({ vehicleId }: { vehicleId: string }) 
                 Protocol / Snapshot Type
               </label>
               <Select value={newSnapshotType} onValueChange={setNewSnapshotType}>
-                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectTrigger aria-label="Protocol / Snapshot Type"><SelectValue /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="OBD2_TELEMETRY">OBD-II / CAN-Bus J1939 Telemetry</SelectItem>
                   <SelectItem value="REEFER_COLD_CHAIN">Cold Chain Temperature Log</SelectItem>
@@ -1422,7 +1422,7 @@ export function VehicleSensorSnapshotsTab({ vehicleId }: { vehicleId: string }) 
                   Recorded at {new Date(rawPayloadSnapshot.recorded_at).toLocaleString()}
                 </div>
               </div>
-              <button data-ui-native-button="" onClick={() => setRawPayloadSnapshot(null)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink3)' }}>
+              <button aria-label="Close" data-ui-native-button="" onClick={() => setRawPayloadSnapshot(null)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink3)' }}>
                 <Icon name="x" size={16} />
               </button>
             </div>

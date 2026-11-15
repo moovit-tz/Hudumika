@@ -2077,7 +2077,7 @@ export const ProjectsApp: React.FC<ProjectsAppProps> = ({ initialMode = 'command
                                 <SelectItem value="completed">Completed</SelectItem>
                               </SelectContent>
                             </Select>
-                            <Button variant="ghost" size="xs" onClick={() => deleteMilestone(ms.id)} style={{ color: 'var(--red)' }}>
+                            <Button aria-label={`Delete ${ms.name ?? ''}`.trim()} variant="ghost" size="xs" onClick={() => deleteMilestone(ms.id)} style={{ color: 'var(--red)' }}>
                               <Icon name="trash" size={13} />
                             </Button>
                           </div>
@@ -2253,7 +2253,7 @@ export const ProjectsApp: React.FC<ProjectsAppProps> = ({ initialMode = 'command
                       <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                         <span style={{ fontSize: 11, color: 'var(--ink3)' }}>{new Date(d.created_at).toLocaleString()}</span>
                         {user?.id === d.author_id && (
-                          <Button variant="ghost" size="xs" onClick={() => removeDiscussion(d.id)} style={{ color: 'var(--red)' }}>
+                          <Button aria-label="Delete" variant="ghost" size="xs" onClick={() => removeDiscussion(d.id)} style={{ color: 'var(--red)' }}>
                             <Icon name="trash" size={12} />
                           </Button>
                         )}
@@ -2471,8 +2471,7 @@ export const ProjectsApp: React.FC<ProjectsAppProps> = ({ initialMode = 'command
             <Input
               value={templateName}
               onChange={e => setTemplateName(e.target.value)}
-              placeholder="e.g. Standard EPC Delivery Template"
-            />
+              placeholder="e.g. Standard EPC Delivery Template" aria-label="Template Name" />
           </DialogBody>
           <DialogFooter>
             <Button variant="outline" size="sm" onClick={() => setSavingTemplate(false)}>Cancel</Button>
@@ -2628,7 +2627,7 @@ function TaskDetailDrawer({
                       <PersonAvatar userId={c.user_id} name={c.name} size={20} />
                       <span>{c.name}</span>
                     </span>
-                    <Button variant="ghost" size="xs" onClick={() => removeCollaborator(c.id)}>
+                    <Button aria-label="Close" variant="ghost" size="xs" onClick={() => removeCollaborator(c.id)}>
                       <Icon name="close" size={12} />
                     </Button>
                   </div>
@@ -2656,7 +2655,7 @@ function TaskDetailDrawer({
                   {deps.blockedBy.map(d => (
                     <div key={d.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: 12 }}>
                       <span>{d.title}</span>
-                      <Button variant="ghost" size="xs" onClick={() => removeDependency(d.id)}>
+                      <Button aria-label="Close" variant="ghost" size="xs" onClick={() => removeDependency(d.id)}>
                         <Icon name="close" size={12} />
                       </Button>
                     </div>

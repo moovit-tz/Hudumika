@@ -611,7 +611,7 @@ export function OneSitePublic() {
                           : f.field_type === 'url' ? <a href={String(value)} target="_blank" rel="noopener noreferrer">{String(value)}</a>
                           : f.field_type === 'color'
                           ? <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}>
-                              <span style={{ display: 'inline-block', width: 16, height: 16, borderRadius: 4, border: '1px solid rgba(0,0,0,.15)', background: String(value) }} />
+                              <span style={{ display: 'inline-block', width: 16, height: 16, borderRadius: 'var(--r-sm)', border: '1px solid rgba(0,0,0,.15)', background: String(value) }} />
                               {String(value)}
                             </span>
                           : f.field_type === 'coordinates'

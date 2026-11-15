@@ -646,8 +646,7 @@ export function BankReconciliation() {
                 <Input
                   value={bankName}
                   onChange={e => setBankName(e.target.value)}
-                  placeholder="e.g. CRDB Main Corporate, NMB Revenue Account"
-                />
+                  placeholder="e.g. CRDB Main Corporate, NMB Revenue Account" aria-label="Bank institution / account name" />
               </div>
 
               <div>
@@ -657,8 +656,7 @@ export function BankReconciliation() {
                 <Input
                   value={accountCode}
                   onChange={e => setAccountCode(e.target.value)}
-                  placeholder="e.g. 1010 (Bank Current Account)"
-                />
+                  placeholder="e.g. 1010 (Bank Current Account)" aria-label="General ledger account code" />
               </div>
 
               <div>

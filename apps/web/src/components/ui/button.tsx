@@ -63,6 +63,17 @@ const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
   ({ className, variant, size, asChild = false, iconOnly = false, loading = false, loadingText, style, title, children, onClick, ...props }, ref) => {
     const Comp = asChild ? Slot : "button"
     const effectiveSize = iconOnly ? "icon" : size
+    // An icon-only button needs a name or a screen reader just says "button"
+    // (design principles §3 Icons). Development-only nudge; wrapping it in
+    // <Tip label="…"> or passing aria-label both satisfy it.
+    const hasTextChild = React.Children.toArray(children).some(c => typeof c === 'string' || typeof c === 'number')
+    const unnamedIcon = effectiveSize === 'icon' && !asChild && !hasTextChild
+      && !props['aria-label'] && !props['aria-labelledby'] && !title
+    React.useEffect(() => {
+      if (import.meta.env.DEV && unnamedIcon) {
+        console.warn('[design-system] Icon-only <Button> has no accessible name. Add aria-label, or wrap it in <Tip label="…">.')
+      }
+    }, [unnamedIcon])
     const padBlock = effectiveSize === 'xs' ? 'var(--ds-btn-py-xs, 3px)' : effectiveSize === 'sm' || effectiveSize === 'icon' ? '0' : 'var(--action-py)'
     // Slot needs exactly one child element, so an asChild button gets the
     // busy semantics and click guard but keeps its child untouched.

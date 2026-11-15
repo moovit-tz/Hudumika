@@ -180,7 +180,7 @@ export const TravelExpenses: React.FC = () => {
                       {money(e.amount, e.currency)}
                     </td>
                     <td>
-                      <Button variant="ghost" size="xs" onClick={() => handleDelete(e.id)}>
+                      <Button aria-label="Delete" variant="ghost" size="xs" onClick={() => handleDelete(e.id)}>
                         <Icon name="trash" size={12} style={{ color: 'var(--red)' }} />
                       </Button>
                     </td>

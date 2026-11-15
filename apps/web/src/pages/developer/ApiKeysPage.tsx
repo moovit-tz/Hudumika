@@ -414,7 +414,7 @@ export const ApiKeysPage: React.FC = () => {
               <div className="api-webhook-field-row">
                 <label className="api-webhook-label">Event Type</label>
                 <Select value={webhookEventType} onValueChange={setWebhookEventType}>
-                  <SelectTrigger className="w-full font-bold"><SelectValue /></SelectTrigger>
+                  <SelectTrigger className="w-full font-bold" aria-label="Event Type"><SelectValue /></SelectTrigger>
                   <SelectContent>
                     <SelectItem value="All Events">All Events</SelectItem>
                     <SelectItem value="Shipment Events">Shipment &amp; Milestone Events</SelectItem>
@@ -590,7 +590,7 @@ export const ApiKeysPage: React.FC = () => {
           <div className="bg-[var(--white)] border border-[var(--border)] rounded-2xl max-w-md w-full p-6 shadow-2xl space-y-4">
             <div className="flex items-center justify-between border-b border-[var(--border)] pb-3">
               <h3 className="text-base font-black text-[var(--ink)]">Register API Integration</h3>
-              <button
+              <button aria-label="Close"
                 type="button"
                 onClick={() => setIsAddModalOpen(false)}
                 className="text-[var(--ink3)] hover:text-[var(--ink)]"
@@ -615,7 +615,7 @@ export const ApiKeysPage: React.FC = () => {
               <div>
                 <label className="font-bold text-[var(--ink2)] block mb-1">Category / Domain</label>
                 <Select value={newIntegrationCategory} onValueChange={setNewIntegrationCategory}>
-                  <SelectTrigger className="w-full font-bold"><SelectValue /></SelectTrigger>
+                  <SelectTrigger className="w-full font-bold" aria-label="Category / Domain"><SelectValue /></SelectTrigger>
                   <SelectContent>
                     <SelectItem value="Logistics">Logistics &amp; Cargo</SelectItem>
                     <SelectItem value="Payments">Payments &amp; Billing</SelectItem>

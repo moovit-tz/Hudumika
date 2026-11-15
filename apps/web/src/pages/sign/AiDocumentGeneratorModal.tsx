@@ -158,14 +158,14 @@ export function AiDocumentGeneratorModal({
 
         <table style="width: 100%; margin-top: 36px; border-collapse: collapse;">
           <tr>
-            <td style="width: 48%; vertical-align: top; padding: 12px; border: 1px dashed #cbd5e1; background: #f8fafc; border-radius: 6px;">
+            <td style="width: 48%; vertical-align: top; padding: 12px; border: 1px dashed #cbd5e1; background: #f8fafc; border-radius: var(--r-sm);">
               <p style="margin: 0 0 8px 0; font-size: 12px; font-weight: bold; color: #0f172a;">FOR AND ON BEHALF OF FIRST PARTY:</p>
               <p style="margin: 0 0 16px 0; font-size: 13px;">${p1}</p>
               <div style="border-bottom: 1px solid #0f172a; margin-bottom: 6px; height: 32px;"></div>
               <p style="margin: 0; font-size: 11px; color: #64748b;">Authorized Signatory / Date</p>
             </td>
             <td style="width: 4%;"></td>
-            <td style="width: 48%; vertical-align: top; padding: 12px; border: 1px dashed #cbd5e1; background: #f8fafc; border-radius: 6px;">
+            <td style="width: 48%; vertical-align: top; padding: 12px; border: 1px dashed #cbd5e1; background: #f8fafc; border-radius: var(--r-sm);">
               <p style="margin: 0 0 8px 0; font-size: 12px; font-weight: bold; color: #0f172a;">FOR AND ON BEHALF OF SECOND PARTY:</p>
               <p style="margin: 0 0 16px 0; font-size: 13px;">${p2}</p>
               <div style="border-bottom: 1px solid #0f172a; margin-bottom: 6px; height: 32px;"></div>
@@ -273,7 +273,7 @@ Tone: ${tone}. Format as clean, structured HTML with proper headings, sections, 
               <Icon name="sparkle" size={14} style={{ color: 'var(--teal)' }} />
               <span>AI-POWERED LEGAL DOCUMENT GENERATOR</span>
             </div>
-            <h2 style={{ fontSize: 20 }}>Create from Blank or AI Assistant</h2>
+            <h2 style={{ fontSize: 20 }}>Create from blank or with Hudu</h2>
             <p style={{ fontSize: 13 }}>
               Specify document type, jurisdiction, and what needs to be included. The AI will draft your legal instrument ready for full editing.
             </p>
@@ -301,8 +301,7 @@ Tone: ${tone}. Format as clean, structured HTML with proper headings, sections, 
               onChange={e => setTitle(e.target.value)}
               placeholder="e.g. Master Services Agreement, Commercial Lease, NDA, Employment Contract..."
               autoFocus
-              style={{ height: "var(--ctl-h)" }}
-            />
+              style={{ height: "var(--ctl-h)" }} aria-label="Document Title / Name" />
           </div>
 
           {/* Row 2: Industry & Document Type */}
@@ -391,8 +390,7 @@ Tone: ${tone}. Format as clean, structured HTML with proper headings, sections, 
                 value={partyOne}
                 onChange={e => setPartyOne(e.target.value)}
                 placeholder="e.g. Acme Logistics Ltd / John Doe"
-                style={{ height: "var(--ctl-h)" }}
-              />
+                style={{ height: "var(--ctl-h)" }} aria-label="First Party (Company / Individual)" />
             </div>
 
             <div>
@@ -403,8 +401,7 @@ Tone: ${tone}. Format as clean, structured HTML with proper headings, sections, 
                 value={partyTwo}
                 onChange={e => setPartyTwo(e.target.value)}
                 placeholder="e.g. Global Freight Partners / Jane Smith"
-                style={{ height: "var(--ctl-h)" }}
-              />
+                style={{ height: "var(--ctl-h)" }} aria-label="Second Party (Counterparty / Client)" />
             </div>
           </div>
 

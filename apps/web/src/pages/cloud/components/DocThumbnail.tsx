@@ -35,7 +35,7 @@ export function DocThumbnail({ type, name, url }: DocThumbnailProps) {
   if (isSheet) {
     return (
       <div style={{ width: '100%', height: '100%', background: '#f8fafc', padding: 10, display: 'flex', flexDirection: 'column', gap: 6, fontSize: 8 }}>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 3, background: 'var(--green)', padding: '4px 6px', borderRadius: 4, color: 'hsl(var(--green-foreground))', fontWeight: 700 }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 3, background: 'var(--green)', padding: '4px 6px', borderRadius: 'var(--r-sm)', color: 'hsl(var(--green-foreground))', fontWeight: 700 }}>
           <span>QTY</span><span>ITEM</span><span>PRICE</span><span>TOTAL</span>
         </div>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 3, background: '#fff', padding: '3px 6px', borderBottom: '1px solid #e2e8f0', color: '#334155' }}>
@@ -57,8 +57,8 @@ export function DocThumbnail({ type, name, url }: DocThumbnailProps) {
         <div style={{ width: '80%', height: 12, background: 'var(--gold)', borderRadius: 3 }} />
         <div style={{ width: '60%', height: 6, background: '#fde68a', borderRadius: 2 }} />
         <div style={{ display: 'flex', gap: 6, width: '100%', marginTop: 6 }}>
-          <div style={{ flex: 1, height: 28, background: '#fef3c7', borderRadius: 4 }} />
-          <div style={{ flex: 1, height: 28, background: '#fef3c7', borderRadius: 4 }} />
+          <div style={{ flex: 1, height: 28, background: '#fef3c7', borderRadius: 'var(--r-sm)' }} />
+          <div style={{ flex: 1, height: 28, background: '#fef3c7', borderRadius: 'var(--r-sm)' }} />
         </div>
       </div>
     );

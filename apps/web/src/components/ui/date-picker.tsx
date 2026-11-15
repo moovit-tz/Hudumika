@@ -255,6 +255,8 @@ export interface DateRangePickerProps {
   className?: string
   triggerClassName?: string
   numberOfMonths?: number
+  /** The field's name for screen readers (the trigger shows the range, not the field name). */
+  "aria-label"?: string
 }
 
 const PRESETS: Array<{ label: string; getRange: () => DateRange | undefined }> = [
@@ -276,6 +278,7 @@ export function DateRangePicker({
   className,
   triggerClassName,
   numberOfMonths = 1,
+  "aria-label": ariaLabel,
 }: DateRangePickerProps) {
   const [open, setOpen] = React.useState(false)
   const label = range?.from
@@ -293,7 +296,7 @@ export function DateRangePicker({
     <Popover open={open} onOpenChange={setOpen}>
       <div className="relative w-full">
         <PopoverTrigger asChild>
-          <button data-ui-field="date" data-field-appearance={/date-picker-seamless|border-0/.test(triggerClassName ?? '') ? 'bare' : undefined} type="button" disabled={disabled} className={cn(triggerClass, range?.from && "pr-9", !range?.from && "text-muted-foreground", triggerClassName)}>
+          <button aria-label={ariaLabel} data-ui-field="date" data-field-appearance={/date-picker-seamless|border-0/.test(triggerClassName ?? '') ? 'bare' : undefined} type="button" disabled={disabled} className={cn(triggerClass, range?.from && "pr-9", !range?.from && "text-muted-foreground", triggerClassName)}>
             <CalendarIcon className="h-4 w-4 shrink-0 opacity-60" />
             <span className="flex-1 truncate">{label}</span>
           </button>

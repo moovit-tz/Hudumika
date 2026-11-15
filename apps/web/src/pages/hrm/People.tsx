@@ -248,7 +248,7 @@ export function EmployeesPage() {
               <div style={{ marginBottom: 24 }}>
                 <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: 'var(--ink)', marginBottom: 4 }}>System Role</label>
                 <Select name="role" required defaultValue="OFFICER">
-                  <SelectTrigger style={{ width: '100%' }}><SelectValue /></SelectTrigger>
+                  <SelectTrigger style={{ width: '100%' }} aria-label="System Role"><SelectValue /></SelectTrigger>
                   <SelectContent>
                     <SelectItem value="OFFICER">Officer</SelectItem>
                     <SelectItem value="SENIOR">Senior Officer</SelectItem>
@@ -761,7 +761,7 @@ export function DeleteRequestsPage() {
             <div>
               <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: 'var(--ink2)', marginBottom: 4 }}>Staff Member</label>
               <Select name="user_id" required>
-                <SelectTrigger style={{ width: 220 }}><SelectValue placeholder="-- Select --" /></SelectTrigger>
+                <SelectTrigger style={{ width: 220 }} aria-label="Staff Member"><SelectValue placeholder="-- Select --" /></SelectTrigger>
                 <SelectContent>
                   {staff.map(s => <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>)}
                 </SelectContent>
@@ -816,7 +816,7 @@ function DeptForm({ staff, initial, onCancel, onSubmit }: {
         <div>
           <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: 'var(--ink2)', marginBottom: 4 }}>Head</label>
           <Select name="head_user_id" defaultValue={initial?.head_user_id || '__none__'}>
-            <SelectTrigger style={{ width: 180 }}><SelectValue /></SelectTrigger>
+            <SelectTrigger style={{ width: 180 }} aria-label="Head"><SelectValue /></SelectTrigger>
             <SelectContent>
               <SelectItem value="__none__">-- None --</SelectItem>
               {staff.map(s => <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>)}
@@ -826,7 +826,7 @@ function DeptForm({ staff, initial, onCancel, onSubmit }: {
         <div>
           <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: 'var(--ink2)', marginBottom: 4 }}>Status</label>
           <Select name="status" defaultValue={initial?.status || 'ACTIVE'}>
-            <SelectTrigger style={{ width: 140 }}><SelectValue /></SelectTrigger>
+            <SelectTrigger style={{ width: 140 }} aria-label="Status"><SelectValue /></SelectTrigger>
             <SelectContent>
               <SelectItem value="ACTIVE">Active</SelectItem>
               <SelectItem value="INACTIVE">Inactive</SelectItem>
@@ -968,7 +968,7 @@ export function TeamsPage() {
             <div>
               <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: 'var(--ink2)', marginBottom: 4 }}>Team Lead</label>
               <Select name="lead_user_id" defaultValue="__none__">
-                <SelectTrigger style={{ width: 180 }}><SelectValue /></SelectTrigger>
+                <SelectTrigger style={{ width: 180 }} aria-label="Team Lead"><SelectValue /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="__none__">-- None --</SelectItem>
                   {staff.map(s => <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>)}

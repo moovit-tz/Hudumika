@@ -253,7 +253,7 @@ const AddAssignmentModal = ({ onClose, onSave }: { onClose: () => void, onSave: 
           </div>
           <div>
             <label style={labelStyle}>Add a comment</label>
-            <Textarea className="min-h-20" placeholder="Type here" value={form.comment} onChange={e => setForm({...form, comment: e.target.value})} />
+            <Textarea className="min-h-20" placeholder="Type here" value={form.comment} onChange={e => setForm({...form, comment: e.target.value})} aria-label="Add a comment" />
           </div>
         </div>
 

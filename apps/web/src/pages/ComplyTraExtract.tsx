@@ -193,7 +193,7 @@ export function ComplyTraExtract() {
                 <div>
                   <label className="comply-label" style={{ fontWeight: 600, display: 'block', marginBottom: 6 }}>Tax Authority</label>
                   <Select value={region} onValueChange={setRegion} disabled={status !== 'idle'}>
-                    <SelectTrigger className="input-field"><SelectValue /></SelectTrigger>
+                    <SelectTrigger className="input-field" aria-label="Tax Authority"><SelectValue /></SelectTrigger>
                     <SelectContent>
                       <SelectItem value="Mainland">Tanzania Revenue Authority (TRA) - Mainland</SelectItem>
                       <SelectItem value="Zanzibar">Zanzibar Revenue Authority (ZRA)</SelectItem>
@@ -209,8 +209,7 @@ export function ComplyTraExtract() {
                     value={tin}
                     onChange={e => setTin(e.target.value)}
                     disabled={status !== 'idle'}
-                    style={{ width: '100%', padding: "var(--ds-input-py) var(--space-md)", border: '1px solid var(--border)', borderRadius: 'var(--r)' }}
-                  />
+                    style={{ width: '100%', padding: "var(--ds-input-py) var(--space-md)", border: '1px solid var(--border)', borderRadius: 'var(--r)' }} aria-label="TIN Number" />
                 </div>
 
                 <div>

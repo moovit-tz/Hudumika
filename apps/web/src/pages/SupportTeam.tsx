@@ -495,7 +495,7 @@ export const SupportTeam: React.FC = () => {
                   <div style={{ fontSize: 12, color: 'var(--ink3)' }}>{selectedAgent.role} • {selectedAgent.department}</div>
                 </div>
               </div>
-              <Button variant="ghost" size="sm" onClick={() => setSelectedAgent(null)} style={{ padding: "var(--ds-btn-py-sm) var(--space-md)" }}>
+              <Button aria-label="Close" variant="ghost" size="sm" onClick={() => setSelectedAgent(null)} style={{ padding: "var(--ds-btn-py-sm) var(--space-md)" }}>
                 <Icon name="close" size={18} />
               </Button>
             </DialogHeader>

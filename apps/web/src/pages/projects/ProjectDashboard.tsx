@@ -569,7 +569,7 @@ export const ProjectDashboard: React.FC = () => {
                   style={{ paddingLeft: 30, height: 'var(--project-control-height)', minHeight: 'var(--project-control-height)', paddingBlock: 0, fontSize: "var(--text-base)" }}
                 />
                 {search && (
-                  <button data-ui-native-button=""
+                  <button aria-label="Close" data-ui-native-button=""
                     onClick={() => setSearch('')}
                     style={{ position: 'absolute', right: 8, top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', color: 'var(--ink3)', cursor: 'pointer', padding: "var(--action-py) var(--space-md)" }}
                   >
@@ -1111,8 +1111,7 @@ export const ProjectDashboard: React.FC = () => {
                   placeholder="e.g. Kilwa Port Berth Extension Project"
                   value={newTitle}
                   onChange={e => setNewTitle(e.target.value)}
-                  maxLength={200}
-                />
+                  maxLength={200} aria-label="Project Name" />
               </div>
 
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
@@ -1121,7 +1120,7 @@ export const ProjectDashboard: React.FC = () => {
                     Industry Pack
                   </label>
                   <Select value={newIndustry} onValueChange={setNewIndustry}>
-                    <SelectTrigger>
+                    <SelectTrigger aria-label="Industry Pack">
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
@@ -1139,7 +1138,7 @@ export const ProjectDashboard: React.FC = () => {
                     Currency
                   </label>
                   <Select value={newCurrency} onValueChange={setNewCurrency}>
-                    <SelectTrigger>
+                    <SelectTrigger aria-label="Currency">
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
@@ -1161,8 +1160,7 @@ export const ProjectDashboard: React.FC = () => {
                     min="0"
                     placeholder="0"
                     value={newBudget}
-                    onChange={e => setNewBudget(e.target.value)}
-                  />
+                    onChange={e => setNewBudget(e.target.value)} aria-label="Baseline Budget (BAC)" />
                 </div>
 
                 <div>
@@ -1174,8 +1172,7 @@ export const ProjectDashboard: React.FC = () => {
                     min="0"
                     placeholder="0"
                     value={newContractVal}
-                    onChange={e => setNewContractVal(e.target.value)}
-                  />
+                    onChange={e => setNewContractVal(e.target.value)} aria-label="Contract Value" />
                 </div>
               </div>
 
@@ -1187,8 +1184,7 @@ export const ProjectDashboard: React.FC = () => {
                   <DatePicker
                     date={parseDateOnly(newStartDate)}
                     onChange={d => setNewStartDate(toDateOnlyString(d))}
-                    placeholder="Start date"
-                  />
+                    placeholder="Start date" aria-label="Start Date" />
                 </div>
 
                 <div>
@@ -1198,8 +1194,7 @@ export const ProjectDashboard: React.FC = () => {
                   <DatePicker
                     date={parseDateOnly(newTargetDate)}
                     onChange={d => setNewTargetDate(toDateOnlyString(d))}
-                    placeholder="Target date"
-                  />
+                    placeholder="Target date" aria-label="Target Completion Date" />
                 </div>
               </div>
 
@@ -1212,8 +1207,7 @@ export const ProjectDashboard: React.FC = () => {
                   rows={3}
                   value={newDescription}
                   onChange={e => setNewDescription(e.target.value)}
-                  maxLength={2000}
-                />
+                  maxLength={2000} aria-label="Scope & Objectives" />
               </div>
             </DialogBody>
 

@@ -16,9 +16,9 @@ export const BlissAICopilot: React.FC = () => {
   return (
     <div style={{ padding: '20px 24px', background: 'transparent', minHeight: '100%', display: 'flex', flexDirection: 'column', gap: 20 }}>
       <PageHeader
-        crumbs={['Bliss', 'AI Copilot']}
-        titlePlain="AI"
-        titleEm="copilot"
+        crumbs={['Bliss', 'Hudu']}
+        titlePlain="Hudu"
+        titleEm="settings"
         subtitle="Configure intent detection, sentiment scoring, and reply suggestions for support conversations."
         actions={
           <Tip label="Knowledge-base training is not connected yet">
@@ -86,7 +86,7 @@ export const BlissAICopilot: React.FC = () => {
           </div>
         </SectionCard>
 
-        <SectionCard title="Copilot Settings">
+        <SectionCard title="Suggestion settings">
           <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
             <div>
               <label style={{ fontSize: 12, fontWeight: 700 }}>Auto-Suggestion Confidence Threshold ({confidenceThreshold}%)</label>
@@ -103,7 +103,7 @@ export const BlissAICopilot: React.FC = () => {
             <div>
               <label style={{ fontSize: 12, fontWeight: 700 }}>Tone & Persona</label>
               <Select value={tone} onValueChange={setTone}>
-                <SelectTrigger className="mt-1 w-full"><SelectValue /></SelectTrigger>
+                <SelectTrigger className="mt-1 w-full" aria-label="Tone & Persona"><SelectValue /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="professional">Professional &amp; Direct (Default)</SelectItem>
                   <SelectItem value="empathetic">Empathetic &amp; Warm</SelectItem>

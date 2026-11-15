@@ -254,7 +254,7 @@ export function SealConsignments() {
         crumbs={['SEAL', 'Gate & Receiving', 'Consignments']}
         titlePlain="Inbound"
         titleEm="Consignments"
-        subtitle="Manage transport documents, pre-arrival manifests, gate-in staging, customs inspections, and warehouse devanning."
+        subtitle="Track transport documents, arrivals, inspections, and warehouse intake."
         actions={
           <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
             <Tip label="Reload consignments" side="bottom">
@@ -302,7 +302,7 @@ export function SealConsignments() {
           className={`seal-kpi-tile${stageTab === 'pre_arrival' ? ' active' : ''}`}
           onClick={() => setStageTab('pre_arrival')}
         >
-          <div className="seal-kpi-tile-icon" style={{ background: 'var(--bg)', color: '#475569' }}>
+          <div className="seal-kpi-tile-icon" style={{ background: 'var(--bg)', color: 'var(--ink2)' }}>
             <Icon name="clock" size={19} />
           </div>
           <div className="seal-kpi-tile-info">
@@ -366,7 +366,7 @@ export function SealConsignments() {
           className={`seal-kpi-tile${stageTab === 'devanning' ? ' active' : ''}`}
           onClick={() => setStageTab('devanning')}
         >
-          <div className="seal-kpi-tile-icon" style={{ background: '#fef3c7', color: 'var(--gold)' }}>
+          <div className="seal-kpi-tile-icon" style={{ background: 'var(--gold-l)', color: 'var(--gold)' }}>
             <Icon name="scale" size={19} />
           </div>
           <div className="seal-kpi-tile-info">
@@ -413,7 +413,7 @@ export function SealConsignments() {
               <TabsTrigger value="holds" style={{ color: 'var(--red)' }}>
                 <Icon name="alertTriangle" size={12} />
                 <span>Issues &amp; Holds</span>
-                <span style={{ fontSize: 11, padding: '1px 6px', borderRadius: 99, background: '#fee2e2', color: 'var(--red)', fontWeight: 700 }}>
+                <span style={{ fontSize: 11, padding: '1px 6px', borderRadius: 99, background: 'var(--red-l)', color: 'var(--red)', fontWeight: 700 }}>
                   {stats.held}
                 </span>
               </TabsTrigger>
@@ -482,7 +482,7 @@ export function SealConsignments() {
               className="input-field"
               value={search}
               onChange={e => setSearch(e.target.value)}
-              placeholder="Search by doc number, client name, cargo, or warehouse bay…"
+              placeholder="Search document, client, cargo, or bay…"
               style={{ width: '100%', boxSizing: 'border-box', paddingLeft: 34, paddingRight: search ? 30 : 12, height: "var(--ctl-h)", fontSize: "var(--text-base)" }}
             />
             {search && (
@@ -616,7 +616,7 @@ export function SealConsignments() {
                   <div style={{ minWidth: 0, flex: 1 }}>
                     <div className="seal-consign-owner-name">{c.owner_name || 'Unassigned Client'}</div>
                   </div>
-                  <span style={{ fontSize: 11, padding: '2px 6px', borderRadius: 4, background: 'rgba(0,0,0,0.04)', color: 'var(--ink3)', fontWeight: 600 }}>
+                  <span style={{ fontSize: 11, padding: '2px 6px', borderRadius: 'var(--r-sm)', background: 'rgba(0,0,0,0.04)', color: 'var(--ink3)', fontWeight: 600 }}>
                     <Icon name="layers" size={10} style={{ display: 'inline', marginRight: 3 }} />
                     {compName}
                   </span>
@@ -721,7 +721,7 @@ export function SealConsignments() {
 
                       {/* Warehouse Bay */}
                       <td>
-                        <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--ink2)', padding: '2px 8px', borderRadius: 4, background: 'var(--bg)' }}>
+                        <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--ink2)', padding: '2px 8px', borderRadius: 'var(--r-sm)', background: 'var(--bg)' }}>
                           {compName}
                         </span>
                       </td>

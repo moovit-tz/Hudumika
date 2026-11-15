@@ -483,13 +483,13 @@ export const ProjectResources: React.FC<ProjectResourcesProps> = ({
                   <label className="text-xs font-semibold text-foreground block mb-1">
                     Start Date
                   </label>
-                  <DatePicker date={parseDateOnly(allocStart)} onChange={date => setAllocStart(toDateOnlyString(date))} placeholder="Start date" />
+                  <DatePicker date={parseDateOnly(allocStart)} onChange={date => setAllocStart(toDateOnlyString(date))} placeholder="Start date" aria-label="Start Date" />
                 </div>
                 <div>
                   <label className="text-xs font-semibold text-foreground block mb-1">
                     End Date
                   </label>
-                  <DatePicker date={parseDateOnly(allocEnd)} onChange={date => setAllocEnd(toDateOnlyString(date))} placeholder="End date" />
+                  <DatePicker date={parseDateOnly(allocEnd)} onChange={date => setAllocEnd(toDateOnlyString(date))} placeholder="End date" aria-label="End Date" />
                 </div>
               </div>
 

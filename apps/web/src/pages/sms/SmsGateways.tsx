@@ -222,7 +222,7 @@ export function SmsGateways() {
             title={`Live Carrier Test — ${testModalGateway.label}`}
             collapsible={false}
             action={
-              <button
+              <button aria-label="Close"
                 onClick={() => setTestModalGateway(null)}
                 style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink3)' }}
                data-ui-native-button="">
@@ -243,8 +243,7 @@ export function SmsGateways() {
                   <Input
                     value={testNumber}
                     onChange={e => setTestNumber(e.target.value)}
-                    placeholder="+255712345678"
-                  />
+                    placeholder="+255712345678" aria-label="Destination Phone Number" />
                 </div>
                 <Button disabled={!testNumber.trim() || testing} onClick={executeTestSend}>
                   <Icon name="send" size={14} /> {testing ? 'Pinging carrier…' : 'Send Test Ping'}
@@ -328,8 +327,7 @@ export function SmsGateways() {
                 value={senderId}
                 onChange={e => setSenderId(e.target.value.toUpperCase())}
                 placeholder="e.g. HUDUMIKA"
-                maxLength={11}
-              />
+                maxLength={11} aria-label="Default Sender ID (Optional)" />
             </div>
 
             {error && <div style={{ color: 'var(--red)', fontSize: 12.5, marginBottom: 14 }}>{error}</div>}
@@ -434,7 +432,7 @@ export function SmsGateways() {
                         >
                           <Icon name="send" size={11} /> Test Ping
                         </Button>
-                        <Button size="sm" variant="ghost" onClick={() => remove(g.id, g.label)}>
+                        <Button aria-label={`Delete ${g.label ?? ''}`.trim()} size="sm" variant="ghost" onClick={() => remove(g.id, g.label)}>
                           <Icon name="trash" size={13} color="var(--red)" />
                         </Button>
                       </div>

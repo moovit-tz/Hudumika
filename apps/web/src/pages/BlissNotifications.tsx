@@ -276,7 +276,7 @@ export function BlissNotifications() {
           className={`bnc-kpi-card${tab === 'task' || tab === 'security' ? ' active' : ''}`}
           onClick={() => switchTab('task')}
         >
-          <div className="bnc-kpi-icon-wrap" style={{ background: '#fef3c7', color: 'var(--gold)' }}>
+          <div className="bnc-kpi-icon-wrap" style={{ background: 'var(--gold-l)', color: 'var(--gold)' }}>
             <Icon name="shield" size={20} />
           </div>
           <div className="bnc-kpi-info">
@@ -407,93 +407,96 @@ export function BlissNotifications() {
                 <span className="bnc-date-badge">{group.items.length}</span>
               </div>
 
-              {group.items.map(n => {
-                const cfg = NOTIF_TYPE_CFG[n.type] ?? NOTIF_TYPE_CFG.info;
-                const isUnread = !n.read;
+              <div className="bnc-group-card">
+                {group.items.map((n, idx) => {
+                  const cfg = NOTIF_TYPE_CFG[n.type] ?? NOTIF_TYPE_CFG.info;
+                  const isUnread = !n.read;
 
-                return (
-                  <div
-                    key={n.id}
-                    className={`bnc-item-row${isUnread ? ' unread' : ''}`}
-                    onClick={() => handleOpenDetail(n)}
-                  >
-                    {isUnread && <div className="bnc-item-left-accent" />}
-
-                    {/* Squircle Icon with Semantic Tint */}
+                  return (
                     <div
-                      className="bnc-item-icon-squircle"
-                      style={{ background: `${cfg.color}15`, color: cfg.color }}
+                      key={n.id}
+                      className={`bnc-item-row${isUnread ? ' unread' : ''}${idx === group.items.length - 1 ? ' is-last' : ''}`}
+                      onClick={() => handleOpenDetail(n)}
                     >
-                      <Icon name={cfg.icon as IconName} size={18} />
-                      {isUnread && <div className="bnc-item-unread-pip" />}
-                    </div>
+                      {isUnread && <div className="bnc-item-left-accent" />}
 
-                    {/* Body Content */}
-                    <div className="bnc-item-content">
-                      <div className="bnc-item-header">
-                        <div className="bnc-item-title-row">
-                          <span
-                            className="bnc-item-type-pill"
-                            style={{ background: `${cfg.color}18`, color: cfg.color }}
-                          >
-                            {n.type ?? 'Alert'}
-                          </span>
-                          <span className={`bnc-item-title${isUnread ? ' bold' : ''}`}>
-                            {n.title}
-                          </span>
-                          {isUnread && (
-                            <Badge variant="error" style={{ fontSize: 9, padding: '1px 5px', height: 18 }}>
-                              NEW
-                            </Badge>
-                          )}
+                      {/* Squircle Icon with Semantic Tint */}
+                      <div
+                        className="bnc-item-icon-squircle"
+                        style={{ background: `${cfg.color}15`, color: cfg.color }}
+                      >
+                        <Icon name={cfg.icon as IconName} size={13} />
+                        {isUnread && <div className="bnc-item-unread-pip" />}
+                      </div>
+
+                      {/* Body Content */}
+                      <div className="bnc-item-content">
+                        <div className="bnc-item-header">
+                          <div className="bnc-item-title-row">
+                            <span
+                              className="bnc-item-type-pill"
+                              style={{ background: `${cfg.color}18`, color: cfg.color }}
+                            >
+                              {n.type ?? 'Alert'}
+                            </span>
+                            <span className={`bnc-item-title${isUnread ? ' bold' : ''}`}>
+                              {n.title}
+                            </span>
+                            {isUnread && (
+                              <Badge variant="error" style={{ fontSize: 8.5, padding: '0 4px', height: 16 }}>
+                                NEW
+                              </Badge>
+                            )}
+                            {n.message && (
+                              <span className="bnc-item-message-inline">
+                                — {n.message}
+                              </span>
+                            )}
+                          </div>
+
+                          <div className="bnc-item-actions-meta">
+                            {n.link && (
+                              n.link.startsWith('/') ? (
+                                <Link
+                                  to={n.link}
+                                  className="bnc-item-link-btn"
+                                  onClick={e => e.stopPropagation()}
+                                >
+                                  <span>Open Resource</span>
+                                  <Icon name="arrowUpRight" size={10} />
+                                </Link>
+                              ) : (
+                                <a
+                                  href={n.link}
+                                  target="_blank"
+                                  rel="noreferrer"
+                                  className="bnc-item-link-btn"
+                                  onClick={e => e.stopPropagation()}
+                                >
+                                  <span>External Link</span>
+                                  <Icon name="arrowUpRight" size={10} />
+                                </a>
+                              )
+                            )}
+
+                            <span className="bnc-item-time">{notifRelTime(n.created_at)}</span>
+
+                            <Tip label={isUnread ? 'Mark as read' : 'Mark as unread'}>
+                              <button data-ui-native-button=""
+                                type="button"
+                                className="bnc-item-action-icon-btn"
+                                onClick={e => toggleItemRead(n, e)}
+                              >
+                                <Icon name={isUnread ? 'check' : 'bell'} size={12} />
+                              </button>
+                            </Tip>
+                          </div>
                         </div>
-                        <span className="bnc-item-time">{notifRelTime(n.created_at)}</span>
-                      </div>
-
-                      {n.message && (
-                        <div className="bnc-item-message">{n.message}</div>
-                      )}
-
-                      {/* Actions & Links */}
-                      <div className="bnc-item-actions-row">
-                        {n.link && (
-                          n.link.startsWith('/') ? (
-                            <Link
-                              to={n.link}
-                              className="bnc-item-link-btn"
-                              onClick={e => e.stopPropagation()}
-                            >
-                              <span>Open Resource</span>
-                              <Icon name="arrowUpRight" size={11} />
-                            </Link>
-                          ) : (
-                            <a
-                              href={n.link}
-                              target="_blank"
-                              rel="noreferrer"
-                              className="bnc-item-link-btn"
-                              onClick={e => e.stopPropagation()}
-                            >
-                              <span>External Link</span>
-                              <Icon name="arrowUpRight" size={11} />
-                            </a>
-                          )
-                        )}
-
-                        <Tip label={isUnread ? 'Mark as read' : 'Mark as unread'}>
-                          <button data-ui-native-button=""
-                            type="button"
-                            className="bnc-item-action-icon-btn"
-                            onClick={e => toggleItemRead(n, e)}
-                          >
-                            <Icon name={isUnread ? 'check' : 'bell'} size={13} />
-                          </button>
-                        </Tip>
                       </div>
                     </div>
-                  </div>
-                );
-              })}
+                  );
+                })}
+              </div>
             </div>
           ))}
 

@@ -75,14 +75,14 @@ function CreateCourseDialog({ onClose, onCreated }: { onClose: () => void; onCre
       <DialogContent className="sm:max-w-md">
         <DialogHeader><DialogTitle>New training course</DialogTitle></DialogHeader>
         <form onSubmit={submit} style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-          <div><label style={lbl}>Title</label><Input required autoFocus value={title} onChange={e => setTitle(e.target.value)} /></div>
+          <div><label style={lbl}>Title</label><Input required autoFocus value={title} onChange={e => setTitle(e.target.value)} aria-label="Title" /></div>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
-            <div><label style={lbl}>Category</label><Input value={category} onChange={e => setCategory(e.target.value)} placeholder="Compliance, Technical…" /></div>
-            <div><label style={lbl}>Provider</label><Input value={provider} onChange={e => setProvider(e.target.value)} /></div>
+            <div><label style={lbl}>Category</label><Input value={category} onChange={e => setCategory(e.target.value)} placeholder="Compliance, Technical…" aria-label="Category" /></div>
+            <div><label style={lbl}>Provider</label><Input value={provider} onChange={e => setProvider(e.target.value)} aria-label="Provider" /></div>
           </div>
-          <div><label style={lbl}>Description</label><Textarea value={description} onChange={e => setDescription(e.target.value)} rows={2} /></div>
+          <div><label style={lbl}>Description</label><Textarea value={description} onChange={e => setDescription(e.target.value)} rows={2} aria-label="Description" /></div>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
-            <div><label style={lbl}>Duration (hours)</label><Input type="number" min={0} value={durationHours} onChange={e => setDurationHours(e.target.value)} /></div>
+            <div><label style={lbl}>Duration (hours)</label><Input type="number" min={0} value={durationHours} onChange={e => setDurationHours(e.target.value)} aria-label="Duration (hours)" /></div>
             <div>
               <label style={{ ...lbl, display: 'flex', alignItems: 'center', gap: 6, cursor: 'pointer' }}>
                 <Checkbox checked={isCert} onCheckedChange={c => setIsCert(c === true)} /> Certification
@@ -292,11 +292,11 @@ function ManageEnrollmentsTab() {
         <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', alignItems: 'flex-end' }}>
           <div style={{ minWidth: 200 }}>
             <label style={lbl}>Employee</label>
-            <Combobox options={staffOptions} value={enrollFor?.userId || ''} onChange={v => setEnrollFor(prev => ({ userId: v, courseId: prev?.courseId || '' }))} placeholder="Select staff…" searchPlaceholder="Search…" emptyText="No staff found" />
+            <Combobox options={staffOptions} value={enrollFor?.userId || ''} onChange={v => setEnrollFor(prev => ({ userId: v, courseId: prev?.courseId || '' }))} placeholder="Select staff…" searchPlaceholder="Search…" emptyText="No staff found" aria-label="Employee" />
           </div>
           <div style={{ minWidth: 200 }}>
             <label style={lbl}>Course</label>
-            <Combobox options={courseOptions} value={enrollFor?.courseId || ''} onChange={v => setEnrollFor(prev => ({ userId: prev?.userId || '', courseId: v }))} placeholder="Select course…" emptyText="No courses yet" />
+            <Combobox options={courseOptions} value={enrollFor?.courseId || ''} onChange={v => setEnrollFor(prev => ({ userId: prev?.userId || '', courseId: v }))} placeholder="Select course…" emptyText="No courses yet" aria-label="Course" />
           </div>
           <Button disabled={!enrollFor?.userId || !enrollFor?.courseId} onClick={enrollSomeone}>Enroll</Button>
         </div>

@@ -391,11 +391,11 @@ export function PettiWalletDetail() {
             </div>
             <div>
               <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: 'var(--ink2)', marginBottom: 6 }}>Reference</label>
-              <Input value={depositForm.reference} onChange={e => setDepositForm(p => ({ ...p, reference: e.target.value }))} placeholder="Bank slip / txn ref" />
+              <Input value={depositForm.reference} onChange={e => setDepositForm(p => ({ ...p, reference: e.target.value }))} placeholder="Bank slip / txn ref" aria-label="Reference" />
             </div>
             <div>
               <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: 'var(--ink2)', marginBottom: 6 }}>Note</label>
-              <Input value={depositForm.note} onChange={e => setDepositForm(p => ({ ...p, note: e.target.value }))} placeholder="Deposit reason" />
+              <Input value={depositForm.note} onChange={e => setDepositForm(p => ({ ...p, note: e.target.value }))} placeholder="Deposit reason" aria-label="Note" />
             </div>
           </div>
           {error && <div style={{ color: 'var(--red)', fontSize: 12.5, marginBottom: 12 }}>{error}</div>}
@@ -419,7 +419,7 @@ export function PettiWalletDetail() {
             </div>
             <div>
               <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: 'var(--ink2)', marginBottom: 6 }}>Note</label>
-              <Input value={transferForm.note} onChange={e => setTransferForm(p => ({ ...p, note: e.target.value }))} placeholder="Reason for transfer" />
+              <Input value={transferForm.note} onChange={e => setTransferForm(p => ({ ...p, note: e.target.value }))} placeholder="Reason for transfer" aria-label="Note" />
             </div>
           </div>
           {error && <div style={{ color: 'var(--red)', fontSize: 12.5, marginBottom: 12 }}>{error}</div>}
@@ -446,7 +446,7 @@ export function PettiWalletDetail() {
             </div>
             <div>
               <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: 'var(--ink2)', marginBottom: 6 }}>Paid to (Payee)</label>
-              <Input value={requestForm.payeeName} onChange={e => setRequestForm(p => ({ ...p, payeeName: e.target.value }))} placeholder="Vendor, driver, supplier…" />
+              <Input value={requestForm.payeeName} onChange={e => setRequestForm(p => ({ ...p, payeeName: e.target.value }))} placeholder="Vendor, driver, supplier…" aria-label="Paid to (Payee)" />
             </div>
             <div style={{ gridColumn: 'span 3' }}>
               <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: 'var(--ink2)', marginBottom: 6 }}>Purpose & Justification *</label>

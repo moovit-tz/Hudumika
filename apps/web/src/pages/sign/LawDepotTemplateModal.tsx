@@ -471,7 +471,7 @@ export function LawDepotTemplateModal({
                       </button>
                     ))}
                   </div>
-                  <Button variant="ghost" size="icon" onClick={() => setPreviewItem(null)}>
+                  <Button aria-label="Close" variant="ghost" size="icon" onClick={() => setPreviewItem(null)}>
                     <Icon name="close" size={16} />
                   </Button>
                 </div>

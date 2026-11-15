@@ -392,8 +392,7 @@ export const RecordContainerPage: React.FC = () => {
                 onChange={(e) => handleContainerNumChange(e.target.value)}
                 placeholder="e.g. MSCU1234567"
                 className="font-mono font-bold tracking-wider"
-                required
-              />
+                required aria-label="Container Number (ISO 6346)" />
               {validationError ? (
                 <p className="text-[11px] font-medium" style={{ color: 'var(--gold)' }}>{validationError}</p>
               ) : (
@@ -540,8 +539,7 @@ export const RecordContainerPage: React.FC = () => {
                   value={formData.floor_type || ''}
                   onChange={(e) => setFormData((p) => ({ ...p, floor_type: e.target.value }))}
                   placeholder="e.g. Apitong Plywood"
-                  className="text-xs"
-                />
+                  className="text-xs" aria-label="Floor Type" />
               </div>
             </div>
 
@@ -553,8 +551,7 @@ export const RecordContainerPage: React.FC = () => {
                   value={formData.manufacturer || ''}
                   onChange={(e) => setFormData((p) => ({ ...p, manufacturer: e.target.value }))}
                   placeholder="e.g. CIMC, Singamas"
-                  className="text-xs"
-                />
+                  className="text-xs" aria-label="Manufacturer" />
               </div>
               <div className="space-y-1.5">
                 <label className="text-xs font-bold text-(--ink2) block">Manufacture Year</label>
@@ -562,8 +559,7 @@ export const RecordContainerPage: React.FC = () => {
                   type="number"
                   value={formData.manufacture_year || ''}
                   onChange={(e) => setFormData((p) => ({ ...p, manufacture_year: parseInt(e.target.value, 10) || 0 }))}
-                  className="font-mono text-xs"
-                />
+                  className="font-mono text-xs" aria-label="Manufacture Year" />
               </div>
               <div className="space-y-1.5">
                 <label className="text-xs font-bold text-(--ink2) block">Design Validity (Years)</label>
@@ -571,8 +567,7 @@ export const RecordContainerPage: React.FC = () => {
                   type="number"
                   value={formData.design_validity_years || ''}
                   onChange={(e) => setFormData((p) => ({ ...p, design_validity_years: parseInt(e.target.value, 10) || 0 }))}
-                  className="font-mono text-xs"
-                />
+                  className="font-mono text-xs" aria-label="Design Validity (Years)" />
               </div>
               <div className="space-y-1.5">
                 <label className="text-xs font-bold text-(--ink2) block">Physical Condition</label>

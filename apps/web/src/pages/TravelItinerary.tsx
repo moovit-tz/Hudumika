@@ -150,7 +150,7 @@ export const TravelItinerary: React.FC = () => {
                     <Badge variant={item.status === 'confirmed' ? 'success' : item.status === 'cancelled' ? 'error' : 'gray'}>
                       {item.status}
                     </Badge>
-                    <Button variant="ghost" size="xs" onClick={() => handleDelete(item.id)}>
+                    <Button aria-label={`Delete ${item.title ?? ''}`.trim()} variant="ghost" size="xs" onClick={() => handleDelete(item.id)}>
                       <Icon name="trash" size={12} style={{ color: 'var(--red)' }} />
                     </Button>
                   </div>

@@ -263,7 +263,7 @@ export function SmsCampaigns() {
               <div>
                 <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: 'var(--ink2)', marginBottom: 6 }}>Start from Template (Optional)</label>
                 <Select value={form.templateId} onValueChange={pickTemplate}>
-                  <SelectTrigger><SelectValue placeholder="Select template…" /></SelectTrigger>
+                  <SelectTrigger aria-label="Start from Template (Optional)"><SelectValue placeholder="Select template…" /></SelectTrigger>
                   <SelectContent>
                     {templates.map(t => (
                       <SelectItem key={t.id} value={t.id}>{t.name}</SelectItem>
@@ -418,12 +418,12 @@ export function SmsCampaigns() {
                             </Button>
                           )}
                           <Link to={`/sms/campaigns/${c.id}`}>
-                            <Button size="sm" variant="ghost">
+                            <Button aria-label="View campaign" size="sm" variant="ghost">
                               <Icon name="eye" size={13} />
                             </Button>
                           </Link>
                           {c.status !== 'sending' && (
-                            <Button size="sm" variant="ghost" onClick={() => handleDelete(c.id, c.name)}>
+                            <Button aria-label="Delete" size="sm" variant="ghost" onClick={() => handleDelete(c.id, c.name)}>
                               <Icon name="trash" size={13} color="var(--red)" />
                             </Button>
                           )}

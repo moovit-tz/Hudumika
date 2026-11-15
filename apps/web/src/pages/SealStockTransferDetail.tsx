@@ -191,8 +191,7 @@ export function SealStockTransferNew() {
                   options={compartments}
                   value={form.fromCompartmentId}
                   onChange={(v: string) => setForm(f => ({ ...f, fromCompartmentId: v }))}
-                  placeholder="Choose origin warehouse"
-                />
+                  placeholder="Choose origin warehouse" aria-label="From Warehouse" />
               </div>
               <div>
                 <label className="seal-field-label" style={{ display: 'block', marginBottom: 6 }}>
@@ -202,8 +201,7 @@ export function SealStockTransferNew() {
                   options={compartments}
                   value={form.toCompartmentId}
                   onChange={(v: string) => setForm(f => ({ ...f, toCompartmentId: v }))}
-                  placeholder="Choose destination warehouse"
-                />
+                  placeholder="Choose destination warehouse" aria-label="To Warehouse" />
               </div>
             </div>
 
@@ -215,8 +213,7 @@ export function SealStockTransferNew() {
                 <Input
                   value={form.fromZone}
                   onChange={e => setForm(f => ({ ...f, fromZone: e.target.value }))}
-                  placeholder="e.g. RECEIVING-A"
-                />
+                  placeholder="e.g. RECEIVING-A" aria-label="From Zone (optional)" />
               </div>
               <div>
                 <label className="seal-field-label" style={{ display: 'block', marginBottom: 6 }}>
@@ -225,8 +222,7 @@ export function SealStockTransferNew() {
                 <Input
                   value={form.toZone}
                   onChange={e => setForm(f => ({ ...f, toZone: e.target.value }))}
-                  placeholder="e.g. BULK-02"
-                />
+                  placeholder="e.g. BULK-02" aria-label="To Zone (optional)" />
               </div>
             </div>
 
@@ -240,8 +236,7 @@ export function SealStockTransferNew() {
                   onChange={date =>
                     setForm(f => ({ ...f, expectedAt: date ? toDateOnlyString(date) : '' }))
                   }
-                  triggerClassName="w-full"
-                />
+                  triggerClassName="w-full" aria-label="Expected Completion Date" />
               </div>
             </div>
 
@@ -253,8 +248,7 @@ export function SealStockTransferNew() {
                 rows={2}
                 value={form.notes}
                 onChange={e => setForm(f => ({ ...f, notes: e.target.value }))}
-                placeholder="Reason for transfer, special handling instructions..."
-              />
+                placeholder="Reason for transfer, special handling instructions..." aria-label="Notes / Justification" />
             </div>
           </div>
         </div>

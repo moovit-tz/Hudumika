@@ -234,14 +234,14 @@ export const RateCardPage: React.FC = () => {
                       <td style={{ ...td, whiteSpace: 'nowrap' }}>
                         {isEditing ? (
                           <div style={{ display: 'flex', gap: 6 }}>
-                            <button type="button" disabled={saving} onClick={() => saveEdit(row)} style={{ background: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))', border: 'none', borderRadius: 'var(--r)', width: 'var(--ctl-h-xs)', height: 'var(--ctl-h-xs)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }} data-ui-native-button=""><Icon name="check" size={13} /></button>
+                            <button aria-label="Save" type="button" disabled={saving} onClick={() => saveEdit(row)} style={{ background: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))', border: 'none', borderRadius: 'var(--r)', width: 'var(--ctl-h-xs)', height: 'var(--ctl-h-xs)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }} data-ui-native-button=""><Icon name="check" size={13} /></button>
                             <button type="button" onClick={cancelEdit} aria-label="Cancel" style={{ background: 'var(--bg)', color: 'var(--ink3)', border: '1px solid var(--border)', borderRadius: 'var(--r)', width: 'var(--ctl-h-xs)', height: 'var(--ctl-h-xs)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }} data-ui-native-button=""><Icon name="x" size={13} /></button>
                           </div>
                         ) : (
                           <div style={{ display: 'flex', gap: 6 }}>
-                            <button type="button" onClick={() => startEdit(row)} style={{ background: 'none', border: '1px solid var(--border)', borderRadius: 'var(--r)', width: 'var(--ctl-h-xs)', height: 'var(--ctl-h-xs)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }} data-ui-native-button=""><Icon name="edit" size={12} color="var(--ink3)" /></button>
+                            <button aria-label="Edit" type="button" onClick={() => startEdit(row)} style={{ background: 'none', border: '1px solid var(--border)', borderRadius: 'var(--r)', width: 'var(--ctl-h-xs)', height: 'var(--ctl-h-xs)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }} data-ui-native-button=""><Icon name="edit" size={12} color="var(--ink3)" /></button>
                             {!row.code && (
-                              <button type="button" onClick={() => removeExtra(row)} style={{ background: 'none', border: '1px solid var(--border)', borderRadius: 'var(--r)', width: 'var(--ctl-h-xs)', height: 'var(--ctl-h-xs)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }} data-ui-native-button=""><Icon name="trash" size={12} color="var(--red)" /></button>
+                              <button aria-label="Delete" type="button" onClick={() => removeExtra(row)} style={{ background: 'none', border: '1px solid var(--border)', borderRadius: 'var(--r)', width: 'var(--ctl-h-xs)', height: 'var(--ctl-h-xs)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }} data-ui-native-button=""><Icon name="trash" size={12} color="var(--red)" /></button>
                             )}
                           </div>
                         )}

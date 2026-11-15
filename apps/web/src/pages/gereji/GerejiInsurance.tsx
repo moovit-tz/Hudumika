@@ -193,7 +193,7 @@ export function GerejiInsurance() {
                           <td style={TD}><Badge variant={CLAIM_BADGE[c.status] ?? 'gray'}>{c.status}</Badge></td>
                           <td style={{ ...TD, textAlign: 'right' }}>
                             <DropdownMenu>
-                              <DropdownMenuTrigger asChild><Button variant="ghost" size="icon"><Icon name="moreHorizontal" size={16} /></Button></DropdownMenuTrigger>
+                              <DropdownMenuTrigger asChild><Button aria-label="More actions" variant="ghost" size="icon"><Icon name="moreHorizontal" size={16} /></Button></DropdownMenuTrigger>
                               <DropdownMenuContent align="end">
                                 {(CLAIM_TRANSITIONS[c.status] ?? []).map(s => (
                                   <DropdownMenuItem key={s} onClick={() => reviewClaim(c.id, s, s === 'approved' ? c.claim_amount : undefined)}>
@@ -222,18 +222,18 @@ export function GerejiInsurance() {
               <div>
                 <label style={LABEL}>Vehicle</label>
                 <Select value={vehicleId} onValueChange={setVehicleId}>
-                  <SelectTrigger><SelectValue placeholder="Select vehicle" /></SelectTrigger>
+                  <SelectTrigger aria-label="Vehicle"><SelectValue placeholder="Select vehicle" /></SelectTrigger>
                   <SelectContent>{vehicles.map(v => <SelectItem key={v.id} value={v.id}>{v.registration} {v.make ? `— ${v.make}` : ''}</SelectItem>)}</SelectContent>
                 </Select>
               </div>
               <EntityPicker label="Policy holder (customer)" value={customer} onChange={setCustomer} search={searchCustomers} entityType="customer" placeholder="Search customers..." />
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
-                <div><label style={LABEL}>Policy number</label><Input value={policyNumber} onChange={e => setPolicyNumber(e.target.value)} /></div>
-                <div><label style={LABEL}>Holder name</label><Input value={holderName} onChange={e => setHolderName(e.target.value)} /></div>
-                <div><label style={LABEL}>Coverage start</label><DatePicker date={parseDateOnly(coverageStart) ?? null} onChange={d => setCoverageStart(toDateOnlyString(d))} /></div>
-                <div><label style={LABEL}>Coverage end</label><DatePicker date={parseDateOnly(coverageEnd) ?? null} onChange={d => setCoverageEnd(toDateOnlyString(d))} /></div>
-                <div><label style={LABEL}>Sum insured</label><Input type="number" min={0} value={sumInsured} onChange={e => setSumInsured(e.target.value)} /></div>
-                <div><label style={LABEL}>Premium</label><Input type="number" min={0} value={premium} onChange={e => setPremium(e.target.value)} /></div>
+                <div><label style={LABEL}>Policy number</label><Input value={policyNumber} onChange={e => setPolicyNumber(e.target.value)} aria-label="Policy number" /></div>
+                <div><label style={LABEL}>Holder name</label><Input value={holderName} onChange={e => setHolderName(e.target.value)} aria-label="Holder name" /></div>
+                <div><label style={LABEL}>Coverage start</label><DatePicker date={parseDateOnly(coverageStart) ?? null} onChange={d => setCoverageStart(toDateOnlyString(d))} aria-label="Coverage start" /></div>
+                <div><label style={LABEL}>Coverage end</label><DatePicker date={parseDateOnly(coverageEnd) ?? null} onChange={d => setCoverageEnd(toDateOnlyString(d))} aria-label="Coverage end" /></div>
+                <div><label style={LABEL}>Sum insured</label><Input type="number" min={0} value={sumInsured} onChange={e => setSumInsured(e.target.value)} aria-label="Sum insured" /></div>
+                <div><label style={LABEL}>Premium</label><Input type="number" min={0} value={premium} onChange={e => setPremium(e.target.value)} aria-label="Premium" /></div>
               </div>
             </div>
           </DialogBody>
@@ -252,13 +252,13 @@ export function GerejiInsurance() {
               <div>
                 <label style={LABEL}>Policy</label>
                 <Select value={claimPolicyId} onValueChange={setClaimPolicyId}>
-                  <SelectTrigger><SelectValue placeholder="Select policy" /></SelectTrigger>
+                  <SelectTrigger aria-label="Policy"><SelectValue placeholder="Select policy" /></SelectTrigger>
                   <SelectContent>{policies.map(p => <SelectItem key={p.id} value={p.id}>{p.policy_number} — {p.holder_name}</SelectItem>)}</SelectContent>
                 </Select>
               </div>
-              <div><label style={LABEL}>Incident date</label><DatePicker date={parseDateOnly(incidentDate) ?? null} onChange={d => setIncidentDate(toDateOnlyString(d))} /></div>
-              <div><label style={LABEL}>Description</label><Input value={claimDesc} onChange={e => setClaimDesc(e.target.value)} placeholder="What happened" /></div>
-              <div><label style={LABEL}>Claim amount</label><Input type="number" min={0} value={claimAmount} onChange={e => setClaimAmount(e.target.value)} /></div>
+              <div><label style={LABEL}>Incident date</label><DatePicker date={parseDateOnly(incidentDate) ?? null} onChange={d => setIncidentDate(toDateOnlyString(d))} aria-label="Incident date" /></div>
+              <div><label style={LABEL}>Description</label><Input value={claimDesc} onChange={e => setClaimDesc(e.target.value)} placeholder="What happened" aria-label="Description" /></div>
+              <div><label style={LABEL}>Claim amount</label><Input type="number" min={0} value={claimAmount} onChange={e => setClaimAmount(e.target.value)} aria-label="Claim amount" /></div>
             </div>
           </DialogBody>
           <DialogFooter>

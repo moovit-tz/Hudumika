@@ -435,7 +435,7 @@ export const OrgShell: React.FC = () => {
               rows={2}
               style={{ flex: 1, resize: 'none', border: '1.5px solid var(--border)', borderRadius: 'var(--r)', padding: "var(--ds-input-py) var(--space-md)", fontSize: "var(--text-base)", fontFamily: 'var(--font)', color: 'var(--ink)', background: 'var(--bg)', outline: 'none', lineHeight: 1.5 }}
             />
-            <button type="button" onClick={submitReply} disabled={!reply.trim() || sendingReply}
+            <button aria-label="Send" type="button" onClick={submitReply} disabled={!reply.trim() || sendingReply}
               style={{ background: reply.trim() && !sendingReply ? 'hsl(var(--primary))' : 'var(--border)', color: reply.trim() && !sendingReply ? 'hsl(var(--primary-foreground))' : 'var(--ink3)', border: 'none', borderRadius: 'var(--r)', width: "var(--ctl-h)", height: "var(--ctl-h)", cursor: reply.trim() && !sendingReply ? 'pointer' : 'default', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }} data-ui-native-button="">
               <Icon name="send" size={18} color="#fff" />
             </button>
@@ -648,7 +648,7 @@ export const OrgShell: React.FC = () => {
                             <Icon name="users" size={15} />
                           </button></Tip>
                         )}
-                        <Tip label="Download"><button type="button" aria-label="Download" onClick={() => downloadDoc(d)}
+                        <Tip label="Download"><button type="button" aria-label={`Download ${d.name ?? ''}`.trim()} onClick={() => downloadDoc(d)}
                           style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: "var(--ctl-h)", height: "var(--ctl-h)", background: 'var(--bg)', border: 'none', borderRadius: 'var(--r)', color: 'var(--teal)', cursor: 'pointer', flexShrink: 0 }} data-ui-native-button="">
                           <Icon name="download" size={15} />
                         </button></Tip>
@@ -772,7 +772,7 @@ export const OrgShell: React.FC = () => {
         <DialogContent hideClose className="max-w-105 gap-0" style={{ padding: 24 }}>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
               <DialogTitle style={{ fontSize: 16, fontWeight: 700, color: 'var(--ink)' }}>Link an Agent</DialogTitle>
-              <button type="button" onClick={() => setShowLinkAgent(false)} style={{ background: 'none', border: 'none', cursor: 'pointer' }} data-ui-native-button="">
+              <button aria-label="Close" type="button" onClick={() => setShowLinkAgent(false)} style={{ background: 'none', border: 'none', cursor: 'pointer' }} data-ui-native-button="">
                 <Icon name="x" size={18} color="var(--ink3)" />
               </button>
             </div>
@@ -798,7 +798,7 @@ export const OrgShell: React.FC = () => {
           {dispatchLot && <>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6 }}>
               <DialogTitle style={{ fontSize: 16, fontWeight: 700, color: 'var(--ink)' }}>Request Dispatch</DialogTitle>
-              <button type="button" onClick={() => setDispatchLot(null)} style={{ background: 'none', border: 'none', cursor: 'pointer' }} data-ui-native-button="">
+              <button aria-label="Close" type="button" onClick={() => setDispatchLot(null)} style={{ background: 'none', border: 'none', cursor: 'pointer' }} data-ui-native-button="">
                 <Icon name="x" size={18} color="var(--ink3)" />
               </button>
             </div>
@@ -837,7 +837,7 @@ export const OrgShell: React.FC = () => {
           {shareDoc && <>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6 }}>
               <DialogTitle style={{ fontSize: 16, fontWeight: 700, color: 'var(--ink)' }}>Manage Sharing</DialogTitle>
-              <button type="button" onClick={() => setShareDoc(null)} style={{ background: 'none', border: 'none', cursor: 'pointer' }} data-ui-native-button="">
+              <button aria-label="Close" type="button" onClick={() => setShareDoc(null)} style={{ background: 'none', border: 'none', cursor: 'pointer' }} data-ui-native-button="">
                 <Icon name="x" size={18} color="var(--ink3)" />
               </button>
             </div>
@@ -873,7 +873,7 @@ export const OrgShell: React.FC = () => {
         <DialogContent hideClose className="max-w-110 gap-0" style={{ padding: 24 }}>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 18 }}>
               <DialogTitle style={{ fontSize: 16, fontWeight: 700, color: 'var(--ink)' }}>New Support Ticket</DialogTitle>
-              <button type="button" onClick={() => setShowNewTicket(false)} style={{ background: 'none', border: 'none', cursor: 'pointer' }} data-ui-native-button="">
+              <button aria-label="Close" type="button" onClick={() => setShowNewTicket(false)} style={{ background: 'none', border: 'none', cursor: 'pointer' }} data-ui-native-button="">
                 <Icon name="x" size={18} color="var(--ink3)" />
               </button>
             </div>

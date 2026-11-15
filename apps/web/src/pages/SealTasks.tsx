@@ -101,7 +101,7 @@ export function SealTasks() {
         crumbs={['SEAL', 'Warehouse Activities']}
         titlePlain="Warehouse"
         titleEm="activities"
-        subtitle="Tasks assigned to real staff — surfaces in their personal Tasks app too, so nothing lives only inside SEAL."
+        subtitle="Assign and track warehouse work. Tasks also appear in the Tasks app."
       />
       <div className="seal-page-hdr">
         <Button type="button" onClick={() => setShowNew(v => !v)}>
@@ -114,12 +114,12 @@ export function SealTasks() {
           <div className="seal-form-grid-2">
             <div className="seal-field-row" style={{ gridColumn: '1 / -1' }}>
               <label className="seal-field-label">Title</label>
-              <Input type="text" value={newTitle} onChange={e => setNewTitle(e.target.value)} placeholder="e.g. Re-stack Rack B-04 after inspection" />
+              <Input type="text" value={newTitle} onChange={e => setNewTitle(e.target.value)} placeholder="e.g. Re-stack Rack B-04 after inspection" aria-label="Title" />
             </div>
             <div className="seal-field-row">
               <label className="seal-field-label">Compartment</label>
               <Select value={newCompartmentId} onValueChange={setNewCompartmentId}>
-                <SelectTrigger className="input-field"><SelectValue placeholder="Any / not compartment-specific" /></SelectTrigger>
+                <SelectTrigger className="input-field" aria-label="Compartment"><SelectValue placeholder="Any / not compartment-specific" /></SelectTrigger>
                 <SelectContent>{compartments.map(c => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}</SelectContent>
               </Select>
             </div>
@@ -143,12 +143,11 @@ export function SealTasks() {
                 onChange={setNewAssignee}
                 placeholder="Unassigned"
                 searchPlaceholder="Search staff…"
-                emptyText="No matching staff."
-              />
+                emptyText="No matching staff." aria-label="Assign To" />
             </div>
             <div className="seal-field-row">
               <label className="seal-field-label">Due Date</label>
-              <DatePicker date={newDue} onChange={setNewDue} />
+              <DatePicker date={newDue} onChange={setNewDue} aria-label="Due Date" />
             </div>
           </div>
           <div style={{ padding: '0 20px 20px' }}>

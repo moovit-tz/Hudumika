@@ -1295,8 +1295,7 @@ export const Leads: React.FC = () => {
                           value={profileForm.assigned_to_id || ''}
                           onChange={v => setProfileForm(p => ({ ...p, assigned_to_id: v, assigned_to_name: staff.find(s => s.value === v)?.label }))}
                           placeholder={staff.length ? 'Unassigned' : 'Loading people…'}
-                          searchPlaceholder="Search people…"
-                        />
+                          searchPlaceholder="Search people…" aria-label="Assigned To" />
                       </div>
                       <div><Label htmlFor="lead-value" className="mb-2 block">Value (TZS)</Label><Input id="lead-value" type="number" min={0} value={profileForm.value ?? 0} onChange={e => setProfileForm(p => ({ ...p, value: Number(e.target.value) }))} /></div>
                       <div><Label htmlFor="lead-source" className="mb-2 block">Source</Label><Select value={profileForm.source || 'Web Form'} onValueChange={source => setProfileForm(p => ({ ...p, source }))}><SelectTrigger id="lead-source"><SelectValue /></SelectTrigger><SelectContent>{[...new Set([...SOURCES, profileForm.source].filter(Boolean))].map(source => <SelectItem key={source} value={source!}>{source}</SelectItem>)}</SelectContent></Select></div>
@@ -1507,7 +1506,7 @@ export const Leads: React.FC = () => {
                   ))}
                   <div>
                     <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: 'var(--ink2)', marginBottom: 5 }}>Expected Close</label>
-                    <DatePicker date={parseDateOnly(addForm.expected_close)} onChange={d => setF('expected_close', toDateOnlyString(d))} />
+                    <DatePicker date={parseDateOnly(addForm.expected_close)} onChange={d => setF('expected_close', toDateOnlyString(d))} aria-label="Expected Close" />
                   </div>
                   <div>
                     <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: 'var(--ink2)', marginBottom: 5 }}>Lead Source</label>
@@ -1545,8 +1544,7 @@ export const Leads: React.FC = () => {
                       value={addForm.assigned_to_id || ''}
                       onChange={v => { setF('assigned_to_id', v); setF('assigned_to_name', staff.find(s => s.value === v)?.label || ''); }}
                       placeholder={staff.length ? 'Unassigned' : 'Loading people…'}
-                      searchPlaceholder="Search people…"
-                    />
+                      searchPlaceholder="Search people…" aria-label="Assign To" />
                   </div>
                   {territories.length > 0 && (
                     <div>
@@ -1851,7 +1849,7 @@ export const Leads: React.FC = () => {
                 ))}
                 <div>
                   <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: 'var(--ink2)', marginBottom: 5 }}>Expected Close</label>
-                  <DatePicker date={parseDateOnly(addForm.expected_close)} onChange={d => setF('expected_close', toDateOnlyString(d))} />
+                  <DatePicker date={parseDateOnly(addForm.expected_close)} onChange={d => setF('expected_close', toDateOnlyString(d))} aria-label="Expected Close" />
                 </div>
                 <div>
                   <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: 'var(--ink2)', marginBottom: 5 }}>Lead Source</label>
@@ -1889,8 +1887,7 @@ export const Leads: React.FC = () => {
                     value={addForm.assigned_to_id || ''}
                     onChange={v => { setF('assigned_to_id', v); setF('assigned_to_name', staff.find(s => s.value === v)?.label || ''); }}
                     placeholder={staff.length ? 'Unassigned' : 'Loading people…'}
-                    searchPlaceholder="Search people…"
-                  />
+                    searchPlaceholder="Search people…" aria-label="Assign To" />
                 </div>
                 {territories.length > 0 && (
                   <div>

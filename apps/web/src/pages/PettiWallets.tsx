@@ -254,11 +254,11 @@ export function PettiWallets() {
             </div>
             <div>
               <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: 'var(--ink2)', marginBottom: 6 }}>Currency Code</label>
-              <Input value={form.currency} onChange={e => setForm(p => ({ ...p, currency: e.target.value.toUpperCase() }))} maxLength={5} placeholder="TZS, USD, KES…" />
+              <Input value={form.currency} onChange={e => setForm(p => ({ ...p, currency: e.target.value.toUpperCase() }))} maxLength={5} placeholder="TZS, USD, KES…" aria-label="Currency Code" />
             </div>
             <div style={{ gridColumn: 'span 3' }}>
               <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: 'var(--ink2)', marginBottom: 6 }}>Description & Purpose</label>
-              <Textarea value={form.description} onChange={e => setForm(p => ({ ...p, description: e.target.value }))} placeholder="Explain what expenses this wallet covers and which team has access" rows={2} />
+              <Textarea value={form.description} onChange={e => setForm(p => ({ ...p, description: e.target.value }))} placeholder="Explain what expenses this wallet covers and which team has access" rows={2} aria-label="Description & Purpose" />
             </div>
           </div>
           {error && <div style={{ color: 'var(--red)', fontSize: 12.5, marginBottom: 12 }}>{error}</div>}
@@ -365,7 +365,7 @@ export function PettiWallets() {
                         <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 6 }}>
                           {canManage && (
                             <>
-                              <Button size="sm" variant="outline" onClick={() => openEditModal(w)}>
+                              <Button aria-label={`Edit ${w.name ?? ''}`.trim()} size="sm" variant="outline" onClick={() => openEditModal(w)}>
                                 <Icon name="edit" size={13} />
                               </Button>
                               <Button size="sm" variant="outline" onClick={() => handleToggleStatus(w)}>
@@ -402,11 +402,11 @@ export function PettiWallets() {
             </div>
             <div>
               <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: 'var(--ink2)', marginBottom: 6 }}>Description</label>
-              <Textarea value={editForm.description} onChange={e => setEditForm(p => ({ ...p, description: e.target.value }))} rows={2} />
+              <Textarea value={editForm.description} onChange={e => setEditForm(p => ({ ...p, description: e.target.value }))} rows={2} aria-label="Description" />
             </div>
             <div>
               <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: 'var(--ink2)', marginBottom: 6 }}>Currency</label>
-              <Input value={editForm.currency} disabled />
+              <Input value={editForm.currency} disabled aria-label="Currency" />
               <p style={{ margin: '5px 0 0 0', fontSize: 11, color: 'var(--ink3)' }}>
                 Currency cannot be altered after a wallet has been created to preserve transaction integrity.
               </p>

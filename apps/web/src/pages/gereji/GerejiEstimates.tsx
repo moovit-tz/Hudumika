@@ -149,7 +149,7 @@ export function GerejiEstimates() {
                           <td style={{ ...TD, color: 'var(--ink3)' }}>{formatDate(r.created_at)}</td>
                           <td style={{ ...TD, textAlign: 'right' }} onClick={e => e.stopPropagation()}>
                             <DropdownMenu>
-                              <DropdownMenuTrigger asChild><Button variant="ghost" size="icon"><Icon name="moreHorizontal" size={16} /></Button></DropdownMenuTrigger>
+                              <DropdownMenuTrigger asChild><Button aria-label="More actions" variant="ghost" size="icon"><Icon name="moreHorizontal" size={16} /></Button></DropdownMenuTrigger>
                               <DropdownMenuContent align="end">
                                 {r.status === 'draft' && <DropdownMenuItem onClick={() => transition(r.id, 'sent')}>Send to customer</DropdownMenuItem>}
                                 {r.status === 'sent' && <DropdownMenuItem onClick={() => transition(r.id, 'approved')}>Approve</DropdownMenuItem>}
@@ -204,7 +204,7 @@ export function GerejiEstimates() {
               <div>
                 <label style={{ fontSize: 12, fontWeight: 600, color: 'var(--ink3)', display: 'block', marginBottom: 4 }}>Vehicle</label>
                 <Select value={vehicleId} onValueChange={setVehicleId}>
-                  <SelectTrigger><SelectValue placeholder="Select vehicle" /></SelectTrigger>
+                  <SelectTrigger aria-label="Vehicle"><SelectValue placeholder="Select vehicle" /></SelectTrigger>
                   <SelectContent>
                     {vehicles.map(v => <SelectItem key={v.id} value={v.id}>{v.registration} {v.make ? `— ${v.make} ${v.model ?? ''}` : ''}</SelectItem>)}
                   </SelectContent>
@@ -213,7 +213,7 @@ export function GerejiEstimates() {
 
               <div>
                 <label style={{ fontSize: 12, fontWeight: 600, color: 'var(--ink3)', display: 'block', marginBottom: 4 }}>Notes</label>
-                <Textarea value={notes} onChange={e => setNotes(e.target.value)} placeholder="Additional notes..." rows={2} />
+                <Textarea value={notes} onChange={e => setNotes(e.target.value)} placeholder="Additional notes..." rows={2} aria-label="Notes" />
               </div>
 
               <div>
@@ -232,7 +232,7 @@ export function GerejiEstimates() {
                     <Input placeholder="Description" value={l.description} onChange={e => updateLine(i, { description: e.target.value })} />
                     <Input type="number" min={1} value={l.quantity} onChange={e => updateLine(i, { quantity: Number(e.target.value) || 1 })} />
                     <Input type="number" min={0} value={l.unit_price} onChange={e => updateLine(i, { unit_price: Number(e.target.value) || 0 })} />
-                    <Button variant="ghost" size="icon" onClick={() => setLines(prev => prev.filter((_, j) => j !== i))} disabled={lines.length === 1}>
+                    <Button aria-label="Close" variant="ghost" size="icon" onClick={() => setLines(prev => prev.filter((_, j) => j !== i))} disabled={lines.length === 1}>
                       <Icon name="close" size={14} />
                     </Button>
                   </div>

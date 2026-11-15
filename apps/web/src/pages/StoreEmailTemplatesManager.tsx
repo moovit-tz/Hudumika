@@ -254,7 +254,7 @@ function preparePreviewHtml(rawHtml: string): string {
   table table {
     max-width: 100% !important;
     width: 560px !important;
-    border-radius: 10px !important;
+    border-radius: var(--r) !important;
     overflow: hidden !important;
     margin: 0 auto !important;
     text-align: left !important;

@@ -866,7 +866,7 @@ function CreateTaskModal({ open, onClose, defaultListId, lists }: {
             <div>
               <label className="text-xs font-bold text-muted-foreground block mb-1.5">Task List</label>
               <Select value={listId} onValueChange={setListId}>
-                <SelectTrigger className="w-full text-xs h-9"><SelectValue /></SelectTrigger>
+                <SelectTrigger className="w-full text-xs h-9" aria-label="Task List"><SelectValue /></SelectTrigger>
                 <SelectContent>
                   {lists.map((l: any) => (
                     <SelectItem key={l.id} value={l.id}>{l.name}</SelectItem>
@@ -909,8 +909,7 @@ function CreateTaskModal({ open, onClose, defaultListId, lists }: {
                 date={parseDateOnly(due)}
                 onChange={d => setDue(toDateOnlyString(d))}
                 placeholder="Select date"
-                triggerClassName="w-full h-9 text-xs"
-              />
+                triggerClassName="w-full h-9 text-xs" aria-label="Due Date" />
             </div>
           </div>
 
@@ -1343,7 +1342,7 @@ function TaskRow({ todo, list, expanded, onToggleExpand, newSubtaskTitle, setNew
               triggerStyle={{
                 background: 'var(--card-bg, #ffffff)',
                 border: '1px solid var(--border)',
-                borderRadius: '8px',
+                borderRadius: 'var(--r)',
                 cursor: 'pointer',
                 color: 'var(--ink2)',
                 padding: '4px 10px',
@@ -1444,7 +1443,7 @@ function TaskRow({ todo, list, expanded, onToggleExpand, newSubtaskTitle, setNew
                 <span key={tag} className="task-tag-chip">
                   #{tag}
                   {!readOnly && (
-                    <button
+                    <button aria-label="Remove"
                       type="button"
                       onClick={() => removeTag(tag)}
                       className="hover:text-red-500 cursor-pointer p-0.5 ml-0.5"

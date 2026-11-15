@@ -92,13 +92,13 @@ export function LexCoreClients() {
           <form onSubmit={handleCreate}>
             <DialogBody>
               <div className="lc-form-grid">
-                <div className="lc-field lc-field-full"><label>Name</label><Input value={name} onChange={e => setName(e.target.value)} placeholder="Client name" /></div>
+                <div className="lc-field lc-field-full"><label>Name</label><Input value={name} onChange={e => setName(e.target.value)} placeholder="Client name" aria-label="Name" /></div>
                 <div className="lc-field"><label>Type</label>
-                  <Select value={type} onValueChange={setType}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent>{CLIENT_TYPES.map(t => <SelectItem key={t} value={t}>{t}</SelectItem>)}</SelectContent></Select>
+                  <Select value={type} onValueChange={setType}><SelectTrigger aria-label="Type"><SelectValue /></SelectTrigger><SelectContent>{CLIENT_TYPES.map(t => <SelectItem key={t} value={t}>{t}</SelectItem>)}</SelectContent></Select>
                 </div>
-                <div className="lc-field"><label>Email</label><Input type="email" value={email} onChange={e => setEmail(e.target.value)} placeholder="email@example.com" /></div>
-                <div className="lc-field"><label>Phone</label><Input value={phone} onChange={e => setPhone(e.target.value)} placeholder="+255…" /></div>
-                <div className="lc-field lc-field-full"><label>Address</label><Input value={address} onChange={e => setAddress(e.target.value)} placeholder="Physical address" /></div>
+                <div className="lc-field"><label>Email</label><Input type="email" value={email} onChange={e => setEmail(e.target.value)} placeholder="email@example.com" aria-label="Email" /></div>
+                <div className="lc-field"><label>Phone</label><Input value={phone} onChange={e => setPhone(e.target.value)} placeholder="+255…" aria-label="Phone" /></div>
+                <div className="lc-field lc-field-full"><label>Address</label><Input value={address} onChange={e => setAddress(e.target.value)} placeholder="Physical address" aria-label="Address" /></div>
               </div>
             </DialogBody>
             <DialogFooter><Button type="submit" loading={saving} disabled={!name.trim()} loadingText="Saving…">Create</Button></DialogFooter>

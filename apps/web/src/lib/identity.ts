@@ -61,12 +61,54 @@ const avatarCache = new Map<string, Promise<string | null>>();
  */
 const cacheKey = (id: string, kind: SubjectKind) => `${kind}:${id}`;
 
+/**
+ * "Does this subject have a picture?" — answered in batches.
+ *
+ * Every avatar asked for within the same tick (a list page renders dozens at
+ * once) is collected per kind and settled by one POST /identity/avatars/present.
+ * If that call fails, answer "maybe" (true) so the per-picture fetch still
+ * runs and nothing that has a photo is drawn as initials.
+ */
+const presenceQueue = new Map<SubjectKind, Map<string, (has: boolean) => void>>();
+let presenceTimer: ReturnType<typeof setTimeout> | null = null;
+
+function hasAvatar(id: string, kind: SubjectKind): Promise<boolean> {
+  return new Promise(resolve => {
+    let byId = presenceQueue.get(kind);
+    if (!byId) { byId = new Map(); presenceQueue.set(kind, byId); }
+    const prev = byId.get(id);
+    byId.set(id, prev ? (has => { prev(has); resolve(has); }) : resolve);
+    if (!presenceTimer) presenceTimer = setTimeout(flushPresence, 16);
+  });
+}
+
+function flushPresence(): void {
+  presenceTimer = null;
+  const batches = [...presenceQueue.entries()];
+  presenceQueue.clear();
+  for (const [kind, byId] of batches) {
+    const ids = [...byId.keys()];
+    for (let i = 0; i < ids.length; i += 500) {
+      const chunk = ids.slice(i, i + 500);
+      apiFetch('/v1/identity/avatars/present', { method: 'POST', body: JSON.stringify({ kind, ids: chunk }) })
+        .then((r: { ids?: string[] }) => {
+          const yes = new Set(r?.ids ?? []);
+          chunk.forEach(id => byId.get(id)!(yes.has(id)));
+        })
+        .catch(() => chunk.forEach(id => byId.get(id)!(true)));
+    }
+  }
+}
+
 export function avatarObjectUrl(id: string, kind: SubjectKind = 'people'): Promise<string | null> {
   const key = cacheKey(id, kind);
   const hit = avatarCache.get(key);
   if (hit) return hit;
 
   const p = (async () => {
+    // Most people never set a photo. Ask once per batch who has one, and
+    // only fetch those — the rest draw initials without a request each.
+    if (!(await hasAvatar(id, kind))) return null;
     try {
       const res = await apiFetchRaw(`/v1/identity/${kind}/${id}/avatar`);
       return URL.createObjectURL(await res.blob());

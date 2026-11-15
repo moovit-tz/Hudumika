@@ -123,7 +123,7 @@ export function SealReceiveLot() {
           <div className="seal-field-row">
             <label className="seal-field-label">Compartment</label>
             <Select value={compartmentId} onValueChange={setCompartmentId}>
-              <SelectTrigger className="input-field"><SelectValue placeholder="Choose a compartment" /></SelectTrigger>
+              <SelectTrigger className="input-field" aria-label="Compartment"><SelectValue placeholder="Choose a compartment" /></SelectTrigger>
               <SelectContent>
                 {compartments.map(c => <SelectItem key={c.id} value={c.id}>{c.name} ({c.code})</SelectItem>)}
               </SelectContent>
@@ -138,8 +138,7 @@ export function SealReceiveLot() {
               onChange={setOwnerId}
               placeholder="Search CRM clients…"
               searchPlaceholder="Search…"
-              emptyText="No matching clients."
-            />
+              emptyText="No matching clients." aria-label="Owner" />
           </div>
 
           <div className="seal-field-row">
@@ -186,7 +185,7 @@ export function SealReceiveLot() {
           <div className="seal-field-row">
             <label className="seal-field-label">Location</label>
             <Select value={locationId} onValueChange={setLocationId} disabled={!compartmentId}>
-              <SelectTrigger className="input-field"><SelectValue placeholder={compartmentId ? 'Choose a location' : 'Choose a compartment first'} /></SelectTrigger>
+              <SelectTrigger className="input-field" aria-label="Location"><SelectValue placeholder={compartmentId ? 'Choose a location' : 'Choose a compartment first'} /></SelectTrigger>
               <SelectContent>
                 {locations.map(l => <SelectItem key={l.id} value={l.id}>{l.code}</SelectItem>)}
               </SelectContent>
@@ -256,12 +255,12 @@ export function SealReceiveLot() {
           <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: 14 }}>
             <div className="seal-field-row">
               <label className="seal-field-label">Warehoused On</label>
-              <DatePicker date={warehousedOn} onChange={setWarehousedOn} />
+              <DatePicker date={warehousedOn} onChange={setWarehousedOn} aria-label="Warehoused On" />
             </div>
             {customsStatus === 'FOREIGN_DUTY_SUSPENDED' && (
               <div className="seal-field-row">
                 <label className="seal-field-label">Storage Expires On</label>
-                <DatePicker date={expiresOn} onChange={setExpiresOn} />
+                <DatePicker date={expiresOn} onChange={setExpiresOn} aria-label="Storage Expires On" />
               </div>
             )}
           </div>

@@ -1856,7 +1856,7 @@ export const LandedCostPage: React.FC = () => {
            whole page sideways instead of scrolling inside its own box. */
         .lcp-layout { display: grid; grid-template-columns: 280px minmax(0, 1fr); gap: 24px; align-items: start; margin-top: 12px; }
         .lcp-actions { display: flex; gap: 8px; flex-wrap: wrap; }
-        .lcp-card { min-width: 0; background: var(--card-bg, var(--white)); border: 1px solid var(--border); border-radius: 16px; padding: 28px; box-shadow: 0 4px 20px rgba(0,0,0,0.04); }
+        .lcp-card { min-width: 0; background: var(--card-bg, var(--white)); border: 1px solid var(--border); border-radius: var(--r-lg); padding: 28px; box-shadow: 0 4px 20px rgba(0,0,0,0.04); }
         .lcp-btn-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
         /* auto-fit, not a fixed count: the results row grew from two actions
            to four, and a hardcoded repeat(3) would have wrapped the fourth
@@ -1993,7 +1993,7 @@ export const LandedCostPage: React.FC = () => {
           .lcp-step-mobile { display: block; padding: 16px 14px; }
         }
         @media (max-width: 520px) {
-          .lcp-card { padding: 18px; border-radius: 12px; }
+          .lcp-card { padding: 18px; border-radius: var(--r); }
           .lcp-actions { width: 100%; }
           .lcp-actions > button { flex: 1 1 auto; justify-content: center; }
         }
@@ -2325,7 +2325,7 @@ export const LandedCostPage: React.FC = () => {
                                 onCheckedChange={c => updateRow(row.id, { excluded: c !== true })} />
                               {row.excluded ? 'Excluded' : 'Include'}
                             </label>
-                            <button type="button" onClick={() => removeRow(row.id)} disabled={multiItems.length === 1}
+                            <button aria-label="Delete" type="button" onClick={() => removeRow(row.id)} disabled={multiItems.length === 1}
                               style={{ background: 'none', border: 'none', cursor: multiItems.length === 1 ? 'default' : 'pointer', opacity: multiItems.length === 1 ? 0.3 : 1, color: 'var(--red)', display: 'flex', alignItems: 'center' }} data-ui-native-button="">
                               <Icon name="trash" size={13} color="var(--red)" />
                             </button>
@@ -2850,7 +2850,7 @@ export const LandedCostPage: React.FC = () => {
                         <div style={{ padding: '14px 18px', background: 'var(--teal-l)', borderBottom: '1px solid var(--border)', display: 'flex', alignItems: 'center', gap: 8 }}>
                           <Icon name="sparkle" size={16} color="var(--teal)" />
                           <span style={{ fontSize: 13.5, fontWeight: 700, color: 'var(--ink)' }}>AI Analysis</span>
-                          <button type="button" onClick={() => setSummary('')} style={{ marginLeft: 'auto', background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink3)', fontSize: "var(--text-base)", padding: 0, display: 'flex', alignItems: 'center' }} data-ui-native-button="">
+                          <button aria-label="Close" type="button" onClick={() => setSummary('')} style={{ marginLeft: 'auto', background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink3)', fontSize: "var(--text-base)", padding: 0, display: 'flex', alignItems: 'center' }} data-ui-native-button="">
                             <Icon name="close" size={14} color="var(--ink3)" />
                           </button>
                         </div>

@@ -750,8 +750,8 @@ export function Pipeline() {
                       {q.attainment_pct ?? '—'}%
                     </span>
                   </div>
-                  <div style={{ height: 5, background: 'var(--bg)', borderRadius: 4, overflow: 'hidden' }}>
-                    <div style={{ height: '100%', width: `${pct}%`, background: over ? 'var(--green)' : q.attainment_pct >= 75 ? 'var(--gold)' : 'hsl(var(--primary))', borderRadius: 4, transition: 'width .3s' }} />
+                  <div style={{ height: 5, background: 'var(--bg)', borderRadius: 'var(--r-sm)', overflow: 'hidden' }}>
+                    <div style={{ height: '100%', width: `${pct}%`, background: over ? 'var(--green)' : q.attainment_pct >= 75 ? 'var(--gold)' : 'hsl(var(--primary))', borderRadius: 'var(--r-sm)', transition: 'width .3s' }} />
                   </div>
                 </div>
               );

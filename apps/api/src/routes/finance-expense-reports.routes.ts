@@ -1,3 +1,4 @@
+import { emitDomainEvent } from '../services/domain-events.service.js';
 import type { FastifyInstance } from 'fastify';
 import { z } from 'zod';
 import { createHash } from 'node:crypto';
@@ -121,6 +122,10 @@ export async function financeExpenseReportRoutes(server: FastifyInstance) {
       const total = await trx.selectFrom('finance_expense_report_items').select(sql<string>`sum(amount)`.as('amount')).where('tenant_id', '=', request.user.tenant_id).where('report_id', '=', id).executeTakeFirstOrThrow();
       const amount = Number(total.amount);
       const journal = await GLService.post(request.user.tenant_id, { entryDate: date, description: `Employee reimbursement: ${report.name}`, sourceModule: 'MANUAL', sourceId: id, createdBy: request.user.sub, reference, lines: [{ accountCode: '2100', debit: amount, credit: 0 }, { accountCode: '1010', debit: 0, credit: amount }] }, trx);
+      await emitDomainEvent(trx, request.user.tenant_id, {
+        type: 'expense_report.reimbursed', sourceApp: 'finops', entityType: 'expense_report', entityId: id, actorId: request.user.sub,
+        payload: { amount, status: 'reimbursed' },
+      }).catch(err => console.error('[Expense reports] reimbursed emit failed:', err?.message));
       return trx.updateTable('finance_expense_reports').set({ status: 'reimbursed', reimbursement_journal_id: journal, payment_reference: reference }).where('tenant_id', '=', request.user.tenant_id).where('id', '=', id).returningAll().executeTakeFirstOrThrow();
     });
   });

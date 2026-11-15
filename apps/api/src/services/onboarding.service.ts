@@ -62,7 +62,7 @@ const RESERVED_SUBDOMAINS = new Set([
   'bliss', 'calendar', 'clearos', 'cloud', 'cms', 'complyos', 'contacts', 'crm',
   'developer', 'email', 'esign', 'finops', 'hudubi', 'hudufreight', 'lens',
   'nexushr', 'ondi', 'onsite', 'petti', 'pos', 'projects', 'safetracker', 'seal',
-  'sms', 'studio', 'tasks', 'workspace', 'gereji', 'tuma', 'ngao', 'lexcore',
+  'sms', 'studio', 'tasks', 'workspace', 'gereji', 'tuma', 'ngao', 'lexcore', 'zentra',
   'store', 'drive', 'notes', 'sign', 'travel', 'tracking', 'finance', 'hr',
   'ns1', 'ns2', 'smtp', 'imap', 'webmail', 'auth', 'login', 'sso', 'id',
 ]);
@@ -281,7 +281,7 @@ export async function acceptHrInviteForFederatedIdentity(
       }).returningAll().executeTakeFirstOrThrow();
 
       await emitDomainEvent(trx, invite.tenant_id, {
-        type: 'user.joined', sourceApp: 'auth', entityType: 'user', entityId: newUser.id,
+        type: 'user.joined', sourceApp: 'auth', entityType: 'user', entityId: newUser.id, actorId: newUser.id,
         payload: { userId: newUser.id, name: newUser.name, email: newUser.email, role: newUser.role },
       });
 

@@ -135,7 +135,7 @@ export function GerejiWarranty() {
                         <td style={TD}>{r.approved_amount != null ? Number(r.approved_amount).toLocaleString() : '—'}</td>
                         <td style={{ ...TD, textAlign: 'right' }}>
                           <DropdownMenu>
-                            <DropdownMenuTrigger asChild><Button variant="ghost" size="icon"><Icon name="moreHorizontal" size={16} /></Button></DropdownMenuTrigger>
+                            <DropdownMenuTrigger asChild><Button aria-label="More actions" variant="ghost" size="icon"><Icon name="moreHorizontal" size={16} /></Button></DropdownMenuTrigger>
                             <DropdownMenuContent align="end">
                               {r.status === 'submitted' && <DropdownMenuItem onClick={() => review(r.id, 'under_review')}>Start review</DropdownMenuItem>}
                               {r.status === 'under_review' && <DropdownMenuItem onClick={() => review(r.id, 'approved', r.claimed_amount)}>Approve (full)</DropdownMenuItem>}
@@ -164,7 +164,7 @@ export function GerejiWarranty() {
               <div>
                 <label style={{ fontSize: 12, fontWeight: 600, color: 'var(--ink3)', display: 'block', marginBottom: 4 }}>Vehicle</label>
                 <Select value={vehicleId} onValueChange={setVehicleId}>
-                  <SelectTrigger><SelectValue placeholder="Select vehicle" /></SelectTrigger>
+                  <SelectTrigger aria-label="Vehicle"><SelectValue placeholder="Select vehicle" /></SelectTrigger>
                   <SelectContent>
                     {vehicles.map(v => <SelectItem key={v.id} value={v.id}>{v.registration} {v.make ? `— ${v.make}` : ''}</SelectItem>)}
                   </SelectContent>
@@ -172,17 +172,17 @@ export function GerejiWarranty() {
               </div>
               <div>
                 <label style={{ fontSize: 12, fontWeight: 600, color: 'var(--ink3)', display: 'block', marginBottom: 4 }}>Description</label>
-                <Textarea value={desc} onChange={e => setDesc(e.target.value)} placeholder="Describe the warranty issue..." rows={3} />
+                <Textarea value={desc} onChange={e => setDesc(e.target.value)} placeholder="Describe the warranty issue..." rows={3} aria-label="Description" />
               </div>
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
                 <div>
                   <label style={{ fontSize: 12, fontWeight: 600, color: 'var(--ink3)', display: 'block', marginBottom: 4 }}>Claimed Amount</label>
-                  <Input type="number" min={0} value={amount} onChange={e => setAmount(e.target.value)} placeholder="0" />
+                  <Input type="number" min={0} value={amount} onChange={e => setAmount(e.target.value)} placeholder="0" aria-label="Claimed Amount" />
                 </div>
                 <div>
                   <label style={{ fontSize: 12, fontWeight: 600, color: 'var(--ink3)', display: 'block', marginBottom: 4 }}>Claim Type</label>
                   <Select value={claimType} onValueChange={setClaimType}>
-                    <SelectTrigger><SelectValue /></SelectTrigger>
+                    <SelectTrigger aria-label="Claim Type"><SelectValue /></SelectTrigger>
                     <SelectContent>
                       <SelectItem value="both">Both</SelectItem>
                       <SelectItem value="parts">Parts</SelectItem>
@@ -193,16 +193,16 @@ export function GerejiWarranty() {
               </div>
               <div>
                 <label style={{ fontSize: 12, fontWeight: 600, color: 'var(--ink3)', display: 'block', marginBottom: 4 }}>Supplier Name</label>
-                <Input value={supplierName} onChange={e => setSupplierName(e.target.value)} placeholder="Optional" />
+                <Input value={supplierName} onChange={e => setSupplierName(e.target.value)} placeholder="Optional" aria-label="Supplier Name" />
               </div>
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
                 <div>
                   <label style={{ fontSize: 12, fontWeight: 600, color: 'var(--ink3)', display: 'block', marginBottom: 4 }}>Warranty Start</label>
-                  <DatePicker date={parseDateOnly(wStart) ?? null} onChange={d => setWStart(toDateOnlyString(d))} />
+                  <DatePicker date={parseDateOnly(wStart) ?? null} onChange={d => setWStart(toDateOnlyString(d))} aria-label="Warranty Start" />
                 </div>
                 <div>
                   <label style={{ fontSize: 12, fontWeight: 600, color: 'var(--ink3)', display: 'block', marginBottom: 4 }}>Warranty End</label>
-                  <DatePicker date={parseDateOnly(wEnd) ?? null} onChange={d => setWEnd(toDateOnlyString(d))} />
+                  <DatePicker date={parseDateOnly(wEnd) ?? null} onChange={d => setWEnd(toDateOnlyString(d))} aria-label="Warranty End" />
                 </div>
               </div>
             </div>

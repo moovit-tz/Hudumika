@@ -111,7 +111,7 @@ export const LiveChatWidget: React.FC = () => {
   return (
     <>
       {/* Floating Button */}
-      <button
+      <button aria-label={isOpen ? 'Close chat' : 'Open chat'}
         onClick={() => setIsOpen(!isOpen)}
         style={{
           position: 'fixed',
@@ -213,7 +213,7 @@ export const LiveChatWidget: React.FC = () => {
                 disabled={sending}
                 style={{ flex: 1, border: 'none', background: 'transparent', outline: 'none', fontSize: "var(--text-base)", fontFamily: 'var(--font)' }}
               />
-              <button
+              <button aria-label="Send"
                 onClick={handleSend}
                 disabled={!input.trim() || sending}
                 style={{

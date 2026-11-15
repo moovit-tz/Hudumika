@@ -157,7 +157,7 @@ export function CMSAddToReleaseModal({
               </div>
             </div>
           </div>
-          <button
+          <button aria-label="Close"
             type="button"
             onClick={onClose}
             style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink3)' }}
@@ -199,7 +199,7 @@ export function CMSAddToReleaseModal({
                     Select Release Bundle
                   </label>
                   <Select value={selectedReleaseId} onValueChange={setSelectedReleaseId}>
-                    <SelectTrigger className="input-field" style={{ fontSize: "var(--text-base)" }}>
+                    <SelectTrigger className="input-field" style={{ fontSize: "var(--text-base)" }} aria-label="Select Release Bundle">
                       <SelectValue placeholder="Choose release…" />
                     </SelectTrigger>
                     <SelectContent>
@@ -246,7 +246,7 @@ export function CMSAddToReleaseModal({
                   Target Publish Status
                 </label>
                 <Select value={targetStatus} onValueChange={setTargetStatus}>
-                  <SelectTrigger className="input-field" style={{ fontSize: "var(--text-base)" }}>
+                  <SelectTrigger className="input-field" style={{ fontSize: "var(--text-base)" }} aria-label="Target Publish Status">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>

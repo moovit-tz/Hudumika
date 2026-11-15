@@ -172,7 +172,7 @@ export function GerejiAngaQuotes() {
                           <td style={{ ...TD, color: 'var(--ink3)' }}>{formatDate(r.created_at)}</td>
                           <td style={{ ...TD, textAlign: 'right' }} onClick={e => e.stopPropagation()}>
                             <DropdownMenu>
-                              <DropdownMenuTrigger asChild><Button variant="ghost" size="icon"><Icon name="moreHorizontal" size={16} /></Button></DropdownMenuTrigger>
+                              <DropdownMenuTrigger asChild><Button aria-label={`More actions ${r.number ?? ''}`.trim()} variant="ghost" size="icon"><Icon name="moreHorizontal" size={16} /></Button></DropdownMenuTrigger>
                               <DropdownMenuContent align="end">
                                 {(TRANSITIONS[r.status] ?? []).map(s => <DropdownMenuItem key={s} onClick={() => transition(r.id, s)}>Mark {s}</DropdownMenuItem>)}
                                 {r.status !== 'converted' && <DropdownMenuItem onClick={() => version(r.id)}>New version</DropdownMenuItem>}
@@ -222,18 +222,18 @@ export function GerejiAngaQuotes() {
                 <div>
                   <label style={LABEL}>RFQ (optional)</label>
                   <Select value={rfqId} onValueChange={setRfqId}>
-                    <SelectTrigger><SelectValue placeholder="None" /></SelectTrigger>
+                    <SelectTrigger aria-label="RFQ (optional)"><SelectValue placeholder="None" /></SelectTrigger>
                     <SelectContent>{rfqs.map(r => <SelectItem key={r.id} value={r.id}>{r.number}</SelectItem>)}</SelectContent>
                   </Select>
                 </div>
                 <div>
                   <label style={LABEL}>Customer</label>
                   <Select value={customerId} onValueChange={setCustomerId}>
-                    <SelectTrigger><SelectValue placeholder="Select customer" /></SelectTrigger>
+                    <SelectTrigger aria-label="Customer"><SelectValue placeholder="Select customer" /></SelectTrigger>
                     <SelectContent>{customers.map(c => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}</SelectContent>
                   </Select>
                 </div>
-                <div><label style={LABEL}>Currency</label><Input value={currency} onChange={e => setCurrency(e.target.value.toUpperCase())} maxLength={3} /></div>
+                <div><label style={LABEL}>Currency</label><Input value={currency} onChange={e => setCurrency(e.target.value.toUpperCase())} maxLength={3} aria-label="Currency" /></div>
               </div>
 
               <div>
@@ -246,7 +246,7 @@ export function GerejiAngaQuotes() {
                     <div style={{ display: 'grid', gridTemplateColumns: '1fr 70px auto', gap: 8, marginBottom: 8 }}>
                       <Input placeholder="Part number" value={it.pn_free_text} onChange={e => updateItem(i, { pn_free_text: e.target.value })} />
                       <Input type="number" min={1} value={it.quantity} onChange={e => updateItem(i, { quantity: Number(e.target.value) || 1 })} placeholder="Qty" />
-                      <Button variant="ghost" size="icon" onClick={() => setItems(prev => prev.filter((_, j) => j !== i))} disabled={items.length === 1}><Icon name="close" size={14} /></Button>
+                      <Button aria-label="Close" variant="ghost" size="icon" onClick={() => setItems(prev => prev.filter((_, j) => j !== i))} disabled={items.length === 1}><Icon name="close" size={14} /></Button>
                     </div>
                     <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: 6 }}>
                       <Input type="number" min={0} value={it.part_cost_minor} onChange={e => updateItem(i, { part_cost_minor: e.target.value })} placeholder="Part cost" />

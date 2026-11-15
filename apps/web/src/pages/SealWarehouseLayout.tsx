@@ -262,7 +262,7 @@ export function SealWarehouseLayout() {
             crumbs={['SEAL', 'Compartments']}
             titlePlain="Warehouse"
             titleEm="layout"
-            subtitle={<>Interactive 2D plan and 3D stack for <strong>{data.compartment.name}</strong>, with real dimensional and lot occupancy data.</>}
+            subtitle={<>View zones, locations, and lot occupancy in <strong>{data.compartment.name}</strong> in 2D or 3D.</>}
             actions={
               <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
                 <button type="button" className={viewMode === '2d' ? 'btn btn-primary' : 'btn btn-secondary'} onClick={() => setViewMode('2d')} data-ui-native-button="">
@@ -303,7 +303,7 @@ export function SealWarehouseLayout() {
                   <div className="seal-field-row" style={{ width: 160 }}>
                     <label className="seal-field-label">Zone Type</label>
                     <Select value={newZoneType} onValueChange={setNewZoneType}>
-                      <SelectTrigger className="input-field"><SelectValue /></SelectTrigger>
+                      <SelectTrigger className="input-field" aria-label="Zone Type"><SelectValue /></SelectTrigger>
                       <SelectContent>{ZONE_TYPES.map(t => <SelectItem key={t} value={t}>{t.replace(/_/g, ' ')}</SelectItem>)}</SelectContent>
                     </Select>
                   </div>
@@ -317,7 +317,7 @@ export function SealWarehouseLayout() {
                   <div className="seal-field-row">
                     <label className="seal-field-label">Zone</label>
                     <Select value={newLocZoneId} onValueChange={setNewLocZoneId}>
-                      <SelectTrigger className="input-field"><SelectValue /></SelectTrigger>
+                      <SelectTrigger className="input-field" aria-label="Zone"><SelectValue /></SelectTrigger>
                       <SelectContent>{zones.map(z => <SelectItem key={z.id} value={z.id}>{z.code} — {z.name}</SelectItem>)}</SelectContent>
                     </Select>
                   </div>
@@ -328,7 +328,7 @@ export function SealWarehouseLayout() {
                   <div className="seal-field-row">
                     <label className="seal-field-label">Location Type</label>
                     <Select value={newLocType} onValueChange={setNewLocType}>
-                      <SelectTrigger className="input-field"><SelectValue /></SelectTrigger>
+                      <SelectTrigger className="input-field" aria-label="Location Type"><SelectValue /></SelectTrigger>
                       <SelectContent>{LOCATION_TYPES.map(t => <SelectItem key={t} value={t}>{t.replace(/_/g, ' ')}</SelectItem>)}</SelectContent>
                     </Select>
                   </div>
@@ -556,7 +556,7 @@ export function SealWarehouseLayout() {
                         </Tip>
                       </>
                     )}
-                    <button type="button" onClick={() => { setSelectedLoc(null); setEditingLoc(false); }} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: "var(--action-py) var(--space-md)" }} data-ui-native-button="">
+                    <button aria-label="Close" type="button" onClick={() => { setSelectedLoc(null); setEditingLoc(false); }} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: "var(--action-py) var(--space-md)" }} data-ui-native-button="">
                       <Icon name="close" size={16} />
                     </button>
                   </div>

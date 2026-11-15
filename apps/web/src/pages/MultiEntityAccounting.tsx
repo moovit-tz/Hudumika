@@ -206,11 +206,11 @@ export function MultiEntityAccounting() {
                 </div>
                 <div>
                   <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: 'var(--ink2)', marginBottom: 6 }}>Country</label>
-                  <Input value={entityForm.countryCode} onChange={e => setEntityForm(p => ({ ...p, countryCode: e.target.value.toUpperCase() }))} placeholder="KE" maxLength={2} />
+                  <Input value={entityForm.countryCode} onChange={e => setEntityForm(p => ({ ...p, countryCode: e.target.value.toUpperCase() }))} placeholder="KE" maxLength={2} aria-label="Country" />
                 </div>
                 <div>
                   <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: 'var(--ink2)', marginBottom: 6 }}>Currency</label>
-                  <Input value={entityForm.currency} onChange={e => setEntityForm(p => ({ ...p, currency: e.target.value.toUpperCase() }))} maxLength={3} />
+                  <Input value={entityForm.currency} onChange={e => setEntityForm(p => ({ ...p, currency: e.target.value.toUpperCase() }))} maxLength={3} aria-label="Currency" />
                 </div>
               </div>
               {error && <Banner variant="error" style={{ marginBottom: 12 }}>{error}</Banner>}
@@ -278,7 +278,7 @@ export function MultiEntityAccounting() {
                 </div>
                 <div>
                   <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: 'var(--ink2)', marginBottom: 6 }}>Currency</label>
-                  <Input value={txnForm.currency} onChange={e => setTxnForm(p => ({ ...p, currency: e.target.value.toUpperCase() }))} maxLength={3} />
+                  <Input value={txnForm.currency} onChange={e => setTxnForm(p => ({ ...p, currency: e.target.value.toUpperCase() }))} maxLength={3} aria-label="Currency" />
                 </div>
                 <div>
                   <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: 'var(--ink2)', marginBottom: 6 }}>From-entity credit account code *</label>
@@ -331,11 +331,11 @@ export function MultiEntityAccounting() {
             <div style={{ display: 'flex', gap: 10, alignItems: 'flex-end' }}>
               <div>
                 <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: 'var(--ink2)', marginBottom: 6 }}>From</label>
-                <DatePicker date={parseDateOnly(plFrom)} onChange={d => setPlFrom(toDateOnlyString(d))} />
+                <DatePicker date={parseDateOnly(plFrom)} onChange={d => setPlFrom(toDateOnlyString(d))} aria-label="From" />
               </div>
               <div>
                 <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: 'var(--ink2)', marginBottom: 6 }}>To</label>
-                <DatePicker date={parseDateOnly(plTo)} onChange={d => setPlTo(toDateOnlyString(d))} />
+                <DatePicker date={parseDateOnly(plTo)} onChange={d => setPlTo(toDateOnlyString(d))} aria-label="To" />
               </div>
               <Button onClick={loadConsolidated} loading={consolidatedLoading} loadingText="Loading…">Refresh</Button>
             </div>

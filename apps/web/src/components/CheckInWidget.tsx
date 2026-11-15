@@ -710,7 +710,7 @@ export const CheckInWidget: React.FC = () => {
                   }}
                 />
                 {search && (
-                  <button
+                  <button aria-label="Clear search"
                     type="button"
                     onClick={() => setSearch('')}
                     style={{ position: 'absolute', right: 6, top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink3)', padding: 4 }}

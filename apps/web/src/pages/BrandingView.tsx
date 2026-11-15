@@ -220,7 +220,7 @@ export function BrandingIdentitySection() {
                     <Icon name="upload" size={14} /> Upload
                     <input type="file" accept="image/*,image/svg+xml" className="absolute inset-0 opacity-0 cursor-pointer" onChange={e => handleLogoUpload('light', e)} />
                   </Button>
-                  {logoLight && <Button variant="ghost" size="sm" onClick={() => clearLogo('light')}><Icon name="trash2" size={14} /></Button>}
+                  {logoLight && <Button aria-label="Remove light-mode logo" variant="ghost" size="sm" onClick={() => clearLogo('light')}><Icon name="trash2" size={14} /></Button>}
                 </div>
               </div>
               <div className="flex flex-col gap-2">
@@ -235,7 +235,7 @@ export function BrandingIdentitySection() {
                     <Icon name="upload" size={14} /> Upload
                     <input type="file" accept="image/*,image/svg+xml" className="absolute inset-0 opacity-0 cursor-pointer" onChange={e => handleLogoUpload('dark', e)} />
                   </Button>
-                  {logoDark && <Button variant="ghost" size="sm" onClick={() => clearLogo('dark')}><Icon name="trash2" size={14} /></Button>}
+                  {logoDark && <Button aria-label="Remove dark-mode logo" variant="ghost" size="sm" onClick={() => clearLogo('dark')}><Icon name="trash2" size={14} /></Button>}
                 </div>
               </div>
             </div>
@@ -258,7 +258,7 @@ export function BrandingIdentitySection() {
                 <Icon name="upload" size={14} /> Upload
                 <input type="file" accept="image/x-icon,image/png,image/svg+xml" className="absolute inset-0 opacity-0 cursor-pointer" onChange={e => handleLogoUpload('favicon', e)} />
               </Button>
-              {favicon && <Button variant="ghost" size="sm" onClick={() => clearLogo('favicon')}><Icon name="trash2" size={14} /></Button>}
+              {favicon && <Button aria-label="Remove favicon" variant="ghost" size="sm" onClick={() => clearLogo('favicon')}><Icon name="trash2" size={14} /></Button>}
             </div>
           </CardContent>
         </Card>
@@ -284,7 +284,7 @@ export function BrandingIdentitySection() {
                     <Icon name="upload" size={14} /> Upload
                     <input type="file" accept="image/*,image/svg+xml" className="absolute inset-0 opacity-0 cursor-pointer" onChange={e => handleLogoUpload(slot.key, e)} />
                   </Button>
-                  {slot.value && <Button variant="ghost" size="sm" onClick={() => clearLogo(slot.key)}><Icon name="trash2" size={14} /></Button>}
+                  {slot.value && <Button aria-label="Remove logo" variant="ghost" size="sm" onClick={() => clearLogo(slot.key)}><Icon name="trash2" size={14} /></Button>}
                 </div>
               </div>
             ))}

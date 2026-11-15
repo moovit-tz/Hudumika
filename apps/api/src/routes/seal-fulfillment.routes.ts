@@ -303,7 +303,7 @@ export async function sealFulfillmentRoutes(fastify: FastifyInstance) {
 
         // Gate-out: goods have physically left the warehouse.
         await emitDomainEvent(trx, request.user.tenant_id, {
-          type: 'seal.order_dispatched', sourceApp: 'seal', entityType: 'seal_fulfillment_order', entityId: dispatched.id,
+          type: 'seal.order_dispatched', sourceApp: 'seal', entityType: 'seal_fulfillment_order', entityId: dispatched.id, actorId: request.user.sub,
           payload: { reference: o.reference ?? null, vehicleId: b.vehicleId ?? null, carrierNote: b.carrierNote ?? null },
         }, { deferDispatch: true });
 

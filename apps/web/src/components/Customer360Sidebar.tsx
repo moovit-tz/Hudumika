@@ -272,7 +272,7 @@ export function Customer360Sidebar({
           { id: 'profile', label: 'CRM Details', icon: 'user' },
           { id: 'invoices', label: 'Invoices', icon: 'invoice' },
           { id: 'shipments', label: 'Shipments', icon: 'ship' },
-          { id: 'ai', label: 'AI Copilot', icon: 'sparkle' },
+          { id: 'ai', label: 'Hudu', icon: 'sparkle' },
         ] as { id: Tab; label: string; icon: IconName }[]).map(t => (
           <TabBtn key={t.id} id={t.id} label={t.label} icon={t.icon} active={tab === t.id} onClick={() => setTab(t.id)} />
         ))}
@@ -283,12 +283,12 @@ export function Customer360Sidebar({
         
         {tab === 'profile' && (
           <>
-            {/* 1. AI Assistant Control */}
+            {/* 1. Hudu control */}
             <div style={{ background: 'var(--bg)', borderRadius: 'var(--r)', padding: 14, border: '1px solid var(--border)' }}>
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 4 }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                   <Icon name="sparkle" size={14} color="var(--teal)" />
-                  <span style={{ fontSize: 11.5, fontWeight: 800, color: 'var(--ink)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>AI Assistant Control</span>
+                  <span style={{ fontSize: 11.5, fontWeight: 800, color: 'var(--ink)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>Hudu</span>
                 </div>
                 <Switch checked={aiCopilotActive} onCheckedChange={c => setAiCopilotActive(c === true)} />
               </div>
@@ -383,7 +383,7 @@ export function Customer360Sidebar({
                     fontSize: 11.5, fontWeight: 700, color: 'var(--ink2)'
                   }}>
                     {tag}
-                    <button type="button" onClick={() => handleRemoveTag(tag)} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0, color: 'var(--ink3)', display: 'flex', alignItems: 'center' }} data-ui-native-button="">
+                    <button aria-label="Remove" type="button" onClick={() => handleRemoveTag(tag)} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0, color: 'var(--ink3)', display: 'flex', alignItems: 'center' }} data-ui-native-button="">
                       <Icon name="x" size={11} />
                     </button>
                   </span>

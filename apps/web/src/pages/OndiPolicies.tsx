@@ -525,7 +525,7 @@ export const OndiPolicies: React.FC = () => {
                 <div style={{ fontSize: 16, fontWeight: 800, color: 'var(--ink)' }}>Create Custom Policy Rule</div>
                 <div style={{ fontSize: 12, color: 'var(--ink3)', marginTop: 2 }}>Define target scopes, enforcement levels, and security requirements.</div>
               </div>
-              <button onClick={() => setShowCreateModal(false)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink3)' }} data-ui-native-button="">
+              <button aria-label="Close" onClick={() => setShowCreateModal(false)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink3)' }} data-ui-native-button="">
                 <Icon name="x" size={18} />
               </button>
             </div>
@@ -573,7 +573,7 @@ export const OndiPolicies: React.FC = () => {
               <div>
                 <label style={{ fontSize: 12, fontWeight: 700, color: 'var(--ink2)', display: 'block', marginBottom: 4 }}>Target Role Scope</label>
                 <Select value={newPolicyRole} onValueChange={setNewPolicyRole}>
-                  <SelectTrigger style={{ width: '100%' }}><SelectValue /></SelectTrigger>
+                  <SelectTrigger style={{ width: '100%' }} aria-label="Target Role Scope"><SelectValue /></SelectTrigger>
                   <SelectContent>
                     <SelectItem value="ALL">All Workspace Members</SelectItem>
                     <SelectItem value="SUPER_ADMIN">Super Admins Only</SelectItem>

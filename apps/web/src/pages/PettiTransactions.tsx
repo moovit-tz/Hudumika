@@ -164,7 +164,7 @@ export function PettiTransactions() {
             body { font-family: system-ui, sans-serif; padding: 40px; color: #161A1E; }
             .header { display: flex; justify-content: space-between; border-bottom: 2px solid #0d7a6b; padding-bottom: 16px; margin-bottom: 24px; }
             .brand { font-size: 22px; font-weight: 800; color: #0d7a6b; }
-            .hero-card { background: #0e1f3d; color: #fff; padding: 24px; border-radius: 12px; margin-bottom: 24px; }
+            .hero-card { background: #0e1f3d; color: #fff; padding: 24px; border-radius: var(--r); margin-bottom: 24px; }
             .hero-title { font-size: 11px; text-transform: uppercase; letter-spacing: 1px; color: rgba(255,255,255,0.7); }
             .hero-amount { font-size: 32px; font-weight: 900; margin-top: 4px; }
             .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; font-size: 13px; margin-bottom: 30px; }

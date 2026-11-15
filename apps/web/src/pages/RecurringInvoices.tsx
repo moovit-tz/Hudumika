@@ -117,10 +117,10 @@ function RecurFormPanel({ initial, onSave, onClose }: { initial: RecurringInvoic
           </div>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 14 }}>
             <div><label style={lbl}>Frequency</label><Select value={frequency} onValueChange={v => setFrequency(v as Freq)}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent>{(Object.keys(FREQ_LABEL) as Freq[]).map(f => <SelectItem key={f} value={f}>{FREQ_LABEL[f]}</SelectItem>)}</SelectContent></Select></div>
-            <div><label style={lbl}>Currency</label><Select value={currency} onValueChange={setCurrency}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent>{['TZS', 'USD', 'KES', 'EUR', 'GBP'].map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}</SelectContent></Select></div>
+            <div><label style={lbl}>Currency</label><Select value={currency} onValueChange={setCurrency}><SelectTrigger aria-label="Currency"><SelectValue /></SelectTrigger><SelectContent>{['TZS', 'USD', 'KES', 'EUR', 'GBP'].map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}</SelectContent></Select></div>
           </div>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 14 }}>
-            <div><label style={lbl}>Amount</label><Input type="number" min={0} step={0.01} value={amount} onChange={e => setAmount(parseFloat(e.target.value) || 0)} /></div>
+            <div><label style={lbl}>Amount</label><Input type="number" min={0} step={0.01} value={amount} onChange={e => setAmount(parseFloat(e.target.value) || 0)} aria-label="Amount" /></div>
             <div>
               <label style={lbl}>Tax treatment</label>
               <Select value={taxCodeId ?? '__none__'} onValueChange={v => {
@@ -137,11 +137,11 @@ function RecurFormPanel({ initial, onSave, onClose }: { initial: RecurringInvoic
             </div>
           </div>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 14 }}>
-            <div><label style={lbl}>Next due date</label><DatePicker date={parseDateOnly(nextDue)} onChange={d => setNextDue(toDateOnlyString(d) ?? '')} /></div>
-            <div><label style={lbl}>End date (optional)</label><DatePicker date={parseDateOnly(endDate)} onChange={d => setEndDate(toDateOnlyString(d) ?? '')} /></div>
+            <div><label style={lbl}>Next due date</label><DatePicker date={parseDateOnly(nextDue)} onChange={d => setNextDue(toDateOnlyString(d) ?? '')} aria-label="Next due date" /></div>
+            <div><label style={lbl}>End date (optional)</label><DatePicker date={parseDateOnly(endDate)} onChange={d => setEndDate(toDateOnlyString(d) ?? '')} aria-label="End date (optional)" /></div>
           </div>
-          <div style={{ marginBottom: 14 }}><label style={lbl}>Payment terms</label><Input type="text" value={paymentTerms} onChange={e => setPaymentTerms(e.target.value)} /></div>
-          <div style={{ marginBottom: 14 }}><label style={lbl}>Description</label><Textarea rows={3} value={description} onChange={e => setDescription(e.target.value)} className="resize-y" /></div>
+          <div style={{ marginBottom: 14 }}><label style={lbl}>Payment terms</label><Input type="text" value={paymentTerms} onChange={e => setPaymentTerms(e.target.value)} aria-label="Payment terms" /></div>
+          <div style={{ marginBottom: 14 }}><label style={lbl}>Description</label><Textarea rows={3} value={description} onChange={e => setDescription(e.target.value)} className="resize-y" aria-label="Description" /></div>
           <div style={{ padding: '12px 14px', background: 'var(--bg)', borderRadius: 'var(--r)', fontSize: 13, color: 'var(--ink2)' }}>
             Total per cycle: <strong style={{ color: 'var(--teal)' }}>{currency} {total.toLocaleString('en-US', { maximumFractionDigits: 2 })}</strong>
           </div>

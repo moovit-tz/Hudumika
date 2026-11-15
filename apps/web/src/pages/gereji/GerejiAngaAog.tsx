@@ -143,7 +143,7 @@ export function GerejiAngaAog() {
                         </td>
                         <td style={{ ...TD, textAlign: 'right' }}>
                           <DropdownMenu>
-                            <DropdownMenuTrigger asChild><Button variant="ghost" size="icon"><Icon name="moreHorizontal" size={16} /></Button></DropdownMenuTrigger>
+                            <DropdownMenuTrigger asChild><Button aria-label="More actions" variant="ghost" size="icon"><Icon name="moreHorizontal" size={16} /></Button></DropdownMenuTrigger>
                             <DropdownMenuContent align="end">
                               {!isDelivered && <DropdownMenuItem onClick={() => advance(c.id)}>Advance to next milestone</DropdownMenuItem>}
                               {!isDelivered && <DropdownMenuItem onClick={() => setPauseDialog(c.id)}>Pause SLA clock</DropdownMenuItem>}
@@ -170,17 +170,17 @@ export function GerejiAngaAog() {
                 <div>
                   <label style={LABEL}>Customer</label>
                   <Select value={customerId} onValueChange={setCustomerId}>
-                    <SelectTrigger><SelectValue placeholder="Select customer" /></SelectTrigger>
+                    <SelectTrigger aria-label="Customer"><SelectValue placeholder="Select customer" /></SelectTrigger>
                     <SelectContent>{customers.map(c => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}</SelectContent>
                   </Select>
                 </div>
-                <div><label style={LABEL}>Aircraft registration</label><Input value={aircraftReg} onChange={e => setAircraftReg(e.target.value)} placeholder="e.g. 5H-LVA" /></div>
+                <div><label style={LABEL}>Aircraft registration</label><Input value={aircraftReg} onChange={e => setAircraftReg(e.target.value)} placeholder="e.g. 5H-LVA" aria-label="Aircraft registration" /></div>
               </div>
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
                 <div>
                   <label style={LABEL}>Criticality</label>
                   <Select value={criticality} onValueChange={setCriticality}>
-                    <SelectTrigger><SelectValue /></SelectTrigger>
+                    <SelectTrigger aria-label="Criticality"><SelectValue /></SelectTrigger>
                     <SelectContent>
                       <SelectItem value="low">Low</SelectItem>
                       <SelectItem value="medium">Medium</SelectItem>
@@ -189,9 +189,9 @@ export function GerejiAngaAog() {
                     </SelectContent>
                   </Select>
                 </div>
-                <div><label style={LABEL}>Target resolution (hours from now)</label><Input type="number" min={1} value={targetHours} onChange={e => setTargetHours(e.target.value)} /></div>
+                <div><label style={LABEL}>Target resolution (hours from now)</label><Input type="number" min={1} value={targetHours} onChange={e => setTargetHours(e.target.value)} aria-label="Target resolution (hours from now)" /></div>
               </div>
-              <div><label style={LABEL}>Notes</label><Input value={notes} onChange={e => setNotes(e.target.value)} /></div>
+              <div><label style={LABEL}>Notes</label><Input value={notes} onChange={e => setNotes(e.target.value)} aria-label="Notes" /></div>
             </div>
           </DialogBody>
           <DialogFooter>
@@ -207,7 +207,7 @@ export function GerejiAngaAog() {
           <DialogBody>
             <label style={LABEL}>Reason</label>
             <Select value={pauseReason} onValueChange={setPauseReason}>
-              <SelectTrigger><SelectValue /></SelectTrigger>
+              <SelectTrigger aria-label="Reason"><SelectValue /></SelectTrigger>
               <SelectContent>
                 {PAUSE_REASONS.map(r => <SelectItem key={r} value={r}>{r.replace(/_/g, ' ')}</SelectItem>)}
               </SelectContent>

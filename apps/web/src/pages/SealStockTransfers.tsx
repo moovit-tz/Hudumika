@@ -136,7 +136,7 @@ export function SealStockTransfers() {
         ]}
         titlePlain="Stock"
         titleEm="transfers"
-        subtitle="Move lots between warehouses, zones, and locations — every transfer is recorded in the audit ledger."
+        subtitle="Move unallocated lots between warehouses and track each transfer."
         actions={
           <div className="seal-xfer-actions">
             <Button variant="outline" size="sm" onClick={load}>

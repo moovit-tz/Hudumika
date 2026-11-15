@@ -1,0 +1,128 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#f4f7f8">
+  <meta name="description" content="Hudumika product design principles for every product and team.">
+  <title>Hudumika | Product design principles</title>
+  <style>
+    :root{color-scheme:light;--ink:#17212b;--muted:#526374;--teal:#087f8c;--teal-soft:#e4f4f4;--line:#d9e1e7;--paper:#fff;--canvas:#f4f7f8;--r:18px;--r-sm:10px;--shadow:0 18px 55px rgba(25,48,62,.08);font-family:Inter,ui-sans-serif,system-ui,-apple-system,"Segoe UI",sans-serif}
+    *{box-sizing:border-box}body{margin:0;background:var(--canvas);color:var(--ink);line-height:1.65}a{color:var(--teal);text-underline-offset:3px}a:hover{text-decoration-thickness:2px}.page{max-width:1100px;margin:auto;padding:34px 26px 72px}.hero{position:relative;overflow:hidden;padding:clamp(30px,6vw,72px);border:1px solid var(--line);border-radius:26px;background:var(--paper);box-shadow:var(--shadow)}.hero:after{content:"";position:absolute;width:310px;height:310px;border-radius:50%;right:-100px;top:-155px;background:radial-gradient(circle,var(--teal-soft),transparent 70%)}.eyebrow{font-size:.78rem;font-weight:750;letter-spacing:.12em;text-transform:uppercase;color:var(--teal)}h1{max-width:760px;margin:14px 0;font-size:clamp(2.3rem,6vw,4.5rem);line-height:1.04;letter-spacing:-.055em}h2{margin:0 0 14px;font-size:clamp(1.45rem,3vw,2rem);letter-spacing:-.035em}h3{margin:0 0 7px;font-size:1.1rem}p{margin:.5rem 0 1rem;color:var(--muted)}.lede{max-width:760px;font-size:1.16rem}.meta{display:flex;gap:10px;flex-wrap:wrap;margin-top:25px}.pill{padding:6px 11px;border:1px solid var(--line);border-radius:999px;background:#fff;color:var(--muted);font-size:.85rem}.section{margin-top:28px;padding:clamp(24px,4vw,42px);border:1px solid var(--line);border-radius:var(--r);background:var(--paper);box-shadow:0 5px 20px rgba(25,48,62,.035)}.section-intro{max-width:760px;margin-bottom:24px}.grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}.principle,.tile{padding:20px;border:1px solid var(--line);border-radius:var(--r-sm);background:#fff}.principle h3{color:var(--teal)}.number{display:inline-grid;width:30px;height:30px;margin-right:8px;place-items:center;border-radius:9px;background:var(--teal-soft);color:var(--teal);font-size:.84rem;font-weight:800}.table-wrap{overflow-x:auto;border:1px solid var(--line);border-radius:var(--r-sm)}table{width:100%;border-collapse:collapse;text-align:left}th,td{padding:13px 15px;border-bottom:1px solid var(--line);vertical-align:top}th{background:#f5f8f9;font-size:.83rem;color:#405364}tr:last-child td{border-bottom:0}td{color:var(--muted)}td strong{color:var(--ink)}ul,ol{padding-left:1.25rem;color:var(--muted)}li{margin:.42rem 0}.callout{padding:18px 20px;border-left:4px solid var(--teal);border-radius:0 var(--r-sm) var(--r-sm) 0;background:var(--teal-soft)}.callout p{margin:0;color:var(--ink)}.footer{padding:28px 6px;color:var(--muted);font-size:.9rem}.footer p{font-size:.88rem}.source-list{display:grid;gap:8px;padding-left:1.2rem}.source-list li{padding-left:3px}.small{font-size:.9rem}.print{position:fixed;right:22px;bottom:22px;border:0;border-radius:12px;padding:12px 17px;background:#075c67;color:#fff;font:inherit;font-weight:700;box-shadow:0 8px 24px #14343b33;cursor:pointer}.print:focus-visible{outline:3px solid #00a8b5;outline-offset:3px}
+    @media(max-width:700px){.page{padding:14px 12px 40px}.grid{grid-template-columns:1fr}.section{margin-top:14px}.hero{border-radius:20px}th,td{padding:10px 11px}.print{right:14px;bottom:14px}}
+    @media(prefers-reduced-motion:reduce){*,*:before,*:after{scroll-behavior:auto!important;animation-duration:.01ms!important;transition-duration:.01ms!important}}
+    @media print{body{background:#fff}.page{max-width:none;padding:0}.hero,.section{box-shadow:none;break-inside:avoid}.hero{padding:28px}.section{padding:24px;margin-top:16px}.print{display:none}a{color:inherit;text-decoration:none}.grid{gap:8px}.principle,.tile{padding:13px}}
+  </style>
+</head>
+<body>
+  <main class="page">
+    <header class="hero">
+      <div class="eyebrow">Hudumika · Product, design & engineering</div>
+      <h1>Design for work that matters.</h1>
+      <p class="lede">A shared standard for building clear, dependable and connected products across Hudumika—and for giving every team room to solve its domain’s real problems.</p>
+      <div class="meta"><span class="pill">Working standard · 2026</span><span class="pill">All products and departments</span><span class="pill">Adapted for Hudumika</span></div>
+    </header>
+
+    <section class="section">
+      <div class="section-intro"><div class="eyebrow">01 · The promise</div><h2>One platform. Specialist products. Shared trust.</h2><p>Hudumika helps organizations coordinate work, money, people, records and services. A user should understand what is happening, what it means and what they can safely do next—on a phone in the field or at a desk reviewing an organization-wide report.</p></div>
+      <div class="grid">
+        <article class="tile"><h3>Make the next action clear</h3><p>Put the user’s task and its current state before internal terminology or promotion.</p></article>
+        <article class="tile"><h3>Make important facts dependable</h3><p>Use real system state. Label estimates, stale data, missing integrations and unavailable services.</p></article>
+        <article class="tile"><h3>Preserve context</h3><p>Identity, tenant, people, contacts, notifications, audit history and finance should connect consistently.</p></article>
+        <article class="tile"><h3>Respect consequences</h3><p>Financial, legal, safety, HR, customs and customer actions need validation, permissions and recovery.</p></article>
+      </div>
+    </section>
+
+    <section class="section">
+      <div class="section-intro"><div class="eyebrow">02 · Decision principles</div><h2>How we choose what to build</h2><p>Use these principles when scope, speed, consistency and local needs compete. Record significant exceptions and their owner.</p></div>
+      <div class="grid">
+        <article class="principle"><h3><span class="number">1</span>People before internal structure</h3><p>Design around real users, roles, goals and working conditions—not the org chart or database schema.</p></article>
+        <article class="principle"><h3><span class="number">2</span>Clear before clever</h3><p>Use familiar words, visible labels and explicit states. Progressive disclosure can hide complexity, not essential meaning.</p></article>
+        <article class="principle"><h3><span class="number">3</span>Trust through truth</h3><p>Never simulate a successful send, payment, sync, approval or delivery. Show queued, processing, complete, rejected or unknown accurately.</p></article>
+        <article class="principle"><h3><span class="number">4</span>One system, useful variation</h3><p>Share controls and behavior. Allow product-specific patterns only for validated domain needs, expressed as reusable and reviewed extensions.</p></article>
+        <article class="principle"><h3><span class="number">5</span>Choice with guardrails</h3><p>Explain material effects before spending money, exposing data, contacting customers, changing access or submitting to a regulator.</p></article>
+        <article class="principle"><h3><span class="number">6</span>Reliability is part of the interface</h3><p>Design loading, empty, partial, offline, denied, stale, conflict and failure states. Keep user work recoverable.</p></article>
+        <article class="principle"><h3><span class="number">7</span>Privacy and least access</h3><p>Show only what a person needs for their role. Enforce permissions server-side across search, exports, notifications and AI context.</p></article>
+        <article class="principle"><h3><span class="number">8</span>Accessibility is baseline quality</h3><p>Support keyboard, screen readers, contrast, focus, reduced motion, touch, zoom, localization and low-connectivity conditions.</p></article>
+      </div>
+    </section>
+
+    <section class="section">
+      <div class="section-intro"><div class="eyebrow">03 · Shared visual language</div><h2>Use the system; don’t freeze it in a page</h2><p>The runtime design system owns exact values and component behavior. Read <code>docs/DESIGN_SYSTEM.md</code> before adding UI.</p></div>
+      <ul>
+        <li><strong>Brand:</strong> Keep Hudumika’s platform identity and configured app accents. Do not copy another company’s visual identity or proprietary assets.</li>
+        <li><strong>Color:</strong> Use semantic tokens for meaning and app accents for identity. Never make color the only status signal. Use contrast-safe tokens for filled actions.</li>
+        <li><strong>Shape and density:</strong> Use global radii, spacing and control-height tokens. Compact layouts must remain readable and usable.</li>
+        <li><strong>Typography:</strong> Use the configured type scale. Keep titles, section headings, labels, body text and metadata distinct.</li>
+        <li><strong>Icons:</strong> Use the shared library. Pair icons with labels for unfamiliar or high-impact actions; icon-only actions need accessible names and hints.</li>
+        <li><strong>Surfaces:</strong> Cards group related information and work. Avoid decorative card sprawl and keep critical actions visible without page-wide horizontal scrolling.</li>
+        <li><strong>Motion:</strong> Explain changes and preserve orientation. Respect reduced motion; never imply completion before confirmation.</li>
+      </ul>
+      <div class="callout"><p><strong>Responsive rule:</strong> Design narrow-first. Preserve task order, labels, values and primary actions; reflow grids and detail panels; use intentional table behavior. Check 320px, 375px, tablet, desktop and 200% zoom.</p></div>
+    </section>
+
+    <section class="section">
+      <div class="section-intro"><div class="eyebrow">04 · Voice & content</div><h2>Clear, capable, considerate and candid</h2><p>Hudumika’s voice stays consistent. Tone changes with the user’s moment.</p></div>
+      <div class="table-wrap"><table><thead><tr><th>Moment</th><th>Use this tone</th><th>Make sure the user knows</th></tr></thead><tbody>
+        <tr><td><strong>Routine work</strong></td><td>Brief and neutral</td><td>The task or result, without filler</td></tr>
+        <tr><td><strong>Success</strong></td><td>Calm and specific</td><td>What completed and what happens next</td></tr>
+        <tr><td><strong>Validation</strong></td><td>Helpful and local</td><td>What this field needs and how to correct it</td></tr>
+        <tr><td><strong>Technical issue</strong></td><td>Steady and candid</td><td>What was affected, whether data was saved, and a recovery step</td></tr>
+        <tr><td><strong>Risk or compliance</strong></td><td>Serious and precise</td><td>Facts versus signals, evidence and review path</td></tr>
+        <tr><td><strong>Money or irreversible action</strong></td><td>Explicit and complete</td><td>Amount, currency, recipient, timing and consequence</td></tr>
+      </tbody></table></div>
+      <ul><li>Put the key fact first. Use one action per button: <strong>Save changes</strong>, <strong>Review invoice</strong>.</li><li>Never blame the user or use vague “Something went wrong” when the cause is known.</li><li>Use consistent names. Define specialist terms for users who may not know them.</li><li>Format dates, time zones, currencies, units and large figures for locale and context.</li><li>Disclose estimates, AI assistance and uncertain matches. Let users verify consequential output.</li></ul>
+      <div class="callout"><p><strong>Blocking-message pattern:</strong> Say what happened. Explain whether the action or data was saved, sent or charged. Give a safe next step.</p></div>
+    </section>
+
+    <section class="section">
+      <div class="section-intro"><div class="eyebrow">05 · Product-specific guardrails</div><h2>Specialist context, shared quality</h2><p>Each domain adds rules to prevent ambiguity. None may weaken tenant isolation, access control, auditability, accessibility or truthful status.</p></div>
+      <div class="table-wrap"><table><thead><tr><th>Product area</th><th>Make visible</th><th>Guardrail</th></tr></thead><tbody>
+        <tr><td><strong>Finance, Petti, tax</strong></td><td>Currency, period, ledger source, reconciliation and approval</td><td>Exact values remain available in details and exports; distinguish draft, posted and paid.</td></tr>
+        <tr><td><strong>ClearOS, customs</strong></td><td>Jurisdiction, references, rule source/freshness, deadlines and evidence</td><td>Guidance is not an official determination; surface missing evidence and reviewer.</td></tr>
+        <tr><td><strong>Freight, Tuma, Seal</strong></td><td>Shipment, owner, event time/time zone, custody and exceptions</td><td>Distinguish device-reported events from human-confirmed events.</td></tr>
+        <tr><td><strong>NexusHR, payroll</strong></td><td>Person, effective date, policy, approvals and corrections</td><td>Role-scope sensitive records; explain calculation assumptions and exceptions.</td></tr>
+        <tr><td><strong>CRM</strong></td><td>Identity, relationship, owner, next action, consent and history</td><td>Prevent duplicate identities; show provenance and consent before outreach.</td></tr>
+        <tr><td><strong>Bliss support</strong></td><td>Impact, severity, first response, ownership, resolution and feedback</td><td>Measure speed and quality; don’t reward unsafe closure or manipulate ratings.</td></tr>
+        <tr><td><strong>Ondi identity</strong></td><td>Account, tenant, role, session and application</td><td>Make organization context, recovery and session termination discoverable.</td></tr>
+        <tr><td><strong>Zentra oversight</strong></td><td>Signal source, evidence, confidence, scope and appeal path</td><td>A risk signal is not proof; avoid unreviewed adverse decisions.</td></tr>
+      </tbody></table></div>
+    </section>
+
+    <section class="section">
+      <div class="section-intro"><div class="eyebrow">06 · Product architecture</div><h2>Shared services, clear boundaries</h2></div>
+      <ul><li><strong>Hudumika core:</strong> identity, tenancy, entitlements, design language, APIs, audit events and accessibility behavior.</li><li><strong>Products:</strong> own specialist workflows and data semantics; use documented Ondi identity and authorized APIs for shared services.</li><li><strong>Shared services:</strong> contacts, email, SMS, tasks, finance, HR, documents and compliance expose stable permission-aware APIs. No cross-product table shortcuts.</li><li><strong>Events:</strong> define ownership, version, tenant scope, idempotency, retries and audit requirements; distinguish queued, accepted and confirmed outcomes.</li><li><strong>Entitlements:</strong> backend checks enforce access. A locked feature explains its value without pretending it is active.</li></ul>
+    </section>
+
+    <section class="section">
+      <div class="section-intro"><div class="eyebrow">07 · Team responsibilities</div><h2>Shared ownership, clear questions</h2></div>
+      <div class="table-wrap"><table><thead><tr><th>Team</th><th>Owns</th><th>Ask before release</th></tr></thead><tbody>
+        <tr><td><strong>Product</strong></td><td>User problem, outcome, scope and measures</td><td>Which user task improves, and how will we know?</td></tr>
+        <tr><td><strong>Design</strong></td><td>Flow, hierarchy, content, accessibility and system reuse</td><td>Can a new user understand state and next action without coaching?</td></tr>
+        <tr><td><strong>Engineering</strong></td><td>Correct state, APIs, isolation, performance and resilience</td><td>Is the result true, permission-checked, recoverable and observable?</td></tr>
+        <tr><td><strong>Content</strong></td><td>Names, help, localization, errors and glossary</td><td>Is the message clear in the user’s context?</td></tr>
+        <tr><td><strong>Security & privacy</strong></td><td>Data classification, access, retention and audit</td><td>Could this expose more than the user needs?</td></tr>
+        <tr><td><strong>Operations & support</strong></td><td>Runbooks, escalation and service recovery</td><td>What happens when this is delayed or unavailable?</td></tr>
+        <tr><td><strong>Marketing</strong></td><td>Positioning, claims and channel-specific content</td><td>Is the claim substantiated, accessible and clearly Hudumika-owned?</td></tr>
+      </tbody></table></div>
+      <h3 style="margin-top:24px">Definition of ready</h3><p>Identify users and roles, job, success measure, mobile/low-connectivity conditions, data sensitivity, failure states, source of truth, integrations and localization needs.</p>
+      <h3>Definition of done</h3><ul><li>Shared components and tokens used; exceptions are reviewed.</li><li>Relevant loading, empty, partial, success, denied, stale/offline and failure states work.</li><li>Keyboard, screen reader, focus, contrast, motion, touch, zoom and small-screen behavior checked.</li><li>Server-side tenant access tested, including a cross-tenant denial case.</li><li>High-impact actions have confirmation, idempotency, audit trail and recovery.</li><li>Copy, dates, time zones, currency, precision and provenance verified.</li></ul>
+    </section>
+
+    <section class="section">
+      <div class="section-intro"><div class="eyebrow">08 · Extend & measure</div><h2>Improve the system with evidence</h2></div>
+      <ol><li>Search the catalog and existing code.</li><li>State the user need and why existing components cannot solve it.</li><li>Design reusable behavior, including errors and recovery.</li><li>Check accessibility, responsiveness, localization, tenant theme, density and dark mode.</li><li>Put cross-product patterns in the shared system; keep one-product workflows composed from shared primitives.</li><li>Document the rule, owner and review date; migrate old patterns in safe increments.</li></ol>
+      <p>Measure task completion and time, errors and retries, abandonment, support contacts, accessibility defects, mobile overflow, stale/conflicting data, privacy incidents, shared-component adoption and user confidence. Do not improve speed by shifting risk or hidden work to another team.</p>
+    </section>
+
+    <footer class="footer"><strong>Sources and adaptation</strong><p>This Hudumika standard is informed by public design-system guidance. It is not Uber policy and does not reuse Uber’s identity or proprietary materials.</p><ul class="source-list small">
+      <li><a href="https://base.uber.com/">Uber Base design system overview</a></li>
+      <li><a href="https://base.uber.com/6d2425e9f/v/0/p/040a13-product-voice">Uber Base product voice</a> · <a href="https://base.uber.com/6d2425e9f/p/4245c4-content">Content guidance</a></li>
+      <li><a href="https://www.uber.com/us/en/marketplace/principles/">Uber marketplace principles</a></li>
+      <li><a href="https://medium.com/uber-design/77-things-about-uber-design-4621516e495c">77 Things About Uber Design</a> · <a href="https://wolffolins.com/work/uber">Wolff Olins: Uber</a></li>
+      <li><a href="https://www.uber.com/gb/en/advertising/specs/guidelines/">Universal creative guidelines</a> · <a href="https://www.uber.com/global/en/legal/global-advertising-content-policy/">Advertising content policy</a> · <a href="https://www.uber.com/iq/en/blog/creative-best-practices-the-rules-of-the-road-for-uber-advertising/">Creative best practices</a></li>
+    </ul><p>Implementation reference: <code>docs/DESIGN_SYSTEM.md</code> · Review this standard when Hudumika’s products, regions or user needs change.</p></footer>
+  </main>
+  <button class="print" type="button" onclick="window.print()">Print / Save PDF</button>
+</body>
+</html>

@@ -60,7 +60,7 @@ body{font-family:Arial,sans-serif;color:#111;padding:24px 32px;font-size:11px}
 .to{margin-bottom:16px}
 .to .lbl{font-size:8px;font-weight:800;text-transform:uppercase;letter-spacing:.08em;color:#9ca3af;margin-bottom:4px}
 .to .name{font-size:13px;font-weight:700}
-.totals{display:flex;gap:24px;margin-bottom:16px;padding:12px 14px;background:#f9fafb;border-radius:6px}
+.totals{display:flex;gap:24px;margin-bottom:16px;padding:12px 14px;background:#f9fafb;border-radius: var(--r-sm)}
 .totals div{flex:1}
 .totals .lbl{font-size:8px;font-weight:800;text-transform:uppercase;color:#9ca3af;margin-bottom:2px}
 .totals .val{font-size:14px;font-weight:800;font-family:monospace}
@@ -671,7 +671,7 @@ export const CustomerDetailPage: React.FC = () => {
 
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Button variant="ghost" size="sm" style={{ padding: '0 8px' }}>
+                <Button aria-label="More actions" variant="ghost" size="sm" style={{ padding: '0 8px' }}>
                   <Icon name="moreHorizontal" size={16} />
                 </Button>
               </DropdownMenuTrigger>
@@ -1008,7 +1008,7 @@ export const CustomerDetailPage: React.FC = () => {
                                 </Badge>
                               </td>
                               <td style={{ textAlign: 'right' }}>
-                                <Button variant="ghost" size="xs" onClick={() => window.open(`/billing/invoices/${inv.id}`, '_blank')}>
+                                <Button aria-label="Open in new tab" variant="ghost" size="xs" onClick={() => window.open(`/billing/invoices/${inv.id}`, '_blank')}>
                                   <Icon name="externalLink" size={12} />
                                 </Button>
                               </td>
@@ -1068,7 +1068,7 @@ export const CustomerDetailPage: React.FC = () => {
                               </span>
                             </td>
                             <td style={{ textAlign: 'right' }}>
-                              <Button variant="ghost" size="xs" onClick={() => window.open(`/clearos/shipments/${ship.id}`, '_blank')}>
+                              <Button aria-label="Open shipment in a new tab" variant="ghost" size="xs" onClick={() => window.open(`/clearos/shipments/${ship.id}`, '_blank')}>
                                 <Icon name="arrowRight" size={12} />
                               </Button>
                             </td>
@@ -1173,7 +1173,7 @@ export const CustomerDetailPage: React.FC = () => {
                               </Badge>
                             </td>
                             <td style={{ textAlign: 'right' }}>
-                              <Button variant="ghost" size="xs" onClick={() => window.open(`/billing/invoices/${inv.id}`, '_blank')}>
+                              <Button aria-label="Open in new tab" variant="ghost" size="xs" onClick={() => window.open(`/billing/invoices/${inv.id}`, '_blank')}>
                                 <Icon name="externalLink" size={12} />
                               </Button>
                             </td>
@@ -1305,7 +1305,7 @@ export const CustomerDetailPage: React.FC = () => {
                           </td>
                           <td><Badge variant="brand">{q.status || 'Sent'}</Badge></td>
                           <td>
-                            <Button variant="ghost" size="xs" onClick={() => navigate(`/billing/quotations/${q.id}`)}>
+                            <Button aria-label="Open in new tab" variant="ghost" size="xs" onClick={() => navigate(`/billing/quotations/${q.id}`)}>
                               <Icon name="externalLink" size={12} />
                             </Button>
                           </td>
@@ -1348,7 +1348,7 @@ export const CustomerDetailPage: React.FC = () => {
                           </td>
                           <td style={{ color: 'var(--ink2)' }}>{cn.reason || '—'}</td>
                           <td>
-                            <Button variant="ghost" size="xs" onClick={() => navigate(`/billing/credit-notes/${cn.id}`)}>
+                            <Button aria-label="Open in new tab" variant="ghost" size="xs" onClick={() => navigate(`/billing/credit-notes/${cn.id}`)}>
                               <Icon name="externalLink" size={12} />
                             </Button>
                           </td>
@@ -1414,7 +1414,7 @@ export const CustomerDetailPage: React.FC = () => {
                       </td>
                       <td style={{ color: 'var(--ink3)', fontSize: 12 }}>{fmtDateShort(s.updated_at || s.created_at)}</td>
                       <td style={{ textAlign: 'right' }}>
-                        <Button variant="ghost" size="xs" onClick={() => window.open(`/clearos/shipments/${s.id}`, '_blank')}>
+                        <Button aria-label={`Open in new tab ${s.ref_number ?? ''}`.trim()} variant="ghost" size="xs" onClick={() => window.open(`/clearos/shipments/${s.id}`, '_blank')}>
                           <Icon name="externalLink" size={12} />
                         </Button>
                       </td>
@@ -1545,7 +1545,7 @@ export const CustomerDetailPage: React.FC = () => {
                       <td style={{ color: 'var(--ink3)', fontSize: 12 }}>{f.size ? `${(f.size / 1024).toFixed(0)} KB` : '—'}</td>
                       <td style={{ color: 'var(--ink3)', fontSize: 12 }}>{fmtDateShort(f.created_at)}</td>
                       <td style={{ textAlign: 'right' }}>
-                        <Button variant="ghost" size="xs" onClick={() => window.open(f.download_url || `/cloud?file=${f.id}`, '_blank')}>
+                        <Button aria-label={`Download ${f.name ?? ''}`.trim()} variant="ghost" size="xs" onClick={() => window.open(f.download_url || `/cloud?file=${f.id}`, '_blank')}>
                           <Icon name="download" size={12} />
                         </Button>
                       </td>
@@ -1602,7 +1602,7 @@ export const CustomerDetailPage: React.FC = () => {
                       </td>
                       <td style={{ color: 'var(--ink3)', fontSize: 12 }}>{fmtDateShort(env.created_at)}</td>
                       <td style={{ textAlign: 'right' }}>
-                        <Button variant="ghost" size="xs" onClick={() => window.open(`/sign/envelopes/${env.id}`, '_blank')}>
+                        <Button aria-label={`Open in new tab ${env.title ?? ''}`.trim()} variant="ghost" size="xs" onClick={() => window.open(`/sign/envelopes/${env.id}`, '_blank')}>
                           <Icon name="externalLink" size={12} />
                         </Button>
                       </td>
@@ -1657,7 +1657,7 @@ export const CustomerDetailPage: React.FC = () => {
                       <td><Badge variant={tk.status === 'RESOLVED' ? 'success' : 'warning'}>{tk.status || 'Open'}</Badge></td>
                       <td style={{ color: 'var(--ink3)', fontSize: 12 }}>{fmtDateShort(tk.created_at)}</td>
                       <td>
-                        <Button variant="ghost" size="xs" onClick={() => navigate(`/support/${tk.id}`)}>
+                        <Button aria-label={`Open in new tab ${tk.subject ?? ''}`.trim()} variant="ghost" size="xs" onClick={() => navigate(`/support/${tk.id}`)}>
                           <Icon name="externalLink" size={12} />
                         </Button>
                       </td>
@@ -1971,7 +1971,7 @@ export const CustomerDetailPage: React.FC = () => {
                   <div style={{ fontWeight: 700, fontSize: 13, color: 'var(--ink)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{linkDocFile.name}</div>
                   <div style={{ fontSize: 11, color: 'var(--ink3)', marginTop: 2 }}>{(linkDocFile.size / 1024).toFixed(1)} KB</div>
                 </div>
-                <Button variant="ghost" size="xs" onClick={() => setLinkDocFile(null)}><Icon name="x" size={13} /></Button>
+                <Button aria-label="Close" variant="ghost" size="xs" onClick={() => setLinkDocFile(null)}><Icon name="x" size={13} /></Button>
               </div>
             ) : (
               <button

@@ -280,7 +280,7 @@ export function CreditNotes() {
                 <EntityPicker label="" value={customerItem} onChange={setCustomerItem} search={searchCustomers} placeholder="Search customers…" />
               )}
             </div>
-            <div><label style={lbl}>Reason</label><Input value={reason} onChange={e => setReason(e.target.value)} placeholder="e.g. Returned goods, pricing error" /></div>
+            <div><label style={lbl}>Reason</label><Input value={reason} onChange={e => setReason(e.target.value)} placeholder="e.g. Returned goods, pricing error" aria-label="Reason" /></div>
           </div>
 
           <div style={{ overflowX: 'auto' }}>

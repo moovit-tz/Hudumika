@@ -204,7 +204,7 @@ export const ProjectDirectory: React.FC = () => {
                 style={{ paddingLeft: 30, height: "var(--ctl-h)", fontSize: "var(--text-base)" }}
               />
               {search && (
-                <button data-ui-native-button=""
+                <button aria-label="Close" data-ui-native-button=""
                   type="button"
                   onClick={() => setSearch('')}
                   style={{ position: 'absolute', right: 8, top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', color: 'var(--ink3)', cursor: 'pointer', padding: "var(--action-py) var(--space-md)" }}

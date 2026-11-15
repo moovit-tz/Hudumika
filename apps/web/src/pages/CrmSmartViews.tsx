@@ -657,8 +657,7 @@ export function CrmSmartViews() {
                   value={editing.name}
                   onChange={e => setEditing({ ...editing, name: e.target.value })}
                   className="text-xs"
-                  autoFocus
-                />
+                  autoFocus aria-label="View title" />
               </div>
 
               <div className="flex flex-wrap items-center gap-2 pt-1 pb-1 text-xs text-muted-foreground">

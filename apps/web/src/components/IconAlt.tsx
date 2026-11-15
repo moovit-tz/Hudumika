@@ -24,6 +24,11 @@ export interface IconAltProps {
   onClick?: () => void;
   role?: 'button';
   'aria-hidden'?: true;
+  /** Set by Icon when it is clickable: keyboard reachable and named. */
+  tabIndex?: number;
+  'aria-label'?: string;
+  'data-ui-focus'?: string;
+  onKeyDown?: React.KeyboardEventHandler<SVGSVGElement>;
   /** Icon.tsx's own already-rendered stroke SVG for this name — shown
    *  whenever the chosen library doesn't cover it, so a name outside a
    *  smaller library's coverage never goes blank, it just quietly reads as

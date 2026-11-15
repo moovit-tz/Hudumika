@@ -6,6 +6,7 @@ import { env } from '../config/env.js';
 import { NotificationService } from '../services/notification.service.js';
 import { broadcastToTenant } from '../lib/ws-broadcast.js';
 import { WhatsAppIntegration } from '../integrations/whatsapp.js';
+import { createTicketRow } from './support.routes.js';
 
 // These two are public webhooks fed by third-party services (GPSWOX, Meta's
 // WhatsApp Cloud API) whose payload shape is theirs to evolve, not ours to
@@ -277,7 +278,15 @@ export async function webhookRoutes(fastify: FastifyInstance) {
     // lookup exists for the day a tenant configures a dedicated number —
     // until then it correctly finds nothing and falls through.
     let tenantId: string | null = null;
-    if (receivingPhoneNumberId) {
+    // A centre's own WhatsApp number (Bliss → Network → Lines) names both the
+    // tenant and where the conversation belongs: that centre and product.
+    const waLine = receivingPhoneNumberId
+      ? await dbPlatform.selectFrom('support_lines').select(['id', 'tenant_id', 'site_id', 'product_id', 'name'])
+        .where('kind', '=', 'whatsapp').where('external_id', '=', receivingPhoneNumberId).where('status', '=', 'active')
+        .executeTakeFirst()
+      : undefined;
+    if (waLine) tenantId = waLine.tenant_id;
+    if (receivingPhoneNumberId && !tenantId) {
       const tenantByColumn = await dbPlatform
         .selectFrom('tenants')
         .select(['id'])
@@ -356,6 +365,16 @@ export async function webhookRoutes(fastify: FastifyInstance) {
         .orderBy('updated_at', 'desc')
         .executeTakeFirst();
 
+      if (!activeTicket && waLine && waLine.tenant_id === customer!.tenant_id) {
+        // Through a centre's line: open it there, routed like any other ticket
+        // (centre, product SLA, queue, available agent).
+        activeTicket = await createTicketRow(trx, customer!.tenant_id, {
+          customerId: customer!.id,
+          subject: msg.type === 'text' ? `WhatsApp · ${waLine.name}` : `WhatsApp ${msg.type} · ${waLine.name}`,
+          channel: 'WHATSAPP', priority: 'NORMAL', category: 'General Inquiry',
+          siteId: waLine.site_id, productId: waLine.product_id,
+        }) as any;
+      }
       if (!activeTicket) {
         const ref_number = `SUP-WA-${Math.floor(1000 + Math.random() * 9000)}`;
         activeTicket = await trx

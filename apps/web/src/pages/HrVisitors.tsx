@@ -129,11 +129,11 @@ export const HrVisitors: React.FC = () => {
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 12, marginBottom: 12 }}>
               <div>
                 <label style={{ fontSize: 11.5, fontWeight: 700, color: 'var(--ink2)', display: 'block', marginBottom: 4 }}>Name</label>
-                <Input value={name} onChange={e => setName(e.target.value)} placeholder="Visitor's name" />
+                <Input value={name} onChange={e => setName(e.target.value)} placeholder="Visitor's name" aria-label="Name" />
               </div>
               <div>
                 <label style={{ fontSize: 11.5, fontWeight: 700, color: 'var(--ink2)', display: 'block', marginBottom: 4 }}>Company (optional)</label>
-                <Input value={company} onChange={e => setCompany(e.target.value)} />
+                <Input value={company} onChange={e => setCompany(e.target.value)} aria-label="Company (optional)" />
               </div>
               <div>
                 <label style={{ fontSize: 11.5, fontWeight: 700, color: 'var(--ink2)', display: 'block', marginBottom: 4 }}>Visiting</label>
@@ -142,7 +142,7 @@ export const HrVisitors: React.FC = () => {
             </div>
             <div style={{ marginBottom: 14 }}>
               <label style={{ fontSize: 11.5, fontWeight: 700, color: 'var(--ink2)', display: 'block', marginBottom: 4 }}>Purpose (optional)</label>
-              <Input value={purpose} onChange={e => setPurpose(e.target.value)} placeholder="e.g. Interview, delivery, meeting" />
+              <Input value={purpose} onChange={e => setPurpose(e.target.value)} placeholder="e.g. Interview, delivery, meeting" aria-label="Purpose (optional)" />
             </div>
             <div style={{ display: 'flex', gap: 10 }}>
               <Button type="button" disabled={saving} onClick={checkIn}>

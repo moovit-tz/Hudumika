@@ -366,22 +366,22 @@ export const TrackingLiveMap: React.FC = () => {
                     background: 'rgba(0,0,0,0.65)',
                     color: '#fff',
                     padding: '2px 6px',
-                    borderRadius: 4,
+                    borderRadius: 'var(--r-sm)',
                     zIndex: 2,
                   }}>STOCK MODEL</span>
                 )}
-                <button className="trk-close-btn" onClick={() => setSelectedId(null)} data-ui-native-button="">
+                <button aria-label="Close" className="trk-close-btn" onClick={() => setSelectedId(null)} data-ui-native-button="">
                   <Icon name="x" size={20} />
                 </button>
                 <div className="trk-hero-overlay">
                   <div className="trk-detail-title">{selectedVehicle.name}</div>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
                     <span className="trk-detail-plate">{selectedVehicle.plate_number || 'NO PLATE'}</span>
-                    <span style={{ fontSize: 11, fontWeight: 700, padding: '3px 8px', borderRadius: 4, background: selectedVehicle.status === 'ACTIVE' ? 'var(--green-l)' : 'var(--bg2)', color: selectedVehicle.status === 'ACTIVE' ? 'var(--green)' : 'var(--ink)' }}>
+                    <span style={{ fontSize: 11, fontWeight: 700, padding: '3px 8px', borderRadius: 'var(--r-sm)', background: selectedVehicle.status === 'ACTIVE' ? 'var(--green-l)' : 'var(--bg2)', color: selectedVehicle.status === 'ACTIVE' ? 'var(--green)' : 'var(--ink)' }}>
                       {selectedVehicle.status}
                     </span>
                     {selectedVehicle.ownership && (
-                      <span style={{ fontSize: 11, fontWeight: 700, padding: '3px 8px', borderRadius: 4, background: 'rgba(255,255,255,0.2)', color: '#fff' }}>
+                      <span style={{ fontSize: 11, fontWeight: 700, padding: '3px 8px', borderRadius: 'var(--r-sm)', background: 'rgba(255,255,255,0.2)', color: '#fff' }}>
                         {selectedVehicle.ownership}
                       </span>
                     )}

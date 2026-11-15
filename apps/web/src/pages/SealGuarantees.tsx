@@ -71,7 +71,7 @@ export function SealGuarantees() {
         crumbs={['SEAL', 'Guarantees & Bond Headroom']}
         titlePlain="Guarantees & Bond"
         titleEm="headroom"
-        subtitle="The financial instruments securing suspended duty — attach one to a compartment and every receipt into bond checks it in real time."
+        subtitle="Manage suspended-duty guarantees. SEAL checks available cover when stock enters bond."
         actions={
           <Button onClick={() => setShowNew(v => !v)}>
             <Icon name="plus" size={14} />
@@ -85,34 +85,34 @@ export function SealGuarantees() {
           <div style={{ padding: 20, display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(3, 1fr)', gap: 14 }}>
             <div className="seal-field-row">
               <label className="seal-field-label">Reference</label>
-              <Input value={reference} onChange={e => setReference(e.target.value)} placeholder="BG-2026-0041" />
+              <Input value={reference} onChange={e => setReference(e.target.value)} placeholder="BG-2026-0041" aria-label="Reference" />
             </div>
             <div className="seal-field-row">
               <label className="seal-field-label">Instrument Type</label>
               <Select value={instrumentType} onValueChange={setInstrumentType}>
-                <SelectTrigger className="w-full"><SelectValue /></SelectTrigger>
+                <SelectTrigger className="w-full" aria-label="Instrument Type"><SelectValue /></SelectTrigger>
                 <SelectContent>{INSTRUMENT_TYPES.map(t => <SelectItem key={t} value={t}>{t.replace(/_/g, ' ')}</SelectItem>)}</SelectContent>
               </Select>
             </div>
             <div className="seal-field-row">
               <label className="seal-field-label">Issuer</label>
-              <Input value={issuer} onChange={e => setIssuer(e.target.value)} placeholder="CRDB Bank PLC" />
+              <Input value={issuer} onChange={e => setIssuer(e.target.value)} placeholder="CRDB Bank PLC" aria-label="Issuer" />
             </div>
             <div className="seal-field-row">
               <label className="seal-field-label">Face Value</label>
-              <Input type="number" min="0" step="any" value={faceValue} onChange={e => setFaceValue(e.target.value)} placeholder="0.00" />
+              <Input type="number" min="0" step="any" value={faceValue} onChange={e => setFaceValue(e.target.value)} placeholder="0.00" aria-label="Face Value" />
             </div>
             <div className="seal-field-row">
               <label className="seal-field-label">Currency</label>
-              <Input value={currency} onChange={e => setCurrency(e.target.value.toUpperCase())} maxLength={3} />
+              <Input value={currency} onChange={e => setCurrency(e.target.value.toUpperCase())} maxLength={3} aria-label="Currency" />
             </div>
             <div className="seal-field-row">
               <label className="seal-field-label">Effective From</label>
-              <DatePicker date={effectiveFrom} onChange={setEffectiveFrom} />
+              <DatePicker date={effectiveFrom} onChange={setEffectiveFrom} aria-label="Effective From" />
             </div>
             <div className="seal-field-row">
               <label className="seal-field-label">Expires On</label>
-              <DatePicker date={expiresOn} onChange={setExpiresOn} />
+              <DatePicker date={expiresOn} onChange={setExpiresOn} aria-label="Expires On" />
             </div>
             <div style={{ display: 'flex', alignItems: 'flex-end', gap: 10 }}>
               <Button type="button" variant="outline" onClick={() => setShowNew(false)}>Cancel</Button>

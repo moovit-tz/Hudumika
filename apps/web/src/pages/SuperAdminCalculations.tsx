@@ -73,7 +73,7 @@ export const SuperAdminCalculations: React.FC = () => {
       <style>{`
         .sac-page { padding: 24px 32px; }
         .sac-card { min-width: 0; background: var(--card-bg, var(--white)); border: 1px solid var(--border);
-                    border-radius: 16px; box-shadow: 0 4px 20px rgba(0,0,0,.04); overflow: hidden; --ctl-h: 44px; margin-top: 12px; }
+                    border-radius: var(--r-lg); box-shadow: 0 4px 20px rgba(0,0,0,.04); overflow: hidden; --ctl-h: 44px; margin-top: 12px; }
         .sac-card .input-field, .sac-card [data-slot="select-trigger"] {
           height: var(--ctl-h); border-radius: var(--r-sm); padding-top: 0; padding-bottom: 0; }
         .sac-tools { display: grid; grid-template-columns: minmax(0,1fr) 190px; gap: 12px; padding: 18px; border-bottom: 1px solid var(--border); }

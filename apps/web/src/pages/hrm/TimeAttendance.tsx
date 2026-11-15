@@ -297,7 +297,7 @@ export function LeavesPage() {
           <form onSubmit={submitLeave} style={{ padding: 16, display: 'flex', gap: 12, alignItems: 'flex-end', flexWrap: 'wrap' }}>
             <div style={{ flex: 1, minWidth: 200 }}>
               <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: 'var(--ink2)', marginBottom: 4 }}>Employee</label>
-              <Combobox options={staff.map(s => ({ value: s.id, label: s.name }))} value={formPerson} onChange={setFormPerson} placeholder="Select employee" searchPlaceholder="Search people…" />
+              <Combobox options={staff.map(s => ({ value: s.id, label: s.name }))} value={formPerson} onChange={setFormPerson} placeholder="Select employee" searchPlaceholder="Search people…" aria-label="Employee" />
             </div>
             <div>
               <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: 'var(--ink2)', marginBottom: 4 }}>Leave type</label>
@@ -308,11 +308,11 @@ export function LeavesPage() {
             </div>
             <div>
               <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: 'var(--ink2)', marginBottom: 4 }}>From</label>
-              <DatePicker date={parseDateOnly(formFrom)} onChange={d => setFormFrom(d ? toDateOnlyString(d) : '')} />
+              <DatePicker date={parseDateOnly(formFrom)} onChange={d => setFormFrom(d ? toDateOnlyString(d) : '')} aria-label="From" />
             </div>
             <div>
               <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: 'var(--ink2)', marginBottom: 4 }}>To</label>
-              <DatePicker date={parseDateOnly(formTo)} onChange={d => setFormTo(d ? toDateOnlyString(d) : '')} />
+              <DatePicker date={parseDateOnly(formTo)} onChange={d => setFormTo(d ? toDateOnlyString(d) : '')} aria-label="To" />
             </div>
             <div style={{ flex: 1, minWidth: 180 }}>
               <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: 'var(--ink2)', marginBottom: 4 }}>Reason (optional)</label>
@@ -875,18 +875,18 @@ export function AttendancePage() {
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(180px, 1fr))', gap: 12, marginBottom: 16 }}>
                   <div>
                     <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: 'var(--ink2)', marginBottom: 6 }}>Start Date</label>
-                    <DatePicker name="startDate" defaultDate={new Date()} />
+                    <DatePicker name="startDate" defaultDate={new Date()} aria-label="Start Date" />
                   </div>
                   <div>
                     <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: 'var(--ink2)', marginBottom: 6 }}>End Date</label>
-                    <DatePicker name="endDate" defaultDate={new Date()} />
+                    <DatePicker name="endDate" defaultDate={new Date()} aria-label="End Date" />
                   </div>
                 </div>
 
                 <div style={{ marginBottom: 16 }}>
                   <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: 'var(--ink2)', marginBottom: 6 }}>Status</label>
                   <Select name="status" required defaultValue="Present">
-                    <SelectTrigger className="input-field"><SelectValue /></SelectTrigger>
+                    <SelectTrigger className="input-field" aria-label="Status"><SelectValue /></SelectTrigger>
                     <SelectContent>
                       <SelectItem value="Present">Present</SelectItem>
                       <SelectItem value="Absent">Absent</SelectItem>

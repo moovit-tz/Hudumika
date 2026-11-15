@@ -833,8 +833,7 @@ export const PurchaseOrders: React.FC = () => {
                     <label style={{ display: 'block', fontSize: 11, fontWeight: 700, color: 'var(--ink3)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 4 }}>Vendor</label>
                     <Combobox
                       options={[{ value: '', label: 'All Vendors' }, ...allSuppliers.map(s => ({ value: s.id, label: s.name }))]}
-                      value={filterVendor} onChange={v => { setFilterVendor(v); setCurrentPage(1); }} placeholder="All Vendors"
-                    />
+                      value={filterVendor} onChange={v => { setFilterVendor(v); setCurrentPage(1); }} placeholder="All Vendors" aria-label="Vendor" />
                   </div>
 
                   {/* Clear Filters Action */}
@@ -1459,7 +1458,7 @@ export const PurchaseOrders: React.FC = () => {
                 <div>
                   <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: 'var(--ink2)', marginBottom: 6 }}>Warehouse</label>
                   <Select value={formWarehouse} onValueChange={setFormWarehouse} disabled={warehouses.length === 0}>
-                    <SelectTrigger><SelectValue placeholder={warehouses.length === 0 ? 'No warehouses configured' : 'Select warehouse…'} /></SelectTrigger>
+                    <SelectTrigger aria-label="Warehouse"><SelectValue placeholder={warehouses.length === 0 ? 'No warehouses configured' : 'Select warehouse…'} /></SelectTrigger>
                     <SelectContent>
                       {warehouses.map(w => (
                         <SelectItem key={w.id} value={w.id}>{w.name}</SelectItem>

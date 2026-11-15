@@ -211,7 +211,7 @@ export function ApApprovalWorkflows() {
                     <td style={{ padding: '9px 12px', textAlign: 'right' }}>
                       {!readOnly && <div style={{ display: 'flex', gap: 4, justifyContent: 'flex-end' }}>
                         <Tip label="Edit">
-                          <Button type="button" variant="ghost" size="icon" iconOnly aria-label="Edit" onClick={() => openEdit(w)}>
+                          <Button type="button" variant="ghost" size="icon" iconOnly aria-label={`Edit ${w.name ?? ''}`.trim()} onClick={() => openEdit(w)}>
                             <Icon name="edit" size={14} />
                           </Button>
                         </Tip>
@@ -221,7 +221,7 @@ export function ApApprovalWorkflows() {
                           </Button>
                         </Tip>
                         <Tip label="Delete">
-                          <Button type="button" variant="ghost" size="icon" iconOnly aria-label="Delete" onClick={() => remove(w)}>
+                          <Button type="button" variant="ghost" size="icon" iconOnly aria-label={`Delete ${w.name ?? ''}`.trim()} onClick={() => remove(w)}>
                             <Icon name="trash2" size={14} color="var(--red)" />
                           </Button>
                         </Tip>
@@ -241,22 +241,22 @@ export function ApApprovalWorkflows() {
 
           <div style={{ marginBottom: 14 }}>
             <label style={lbl}>Name</label>
-            <Input value={name} onChange={e => setName(e.target.value)} placeholder="e.g. High-value bills" />
+            <Input value={name} onChange={e => setName(e.target.value)} placeholder="e.g. High-value bills" aria-label="Name" />
           </div>
 
           <div style={{ marginBottom: 14 }}>
             <label style={lbl}>Applies to bills of at least</label>
-            <Input type="number" min={0} step="any" value={minAmount} onChange={e => setMinAmount(e.target.value)} placeholder="0.00" />
+            <Input type="number" min={0} step="any" value={minAmount} onChange={e => setMinAmount(e.target.value)} placeholder="0.00" aria-label="Applies to bills of at least" />
           </div>
 
           <div style={{ marginBottom: 14 }}>
             <label style={lbl}>Approver</label>
-            <Combobox options={staffOptions} value={approverId} onChange={setApproverId} placeholder="Select an approver…" searchPlaceholder="Search staff…" />
+            <Combobox options={staffOptions} value={approverId} onChange={setApproverId} placeholder="Select an approver…" searchPlaceholder="Search staff…" aria-label="Approver" />
           </div>
 
           <div style={{ marginBottom: 16 }}>
             <label style={lbl}>Backup approver (optional)</label>
-            <Combobox options={staffOptions.filter(o => o.value !== approverId)} value={backupId} onChange={setBackupId} placeholder="None" searchPlaceholder="Search staff…" />
+            <Combobox options={staffOptions.filter(o => o.value !== approverId)} value={backupId} onChange={setBackupId} placeholder="None" searchPlaceholder="Search staff…" aria-label="Backup approver (optional)" />
           </div>
 
           {editing && (

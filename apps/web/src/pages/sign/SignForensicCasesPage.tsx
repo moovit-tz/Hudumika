@@ -904,7 +904,7 @@ function CaseDetailView({ id }: { id: string }) {
                         {e.source.replace(/_/g, ' ')}
                       </Badge>
                       <a href={downloadUrl} target="_blank" rel="noreferrer" download={e.filename}>
-                        <Button variant="outline" size="default" style={{ padding: "var(--action-py) var(--space-md)" }}>
+                        <Button aria-label={`Download ${e.filename ?? ''}`.trim()} variant="outline" size="default" style={{ padding: "var(--action-py) var(--space-md)" }}>
                           <Icon name="download" size={13} />
                         </Button>
                       </a>

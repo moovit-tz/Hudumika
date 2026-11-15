@@ -469,7 +469,7 @@ export function ComplianceOverview() {
                     <XAxis dataKey="label" axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: C.axisText }} interval={2} />
                     <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: C.axisText }} allowDecimals={false} width={28} />
                     <RechartsTooltip
-                      contentStyle={{ background: C.tooltipBg, border: `1px solid ${C.tooltipBorder}`, borderRadius: 8, fontSize: 12 }}
+                      contentStyle={{ background: C.tooltipBg, border: `1px solid ${C.tooltipBorder}`, borderRadius: 'var(--r)', fontSize: 12 }}
                       labelStyle={{ color: 'var(--ink)', fontWeight: 700, marginBottom: 2 }}
                     />
                     <Area type="monotone" dataKey="checks" name="Quick Checks" stroke={C.teal} strokeWidth={2} fillOpacity={1} fill="url(#checksGrad)" />
@@ -558,7 +558,7 @@ export function ComplianceOverview() {
                     <XAxis type="number" axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: C.axisText }} allowDecimals={false} />
                     <YAxis type="category" dataKey="kind" axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: 'var(--ink)', fontWeight: 600 }} width={104} />
                     <RechartsTooltip
-                      contentStyle={{ background: C.tooltipBg, border: `1px solid ${C.tooltipBorder}`, borderRadius: 8, fontSize: 12 }}
+                      contentStyle={{ background: C.tooltipBg, border: `1px solid ${C.tooltipBorder}`, borderRadius: 'var(--r)', fontSize: 12 }}
                       cursor={{ fill: C.gridLine }}
                     />
                     <Bar dataKey="value" name="Procedures" radius={[0, 4, 4, 0]} maxBarSize={20}>
@@ -660,7 +660,7 @@ export function ComplianceOverview() {
                   onBlur={e => { e.currentTarget.style.borderColor = 'var(--border)'; e.currentTarget.style.background = 'var(--bg)'; }}
                 />
                 {searchQuery && (
-                  <button
+                  <button aria-label="Clear search"
                     type="button"
                     onClick={() => handleSearchChange('')}
                     style={{ position: 'absolute', right: 6, top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink3)', padding: 2 }}
@@ -695,7 +695,7 @@ export function ComplianceOverview() {
                       onClick={() => handleFilterChange(tabKey)}
                       style={{
                         padding: '4px 9px',
-                        borderRadius: 5,
+                        borderRadius: 'var(--r-sm)',
                         fontSize: 11.5,
                         fontWeight: isActive ? 600 : 500,
                         border: isActive ? '1px solid var(--border)' : '1px solid transparent',

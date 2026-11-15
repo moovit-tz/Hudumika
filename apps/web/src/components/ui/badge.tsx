@@ -35,13 +35,29 @@ export interface BadgeProps
   extends React.HTMLAttributes<HTMLDivElement>,
     VariantProps<typeof badgeVariants> {}
 
-function Badge({ className, variant, style, ...props }: BadgeProps) {
+/** Consecutive text/number children in one span, so a right-to-left page
+ *  orders "-52.8% YTD" as one run (index.css applies unicode-bidi: plaintext
+ *  to spans, not to the badge's own div). Elements such as icons pass through
+ *  untouched, keeping the badge's flex gap between icon and text. */
+function groupText(children: React.ReactNode): React.ReactNode {
+  const out: React.ReactNode[] = []
+  let run: Array<string | number> = []
+  const flush = () => { if (run.length) { out.push(<span key={`t${out.length}`}>{run.join('')}</span>); run = [] } }
+  React.Children.forEach(children, (child) => {
+    if (typeof child === 'string' || typeof child === 'number') run.push(child)
+    else { flush(); if (child != null && child !== false) out.push(child) }
+  })
+  flush()
+  return out
+}
+
+function Badge({ className, variant, style, children, ...props }: BadgeProps) {
   return (
     <div className={cn(badgeVariants({ variant }), className)} style={{
       borderRadius: 'var(--badge-radius)', minHeight: 'var(--badge-min-h)',
       paddingBlock: 'var(--badge-py)', paddingInline: 'var(--badge-px)',
       fontSize: 'var(--badge-fs)', ...style,
-    }} {...props} />
+    }} {...props}>{groupText(children)}</div>
   )
 }
 

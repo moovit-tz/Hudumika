@@ -16,6 +16,7 @@ import { broadcastToTenant } from '../lib/ws-broadcast.js';
 import { WhatsAppIntegration } from '../integrations/whatsapp.js';
 import { emitDomainEvent } from '../services/domain-events.service.js';
 import { computeBlissKpis } from '../services/support-metrics.service.js';
+import { routeTicket, ticketFilterFor, ticketFilterSql, supportScope, scopeAllowsSite, validateFormAnswers } from '../services/support-network.service.js';
 
 // The two endpoints CUSTOMER_ALLOWED_ROUTES below actually lets a CUSTOMER
 // login reach (create ticket, reply) — the only ones in this file where the
@@ -34,6 +35,14 @@ const createTicketSchema = z.object({
   priority: z.enum(['LOW', 'NORMAL', 'MEDIUM', 'HIGH', 'URGENT']),
   category: z.string().trim().min(1).max(100),
   source_app: z.enum(SOURCE_APPS).optional(),
+  // Support network: an explicit centre/product, or the customer's location
+  // so the nearest open centre can take it.
+  site_id: z.string().uuid().optional(),
+  product_id: z.string().uuid().optional(),
+  lat: z.number().min(-90).max(90).optional(),
+  lng: z.number().min(-180).max(180).optional(),
+  // Answers to the chosen product's ticket form (support_products.form_fields).
+  custom_fields: z.record(z.string().max(40), z.union([z.string().max(4000), z.number(), z.boolean()])).optional(),
 });
 const customerReplySchema = z.object({ content: z.string().trim().min(1).max(10_000) });
 const updateAttributesSchema = z.object({
@@ -130,9 +139,22 @@ export async function createTicketRow(
     // create-ticket route, the Onsite org portal) — null for every other
     // caller (IMAP ingest, automations), which have no browser to fingerprint.
     originIp?: string | null; originUserAgent?: string | null;
+    /** Support network routing hints — see support-network.service.ts. */
+    siteId?: string | null; productId?: string | null; lat?: number | null; lng?: number | null;
+    /** Already validated against the product's form by the caller. */
+    customFields?: Record<string, string | number | boolean> | null;
+    /** The staff member (or customer login) creating it; null for ingest/automation. */
+    actorId?: string | null;
   },
 ) {
-  const slaDeadline = new Date(Date.now() + SLA_HOURS[input.priority] * 3600_000);
+  // Where this ticket goes across centres/zones/products. Null when the
+  // workspace runs a single desk (no centres or products set up), which keeps
+  // the original behaviour below unchanged.
+  const route = await routeTicket(trx, tenantId, {
+    siteId: input.siteId, productId: input.productId, sourceApp: input.sourceApp,
+    priority: input.priority, category: input.category, lat: input.lat, lng: input.lng,
+  });
+  const slaDeadline = new Date(Date.now() + (route?.slaHours ?? SLA_HOURS[input.priority]) * 3600_000);
   let ticket = await trx
     .insertInto('support_tickets')
     .values({
@@ -150,7 +172,16 @@ export async function createTicketRow(
       source_app: input.sourceApp ?? null,
       origin_ip: input.originIp ?? null,
       origin_user_agent: input.originUserAgent ?? null,
-    })
+      site_id: route?.siteId ?? null,
+      zone_id: route?.zoneId ?? null,
+      product_id: route?.productId ?? null,
+      group_id: route?.groupId ?? null,
+      assigned_to: route?.assignedTo ?? null,
+      customer_lat: input.lat ?? null,
+      customer_lng: input.lng ?? null,
+      routed_reason: route?.reason ?? null,
+      custom_fields: JSON.stringify(input.customFields ?? {}),
+    } as any)
     .returningAll()
     .executeTakeFirstOrThrow();
 
@@ -186,8 +217,12 @@ export async function createTicketRow(
     } as any).execute();
   }
 
-  const assignedTo = await applyAutoAssignRules(trx, tenantId, ticket);
-  if (assignedTo) ticket = { ...ticket, assigned_to: assignedTo };
+  // The network router already decided assignment when it ran; the older
+  // workspace-wide auto-assign rules apply only to a single-desk workspace.
+  if (!route) {
+    const assignedTo = await applyAutoAssignRules(trx, tenantId, ticket);
+    if (assignedTo) ticket = { ...ticket, assigned_to: assignedTo };
+  }
 
   await fireNotificationTrigger(trx, tenantId, 'new_ticket', ticket);
 
@@ -198,7 +233,7 @@ export async function createTicketRow(
   // can build real workflows on top of what support_rules already does
   // internally, not just point Studio at other apps' events.
   await emitDomainEvent(trx, tenantId, {
-    type: 'support.ticket_created', sourceApp: 'bliss', entityType: 'support_ticket', entityId: ticket.id,
+    type: 'support.ticket_created', sourceApp: 'bliss', entityType: 'support_ticket', entityId: ticket.id, actorId: input.actorId ?? null,
     payload: { channel: ticket.channel, priority: ticket.priority, category: ticket.category, assignedTo: ticket.assigned_to ?? null },
   }).catch(err => console.error('[Support] ticket_created emit failed:', err?.message));
 
@@ -301,9 +336,26 @@ export default async function supportRoutes(fastify: FastifyInstance) {
     const allowed = CUSTOMER_ALLOWED_ROUTES.some(r => r.method === request.method && r.url === url);
     if (!allowed) return reply.status(403).send({ error: 'Not available for customer accounts' });
   });
+  // Support network: staff only reach tickets in centres they belong to (or
+  // assigned to them). One check here covers every /tickets/:id endpoint —
+  // read, reply, reassign, status, tags — instead of one per handler.
+  fastify.addHook('preHandler', async (request, reply) => {
+    if (request.user.role === 'CUSTOMER') return;
+    const url = request.routeOptions?.url ?? '';
+    const id = (request.params as { id?: string } | undefined)?.id;
+    // routeOptions.url is the full path (/v1/support/tickets/:id/...), not the plugin-relative one.
+    if (!id || !/\/tickets\/:id(\/|$)/.test(url)) return;
+    const denied = await withTenant(request.user.tenant_id, async (trx) => {
+      const t = await trx.selectFrom('support_tickets').select(['site_id', 'assigned_to'])
+        .where('tenant_id', '=', request.user.tenant_id).where('id', '=', id).executeTakeFirst();
+      if (!t || t.assigned_to === request.user.sub) return false;
+      return !scopeAllowsSite(await supportScope(trx, request.user), t.site_id);
+    });
+    if (denied) return reply.status(404).send({ error: 'Ticket not found' });
+  });
 
   // 1. List all tickets
-  fastify.get<{ Querystring: { customer_id?: string; source_app?: string } }>('/tickets', async (request, reply) => {
+  fastify.get<{ Querystring: { customer_id?: string; source_app?: string; site_id?: string; zone_id?: string; product_id?: string } }>('/tickets', async (request, reply) => {
     const user = request.user;
     return withTenant(user.tenant_id, async (trx) => {
       let query = trx
@@ -311,6 +363,8 @@ export default async function supportRoutes(fastify: FastifyInstance) {
         .leftJoin('customers as c', 'c.id', 'st.customer_id')
         .leftJoin('users as u', 'u.id', 'st.assigned_to')
         .leftJoin('support_groups as g', 'g.id', 'st.group_id')
+        .leftJoin('tenant_sites as site', 'site.id', 'st.site_id')
+        .leftJoin('support_products as prod', 'prod.id', 'st.product_id')
         .select([
           'st.id', 'st.ref_number as ref', 'st.subject', 'st.description',
           'st.channel', 'st.status', 'st.priority', 'st.category', 'st.tags',
@@ -319,8 +373,14 @@ export default async function supportRoutes(fastify: FastifyInstance) {
           'c.name as customer', 'c.id as customer_id', 'c.email as customer_email', 'c.phone as customer_phone',
           'u.name as assigned_to', 'u.id as assigned_to_id',
           'g.id as group_id', 'g.name as group_name', 'g.color as group_color',
+          'st.site_id', 'site.name as site_name', 'st.zone_id',
+          'st.product_id', 'prod.name as product_name', 'prod.color as product_color', 'st.routed_reason', 'st.custom_fields',
         ])
         .where('st.tenant_id', '=', user.tenant_id);
+      // Centres this person may see, narrowed by any centre/zone/product filter.
+      if (user.role !== 'CUSTOMER') {
+        query = query.where(ticketFilterSql(await ticketFilterFor(trx, user, request.query), 'st'));
+      }
       if (user.role === 'CUSTOMER') {
         // Their own tickets only — ?customer_id= is ignored for a customer
         // login rather than trusted, the same way every other customer-scoped
@@ -378,7 +438,19 @@ export default async function supportRoutes(fastify: FastifyInstance) {
         return { error: 'Customer not found' };
       }
 
+      // A product with a ticket form: check the answers before anything is written.
+      let customFields: Record<string, string | number | boolean> | null = null;
+      if (b.product_id) {
+        const product = await trx.selectFrom('support_products').select(['form_fields'])
+          .where('tenant_id', '=', user.tenant_id).where('id', '=', b.product_id).executeTakeFirst();
+        if (!product) { reply.status(400); return { error: 'That product line does not exist.' }; }
+        const checked = validateFormAnswers((product.form_fields as any[]) ?? [], b.custom_fields);
+        if (!checked.ok) { reply.status(400); return { error: checked.error }; }
+        customFields = checked.values;
+      }
+
       const ticket = await createTicketRow(trx, user.tenant_id, {
+        actorId: user.sub,
         customerId,
         subject: b.subject,
         description: b.description,
@@ -388,6 +460,11 @@ export default async function supportRoutes(fastify: FastifyInstance) {
         sourceApp: b.source_app ?? null,
         originIp: request.ip,
         originUserAgent: String(request.headers['user-agent'] || '') || null,
+        siteId: user.role === 'CUSTOMER' ? null : b.site_id ?? null,
+        productId: b.product_id ?? null,
+        lat: b.lat ?? null,
+        lng: b.lng ?? null,
+        customFields,
       });
 
       reply.status(201);
@@ -411,6 +488,7 @@ export default async function supportRoutes(fastify: FastifyInstance) {
           'c.contact_name as customer_company',
           'u.name as assigned_to', 'u.id as assigned_to_id',
           'st.source_app', 'st.origin_ip', 'st.origin_user_agent',
+          'st.site_id', 'st.product_id', 'st.routed_reason', 'st.custom_fields',
         ])
         .where('st.id', '=', request.params.id)
         .where('st.tenant_id', '=', user.tenant_id)
@@ -775,13 +853,13 @@ export default async function supportRoutes(fastify: FastifyInstance) {
 
       if (wasReassigned) {
         await emitDomainEvent(trx, user.tenant_id, {
-          type: 'support.ticket_reassigned', sourceApp: 'bliss', entityType: 'support_ticket', entityId: updated.id,
+          type: 'support.ticket_reassigned', sourceApp: 'bliss', entityType: 'support_ticket', entityId: updated.id, actorId: user.sub,
           payload: { assignedTo: updated.assigned_to, previousAssignedTo: before.assigned_to ?? null },
         }).catch(err => console.error('[Support] ticket_reassigned emit failed:', err?.message));
       }
       if (newlyResolved) {
         await emitDomainEvent(trx, user.tenant_id, {
-          type: 'support.ticket_resolved', sourceApp: 'bliss', entityType: 'support_ticket', entityId: updated.id,
+          type: 'support.ticket_resolved', sourceApp: 'bliss', entityType: 'support_ticket', entityId: updated.id, actorId: user.sub,
           payload: { priority: updated.priority, category: updated.category, resolutionSeconds: resolutionSeconds ?? 0 },
         }).catch(err => console.error('[Support] ticket_resolved emit failed:', err?.message));
       }
@@ -907,6 +985,28 @@ Write a professional, empathetic reply to this customer. Be concise (2–4 sente
   // 8b. Set a ticket's tags — the DetailsPanel tag chip editor used to only
   // ever call local setState, so every tag an agent added vanished on the
   // next page load having never reached the database at all.
+  // Edit answers to the ticket's product form (support network). Only that
+  // product's fields are kept; a required field cannot be cleared.
+  fastify.patch<{ Params: { id: string }; Body: { custom_fields: Record<string, unknown> } }>('/tickets/:id/custom-fields', { preHandler: [requireRole(...AGENT_ROLES)] }, async (request, reply) => {
+    const user = request.user;
+    const body = z.object({ custom_fields: z.record(z.string().max(40), z.union([z.string().max(4000), z.number(), z.boolean(), z.null()])) }).parse(request.body);
+    return withTenant(user.tenant_id, async (trx) => {
+      const t = await trx.selectFrom('support_tickets').select(['id', 'product_id', 'custom_fields'])
+        .where('tenant_id', '=', user.tenant_id).where('id', '=', request.params.id).executeTakeFirst();
+      if (!t) return reply.status(404).send({ error: 'Ticket not found' });
+      if (!t.product_id) return reply.status(400).send({ error: 'Set a product line on this ticket first.' });
+      const product = await trx.selectFrom('support_products').select(['form_fields'])
+        .where('tenant_id', '=', user.tenant_id).where('id', '=', t.product_id).executeTakeFirst();
+      const fields = ((product?.form_fields as any[]) ?? []);
+      const merged = { ...((t.custom_fields as Record<string, unknown>) ?? {}), ...body.custom_fields };
+      const checked = validateFormAnswers(fields, merged, true);
+      if (!checked.ok) return reply.status(400).send({ error: checked.error });
+      await trx.updateTable('support_tickets').set({ custom_fields: JSON.stringify(checked.values), updated_at: new Date() } as any)
+        .where('tenant_id', '=', user.tenant_id).where('id', '=', t.id).execute();
+      return { custom_fields: checked.values };
+    });
+  });
+
   fastify.patch<{ Params: { id: string }; Body: { tags: string[] } }>('/tickets/:id/tags', async (request, reply) => {
     const user = request.user;
     const tags = Array.isArray(request.body.tags) ? request.body.tags.map(t => String(t).trim()).filter(Boolean) : [];
@@ -1133,11 +1233,13 @@ Write a professional, empathetic reply to this customer. Be concise (2–4 sente
       if (period === '90d') days = 90;
       const cutoff = new Date(Date.now() - days * 86400000);
 
+      const filter = await ticketFilterFor(trx, user, request.query as { site_id?: string; zone_id?: string; product_id?: string });
       const tickets = await trx
         .selectFrom('support_tickets')
         .selectAll()
         .where('tenant_id', '=', user.tenant_id)
         .where('created_at', '>=', cutoff)
+        .where(ticketFilterSql(filter))
         .execute();
 
       // The scalar KPIs (counts, CSAT, first-reply/resolution time, SLA
@@ -1145,7 +1247,7 @@ Write a professional, empathetic reply to this customer. Be concise (2–4 sente
       // support-metrics.service.ts and shared with the Metric Registry
       // (metrics-registry.service.ts, metric keys bliss.*), so this
       // dashboard and every other consumer read the same numbers.
-      const kpis = await computeBlissKpis(trx, user.tenant_id, days);
+      const kpis = await computeBlissKpis(trx, user.tenant_id, days, filter);
       const {
         total, open, inProgress, resolved, closed, urgent, nps,
         csat: csatAvg, firstReply: avgFirstReply, resolution: avgSolveTime,

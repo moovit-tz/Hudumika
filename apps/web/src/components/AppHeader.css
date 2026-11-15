@@ -58,6 +58,22 @@
   flex-shrink: 0;
 }
 
+/* Keep the action cluster anchored to the header edge when the search slot or
+   an adjacent workspace rail changes the available grid-column width. */
+.app-header-inner--hub .app-header-actions,
+.app-header-inner--app .app-header-actions {
+  width: max-content;
+  justify-self: end;
+}
+
+.app-header-avatar-trigger {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 36px;
+  margin: 0;
+}
+
 /* ── Relative wrapper for dropdowns ── */
 .app-header-rel {
   position: relative;
@@ -660,20 +676,22 @@
    sitting at a small fixed width. Capped so it doesn't stretch edge-to-edge
    on very wide screens. */
 .app-header-inner--hub .app-header-hub-search {
-  width: 100%;
+  width: 290px;
   max-width: 640px;
   height: 40px;
   margin: 0 auto;
 }
 
 .app-header-inner--hub .app-header-hub-search:focus-within {
-  width: 100%;
+  width: min(640px, 100%);
 }
 
-/* ── App layout — left-anchored search: hamburger | search→ | actions ── */
+/* ── App layout — balanced header: left controls | centered search | actions ── */
 .app-header-inner--app {
   display: grid;
-  grid-template-columns: auto 1fr auto;
+  /* Equal outer tracks keep the search centered in the viewport, even when
+     the app name and action group have different widths. */
+  grid-template-columns: minmax(0, 1fr) minmax(260px, min(42vw, 560px)) minmax(0, 1fr);
   align-items: center;
   gap: 8px;
 }
@@ -689,16 +707,20 @@
   justify-self: end;
 }
 
-/* Search anchored at left, expands rightward on focus — no jump */
+/* Search stays centered at rest, then expands symmetrically on focus. */
 .app-header-inner--app .app-header-hub-search {
-  width: 260px;
+  width: 290px;
   max-width: 100%;
-  justify-self: start;
+  justify-self: center;
 }
 
 .app-header-inner--app .app-header-hub-search:focus-within {
-  width: 100%;
+  width: min(640px, 100%);
   max-width: 100%;
+}
+
+.app-header-inner--app > .app-header-pill {
+  justify-self: center;
 }
 
 /* ── Mobile app name (hidden on desktop) ── */
@@ -727,14 +749,14 @@
 .app-header-hub-search {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 6px;
   height: 36px;
-  padding: 0 12px;
+  padding: 0 5px 0 12px;
   border-radius: 22px;
   border: 1px solid var(--border);
   background: var(--bg);
   color: var(--ink3);
-  width: 220px;
+  width: 290px;
   max-width: 480px;
   transition: width 0.3s cubic-bezier(0.4, 0, 0.2, 1),
               border-color 0.15s ease,
@@ -743,7 +765,7 @@
 }
 
 .app-header-hub-search:focus-within {
-  width: 380px;
+  width: 410px;
   border-color: var(--teal);
   box-shadow: 0 0 0 3px var(--teal-l);
   background: var(--white);
@@ -767,12 +789,12 @@
 
 .app-header-hub-search-clear {
   background: none;
-  border: none;
+  border: none !important;
   cursor: pointer;
   color: var(--ink3);
   font-size: 11px;
-  padding: 2px 4px;
-  border-radius: 4px;
+  padding: 2px 5px;
+  border-radius: 4px !important;
   flex-shrink: 0;
   line-height: 1;
   transition: color 0.1s;
@@ -782,23 +804,53 @@
   color: var(--ink);
 }
 
-.app-header-hub-search-clear--with-scope { right: 92px; }
 .app-header-search-scope {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
   flex-shrink: 0;
-  border: 0;
-  border-left: 1px solid var(--border);
-  background: transparent;
-  color: var(--ink3);
-  padding: 2px 8px;
-  font: 700 10px/1 var(--font);
+  height: 24px;
+  padding: 0 10px !important;
+  border-radius: 9999px !important;
+  border: 1px solid var(--border) !important;
+  background: var(--white) !important;
+  color: var(--ink2, #475569) !important;
+  font: 600 11px/1 var(--font) !important;
   cursor: pointer;
-  /* Holds an app name now ("ClearOS", "All apps"), not a fixed word. */
-  max-width: 84px;
+  max-width: 130px;
+  margin-right: 2px;
   white-space: nowrap;
+  user-select: none;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
+  transition: all 0.15s ease;
+}
+
+.app-header-search-scope > span {
   overflow: hidden;
   text-overflow: ellipsis;
+  white-space: nowrap;
 }
-.app-header-search-scope:hover { color: var(--teal); }
+
+.app-header-search-scope-chevron {
+  opacity: 0.55;
+  flex-shrink: 0;
+  transition: transform 0.15s ease, opacity 0.15s ease;
+}
+
+.app-header-search-scope:hover {
+  background: var(--teal-l) !important;
+  color: var(--teal) !important;
+  border-color: color-mix(in srgb, var(--teal) 35%, transparent) !important;
+}
+
+.app-header-search-scope:hover .app-header-search-scope-chevron {
+  opacity: 1;
+  color: var(--teal);
+}
+
+.app-header-search-scope:active {
+  transform: scale(0.97);
+}
 
 /* ── Dark mode — hub search ── */
 [data-theme="dark"] .app-header-hub-search {
@@ -828,6 +880,18 @@
 
 [data-theme="dark"] .app-header-hub-search-clear:hover {
   color: rgba(255, 255, 255, 0.85);
+}
+
+[data-theme="dark"] .app-header-search-scope {
+  background: rgba(255, 255, 255, 0.06) !important;
+  border-color: rgba(255, 255, 255, 0.12) !important;
+  color: rgba(255, 255, 255, 0.75) !important;
+}
+
+[data-theme="dark"] .app-header-search-scope:hover {
+  background: var(--teal-l) !important;
+  color: var(--teal) !important;
+  border-color: var(--teal) !important;
 }
 
 /* ── App context indicator (desktop, non-hub) ── */
@@ -1254,17 +1318,6 @@
   color: var(--red) !important;
 }
 
-/* ── Compact Normal ↔ Agentic mode icon ── */
-.app-header-mode-icon {
-  color: hsl(var(--primary));
-  background: hsl(var(--primary) / 0.06);
-  box-shadow: inset 0 0 0 1px hsl(var(--primary) / 0.24);
-}
-
-.app-header-mode-icon:hover {
-  background: hsl(var(--primary) / 0.16);
-}
-
 /* Mobile header keeps every action reachable without squeezing touch targets. */
 @media (max-width: 767px) {
  .app-header { height:auto; min-height:57px; }
@@ -1273,7 +1326,8 @@
  .app-header-mobile-brand-container { display:flex; min-width:0; }
  .app-header-mobile-name { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
  .app-header-actions { grid-column:1/-1; width:100%; min-width:0; flex-wrap:wrap; justify-content:flex-end; gap:var(--space-1,4px); }
- .app-header-icon-btn,.app-header-hamburger,.app-header-avatar-trigger,.app-header-mode-icon { min-width:44px; min-height:44px; width:44px; height:44px; box-sizing:border-box; }
+ .app-header-icon-btn,.app-header-hamburger,.app-header-avatar-trigger { min-width:44px; min-height:44px; width:44px; height:44px; box-sizing:border-box; }
+ .app-header-avatar-trigger { flex-basis:44px; }
  .app-header-actions .app-header-rel { min-width:0; }
  .app-header-clock-card { max-width:calc(100vw - 32px); }
  .app-header-profile-menu { max-width:calc(100vw - 32px); }

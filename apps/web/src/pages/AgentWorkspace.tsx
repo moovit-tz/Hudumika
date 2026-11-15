@@ -244,13 +244,13 @@ export function AgentWorkspace() {
   const meta = run ? statusMeta(run.status) : null;
 
   return (
-    <main className="agent-workspace" aria-label="Hudumika agent workspace">
+    <main className="agent-workspace" aria-label="Hudu workspace">
       <header className="agent-topbar">
         <button type="button" className="agent-brand" onClick={() => navigate('/')} aria-label="Return to workspace" data-ui-native-button="">
           <span className="agent-brand-mark"><Icon name="zap" size={17} /></span>
           <span>Hudumika</span>
           <span className="agent-brand-divider" />
-          <span className="agent-brand-section">Agent</span>
+          <span className="agent-brand-section">Hudu</span>
         </button>
 
         <div style={{ display: 'flex', alignItems: 'center', gap: 6, background: 'var(--card-sunken)', padding: '3px', borderRadius: 'var(--r-sm)' }}>
@@ -296,7 +296,7 @@ export function AgentWorkspace() {
         <section className="agent-empty">
           <div className="agent-empty-copy">
             <PersonAvatar userId={user?.id} name={user?.name || 'Workspace agent'} size={58} />
-            <h1>Ask Hudumika.</h1>
+            <h1>Ask Hudu.</h1>
             <p>Your workspace, in one conversation.</p>
           </div>
           <div className="agent-example-list" aria-label="Example tasks">
@@ -340,7 +340,7 @@ export function AgentWorkspace() {
               {meta && <Badge variant={meta.variant}><Icon name={meta.icon} size={12} />{meta.label}</Badge>}
             </div>
 
-            {submitting && <WorkingCard label="Hudumika is working on your request" />}
+            {submitting && <WorkingCard label="Hudu is working on your request" />}
 
             {!submitting && visibleSteps.length === 0 && ['running', 'pending'].includes(run.status) && <WorkingCard label="Planning the work" />}
 
@@ -396,8 +396,8 @@ const Composer = React.forwardRef<HTMLTextAreaElement, { value: string; onChange
           onKeyDown={event => {
             if (event.key === 'Enter' && !event.shiftKey) { event.preventDefault(); onSubmit(); }
           }}
-          placeholder={compact ? 'Continue this task…' : 'What would you like Hudumika to do?'}
-          aria-label="Message Hudumika agent"
+          placeholder={compact ? 'Continue this task…' : 'What would you like Hudu to do?'}
+          aria-label="Message Hudu"
           rows={1}
           disabled={busy}
         />
@@ -436,7 +436,7 @@ function ApprovalCard({ approval, busy, onDecision }: { approval: RunApproval; b
   return (
     <article className="agent-approval-card">
       <div className="agent-card-kicker"><Icon name="shield" size={14} />Human approval</div>
-      <h2>Review before Hudumika continues.</h2>
+      <h2>Review before Hudu continues.</h2>
       <p>{approval.requestedEffect}</p>
       {preview != null && <div className="agent-approval-preview"><StructuredValue value={preview} /></div>}
       <div className="agent-approval-meta">

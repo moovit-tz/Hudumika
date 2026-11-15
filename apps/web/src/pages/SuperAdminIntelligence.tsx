@@ -60,7 +60,7 @@ export const SuperAdminIntelligence: React.FC = () => {
         .sai2-page { padding: 24px 32px; }
         .sai2-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(340px, 1fr)); gap: 16px; margin-top: 12px; align-items: start; }
         .sai2-card { min-width: 0; background: var(--card-bg, var(--white)); border: 1px solid var(--border);
-                     border-radius: 16px; box-shadow: 0 4px 20px rgba(0,0,0,.04); overflow: hidden; }
+                     border-radius: var(--r-lg); box-shadow: 0 4px 20px rgba(0,0,0,.04); overflow: hidden; }
         .sai2-head { padding: 16px 18px; border-bottom: 1px solid var(--border); }
         .sai2-title { font-size: 13.5px; font-weight: 700; color: var(--ink); display: flex; align-items: center; gap: 8px; }
         .sai2-sub { font-size: 11.5px; color: var(--ink3); margin-top: 4px; line-height: 1.5; }

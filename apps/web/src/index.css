@@ -99,7 +99,7 @@
     --muted-foreground: 211.6 9.8% 37.8%;
     --accent: 220.0 15.8% 96.3%;
     --accent-foreground: 216.0 27.8% 7.1%;
-    --destructive: 0 84.2% 60.2%;
+    --destructive: 347.1 76.9% 47.5%; /* theme red floored to AA (4.88:1) — see useDesignSystem.ts */
     --destructive-foreground: 210 40% 98%;
     /* Named --shadcn-* (not --border/--input) — the app's own --border is a
        literal hex color (index.css:73), declared unlayered so it always wins
@@ -710,6 +710,46 @@ body {
      removed outright for reduced-motion — just slowed well past the point
      of triggering vestibular discomfort while still reading as "busy". */
   .ds-spinner, .auth-spinner { animation-duration: 2.5s; }
+}
+
+/* Right-to-left (Arabic) with mixed-language content. Much of the product is
+   not yet translated, so English labels and figures sit inside an RTL page.
+   Ordered by the RTL paragraph, a negative balance "-TSh 9,442,000" rendered
+   as "TSh 9,442,000 -" and English sentences lost their full stop to the
+   wrong end. plaintext lets each text run take its direction from its own
+   first letter: English and numbers lay out left-to-right, Arabic stays
+   right-to-left, and the page layout (which follows `direction`) stays
+   mirrored. Found by scripts/check-ui-zoom-rtl.mjs + a visual check. */
+/* Text-level elements only: on block containers (div) plaintext also moves
+   the alignment of English lines to the left, which broke mirrored cards and
+   the sidebar header. Text that sits directly in a div (e.g. Badge) gets a
+   span from its component instead. */
+[dir="rtl"] :where(h1, h2, h3, h4, h5, h6, p, span, td, th, li, dd, dt, label, button, a, small, strong, em, figcaption, caption, legend, summary) {
+  unicode-bidi: plaintext;
+}
+
+/* Platform-wide reduced motion (design principles §3 Motion, WCAG 2.3.3).
+   Before this, only spinners and dialogs honoured the OS setting; tickers,
+   pulse rings, slide-ins, hover lifts and page transitions kept moving for
+   people who asked for less motion. Collapse every animation and transition
+   to (effectively) an instant state change — end states still apply, so
+   nothing is left half-visible — and stop smooth scrolling. Loading spinners
+   are the exception: they report real pending work, so they keep turning,
+   slowly (the rule above), instead of freezing into something that reads as
+   finished. */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    animation-delay: 0ms !important;
+    transition-duration: 0.01ms !important;
+    transition-delay: 0ms !important;
+    scroll-behavior: auto !important;
+  }
+  [class*="spinner"], .animate-spin, [data-motion-essential] {
+    animation-duration: 2.5s !important;
+    animation-iteration-count: infinite !important;
+  }
 }
 
 /* ── FILTER BAR ── */
@@ -4110,6 +4150,11 @@ select.input-field { cursor: pointer; }
   font-weight: 400;
   text-decoration: none;
   transition: color 0.12s;
+  /* 24px pointer target (WCAG 2.5.8) without changing the text: these sit
+     alone in the footer on every page, so they get no inline-link exemption. */
+  display: inline-flex;
+  align-items: center;
+  min-height: var(--target-min, 24px);
 }
 .page-footer-link:hover {
   color: var(--teal);
@@ -7460,7 +7505,7 @@ html[data-expanded="true"] .fin-shell {
 }
 [data-theme-switcher]:focus-visible { outline: 2px solid var(--lp-link-accent, var(--teal)); outline-offset: 3px; }
 [data-ui-button] { box-sizing: border-box; max-width: 100%; }
-[data-ui-native-button]:not([role="tab"]):not(.ds-tabs-trigger):not([data-ds-tabs-exempt] > button):not([class*="avatar"]):not([aria-label*="avatar" i]):not(.cnt-step-circle):not([class*="step-circle"]):not([data-search-result]) {
+[data-ui-native-button]:not([role="tab"]):not(.ds-tabs-trigger):not([data-ds-tabs-exempt] > button):not(.app-header-search-scope):not([class*="avatar"]):not([aria-label*="avatar" i]):not(.cnt-step-circle):not([class*="step-circle"]):not([data-search-result]) {
   border-radius: var(--r-sm, 6px) !important;
   border-width: var(--border-width, 1px) !important;
   max-width: 100%;

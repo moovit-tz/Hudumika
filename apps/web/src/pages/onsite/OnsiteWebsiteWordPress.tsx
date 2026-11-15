@@ -164,19 +164,19 @@ export function OnsiteWebsiteWordPress() {
               <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
                 <div>
                   <label style={{ display: 'block', fontSize: '0.8125rem', fontWeight: 600, marginBottom: '0.35rem' }}>Site title</label>
-                  <Input value={installTitle} onChange={e => setInstallTitle(e.target.value)} placeholder="My Website" />
+                  <Input value={installTitle} onChange={e => setInstallTitle(e.target.value)} placeholder="My Website" aria-label="Site title" />
                 </div>
                 <div>
                   <label style={{ display: 'block', fontSize: '0.8125rem', fontWeight: 600, marginBottom: '0.35rem' }}>Admin username</label>
-                  <Input value={installUser} onChange={e => setInstallUser(e.target.value)} placeholder="admin" />
+                  <Input value={installUser} onChange={e => setInstallUser(e.target.value)} placeholder="admin" aria-label="Admin username" />
                 </div>
                 <div>
                   <label style={{ display: 'block', fontSize: '0.8125rem', fontWeight: 600, marginBottom: '0.35rem' }}>Admin email</label>
-                  <Input value={installEmail} onChange={e => setInstallEmail(e.target.value)} placeholder="admin@example.com" type="email" />
+                  <Input value={installEmail} onChange={e => setInstallEmail(e.target.value)} placeholder="admin@example.com" type="email" aria-label="Admin email" />
                 </div>
                 <div>
                   <label style={{ display: 'block', fontSize: '0.8125rem', fontWeight: 600, marginBottom: '0.35rem' }}>Admin password</label>
-                  <Input value={installPassword} onChange={e => setInstallPassword(e.target.value)} type="password" placeholder="Strong password" />
+                  <Input value={installPassword} onChange={e => setInstallPassword(e.target.value)} type="password" placeholder="Strong password" aria-label="Admin password" />
                 </div>
               </div>
             </DialogBody>
@@ -279,7 +279,7 @@ export function OnsiteWebsiteWordPress() {
                       </div>
                     </td>
                     <td style={{ textAlign: 'right' }}>
-                      <Button variant="ghost" size="sm" onClick={() => handleRemovePlugin(p.slug)}>
+                      <Button aria-label="Remove plugin" variant="ghost" size="sm" onClick={() => handleRemovePlugin(p.slug)}>
                         <Icon name="trash2" size={14} />
                       </Button>
                     </td>

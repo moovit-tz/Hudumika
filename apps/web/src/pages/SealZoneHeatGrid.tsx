@@ -100,7 +100,7 @@ export function SealZoneHeatGrid() {
           crumbs={['SEAL', 'Compartments']}
           titlePlain="Zone heat"
           titleEm="grid"
-          subtitle={<>Quick flat occupancy overview for <strong>{data.compartment.name}</strong> — lot count per location vs. capacity. For floor levels, vertical stacking, and a 3D view, use Warehouse Layout.</>}
+          subtitle={<>See lot count and capacity by location in <strong>{data.compartment.name}</strong>. Use Warehouse Layout for stacking levels and 3D.</>}
           backTo="/seal/compartments"
           backLabel="Back to Compartments"
           actions={
@@ -284,18 +284,18 @@ export function SealZoneHeatGrid() {
             <form className="seal-sensor-form" onSubmit={handleAddSensor}>
               <div className="seal-field-row seal-sensor-field">
                 <label className="seal-field-label">Device ID</label>
-                <Input value={newSensorId} onChange={e => setNewSensorId(e.target.value)} placeholder="CAM-ZONE-A1" />
+                <Input value={newSensorId} onChange={e => setNewSensorId(e.target.value)} placeholder="CAM-ZONE-A1" aria-label="Device ID" />
               </div>
               <div className="seal-field-row seal-sensor-field">
                 <label className="seal-field-label">Type</label>
                 <Select value={newSensorType} onValueChange={setNewSensorType}>
-                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectTrigger aria-label="Type"><SelectValue /></SelectTrigger>
                   <SelectContent>{SENSOR_TYPES.map(t => <SelectItem key={t} value={t}>{t.replace(/_/g, ' ')}</SelectItem>)}</SelectContent>
                 </Select>
               </div>
               <div className="seal-field-row seal-sensor-field--name">
                 <label className="seal-field-label">Name</label>
-                <Input value={newSensorName} onChange={e => setNewSensorName(e.target.value)} placeholder="e.g. Zone A Overhead Cam" />
+                <Input value={newSensorName} onChange={e => setNewSensorName(e.target.value)} placeholder="e.g. Zone A Overhead Cam" aria-label="Name" />
               </div>
               <Button type="submit" size="sm" disabled={savingSensor || !newSensorId.trim() || !newSensorName.trim()}>
                 {savingSensor ? 'Registering…' : 'Register'}
@@ -304,7 +304,7 @@ export function SealZoneHeatGrid() {
           )}
           <div className="seal-card-body">
             {sensors.length === 0 ? (
-              <div className="seal-empty">No sensors or cameras registered for this warehouse yet — this is a real, testable ingestion contract (device_id → reading), waiting for hardware to be wired up.</div>
+              <div className="seal-empty">No sensors or cameras are registered for this warehouse yet.</div>
             ) : (
               <table className="seal-table">
                 <thead><tr><th>Device</th><th>Type</th><th>Zone</th><th>Latest Reading</th></tr></thead>

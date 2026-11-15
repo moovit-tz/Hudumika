@@ -996,11 +996,11 @@ export function PackagesView() {
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5 my-4">
                 <div>
                   <label className="text-xs font-semibold text-foreground block mb-1.5">Monthly price (USD)</label>
-                  <Input type="number" value={editingAddon.monthly} onChange={e => setEditingAddon(p => p ? ({ ...p, monthly: Number(e.target.value) }) : p)} />
+                  <Input type="number" value={editingAddon.monthly} onChange={e => setEditingAddon(p => p ? ({ ...p, monthly: Number(e.target.value) }) : p)} aria-label="Monthly price (USD)" />
                 </div>
                 <div>
                   <label className="text-xs font-semibold text-foreground block mb-1.5">Annual price (USD)</label>
-                  <Input type="number" value={editingAddon.annual} onChange={e => setEditingAddon(p => p ? ({ ...p, annual: Number(e.target.value) }) : p)} />
+                  <Input type="number" value={editingAddon.annual} onChange={e => setEditingAddon(p => p ? ({ ...p, annual: Number(e.target.value) }) : p)} aria-label="Annual price (USD)" />
                 </div>
               </div>
 

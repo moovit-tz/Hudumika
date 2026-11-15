@@ -428,7 +428,7 @@ export function StirlingPdfTools({ documentSrc, fileName, onExport, onClose, emb
                   <div style={{ maxWidth: 200 }}>
                     <label style={labelStyle}>Pages per sheet</label>
                     <Select value={pagesPerSheet} onValueChange={setPagesPerSheet}>
-                      <SelectTrigger style={inputStyle}><SelectValue /></SelectTrigger>
+                      <SelectTrigger style={inputStyle} aria-label="Pages per sheet"><SelectValue /></SelectTrigger>
                       <SelectContent>
                         {['2', '4', '9', '16'].map(n => <SelectItem key={n} value={n}>{n}</SelectItem>)}
                       </SelectContent>
@@ -440,7 +440,7 @@ export function StirlingPdfTools({ documentSrc, fileName, onExport, onClose, emb
                   <div style={{ maxWidth: 200 }}>
                     <label style={labelStyle}>Target page size</label>
                     <Select value={resizeSize} onValueChange={setResizeSize}>
-                      <SelectTrigger style={inputStyle}><SelectValue /></SelectTrigger>
+                      <SelectTrigger style={inputStyle} aria-label="Target page size"><SelectValue /></SelectTrigger>
                       <SelectContent>
                         {['A4', 'A3', 'A5', 'LETTER', 'LEGAL'].map(s => <SelectItem key={s} value={s}>{s}</SelectItem>)}
                       </SelectContent>
@@ -458,7 +458,7 @@ export function StirlingPdfTools({ documentSrc, fileName, onExport, onClose, emb
                         <input data-ui-field="input" type="number" placeholder="Page #" value={b.pageNumber} min={1}
                           onChange={e => setBookmarks(prev => prev.map((x, idx) => idx === i ? { ...x, pageNumber: e.target.value } : x))}
                           style={{ ...inputStyle, width: 90 }} />
-                        <Button variant="outline" size="icon" onClick={() => setBookmarks(prev => prev.length > 1 ? prev.filter((_, idx) => idx !== i) : prev)} disabled={bookmarks.length <= 1}>
+                        <Button aria-label="Remove" variant="outline" size="icon" onClick={() => setBookmarks(prev => prev.length > 1 ? prev.filter((_, idx) => idx !== i) : prev)} disabled={bookmarks.length <= 1}>
                           <Icon name="x" size={13} />
                         </Button>
                       </div>
@@ -554,7 +554,7 @@ export function StirlingPdfTools({ documentSrc, fileName, onExport, onClose, emb
                   <div style={{ maxWidth: 200 }}>
                     <label style={labelStyle}>Image format</label>
                     <Select value={imageFormat} onValueChange={setImageFormat}>
-                      <SelectTrigger style={inputStyle}><SelectValue /></SelectTrigger>
+                      <SelectTrigger style={inputStyle} aria-label="Image format"><SelectValue /></SelectTrigger>
                       <SelectContent>
                         <SelectItem value="png">PNG</SelectItem>
                         <SelectItem value="jpg">JPG</SelectItem>
@@ -571,7 +571,7 @@ export function StirlingPdfTools({ documentSrc, fileName, onExport, onClose, emb
                   <div style={{ maxWidth: 220 }}>
                     <label style={labelStyle}>OCR Language</label>
                     <Select value={ocrLang} onValueChange={setOcrLang}>
-                      <SelectTrigger style={inputStyle}><SelectValue /></SelectTrigger>
+                      <SelectTrigger style={inputStyle} aria-label="OCR Language"><SelectValue /></SelectTrigger>
                       <SelectContent>
                         <SelectItem value="eng">English (eng)</SelectItem>
                         <SelectItem value="swa">Swahili (swa)</SelectItem>

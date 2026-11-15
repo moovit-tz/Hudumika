@@ -1436,7 +1436,7 @@ export function DeclarationTab({ job, shipmentId, isLive, onRefresh }: { job: Cl
               <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 8 }}>
                 <span style={{ fontSize: 10.5, fontWeight: 700, color: 'var(--ink3)', letterSpacing: '0.05em' }}>ITEM {i + 1}</span>
                 {items.length > 1 && (
-                  <button type="button" onClick={() => setItems(p => p.filter((_, j) => j !== i))} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink3)', display: 'flex', padding: 0 }} data-ui-native-button=""><Icon name="close" size={12} /></button>
+                  <button aria-label="Close" type="button" onClick={() => setItems(p => p.filter((_, j) => j !== i))} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink3)', display: 'flex', padding: 0 }} data-ui-native-button=""><Icon name="close" size={12} /></button>
                 )}
               </div>
               <div className="decl-grid">

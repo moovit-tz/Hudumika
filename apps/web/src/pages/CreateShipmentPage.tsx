@@ -303,20 +303,23 @@ export function CreateShipmentPage() {
     setOcrScanning(true);
 
     try {
-      const formData = new FormData();
-      formData.append('document', f);
-
-      const res = await apiFetch('/v1/comply/ocr', {
+      // The shipment-document reader (bill of lading, invoice, TANSAD). It
+      // takes the file as base64 JSON and returns { result: { overview, parties, … } }.
+      // allow_simulated: false — without an OCR key it must say so, never
+      // fill a real shipment from the built-in sample document.
+      const dataUrl = await new Promise<string>((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = e => resolve(e.target?.result as string);
+        reader.onerror = reject;
+        reader.readAsDataURL(f);
+      });
+      const res: any = await apiFetch('/v1/ocr/scan', {
         method: 'POST',
-        body: formData,
+        body: JSON.stringify({ image_base64: dataUrl.split(',')[1], media_type: f.type || 'application/pdf', allow_simulated: false }),
       });
 
-      if (!res.ok && res.error) {
-        throw new Error(res.error);
-      }
-
-      setOcrResult(res.data);
-      setOcrSimulated(res.simulated || false);
+      setOcrResult(res.result ?? null);
+      setOcrSimulated(!!res.simulated);
       if (res.declaration_data) {
         setOcrDeclarationData(res.declaration_data);
       }
@@ -974,8 +977,7 @@ export function CreateShipmentPage() {
                         date={parseDateOnly(createForm.eta)}
                         onChange={d => setCreateForm(p => ({ ...p, eta: toDateOnlyString(d) }))}
                         placeholder="Select arrival date"
-                        triggerClassName="w-full h-10"
-                      />
+                        triggerClassName="w-full h-10" aria-label="Estimated Time of Arrival (ETA)" />
                     </div>
                     <div style={{ flex: 1, minWidth: 0 }}>
                       <label className="shipment-form-label">Free Time Expiry (Demurrage End)</label>
@@ -983,8 +985,7 @@ export function CreateShipmentPage() {
                         date={parseDateOnly(createForm.free_time_end)}
                         onChange={d => setCreateForm(p => ({ ...p, free_time_end: toDateOnlyString(d) }))}
                         placeholder="Select free time deadline"
-                        triggerClassName="w-full h-10"
-                      />
+                        triggerClassName="w-full h-10" aria-label="Free Time Expiry (Demurrage End)" />
                     </div>
                   </div>
                 </div>

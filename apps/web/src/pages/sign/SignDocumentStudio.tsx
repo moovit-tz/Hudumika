@@ -58,14 +58,14 @@ const BOILERPLATE_CLAUSES = [
 const SIGNATURE_BLOCK_HTML = `
   <table style="width: 100%; margin-top: 36px; border-collapse: collapse; page-break-inside: avoid;">
     <tr>
-      <td style="width: 48%; vertical-align: top; padding: 14px; border: 1px dashed #cbd5e1; background: #f8fafc; border-radius: 6px;">
+      <td style="width: 48%; vertical-align: top; padding: 14px; border: 1px dashed #cbd5e1; background: #f8fafc; border-radius: var(--r-sm);">
         <p style="margin: 0 0 6px 0; font-size: 11px; font-weight: bold; color: #0f172a; text-transform: uppercase;">FOR AND ON BEHALF OF FIRST PARTY:</p>
         <p style="margin: 0 0 16px 0; font-size: 13px; font-weight: 600;">[Company / Individual Name]</p>
         <div style="border-bottom: 1px solid #0f172a; margin-bottom: 6px; height: 36px;"></div>
         <p style="margin: 0; font-size: 11px; color: #64748b;">Authorized Signatory / Title / Date</p>
       </td>
       <td style="width: 4%;"></td>
-      <td style="width: 48%; vertical-align: top; padding: 14px; border: 1px dashed #cbd5e1; background: #f8fafc; border-radius: 6px;">
+      <td style="width: 48%; vertical-align: top; padding: 14px; border: 1px dashed #cbd5e1; background: #f8fafc; border-radius: var(--r-sm);">
         <p style="margin: 0 0 6px 0; font-size: 11px; font-weight: bold; color: #0f172a; text-transform: uppercase;">FOR AND ON BEHALF OF SECOND PARTY:</p>
         <p style="margin: 0 0 16px 0; font-size: 13px; font-weight: 600;">[Client / Counterparty Name]</p>
         <div style="border-bottom: 1px solid #0f172a; margin-bottom: 6px; height: 36px;"></div>
@@ -177,7 +177,7 @@ export function SignDocumentStudio({
       const dataUrl = ev.target?.result as string;
       insertHtmlAtCursor(`
         <div style="margin: 16px 0; text-align: center;">
-          <img src="${dataUrl}" alt="${file.name}" style="max-width: 100%; max-height: 380px; border-radius: 4px; box-shadow: 0 2px 8px rgba(0,0,0,0.08);" />
+          <img src="${dataUrl}" alt="${file.name}" style="max-width: 100%; max-height: 380px; border-radius: var(--r-sm); box-shadow: 0 2px 8px rgba(0,0,0,0.08);" />
         </div>
       `);
     };
@@ -216,7 +216,7 @@ export function SignDocumentStudio({
   // Code / Technical Block insertion
   const handleInsertCode = () => {
     const codeHtml = `
-      <pre style="background: #0f172a; color: #38bdf8; padding: 12px 16px; border-radius: 6px; font-family: 'Courier New', Courier, monospace; font-size: 10.5pt; overflow-x: auto; margin: 16px 0;"><code>// Technical Specification / Data Schema
+      <pre style="background: #0f172a; color: #38bdf8; padding: 12px 16px; border-radius: var(--r-sm); font-family: 'Courier New', Courier, monospace; font-size: 10.5pt; overflow-x: auto; margin: 16px 0;"><code>// Technical Specification / Data Schema
 {
   "contract_id": "CNT-${Math.floor(Math.random() * 900000 + 100000)}",
   "sla_uptime_guarantee": 99.95,
@@ -237,7 +237,7 @@ export function SignDocumentStudio({
 
   // Variable token insertion
   const handleInsertToken = (tokenName: string) => {
-    insertHtmlAtCursor(`<span style="background: var(--teal-l, #ccfbf1); color: var(--teal, #0f766e); padding: 1px 6px; border-radius: 4px; font-family: monospace; font-weight: bold; border: 1px solid var(--teal-m, #99f6e4);">[${tokenName.toUpperCase()}]</span>&nbsp;`);
+    insertHtmlAtCursor(`<span style="background: var(--teal-l, #ccfbf1); color: var(--teal, #0f766e); padding: 1px 6px; border-radius: var(--r-sm); font-family: monospace; font-weight: bold; border: 1px solid var(--teal-m, #99f6e4);">[${tokenName.toUpperCase()}]</span>&nbsp;`);
   };
 
   // Page Break insertion
@@ -392,7 +392,7 @@ export function SignDocumentStudio({
             table { width: 100%; border-collapse: collapse; margin: 12pt 0; }
             th, td { border: 1px solid #cbd5e1; padding: 6pt 8pt; font-size: 10pt; }
             th { background: #f8fafc; font-weight: bold; }
-            pre, code { font-family: monospace; font-size: 9.5pt; background: #f1f5f9; padding: 4pt 6pt; border-radius: 4px; }
+            pre, code { font-family: monospace; font-size: 9.5pt; background: #f1f5f9; padding: 4pt 6pt; border-radius: var(--r-sm); }
             .legal-page-break { page-break-after: always; }
           </style>
         </head>
@@ -456,7 +456,7 @@ export function SignDocumentStudio({
     table { width: 100%; border-collapse: collapse; margin: 20px 0; }
     th, td { border: 1px solid #cbd5e1; padding: 8px 12px; }
     th { background: #f8fafc; font-weight: bold; }
-    pre { background: #0f172a; color: #38bdf8; padding: 14px; border-radius: 6px; overflow-x: auto; }
+    pre { background: #0f172a; color: #38bdf8; padding: 14px; border-radius: var(--r-sm); overflow-x: auto; }
     code { font-family: monospace; font-size: 13px; }
     a { color: #0d9488; }
   </style>
@@ -611,7 +611,7 @@ export function SignDocumentStudio({
             <DropdownMenuTrigger asChild>
               <Button variant="outline" size="sm" style={{ gap: 6 }} disabled={aiGenerating}>
                 <Icon name={aiGenerating ? 'refresh' : 'sparkle'} size={14} className={aiGenerating ? 'animate-spin' : ''} style={{ color: 'var(--teal)' }} />
-                <span className="hidden sm:inline">AI Assistant</span>
+                <span className="hidden sm:inline">Hudu</span>
                 <Icon name="chevronDown" size={12} />
               </Button>
             </DropdownMenuTrigger>
@@ -907,7 +907,7 @@ export function SignDocumentStudio({
             minHeight: '900px',
             background: '#ffffff',
             boxShadow: '0 10px 30px rgba(0, 0, 0, 0.08), 0 1px 4px rgba(0, 0, 0, 0.04)',
-            borderRadius: '4px',
+            borderRadius: 'var(--r-sm)',
             padding: '56px 64px 80px',
             border: '1px solid var(--border)',
             boxSizing: 'border-box',

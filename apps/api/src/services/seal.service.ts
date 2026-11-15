@@ -387,7 +387,7 @@ export class SealService {
     // Cargo has physically landed in the warehouse — the point every
     // downstream journey (billing, storage, dispatch) actually starts from.
     await emitDomainEvent(trx, tenantId, {
-      type: 'seal.lot_received', sourceApp: 'seal', entityType: 'seal_lot', entityId: lot.id,
+      type: 'seal.lot_received', sourceApp: 'seal', entityType: 'seal_lot', entityId: lot.id, actorId,
       payload: { description: input.description, customsStatus: input.customsStatus, entryReference: input.entryReference ?? null },
     }, { deferDispatch: true });
 

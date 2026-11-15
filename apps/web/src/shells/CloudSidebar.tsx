@@ -422,7 +422,7 @@ export function CloudSidebarContent({ collapsed }: { collapsed: boolean }) {
           <div className="card" style={{ width: 400, padding: 24 }} onClick={e => e.stopPropagation()}>
             <div className="csb-modal-hdr">
               <span className="csb-modal-title">Create Workspace</span>
-              <button onClick={() => setShowCreateDrive(false)} className="dp-close"><Icon name="close" size={16} /></button>
+              <button aria-label="Close" onClick={() => setShowCreateDrive(false)} className="dp-close"><Icon name="close" size={16} /></button>
             </div>
             <div className="csb-modal-field">
               <label className="csb-modal-label">Name *</label>
@@ -455,7 +455,7 @@ export function CloudSidebarContent({ collapsed }: { collapsed: boolean }) {
           <div className="card" style={{ width: 380, padding: 24 }} onClick={e => e.stopPropagation()}>
             <div className="csb-modal-hdr">
               <span className="csb-modal-title">Rename Drive</span>
-              <button onClick={() => setRenamingDrive(null)} className="dp-close"><Icon name="close" size={16} /></button>
+              <button aria-label="Close" onClick={() => setRenamingDrive(null)} className="dp-close"><Icon name="close" size={16} /></button>
             </div>
             <input
               autoFocus

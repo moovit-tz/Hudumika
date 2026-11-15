@@ -180,7 +180,7 @@ export function PettiRequest() {
 
             <div>
               <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: 'var(--ink2)', marginBottom: 6 }}>Payee / Beneficiary Name (Optional)</label>
-              <Input value={payeeName} onChange={e => setPayeeName(e.target.value)} placeholder="e.g. Shell Mwenge Station / Office Mart" />
+              <Input value={payeeName} onChange={e => setPayeeName(e.target.value)} placeholder="e.g. Shell Mwenge Station / Office Mart" aria-label="Payee / Beneficiary Name (Optional)" />
             </div>
 
             <Button type="submit" disabled={saving} style={{ padding: '12px', fontWeight: 700, fontSize: 14 }}>

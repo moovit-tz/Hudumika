@@ -153,8 +153,7 @@ function AddAppointmentModal({ vehicles, onClose, onAdded }: { vehicles: Vehicle
             <label style={labelStyle}>Vehicle</label>
             <Combobox
               options={[{ value: '', label: '— None —' }, ...vehicles.map(v => ({ value: v.id, label: v.name }))]}
-              value={vehicleId} onChange={setVehicleId} placeholder="— None —"
-            />
+              value={vehicleId} onChange={setVehicleId} placeholder="— None —" aria-label="Vehicle" />
           </div>
           <div><label htmlFor="trackingwarehouse-field-6" style={labelStyle}>Reference</label><Input id="trackingwarehouse-field-6" value={reference} onChange={e => setReference(e.target.value)} /></div>
           <div><label style={labelStyle}>Scheduled at *</label><DateTimePicker date={scheduledAt ? new Date(scheduledAt) : undefined} onChange={d => setScheduledAt(d ? toLocalDateTimeString(d) : '')} triggerClassName="w-full" /></div>
@@ -284,7 +283,7 @@ export const TrackingWarehouse: React.FC = () => {
                       <Badge variant={l.active ? 'success' : 'gray'}>{l.active ? 'ACTIVE' : 'INACTIVE'}</Badge>
                     </td>
                     <td style={{ padding: '10px 14px', textAlign: 'right' }}>
-                      <Button type="button" onClick={() => { void removeLocation(l.id).catch(reportError); }} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink3)', padding: "var(--action-py) var(--space-md)" }} data-ui-native-button=""><Icon name="close" size={14} /></Button>
+                      <Button aria-label="Close" type="button" onClick={() => { void removeLocation(l.id).catch(reportError); }} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink3)', padding: "var(--action-py) var(--space-md)" }} data-ui-native-button=""><Icon name="close" size={14} /></Button>
                     </td>
                   </tr>
                 ))}

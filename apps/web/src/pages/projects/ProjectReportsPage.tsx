@@ -178,12 +178,12 @@ export const ProjectReportsPage: React.FC = () => {
                           <span style={{ color: 'var(--ink)' }}>{HEALTH_LABEL[h.health] || h.health}</span>
                           <span style={{ color: 'var(--ink3)' }}>{h.count} projects ({pct}%)</span>
                         </div>
-                        <div style={{ height: 8, borderRadius: 4, background: 'var(--bg)', overflow: 'hidden' }}>
+                        <div style={{ height: 8, borderRadius: 'var(--r-sm)', background: 'var(--bg)', overflow: 'hidden' }}>
                           <div
                             style={{
                               width: `${pct}%`,
                               height: '100%',
-                              borderRadius: 4,
+                              borderRadius: 'var(--r-sm)',
                               background: HEALTH_COLOR[h.health] || 'var(--teal)',
                               transition: 'width 0.3s',
                             }}
@@ -206,12 +206,12 @@ export const ProjectReportsPage: React.FC = () => {
                           <span style={{ color: 'var(--ink)' }}>{STATUS_LABEL[s.status] || s.status}</span>
                           <span style={{ color: 'var(--ink3)' }}>{s.count} ({pct}%)</span>
                         </div>
-                        <div style={{ height: 8, borderRadius: 4, background: 'var(--bg)', overflow: 'hidden' }}>
+                        <div style={{ height: 8, borderRadius: 'var(--r-sm)', background: 'var(--bg)', overflow: 'hidden' }}>
                           <div
                             style={{
                               width: `${pct}%`,
                               height: '100%',
-                              borderRadius: 4,
+                              borderRadius: 'var(--r-sm)',
                               background: 'var(--teal)',
                               transition: 'width 0.3s',
                             }}

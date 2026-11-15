@@ -467,7 +467,7 @@ export function ConvList({ tickets, selected, onSelect, onNew, groups, views, on
           the same ground. */}
       <div className="spt-bedesk-nav-ft">
         <Select value={assigneeFilter} onValueChange={setAssigneeFilter}>
-          <SelectTrigger className="spt-bedesk-val-select" style={{ width: '100%' }}>
+          <SelectTrigger className="spt-bedesk-val-select" style={{ width: '100%' }} aria-label="Filter by assignee">
             <SelectValue placeholder="All assignees" />
           </SelectTrigger>
           <SelectContent>

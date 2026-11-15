@@ -139,6 +139,14 @@ export async function ondiRoutes(fastify: FastifyInstance) {
         .returning(['id', 'name', 'email', 'role'])
         .executeTakeFirst();
       if (!updated) return reply.status(404).send({ error: 'User not found' });
+      // Role changes feed Zentra's "sensitive access after a role change"
+      // rule; HR's own role route emits the same kind of event.
+      if (target?.role !== updated.role) {
+        await emitDomainEvent(trx, user.tenant_id, {
+          type: 'user.role_changed', sourceApp: 'ondi', entityType: 'user', entityId: updated.id, actorId: user.sub,
+          payload: { userId: updated.id, role: updated.role, previous_role: target?.role ?? null, new_role: updated.role },
+        }).catch(err => console.error('[Ondi] role_changed emit failed:', err?.message));
+      }
       return updated;
     });
   });

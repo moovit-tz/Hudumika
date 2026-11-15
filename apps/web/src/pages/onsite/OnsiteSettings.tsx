@@ -278,7 +278,7 @@ export function OnsiteSettings() {
         <div className="onsite-card">
           <h3 className="onsite-card-title">Supported Integrations</h3>
           <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-            <div style={{ padding: '0.75rem', borderRadius: '0.5rem', border: '1px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+            <div style={{ padding: '0.75rem', borderRadius: 'var(--r-sm)', border: '1px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
                 <Icon name="gitBranch" size={20} />
                 <div>
@@ -289,7 +289,7 @@ export function OnsiteSettings() {
               <Button variant="outline" size="sm" onClick={() => { setProvider('github'); setShowAddModal(true); }}>Connect</Button>
             </div>
 
-            <div style={{ padding: '0.75rem', borderRadius: '0.5rem', border: '1px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+            <div style={{ padding: '0.75rem', borderRadius: 'var(--r-sm)', border: '1px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
                 <Icon name="circle" size={20} />
                 <div>
@@ -300,7 +300,7 @@ export function OnsiteSettings() {
               <Button variant="outline" size="sm" onClick={() => { setProvider('circleci'); setShowAddModal(true); }}>Connect</Button>
             </div>
 
-            <div style={{ padding: '0.75rem', borderRadius: '0.5rem', border: '1px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+            <div style={{ padding: '0.75rem', borderRadius: 'var(--r-sm)', border: '1px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
                 <Icon name="globe" size={20} />
                 <div>
@@ -311,7 +311,7 @@ export function OnsiteSettings() {
               <Button variant="outline" size="sm" onClick={() => { setProvider('cloudflare'); setShowAddModal(true); }}>Connect</Button>
             </div>
 
-            <div style={{ padding: '0.75rem', borderRadius: '0.5rem', border: '1px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+            <div style={{ padding: '0.75rem', borderRadius: 'var(--r-sm)', border: '1px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
                 <Icon name="monitor" size={20} />
                 <div>
@@ -337,7 +337,7 @@ export function OnsiteSettings() {
                 <div className="onsite-form-group">
                   <label>Provider Platform</label>
                   <Select value={provider} onValueChange={setProvider}>
-                    <SelectTrigger><SelectValue /></SelectTrigger>
+                    <SelectTrigger aria-label="Provider Platform"><SelectValue /></SelectTrigger>
                     <SelectContent>
                       <SelectItem value="github">GitHub</SelectItem>
                       <SelectItem value="circleci">CircleCI</SelectItem>

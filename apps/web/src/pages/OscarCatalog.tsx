@@ -93,7 +93,7 @@ function AlertsDemo({ style }: { style: 'hudumika' | 'oscar' }) {
               <span className="font-semibold">{v.label}!</span>
               {' '}This is a {v.label.toLowerCase()} alert — check it out.
             </div>
-            <button type="button" className="oscar-alert-close" onClick={() => dismiss(v.id)} data-ui-native-button="">
+            <button aria-label="Close" type="button" className="oscar-alert-close" onClick={() => dismiss(v.id)} data-ui-native-button="">
               <Icon name="close" size={14} />
             </button>
           </div>
@@ -517,7 +517,7 @@ function ToastDemo() {
           <div key={t.id} className={`oscar-toast oscar-toast-${t.type}`}>
             <Icon name={iconMap[t.type]} size={16} />
             <span className="text-sm flex-1">{t.msg}</span>
-            <button type="button" className="opacity-50 hover:opacity-100" onClick={() => setToasts(ts => ts.filter(x => x.id !== t.id))} data-ui-native-button="">
+            <button aria-label="Close" type="button" className="opacity-50 hover:opacity-100" onClick={() => setToasts(ts => ts.filter(x => x.id !== t.id))} data-ui-native-button="">
               <Icon name="close" size={13} />
             </button>
           </div>
@@ -536,22 +536,22 @@ function PaginationDemo({ style }: { style: 'hudumika' | 'oscar' }) {
   if (style === 'oscar') {
     return (
       <div className="oscar-pagination">
-        <button type="button" className="oscar-page-btn" onClick={() => go(page - 1)} disabled={page === 1} data-ui-native-button=""><Icon name="chevronLeft" size={15} /></button>
+        <button aria-label="Previous" type="button" className="oscar-page-btn" onClick={() => go(page - 1)} disabled={page === 1} data-ui-native-button=""><Icon name="chevronLeft" size={15} /></button>
         {pages.map(p => (
           <button key={p} type="button" className={`oscar-page-btn${page === p ? ' oscar-page-btn--active' : ''}`} onClick={() => go(p)} data-ui-native-button="">{p}</button>
         ))}
-        <button type="button" className="oscar-page-btn" onClick={() => go(page + 1)} disabled={page === 5} data-ui-native-button=""><Icon name="chevronRight" size={15} /></button>
+        <button aria-label="Next" type="button" className="oscar-page-btn" onClick={() => go(page + 1)} disabled={page === 5} data-ui-native-button=""><Icon name="chevronRight" size={15} /></button>
       </div>
     );
   }
 
   return (
     <div className="flex items-center gap-1">
-      <Button variant="outline" size="sm" type="button" onClick={() => go(page - 1)} disabled={page === 1}><Icon name="chevronLeft" size={14} /></Button>
+      <Button aria-label="Previous" variant="outline" size="sm" type="button" onClick={() => go(page - 1)} disabled={page === 1}><Icon name="chevronLeft" size={14} /></Button>
       {pages.map(p => (
         <button key={p} type="button" className={`btn btn-sm ${page === p ? 'btn-primary' : 'btn-secondary'}`} style={{ minWidth: 34 }} onClick={() => go(p)} data-ui-native-button="">{p}</button>
       ))}
-      <Button variant="outline" size="sm" type="button" onClick={() => go(page + 1)} disabled={page === 5}><Icon name="chevronRight" size={14} /></Button>
+      <Button aria-label="Next" variant="outline" size="sm" type="button" onClick={() => go(page + 1)} disabled={page === 5}><Icon name="chevronRight" size={14} /></Button>
     </div>
   );
 }
@@ -571,14 +571,14 @@ function FabDemo() {
           {actions.map(a => (
             <div key={a.label} className="flex items-center gap-2 justify-end">
               <span className="oscar-fab-label">{a.label}</span>
-              <button type="button" className="oscar-fab oscar-fab-mini" onClick={() => setOpen(false)} data-ui-native-button="">
+              <button aria-label={a.label} type="button" className="oscar-fab oscar-fab-mini" onClick={() => setOpen(false)} data-ui-native-button="">
                 <Icon name={a.icon} size={15} />
               </button>
             </div>
           ))}
         </div>
       )}
-      <button type="button" className={`oscar-fab oscar-fab-primary${open ? ' oscar-fab-open' : ''}`} onClick={() => setOpen(!open)} data-ui-native-button="">
+      <button aria-label={open ? 'Close quick actions' : 'Open quick actions'} type="button" className={`oscar-fab oscar-fab-primary${open ? ' oscar-fab-open' : ''}`} onClick={() => setOpen(!open)} data-ui-native-button="">
         <Icon name={open ? 'close' : 'plus'} size={20} />
       </button>
     </div>
@@ -730,7 +730,7 @@ function RatingDemo() {
       <label className="oscar-label">Rate your experience</label>
       <div className="flex gap-1">
         {[1, 2, 3, 4, 5].map(s => (
-          <button key={s} type="button" className="oscar-star"
+          <button aria-label={`Rate ${s} out of 5`} key={s} type="button" className="oscar-star"
             style={{ color: (hover ?? rating) >= s ? 'var(--gold)' : 'var(--border)' }}
             onMouseEnter={() => setHover(s)} onMouseLeave={() => setHover(null)} onClick={() => setRating(s)} data-ui-native-button="">
             <Icon name="star" size={26} />
@@ -1037,10 +1037,10 @@ function AdvancedDataTablesDemo() {
                 </td>
                 <td className="p-3 text-right">
                   <div className="flex items-center justify-end gap-1">
-                    <button type="button" className="p-1 rounded-md hover:bg-muted text-muted-foreground hover:text-foreground" data-ui-native-button="">
+                    <button aria-label={`Edit ${row.name ?? ''}`.trim()} type="button" className="p-1 rounded-md hover:bg-muted text-muted-foreground hover:text-foreground" data-ui-native-button="">
                       <Icon name="edit" size={13} />
                     </button>
-                    <button type="button" className="p-1 rounded-md hover:bg-muted text-muted-foreground hover:text-foreground" data-ui-native-button="">
+                    <button aria-label={`Delete ${row.name ?? ''}`.trim()} type="button" className="p-1 rounded-md hover:bg-muted text-muted-foreground hover:text-foreground" data-ui-native-button="">
                       <Icon name="trash" size={13} />
                     </button>
                   </div>

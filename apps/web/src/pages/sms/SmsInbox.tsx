@@ -76,6 +76,8 @@ export function SmsInbox() {
   const [templates, setTemplates] = useState<Template[]>([]);
   const [optOutPhones, setOptOutPhones] = useState<Set<string>>(new Set());
   const [loading, setLoading] = useState(true);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const [hasMore, setHasMore] = useState(false);
   const [selectedPhone, setSelectedPhone] = useState<string | null>(null);
   const [search, setSearch] = useState('');
   const [filterTab, setFilterTab] = useState<'all' | 'replies' | 'optouts'>('all');
@@ -88,13 +90,14 @@ export function SmsInbox() {
     setLoading(true);
     try {
       const [inRes, outRes, tmplRes, optRes] = await Promise.all([
-        apiFetch('/v1/sms/inbound'),
-        apiFetch('/v1/sms/messages?limit=200'),
+        apiFetch('/v1/sms/inbound?limit=100'),
+        apiFetch('/v1/sms/messages?limit=200&offset=0'),
         apiFetch('/v1/sms/templates'),
         apiFetch('/v1/sms/opt-outs'),
       ]);
       setInboundMsgs(inRes.data || []);
       setOutboundMsgs(outRes.data || []);
+      setHasMore((inRes.data || []).length === 100 || (outRes.data || []).length === 200);
       setTemplates(tmplRes.data || []);
       const opts = new Set<string>((optRes.data || []).map((o: any) => o.phone));
       setOptOutPhones(opts);
@@ -104,6 +107,25 @@ export function SmsInbox() {
       setLoading(false);
     }
   }, []);
+
+  const loadMore = async () => {
+    setLoadingMore(true);
+    try {
+      const [inRes, outRes] = await Promise.all([
+        apiFetch(`/v1/sms/inbound?limit=100&offset=${inboundMsgs.length}`),
+        apiFetch(`/v1/sms/messages?limit=200&offset=${outboundMsgs.length}`),
+      ]);
+      const nextInbound: InboundMessage[] = inRes.data || [];
+      const nextOutbound: OutboundMessage[] = outRes.data || [];
+      setInboundMsgs(current => [...current, ...nextInbound]);
+      setOutboundMsgs(current => [...current, ...nextOutbound]);
+      setHasMore(nextInbound.length === 100 || nextOutbound.length === 200);
+    } catch (error: any) {
+      showAlert(error.message || 'Could not load older conversations.');
+    } finally {
+      setLoadingMore(false);
+    }
+  };
 
   useEffect(() => {
     loadData();
@@ -374,6 +396,7 @@ export function SmsInbox() {
                 );
               })
             )}
+            {hasMore && <div style={{ display: 'flex', justifyContent: 'center', padding: 12 }}><Button size="sm" variant="outline" disabled={loadingMore} onClick={loadMore}>{loadingMore ? 'Loading…' : 'Load older conversations'}</Button></div>}
           </div>
         </div>
 

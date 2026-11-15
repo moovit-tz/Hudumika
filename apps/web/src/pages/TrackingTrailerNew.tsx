@@ -72,13 +72,13 @@ export const TrackingTrailerNew: React.FC = () => {
       <SectionCard>
         <form onSubmit={submit} style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
           <div style={sectionStyle}>Basics</div>
-          <div><label style={labelStyle}>Name</label><Input required value={name} onChange={e => setName(e.target.value)} placeholder="e.g. Trailer 04" /></div>
+          <div><label style={labelStyle}>Name</label><Input required value={name} onChange={e => setName(e.target.value)} placeholder="e.g. Trailer 04" aria-label="Name" /></div>
           <div style={{ display: 'flex', gap: 10 }}>
-            <div style={{ flex: 1 }}><label style={labelStyle}>Registration number</label><Input value={registration} onChange={e => setRegistration(e.target.value)} placeholder="e.g. T-778-TRL" /></div>
+            <div style={{ flex: 1 }}><label style={labelStyle}>Registration number</label><Input value={registration} onChange={e => setRegistration(e.target.value)} placeholder="e.g. T-778-TRL" aria-label="Registration number" /></div>
             <div style={{ flex: 1 }}>
               <label style={labelStyle}>Trailer or towable type</label>
               <Select value={trailerType} onValueChange={setTrailerType}>
-                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectTrigger aria-label="Trailer or towable type"><SelectValue /></SelectTrigger>
                 <SelectContent>
                   {TRAILER_TYPES.map(t => <SelectItem key={t} value={t}>{t.replace(/_/g, ' ')}</SelectItem>)}
                 </SelectContent>
@@ -86,17 +86,17 @@ export const TrackingTrailerNew: React.FC = () => {
             </div>
           </div>
           <div style={{ display: 'flex', gap: 10 }}>
-            <div style={{ flex: 1 }}><label style={labelStyle}>VIN / chassis number</label><Input value={vin} onChange={e => setVin(e.target.value)} /></div>
-            <div style={{ flex: 1 }}><label style={labelStyle}>Axles</label><Input type="number" min="1" max="12" value={axles} onChange={e => setAxles(e.target.value)} /></div>
+            <div style={{ flex: 1 }}><label style={labelStyle}>VIN / chassis number</label><Input value={vin} onChange={e => setVin(e.target.value)} aria-label="VIN / chassis number" /></div>
+            <div style={{ flex: 1 }}><label style={labelStyle}>Axles</label><Input type="number" min="1" max="12" value={axles} onChange={e => setAxles(e.target.value)} aria-label="Axles" /></div>
           </div>
-          <div><label style={labelStyle}>Capacity (kg)</label><Input type="number" min="0" value={capacityKg} onChange={e => setCapacityKg(e.target.value)} placeholder="e.g. 30000" /></div>
+          <div><label style={labelStyle}>Capacity (kg)</label><Input type="number" min="0" value={capacityKg} onChange={e => setCapacityKg(e.target.value)} placeholder="e.g. 30000" aria-label="Capacity (kg)" /></div>
 
           <div style={sectionStyle}>Ownership</div>
           <div style={{ display: 'flex', gap: 10 }}>
             <div style={{ flex: 1 }}>
               <label style={labelStyle}>Ownership</label>
               <Select value={ownership} onValueChange={setOwnership}>
-                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectTrigger aria-label="Ownership"><SelectValue /></SelectTrigger>
                 <SelectContent>
                   {OWNERSHIP_TYPES.map(o => <SelectItem key={o} value={o}>{o}</SelectItem>)}
                 </SelectContent>
@@ -116,7 +116,7 @@ export const TrackingTrailerNew: React.FC = () => {
             )}
           </div>
 
-          <div><label style={labelStyle}>Notes</label><Textarea value={notes} onChange={e => setNotes(e.target.value)} rows={3} className="resize-y" /></div>
+          <div><label style={labelStyle}>Notes</label><Textarea value={notes} onChange={e => setNotes(e.target.value)} rows={3} className="resize-y" aria-label="Notes" /></div>
 
           {error && <div style={{ fontSize: 12, color: 'var(--red)' }}>{error}</div>}
           <Button type="submit" disabled={saving || !name} style={{ marginTop: 8 }}>

@@ -209,14 +209,13 @@ export const TrackingShipmentNew: React.FC = () => {
             <label style={labelStyle}>Customer (optional)</label>
             <Combobox
               options={[{ value: '', label: '— No customer —' }, ...customers.map(c => ({ value: c.id, label: c.name }))]}
-              value={customerId} onChange={setCustomerId} placeholder="— No customer —"
-            />
+              value={customerId} onChange={setCustomerId} placeholder="— No customer —" aria-label="Customer (optional)" />
           </div>
           <div style={{ display: 'flex', gap: 10 }}>
-            <div style={{ flex: 1 }}><label style={labelStyle}>Origin</label><Input required value={origin} onChange={e => setOrigin(e.target.value)} placeholder="e.g. Dar es Salaam" /></div>
-            <div style={{ flex: 1 }}><label style={labelStyle}>Destination</label><Input required value={destination} onChange={e => setDestination(e.target.value)} placeholder="e.g. Arusha" /></div>
+            <div style={{ flex: 1 }}><label style={labelStyle}>Origin</label><Input required value={origin} onChange={e => setOrigin(e.target.value)} placeholder="e.g. Dar es Salaam" aria-label="Origin" /></div>
+            <div style={{ flex: 1 }}><label style={labelStyle}>Destination</label><Input required value={destination} onChange={e => setDestination(e.target.value)} placeholder="e.g. Arusha" aria-label="Destination" /></div>
           </div>
-          <div><label style={labelStyle}>Cargo description</label><Input value={cargoDesc} onChange={e => setCargoDesc(e.target.value)} /></div>
+          <div><label style={labelStyle}>Cargo description</label><Input value={cargoDesc} onChange={e => setCargoDesc(e.target.value)} aria-label="Cargo description" /></div>
         </div>
         </SectionCard>
       )}
@@ -229,15 +228,13 @@ export const TrackingShipmentNew: React.FC = () => {
               <label style={labelStyle}>Vehicle</label>
               <Combobox
                 options={vehicles.map(v => ({ value: v.id, label: v.name, sublabel: v.plate_number || undefined }))}
-                value={vehicleId} onChange={setVehicleId} placeholder="— Select —"
-              />
+                value={vehicleId} onChange={setVehicleId} placeholder="— Select —" aria-label="Vehicle" />
             </div>
             <div style={{ flex: 1 }}>
               <label style={labelStyle}>Driver</label>
               <Combobox
                 options={[{ value: '', label: '— Unassigned —' }, ...drivers.map(d => ({ value: d.id, label: d.name }))]}
-                value={driverId} onChange={setDriverId} placeholder="— Unassigned —"
-              />
+                value={driverId} onChange={setDriverId} placeholder="— Unassigned —" aria-label="Driver" />
             </div>
           </div>
           <div style={{ display: 'flex', gap: 10 }}>
@@ -245,8 +242,7 @@ export const TrackingShipmentNew: React.FC = () => {
               <label style={labelStyle}>Trailer (optional)</label>
               <Combobox
                 options={[{ value: '', label: '— No trailer —' }, ...trailers.map(t => ({ value: t.id, label: t.name, sublabel: t.registration_number || undefined }))]}
-                value={trailerId} onChange={setTrailerId} placeholder="— No trailer —"
-              />
+                value={trailerId} onChange={setTrailerId} placeholder="— No trailer —" aria-label="Trailer (optional)" />
             </div>
             <div style={{ flex: 1 }} />
           </div>
@@ -256,8 +252,8 @@ export const TrackingShipmentNew: React.FC = () => {
           </div>
           <div style={sectionDivider} />
           <div style={{ display: 'flex', gap: 10 }}>
-            <div style={{ flex: 1 }}><label style={labelStyle}>Cargo type</label><Input value={cargoType} onChange={e => setCargoType(e.target.value)} placeholder="e.g. Perishable" /></div>
-            <div style={{ flex: 1 }}><label style={labelStyle}>Cargo weight (kg)</label><Input title="Cargo weight" type="number" value={cargoWeightKg} onChange={e => setCargoWeightKg(e.target.value)} /></div>
+            <div style={{ flex: 1 }}><label style={labelStyle}>Cargo type</label><Input value={cargoType} onChange={e => setCargoType(e.target.value)} placeholder="e.g. Perishable" aria-label="Cargo type" /></div>
+            <div style={{ flex: 1 }}><label style={labelStyle}>Cargo weight (kg)</label><Input title="Cargo weight" type="number" value={cargoWeightKg} onChange={e => setCargoWeightKg(e.target.value)} aria-label="Cargo weight (kg)" /></div>
           </div>
           <div style={{ display: 'flex', gap: 10 }}>
             <div style={{ flex: 1 }}><label style={labelStyle}>Cargo temp (°C)</label><Input title="Cargo temp" type="number" value={cargoTempC} onChange={e => setCargoTempC(e.target.value)} /></div>

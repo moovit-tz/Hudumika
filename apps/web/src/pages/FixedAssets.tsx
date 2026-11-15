@@ -101,7 +101,7 @@ function NewAssetForm({ onSave, onClose, fmt }: { onSave: (data: any) => Promise
               <div>
                 <label style={lbl}>Category</label>
                 <Select value={category} onValueChange={setCategory}>
-                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectTrigger aria-label="Category"><SelectValue /></SelectTrigger>
                   <SelectContent>
                     {CATEGORIES.map(c => <SelectItem key={c} value={c}>{CATEGORY_LABEL[c]}</SelectItem>)}
                   </SelectContent>
@@ -111,13 +111,13 @@ function NewAssetForm({ onSave, onClose, fmt }: { onSave: (data: any) => Promise
                 <label style={lbl}>Asset GL Account Code</label>
                 <div style={{ ...inp, background: 'var(--bg)', color: 'var(--ink2)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                   <span>{category === 'MOTOR_VEHICLE' ? '1502 · Motor Vehicles' : '1501 · Office Equipment & Fixtures'}</span>
-                  <span style={{ fontSize: 10.5, fontWeight: 700, color: 'var(--teal)', background: 'var(--teal-l)', padding: '1px 6px', borderRadius: 4 }}>Auto</span>
+                  <span style={{ fontSize: 10.5, fontWeight: 700, color: 'var(--teal)', background: 'var(--teal-l)', padding: '1px 6px', borderRadius: 'var(--r-sm)' }}>Auto</span>
                 </div>
               </div>
             </div>
             <div>
               <label style={lbl}>Acquisition Date</label>
-              <DatePicker date={parseDateOnly(acquisitionDate)} onChange={d => setAcquisitionDate(toDateOnlyString(d) ?? '')} />
+              <DatePicker date={parseDateOnly(acquisitionDate)} onChange={d => setAcquisitionDate(toDateOnlyString(d) ?? '')} aria-label="Acquisition Date" />
             </div>
           </div>
 
@@ -383,7 +383,7 @@ export function FixedAssets() {
                     <div style={{ display: 'flex', gap: 6, justifyContent: 'flex-end' }}>
                       <Tip label="View schedule"><button type="button" aria-label="View schedule" className="finance-icon-action" onClick={() => viewSchedule(a)} style={{ color: 'var(--ink3)' }} data-ui-native-button=""><Icon name="fileText" size={14} /></button></Tip>
                       {!readOnly && a.status === 'ACTIVE' && <Tip label="Dispose"><button type="button" aria-label="Dispose" className="finance-icon-action" onClick={() => { setDisposing(a); setDisposalProceeds(0); }} style={{ color: 'var(--gold)' }} data-ui-native-button=""><Icon name="logOut" size={14} /></button></Tip>}
-                      {!readOnly && a.accumulated_depreciation === 0 && a.status === 'ACTIVE' && <Tip label="Delete"><button type="button" aria-label="Delete" className="finance-icon-action" onClick={() => handleDelete(a)} style={{ color: 'var(--red)' }} data-ui-native-button=""><Icon name="trash" size={14} /></button></Tip>}
+                      {!readOnly && a.accumulated_depreciation === 0 && a.status === 'ACTIVE' && <Tip label="Delete"><button type="button" aria-label={`Delete ${a.name ?? ''}`.trim()} className="finance-icon-action" onClick={() => handleDelete(a)} style={{ color: 'var(--red)' }} data-ui-native-button=""><Icon name="trash" size={14} /></button></Tip>}
                     </div>
                   </td>
                 </tr>

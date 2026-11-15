@@ -314,7 +314,7 @@ export function CMSSites() {
                       Edit
                     </button>
                     {!site.is_default && (
-                      <button
+                      <button aria-label="Delete"
                         onClick={() => handleDelete(site)}
                         style={{
                           padding: "var(--action-py) var(--space-md)",
@@ -366,7 +366,7 @@ export function CMSSites() {
               <h3 style={{ fontSize: 17, fontWeight: 700, margin: 0, color: 'var(--text)' }}>
                 {editingSite ? 'Edit Site Settings' : 'Create New Site'}
               </h3>
-              <button
+              <button aria-label="Close"
                 onClick={() => setModalOpen(false)}
                 style={{ background: 'transparent', border: 'none', color: 'var(--text-muted)', cursor: 'pointer' }}
                data-ui-native-button="">

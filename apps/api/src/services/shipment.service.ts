@@ -30,6 +30,8 @@ export class ShipmentService {
       free_time_end?: string;
       consignment_type?: string;
       workflow_id?: string | null;
+      /** Who opened it — recorded on the domain event, not on the case row. */
+      actor_id?: string | null;
     }
   ) {
     return withTenant(tenantId, async (trx) => {
@@ -181,7 +183,7 @@ export class ShipmentService {
       // 6. Trigger notifications (offloaded dynamically)
       NotificationService.triggerNotification(tenantId, shipment.id, 'CASE_OPENED').catch(console.error);
       emitDomainEvent(trx, tenantId, {
-        type: 'shipment.case_opened', sourceApp: 'clearos', entityType: 'shipment', entityId: shipment.id,
+        type: 'shipment.case_opened', sourceApp: 'clearos', entityType: 'shipment', entityId: shipment.id, actorId: input.actor_id ?? null,
         payload: { refNumber: shipment.ref_number, customerId: shipment.customer_id, assignedTo: shipment.assigned_to },
       }).catch(console.error);
 

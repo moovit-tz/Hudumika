@@ -54,22 +54,22 @@ function EditPlanDialog({ row, onClose, onSaved }: { row: PlanRow; onClose: () =
         <form onSubmit={submit} style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
           <div>
             <label style={lbl}>Approved headcount</label>
-            <Input type="number" min={0} autoFocus value={headcount} onChange={e => setHeadcount(e.target.value)} />
+            <Input type="number" min={0} autoFocus value={headcount} onChange={e => setHeadcount(e.target.value)} aria-label="Approved headcount" />
             <div style={{ fontSize: 11.5, color: 'var(--ink3)', marginTop: 4 }}>Currently {row.current_headcount} assigned to this department.</div>
           </div>
           <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: 12 }}>
             <div>
               <label style={lbl}>Budget</label>
-              <Input type="number" min={0} value={budgetAmount} onChange={e => setBudgetAmount(e.target.value)} />
+              <Input type="number" min={0} value={budgetAmount} onChange={e => setBudgetAmount(e.target.value)} aria-label="Budget" />
             </div>
             <div>
               <label style={lbl}>Currency</label>
-              <Input value={budgetCurrency} onChange={e => setBudgetCurrency(e.target.value.toUpperCase())} maxLength={3} />
+              <Input value={budgetCurrency} onChange={e => setBudgetCurrency(e.target.value.toUpperCase())} maxLength={3} aria-label="Currency" />
             </div>
           </div>
           <div>
             <label style={lbl}>Notes</label>
-            <Textarea value={notes} onChange={e => setNotes(e.target.value)} rows={2} />
+            <Textarea value={notes} onChange={e => setNotes(e.target.value)} rows={2} aria-label="Notes" />
           </div>
           <DialogFooter>
             <Button type="button" variant="outline" onClick={onClose}>Cancel</Button>

@@ -36,7 +36,7 @@ It does not override the shared platform gates.
 | App / shell | Status | Ready now | Pending before production |
 |---|---|---|---|
 | Workspace Admin | Conditional | Tenant/workspace administration exists; RBAC route sweep closed. | Full admin-flow browser/E2E pass, accessibility/mobile, audit-log and destructive-action regression coverage. |
-| Hudumika AI | Pilot-ready | Tool-calling tenancy, conversation ownership, personal/shared memory, cross-tenant isolation and API-key masking were adversarially verified (`HUD-0126`). | Provider outage/rate-limit/load testing, prompt-injection/red-team suite, broader automated regression. |
+| Hudu | Pilot-ready | Tool-calling tenancy, conversation ownership, personal/shared memory, cross-tenant isolation and API-key masking were adversarially verified (`HUD-0126`). | Provider outage/rate-limit/load testing, prompt-injection/red-team suite, broader automated regression. |
 | Bliss | Pilot-ready | Team chat clean (`HUD-0119`); calls/meetings disclosure and guest-session bugs fixed (`HUD-0120`); escalations clean (`HUD-0121`). | WebRTC/TURN production topology, reconnect/load tests, browser matrix and external guest abuse testing. |
 | Calendar | Hold | Public booking works; double-booking race fixed (`HUD-0075`, `HUD-0122`). | **Known HIGH functional gap:** guest invitations are not production-complete (`HUD-0124`); external calendar sync/provider certification and concurrency coverage. |
 | CargoTracker | Pilot-ready | Freight rate-shopping, booking, quote, confirmation and shipment conversion traced clean (`HUD-0056`). | Carrier/external-provider contract tests, volume/performance and full UI/browser pass. |

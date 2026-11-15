@@ -323,16 +323,14 @@ export function CrmAssignmentRules() {
                   autoFocus
                   value={draft.name}
                   onChange={e => setDraft(d => ({ ...d, name: e.target.value }))}
-                  placeholder="e.g. Route inbound fintech leads"
-                />
+                  placeholder="e.g. Route inbound fintech leads" aria-label="Rule name" />
               </div>
               <div>
                 <label className="mb-1.5 block text-xs font-semibold text-foreground">Priority</label>
                 <Input
                   type="number" min={0} max={999} className="w-24"
                   value={draft.priority}
-                  onChange={e => setDraft(d => ({ ...d, priority: Number(e.target.value) }))}
-                />
+                  onChange={e => setDraft(d => ({ ...d, priority: Number(e.target.value) }))} aria-label="Priority" />
               </div>
             </div>
 

@@ -359,7 +359,7 @@ export const ProjectRisksDashboard: React.FC<Props> = ({ projectId, projectName 
                   Governance Status
                 </label>
                 <Select value={riskStatus} onValueChange={setRiskStatus}>
-                  <SelectTrigger id="risk-status">
+                  <SelectTrigger id="risk-status" aria-label="Governance Status">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>

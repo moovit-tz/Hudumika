@@ -2,6 +2,7 @@ import * as React from "react"
 import * as TooltipPrimitive from "@radix-ui/react-tooltip"
 
 import { cn } from "@/lib/utils"
+import { Icon } from "../Icon.js"
 
 const TooltipProvider = TooltipPrimitive.Provider
 
@@ -47,8 +48,34 @@ export function Tip({ label, children, side = 'top', delayDuration = 200, classN
   sideOffset?: number;
 }) {
   // A hover tooltip is not an accessible name until its content is mounted.
+  // An icon-only control inside a Tip takes the tip's text as its accessible
+  // name — otherwise a screen reader announces just "button". Native buttons
+  // and links, and component controls (Button, DropdownMenuTrigger, …) which
+  // forward aria-label to their element. Plain containers (<span>, <div>) are
+  // left alone: a name on a non-interactive element means nothing.
+  // A bare <Icon> is decoration, not a control. As a tooltip trigger it would
+  // receive the trigger's click handler, and Icon renders anything clickable
+  // as role="button" — a nameless, unfocusable fake button (found on Bliss).
+  // Give it a focusable wrapper instead, described as an image named by the
+  // tip, so keyboard and screen-reader users reach the same information.
+  if (React.isValidElement(children) && children.type === Icon) {
+    return (
+      <TooltipProvider delayDuration={delayDuration}>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <span tabIndex={0} role="img" aria-label={typeof label === 'string' ? label : undefined} data-ui-focus="" className="inline-flex items-center">
+              {children}
+            </span>
+          </TooltipTrigger>
+          <TooltipContent side={side} sideOffset={sideOffset} className={className}>{label}</TooltipContent>
+        </Tooltip>
+      </TooltipProvider>
+    );
+  }
+  const nameable = React.isValidElement(children)
+    && (typeof children.type === 'string' ? children.type === 'button' || children.type === 'a' : true);
   const trigger = React.isValidElement<React.HTMLAttributes<HTMLButtonElement>>(children)
-    && children.type === 'button'
+    && nameable
     && typeof label === 'string'
     && !children.props['aria-label']
     && !children.props['aria-labelledby']

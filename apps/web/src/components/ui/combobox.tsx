@@ -40,6 +40,7 @@ function comboboxFilter(value: string, search: string): number {
  */
 export function Combobox({
   options, value, onChange, placeholder, emptyText, searchPlaceholder, disabled, className, triggerClassName,
+  "aria-label": ariaLabel, "aria-labelledby": ariaLabelledBy,
 }: {
   options: ComboboxOption[]
   value: string
@@ -50,6 +51,10 @@ export function Combobox({
   disabled?: boolean
   className?: string
   triggerClassName?: string
+  /** The field's name for screen readers when no <label> wraps the picker
+   *  (the trigger's visible text is the current value, not the field name). */
+  "aria-label"?: string
+  "aria-labelledby"?: string
 }) {
   const [open, setOpen] = React.useState(false)
   const selected = options.find((o) => o.value === value)
@@ -67,6 +72,8 @@ export function Combobox({
           // Combobox at the library default of 36 — a Port of Loading box
           // visibly shorter than the Select next to it.
           data-slot="combobox-trigger"
+          aria-label={ariaLabel}
+          aria-labelledby={ariaLabelledBy}
           disabled={disabled}
           className={cn(
             // min-h comes from --ctl-h, the density ladder, not a fixed

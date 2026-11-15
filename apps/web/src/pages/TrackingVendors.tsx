@@ -131,7 +131,7 @@ function VendorFormModal({
           <div>
             <label style={labelStyle}>Vendor Category / Role</label>
             <Select value={vendorType} onValueChange={setVendorType}>
-              <SelectTrigger><SelectValue /></SelectTrigger>
+              <SelectTrigger aria-label="Vendor Category / Role"><SelectValue /></SelectTrigger>
               <SelectContent>
                 {VENDOR_TYPES.map(t => (
                   <SelectItem key={t.type} value={t.type}>{t.label}</SelectItem>
@@ -662,7 +662,7 @@ export const TrackingVendors: React.FC = () => {
                         >
                           <Link to={`/tracking/vendors/${v.id}`}>View</Link>
                         </Button>
-                        <Button
+                        <Button aria-label="Edit"
                           variant="ghost"
                           size="sm"
                           onClick={() => {
@@ -672,7 +672,7 @@ export const TrackingVendors: React.FC = () => {
                         >
                           <Icon name="edit" size={13} />
                         </Button>
-                        <Button
+                        <Button aria-label="Delete"
                           variant="ghost"
                           size="sm"
                           onClick={() => remove(v)}

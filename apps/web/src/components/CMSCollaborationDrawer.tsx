@@ -138,7 +138,7 @@ export function CMSCollaborationDrawer({
             Internal review on {resourceTitle || resourceType}
           </span>
         </div>
-        <button
+        <button aria-label="Close"
           onClick={onClose}
           style={{ background: 'transparent', border: 'none', color: 'var(--text-muted)', cursor: 'pointer' }}
          data-ui-native-button="">

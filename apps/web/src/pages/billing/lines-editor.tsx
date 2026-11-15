@@ -278,8 +278,7 @@ export function InvoiceLinesEditor({
                   value={item.description || ''}
                   onChange={(event) => update(item.uid, { description: event.target.value })}
                   placeholder="Details printed on invoice…"
-                  className="text-xs rounded-[var(--r-sm)] border-[var(--border)]"
-                />
+                  className="text-xs rounded-[var(--r-sm)] border-[var(--border)]" aria-label="Deliverables / Specification" />
               </div>
 
               {/* 2x2 Grid for Quantities and Rates */}
@@ -294,8 +293,7 @@ export function InvoiceLinesEditor({
                     step="any"
                     value={item.qty}
                     onChange={(event) => update(item.uid, { qty: Number(event.target.value) })}
-                    className="h-9 text-xs"
-                  />
+                    className="h-9 text-xs" aria-label="Quantity" />
                 </div>
                 <div>
                   <label className="block text-[11px] font-semibold uppercase tracking-wider text-[var(--ink3)] mb-1">
@@ -304,8 +302,7 @@ export function InvoiceLinesEditor({
                   <Input
                     value={item.unit}
                     onChange={(event) => update(item.uid, { unit: event.target.value })}
-                    className="h-9 text-xs uppercase"
-                  />
+                    className="h-9 text-xs uppercase" aria-label="Unit" />
                 </div>
 
                 <div>
@@ -318,8 +315,7 @@ export function InvoiceLinesEditor({
                     step="any"
                     value={item.rate}
                     onChange={(event) => update(item.uid, { rate: Number(event.target.value) })}
-                    className="h-9 text-xs font-mono"
-                  />
+                    className="h-9 text-xs font-mono" aria-label="Rate / Price" />
                 </div>
                 <div>
                   <label className="block text-[11px] font-semibold uppercase tracking-wider text-[var(--ink3)] mb-1">

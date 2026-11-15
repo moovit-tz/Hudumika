@@ -64,7 +64,7 @@ function WidgetCard({ widget, onDelete }: { widget: Widget; onDelete: (id: strin
     <SectionCard
       title={widget.name}
       collapsible={false}
-      action={<Button size="icon" variant="ghost" onClick={() => onDelete(widget.id)}><Icon name="trash" size={14} /></Button>}
+      action={<Button aria-label="Delete" size="icon" variant="ghost" onClick={() => onDelete(widget.id)}><Icon name="trash" size={14} /></Button>}
     >
       {loading ? (
         <SectionLoading />
@@ -181,11 +181,11 @@ export function HuduBIDashboardBuilder() {
                 <>
                   <div>
                     <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: 'var(--ink2)', marginBottom: 6 }}>From</label>
-                    <DatePicker date={parseDateOnly(form.dateFrom)} onChange={d => setForm(p => ({ ...p, dateFrom: toDateOnlyString(d) }))} />
+                    <DatePicker date={parseDateOnly(form.dateFrom)} onChange={d => setForm(p => ({ ...p, dateFrom: toDateOnlyString(d) }))} aria-label="From" />
                   </div>
                   <div>
                     <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: 'var(--ink2)', marginBottom: 6 }}>To</label>
-                    <DatePicker date={parseDateOnly(form.dateTo)} onChange={d => setForm(p => ({ ...p, dateTo: toDateOnlyString(d) }))} />
+                    <DatePicker date={parseDateOnly(form.dateTo)} onChange={d => setForm(p => ({ ...p, dateTo: toDateOnlyString(d) }))} aria-label="To" />
                   </div>
                 </>
               )}

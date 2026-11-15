@@ -317,7 +317,7 @@ export function JobChargesTab({ job, shipmentId, isLive, onRefresh }: { job: Cle
                     >
                       <td style={{ ...tdStyle, color: 'var(--ink3)', textAlign: 'center' }}>{line.display_sequence}</td>
                       <td style={tdStyle}>
-                        <span style={{ fontWeight: 700, fontFamily: 'monospace', fontSize: 11.5, background: 'var(--bg)', border: '1px solid var(--border)', borderRadius: 4, padding: '2px 6px', color: 'var(--ink2)' }}>
+                        <span style={{ fontWeight: 700, fontFamily: 'monospace', fontSize: 11.5, background: 'var(--bg)', border: '1px solid var(--border)', borderRadius: 'var(--r-sm)', padding: '2px 6px', color: 'var(--ink2)' }}>
                           {line.charge_code}
                         </span>
                       </td>
@@ -494,15 +494,17 @@ export function JobChargesTab({ job, shipmentId, isLive, onRefresh }: { job: Cle
           <form onSubmit={handleSave} style={{ background: 'var(--white)', borderRadius: 'var(--r)', boxShadow: 'var(--elev-lg)', width: '100%', maxWidth: 780, maxHeight: '90vh', overflowY: 'auto', padding: 24 }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
               <div style={{ fontSize: 15, fontWeight: 700, color: 'var(--ink)' }}>{editLine ? 'Edit charge line' : 'Add charge line'}</div>
-              <button type="button" onClick={() => { setShowForm(false); setEditLine(null); }} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink3)', fontSize: "var(--text-base)", lineHeight: 1 }} data-ui-native-button="">×</button>
+              <Tip label="Close dialog">
+                <button type="button" onClick={() => { setShowForm(false); setEditLine(null); }} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink3)', fontSize: "var(--text-base)", lineHeight: 1 }} data-ui-native-button="">×</button>
+              </Tip>
             </div>
 
             {/* Identity */}
-            <div style={{ display: 'grid', gridTemplateColumns: '160px 1fr 100px', gap: 12, marginBottom: 16 }}>
+            <div style={{ display: 'grid', gridTemplateColumns: '220px 1fr 160px', gap: 14, marginBottom: 16 }}>
               <div>
                 <label style={{ display: 'block', fontSize: 10.5, fontWeight: 700, color: 'var(--ink3)', textTransform: 'uppercase', letterSpacing: '.06em', marginBottom: 5 }}>Charge Code</label>
                 <Select value={form.charge_code} onValueChange={handleCodeChange}>
-                  <SelectTrigger className="w-full"><SelectValue /></SelectTrigger>
+                  <SelectTrigger className="w-full" aria-label="Charge Code"><SelectValue /></SelectTrigger>
                   <SelectContent>
                   {Object.entries(CHARGE_CODE_DEFAULTS).map(([c, d]) => (
                     <SelectItem key={c} value={c}>{c} — {d}</SelectItem>
@@ -793,7 +795,7 @@ export function LedgerTab({ job, shipmentId, isLive, onRefresh }: { job: Clearan
               <div>
                 <label style={{ fontSize: 11, fontWeight: 600, color: 'var(--ink3)', display: 'block', marginBottom: 4 }}>Category</label>
                 <Select value={category} onValueChange={setCategory}>
-                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectTrigger aria-label="Category"><SelectValue /></SelectTrigger>
                   <SelectContent>
                     {['DUTY','PORT','INSPECTION','TRANSPORT','STORAGE','AGENCY','CLEARANCE','OTHER'].map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}
                   </SelectContent>

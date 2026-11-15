@@ -202,7 +202,7 @@ export function OnsiteWebsiteSSH() {
                     {k.addedAt && ` · ${new Date(k.addedAt).toLocaleDateString()}`}
                   </div>
                 </div>
-                <Button variant="ghost" size="sm" onClick={() => handleRemoveKey(k.id, k.name)}>
+                <Button aria-label="Remove SSH key" variant="ghost" size="sm" onClick={() => handleRemoveKey(k.id, k.name)}>
                   <Icon name="trash2" size={14} />
                 </Button>
               </div>
@@ -219,13 +219,13 @@ export function OnsiteWebsiteSSH() {
             <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
               <div>
                 <label style={{ display: 'block', fontSize: '0.8125rem', fontWeight: 600, marginBottom: '0.35rem' }}>Key name</label>
-                <Input value={keyName} onChange={e => setKeyName(e.target.value)} placeholder="My laptop" />
+                <Input value={keyName} onChange={e => setKeyName(e.target.value)} placeholder="My laptop" aria-label="Key name" />
               </div>
               <div>
                 <label style={{ display: 'block', fontSize: '0.8125rem', fontWeight: 600, marginBottom: '0.35rem' }}>Public key</label>
                 <Textarea value={publicKey} onChange={e => setPublicKey(e.target.value)}
                   placeholder="ssh-rsa AAAA... or ssh-ed25519 AAAA..."
-                  style={{ fontFamily: 'var(--font-mono)', fontSize: '0.8125rem', minHeight: '6rem' }} />
+                  style={{ fontFamily: 'var(--font-mono)', fontSize: '0.8125rem', minHeight: '6rem' }} aria-label="Public key" />
               </div>
             </div>
           </DialogBody>
@@ -245,7 +245,7 @@ export function OnsiteWebsiteSSH() {
           <DialogBody>
             <div>
               <label style={{ display: 'block', fontSize: '0.8125rem', fontWeight: 600, marginBottom: '0.35rem' }}>New password</label>
-              <Input value={newPassword} onChange={e => setNewPassword(e.target.value)} type="password" placeholder="New password (min 8 chars)" />
+              <Input value={newPassword} onChange={e => setNewPassword(e.target.value)} type="password" placeholder="New password (min 8 chars)" aria-label="New password" />
             </div>
           </DialogBody>
           <DialogFooter>

@@ -1,3 +1,4 @@
+import { ticketFilterSql, type TicketFilter } from './support-network.service.js';
 import type { Kysely, Transaction } from 'kysely';
 import type { Database } from '../db/client.js';
 
@@ -27,6 +28,8 @@ export async function computeBlissKpis(
   trx: Kysely<Database> | Transaction<Database>,
   tenantId: string,
   days: number,
+  /** Centre/zone/product scope (support network); omitted = whole workspace. */
+  filter?: TicketFilter,
 ): Promise<BlissKpis> {
   const cutoff = new Date(Date.now() - days * 86400000);
   const tickets = await trx
@@ -34,6 +37,7 @@ export async function computeBlissKpis(
     .selectAll()
     .where('tenant_id', '=', tenantId)
     .where('created_at', '>=', cutoff)
+    .where(ticketFilterSql(filter))
     .execute();
 
   const total = tickets.length;

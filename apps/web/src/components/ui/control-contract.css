@@ -69,6 +69,27 @@
    click on the control. The control must already be positioned (relative or
    absolute) — this rule does not set `position`, because doing so here would
    override an absolutely placed control such as a dialog's close button. */
+/* Shared small controls found under 24px by the design-system route audit
+   (14 November 2026): breadcrumb links on every PageHeader, Ondi's row
+   action menus, and the design-system screen's pill toggles. Same invisible
+   extender as data-ui-target — the hit area grows, the drawing does not. */
+.page-header-crumb-link,
+.ondi-icon-action,
+.ds-top-pill,
+.spt-nav-add,
+.fin-kpi-link,
+.fin-flow-link { position: relative; }
+/* The sidebar collapse toggle and the right rail toggle are already
+   absolutely positioned (22px chrome on every page) — they take the
+   extender only; their position must not change. */
+.page-header-crumb-link::before,
+.ondi-icon-action::before,
+.ds-top-pill::before,
+.spt-nav-add::before,
+.fin-kpi-link::before,
+.fin-flow-link::before,
+.app-sb-toggle::before,
+.gws-rail-toggle::before,
 [data-ui-target]::before {
   content: "";
   position: absolute;

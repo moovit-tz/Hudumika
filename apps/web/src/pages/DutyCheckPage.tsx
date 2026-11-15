@@ -278,7 +278,7 @@ export const DutyCheckPage: React.FC = () => {
                 <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 14 }}>
                   <FeaturedIcon variant="brand" size="sm" shape="square"><Icon name="sparkle" size={14} /></FeaturedIcon>
                   <div style={{ fontSize: 13.5, fontWeight: 700, color: 'var(--ink)', flex: 1 }}>HS code finder</div>
-                  <button type="button" onClick={() => { setShowSuggester(false); setSuggestions([]); setSuggestError(''); setAiPick(null); }}
+                  <button aria-label="Clear" type="button" onClick={() => { setShowSuggester(false); setSuggestions([]); setSuggestError(''); setAiPick(null); }}
                     style={{ background: 'none', border: 'none', cursor: 'pointer', display: 'flex', color: 'var(--ink3)' }} data-ui-native-button="">
                     <Icon name="x" size={15} />
                   </button>

@@ -116,6 +116,43 @@ it('renders ClearOS pages through real authenticated API handlers on desktop and
    }
    expect(visibleContent.trim().length,`${path} rendered content`).toBeGreaterThan(20);
   }
+
+  // Keep the task list's dense desktop table and mobile cards mutually
+  // exclusive, and make the row actions reachable without scrolling across
+  // the table's descriptive columns.
+  const taskResponse=await app.inject({
+   method:'POST',url:`/v1/shipments/${shipmentId}/tasks`,headers:authHeaders(tenant.token),
+   payload:{title:'Pinned action audit task',priority:'high'},
+  });
+  expect(taskResponse.statusCode).toBe(200);
+  for(const key of getResponses.keys()) if(key.startsWith(`GET /v1/shipments/${shipmentId}`)) getResponses.delete(key);
+  for(const width of [1440,390]) {
+   await page.setViewportSize({width,height:1000});
+   await page.goto(`http://localhost:5173/clearos/clearance/${shipmentId}?tab=tasks`,{waitUntil:'domcontentloaded'});
+   await page.waitForSelector('.shipment-task-table tbody tr',{state:'attached'});
+   if(width > 768) {
+    const layout=await page.evaluate(()=>{
+     const wrap=document.querySelector('.shipment-task-table-wrap')!;
+     const mobile=document.querySelector('.shipment-task-mobile-list')!;
+     const action=document.querySelector('.shipment-task-actions-cell')!;
+     (wrap as HTMLElement).scrollLeft=(wrap as HTMLElement).scrollWidth;
+     const frame=wrap.getBoundingClientRect(),cell=action.getBoundingClientRect();
+     return {mobileDisplay:getComputedStyle(mobile).display,actionRight:cell.right,frameRight:frame.right};
+    });
+    expect(layout.mobileDisplay).toBe('none');
+    expect(layout.actionRight).toBeLessThanOrEqual(layout.frameRight+1);
+   } else {
+    const layout=await page.evaluate(()=>({
+     tableDisplay:getComputedStyle(document.querySelector('.shipment-task-table-wrap')!).display,
+     mobileDisplay:getComputedStyle(document.querySelector('.shipment-task-mobile-list')!).display,
+     actionButtons:Array.from(document.querySelectorAll('.shipment-task-mobile-actions button')).map(button=>button.getAttribute('aria-label')),
+    }));
+    expect(layout.tableDisplay).toBe('none');
+    expect(layout.mobileDisplay).toBe('flex');
+    expect(layout.actionButtons).toContain('Mark task complete');
+    expect(layout.actionButtons).toContain('Close and sign off task');
+   }
+  }
   expect(errors).toEqual([]);
   expect(apiFailures, 'ClearOS screen API responses').toEqual([]);
  } finally {writeFileSync(resolve(process.cwd(),'../../audit/evidence/browser-results.json'),JSON.stringify({results,errors,apiFailures,limitations:'Real API handlers via Fastify inject; synthetic tenant fixtures; no external government or third-party providers.'},null,2));await browser.close();}

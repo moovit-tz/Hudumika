@@ -110,6 +110,9 @@ const PLAN_DEFAULTS: Record<string, PlanDisplay> = {
  *  PackagesView reads) and shapes it to match this page's render code —
  *  every real, active package the admin has configured, keyed by its own
  *  code, nothing added or dropped. */
+// Legacy plan codes still stored on older tenants, mapped to the package that replaced them (as useTenantPlan does).
+const LEGACY_PLAN_ALIAS: Record<string, string> = { operations: 'growth', professional: 'scale', finance: 'scale' };
+
 function usePlans(): Record<string, PlanDisplay> {
   const [plans, setPlans] = useState<Record<string, PlanDisplay>>(PLAN_DEFAULTS);
 
@@ -445,8 +448,8 @@ function CompanyInfoTab({ tenant }: { tenant: any }) {
                   <div style={{ fontSize: 10.5, color: 'var(--gold)', fontWeight: 600, marginBottom: 5 }}>Approaching this month's limit</div>
                 )}
                 {usage.limit !== null && (
-                  <div style={{ height: 6, borderRadius: 4, background: 'var(--bg)', overflow: 'hidden' }}>
-                    <div style={{ height: '100%', width: `${Math.min(100, (usage.used / usage.limit) * 100)}%`, background: usageBarColor(usage.used, usage.limit, plan.color), borderRadius: 4 }} />
+                  <div style={{ height: 6, borderRadius: 'var(--r-sm)', background: 'var(--bg)', overflow: 'hidden' }}>
+                    <div style={{ height: '100%', width: `${Math.min(100, (usage.used / usage.limit) * 100)}%`, background: usageBarColor(usage.used, usage.limit, plan.color), borderRadius: 'var(--r-sm)' }} />
                   </div>
                 )}
               </div>
@@ -1591,7 +1594,7 @@ function FinanceEditionSection() {
                 <span>
                   <strong>{c.name}</strong>
                   {' '}
-                  <span style={{ fontSize: 11.5, color: 'var(--ink3)', background: 'var(--bg)', padding: '1px 5px', borderRadius: 4, border: '1px solid var(--border)', fontWeight: 500 }}>
+                  <span style={{ fontSize: 11.5, color: 'var(--ink3)', background: 'var(--bg)', padding: '1px 5px', borderRadius: 'var(--r-sm)', border: '1px solid var(--border)', fontWeight: 500 }}>
                     {categoryLabel[c.category]}
                   </span>
                   {' '}— {c.description}
@@ -2293,6 +2296,7 @@ const TAB_IDS = new Set(TABS.map(t => t.id));
 
 export const Subscription: React.FC = () => {
   const { user } = useAuth();
+  const plans = usePlans();
   const [searchParams] = useSearchParams();
   const requestedTab = searchParams.get('v');
   const [tab, setTab] = useState<SubTab>(requestedTab && TAB_IDS.has(requestedTab as SubTab) ? (requestedTab as SubTab) : 'company');
@@ -2320,7 +2324,8 @@ export const Subscription: React.FC = () => {
 
   const tenantName = tenant?.name || 'My Company';
   const tenantPlan = tenant?.plan || 'starter';
-  const planLabel = tenantPlan.charAt(0).toUpperCase() + tenantPlan.slice(1);
+  // The package's own name ("HuduPlus"), as the sidebar shows it — not the raw plan code ("Growth").
+  const planLabel = plans[LEGACY_PLAN_ALIAS[tenantPlan] ?? tenantPlan]?.name ?? tenantPlan.charAt(0).toUpperCase() + tenantPlan.slice(1);
 
   return (
     <div className="sub-account-root" style={{ flex: 1, overflowY: 'auto', background: 'var(--bg)', fontFamily: 'var(--font)' }}>

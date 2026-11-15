@@ -22,6 +22,13 @@ const checks = [
   ['Metric cards expose honest async states', 'apps/web/src/components/MetricCard.tsx', (source) => source.includes('loading?: boolean') && source.includes('error?: string') && source.includes('empty?: boolean')],
   ['DataTable distinguishes dataset and filtered empty states', 'apps/web/src/components/ui/DataTable.tsx', (source) => source.includes('filteredEmpty?: boolean') && source.includes('emptyAction?:')],
   ['DataTable uses the shared Radix action menu', 'apps/web/src/components/ui/DataTable.tsx', (source) => source.includes('<DropdownMenu>') && source.includes('aria-label="Row actions"')],
+  // Added with the product design principles adoption (14 November 2026).
+  ['Reduced motion applies platform-wide, keeping spinners alive', 'apps/web/src/index.css', (source) => /@media \(prefers-reduced-motion: reduce\)\s*\{\s*\*, \*::before, \*::after\s*\{[^}]*animation-duration: 0\.01ms !important;[^}]*transition-duration: 0\.01ms !important;/.test(source) && source.includes('[class*="spinner"], .animate-spin, [data-motion-essential]')],
+  ['Destructive buttons use the theme red floored to AA, not a fixed hue', 'apps/web/src/hooks/useDesignSystem.ts', (source) => source.includes('enforceContrastFloor(tokens.semantic.light.red)') && source.includes("'--destructive': hexToHslTriplet(destructiveLight.hex)") && source.includes("'--destructive-foreground': pickForegroundHsl(destructiveLight.hex)") && source.includes("'--destructive': '0 62.8% 30.6%'")],
+  ['Tip names the icon-only control it wraps (buttons, links, components)', 'apps/web/src/components/ui/tooltip.tsx', (source) => source.includes("children.type === 'button' || children.type === 'a' : true") && source.includes("React.cloneElement(children, { 'aria-label': label })")],
+  ['RTL pages order mixed English, numbers and signs per text run', 'apps/web/src/index.css', (source) => /\[dir="rtl"\] :where\(h1, h2, h3, h4, h5, h6, p, span, td, th[^)]*\) \{\s*unicode-bidi: plaintext;/.test(source)],
+  ['Badge groups its text so RTL keeps "-52.8% YTD" in one run', 'apps/web/src/components/ui/badge.tsx', (source) => source.includes('function groupText') && source.includes('{groupText(children)}')],
+  ['Icon-only Button warns in development when it has no accessible name', 'apps/web/src/components/ui/button.tsx', (source) => source.includes('unnamedIcon') && source.includes('Icon-only <Button> has no accessible name')],
 ];
 
 const failures = [];

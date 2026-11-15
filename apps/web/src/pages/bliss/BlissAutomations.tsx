@@ -108,7 +108,7 @@ function CreateRuleForm({ agents, onCancel, onSave, saving }: {
             <div>
               <label style={{ fontSize: 11.5, fontWeight: 700, color: 'var(--ink2)', display: 'block', marginBottom: 4 }}>Strategy</label>
               <Select value={strategy} onValueChange={setStrategy}>
-                <SelectTrigger className="input-field"><SelectValue /></SelectTrigger>
+                <SelectTrigger className="input-field" aria-label="Strategy"><SelectValue /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="round_robin">Round robin</SelectItem>
                   <SelectItem value="load_based">Least open tickets</SelectItem>
@@ -143,7 +143,7 @@ function CreateRuleForm({ agents, onCancel, onSave, saving }: {
             <div>
               <label style={{ fontSize: 11.5, fontWeight: 700, color: 'var(--ink2)', display: 'block', marginBottom: 4 }}>Escalate to role</label>
               <Select value={escalateToRole} onValueChange={setEscalateToRole}>
-                <SelectTrigger className="input-field"><SelectValue /></SelectTrigger>
+                <SelectTrigger className="input-field" aria-label="Escalate to role"><SelectValue /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="MANAGER">Manager</SelectItem>
                   <SelectItem value="TENANT_ADMIN">Tenant Admin</SelectItem>
@@ -166,7 +166,7 @@ function CreateRuleForm({ agents, onCancel, onSave, saving }: {
             <div>
               <label style={{ fontSize: 11.5, fontWeight: 700, color: 'var(--ink2)', display: 'block', marginBottom: 4 }}>Event</label>
               <Select value={event} onValueChange={setEvent}>
-                <SelectTrigger className="input-field"><SelectValue /></SelectTrigger>
+                <SelectTrigger className="input-field" aria-label="Event"><SelectValue /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="new_ticket">New ticket</SelectItem>
                   <SelectItem value="sla_breach">SLA breach</SelectItem>
@@ -178,7 +178,7 @@ function CreateRuleForm({ agents, onCancel, onSave, saving }: {
             <div>
               <label style={{ fontSize: 11.5, fontWeight: 700, color: 'var(--ink2)', display: 'block', marginBottom: 4 }}>Notify</label>
               <Select value={notify} onValueChange={setNotify}>
-                <SelectTrigger className="input-field"><SelectValue /></SelectTrigger>
+                <SelectTrigger className="input-field" aria-label="Notify"><SelectValue /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="assignee">The ticket's assignee</SelectItem>
                   <SelectItem value="manager_role">All managers</SelectItem>

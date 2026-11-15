@@ -423,7 +423,7 @@ export function PettiDashboard() {
                 <h3 style={{ fontSize: 15, fontWeight: 800, margin: 0 }}>Recent Activity & Transfers</h3>
                 <p style={{ fontSize: 11.5, color: 'var(--ink3)', margin: '2px 0 0 0' }}>Latest deposits, withdrawals and wallet transfers</p>
               </div>
-              <Link to="/petti/transactions" style={{ fontSize: 12, fontWeight: 600, color: 'var(--teal)', textDecoration: 'none' }}>View All</Link>
+              <Link to="/petti/transactions" style={{ fontSize: 12, fontWeight: 600, color: 'var(--teal)', textDecoration: 'none', display: 'inline-flex', alignItems: 'center', minHeight: 'var(--target-min, 24px)' }}>View All</Link>
             </div>
 
             <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 8 }}>
@@ -517,7 +517,7 @@ export function PettiDashboard() {
             <div>
               <label style={{ display: 'block', fontSize: 12, fontWeight: 600, marginBottom: 4 }}>Target Wallet</label>
               <Select value={depositWalletId} onValueChange={setDepositWalletId}>
-                <SelectTrigger><SelectValue placeholder="Select wallet…" /></SelectTrigger>
+                <SelectTrigger aria-label="Target Wallet"><SelectValue placeholder="Select wallet…" /></SelectTrigger>
                 <SelectContent>
                   {wallets.map(w => <SelectItem key={w.id} value={w.id}>{w.name} ({w.currency})</SelectItem>)}
                 </SelectContent>
@@ -525,7 +525,7 @@ export function PettiDashboard() {
             </div>
             <div>
               <label style={{ display: 'block', fontSize: 12, fontWeight: 600, marginBottom: 4 }}>Amount</label>
-              <Input type="number" min="1" step="any" value={depositAmount} onChange={e => setDepositAmount(e.target.value)} placeholder="Enter deposit amount" required />
+              <Input type="number" min="1" step="any" value={depositAmount} onChange={e => setDepositAmount(e.target.value)} placeholder="Enter deposit amount" required aria-label="Amount" />
             </div>
             <div>
               <label style={{ display: 'block', fontSize: 12, fontWeight: 600, marginBottom: 4 }}>Method</label>
@@ -539,11 +539,11 @@ export function PettiDashboard() {
             </div>
             <div>
               <label style={{ display: 'block', fontSize: 12, fontWeight: 600, marginBottom: 4 }}>Reference</label>
-              <Input value={depositRef} onChange={e => setDepositRef(e.target.value)} placeholder="e.g. MP99104 or BANK-REF" />
+              <Input value={depositRef} onChange={e => setDepositRef(e.target.value)} placeholder="e.g. MP99104 or BANK-REF" aria-label="Reference" />
             </div>
             <div>
               <label style={{ display: 'block', fontSize: 12, fontWeight: 600, marginBottom: 4 }}>Note</label>
-              <Input value={depositNote} onChange={e => setDepositNote(e.target.value)} placeholder="e.g. Monthly replenishment" />
+              <Input value={depositNote} onChange={e => setDepositNote(e.target.value)} placeholder="e.g. Monthly replenishment" aria-label="Note" />
             </div>
             <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8, marginTop: 4 }}>
               <Button type="button" variant="outline" onClick={() => setDepositModalOpen(false)}>Cancel</Button>
@@ -561,7 +561,7 @@ export function PettiDashboard() {
             <div>
               <label style={{ display: 'block', fontSize: 12, fontWeight: 600, marginBottom: 4 }}>From Wallet</label>
               <Select value={transferFromId} onValueChange={setTransferFromId}>
-                <SelectTrigger><SelectValue placeholder="Select source…" /></SelectTrigger>
+                <SelectTrigger aria-label="From Wallet"><SelectValue placeholder="Select source…" /></SelectTrigger>
                 <SelectContent>
                   {wallets.map(w => <SelectItem key={w.id} value={w.id}>{w.name} ({w.currency} {(Number(w.balance) || 0).toLocaleString()})</SelectItem>)}
                 </SelectContent>
@@ -570,7 +570,7 @@ export function PettiDashboard() {
             <div>
               <label style={{ display: 'block', fontSize: 12, fontWeight: 600, marginBottom: 4 }}>To Wallet</label>
               <Select value={transferToId} onValueChange={setTransferToId}>
-                <SelectTrigger><SelectValue placeholder="Select destination…" /></SelectTrigger>
+                <SelectTrigger aria-label="To Wallet"><SelectValue placeholder="Select destination…" /></SelectTrigger>
                 <SelectContent>
                   {wallets.map(w => <SelectItem key={w.id} value={w.id}>{w.name} ({w.currency} {(Number(w.balance) || 0).toLocaleString()})</SelectItem>)}
                 </SelectContent>
@@ -578,11 +578,11 @@ export function PettiDashboard() {
             </div>
             <div>
               <label style={{ display: 'block', fontSize: 12, fontWeight: 600, marginBottom: 4 }}>Amount</label>
-              <Input type="number" min="1" step="any" value={transferAmount} onChange={e => setTransferAmount(e.target.value)} placeholder="Enter transfer amount" required />
+              <Input type="number" min="1" step="any" value={transferAmount} onChange={e => setTransferAmount(e.target.value)} placeholder="Enter transfer amount" required aria-label="Amount" />
             </div>
             <div>
               <label style={{ display: 'block', fontSize: 12, fontWeight: 600, marginBottom: 4 }}>Note</label>
-              <Input value={transferNote} onChange={e => setTransferNote(e.target.value)} placeholder="e.g. Replenish weekly petty cash vault" />
+              <Input value={transferNote} onChange={e => setTransferNote(e.target.value)} placeholder="e.g. Replenish weekly petty cash vault" aria-label="Note" />
             </div>
             <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8, marginTop: 4 }}>
               <Button type="button" variant="outline" onClick={() => setTransferModalOpen(false)}>Cancel</Button>
@@ -600,7 +600,7 @@ export function PettiDashboard() {
             <div>
               <label style={{ display: 'block', fontSize: 12, fontWeight: 600, marginBottom: 4 }}>Source Wallet</label>
               <Select value={requestWalletId} onValueChange={setRequestWalletId}>
-                <SelectTrigger><SelectValue placeholder="Select wallet…" /></SelectTrigger>
+                <SelectTrigger aria-label="Source Wallet"><SelectValue placeholder="Select wallet…" /></SelectTrigger>
                 <SelectContent>
                   {wallets.map(w => <SelectItem key={w.id} value={w.id}>{w.name} ({w.currency})</SelectItem>)}
                 </SelectContent>
@@ -609,7 +609,7 @@ export function PettiDashboard() {
             <div>
               <label style={{ display: 'block', fontSize: 12, fontWeight: 600, marginBottom: 4 }}>Category</label>
               <Select value={requestCategory} onValueChange={setRequestCategory}>
-                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectTrigger aria-label="Category"><SelectValue /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="OFFICE_SUPPLIES">Office Supplies</SelectItem>
                   <SelectItem value="TRANSPORT">Transport & Fuel</SelectItem>
@@ -622,15 +622,15 @@ export function PettiDashboard() {
             </div>
             <div>
               <label style={{ display: 'block', fontSize: 12, fontWeight: 600, marginBottom: 4 }}>Amount</label>
-              <Input type="number" min="1" step="any" value={requestAmount} onChange={e => setRequestAmount(e.target.value)} placeholder="Enter claim amount" required />
+              <Input type="number" min="1" step="any" value={requestAmount} onChange={e => setRequestAmount(e.target.value)} placeholder="Enter claim amount" required aria-label="Amount" />
             </div>
             <div>
               <label style={{ display: 'block', fontSize: 12, fontWeight: 600, marginBottom: 4 }}>Purpose & Justification</label>
-              <Input value={requestPurpose} onChange={e => setRequestPurpose(e.target.value)} placeholder="e.g. Fuel receipt for DSM Port inspection run" required />
+              <Input value={requestPurpose} onChange={e => setRequestPurpose(e.target.value)} placeholder="e.g. Fuel receipt for DSM Port inspection run" required aria-label="Purpose & Justification" />
             </div>
             <div>
               <label style={{ display: 'block', fontSize: 12, fontWeight: 600, marginBottom: 4 }}>Payee / Beneficiary (optional)</label>
-              <Input value={requestPayee} onChange={e => setRequestPayee(e.target.value)} placeholder="e.g. Puma Energy Service Station" />
+              <Input value={requestPayee} onChange={e => setRequestPayee(e.target.value)} placeholder="e.g. Puma Energy Service Station" aria-label="Payee / Beneficiary (optional)" />
             </div>
             <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8, marginTop: 4 }}>
               <Button type="button" variant="outline" onClick={() => setRequestModalOpen(false)}>Cancel</Button>

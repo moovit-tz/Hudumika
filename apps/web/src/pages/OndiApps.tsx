@@ -314,7 +314,7 @@ export const OndiApps: React.FC = () => {
                     className="oa-search-input"
                   />
                   {search && (
-                    <button
+                    <button aria-label="Close"
                       type="button"
                       onClick={() => setSearch('')}
                       style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink3)' }}

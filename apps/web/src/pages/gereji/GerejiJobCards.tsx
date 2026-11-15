@@ -139,7 +139,7 @@ export function GerejiJobCards() {
                         <td style={{ padding: '8px 12px' }}>
                           <DropdownMenu>
                             <DropdownMenuTrigger asChild>
-                              <Button variant="ghost" size="icon"><Icon name="moreHorizontal" size={16} /></Button>
+                              <Button aria-label="More actions" variant="ghost" size="icon"><Icon name="moreHorizontal" size={16} /></Button>
                             </DropdownMenuTrigger>
                             <DropdownMenuContent align="end">
                               {nextStatuses.map(s => (
@@ -170,7 +170,7 @@ export function GerejiJobCards() {
               <div>
                 <label style={{ fontSize: 12, fontWeight: 600, color: 'var(--ink3)', display: 'block', marginBottom: 4 }}>Vehicle</label>
                 <Select value={vehicleId} onValueChange={setVehicleId}>
-                  <SelectTrigger><SelectValue placeholder="Select vehicle" /></SelectTrigger>
+                  <SelectTrigger aria-label="Vehicle"><SelectValue placeholder="Select vehicle" /></SelectTrigger>
                   <SelectContent>
                     {vehicles.map(v => <SelectItem key={v.id} value={v.id}>{v.registration} {v.make ? `— ${v.make} ${v.model ?? ''}` : ''}</SelectItem>)}
                   </SelectContent>
@@ -178,16 +178,16 @@ export function GerejiJobCards() {
               </div>
               <div>
                 <label style={{ fontSize: 12, fontWeight: 600, color: 'var(--ink3)', display: 'block', marginBottom: 4 }}>Reported fault</label>
-                <Input value={fault} onChange={e => setFault(e.target.value)} placeholder="e.g. Brakes squeaking" />
+                <Input value={fault} onChange={e => setFault(e.target.value)} placeholder="e.g. Brakes squeaking" aria-label="Reported fault" />
               </div>
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
                 <div>
                   <label style={{ fontSize: 12, fontWeight: 600, color: 'var(--ink3)', display: 'block', marginBottom: 4 }}>Bay</label>
-                  <Input value={bay} onChange={e => setBay(e.target.value)} />
+                  <Input value={bay} onChange={e => setBay(e.target.value)} aria-label="Bay" />
                 </div>
                 <div>
                   <label style={{ fontSize: 12, fontWeight: 600, color: 'var(--ink3)', display: 'block', marginBottom: 4 }}>Est. hours</label>
-                  <Input type="number" value={estHours} onChange={e => setEstHours(e.target.value)} />
+                  <Input type="number" value={estHours} onChange={e => setEstHours(e.target.value)} aria-label="Est. hours" />
                 </div>
               </div>
             </div>

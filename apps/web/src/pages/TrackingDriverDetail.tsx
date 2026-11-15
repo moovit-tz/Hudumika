@@ -584,8 +584,7 @@ export const TrackingDriverDetail: React.FC = () => {
                   <span className="dd-form-label" id="driver-license-expiry-label">License Expiry Date</span>
                   <DatePicker
                     date={parseDateOnly(driverForm.license_expiry)}
-                    onChange={d => setDriverForm({ ...driverForm, license_expiry: toDateOnlyString(d) })}
-                  />
+                    onChange={d => setDriverForm({ ...driverForm, license_expiry: toDateOnlyString(d) })} aria-label="License Expiry Date" />
                 </div>
               </div>
 
@@ -641,8 +640,7 @@ export const TrackingDriverDetail: React.FC = () => {
                   ]}
                   value={selectedVehicleId}
                   onChange={setSelectedVehicleId}
-                  placeholder="Choose vehicle..."
-                />
+                  placeholder="Choose vehicle..." aria-label="Select Truck or Vehicle" />
               </div>
             </DialogBody>
 

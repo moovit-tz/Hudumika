@@ -32,7 +32,7 @@ export function SealDashboard() {
         <Card className="p-5 space-y-4"><h2 className="text-lg font-semibold">Warehouse work</h2>
           <div className="grid grid-cols-2 gap-3">{[
             ['Appointments','/seal/appointments'],['Consignments & Receiving','/seal/consignments'],['Warehouse Tasks','/seal/activities'],['Dispatch Requests','/seal/dispatch-requests'],['Fulfillment Orders','/seal/fulfillment'],['Counts & Adjustments','/seal/adjustments'],
-          ].map(([label,to]) => <Link key={to} className="underline text-sm" to={to}>{label}</Link>)}</div>
+          ].map(([label,to]) => <Link key={to} className="underline text-sm inline-flex items-center min-h-(--target-min)" to={to}>{label}</Link>)}</div>
         </Card>
         <Card className="p-5 space-y-4"><h2 className="text-lg font-semibold">Needs attention</h2>
           {error ? <p>Stock could not be loaded. Refresh to retry.</p> : <>

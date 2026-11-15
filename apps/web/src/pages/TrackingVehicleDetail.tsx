@@ -1181,13 +1181,13 @@ function QuickFuelModal({ vehicleId, onClose, onSuccess }: { vehicleId: string; 
             <label style={{ fontSize: 12, fontWeight: 700, color: 'var(--ink2)', display: 'block', marginBottom: 4 }}>
               Liters Dispensed
             </label>
-            <Input required type="number" step="0.1" min="1" placeholder="e.g. 65" value={liters} onChange={e => setLiters(e.target.value)} />
+            <Input required type="number" step="0.1" min="1" placeholder="e.g. 65" value={liters} onChange={e => setLiters(e.target.value)} aria-label="Liters Dispensed" />
           </div>
           <div>
             <label style={{ fontSize: 12, fontWeight: 700, color: 'var(--ink2)', display: 'block', marginBottom: 4 }}>
               Total Cost (TZS)
             </label>
-            <Input type="number" placeholder="e.g. 195000" value={cost} onChange={e => setCost(e.target.value)} />
+            <Input type="number" placeholder="e.g. 195000" value={cost} onChange={e => setCost(e.target.value)} aria-label="Total Cost (TZS)" />
           </div>
           <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 10, marginTop: 10 }}>
             <Button type="button" variant="outline" onClick={onClose}>Close</Button>
@@ -1239,7 +1239,7 @@ function QuickExpenseModal({ vehicleId, onClose, onSuccess }: { vehicleId: strin
               Expense Category
             </label>
             <Select value={category} onValueChange={setCategory}>
-              <SelectTrigger><SelectValue /></SelectTrigger>
+              <SelectTrigger aria-label="Expense Category"><SelectValue /></SelectTrigger>
               <SelectContent>
                 <SelectItem value="MAINTENANCE">Maintenance &amp; Repairs</SelectItem>
                 <SelectItem value="TIRES">Tires &amp; Brakes</SelectItem>
@@ -1254,13 +1254,13 @@ function QuickExpenseModal({ vehicleId, onClose, onSuccess }: { vehicleId: strin
             <label style={{ fontSize: 12, fontWeight: 700, color: 'var(--ink2)', display: 'block', marginBottom: 4 }}>
               Amount (TZS)
             </label>
-            <Input required type="number" min="1" placeholder="e.g. 150000" value={amount} onChange={e => setAmount(e.target.value)} />
+            <Input required type="number" min="1" placeholder="e.g. 150000" value={amount} onChange={e => setAmount(e.target.value)} aria-label="Amount (TZS)" />
           </div>
           <div>
             <label style={{ fontSize: 12, fontWeight: 700, color: 'var(--ink2)', display: 'block', marginBottom: 4 }}>
               Description / Notes
             </label>
-            <Input placeholder="e.g. Brake pad replacement at workshop" value={desc} onChange={e => setDesc(e.target.value)} />
+            <Input placeholder="e.g. Brake pad replacement at workshop" value={desc} onChange={e => setDesc(e.target.value)} aria-label="Description / Notes" />
           </div>
           <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 10, marginTop: 10 }}>
             <Button type="button" variant="outline" onClick={onClose}>Close</Button>
@@ -1310,14 +1310,14 @@ function QuickIssueModal({ vehicleId, onClose, onSuccess }: { vehicleId: string;
             <label style={{ fontSize: 12, fontWeight: 700, color: 'var(--ink2)', display: 'block', marginBottom: 4 }}>
               Issue Title
             </label>
-            <Input required placeholder="e.g. Low tire pressure warning on rear axle" value={title} onChange={e => setTitle(e.target.value)} />
+            <Input required placeholder="e.g. Low tire pressure warning on rear axle" value={title} onChange={e => setTitle(e.target.value)} aria-label="Issue Title" />
           </div>
           <div>
             <label style={{ fontSize: 12, fontWeight: 700, color: 'var(--ink2)', display: 'block', marginBottom: 4 }}>
               Severity Level
             </label>
             <Select value={severity} onValueChange={setSeverity}>
-              <SelectTrigger><SelectValue /></SelectTrigger>
+              <SelectTrigger aria-label="Severity Level"><SelectValue /></SelectTrigger>
               <SelectContent>
                 <SelectItem value="LOW">Low (Minor cosmetic / non-urgent)</SelectItem>
                 <SelectItem value="MEDIUM">Medium (Requires attention soon)</SelectItem>
@@ -1330,7 +1330,7 @@ function QuickIssueModal({ vehicleId, onClose, onSuccess }: { vehicleId: string;
             <label style={{ fontSize: 12, fontWeight: 700, color: 'var(--ink2)', display: 'block', marginBottom: 4 }}>
               Description
             </label>
-            <Input placeholder="Details on observation, sound, or warning code" value={desc} onChange={e => setDesc(e.target.value)} />
+            <Input placeholder="Details on observation, sound, or warning code" value={desc} onChange={e => setDesc(e.target.value)} aria-label="Description" />
           </div>
           <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 10, marginTop: 10 }}>
             <Button type="button" variant="outline" onClick={onClose}>Close</Button>
@@ -1374,7 +1374,7 @@ function QuickMeterModal({ vehicleId, currentKm, onClose, onSuccess }: { vehicle
             <label style={{ fontSize: 12, fontWeight: 700, color: 'var(--ink2)', display: 'block', marginBottom: 4 }}>
               Current Odometer Reading (km)
             </label>
-            <Input required type="number" min="0" placeholder="e.g. 54500" value={km} onChange={e => setKm(e.target.value)} />
+            <Input required type="number" min="0" placeholder="e.g. 54500" value={km} onChange={e => setKm(e.target.value)} aria-label="Current Odometer Reading (km)" />
           </div>
           <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 10, marginTop: 10 }}>
             <Button type="button" variant="outline" onClick={onClose}>Close</Button>
@@ -1431,7 +1431,7 @@ function QuickDriverAssignModal({
               Select Active Fleet Driver
             </label>
             <Select value={selectedId} onValueChange={setSelectedId}>
-              <SelectTrigger><SelectValue placeholder="Select driver" /></SelectTrigger>
+              <SelectTrigger aria-label="Select Active Fleet Driver"><SelectValue placeholder="Select driver" /></SelectTrigger>
               <SelectContent>
                 <SelectItem value="">-- Unassigned --</SelectItem>
                 {drivers.map(d => (

@@ -312,7 +312,7 @@ export function CMSReleases() {
                 <h3 style={{ fontSize: 16, fontWeight: 700, margin: 0, color: 'var(--text)' }}>{selectedRelease.name}</h3>
                 <span style={{ fontSize: 12, color: 'var(--text-muted)' }}>Status: {selectedRelease.status}</span>
               </div>
-              <button
+              <button aria-label="Close"
                 onClick={() => setSelectedRelease(null)}
                 style={{ background: 'transparent', border: 'none', color: 'var(--text-muted)', cursor: 'pointer' }}
                data-ui-native-button="">
@@ -563,7 +563,7 @@ export function CMSReleases() {
               <div>
                 <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: 'var(--text)', marginBottom: 4 }}>Select Item</label>
                 <Select value={selectedItemId || undefined} onValueChange={setSelectedItemId}>
-                  <SelectTrigger className="w-full"><SelectValue placeholder={`No ${itemType}s available`} /></SelectTrigger>
+                  <SelectTrigger className="w-full" aria-label="Select Item"><SelectValue placeholder={`No ${itemType}s available`} /></SelectTrigger>
                   <SelectContent>
                   {itemType === 'page'
                     ? availablePages.map(p => (

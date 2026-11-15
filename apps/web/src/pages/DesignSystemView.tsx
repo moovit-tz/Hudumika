@@ -305,7 +305,7 @@ export function DesignSystemView() {
             }
           }}
         >
-          <SelectTrigger className="ds-sidebar-scope-trigger">
+          <SelectTrigger className="ds-sidebar-scope-trigger" aria-label="Settings group">
             <SelectValue placeholder="All settings" />
           </SelectTrigger>
           <SelectContent>
@@ -326,7 +326,7 @@ export function DesignSystemView() {
           onChange={(e) => setRailSearch(e.target.value)}
         />
         {railSearch && (
-          <button type="button" className="ds-sidebar-search-clear" onClick={() => setRailSearch('')} data-ui-native-button="">
+          <button aria-label="Clear search" type="button" className="ds-sidebar-search-clear" onClick={() => setRailSearch('')} data-ui-native-button="">
             <Icon name="x" size={11} />
           </button>
         )}
@@ -421,7 +421,7 @@ export function DesignSystemView() {
         <div className="ds-global-control-group">
           <span className="ds-global-control-label">Global theme</span>
           <Select value={activeTheme || 'custom'} onValueChange={(val) => { if (val !== 'custom') applyPlatformTheme(val); }}>
-            <SelectTrigger className="w-full sm:w-[160px] h-[34px] sm:h-[30px] text-xs font-semibold bg-background">
+            <SelectTrigger className="w-full sm:w-[160px] h-[34px] sm:h-[30px] text-xs font-semibold bg-background" aria-label="Global theme">
               <SelectValue placeholder="Custom Palette" />
             </SelectTrigger>
             <SelectContent>
@@ -774,7 +774,7 @@ export function DesignSystemView() {
                     value={tokens.typography.font}
                     onValueChange={v => save('typography', { typography: { ...tokens.typography, font: v as any } })}
                   >
-                    <SelectTrigger className="ds-select-trigger">
+                    <SelectTrigger className="ds-select-trigger" aria-label="Primary font">
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
@@ -1057,7 +1057,7 @@ export function DesignSystemView() {
                       >
                         <Icon name={t.icon} size={13} />
                         <span className="ds-tabs-trigger-label">{t.label}</span>
-                        <span style={{ fontSize: 10, fontWeight: 700, padding: '1px 6px', borderRadius: 20, lineHeight: 1.5, background: tabsBadgeDemo === t.key ? 'var(--teal-l)' : 'var(--bg)', color: tabsBadgeDemo === t.key ? 'var(--teal)' : 'var(--ink3)' }}>{t.count}</span>
+                        <span style={{ fontSize: 10, fontWeight: 700, padding: '1px 6px', borderRadius: 'var(--r-lg)', lineHeight: 1.5, background: tabsBadgeDemo === t.key ? 'var(--teal-l)' : 'var(--bg)', color: tabsBadgeDemo === t.key ? 'var(--teal)' : 'var(--ink3)' }}>{t.count}</span>
                       </TabsTrigger>
                     ))}
                   </TabsList>
@@ -1531,7 +1531,7 @@ export function DesignSystemView() {
                       <p className="ds-variant-desc">{v.desc}</p>
                       <div style={{ marginTop: 12 }}>
                         <Select defaultValue="option-1">
-                          <SelectTrigger style={{ width: '100%' }}><SelectValue placeholder="Choose option..." /></SelectTrigger>
+                          <SelectTrigger style={{ width: '100%' }} aria-label={`${v.title} example`}><SelectValue placeholder="Choose option..." /></SelectTrigger>
                           <SelectContent>
                             <SelectItem value="option-1">Option 1 — Standard Selection</SelectItem>
                             <SelectItem value="option-2">Option 2 — Secondary Item</SelectItem>

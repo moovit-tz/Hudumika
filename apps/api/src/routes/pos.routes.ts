@@ -678,7 +678,7 @@ export async function posRoutes(fastify: FastifyInstance) {
       // change) reuses the existing cross-app domain_events log rather than
       // a new table — see GET /config-history below.
       await emitDomainEventStandalone(user.tenant_id, {
-        type: 'pos.promotion_created', sourceApp: 'finops', entityType: 'pos_promotion', entityId: row.id, actorId: user.sub,
+        type: 'pos.promotion_created', sourceApp: 'pos', entityType: 'pos_promotion', entityId: row.id, actorId: user.sub,
         payload: { name: row.name, product_id: row.product_id, category: row.category, discount_type: row.discount_type, discount_value: Number(row.discount_value), site_id: row.site_id },
       });
       return reply.status(201).send({ ...row, discount_value: Number(row.discount_value), starts_at: iso(row.starts_at), ends_at: iso(row.ends_at), created_at: iso(row.created_at), updated_at: iso(row.updated_at) });
@@ -698,7 +698,7 @@ export async function posRoutes(fastify: FastifyInstance) {
       .where('tenant_id', '=', user.tenant_id).where('id', '=', id).returningAll().executeTakeFirst());
     if (!row) return reply.status(404).send({ error: 'Promotion not found.' });
     await emitDomainEventStandalone(user.tenant_id, {
-      type: 'pos.promotion_updated', sourceApp: 'finops', entityType: 'pos_promotion', entityId: id, actorId: user.sub,
+      type: 'pos.promotion_updated', sourceApp: 'pos', entityType: 'pos_promotion', entityId: id, actorId: user.sub,
       payload: { active: row.active, ends_at: iso(row.ends_at) },
     });
     return { ...row, discount_value: Number(row.discount_value), starts_at: iso(row.starts_at), ends_at: iso(row.ends_at), created_at: iso(row.created_at), updated_at: iso(row.updated_at) };
@@ -712,7 +712,7 @@ export async function posRoutes(fastify: FastifyInstance) {
       .where('tenant_id', '=', user.tenant_id).where('id', '=', id).returningAll().executeTakeFirst());
     if (!row) return reply.status(404).send({ error: 'Promotion not found.' });
     await emitDomainEventStandalone(user.tenant_id, {
-      type: 'pos.promotion_deleted', sourceApp: 'finops', entityType: 'pos_promotion', entityId: id, actorId: user.sub,
+      type: 'pos.promotion_deleted', sourceApp: 'pos', entityType: 'pos_promotion', entityId: id, actorId: user.sub,
       payload: { name: row.name },
     });
     return { success: true };
@@ -754,7 +754,7 @@ export async function posRoutes(fastify: FastifyInstance) {
           .returningAll().executeTakeFirstOrThrow();
       });
       await emitDomainEventStandalone(user.tenant_id, {
-        type: 'pos.site_price_set', sourceApp: 'finops', entityType: 'pos_site_product_price', entityId: row.id, actorId: user.sub,
+        type: 'pos.site_price_set', sourceApp: 'pos', entityType: 'pos_site_product_price', entityId: row.id, actorId: user.sub,
         payload: { site_id: row.site_id, product_id: row.product_id, price: Number(row.price), currency: row.currency },
       });
       return reply.status(201).send({ ...row, price: Number(row.price), created_at: iso(row.created_at), updated_at: iso(row.updated_at) });
@@ -772,7 +772,7 @@ export async function posRoutes(fastify: FastifyInstance) {
       .where('tenant_id', '=', user.tenant_id).where('id', '=', id).returningAll().executeTakeFirst());
     if (!row) return reply.status(404).send({ error: 'Outlet price override not found.' });
     await emitDomainEventStandalone(user.tenant_id, {
-      type: 'pos.site_price_removed', sourceApp: 'finops', entityType: 'pos_site_product_price', entityId: id, actorId: user.sub,
+      type: 'pos.site_price_removed', sourceApp: 'pos', entityType: 'pos_site_product_price', entityId: id, actorId: user.sub,
       payload: { site_id: row.site_id, product_id: row.product_id },
     });
     return { success: true };
@@ -1167,7 +1167,7 @@ export async function posRoutes(fastify: FastifyInstance) {
         await withTenant(user.tenant_id, trx => trx.updateTable('pos_sales').set({ journal_entry_id:journalId, posting_error:null, posting_attempts:1, last_posting_attempt_at:new Date() })
           .where('tenant_id', '=', user.tenant_id).where('id', '=', sale.id).execute());
         await emitDomainEventStandalone(user.tenant_id, {
-          type:'pos.sale_completed', sourceApp:'finops', entityType:'pos_sale', entityId:sale.id, actorId:user.sub,
+          type:'pos.sale_completed', sourceApp: 'pos', entityType:'pos_sale', entityId:sale.id, actorId:user.sub,
           payload:{ saleNumber:sale.sale_number, customerId:body.customer_id ?? null, total:sale.grand_total,
             currency:sale.currency, paymentMethods:[...new Set(body.payments.map(payment => payment.method))] },
         });
@@ -1203,7 +1203,7 @@ export async function posRoutes(fastify: FastifyInstance) {
           posting_attempts:sql`posting_attempts + 1`, last_posting_attempt_at:new Date() }).where('tenant_id', '=', user.tenant_id).where('id', '=', id).returningAll().executeTakeFirstOrThrow();
       });
       await emitDomainEventStandalone(user.tenant_id, {
-        type:'pos.sale_completed', sourceApp:'finops', entityType:'pos_sale', entityId:id, actorId:user.sub,
+        type:'pos.sale_completed', sourceApp: 'pos', entityType:'pos_sale', entityId:id, actorId:user.sub,
         payload:{ saleNumber:updated.sale_number, customerId:updated.customer_id, total:Number(updated.grand_total),
           currency:updated.currency, recoveredPosting:true },
       });
@@ -1283,14 +1283,14 @@ export async function posRoutes(fastify: FastifyInstance) {
       });
       if (result.itemLevel) {
         await emitDomainEventStandalone(user.tenant_id, {
-          type: 'pos.sale_line_returned', sourceApp:'finops', entityType:'pos_sale', entityId:id, actorId:user.sub,
+          type: 'pos.sale_line_returned', sourceApp: 'pos', entityType:'pos_sale', entityId:id, actorId:user.sub,
           payload:{ saleNumber:result.sale.sale_number, customerId:result.sale.customer_id,
             total:Number(result.refundTotal), currency:result.sale.currency, reason:body.reason,
             inventoryReturned:result.restockedAny },
         });
       } else {
         await emitDomainEventStandalone(user.tenant_id, {
-          type: 'pos.sale_refunded', sourceApp:'finops', entityType:'pos_sale', entityId:id, actorId:user.sub,
+          type: 'pos.sale_refunded', sourceApp: 'pos', entityType:'pos_sale', entityId:id, actorId:user.sub,
           payload:{ saleNumber:result.sale.sale_number, customerId:result.sale.customer_id,
             total:Number(result.sale.grand_total), currency:result.sale.currency, reason:body.reason,
             inventoryReturned:!!result.restockLocationId },
@@ -1364,7 +1364,7 @@ export async function posRoutes(fastify: FastifyInstance) {
         return { sale, reversalId, restockLocationId };
       });
       await emitDomainEventStandalone(user.tenant_id, {
-        type:'pos.sale_voided', sourceApp:'finops', entityType:'pos_sale', entityId:id, actorId:user.sub,
+        type:'pos.sale_voided', sourceApp: 'pos', entityType:'pos_sale', entityId:id, actorId:user.sub,
         payload:{ saleNumber:result.sale.sale_number, customerId:result.sale.customer_id,
           total:Number(result.sale.grand_total), currency:result.sale.currency, reason:body.reason,
           inventoryReturned:!!result.restockLocationId },

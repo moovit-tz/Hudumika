@@ -73,8 +73,7 @@ export function OnsiteWebsiteDetailShell() {
               options={websites.map(w => ({ value: w.id, label: w.name }))}
               value={siteId ?? ''}
               onChange={(v) => navigate(`/onsite/websites/${v}`)}
-              placeholder="Select website"
-            />
+              placeholder="Select website" aria-label="Website name" />
           </div>
 
           {/* Search menu */}

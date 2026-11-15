@@ -212,7 +212,7 @@ export function SealFulfillmentDetail() {
               </div>
               <div className="seal-field-row" style={{ width: 260, flex: 1 }}>
                 <label className="seal-field-label">Carrier / Driver Note</label>
-                <Input type="text" value={dispatchNote} onChange={e => setDispatchNote(e.target.value)} placeholder="e.g. Driver John, Plate T123ABC" />
+                <Input type="text" value={dispatchNote} onChange={e => setDispatchNote(e.target.value)} placeholder="e.g. Driver John, Plate T123ABC" aria-label="Carrier / Driver Note" />
               </div>
               <Button type="button" disabled={acting} onClick={handleDispatch}>
                 <Icon name="send" size={14} /><span>{acting ? 'Dispatching…' : 'Confirm Dispatch'}</span>

@@ -134,7 +134,7 @@ export const SuperAdminIssues: React.FC = () => {
       <style>{`
         .sai-page { padding: 24px 32px; }
         .sai-card { min-width: 0; background: var(--card-bg, var(--white)); border: 1px solid var(--border);
-                    border-radius: 16px; box-shadow: 0 4px 20px rgba(0,0,0,.04); overflow: hidden; --ctl-h: 44px; }
+                    border-radius: var(--r-lg); box-shadow: 0 4px 20px rgba(0,0,0,.04); overflow: hidden; --ctl-h: 44px; }
         .sai-card .input-field, .sai-card [data-slot="select-trigger"] {
           height: var(--ctl-h); border-radius: var(--r-sm); padding-top: 0; padding-bottom: 0; }
         .sai-card textarea.input-field { height: auto; padding: 11px 13px; }

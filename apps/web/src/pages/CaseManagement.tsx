@@ -169,7 +169,7 @@ function NewCaseModal({ staff, onClose, onCreated }: { staff: Staff[]; onClose: 
           <div>
             <label style={{ fontSize: 12, fontWeight: 600, color: 'var(--ink2)', display: 'block', marginBottom: 4 }}>Case type</label>
             <Select value={caseType} onValueChange={setCaseType}>
-              <SelectTrigger><SelectValue /></SelectTrigger>
+              <SelectTrigger aria-label="Case type"><SelectValue /></SelectTrigger>
               <SelectContent>
                 {Object.entries(CASE_TYPE_LABEL).map(([k, l]) => <SelectItem key={k} value={k}>{l}</SelectItem>)}
               </SelectContent>
@@ -177,16 +177,16 @@ function NewCaseModal({ staff, onClose, onCreated }: { staff: Staff[]; onClose: 
           </div>
           <div>
             <label style={{ fontSize: 12, fontWeight: 600, color: 'var(--ink2)', display: 'block', marginBottom: 4 }}>Title</label>
-            <Input value={title} onChange={e => setTitle(e.target.value)} placeholder="Repeated late arrival" required />
+            <Input value={title} onChange={e => setTitle(e.target.value)} placeholder="Repeated late arrival" required aria-label="Title" />
           </div>
           <div>
             <label style={{ fontSize: 12, fontWeight: 600, color: 'var(--ink2)', display: 'block', marginBottom: 4 }}>Description</label>
-            <Textarea value={description} onChange={e => setDescription(e.target.value)} rows={3} />
+            <Textarea value={description} onChange={e => setDescription(e.target.value)} rows={3} aria-label="Description" />
           </div>
           <div>
             <label style={{ fontSize: 12, fontWeight: 600, color: 'var(--ink2)', display: 'block', marginBottom: 4 }}>Severity</label>
             <Select value={severity} onValueChange={setSeverity}>
-              <SelectTrigger style={{ width: 160 }}><SelectValue /></SelectTrigger>
+              <SelectTrigger style={{ width: 160 }} aria-label="Severity"><SelectValue /></SelectTrigger>
               <SelectContent>
                 <SelectItem value="low">Low</SelectItem>
                 <SelectItem value="medium">Medium</SelectItem>
@@ -281,7 +281,7 @@ function CaseDetailModal({ caseId, onClose, onChanged }: { caseId: string; onClo
             {(item.status === 'resolved' || item.status === 'closed') && (
               <div style={{ marginBottom: 16 }}>
                 <label style={{ fontSize: 12, fontWeight: 600, color: 'var(--ink2)', display: 'block', marginBottom: 4 }}>Resolution</label>
-                <Textarea value={resolution} onChange={e => setResolution(e.target.value)} rows={2} placeholder="What happened, what was decided" />
+                <Textarea value={resolution} onChange={e => setResolution(e.target.value)} rows={2} placeholder="What happened, what was decided" aria-label="Resolution" />
               </div>
             )}
 

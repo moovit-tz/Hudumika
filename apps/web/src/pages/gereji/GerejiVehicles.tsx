@@ -130,7 +130,7 @@ export function GerejiVehicles() {
                       <td style={{ padding: '12px 18px', color: 'var(--ink3)' }}>{formatDate(r.created_at)}</td>
                       <td style={{ padding: '12px 18px', textAlign: 'right' }}>
                         <DropdownMenu>
-                          <DropdownMenuTrigger asChild><Button variant="ghost" size="icon"><Icon name="moreHorizontal" size={16} /></Button></DropdownMenuTrigger>
+                          <DropdownMenuTrigger asChild><Button aria-label="More actions" variant="ghost" size="icon"><Icon name="moreHorizontal" size={16} /></Button></DropdownMenuTrigger>
                           <DropdownMenuContent align="end">
                             <DropdownMenuItem onClick={() => openEdit(r)}>Edit</DropdownMenuItem>
                           </DropdownMenuContent>
@@ -152,7 +152,7 @@ export function GerejiVehicles() {
             <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
               <div>
                 <label style={{ fontSize: 12, fontWeight: 600, color: 'var(--ink3)', display: 'block', marginBottom: 4 }}>Registration</label>
-                <Input value={draft.registration} onChange={e => setDraft(d => ({ ...d, registration: e.target.value }))} placeholder="e.g. T123ABC" />
+                <Input value={draft.registration} onChange={e => setDraft(d => ({ ...d, registration: e.target.value }))} placeholder="e.g. T123ABC" aria-label="Registration" />
               </div>
               <EntityPicker
                 label="Customer" value={draft.customer} onChange={item => setDraft(d => ({ ...d, customer: item }))}
@@ -161,32 +161,32 @@ export function GerejiVehicles() {
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
                 <div>
                   <label style={{ fontSize: 12, fontWeight: 600, color: 'var(--ink3)', display: 'block', marginBottom: 4 }}>Make</label>
-                  <Input value={draft.make} onChange={e => setDraft(d => ({ ...d, make: e.target.value }))} />
+                  <Input value={draft.make} onChange={e => setDraft(d => ({ ...d, make: e.target.value }))} aria-label="Make" />
                 </div>
                 <div>
                   <label style={{ fontSize: 12, fontWeight: 600, color: 'var(--ink3)', display: 'block', marginBottom: 4 }}>Model</label>
-                  <Input value={draft.model} onChange={e => setDraft(d => ({ ...d, model: e.target.value }))} />
+                  <Input value={draft.model} onChange={e => setDraft(d => ({ ...d, model: e.target.value }))} aria-label="Model" />
                 </div>
                 <div>
                   <label style={{ fontSize: 12, fontWeight: 600, color: 'var(--ink3)', display: 'block', marginBottom: 4 }}>Year</label>
-                  <Input type="number" value={draft.year} onChange={e => setDraft(d => ({ ...d, year: e.target.value }))} />
+                  <Input type="number" value={draft.year} onChange={e => setDraft(d => ({ ...d, year: e.target.value }))} aria-label="Year" />
                 </div>
                 <div>
                   <label style={{ fontSize: 12, fontWeight: 600, color: 'var(--ink3)', display: 'block', marginBottom: 4 }}>Mileage (km)</label>
-                  <Input type="number" value={draft.mileage} onChange={e => setDraft(d => ({ ...d, mileage: e.target.value }))} />
+                  <Input type="number" value={draft.mileage} onChange={e => setDraft(d => ({ ...d, mileage: e.target.value }))} aria-label="Mileage (km)" />
                 </div>
                 <div>
                   <label style={{ fontSize: 12, fontWeight: 600, color: 'var(--ink3)', display: 'block', marginBottom: 4 }}>VIN</label>
-                  <Input value={draft.vin} onChange={e => setDraft(d => ({ ...d, vin: e.target.value }))} />
+                  <Input value={draft.vin} onChange={e => setDraft(d => ({ ...d, vin: e.target.value }))} aria-label="VIN" />
                 </div>
                 <div>
                   <label style={{ fontSize: 12, fontWeight: 600, color: 'var(--ink3)', display: 'block', marginBottom: 4 }}>Color</label>
-                  <Input value={draft.color} onChange={e => setDraft(d => ({ ...d, color: e.target.value }))} />
+                  <Input value={draft.color} onChange={e => setDraft(d => ({ ...d, color: e.target.value }))} aria-label="Color" />
                 </div>
               </div>
               <div>
                 <label style={{ fontSize: 12, fontWeight: 600, color: 'var(--ink3)', display: 'block', marginBottom: 4 }}>Notes</label>
-                <Textarea value={draft.notes} onChange={e => setDraft(d => ({ ...d, notes: e.target.value }))} rows={2} />
+                <Textarea value={draft.notes} onChange={e => setDraft(d => ({ ...d, notes: e.target.value }))} rows={2} aria-label="Notes" />
               </div>
             </div>
           </DialogBody>

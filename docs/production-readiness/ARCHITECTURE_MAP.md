@@ -93,7 +93,7 @@ Engagement: Bliss, CRM, Contacts, SMS, Email.
 Compliance/identity: ComplyOS, Ondi.
 Collaboration: Drive, Sign, Notes, Calendar, Tasks, Projects (Project OS).
 Analytics/platform: HuduBI, Studio, Admin/SuperAdmin, Developer, OneSite/CMS, Store, Inventory,
-Onsite, Workspace, Hudumika AI.
+Onsite, Workspace, Hudu.
 
 ## External integrations (verify in Phase 12)
 

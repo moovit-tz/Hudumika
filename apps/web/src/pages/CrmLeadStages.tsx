@@ -200,8 +200,7 @@ export function CrmLeadStages() {
                 value={draft.label}
                 onChange={e => setDraft(d => ({ ...d, label: e.target.value }))}
                 placeholder="e.g. Qualified"
-                maxLength={100}
-              />
+                maxLength={100} aria-label="Label" />
             </div>
             <div>
               <label className="mb-1.5 block text-xs font-semibold text-foreground">Colour</label>

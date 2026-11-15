@@ -555,7 +555,7 @@ export function CompaniesView() {
         >
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%' }}>
             <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--ink3)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>Total Companies</span>
-            <div style={{ width: 34, height: 34, borderRadius: 'var(--r-sm)', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(124, 58, 237, 0.1)', color: '#7c3aed', flexShrink: 0 }}>
+            <div style={{ width: 34, height: 34, borderRadius: 'var(--r-sm)', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(124, 58, 237, 0.1)', color: 'var(--purple)', flexShrink: 0 }}>
               <Icon name="building" size={17} />
             </div>
           </div>
@@ -1136,8 +1136,7 @@ export function CompaniesView() {
               <Input
                 value={form.owner}
                 onChange={e => setForm(p => ({ ...p, owner: e.target.value }))}
-                placeholder="Amina Hassan"
-              />
+                placeholder="Amina Hassan" aria-label="Owner Name" />
             </div>
 
             <div className="space-y-1">
@@ -1156,8 +1155,7 @@ export function CompaniesView() {
                 <Input
                   value={form.phone}
                   onChange={e => setForm(p => ({ ...p, phone: e.target.value }))}
-                  placeholder="+255 712 000 000"
-                />
+                  placeholder="+255 712 000 000" aria-label="Phone" />
               </div>
 
               <div className="space-y-1">
@@ -1165,8 +1163,7 @@ export function CompaniesView() {
                 <Input
                   value={form.country}
                   onChange={e => setForm(p => ({ ...p, country: e.target.value }))}
-                  placeholder="Tanzania"
-                />
+                  placeholder="Tanzania" aria-label="Country" />
               </div>
             </div>
 
@@ -1224,8 +1221,7 @@ export function CompaniesView() {
                 <label className="text-xs font-bold text-foreground/85 block">Company Name</label>
                 <Input
                   value={editForm.name}
-                  onChange={e => setEditForm(p => ({ ...p, name: e.target.value }))}
-                />
+                  onChange={e => setEditForm(p => ({ ...p, name: e.target.value }))} aria-label="Company Name" />
               </div>
 
               <div className="space-y-1">

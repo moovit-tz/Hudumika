@@ -562,7 +562,7 @@ export const ProjectProcurement: React.FC<ProjectProcurementProps> = ({
                   <label className="text-xs font-semibold text-foreground block mb-1">
                     Required On-Site Date
                   </label>
-                  <DatePicker date={parseDateOnly(prRequiredDate)} onChange={date => setPrRequiredDate(toDateOnlyString(date))} />
+                  <DatePicker date={parseDateOnly(prRequiredDate)} onChange={date => setPrRequiredDate(toDateOnlyString(date))} aria-label="Required On-Site Date" />
                 </div>
               </div>
 
@@ -575,8 +575,7 @@ export const ProjectProcurement: React.FC<ProjectProcurementProps> = ({
                   value={prJustification}
                   onChange={(e) => setPrJustification(e.target.value)}
                   placeholder="Operational justification for site execution..."
-                  className="w-full text-xs px-3 py-2 rounded-lg border border-border bg-slate-50 dark:bg-slate-900"
-                />
+                  className="w-full text-xs px-3 py-2 rounded-lg border border-border bg-slate-50 dark:bg-slate-900" aria-label="Technical Justification" />
               </div>
 
               <div className="flex justify-end gap-2 pt-2 border-t border-border">
@@ -612,7 +611,7 @@ export const ProjectProcurement: React.FC<ProjectProcurementProps> = ({
               </div>
               <div>
                 <label className="block text-sm font-medium mb-1">Delivery due date</label>
-                <DatePicker date={parseDateOnly(poDeliveryDate)} onChange={date => setPoDeliveryDate(toDateOnlyString(date))} />
+                <DatePicker date={parseDateOnly(poDeliveryDate)} onChange={date => setPoDeliveryDate(toDateOnlyString(date))} aria-label="Delivery due date" />
               </div>
               <div>
                 <label htmlFor="po-terms" className="block text-sm font-medium mb-1">Payment terms</label>

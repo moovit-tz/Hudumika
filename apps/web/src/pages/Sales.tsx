@@ -268,8 +268,7 @@ function SendEmailModal({
               onChange={e => setMessage(e.target.value)}
               rows={5}
               placeholder="Add personal notes or scope clarifications…"
-              className="text-xs leading-relaxed"
-            />
+              className="text-xs leading-relaxed" aria-label="Email Message / Cover Note" />
           </div>
 
           {err && <div className="text-xs text-destructive p-2 rounded bg-destructive/10">{err}</div>}
@@ -740,11 +739,11 @@ function QuoteModal({
             </div>
             <div>
               <label className="font-semibold text-foreground block mb-1">Valid From</label>
-              <DatePicker date={parseDateOnly(form.valid_from)} onChange={d => setField('valid_from', toDateOnlyString(d))} />
+              <DatePicker date={parseDateOnly(form.valid_from)} onChange={d => setField('valid_from', toDateOnlyString(d))} aria-label="Valid From" />
             </div>
             <div>
               <label className="font-semibold text-foreground block mb-1">Valid Until</label>
-              <DatePicker date={parseDateOnly(form.valid_until)} onChange={d => setField('valid_until', toDateOnlyString(d))} />
+              <DatePicker date={parseDateOnly(form.valid_until)} onChange={d => setField('valid_until', toDateOnlyString(d))} aria-label="Valid Until" />
             </div>
           </div>
 
@@ -752,19 +751,19 @@ function QuoteModal({
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
             <div>
               <label className="font-semibold text-foreground block mb-1">Origin Port</label>
-              <Input value={form.origin_port} onChange={e => setField('origin_port', e.target.value)} placeholder="e.g. Mombasa" className="h-9 text-xs" />
+              <Input value={form.origin_port} onChange={e => setField('origin_port', e.target.value)} placeholder="e.g. Mombasa" className="h-9 text-xs" aria-label="Origin Port" />
             </div>
             <div>
               <label className="font-semibold text-foreground block mb-1">Origin City</label>
-              <Input value={form.origin_city} onChange={e => setField('origin_city', e.target.value)} placeholder="e.g. Mombasa" className="h-9 text-xs" />
+              <Input value={form.origin_city} onChange={e => setField('origin_city', e.target.value)} placeholder="e.g. Mombasa" className="h-9 text-xs" aria-label="Origin City" />
             </div>
             <div>
               <label className="font-semibold text-foreground block mb-1">Dest. Port</label>
-              <Input value={form.destination_port} onChange={e => setField('destination_port', e.target.value)} placeholder="e.g. Dar es Salaam" className="h-9 text-xs" />
+              <Input value={form.destination_port} onChange={e => setField('destination_port', e.target.value)} placeholder="e.g. Dar es Salaam" className="h-9 text-xs" aria-label="Dest. Port" />
             </div>
             <div>
               <label className="font-semibold text-foreground block mb-1">Dest. City</label>
-              <Input value={form.destination_city} onChange={e => setField('destination_city', e.target.value)} placeholder="e.g. Dar es Salaam" className="h-9 text-xs" />
+              <Input value={form.destination_city} onChange={e => setField('destination_city', e.target.value)} placeholder="e.g. Dar es Salaam" className="h-9 text-xs" aria-label="Dest. City" />
             </div>
           </div>
 
@@ -887,8 +886,7 @@ function QuoteModal({
                 onChange={e => setField('goods_description', e.target.value)}
                 rows={2}
                 placeholder="Cargo specs, weights, packaging details…"
-                className="text-xs resize-none"
-              />
+                className="text-xs resize-none" aria-label="Goods & Cargo Description" />
             </div>
             <div>
               <label className="font-semibold text-foreground block mb-1">Internal Notes & Scope</label>
@@ -897,8 +895,7 @@ function QuoteModal({
                 onChange={e => setField('notes', e.target.value)}
                 rows={2}
                 placeholder="Instructions, payment terms, follow-up timeline…"
-                className="text-xs resize-none"
-              />
+                className="text-xs resize-none" aria-label="Internal Notes & Scope" />
             </div>
           </div>
 
@@ -1263,7 +1260,7 @@ export const Sales: React.FC = () => {
               className="sales-search-input"
             />
             {search && (
-              <button
+              <button aria-label="Clear search"
                 type="button"
                 onClick={() => setSearch('')}
                 className="absolute right-2.5 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
@@ -1440,7 +1437,7 @@ export const Sales: React.FC = () => {
 
                     <DropdownMenu>
                       <DropdownMenuTrigger asChild>
-                        <Button variant="ghost" size="icon" iconOnly className="h-6 w-6 text-muted-foreground hover:text-foreground">
+                        <Button aria-label={`More actions ${q.title ?? ''}`.trim()} variant="ghost" size="icon" iconOnly className="h-6 w-6 text-muted-foreground hover:text-foreground">
                           <Icon name="moreHorizontal" size={12} />
                         </Button>
                       </DropdownMenuTrigger>
@@ -1566,7 +1563,7 @@ export const Sales: React.FC = () => {
 
                           <DropdownMenu>
                             <DropdownMenuTrigger asChild>
-                              <Button variant="ghost" size="icon" iconOnly className="h-7 w-7">
+                              <Button aria-label={`More actions ${q.title ?? ''}`.trim()} variant="ghost" size="icon" iconOnly className="h-7 w-7">
                                 <Icon name="moreHorizontal" size={13} />
                               </Button>
                             </DropdownMenuTrigger>

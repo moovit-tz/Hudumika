@@ -211,7 +211,7 @@ export function ComplyCompanyDirectory() {
                             <Icon name="checkCircle" size={13} />
                           </Button>
                         )}
-                        <Button aria-label="Delete" variant="ghost" size="icon" type="button"  onClick={() => handleDelete(c)} title="Delete" style={{marginLeft: 6}} >
+                        <Button aria-label={`Delete ${c.name ?? ''}`.trim()} variant="ghost" size="icon" type="button"  onClick={() => handleDelete(c)} title="Delete" style={{marginLeft: 6}} >
                           <Icon name="trash" size={13} />
                         </Button>
                       </TableCell>

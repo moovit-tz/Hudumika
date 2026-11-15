@@ -1,3 +1,4 @@
+import { emitDomainEventStandalone } from '../services/domain-events.service.js';
 import { requireEntitlement } from '../middleware/entitlement.js';
 import type { FastifyInstance } from 'fastify';
 import { z } from 'zod';
@@ -538,6 +539,10 @@ export async function pettiRoutes(fastify: FastifyInstance) {
     try {
       const approved = await PettiService.approveWithdrawal(user.tenant_id, { id: user.sub, role: user.role }, id);
       void resolvePettiPending(user.tenant_id, approved.id, 'Petty cash request awaiting approval');
+      void emitDomainEventStandalone(user.tenant_id, {
+        type: 'petti.withdrawal_approved', sourceApp: 'petti', entityType: 'petti_withdrawal', entityId: approved.id, actorId: user.sub,
+        payload: { amount: Number(approved.amount), status: 'approved' },
+      }).catch(err => console.error('[Petti] approved emit failed:', err?.message));
       void notifyPettiRequester(user.tenant_id, approved, user.sub, 'approved');
       // The next person in the chain: Finance releases what was approved.
       void NotificationService.notifyRoles(user.tenant_id, ['FINANCE'], {
@@ -574,6 +579,10 @@ export async function pettiRoutes(fastify: FastifyInstance) {
       // on others; either way the request id is the one in the URL.
       const disbursedReq = disbursed?.requested_by ? disbursed : (disbursed?.request?.requested_by ? disbursed.request : null);
       void resolvePettiPending(user.tenant_id, id, 'Petty cash approved — ready to release');
+      void emitDomainEventStandalone(user.tenant_id, {
+        type: 'petti.withdrawal_disbursed', sourceApp: 'petti', entityType: 'petti_withdrawal', entityId: id, actorId: user.sub,
+        payload: { amount: Number(disbursedReq?.amount ?? 0), status: 'disbursed' },
+      }).catch(err => console.error('[Petti] disbursed emit failed:', err?.message));
       if (disbursedReq) void notifyPettiRequester(user.tenant_id, disbursedReq, user.sub, 'disbursed');
       return disbursed;
     } catch (e: any) {

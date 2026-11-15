@@ -37,7 +37,7 @@ function DesigForm({ depts, initial, onCancel, onSubmit }: {
         <div>
           <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: 'var(--ink2)', marginBottom: 4 }}>Department</label>
           <Select name="department_id" defaultValue={initial?.department_id || '__none__'}>
-            <SelectTrigger style={{ width: 180 }}><SelectValue /></SelectTrigger>
+            <SelectTrigger style={{ width: 180 }} aria-label="Department"><SelectValue /></SelectTrigger>
             <SelectContent>
               <SelectItem value="__none__">-- None --</SelectItem>
               {depts.map(d => <SelectItem key={d.id} value={d.id}>{d.name}</SelectItem>)}
@@ -558,7 +558,7 @@ export function PayrollPage() {
                       <td style={{ padding: '12px 16px', textAlign: 'right' }}>
                         <DropdownMenu>
                           <DropdownMenuTrigger asChild>
-                            <button type="button" style={{ background: 'none', border: 'none', cursor: 'pointer', padding: "var(--action-py) var(--space-md)" }} data-ui-native-button="">
+                            <button aria-label={`More actions ${p.name ?? ''}`.trim()} type="button" style={{ background: 'none', border: 'none', cursor: 'pointer', padding: "var(--action-py) var(--space-md)" }} data-ui-native-button="">
                               <Icon name="moreHorizontal" size={18} color="var(--ink3)" />
                             </button>
                           </DropdownMenuTrigger>
@@ -752,7 +752,7 @@ function PayComponentsModal({ onClose }: { onClose: () => void }) {
           <div>
             <label style={ltLabel}>Employee</label>
             <Select value={userId} onValueChange={setUserId}>
-              <SelectTrigger style={{ width:'100%' }}><SelectValue placeholder="Select an employee" /></SelectTrigger>
+              <SelectTrigger style={{ width:'100%' }} aria-label="Employee"><SelectValue placeholder="Select an employee" /></SelectTrigger>
               <SelectContent>
                 {staff.map(s => <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>)}
               </SelectContent>
@@ -920,7 +920,7 @@ export function AnnouncementsPage() {
               <div>
                 <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: 'var(--ink2)', marginBottom: 4 }}>Category</label>
                 <Select name="category" defaultValue="HR">
-                  <SelectTrigger style={{ width: 140 }}><SelectValue /></SelectTrigger>
+                  <SelectTrigger style={{ width: 140 }} aria-label="Category"><SelectValue /></SelectTrigger>
                   <SelectContent>
                     <SelectItem value="HR">HR</SelectItem>
                     <SelectItem value="Policy">Policy</SelectItem>
@@ -932,7 +932,7 @@ export function AnnouncementsPage() {
               <div>
                 <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: 'var(--ink2)', marginBottom: 4 }}>Audience</label>
                 <Select name="audience" defaultValue="All Staff">
-                  <SelectTrigger style={{ width: 140 }}><SelectValue /></SelectTrigger>
+                  <SelectTrigger style={{ width: 140 }} aria-label="Audience"><SelectValue /></SelectTrigger>
                   <SelectContent>
                     <SelectItem value="All Staff">All Staff</SelectItem>
                     <SelectItem value="Management">Management</SelectItem>

@@ -484,7 +484,7 @@ export function AIAutomations() {
                 onChange={(e) => updateNode(selectedNode.type === 'triggerNode' ? { title: e.target.value } : { label: e.target.value })}
                 style={{ fontSize: 'var(--text-base)', fontWeight: 600, color: 'var(--ink)', border: 'none', background: 'transparent', outline: 'none', width: '100%' }}
               />
-              <button onClick={() => setSelectedNodeId(null)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink3)' }} data-ui-native-button="">
+              <button aria-label="Close" onClick={() => setSelectedNodeId(null)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink3)' }} data-ui-native-button="">
                 <Icon name="x" size={18} />
               </button>
             </div>

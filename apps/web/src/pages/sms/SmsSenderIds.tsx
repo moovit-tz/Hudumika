@@ -263,8 +263,7 @@ export function SmsSenderIds() {
               <Input
                 value={labelInput}
                 onChange={e => setLabelInput(e.target.value)}
-                placeholder="e.g. Primary OTP Header"
-              />
+                placeholder="e.g. Primary OTP Header" aria-label="Internal Description" />
             </div>
 
             <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 16 }}>
@@ -391,7 +390,7 @@ export function SmsSenderIds() {
                             {new Date(item.created_at).toLocaleDateString()}
                           </td>
                           <td style={{ padding: '12px 16px', textAlign: 'right' }}>
-                            <Button
+                            <Button aria-label={`Delete ${item.label ?? ''}`.trim()}
                               size="sm"
                               variant="ghost"
                               onClick={() => handleDelete(gateway.id, item)}

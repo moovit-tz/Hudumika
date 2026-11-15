@@ -183,14 +183,14 @@ export const CustomerDocuments: React.FC = () => {
                   </Tip>
                 )}
                 <Tip label="Download">
-                  <button type="button" aria-label="Download"
+                  <button type="button" aria-label={`Download ${f.name ?? ''}`.trim()}
                     onClick={() => apiDownload(`/v1/files/${f.id}/download`, f.name).catch((err: any) => showAlert(err.message || 'Download failed'))}
                     style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: "var(--ctl-h)", height: "var(--ctl-h)", background: 'var(--bg)', border: 'none', borderRadius: 'var(--r-sm)', color: 'var(--teal)', cursor: 'pointer', flexShrink: 0 }} data-ui-native-button="">
                     <Icon name="download" size={15} />
                   </button>
                 </Tip>
                 <Tip label="Remove">
-                  <button type="button" aria-label="Remove" onClick={() => handleDelete(f)}
+                  <button type="button" aria-label={`Remove ${f.name ?? ''}`.trim()} onClick={() => handleDelete(f)}
                     style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: "var(--ctl-h)", height: "var(--ctl-h)", background: 'var(--bg)', border: 'none', borderRadius: 'var(--r-sm)', color: 'var(--ink3)', cursor: 'pointer', flexShrink: 0 }} data-ui-native-button="">
                     <Icon name="x" size={15} />
                   </button>
@@ -207,7 +207,7 @@ export const CustomerDocuments: React.FC = () => {
             <>
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6 }}>
                 <DialogTitle style={{ fontSize: 16, fontWeight: 700, color: 'var(--ink)' }}>Share</DialogTitle>
-                <button type="button" onClick={() => setShareFile(null)} style={{ background: 'none', border: 'none', cursor: 'pointer' }} data-ui-native-button="">
+                <button aria-label="Close" type="button" onClick={() => setShareFile(null)} style={{ background: 'none', border: 'none', cursor: 'pointer' }} data-ui-native-button="">
                   <Icon name="x" size={18} color="var(--ink3)" />
                 </button>
               </div>

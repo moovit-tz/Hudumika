@@ -177,7 +177,7 @@ function MeetWithPanel() {
                   <span style={{ width: 8, height: 8, borderRadius: '50%', background: MEET_WITH_COLORS[i % MEET_WITH_COLORS.length], flexShrink: 0 }} />
                   <PersonAvatar userId={p.userId} name={p.name} size={18} />
                   <span style={{ flex: 1, color: 'var(--ink2)', fontWeight: 500, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{p.name}</span>
-                  <button type="button" onClick={() => removeMeetWithPerson(p.userId)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink3)', display: 'flex', padding: 2 }}>
+                  <button aria-label={`Remove ${p.name ?? ''}`.trim()} type="button" onClick={() => removeMeetWithPerson(p.userId)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink3)', display: 'flex', padding: 2 }}>
                     <Icon name="x" size={12} />
                   </button>
                 </div>

@@ -97,17 +97,17 @@ export function GerejiAngaLocations() {
           <DialogHeader><DialogTitle>New location</DialogTitle></DialogHeader>
           <DialogBody>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-              <div><label style={LABEL}>Warehouse</label><Input value={warehouse} onChange={e => setWarehouse(e.target.value)} /></div>
+              <div><label style={LABEL}>Warehouse</label><Input value={warehouse} onChange={e => setWarehouse(e.target.value)} aria-label="Warehouse" /></div>
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
-                <div><label style={LABEL}>Zone</label><Input value={zone} onChange={e => setZone(e.target.value)} /></div>
-                <div><label style={LABEL}>Rack</label><Input value={rack} onChange={e => setRack(e.target.value)} /></div>
-                <div><label style={LABEL}>Shelf</label><Input value={shelf} onChange={e => setShelf(e.target.value)} /></div>
-                <div><label style={LABEL}>Bin</label><Input value={bin} onChange={e => setBin(e.target.value)} /></div>
+                <div><label style={LABEL}>Zone</label><Input value={zone} onChange={e => setZone(e.target.value)} aria-label="Zone" /></div>
+                <div><label style={LABEL}>Rack</label><Input value={rack} onChange={e => setRack(e.target.value)} aria-label="Rack" /></div>
+                <div><label style={LABEL}>Shelf</label><Input value={shelf} onChange={e => setShelf(e.target.value)} aria-label="Shelf" /></div>
+                <div><label style={LABEL}>Bin</label><Input value={bin} onChange={e => setBin(e.target.value)} aria-label="Bin" /></div>
               </div>
               <div>
                 <label style={LABEL}>Customs zone</label>
                 <Select value={customsZone} onValueChange={setCustomsZone}>
-                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectTrigger aria-label="Customs zone"><SelectValue /></SelectTrigger>
                   <SelectContent>
                     <SelectItem value="DUTY_PAID">Duty paid</SelectItem>
                     <SelectItem value="BONDED">Bonded</SelectItem>

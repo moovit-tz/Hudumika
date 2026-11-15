@@ -95,7 +95,9 @@ function hueBucket(h) {
 const PALETTE_DECL_RE = /const\s+\w*(COLORS?|PALETTE|SERIES|HUES|GATEWAYS|CATALOG|META|MARKETPLACE|BRANDS)\w*\s*[:=]/i;
 
 // ── 2. Corner radii — raw px values outside the --r / --r-sm scale ─────
-const RADIUS_RE = /border[Rr]adius:\s*['"]?(\d+(?:\.\d+)?)(px)?['"]?(?!\s*%)/g;
+// (?![\d.]) stops the number backtracking: without it '50%' failed as 50 and
+// then matched as "5", which counted every circle as a raw 5px radius.
+const RADIUS_RE = /border[Rr]adius:\s*['"]?(\d+(?:\.\d+)?)(?![\d.])(px)?['"]?(?!\s*%)/g;
 const CSS_RADIUS_RE = /border-radius:\s*(\d+(?:\.\d+)?)px/g;
 const PILL_VALUES = new Set([999, 9999, 50, 100, 200, 500]); // full/half-pill shapes, not part of the corner-radius *scale* debate
 

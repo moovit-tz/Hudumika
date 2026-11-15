@@ -125,7 +125,7 @@ export function BookingPublicPage() {
             {/* Right Column: Date & Slot Picker */}
             <div style={{ padding: 28, display: 'flex', flexDirection: 'column', gap: 18, background: 'var(--white)' }}>
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                <button
+                <button aria-label="Previous"
                   type="button"
                   onClick={() => setSelectedDate(d => new Date(d.getTime() - 86400000))}
                   disabled={formatISODate(selectedDate) <= formatISODate(new Date())}
@@ -136,7 +136,7 @@ export function BookingPublicPage() {
                 <div style={{ fontSize: 15, fontWeight: 700, color: 'var(--ink)' }}>
                   {selectedDate.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' })}
                 </div>
-                <button type="button" onClick={() => setSelectedDate(d => new Date(d.getTime() + 86400000))} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: "var(--action-py) var(--space-md)", display: 'flex', color: 'var(--ink3)' }} data-ui-native-button="">
+                <button aria-label="Next" type="button" onClick={() => setSelectedDate(d => new Date(d.getTime() + 86400000))} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: "var(--action-py) var(--space-md)", display: 'flex', color: 'var(--ink3)' }} data-ui-native-button="">
                   <Icon name="chevronRight" size={18} />
                 </button>
               </div>

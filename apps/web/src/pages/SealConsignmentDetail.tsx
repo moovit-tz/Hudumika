@@ -194,7 +194,7 @@ export function SealConsignmentDetail() {
       <style>body{font-family:sans-serif;padding:30px;font-size:13px;color:#0d1117;}
       .hdr{border-bottom:2px solid #e1e4e8;padding-bottom:12px;margin-bottom:20px;}
       .grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:20px;}
-      .box{background:#f8fafc;border:1px solid #e2e8f0;padding:10px;border-radius:6px;}
+      .box{background:#f8fafc;border:1px solid #e2e8f0;padding:10px;border-radius: var(--r-sm);}
       .label{font-size:10px;text-transform:uppercase;color:#64748b;font-weight:700;}
       .val{font-size:13px;font-weight:700;margin-top:2px;}
       </style></head><body>
@@ -253,8 +253,7 @@ export function SealConsignmentDetail() {
               className="seal-mono font-bold tracking-wider"
               value={newContainerNumber}
               onChange={e => setNewContainerNumber(e.target.value.toUpperCase())}
-              placeholder="MSCU1234567"
-            />
+              placeholder="MSCU1234567" aria-label="Container Number" />
             {check && (
               <span style={{ fontSize: 11.5, color: check.valid ? 'var(--green)' : 'var(--red)', marginTop: 4 }}>
                 {check.valid ? `✓ Valid ISO 6346 — ${check.formatted}` : check.reason}
@@ -265,7 +264,7 @@ export function SealConsignmentDetail() {
           <div className="seal-field-row" style={{ width: 140 }}>
             <label className="seal-field-label">Size</label>
             <Select value={newContainerSize} onValueChange={setNewContainerSize}>
-              <SelectTrigger className="w-full"><SelectValue /></SelectTrigger>
+              <SelectTrigger className="w-full" aria-label="Size"><SelectValue /></SelectTrigger>
               <SelectContent>{CONTAINER_SIZES.map(s => <SelectItem key={s} value={s}>{s}</SelectItem>)}</SelectContent>
             </Select>
           </div>
@@ -332,15 +331,15 @@ export function SealConsignmentDetail() {
                 <div className="seal-form-row">
                   <div className="seal-field-row" style={{ flex: '1 1 160px' }}>
                     <label className="seal-field-label">Seal Number</label>
-                    <Input type="text" value={sealNumber} onChange={e => setSealNumber(e.target.value)} placeholder="SL482910" />
+                    <Input type="text" value={sealNumber} onChange={e => setSealNumber(e.target.value)} placeholder="SL482910" aria-label="Seal Number" />
                   </div>
                   <div className="seal-field-row" style={{ flex: '1 1 120px' }}>
                     <label className="seal-field-label">Gross (kg)</label>
-                    <Input type="number" value={grossWeight} onChange={e => setGrossWeight(e.target.value)} />
+                    <Input type="number" value={grossWeight} onChange={e => setGrossWeight(e.target.value)} aria-label="Gross (kg)" />
                   </div>
                   <div className="seal-field-row" style={{ flex: '1 1 120px' }}>
                     <label className="seal-field-label">Tare (kg)</label>
-                    <Input type="number" value={tareWeight} onChange={e => setTareWeight(e.target.value)} />
+                    <Input type="number" value={tareWeight} onChange={e => setTareWeight(e.target.value)} aria-label="Tare (kg)" />
                   </div>
                   <Button disabled={gating} onClick={() => handleGateIn(c.id)}>
                     <Icon name="truck" size={14} /><span>{gating ? 'Recording…' : 'Confirm Gate-In'}</span>
@@ -432,7 +431,7 @@ export function SealConsignmentDetail() {
                             </SelectContent>
                           </Select>
                         )}
-                        <Button variant="ghost" size="icon" onClick={() => setTallyLines(lines => lines.filter((_, idx) => idx !== i))}>
+                        <Button aria-label="Delete" variant="ghost" size="icon" onClick={() => setTallyLines(lines => lines.filter((_, idx) => idx !== i))}>
                           <Icon name="trash" size={14} />
                         </Button>
                       </div>

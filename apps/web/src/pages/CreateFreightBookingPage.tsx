@@ -94,16 +94,16 @@ export function CreateFreightBookingPage() {
           </div>
           <div>
             <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: 'var(--ink2)', marginBottom: 6 }}>Quantity</label>
-            <Input type="number" min="1" value={form.quantity} onChange={e => setForm(p => ({ ...p, quantity: e.target.value }))} />
+            <Input type="number" min="1" value={form.quantity} onChange={e => setForm(p => ({ ...p, quantity: e.target.value }))} aria-label="Quantity" />
           </div>
           <div>
             <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: 'var(--ink2)', marginBottom: 6 }}>Requested ship date</label>
-            <DatePicker date={parseDateOnly(form.requested_ship_date)} onChange={d => setForm(p => ({ ...p, requested_ship_date: toDateOnlyString(d) }))} />
+            <DatePicker date={parseDateOnly(form.requested_ship_date)} onChange={d => setForm(p => ({ ...p, requested_ship_date: toDateOnlyString(d) }))} aria-label="Requested ship date" />
           </div>
         </div>
         <div style={{ marginBottom: 20 }}>
           <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: 'var(--ink2)', marginBottom: 6 }}>Cargo description</label>
-          <Textarea rows={3} value={form.cargo_desc} onChange={e => setForm(p => ({ ...p, cargo_desc: e.target.value }))} />
+          <Textarea rows={3} value={form.cargo_desc} onChange={e => setForm(p => ({ ...p, cargo_desc: e.target.value }))} aria-label="Cargo description" />
         </div>
         {error && <Banner variant="error" onDismiss={() => setError(null)}>{error}</Banner>}
         <Button type="button" onClick={submit} loading={saving} disabled={!!customersError} loadingText="Creating…">Create booking request</Button>

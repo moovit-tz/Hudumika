@@ -90,7 +90,7 @@ export function TumaFloat() {
                     <td>
                       <DropdownMenu>
                         <DropdownMenuTrigger asChild>
-                          <button data-ui-native-button="" type="button" style={{ background: 'none', border: 'none', cursor: 'pointer', padding: "var(--action-py) var(--space-md)", color: 'var(--ink3)' }}><Icon name="moreHorizontal" size={16} /></button>
+                          <button aria-label="More actions" data-ui-native-button="" type="button" style={{ background: 'none', border: 'none', cursor: 'pointer', padding: "var(--action-py) var(--space-md)", color: 'var(--ink3)' }}><Icon name="moreHorizontal" size={16} /></button>
                         </DropdownMenuTrigger>
                         <DropdownMenuContent>
                           <DropdownMenuItem onClick={() => setActionDialog({ type: 'replenish', account: a })}><Icon name="plus" size={14} /> Replenish Float</DropdownMenuItem>
@@ -117,18 +117,18 @@ export function TumaFloat() {
               <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
                 <div>
                   <label style={{ fontSize: 12, fontWeight: 600, color: 'var(--ink3)', display: 'block', marginBottom: 4 }}>Amount (TZS)</label>
-                  <Input type="number" min="1" step="1" value={amount} onChange={e => setAmount(e.target.value)} placeholder="0" />
+                  <Input type="number" min="1" step="1" value={amount} onChange={e => setAmount(e.target.value)} placeholder="0" aria-label="Amount (TZS)" />
                   {actionDialog?.type === 'settle' && (
                     <div style={{ fontSize: 11, color: 'var(--ink3)', marginTop: 4 }}>Max settable: {fmt(actionDialog.account.used_float)}</div>
                   )}
                 </div>
                 <div>
                   <label style={{ fontSize: 12, fontWeight: 600, color: 'var(--ink3)', display: 'block', marginBottom: 4 }}>Description</label>
-                  <Input value={desc} onChange={e => setDesc(e.target.value)} placeholder={actionDialog?.type === 'settle' ? 'Agent float settlement' : 'Float top-up'} />
+                  <Input value={desc} onChange={e => setDesc(e.target.value)} placeholder={actionDialog?.type === 'settle' ? 'Agent float settlement' : 'Float top-up'} aria-label="Description" />
                 </div>
                 <div>
                   <label style={{ fontSize: 12, fontWeight: 600, color: 'var(--ink3)', display: 'block', marginBottom: 4 }}>Payment Reference (optional)</label>
-                  <Input value={ref} onChange={e => setRef(e.target.value)} placeholder="M-Pesa/bank ref" />
+                  <Input value={ref} onChange={e => setRef(e.target.value)} placeholder="M-Pesa/bank ref" aria-label="Payment Reference (optional)" />
                 </div>
               </div>
             </DialogBody>

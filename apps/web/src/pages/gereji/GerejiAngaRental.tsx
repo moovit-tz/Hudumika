@@ -160,7 +160,7 @@ export function GerejiAngaRental() {
                           <td style={{ ...TD, color: 'var(--ink3)' }}>{formatDate(r.end_date)}</td>
                           <td style={{ ...TD, textAlign: 'right' }}>
                             <DropdownMenu>
-                              <DropdownMenuTrigger asChild><Button variant="ghost" size="icon"><Icon name="moreHorizontal" size={16} /></Button></DropdownMenuTrigger>
+                              <DropdownMenuTrigger asChild><Button aria-label="More actions" variant="ghost" size="icon"><Icon name="moreHorizontal" size={16} /></Button></DropdownMenuTrigger>
                               <DropdownMenuContent align="end">
                                 {(RESERVATION_TRANSITIONS[r.status] ?? []).map(s => <DropdownMenuItem key={s} onClick={() => transition(r.id, s)}>Mark {s}</DropdownMenuItem>)}
                               </DropdownMenuContent>
@@ -182,11 +182,11 @@ export function GerejiAngaRental() {
           <DialogHeader><DialogTitle>New rate card</DialogTitle></DialogHeader>
           <DialogBody>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-              <div><label style={LABEL}>Name</label><Input value={cardName} onChange={e => setCardName(e.target.value)} placeholder="e.g. Standard rotable loan" /></div>
+              <div><label style={LABEL}>Name</label><Input value={cardName} onChange={e => setCardName(e.target.value)} placeholder="e.g. Standard rotable loan" aria-label="Name" /></div>
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
-                <div><label style={LABEL}>Daily rate</label><Input type="number" min={0} value={dailyRate} onChange={e => setDailyRate(e.target.value)} /></div>
-                <div><label style={LABEL}>Min rental days</label><Input type="number" min={1} value={minDays} onChange={e => setMinDays(e.target.value)} /></div>
-                <div><label style={LABEL}>Minimum charge</label><Input type="number" min={0} value={minCharge} onChange={e => setMinCharge(e.target.value)} /></div>
+                <div><label style={LABEL}>Daily rate</label><Input type="number" min={0} value={dailyRate} onChange={e => setDailyRate(e.target.value)} aria-label="Daily rate" /></div>
+                <div><label style={LABEL}>Min rental days</label><Input type="number" min={1} value={minDays} onChange={e => setMinDays(e.target.value)} aria-label="Min rental days" /></div>
+                <div><label style={LABEL}>Minimum charge</label><Input type="number" min={0} value={minCharge} onChange={e => setMinCharge(e.target.value)} aria-label="Minimum charge" /></div>
               </div>
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 12 }}>
                 <div><label style={LABEL}>7-day discount %</label><Input type="number" min={0} max={100} value={tier7} onChange={e => setTier7(e.target.value)} /></div>
@@ -210,20 +210,20 @@ export function GerejiAngaRental() {
               <div>
                 <label style={LABEL}>Stock unit (available only)</label>
                 <Select value={stockUnitId} onValueChange={setStockUnitId}>
-                  <SelectTrigger><SelectValue placeholder="Select unit" /></SelectTrigger>
+                  <SelectTrigger aria-label="Stock unit (available only)"><SelectValue placeholder="Select unit" /></SelectTrigger>
                   <SelectContent>{units.map(u => <SelectItem key={u.id} value={u.id}>{u.pn}{u.serial ? ` #${u.serial}` : ''}</SelectItem>)}</SelectContent>
                 </Select>
               </div>
               <div>
                 <label style={LABEL}>Customer (optional)</label>
                 <Select value={customerId} onValueChange={setCustomerId}>
-                  <SelectTrigger><SelectValue placeholder="None" /></SelectTrigger>
+                  <SelectTrigger aria-label="Customer (optional)"><SelectValue placeholder="None" /></SelectTrigger>
                   <SelectContent>{customers.map(c => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}</SelectContent>
                 </Select>
               </div>
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
-                <div><label style={LABEL}>Start date</label><DatePicker date={parseDateOnly(startDate) ?? null} onChange={d => setStartDate(toDateOnlyString(d))} /></div>
-                <div><label style={LABEL}>End date</label><DatePicker date={parseDateOnly(endDate) ?? null} onChange={d => setEndDate(toDateOnlyString(d))} /></div>
+                <div><label style={LABEL}>Start date</label><DatePicker date={parseDateOnly(startDate) ?? null} onChange={d => setStartDate(toDateOnlyString(d))} aria-label="Start date" /></div>
+                <div><label style={LABEL}>End date</label><DatePicker date={parseDateOnly(endDate) ?? null} onChange={d => setEndDate(toDateOnlyString(d))} aria-label="End date" /></div>
               </div>
             </div>
           </DialogBody>

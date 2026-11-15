@@ -229,7 +229,8 @@ export interface Expense {
 
 // ── Message / Communication ──────────────────────────────────
 
-export type MessageChannel = 'WHATSAPP' | 'EMAIL' | 'IN_APP' | 'SMS' | 'SYSTEM';
+// VOICE: a phone call to a centre's line (support network, migration 764).
+export type MessageChannel = 'WHATSAPP' | 'EMAIL' | 'IN_APP' | 'SMS' | 'SYSTEM' | 'VOICE';
 export type MessageDirection = 'INBOUND' | 'OUTBOUND';
 
 export interface CaseMessage {

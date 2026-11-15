@@ -424,7 +424,7 @@ export const ProjectCreateModal: React.FC<Props> = ({
               <div className="pcp-field">
                 <label className="pcp-label">Industry Sector</label>
                 <Select value={industry} onValueChange={setIndustry}>
-                  <SelectTrigger>
+                  <SelectTrigger aria-label="Industry Sector">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
@@ -440,7 +440,7 @@ export const ProjectCreateModal: React.FC<Props> = ({
               <div className="pcp-field">
                 <label className="pcp-label">Delivery Classification</label>
                 <Select value={classification} onValueChange={setClassification}>
-                  <SelectTrigger>
+                  <SelectTrigger aria-label="Delivery Classification">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
@@ -456,7 +456,7 @@ export const ProjectCreateModal: React.FC<Props> = ({
               <div className="pcp-field">
                 <label className="pcp-label">Reporting Currency</label>
                 <Select value={currency} onValueChange={setCurrency}>
-                  <SelectTrigger>
+                  <SelectTrigger aria-label="Reporting Currency">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
@@ -537,8 +537,7 @@ export const ProjectCreateModal: React.FC<Props> = ({
                   value={program}
                   onChange={setProgram}
                   options={[{ value: '', label: 'No Program' }, ...programs.filter(row => !portfolio || row.portfolio_id === portfolio).map(row => ({ value: row.id, label: row.name }))]}
-                  placeholder="Select program"
-                />
+                  placeholder="Select program" aria-label="Program (Optional)" />
               </div>
 
               <div className="pcp-field">
@@ -547,8 +546,7 @@ export const ProjectCreateModal: React.FC<Props> = ({
                   value={customer}
                   onChange={setCustomer}
                   options={[{ value: '', label: 'Internal / No Customer' }, ...customers.map(row => ({ value: row.id, label: row.name }))]}
-                  placeholder="Select customer"
-                />
+                  placeholder="Select customer" aria-label="Customer / Client (Optional)" />
               </div>
             </div>
 
@@ -648,8 +646,7 @@ export const ProjectCreateModal: React.FC<Props> = ({
                 <DatePicker
                   date={parseDateOnly(start)}
                   onChange={date => setStart(toDateOnlyString(date))}
-                  placeholder="Start date"
-                />
+                  placeholder="Start date" aria-label="Planned Start Date" />
               </div>
 
               <div className="pcp-field">
@@ -657,8 +654,7 @@ export const ProjectCreateModal: React.FC<Props> = ({
                 <DatePicker
                   date={parseDateOnly(end)}
                   onChange={date => setEnd(toDateOnlyString(date))}
-                  placeholder="Target date"
-                />
+                  placeholder="Target date" aria-label="Planned Target Date" />
               </div>
 
               <div className="pcp-field">

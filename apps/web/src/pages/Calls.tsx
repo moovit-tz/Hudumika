@@ -1407,7 +1407,7 @@ export function Calls() {
                   background: 'rgba(0,0,0,0.65)',
                   color: '#ffffff',
                   padding: '8px 16px',
-                  borderRadius: 24,
+                  borderRadius: 'var(--r-lg)',
                   fontSize: 13,
                   fontWeight: 700,
                   backdropFilter: 'blur(10px)',
@@ -1457,7 +1457,7 @@ export function Calls() {
               background: 'linear-gradient(to top, rgba(0,0,0,0.8) 0%, transparent 100%)',
             }}
           >
-            <button
+            <button aria-label={muted ? 'Unmute microphone' : 'Mute microphone'}
               type="button"
               onClick={toggleMute}
               style={{
@@ -1479,7 +1479,7 @@ export function Calls() {
             </button>
 
             {kind === 'VIDEO' && (
-              <button
+              <button aria-label={camOff ? 'Turn camera on' : 'Turn camera off'}
                 type="button"
                 onClick={toggleCam}
                 style={{
@@ -1501,7 +1501,7 @@ export function Calls() {
               </button>
             )}
 
-            <button
+            <button aria-label="End call"
               type="button"
               onClick={hangup}
               style={{

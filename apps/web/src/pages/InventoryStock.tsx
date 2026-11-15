@@ -147,7 +147,7 @@ export function InventoryStock() {
             <div className="inv-field-row">
               <label className="inv-field-label">Movement Type</label>
               <Select value={movementType} onValueChange={setMovementType}>
-                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectTrigger aria-label="Movement Type"><SelectValue /></SelectTrigger>
                 <SelectContent>{MOVEMENT_TYPES.map(t => <SelectItem key={t.value} value={t.value}>{t.label}</SelectItem>)}</SelectContent>
               </Select>
             </div>
@@ -156,15 +156,14 @@ export function InventoryStock() {
               <Combobox
                 options={items.map(i => ({ value: i.id, label: i.name, sublabel: i.sku }))}
                 value={itemId} onChange={setItemId}
-                placeholder="Search items…" searchPlaceholder="Search…" emptyText="No matching items."
-              />
+                placeholder="Search items…" searchPlaceholder="Search…" emptyText="No matching items." aria-label="Item" />
             </div>
 
             {(movementType === 'issue' || movementType === 'transfer') && (
               <div className="inv-field-row">
                 <label className="inv-field-label">From Location</label>
                 <Select value={fromLocationId} onValueChange={setFromLocationId}>
-                  <SelectTrigger><SelectValue placeholder="Choose a location" /></SelectTrigger>
+                  <SelectTrigger aria-label="From Location"><SelectValue placeholder="Choose a location" /></SelectTrigger>
                   <SelectContent>{locations.map(l => <SelectItem key={l.id} value={l.id}>{l.code} — {l.warehouseName}</SelectItem>)}</SelectContent>
                 </Select>
               </div>
@@ -186,7 +185,7 @@ export function InventoryStock() {
             <div className="inv-field-row">
               <label className="inv-field-label">Unit</label>
               <Select value={enteredUom} onValueChange={setEnteredUom} disabled={!itemId}>
-                <SelectTrigger><SelectValue placeholder={itemId ? 'Choose a unit' : 'Choose an item first'} /></SelectTrigger>
+                <SelectTrigger aria-label="Unit"><SelectValue placeholder={itemId ? 'Choose a unit' : 'Choose an item first'} /></SelectTrigger>
                 <SelectContent>
                   {selectedItem && <SelectItem value={selectedItem.baseUom}>{selectedItem.baseUom} (base)</SelectItem>}
                   {itemUoms.map(u => <SelectItem key={u.uomCode} value={u.uomCode}>{u.uomCode} (×{u.conversionFactor})</SelectItem>)}
@@ -197,7 +196,7 @@ export function InventoryStock() {
             {movementType === 'receipt' && (
               <div className="inv-field-row">
                 <label className="inv-field-label">Unit Cost (optional)</label>
-                <Input type="number" step="any" min="0" value={unitCost} onChange={e => setUnitCost(e.target.value)} placeholder="0.00" />
+                <Input type="number" step="any" min="0" value={unitCost} onChange={e => setUnitCost(e.target.value)} placeholder="0.00" aria-label="Unit Cost (optional)" />
               </div>
             )}
 
@@ -205,17 +204,17 @@ export function InventoryStock() {
               <>
                 <div className="inv-field-row">
                   <label className="inv-field-label">Batch / Lot No.</label>
-                  <Input type="text" value={batchNo} onChange={e => setBatchNo(e.target.value)} placeholder="BATCH-001" />
+                  <Input type="text" value={batchNo} onChange={e => setBatchNo(e.target.value)} placeholder="BATCH-001" aria-label="Batch / Lot No." />
                 </div>
                 <div className="inv-field-row">
                   <label className="inv-field-label">Expiry Date (optional)</label>
-                  <DatePicker date={expiryDate} onChange={setExpiryDate} />
+                  <DatePicker date={expiryDate} onChange={setExpiryDate} aria-label="Expiry Date (optional)" />
                 </div>
               </>
             )}
             <div className="inv-field-row">
               <label className="inv-field-label">Reference (optional)</label>
-              <Input type="text" value={reference} onChange={e => setReference(e.target.value)} placeholder="PO-1234 / notes" />
+              <Input type="text" value={reference} onChange={e => setReference(e.target.value)} placeholder="PO-1234 / notes" aria-label="Reference (optional)" />
             </div>
           </div>
           <div style={{ padding: '0 20px 20px' }}>

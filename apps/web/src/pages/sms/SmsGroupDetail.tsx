@@ -227,7 +227,7 @@ export function SmsGroupDetail() {
               <Icon name="plus" size={14} /> Add Contact
             </Button>
             {members.length > 0 && (
-              <Button variant="ghost" onClick={exportCsv}>
+              <Button aria-label="Download members as CSV" variant="ghost" onClick={exportCsv}>
                 <Icon name="download" size={14} />
               </Button>
             )}
@@ -257,8 +257,7 @@ export function SmsGroupDetail() {
                 <Input
                   value={singleName}
                   onChange={e => setSingleName(e.target.value)}
-                  placeholder="e.g. Amani Joseph"
-                />
+                  placeholder="e.g. Amani Joseph" aria-label="Contact Name (Optional)" />
               </div>
             </div>
 
@@ -399,7 +398,7 @@ export function SmsGroupDetail() {
                       {new Date(m.created_at).toLocaleDateString()}
                     </td>
                     <td style={{ padding: '12px 16px', textAlign: 'right' }}>
-                      <Button size="sm" variant="ghost" onClick={() => handleRemoveMember(m.id, m.phone)}>
+                      <Button aria-label={`Remove ${m.name ?? ''}`.trim()} size="sm" variant="ghost" onClick={() => handleRemoveMember(m.id, m.phone)}>
                         <Icon name="x" size={13} color="var(--red)" />
                       </Button>
                     </td>

@@ -220,6 +220,38 @@ export async function identityRoutes(fastify: FastifyInstance) {
   });
 
   /**
+   * Which of these subjects have a picture.
+   *
+   * A list page draws dozens of avatars, and most people never set a photo.
+   * Asking the picture endpoint for each one answered "404 No picture set"
+   * one request at a time — 23 wasted round trips on Ops alone. The client
+   * now asks here once per batch and fetches only the pictures that exist.
+   * Returns the ids that have one; an id not returned draws initials.
+   */
+  fastify.post('/avatars/present', async (req, reply) => {
+    const user = req.user;
+    const body = (req.body ?? {}) as { kind?: string; ids?: unknown };
+    const subject = subjectFor(String(body.kind ?? ''));
+    if (!subject) return reply.status(400).send({ error: `There is no picture for "${body.kind}"` });
+    const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+    const ids = Array.isArray(body.ids)
+      ? [...new Set(body.ids.filter((x): x is string => typeof x === 'string' && UUID.test(x)))].slice(0, 500)
+      : [];
+    if (!ids.length) return { ids: [] };
+
+    return withTenant(user.tenant_id, async (trx) => {
+      const rows = await (trx.selectFrom(subject.table as any) as any)
+        .select(['id'])
+        .where('id', 'in', ids)
+        .where('tenant_id', '=', user.tenant_id)
+        .where(subject.image, 'is not', null)
+        .where(subject.image, '!=', '')
+        .execute();
+      return { ids: rows.map((r: { id: string }) => r.id) };
+    });
+  });
+
+  /**
    * The picture itself.
    *
    * Served rather than embedded, with an ETag so it travels once. A 548KB data

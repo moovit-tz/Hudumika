@@ -221,7 +221,7 @@ export function PettiWithdrawals() {
 
             <div>
               <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: 'var(--ink2)', marginBottom: 6 }}>Payee / Beneficiary Name (Optional)</label>
-              <Input value={payeeName} onChange={e => setPayeeName(e.target.value)} placeholder="e.g. Shell Station Mwenge / Office Supplies Ltd" />
+              <Input value={payeeName} onChange={e => setPayeeName(e.target.value)} placeholder="e.g. Shell Station Mwenge / Office Supplies Ltd" aria-label="Payee / Beneficiary Name (Optional)" />
             </div>
 
             <div>

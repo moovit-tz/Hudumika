@@ -1241,7 +1241,7 @@ export const BlissWhatsApp: React.FC = () => {
                           <Button variant="outline" size="sm" onClick={() => toggleRule(r)}>
                             {r.enabled ? 'Disable' : 'Enable'}
                           </Button>
-                          <Button variant="outline" size="sm" onClick={() => deleteRule(r)}>
+                          <Button aria-label="Delete rule" variant="outline" size="sm" onClick={() => deleteRule(r)}>
                             <Icon name="trash2" size={13} color="var(--red)" />
                           </Button>
                         </div>

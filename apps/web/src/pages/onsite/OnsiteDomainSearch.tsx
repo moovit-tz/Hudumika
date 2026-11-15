@@ -201,11 +201,11 @@ export function OnsiteDomainSearch() {
             <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
               <div>
                 <label style={{ display: 'block', fontSize: '0.8125rem', fontWeight: 600, marginBottom: '0.35rem' }}>Domain name</label>
-                <Input value={transferDomain} onChange={e => setTransferDomain(e.target.value)} placeholder="yourdomain.com" />
+                <Input value={transferDomain} onChange={e => setTransferDomain(e.target.value)} placeholder="yourdomain.com" aria-label="Domain name" />
               </div>
               <div>
                 <label style={{ display: 'block', fontSize: '0.8125rem', fontWeight: 600, marginBottom: '0.35rem' }}>Transfer code</label>
-                <Input value={transferEpp} onChange={e => setTransferEpp(e.target.value)} placeholder="Optional — ask your current domain provider" />
+                <Input value={transferEpp} onChange={e => setTransferEpp(e.target.value)} placeholder="Optional — ask your current domain provider" aria-label="Transfer code" />
                 <p style={{ fontSize: '0.72rem', color: 'var(--ink3)', marginTop: '0.25rem' }}>
                   This code lets us move your domain. You can add it later if you don’t have it yet.
                 </p>

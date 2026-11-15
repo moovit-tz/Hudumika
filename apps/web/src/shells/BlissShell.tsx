@@ -22,12 +22,16 @@ import { MeetingSession }  from '../pages/calls/MeetingSession.js';
 import { AgentPerformanceReport } from '../pages/bliss/AgentPerformanceReport.js';
 import { SLAComplianceReport }    from '../pages/bliss/SLAComplianceReport.js';
 import { SupportTrafficReport }   from '../pages/bliss/SupportTrafficReport.js';
+import { SupportNetwork }         from '../pages/bliss/SupportNetwork.js';
+import { CentreScopePicker }      from '../components/CentreScopePicker.js';
 
 const NAV: SidebarSection[] = [
   {
     items: [
       { label: 'Support Center', icon: 'inbox',    path: '/bliss/inbox'    },
       { label: 'Overview',       icon: 'activity', path: '/bliss/overview' },
+      // Centres, zones, product lines, queues and agents; the live control room.
+      { label: 'Network',        icon: 'globe',    path: '/bliss/network'  },
     ],
   },
   {
@@ -82,7 +86,7 @@ export function BlissShell() {
   return (
     <WorkspaceApp appId="bliss">
       <div className="app-shell" data-bliss="true">
-        <AppSidebar appId="bliss" sections={NAV} />
+        <AppSidebar appId="bliss" sections={NAV} beforeNav={({ collapsed }) => <CentreScopePicker collapsed={collapsed} />} />
         <div className="app-main">
           <AppHeader />
           <div className="app-shell-content">
@@ -119,6 +123,7 @@ export function BlissShell() {
                     and was itself orphaned (routed nowhere) until now. */}
                 <Route path="operational-mode"          element={<SupportSettings />} />
                 <Route path="overview"                  element={<SupportOverview />} />
+                <Route path="network"                   element={<SupportNetwork />} />
                 <Route path="overview/team"              element={<SupportTeam />} />
                 <Route path="reports/agent-performance" element={<AgentPerformanceReport />} />
                 <Route path="reports/sla-compliance"   element={<SLAComplianceReport />} />

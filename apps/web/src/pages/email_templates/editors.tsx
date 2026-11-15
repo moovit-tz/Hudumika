@@ -69,11 +69,11 @@ export function PublishToStoreDialog({
             {error && <div className="email-template-form-error" role="alert"><Icon name="alertCircle" size={15} /> {error}</div>}
             <div className="email-template-field">
               <label>Title <span style={{ color: 'var(--red)' }}>*</span></label>
-              <Input value={title} onChange={e => setTitle(e.target.value)} maxLength={160} placeholder="e.g. Modern Invoicing & Payment Follow-up" />
+              <Input value={title} onChange={e => setTitle(e.target.value)} maxLength={160} placeholder="e.g. Modern Invoicing & Payment Follow-up" aria-label="Title" />
             </div>
             <div className="email-template-field">
               <label>Description <span style={{ color: 'var(--red)' }}>*</span></label>
-              <Textarea value={description} onChange={e => setDescription(e.target.value)} rows={4} maxLength={2000} placeholder="Describe what this template is for, its target audience, and key features (min 20 chars)." />
+              <Textarea value={description} onChange={e => setDescription(e.target.value)} rows={4} maxLength={2000} placeholder="Describe what this template is for, its target audience, and key features (min 20 chars)." aria-label="Description" />
               <small style={{ color: 'var(--ink3)' }}>{description.length}/2000</small>
             </div>
             <div className="email-template-field">
@@ -190,7 +190,7 @@ export function SimpleWysiwygEditor({
   }
 
   function insertMergeTag(tag: string) {
-    insertHtmlAtCursor(`<span class="email-var-tag" style="display:inline-block;background:#e0f2fe;color:#0369a1;padding:1px 6px;border-radius:4px;font-family:monospace;font-size:12.5px;font-weight:700;border:1px solid #bae6fd;" data-var="${tag}">{{${tag}}}</span>&nbsp;`);
+    insertHtmlAtCursor(`<span class="email-var-tag" style="display:inline-block;background:#e0f2fe;color:#0369a1;padding:1px 6px;border-radius: var(--r-sm);font-family:monospace;font-size:12.5px;font-weight:700;border:1px solid #bae6fd;" data-var="${tag}">{{${tag}}}</span>&nbsp;`);
     setShowVarMenu(false);
   }
 
@@ -210,7 +210,7 @@ export function SimpleWysiwygEditor({
     const btnHtml = `
       <table cellpadding="0" cellspacing="0" border="0" style="margin: 20px ${btnAlign === 'center' ? 'auto' : btnAlign === 'right' ? '0 0 auto' : '0 auto 0 0'}; text-align: ${btnAlign};">
         <tr>
-          <td style="background-color: ${btnColor}; border-radius: 6px; padding: 12px 24px;">
+          <td style="background-color: ${btnColor}; border-radius: var(--r-sm); padding: 12px 24px;">
             <a href="${btnUrl.trim() || '#'}" style="color: #ffffff; text-decoration: none; font-weight: 700; font-size: 14px; font-family: Arial, sans-serif; display: inline-block;">
               ${btnText.trim()}
             </a>
@@ -246,7 +246,7 @@ export function SimpleWysiwygEditor({
     if (!imgSrc.trim()) return;
     const imgHtml = `
       <div style="text-align: center; margin: 20px 0;">
-        <img src="${imgSrc.trim()}" alt="${imgAlt.trim() || 'Email Image'}" style="max-width: 100%; height: auto; border-radius: 8px; border: 1px solid #e2e8f0;" />
+        <img src="${imgSrc.trim()}" alt="${imgAlt.trim() || 'Email Image'}" style="max-width: 100%; height: auto; border-radius: var(--r); border: 1px solid #e2e8f0;" />
       </div>
       <p><br></p>
     `;
@@ -513,7 +513,7 @@ export function SimpleWysiwygEditor({
             <DialogBody>
               <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
                 <label style={{ fontSize: 12.5, fontWeight: 600 }}>URL Address</label>
-                <Input value={linkUrl} onChange={e => setLinkUrl(e.target.value)} placeholder="https://example.com" autoFocus />
+                <Input value={linkUrl} onChange={e => setLinkUrl(e.target.value)} placeholder="https://example.com" autoFocus aria-label="URL Address" />
               </div>
             </DialogBody>
             <DialogFooter>
@@ -532,11 +532,11 @@ export function SimpleWysiwygEditor({
               <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
                 <div>
                   <label style={{ fontSize: 12, fontWeight: 600, display: 'block', marginBottom: 4 }}>Button Label</label>
-                  <Input value={btnText} onChange={e => setBtnText(e.target.value)} placeholder="e.g. View Invoice" autoFocus />
+                  <Input value={btnText} onChange={e => setBtnText(e.target.value)} placeholder="e.g. View Invoice" autoFocus aria-label="Button Label" />
                 </div>
                 <div>
                   <label style={{ fontSize: 12, fontWeight: 600, display: 'block', marginBottom: 4 }}>Destination Link</label>
-                  <Input value={btnUrl} onChange={e => setBtnUrl(e.target.value)} placeholder="https://example.com/pay" />
+                  <Input value={btnUrl} onChange={e => setBtnUrl(e.target.value)} placeholder="https://example.com/pay" aria-label="Destination Link" />
                 </div>
                 <div style={{ display: 'flex', gap: 12 }}>
                   <div style={{ flex: 1 }}>
@@ -573,11 +573,11 @@ export function SimpleWysiwygEditor({
               <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
                 <div>
                   <label style={{ fontSize: 12, fontWeight: 600, display: 'block', marginBottom: 4 }}>Image URL (HTTPS)</label>
-                  <Input value={imgSrc} onChange={e => setImgSrc(e.target.value)} placeholder="https://images.unsplash.com/…" autoFocus />
+                  <Input value={imgSrc} onChange={e => setImgSrc(e.target.value)} placeholder="https://images.unsplash.com/…" autoFocus aria-label="Image URL (HTTPS)" />
                 </div>
                 <div>
                   <label style={{ fontSize: 12, fontWeight: 600, display: 'block', marginBottom: 4 }}>Alt Description</label>
-                  <Input value={imgAlt} onChange={e => setImgAlt(e.target.value)} placeholder="e.g. Company Logo or Banner" />
+                  <Input value={imgAlt} onChange={e => setImgAlt(e.target.value)} placeholder="e.g. Company Logo or Banner" aria-label="Alt Description" />
                 </div>
               </div>
             </DialogBody>

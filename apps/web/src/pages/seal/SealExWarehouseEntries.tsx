@@ -106,7 +106,7 @@ export function SealExWarehouseEntries() {
         crumbs={["SEAL", "Customs", "Ex-Warehouse Entries"]}
         titlePlain="Ex-Warehouse"
         titleEm="entries"
-        subtitle="Customs declarations releasing bonded lots for home use, re-export, or transfer — every duty figure traces to a stored tariff lookup."
+        subtitle="Create declarations for home use, re-export, or transfer. Duty uses saved tariff rates."
         actions={
           <Button onClick={() => navigate("/seal/ex-warehouse/new")}>
             <Icon name="plus" size={14} /> New Entry

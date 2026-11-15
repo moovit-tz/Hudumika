@@ -265,8 +265,7 @@ export const FinanceExpenseNew: React.FC = () => {
               <label className="expense-field-label">Description <span className="req">*</span></label>
               <Input
                 required value={name} onChange={e => setName(e.target.value)}
-                placeholder="e.g. Forklift hire, port storage, agency fee"
-              />
+                placeholder="e.g. Forklift hire, port storage, agency fee" aria-label="Description" />
             </div>
             <div className="expense-field">
               <label className="expense-field-label">Amount ({currency}) <span className="req">*</span></label>
@@ -285,12 +284,12 @@ export const FinanceExpenseNew: React.FC = () => {
           <div className="expense-form-grid">
             <div className="expense-field">
               <label className="expense-field-label">Date <span className="req">*</span></label>
-              <DatePicker date={parseDateOnly(date)} onChange={d => setDate(toDateOnlyString(d))} />
+              <DatePicker date={parseDateOnly(date)} onChange={d => setDate(toDateOnlyString(d))} aria-label="Date" />
             </div>
             <div className="expense-field">
               <label className="expense-field-label">Category</label>
               <Select value={category} onValueChange={setCategory}>
-                <SelectTrigger><SelectValue placeholder="Select category" /></SelectTrigger>
+                <SelectTrigger aria-label="Category"><SelectValue placeholder="Select category" /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="__none__">Uncategorised</SelectItem>
                   {[...new Set([...expenseCategories,...(category !== '__none__' ? [category] : [])])].map(k => (
@@ -338,8 +337,7 @@ export const FinanceExpenseNew: React.FC = () => {
                   ...customers.map(c => ({ value: c.id, label: c.name, sublabel: c.email || c.phone || undefined })),
                 ]}
                 value={clientId} onChange={setClientId}
-                placeholder="None" searchPlaceholder="Search clients…"
-              />
+                placeholder="None" searchPlaceholder="Search clients…" aria-label="Client" />
             </div>
           </div>
 
@@ -361,8 +359,7 @@ export const FinanceExpenseNew: React.FC = () => {
                     .filter(line => line.active)
                     .map(line => ({ value: line.id, label: line.name, sublabel: line.code }))}
                   value={businessLineId} onChange={setBusinessLineId}
-                  placeholder="None" searchPlaceholder="Search…"
-                />
+                  placeholder="None" searchPlaceholder="Search…" aria-label="Business Line" />
               </div>
             )}
           </div>
@@ -379,7 +376,7 @@ export const FinanceExpenseNew: React.FC = () => {
             <div className="expense-field">
               <label className="expense-field-label">Payment method</label>
               <Select value={paymentMode} onValueChange={setPaymentMode}>
-                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectTrigger aria-label="Payment method"><SelectValue /></SelectTrigger>
                 <SelectContent>
                   {['Bank Transfer', 'Cash', 'Mobile Money', 'Cheque', 'Credit Card'].map(m => (
                     <SelectItem key={m} value={m}>{m}</SelectItem>
@@ -438,8 +435,7 @@ export const FinanceExpenseNew: React.FC = () => {
             <label className="expense-field-label">Notes</label>
             <Textarea
               rows={2} value={note} onChange={e => setNote(e.target.value)}
-              placeholder="Optional context — container number, approval reference, etc."
-            />
+              placeholder="Optional context — container number, approval reference, etc." aria-label="Notes" />
           </div>
         </div>
 

@@ -163,7 +163,7 @@ export function SmsGroups() {
               </div>
               <div>
                 <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: 'var(--ink2)', marginBottom: 6 }}>Description (Optional)</label>
-                <Input value={description} onChange={e => setDescription(e.target.value)} placeholder="e.g. High priority wholesale clients" />
+                <Input value={description} onChange={e => setDescription(e.target.value)} placeholder="e.g. High priority wholesale clients" aria-label="Description (Optional)" />
               </div>
             </div>
 
@@ -255,7 +255,7 @@ export function SmsGroups() {
                             <Icon name="users" size={12} /> View Members
                           </Button>
                         </Link>
-                        <Button size="sm" variant="ghost" onClick={() => handleDelete(g.id, g.name)}>
+                        <Button aria-label={`Delete ${g.name ?? ''}`.trim()} size="sm" variant="ghost" onClick={() => handleDelete(g.id, g.name)}>
                           <Icon name="trash" size={13} color="var(--red)" />
                         </Button>
                       </div>

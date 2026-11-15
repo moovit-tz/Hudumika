@@ -591,7 +591,7 @@ function QuoteFormView({ mode, initial, onSave, onCancel, isMobile = false }: {
               </div></>}
               <div>
                 <label style={lbl}>Valid Until</label>
-                <DatePicker date={parseDateOnly(f.valid_until)} onChange={d=>set('valid_until', toDateOnlyString(d))} />
+                <DatePicker date={parseDateOnly(f.valid_until)} onChange={d=>set('valid_until', toDateOnlyString(d))} aria-label="Valid Until" />
               </div>
             </div>
           </div>

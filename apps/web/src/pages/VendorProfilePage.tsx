@@ -845,7 +845,7 @@ export function VendorProfilePage() {
                         : '100% Settled'}
                     </span>
                   </div>
-                  <div style={{ height: 8, background: 'var(--bg)', borderRadius: 4, overflow: 'hidden', display: 'flex' }}>
+                  <div style={{ height: 8, background: 'var(--bg)', borderRadius: 'var(--r-sm)', overflow: 'hidden', display: 'flex' }}>
                     <div
                       style={{
                         width: `${financialMetrics.totalBilled > 0 ? Math.min(100, Math.round((financialMetrics.totalPaid / financialMetrics.totalBilled) * 100)) : 100}%`,
@@ -1376,8 +1376,7 @@ export function VendorProfilePage() {
                   <Input
                     value={editForm.contactPerson || ''}
                     onChange={e => setEditForm(f => ({ ...f, contactPerson: e.target.value }))}
-                    placeholder="Key account manager or representative"
-                  />
+                    placeholder="Key account manager or representative" aria-label="Contact Person Name" />
                 </div>
 
                 <div>
@@ -1388,8 +1387,7 @@ export function VendorProfilePage() {
                     type="email"
                     value={editForm.email || ''}
                     onChange={e => setEditForm(f => ({ ...f, email: e.target.value }))}
-                    placeholder="billing@supplier.com"
-                  />
+                    placeholder="billing@supplier.com" aria-label="Billing / Corporate Email" />
                 </div>
 
                 <div>
@@ -1399,8 +1397,7 @@ export function VendorProfilePage() {
                   <Input
                     value={editForm.phone || ''}
                     onChange={e => setEditForm(f => ({ ...f, phone: e.target.value }))}
-                    placeholder="+255 700 000 000"
-                  />
+                    placeholder="+255 700 000 000" aria-label="Phone Number" />
                 </div>
 
                 <div>
@@ -1425,8 +1422,7 @@ export function VendorProfilePage() {
                   <Input
                     value={editForm.address || ''}
                     onChange={e => setEditForm(f => ({ ...f, address: e.target.value }))}
-                    placeholder="Street, building, suite"
-                  />
+                    placeholder="Street, building, suite" aria-label="Physical Street Address" />
                 </div>
 
                 <div>
@@ -1457,8 +1453,7 @@ export function VendorProfilePage() {
                       onChange={e => setEditForm(f => ({ ...f, refCode: e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, '') }))}
                       placeholder="Auto"
                       maxLength={20}
-                      style={{ fontFamily: "var(--font)", textTransform: 'uppercase', letterSpacing: 1 }}
-                    />
+                      style={{ fontFamily: "var(--font)", textTransform: 'uppercase', letterSpacing: 1 }} aria-label="Reference Code" />
                   </div>
                   <div>
                     <label style={{ fontSize: 11.5, fontWeight: 700, color: 'var(--ink3)', textTransform: 'uppercase', display: 'block', marginBottom: 5 }}>
@@ -1467,8 +1462,7 @@ export function VendorProfilePage() {
                     <Input
                       value={editForm.taxId || ''}
                       onChange={e => setEditForm(f => ({ ...f, taxId: e.target.value }))}
-                      placeholder="TIN-000000000"
-                    />
+                      placeholder="TIN-000000000" aria-label="Tax ID / TIN Number" />
                   </div>
                 </div>
 
@@ -1494,8 +1488,7 @@ export function VendorProfilePage() {
                   <Input
                     value={editForm.bankName || ''}
                     onChange={e => setEditForm(f => ({ ...f, bankName: e.target.value }))}
-                    placeholder="e.g. CRDB Bank, NMB Bank"
-                  />
+                    placeholder="e.g. CRDB Bank, NMB Bank" aria-label="Settlement Bank Name" />
                 </div>
 
                 <div>
@@ -1505,8 +1498,7 @@ export function VendorProfilePage() {
                   <Input
                     value={editForm.bankAccount || ''}
                     onChange={e => setEditForm(f => ({ ...f, bankAccount: e.target.value }))}
-                    placeholder="Account number or IBAN"
-                  />
+                    placeholder="Account number or IBAN" aria-label="Bank Account Number" />
                 </div>
 
                 <div style={{ gridColumn: isMobile ? 'auto' : '1 / -1' }}>
@@ -1517,8 +1509,7 @@ export function VendorProfilePage() {
                     value={editForm.notes || ''}
                     onChange={e => setEditForm(f => ({ ...f, notes: e.target.value }))}
                     placeholder="Specific notes on delivery agreements, credit terms or discount contracts…"
-                    style={{ minHeight: 80 }}
-                  />
+                    style={{ minHeight: 80 }} aria-label="Internal Procurement Notes & Policy" />
                 </div>
               </div>
 

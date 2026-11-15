@@ -13,6 +13,7 @@ import { Spinner } from '../components/ui/spinner.js';
 import { Banner } from '../components/ui/alert.js';
 import { Tabs, TabsList, TabsTrigger } from '../components/ui/tabs.js';
 import { Button } from '../components/ui/button.js';
+import { Badge } from '../components/ui/badge.js';
 import { SearchToolbar } from '../components/ui/filter-dropdown.js';
 import { Tip } from '../components/ui/tooltip.js';
 
@@ -278,7 +279,7 @@ export const CustomsReference: React.FC = () => {
             Imported {importResult.summary.total} rows — {importResult.summary.updated} updated, {importResult.summary.inserted} new
             {importResult.summary.skipped > 0 ? `, ${importResult.summary.skipped} skipped (missing required fields)` : ''}.
           </span>
-          <button type="button" onClick={() => setImportResult(null)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--green)' }} data-ui-native-button=""><Icon name="x" size={14} /></button>
+          <button aria-label="Close" type="button" onClick={() => setImportResult(null)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--green)' }} data-ui-native-button=""><Icon name="x" size={14} /></button>
         </div>
       )}
       {importError && (
@@ -373,7 +374,7 @@ export const CustomsReference: React.FC = () => {
                           <td style={td}><span style={{ padding: '2px 8px', borderRadius: 'var(--r-sm)', fontSize: 11, fontWeight: 700, background: 'var(--teal-l)', color: 'var(--teal)' }}>{o.operator_type}</span></td>
                           <td style={td}>{o.region ?? '—'}</td>
                           <td style={{ ...td, fontFamily: 'var(--font)', fontSize: 12 }}>{o.license_no ?? '—'}</td>
-                          <td style={td}>{fmtDate(o.license_exp)}</td>
+                          <td style={td}>{fmtDate(o.license_exp)}{o.license_exp && new Date(o.license_exp) < new Date(new Date().toDateString()) && <div style={{ marginTop: 4 }}><Badge variant="error">Expired</Badge></div>}</td>
                           <td style={{ ...td, fontSize: 12 }}>{o.email ?? '—'}{o.tel ? <div style={{ color: 'var(--ink3)' }}>{o.tel}</div> : null}</td>
                           {canEdit && <td style={td}><button type="button" onClick={() => startEdit(o)} title="Edit" style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink3)', padding: "var(--action-py) var(--space-md)" }} data-ui-native-button=""><Icon name="edit" size={14} /></button></td>}
                         </>

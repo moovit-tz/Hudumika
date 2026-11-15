@@ -80,6 +80,7 @@ const APP_ICONS: Record<AppId, IconName> = {
   lexcore:   'scale',
   ngao:      'shield',
   gereji:    'tool',
+  zentra:    'shield',
 };
 
 const APP_SUBTITLES: Partial<Record<AppId, string>> = {
@@ -88,6 +89,7 @@ const APP_SUBTITLES: Partial<Record<AppId, string>> = {
   complyos:  'Compliance Platform',
   bliss:     'Support & Helpdesk',
   nexushr:     'People & HR',
+  zentra:    'Trust, Risk & Audit',
   onesite:   'Web & CMS',
   ondi:     'Identity & Access',
   tracking:  'Vehicle & Fleet Tracking',
@@ -506,7 +508,7 @@ export function AppSidebar({ appId, sections, beforeNav, fillNav, afterNav, load
                 >
                   <div className="app-sb-sub-title">
                     <Icon name="zap" size={14} style={{ color: 'var(--teal)' }} />
-                    <span>{planLabel} Plan</span>
+                    <span>{planLabel ? `${planLabel} Plan` : 'Plan'}</span>
                   </div>
                   <Icon name={subOpen ? 'chevronDown' : 'chevronRight'} size={13} />
                 </div>

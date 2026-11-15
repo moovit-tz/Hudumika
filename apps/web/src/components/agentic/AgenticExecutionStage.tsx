@@ -634,7 +634,7 @@ export function AgenticExecutionStage({
 
     const newWf: AgentWorkflow = {
       id: 'custom-wf',
-      brandName: 'Hudumika AI',
+      brandName: 'Hudu',
       brandBadge: 'AI',
       assigneeName: 'Autonomous Agent',
       assigneeSub: query.slice(0, 28),

@@ -285,15 +285,27 @@ interface IconProps {
   color?: string;
   duotone?: boolean;
   onClick?: () => void;
+  /** Accessible name when the icon is clickable. Prefer a real <button> (or
+   *  <Button iconOnly aria-label>) for anything new; this keeps the few
+   *  clickable icons usable by keyboard and screen reader. */
+  label?: string;
 }
 
-export function Icon({ name, size = 16, strokeWidth = 1.75, className, style, color, duotone = false, onClick }: IconProps) {
+export function Icon({ name, size = 16, strokeWidth = 1.75, className, style, color, duotone = false, onClick, label }: IconProps) {
   const library = useIconLibrary();
   const paths = P[name];
   if (!paths) return null;
   const arr = Array.isArray(paths) ? paths : [paths];
+  // A clickable icon acts as a button: reachable by Tab, activated by Enter or
+  // Space, named, and drawing the shared focus ring (data-ui-focus). Before,
+  // it was role="button" with none of that — invisible to keyboard users.
+  const onKeyDown = onClick
+    ? (event: React.KeyboardEvent<SVGSVGElement>) => {
+        if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); onClick(); }
+      }
+    : undefined;
   const interactiveProps = onClick
-    ? { onClick, role: 'button' as const, style: { color, cursor: 'pointer', ...style } }
+    ? { onClick, onKeyDown, role: 'button' as const, tabIndex: 0, 'aria-label': label, 'data-ui-focus': '', style: { color, cursor: 'pointer', ...style } }
     : { 'aria-hidden': 'true' as const, style: color ? { color, ...style } : style };
   // Callers that never pass their own strokeWidth land on the 1.75 default —
   // for those (and any caller that happens to ask for 1.75 explicitly, which
@@ -346,7 +358,11 @@ export function Icon({ name, size = 16, strokeWidth = 1.75, className, style, co
         className={className}
         style={interactiveProps.style}
         onClick={onClick}
+        onKeyDown={onKeyDown}
         role={onClick ? 'button' : undefined}
+        tabIndex={onClick ? 0 : undefined}
+        aria-label={onClick ? label : undefined}
+        data-ui-focus={onClick ? '' : undefined}
         aria-hidden={onClick ? undefined : true}
         fallback={strokeNode}
       />

@@ -119,7 +119,7 @@ export function GerejiAngaRfqs() {
                         <td style={{ ...TD, color: 'var(--ink3)' }}>{formatDate(r.created_at)}</td>
                         <td style={{ ...TD, textAlign: 'right' }}>
                           <DropdownMenu>
-                            <DropdownMenuTrigger asChild><Button variant="ghost" size="icon"><Icon name="moreHorizontal" size={16} /></Button></DropdownMenuTrigger>
+                            <DropdownMenuTrigger asChild><Button aria-label={`More actions ${r.number ?? ''}`.trim()} variant="ghost" size="icon"><Icon name="moreHorizontal" size={16} /></Button></DropdownMenuTrigger>
                             <DropdownMenuContent align="end">
                               <DropdownMenuItem onClick={() => navigate(`/gereji/anga/quotes?rfq=${r.id}`)}><Icon name="fileText" size={14} /> Create quote</DropdownMenuItem>
                               {(TRANSITIONS[r.status] ?? []).map(s => (
@@ -147,11 +147,11 @@ export function GerejiAngaRfqs() {
                 <div>
                   <label style={LABEL}>Customer</label>
                   <Select value={customerId} onValueChange={setCustomerId}>
-                    <SelectTrigger><SelectValue placeholder="Select customer" /></SelectTrigger>
+                    <SelectTrigger aria-label="Customer"><SelectValue placeholder="Select customer" /></SelectTrigger>
                     <SelectContent>{customers.map(c => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}</SelectContent>
                   </Select>
                 </div>
-                <div><label style={LABEL}>Aircraft registration</label><Input value={aircraftReg} onChange={e => setAircraftReg(e.target.value)} placeholder="e.g. 5H-CAS" /></div>
+                <div><label style={LABEL}>Aircraft registration</label><Input value={aircraftReg} onChange={e => setAircraftReg(e.target.value)} placeholder="e.g. 5H-CAS" aria-label="Aircraft registration" /></div>
               </div>
               <CheckboxRow title="AOG — aircraft on ground, urgent" checked={aogFlag} onCheckedChange={setAogFlag} />
               <div>
@@ -165,7 +165,7 @@ export function GerejiAngaRfqs() {
                   <div key={i} style={{ display: 'grid', gridTemplateColumns: '1fr 100px auto', gap: 8, marginBottom: 8 }}>
                     <Input placeholder="Part number" value={it.pn_free_text} onChange={e => setItems(prev => prev.map((x, j) => j === i ? { ...x, pn_free_text: e.target.value } : x))} />
                     <Input type="number" min={1} value={it.quantity} onChange={e => setItems(prev => prev.map((x, j) => j === i ? { ...x, quantity: Number(e.target.value) || 1 } : x))} />
-                    <Button variant="ghost" size="icon" onClick={() => setItems(prev => prev.filter((_, j) => j !== i))} disabled={items.length === 1}><Icon name="close" size={14} /></Button>
+                    <Button aria-label="Close" variant="ghost" size="icon" onClick={() => setItems(prev => prev.filter((_, j) => j !== i))} disabled={items.length === 1}><Icon name="close" size={14} /></Button>
                   </div>
                 ))}
               </div>

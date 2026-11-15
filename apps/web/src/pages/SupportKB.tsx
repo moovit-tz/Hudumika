@@ -480,7 +480,7 @@ export const SupportKB: React.FC = () => {
         </SectionCard>
       ) : (
         /* TAB 3: AI Support Grounding Docs */
-        <SectionCard title="Bliss AI Assistant Knowledge Vector Index">
+        <SectionCard title="Hudu knowledge index">
           <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
             <div style={{ background: 'linear-gradient(135deg, var(--purple-l) 0%, var(--teal-l) 100%)', borderRadius: 'var(--r-lg)', border: '1px solid var(--purple)', padding: 18, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
@@ -510,7 +510,7 @@ export const SupportKB: React.FC = () => {
               <DialogTitle style={{ fontSize: 16 }}>
                 {editingArticleId ? 'Edit Article' : 'Publish New Knowledge Article'}
               </DialogTitle>
-              <Button variant="ghost" size="sm" onClick={() => setShowArticleModal(false)} style={{ padding: "var(--ds-btn-py-sm) var(--space-md)" }}>
+              <Button aria-label="Close" variant="ghost" size="sm" onClick={() => setShowArticleModal(false)} style={{ padding: "var(--ds-btn-py-sm) var(--space-md)" }}>
                 <Icon name="x" size={16} />
               </Button>
             </DialogHeader>
@@ -532,14 +532,13 @@ export const SupportKB: React.FC = () => {
                   <Combobox
                     options={[{ value: '', label: '— Uncategorized —' }, ...categories.map(c => ({ value: c.id, label: c.name }))]}
                     value={categoryId}
-                    onChange={setCategoryId}
-                  />
+                    onChange={setCategoryId} aria-label="CATEGORY" />
                 </div>
 
                 <div>
                   <label style={{ fontSize: 11.5, fontWeight: 700, color: 'var(--ink2)', display: 'block', marginBottom: 4 }}>STATUS</label>
                   <Select value={status} onValueChange={setStatus}>
-                    <SelectTrigger className="input-field"><SelectValue /></SelectTrigger>
+                    <SelectTrigger className="input-field" aria-label="STATUS"><SelectValue /></SelectTrigger>
                     <SelectContent>
                       <SelectItem value="Published">🟢 Published (Live)</SelectItem>
                       <SelectItem value="Draft">⚪ Draft (Internal)</SelectItem>
@@ -577,7 +576,7 @@ export const SupportKB: React.FC = () => {
           <DialogContent hideClose className="w-full max-w-110 p-0 gap-0 overflow-hidden">
             <DialogHeader style={{ padding: '16px 20px', borderBottom: '1px solid var(--border)', flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', background: 'var(--bg)', textAlign: 'left' }}>
               <DialogTitle style={{ fontSize: 16 }}>Create Topic Category</DialogTitle>
-              <Button variant="ghost" size="sm" onClick={() => setShowCategoryModal(false)} style={{ padding: "var(--ds-btn-py-sm) var(--space-md)" }}>
+              <Button aria-label="Close" variant="ghost" size="sm" onClick={() => setShowCategoryModal(false)} style={{ padding: "var(--ds-btn-py-sm) var(--space-md)" }}>
                 <Icon name="x" size={16} />
               </Button>
             </DialogHeader>
@@ -623,7 +622,7 @@ export const SupportKB: React.FC = () => {
                 <Badge variant="brand">{previewArticle.category_name || 'General'}</Badge>
                 <Badge variant={previewArticle.status === 'Published' ? 'success' : 'gray'}>{previewArticle.status || 'Draft'}</Badge>
               </div>
-              <Button variant="ghost" size="sm" onClick={() => setPreviewArticle(null)} style={{ padding: "var(--ds-btn-py-sm) var(--space-md)" }}>
+              <Button aria-label="Close" variant="ghost" size="sm" onClick={() => setPreviewArticle(null)} style={{ padding: "var(--ds-btn-py-sm) var(--space-md)" }}>
                 <Icon name="x" size={16} />
               </Button>
             </div>

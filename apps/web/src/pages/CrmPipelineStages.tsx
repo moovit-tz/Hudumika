@@ -825,8 +825,7 @@ export function CrmPipelineStages() {
                 value={editLabel}
                 onChange={(e) => setEditLabel(e.target.value)}
                 placeholder="e.g. Contract Negotiation"
-                className="text-sm"
-              />
+                className="text-sm" aria-label="Stage Name" />
             </div>
 
             {/* Color Swatch */}
@@ -986,8 +985,7 @@ export function CrmPipelineStages() {
                 value={newDialogLabel}
                 onChange={(e) => setNewDialogLabel(e.target.value)}
                 placeholder="e.g. Solution Demo, Legal Review"
-                className="text-sm"
-              />
+                className="text-sm" aria-label="Stage Name" />
             </div>
 
             <div>

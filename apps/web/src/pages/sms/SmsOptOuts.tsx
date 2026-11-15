@@ -6,274 +6,273 @@ import { SectionLoading } from '../../components/ui/spinner.js';
 import { Badge } from '../../components/ui/badge.js';
 import { Button } from '../../components/ui/button.js';
 import { Input } from '../../components/ui/input.js';
-import { FeaturedIcon } from '../../components/ui/featured-icon.js';
-import { Checkbox } from '../../components/ui/checkbox.js';
-import { SingleSelectFilter } from '../../components/ui/filter-dropdown.js';
 import { apiFetch } from '../../lib/api.js';
 import { usePageSEO } from '../../hooks/usePageSEO.js';
 import { showConfirm } from '../../lib/confirm.js';
 import { showAlert } from '../../lib/alert.js';
-import { downloadSmsCsv, SmsFilterMenu, SmsListPagination, SmsListToolbar, useSmsList } from './SmsListControls.js';
+import { downloadSmsCsv, SmsListPagination, useSmsList } from './SmsListControls.js';
+import './Sms.css';
 
 interface OptOut {
   id: string;
   phone: string;
   reason: string;
+  source?: 'UNSUBSCRIBED' | 'BOUNCED' | 'ADDED BY HAND';
+  applies_to?: string;
+  is_platform_wide?: boolean;
   note: string | null;
   created_at: string;
 }
 
-interface Inbound {
-  id: string;
-  from_number: string;
-  body: string;
-  matched_keyword: string | null;
-  created_at: string;
-}
+const FILTER_PILLS = ['ALL', 'UNSUBSCRIBED', 'BOUNCED', 'ADDED BY HAND'] as const;
 
 export function SmsOptOuts() {
-  usePageSEO('SMS Opt-outs & DND Blacklist', 'Enforce carrier DND compliance, manage self-opted STOP requests, and block unwanted numbers.');
+  usePageSEO('Unsubscribes & Suppression List', 'Manage recipient unsubscribes, bounce suppressions, and tenant-wide DND blacklists.');
+
   const [optOuts, setOptOuts] = useState<OptOut[]>([]);
-  const [inbound, setInbound] = useState<Inbound[]>([]);
   const [loading, setLoading] = useState(true);
-  const [phone, setPhone] = useState('');
+  const [address, setAddress] = useState('');
   const [note, setNote] = useState('');
   const [adding, setAdding] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [activeFilter, setActiveFilter] = useState<string>('ALL');
   const [search, setSearch] = useState('');
-  const [reasonFilter, setReasonFilter] = useState<string | null>(null);
 
   const load = useCallback(() => {
     setLoading(true);
-    Promise.all([
-      apiFetch('/v1/sms/opt-outs').then(res => setOptOuts(res.data || [])),
-      apiFetch('/v1/sms/inbound').then(res => setInbound(res.data || [])),
-    ])
-      .catch(() => {})
+    apiFetch('/v1/sms/opt-outs')
+      .then((res) => {
+        const rawList = res.data || [];
+        const enriched: OptOut[] = rawList.map((item: any) => ({
+          ...item,
+          source: item.reason === 'stop_keyword' ? 'UNSUBSCRIBED' : item.reason === 'bounce' ? 'BOUNCED' : 'ADDED BY HAND',
+          applies_to: item.applies_to || 'Every sender on Hudumika',
+          is_platform_wide: item.is_platform_wide ?? true,
+        }));
+        setOptOuts(enriched);
+      })
+      .catch(() => setOptOuts([]))
       .finally(() => setLoading(false));
   }, []);
 
-  useEffect(load, [load]);
+  useEffect(() => {
+    load();
+  }, [load]);
 
-  async function addOptOut() {
-    if (!phone.trim()) {
-      setError('Please enter a phone number to block.');
+  async function handleAdd() {
+    if (!address.trim()) {
+      showAlert('Please enter an address or phone number to suppress.');
       return;
     }
     setAdding(true);
-    setError(null);
     try {
       await apiFetch('/v1/sms/opt-outs', {
         method: 'POST',
-        body: JSON.stringify({ phone: phone.trim(), note: note.trim() || undefined }),
+        body: JSON.stringify({ phone: address.trim(), note: note.trim() || undefined }),
       });
-      setPhone('');
+      setAddress('');
       setNote('');
+      showAlert('Address added to suppression list.');
       load();
     } catch (err: any) {
-      setError(err.message || 'Failed to blacklist number.');
+      showAlert(err.message || 'Failed to add address to suppression list.');
     } finally {
       setAdding(false);
     }
   }
 
-  async function remove(id: string, phoneNum: string) {
+  async function handleRemove(item: OptOut) {
     if (
       !(await showConfirm(
-        `Remove "${phoneNum}" from blacklist? The recipient will be eligible to receive SMS broadcasts again.`,
-        { title: 'Remove from blacklist?', confirmLabel: 'Unblock' }
+        `Remove "${item.phone}" from suppression list? This address will be eligible to receive messages again.`,
+        { title: 'Lift Suppression?', confirmLabel: 'Lift Suppression' }
       ))
     ) {
       return;
     }
-    setOptOuts(prev => prev.filter(o => o.id !== id));
-    await apiFetch(`/v1/sms/opt-outs/${id}`, { method: 'DELETE' }).catch(err => {
-      showAlert(err.message || 'Failed to remove opt-out.');
+    try {
+      await apiFetch(`/v1/sms/opt-outs/${item.id}`, { method: 'DELETE' });
+      showAlert('Suppression lifted.');
       load();
-    });
+    } catch (err: any) {
+      showAlert(err.message || 'Failed to remove suppression.');
+    }
   }
 
   const filteredOptOuts = useMemo(() => {
-    return optOuts.filter(o => {
-      const match =
+    return optOuts.filter((o) => {
+      const matchesFilter =
+        activeFilter === 'ALL' ||
+        (activeFilter === 'UNSUBSCRIBED' && o.source === 'UNSUBSCRIBED') ||
+        (activeFilter === 'BOUNCED' && o.source === 'BOUNCED') ||
+        (activeFilter === 'ADDED BY HAND' && o.source === 'ADDED BY HAND');
+
+      const matchesSearch =
         !search.trim() ||
         o.phone.toLowerCase().includes(search.toLowerCase()) ||
         (o.note && o.note.toLowerCase().includes(search.toLowerCase()));
-      return match && (!reasonFilter || o.reason === reasonFilter);
+
+      return matchesFilter && matchesSearch;
     });
-  }, [optOuts, search, reasonFilter]);
+  }, [optOuts, activeFilter, search]);
+
   const list = useSmsList(filteredOptOuts);
 
-  function exportSelected() {
-    downloadSmsCsv(`sms-opt-outs-${new Date().toISOString().slice(0, 10)}.csv`, ['Phone', 'Type', 'Reason / Note', 'Recorded At'],
-      list.selectedItems.map(o => [o.phone, o.reason === 'stop_keyword' ? 'Inbound STOP Keyword' : 'Manual Block', o.note, o.created_at]));
+  function exportCsv() {
+    downloadSmsCsv(
+      `unsubscribes-${new Date().toISOString().slice(0, 10)}.csv`,
+      ['Address', 'Source', 'Applies To', 'Platform Wide', 'Note', 'Date Added'],
+      list.selectedItems.map((o) => [
+        o.phone,
+        o.source || '',
+        o.applies_to || '',
+        o.is_platform_wide ? 'Yes' : 'No',
+        o.note || '',
+        o.created_at,
+      ])
+    );
   }
 
-  const stopReplies = inbound.filter(
-    i => i.matched_keyword?.toUpperCase() === 'STOP' || i.body.trim().toUpperCase() === 'STOP'
-  );
-
   return (
-    <div style={{ flex: 1, overflowY: 'auto' }}>
+    <div className="sms-container">
       <PageHeader
-        crumbs={['SMS', 'Configuration', 'Opt-outs']}
-        titlePlain="Opt-Outs &"
-        titleEm="DND Blacklist"
-        subtitle="Telecom regulatory compliance — numbers in this registry are strictly excluded from all outgoing SMS dispatches."
-      />
-
-      {/* Compliance Information Header */}
-      <div
-        style={{
-          display: 'flex',
-          alignItems: 'center',
-          gap: 14,
-          background: 'var(--white)',
-          border: '1px solid var(--border)',
-          borderRadius: 'var(--r)',
-          padding: '14px 18px',
-          marginBottom: 20,
-        }}
-      >
-        <FeaturedIcon variant="warning" size="sm" shape="circle">
-          <Icon name="shield" size={16} />
-        </FeaturedIcon>
-        <div style={{ flex: 1, fontSize: 13, color: 'var(--ink)' }}>
-          <div style={{ fontWeight: 700, marginBottom: 2 }}>Carrier-Enforced Do-Not-Disturb (DND) Registry</div>
-          <div style={{ color: 'var(--ink2)', lineHeight: 1.45 }}>
-            Any incoming message containing the keyword <strong>STOP</strong> automatically opts out the recipient. The dispatch engine intercepts and suppresses outgoing messages to blacklisted numbers prior to telecom gateway charging.
-          </div>
-        </div>
-      </div>
-
-      {/* Overview Stat Cards */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 16, marginBottom: 20 }}>
-        <div style={{ background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 'var(--r)', padding: '16px 18px', display: 'flex', alignItems: 'center', gap: 14 }}>
-          <FeaturedIcon variant="error" size="md" shape="circle"><Icon name="shield" size={18} /></FeaturedIcon>
-          <div>
-            <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--ink3)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>Blacklisted Numbers</div>
-            <div style={{ fontSize: 22, fontWeight: 700, color: 'var(--ink)' }}>{loading ? '—' : optOuts.length}</div>
-          </div>
-        </div>
-
-        <div style={{ background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 'var(--r)', padding: '16px 18px', display: 'flex', alignItems: 'center', gap: 14 }}>
-          <FeaturedIcon variant="warning" size="md" shape="circle"><Icon name="inbox" size={18} /></FeaturedIcon>
-          <div>
-            <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--ink3)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>Automated STOP Replies</div>
-            <div style={{ fontSize: 22, fontWeight: 700, color: 'var(--ink)' }}>{loading ? '—' : stopReplies.length}</div>
-          </div>
-        </div>
-
-        <div style={{ background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 'var(--r)', padding: '16px 18px', display: 'flex', alignItems: 'center', gap: 14 }}>
-          <FeaturedIcon variant="success" size="md" shape="circle"><Icon name="checkCircle" size={18} /></FeaturedIcon>
-          <div>
-            <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--ink3)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>Compliance Status</div>
-            <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--green)', marginTop: 4 }}>100% Active Guard</div>
-          </div>
-        </div>
-      </div>
-
-      {/* Manual Blacklist Form */}
-      <div style={{ marginBottom: 20 }}>
-        <SectionCard title="Manual Blacklist Entry" collapsible={false}>
-          <div style={{ display: 'flex', gap: 12, alignItems: 'flex-end' }}>
-            <div style={{ flex: 1, maxWidth: 280 }}>
-              <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: 'var(--ink2)', marginBottom: 6 }}>
-                Phone Number *
-              </label>
-              <Input
-                value={phone}
-                onChange={e => setPhone(e.target.value)}
-                placeholder="+255700000000"
-              />
-            </div>
-            <div style={{ flex: 1, maxWidth: 360 }}>
-              <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: 'var(--ink2)', marginBottom: 6 }}>
-                Reason / Note (Optional)
-              </label>
-              <Input
-                value={note}
-                onChange={e => setNote(e.target.value)}
-                placeholder="e.g. Customer requested email only"
-              />
-            </div>
-            <Button disabled={adding} onClick={addOptOut}>
-              <Icon name="plus" size={14} /> Add to Blacklist
+        crumbs={[{ label: 'SMS & Messaging', to: '/sms' }, 'Unsubscribes']}
+        titlePlain="Unsubscribes &"
+        titleEm="Suppression"
+        subtitle="Addresses this workspace may not message, why, and which sender each one applies to. Someone who left one sender profile can still be reached from another. Platform wide entries are listed so you can see what is blocking a send, but only a platform admin can lift one."
+        actions={
+          <div style={{ display: 'flex', gap: 10 }}>
+            {list.selectedIds.size > 0 && (
+              <Button variant="outline" size="sm" onClick={exportCsv}>
+                <Icon name="download" size={13} /> Export {list.selectedIds.size}
+              </Button>
+            )}
+            <Button variant="outline" size="sm" onClick={load}>
+              <Icon name="refresh" size={13} /> Refresh
             </Button>
           </div>
-          {error && <div style={{ color: 'var(--red)', fontSize: 12.5, marginTop: 10 }}>{error}</div>}
-        </SectionCard>
-      </div>
+        }
+      />
 
-      {/* Blacklist Table */}
-      <div style={{ marginBottom: 14 }}>
-        <SmsListToolbar search={search} onSearch={setSearch} placeholder="Search blacklist…" total={filteredOptOuts.length}
-          page={list.page} pageSize={list.pageSize} selectedCount={list.selectedIds.size} onPageSizeChange={list.setPageSize}
-          onExport={exportSelected} activeFilterCount={reasonFilter ? 1 : 0}
-          filterContent={() => <SmsFilterMenu showClear={Boolean(reasonFilter)} onClear={() => setReasonFilter(null)}>
-            <SingleSelectFilter label="Opt-out type" value={reasonFilter} onChange={setReasonFilter} options={[
-              { value: 'stop_keyword', label: 'Inbound STOP keyword' }, { value: 'manual', label: 'Manual block' },
-            ]} />
-          </SmsFilterMenu>} />
-      </div>
+      {/* Top Add To List Form matching Image 3 */}
+      <SectionCard padded collapsible={false}>
+        <div style={{ display: 'flex', alignItems: 'flex-end', gap: 14, flexWrap: 'wrap' }}>
+          <div style={{ flex: '1 1 260px' }}>
+            <label style={{ display: 'block', fontSize: 11, fontWeight: 700, textTransform: 'uppercase', color: 'var(--ink3)', letterSpacing: 0.5, marginBottom: 6 }}>
+              ADDRESS TO SUPPRESS
+            </label>
+            <Input
+              value={address}
+              onChange={(e) => setAddress(e.target.value)}
+              placeholder="name@example.com or phone…"
+              style={{ fontSize: 13 }} aria-label="ADDRESS TO SUPPRESS" />
+          </div>
 
-      <SectionCard title="Blacklisted Numbers" padded={false} collapsible={false}>
+          <div style={{ flex: '2 1 300px' }}>
+            <label style={{ display: 'block', fontSize: 11, fontWeight: 700, textTransform: 'uppercase', color: 'var(--ink3)', letterSpacing: 0.5, marginBottom: 6 }}>
+              NOTE (OPTIONAL)
+            </label>
+            <Input
+              value={note}
+              onChange={(e) => setNote(e.target.value)}
+              placeholder="Why this address is on the list"
+              style={{ fontSize: 13 }} aria-label="NOTE (OPTIONAL)" />
+          </div>
+
+          <Button disabled={adding || !address.trim()} onClick={handleAdd}>
+            <Icon name="plus" size={14} /> Add to list
+          </Button>
+        </div>
+
+        {/* Filter Pills */}
+        <div className="sms-filter-pills" style={{ marginTop: 20 }}>
+          {FILTER_PILLS.map((p) => (
+            <button
+              key={p}
+              type="button"
+              className={`sms-filter-pill ${activeFilter === p ? 'active' : ''}`}
+              onClick={() => setActiveFilter(p)}
+              data-ui-native-button=""
+            >
+              {p}
+            </button>
+          ))}
+        </div>
+      </SectionCard>
+
+      {/* Table matching Image 3 */}
+      <SectionCard padded={false} collapsible={false}>
         {loading ? (
           <SectionLoading />
         ) : filteredOptOuts.length === 0 ? (
-          <div style={{ padding: 48, textAlign: 'center', color: 'var(--ink3)' }}>
-            No blacklisted numbers found.
+          <div style={{ padding: '64px 24px', textAlign: 'center', color: 'var(--ink3)', fontSize: 13.5 }}>
+            No suppressed addresses found matching your filters.
           </div>
         ) : (
-          <div className="rtbl-wrap">
-            <table className="rtbl" style={{ width: '100%', borderCollapse: 'collapse' }}>
+          <div style={{ overflowX: 'auto' }}>
+            <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: 12.5 }}>
               <thead>
-                <tr>
-                  <th style={{ width: 44, padding: '10px 16px', background: 'var(--bg)', borderBottom: '1px solid var(--border)' }}>
-                    <Checkbox checked={list.allSelected ? true : list.someSelected ? 'indeterminate' : false} onCheckedChange={list.toggleAll} aria-label="Select all filtered opt-outs" />
+                <tr style={{ background: 'var(--bg)', borderBottom: '1px solid var(--border)' }}>
+                  <th style={{ padding: '12px 16px', fontSize: 11, fontWeight: 700, color: 'var(--ink3)', textTransform: 'uppercase', letterSpacing: 0.5 }}>
+                    ADDRESS
                   </th>
-                  {['Phone Number', 'Opt-Out Type', 'Reason / Note', 'Recorded Date', ''].map(h => (
-                    <th
-                      key={h}
-                      style={{
-                        padding: '10px 16px',
-                        textAlign: 'left',
-                        fontSize: 10.5,
-                        fontWeight: 700,
-                        color: 'var(--ink3)',
-                        background: 'var(--bg)',
-                        borderBottom: '1px solid var(--border)',
-                        textTransform: 'uppercase',
-                        letterSpacing: '0.05em',
-                      }}
-                    >
-                      {h}
-                    </th>
-                  ))}
+                  <th style={{ padding: '12px 16px', fontSize: 11, fontWeight: 700, color: 'var(--ink3)', textTransform: 'uppercase', letterSpacing: 0.5 }}>
+                    SOURCE
+                  </th>
+                  <th style={{ padding: '12px 16px', fontSize: 11, fontWeight: 700, color: 'var(--ink3)', textTransform: 'uppercase', letterSpacing: 0.5 }}>
+                    APPLIES TO
+                  </th>
+                  <th style={{ padding: '12px 16px', fontSize: 11, fontWeight: 700, color: 'var(--ink3)', textTransform: 'uppercase', letterSpacing: 0.5 }}>
+                    ADDED
+                  </th>
+                  <th style={{ padding: '12px 16px', textAlign: 'right', fontSize: 11, fontWeight: 700, color: 'var(--ink3)', textTransform: 'uppercase', letterSpacing: 0.5 }}>
+                    SCOPE / ACTION
+                  </th>
                 </tr>
               </thead>
               <tbody>
-                {list.pageItems.map(o => (
-                  <tr key={o.id} style={{ borderBottom: '1px solid var(--border)' }}>
-                    <td style={{ padding: '12px 16px' }}><Checkbox checked={list.selectedIds.has(o.id)} onCheckedChange={() => list.toggle(o.id)} aria-label={`Select ${o.phone}`} /></td>
-                    <td style={{ padding: '12px 16px', fontSize: 13.5, fontWeight: 700, color: 'var(--ink)', fontFamily: 'monospace' }}>
-                      {o.phone}
+                {list.pageItems.map((item) => (
+                  <tr
+                    key={item.id}
+                    style={{
+                      borderBottom: '1px solid var(--border)',
+                      transition: 'background 0.15s',
+                    }}
+                  >
+                    <td style={{ padding: '12px 16px', fontWeight: 700, color: 'var(--ink)' }}>
+                      {item.phone}
+                      {item.note && (
+                        <div style={{ fontSize: 11, color: 'var(--ink3)', fontWeight: 400, marginTop: 2 }}>
+                          {item.note}
+                        </div>
+                      )}
                     </td>
                     <td style={{ padding: '12px 16px' }}>
-                      <Badge variant={o.reason === 'stop_keyword' ? 'warning' : 'gray'}>
-                        {o.reason === 'stop_keyword' ? 'Inbound STOP Keyword' : 'Manual Block'}
+                      <Badge variant={item.source === 'UNSUBSCRIBED' ? 'warning' : item.source === 'BOUNCED' ? 'error' : 'gray'}>
+                        {item.source}
                       </Badge>
                     </td>
-                    <td style={{ padding: '12px 16px', fontSize: 12.5, color: 'var(--ink2)' }}>
-                      {o.note || '—'}
+                    <td style={{ padding: '12px 16px', color: 'var(--ink2)' }}>
+                      {item.applies_to}
                     </td>
-                    <td style={{ padding: '12px 16px', fontSize: 12, color: 'var(--ink3)' }}>
-                      {new Date(o.created_at).toLocaleDateString()}
+                    <td style={{ padding: '12px 16px', color: 'var(--ink3)' }}>
+                      {new Date(item.created_at).toLocaleString()}
                     </td>
                     <td style={{ padding: '12px 16px', textAlign: 'right' }}>
-                      <Button size="sm" variant="ghost" onClick={() => remove(o.id, o.phone)}>
-                        <Icon name="x" size={13} color="var(--red)" /> Unblock
-                      </Button>
+                      <div style={{ display: 'inline-flex', alignItems: 'center', gap: 10 }}>
+                        {item.is_platform_wide && (
+                          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: 10.5, fontWeight: 700, color: 'var(--ink3)', textTransform: 'uppercase', letterSpacing: 0.5 }}>
+                            <Icon name="shield" size={12} color="var(--teal)" /> PLATFORM WIDE
+                          </span>
+                        )}
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          onClick={() => handleRemove(item)}
+                          title="Lift suppression"
+                        >
+                          <Icon name="trash2" size={13} color="var(--red)" />
+                        </Button>
+                      </div>
                     </td>
                   </tr>
                 ))}
@@ -281,6 +280,7 @@ export function SmsOptOuts() {
             </table>
           </div>
         )}
+
         <SmsListPagination page={list.page} totalPages={list.totalPages} onPage={list.setPage} />
       </SectionCard>
     </div>

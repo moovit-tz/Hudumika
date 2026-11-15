@@ -157,7 +157,7 @@ export function SealDocumentPanel({ entityType, entityId }: { entityType: 'lot' 
                     <Button variant="outline" type="button" onClick={() => handleVerify(d.id, 'REJECTED')}>Reject</Button>
                   </>
                 )}
-                <Button variant="outline" type="button" onClick={() => handleDelete(d.id)}><Icon name="trash" size={12} /></Button>
+                <Button aria-label={`Delete ${d.filename ?? ''}`.trim()} variant="outline" type="button" onClick={() => handleDelete(d.id)}><Icon name="trash" size={12} /></Button>
               </div>
             ))}
           </div>

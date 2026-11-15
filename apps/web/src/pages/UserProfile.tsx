@@ -17,6 +17,7 @@ import { Textarea } from '../components/ui/textarea.js';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '../components/ui/select.js';
 import { SkeletonPage } from '../components/ui/skeleton.js';
 import { ButtonSpinner } from '../components/ui/spinner.js';
+import { Tip } from '../components/ui/tooltip.js';
 import './UserProfile.css';
 
 const COUNTRY_DEFAULTS: Record<string, { city: string; timezone?: string }> = {
@@ -165,46 +166,55 @@ export const UserProfile: React.FC = () => {
             {/* Bottom scrim + drag hint */}
             <div className="up-cover-scrim">
               <span className="up-cover-drag-hint">
-                <Icon name="hand" size={13} /> Drag to reposition
+                <Icon name="hand" size={12} /> Drag to reposition
               </span>
             </div>
             {/* Frosted icon buttons — top right */}
             <div className="up-cover-actions" onPointerDown={e => e.stopPropagation()}>
-              <button
-                type="button"
-                className="up-cover-btn"
-                title="Change cover photo"
-                disabled={saving}
-                onClick={e => { e.stopPropagation(); coverInput.current?.click(); }}
-               data-ui-native-button="">
-                <Icon name="camera" size={15} />
-              </button>
-              <button
-                type="button"
-                className="up-cover-btn is-remove"
-                title="Remove cover photo"
-                disabled={saving}
-                onClick={e => { e.stopPropagation(); removeCover(); }}
-               data-ui-native-button="">
-                <Icon name="trash" size={15} />
-              </button>
+              <Tip label="Change cover photo" side="bottom">
+                <button
+                  type="button"
+                  className="up-cover-btn"
+                  aria-label="Change cover photo"
+                  disabled={saving}
+                  onClick={e => { e.stopPropagation(); coverInput.current?.click(); }}
+                  data-ui-native-button=""
+                >
+                  <Icon name="camera" size={13} />
+                </button>
+              </Tip>
+              <Tip label="Remove cover photo" side="bottom">
+                <button
+                  type="button"
+                  className="up-cover-btn is-remove"
+                  aria-label="Remove cover photo"
+                  disabled={saving}
+                  onClick={e => { e.stopPropagation(); removeCover(); }}
+                  data-ui-native-button=""
+                >
+                  <Icon name="trash" size={13} />
+                </button>
+              </Tip>
             </div>
           </div>
         ) : (
-          <button
-            type="button"
-            className="up-cover is-empty"
-            onClick={() => coverInput.current?.click()}
-           data-ui-native-button="">
-            <span className="up-cover-empty-icon"><Icon name="camera" size={18} /></span>
-            <span className="up-cover-empty-label">Add a cover photo</span>
-          </button>
+          <Tip label="Upload a workspace profile cover photo">
+            <button
+              type="button"
+              className="up-cover is-empty"
+              onClick={() => coverInput.current?.click()}
+              data-ui-native-button=""
+            >
+              <span className="up-cover-empty-icon"><Icon name="camera" size={13} /></span>
+              <span className="up-cover-empty-label">Add a cover photo</span>
+            </button>
+          </Tip>
         )}
 
         {/* Identity strip */}
         <CardContent className={`up-identity${form.cover_url ? ' has-cover' : ''}`}>
           <div className="up-id-avatar">
-            <AvatarPicker id={user.id} kind="people" name={user.name} size={72} controls="default" />
+            <AvatarPicker id={user.id} kind="people" name={user.name} size={56} controls="compact" ring={Boolean(form.cover_url)} />
           </div>
           <div className="up-id-body">
             <div className="up-id-name">{user.name}</div>
@@ -238,11 +248,13 @@ export const UserProfile: React.FC = () => {
               <div className="up-field">
                 <Label htmlFor="up-name">Full name</Label>
                 <Input id="up-name" autoComplete="name" required value={form.name}
+                  className="h-8 text-xs rounded-[var(--task-radius,var(--r,8px))]"
                   onChange={e => updateField('name', e.target.value)} />
               </div>
               <div className="up-field">
                 <Label htmlFor="up-website">Website</Label>
                 <Input id="up-website" type="url" placeholder="https://" value={form.website}
+                  className="h-8 text-xs rounded-[var(--task-radius,var(--r,8px))]"
                   onChange={e => updateField('website', e.target.value)} />
               </div>
               <div className="up-field up-field-wide">
@@ -250,7 +262,8 @@ export const UserProfile: React.FC = () => {
                   <Label htmlFor="up-bio">Bio</Label>
                   <span className="up-char-count">{form.bio.length}/500</span>
                 </div>
-                <Textarea id="up-bio" rows={3} maxLength={500} value={form.bio}
+                <Textarea id="up-bio" rows={2} maxLength={500} value={form.bio}
+                  className="text-xs py-1.5 resize-none rounded-[var(--task-radius,var(--r,8px))]"
                   onChange={e => updateField('bio', e.target.value)} />
               </div>
             </CardContent>
@@ -269,37 +282,38 @@ export const UserProfile: React.FC = () => {
                   setForm(c => ({ ...c, country, city: d?.city ?? c.city, timezone: d?.timezone ?? c.timezone }));
                   setSaved(false);
                 }}>
-                  <SelectTrigger id="up-country"><SelectValue /></SelectTrigger>
-                  <SelectContent>
+                  <SelectTrigger id="up-country" className="h-8 text-xs rounded-[var(--task-radius,var(--r,8px))]"><SelectValue /></SelectTrigger>
+                  <SelectContent className="rounded-[var(--task-radius,var(--r,8px))]">
                     {[...Object.keys(COUNTRY_DEFAULTS), 'Other'].map(c =>
-                      <SelectItem key={c} value={c}>{c}</SelectItem>)}
+                      <SelectItem key={c} value={c} className="text-xs">{c}</SelectItem>)}
                   </SelectContent>
                 </Select>
               </div>
               <div className="up-field">
                 <Label htmlFor="up-city">City</Label>
                 <Input id="up-city" autoComplete="address-level2" value={form.city}
+                  className="h-8 text-xs rounded-[var(--task-radius,var(--r,8px))]"
                   onChange={e => updateField('city', e.target.value)} />
               </div>
               <div className="up-field">
                 <Label htmlFor="up-timezone">Time zone</Label>
                 <Select value={form.timezone} onValueChange={v => updateField('timezone', v)}>
-                  <SelectTrigger id="up-timezone"><SelectValue /></SelectTrigger>
-                  <SelectContent>
-                    {TIMEZONES.map(([v, l]) => <SelectItem key={v} value={v}>{l}</SelectItem>)}
+                  <SelectTrigger id="up-timezone" className="h-8 text-xs rounded-[var(--task-radius,var(--r,8px))]"><SelectValue /></SelectTrigger>
+                  <SelectContent className="rounded-[var(--task-radius,var(--r,8px))]">
+                    {TIMEZONES.map(([v, l]) => <SelectItem key={v} value={v} className="text-xs">{l}</SelectItem>)}
                   </SelectContent>
                 </Select>
               </div>
               <div className="up-field">
                 <Label htmlFor="up-language">Language</Label>
                 <Select value={form.language} onValueChange={v => updateField('language', v)}>
-                  <SelectTrigger id="up-language"><SelectValue /></SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="en">English</SelectItem>
-                    <SelectItem value="sw">Kiswahili</SelectItem>
-                    <SelectItem value="ar">Arabic</SelectItem>
-                    <SelectItem value="fr">French</SelectItem>
-                    <SelectItem value="zh">Chinese</SelectItem>
+                  <SelectTrigger id="up-language" className="h-8 text-xs rounded-[var(--task-radius,var(--r,8px))]"><SelectValue /></SelectTrigger>
+                  <SelectContent className="rounded-[var(--task-radius,var(--r,8px))]">
+                    <SelectItem value="en" className="text-xs">English</SelectItem>
+                    <SelectItem value="sw" className="text-xs">Kiswahili</SelectItem>
+                    <SelectItem value="ar" className="text-xs">Arabic</SelectItem>
+                    <SelectItem value="fr" className="text-xs">French</SelectItem>
+                    <SelectItem value="zh" className="text-xs">Chinese</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
@@ -312,17 +326,23 @@ export const UserProfile: React.FC = () => {
               role={error ? 'alert' : 'status'}
               className={`up-save-status${error ? ' is-error' : saved ? ' is-saved' : ''}`}
             >
-              {saved && <Icon name="checkCircle" size={14} />}
+              {saved && <Icon name="checkCircle" size={13} />}
               {error || (saved ? 'All changes saved.' : 'Save your changes when ready.')}
             </span>
             <div className="up-save-actions">
-              <Button type="button" variant="outline" size="sm" disabled={saving}
-                onClick={() => { setForm(buildInitialForm()); setSaved(false); setError(null); }}>
-                Reset
-              </Button>
-              <Button type="submit" size="sm" disabled={saving}>
-                {saving && <ButtonSpinner />}{saving ? 'Saving…' : 'Save changes'}
-              </Button>
+              <Tip label="Discard unsaved changes">
+                <Button type="button" variant="outline" size="sm" disabled={saving}
+                  className="h-7 text-xs rounded-[var(--task-radius,var(--r,8px))]"
+                  onClick={() => { setForm(buildInitialForm()); setSaved(false); setError(null); }}>
+                  Reset
+                </Button>
+              </Tip>
+              <Tip label="Save profile information and preferences">
+                <Button type="submit" size="sm" disabled={saving}
+                  className="h-7 text-xs rounded-[var(--task-radius,var(--r,8px))]">
+                  {saving && <ButtonSpinner />}{saving ? 'Saving…' : 'Save changes'}
+                </Button>
+              </Tip>
             </div>
           </div>
         </form>
@@ -331,29 +351,33 @@ export const UserProfile: React.FC = () => {
         <aside className="up-sidebar" aria-label="Account and employment">
           <Card>
             <CardHeader className="up-sidebar-ch">
-              <FeaturedIcon variant="brand" size="sm"><Icon name="shield" /></FeaturedIcon>
+              <FeaturedIcon variant="brand" size="sm"><Icon name="shield" size={14} /></FeaturedIcon>
               <div className="up-sidebar-ch-text">
                 <CardTitle>Ondi</CardTitle>
                 <CardDescription>Identity &amp; account settings</CardDescription>
               </div>
             </CardHeader>
             <CardContent className="up-cc up-nav-list">
-              <Button asChild className="up-nav-primary">
-                <Link to="/ondi/personal">
-                  Open Ondi
-                  <Icon name="externalLink" size={13} style={{ marginLeft: 'auto' }} />
-                </Link>
-              </Button>
+              <Tip label="Open full Ondi identity portal">
+                <Button asChild size="sm" className="up-nav-primary h-7 text-xs rounded-[var(--task-radius,var(--r,8px))]">
+                  <Link to="/ondi/personal">
+                    Open Ondi
+                    <Icon name="externalLink" size={12} style={{ marginLeft: 'auto' }} />
+                  </Link>
+                </Button>
+              </Tip>
               <div className="up-nav-links">
                 {ONDI_LINKS.map(item => (
-                  <Link key={item.path} to={`/ondi/personal/${item.path}`} className="up-nav-link">
-                    <span className="up-nav-link-icon"><Icon name={item.icon} size={14} /></span>
-                    <span className="up-nav-link-body">
-                      <span className="up-nav-link-label">{item.label}</span>
-                      <span className="up-nav-link-desc">{item.desc}</span>
-                    </span>
-                    <Icon name="chevronRight" size={13} className="up-nav-link-arrow" />
-                  </Link>
+                  <Tip key={item.path} label={item.desc} side="left">
+                    <Link to={`/ondi/personal/${item.path}`} className="up-nav-link">
+                      <span className="up-nav-link-icon"><Icon name={item.icon} size={13} /></span>
+                      <span className="up-nav-link-body">
+                        <span className="up-nav-link-label">{item.label}</span>
+                        <span className="up-nav-link-desc">{item.desc}</span>
+                      </span>
+                      <Icon name="chevronRight" size={12} className="up-nav-link-arrow" />
+                    </Link>
+                  </Tip>
                 ))}
               </div>
             </CardContent>
@@ -362,19 +386,21 @@ export const UserProfile: React.FC = () => {
           {isStaff && (
             <Card>
               <CardHeader className="up-sidebar-ch">
-                <FeaturedIcon variant="success" size="sm"><Icon name="building" /></FeaturedIcon>
+                <FeaturedIcon variant="success" size="sm"><Icon name="building" size={14} /></FeaturedIcon>
                 <div className="up-sidebar-ch-text">
                   <CardTitle>NexusHR</CardTitle>
                   <CardDescription>Employment, leave &amp; pay</CardDescription>
                 </div>
               </CardHeader>
               <CardContent className="up-cc up-nav-list">
-                <Button asChild className="up-nav-primary">
-                  <Link to="/nexushr/me">
-                    My HR portal
-                    <Icon name="externalLink" size={13} style={{ marginLeft: 'auto' }} />
-                  </Link>
-                </Button>
+                <Tip label="Open NexusHR self-service employee portal">
+                  <Button asChild size="sm" className="up-nav-primary h-7 text-xs rounded-[var(--task-radius,var(--r,8px))]">
+                    <Link to="/nexushr/me">
+                      My HR portal
+                      <Icon name="externalLink" size={12} style={{ marginLeft: 'auto' }} />
+                    </Link>
+                  </Button>
+                </Tip>
               </CardContent>
             </Card>
           )}

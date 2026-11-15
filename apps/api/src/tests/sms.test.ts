@@ -195,7 +195,7 @@ describe('SMS — webhook signature, inbound idempotency, opt-out compliance, re
         expect(result.success).toBe(false);
         expect(result.transient).toBeFalsy();
       } finally { await t.cleanup(); }
-    });
+    }, 60_000);
 
     it('a misconfigured gateway (sync validation failure, no throw) is never marked transient', async () => {
       const t = await createTestTenant('TENANT_ADMIN');

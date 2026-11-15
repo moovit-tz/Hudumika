@@ -90,15 +90,15 @@ export function LexCoreTimeEntries() {
             <DialogBody>
               <div className="lc-form-grid">
                 <div className="lc-field"><label>Matter</label>
-                  <Select value={matterId} onValueChange={setMatterId}><SelectTrigger><SelectValue placeholder="Select matter…" /></SelectTrigger><SelectContent>{matters.map(m => <SelectItem key={m.id} value={m.id}>{m.matter_number} — {m.title}</SelectItem>)}</SelectContent></Select>
+                  <Select value={matterId} onValueChange={setMatterId}><SelectTrigger aria-label="Matter"><SelectValue placeholder="Select matter…" /></SelectTrigger><SelectContent>{matters.map(m => <SelectItem key={m.id} value={m.id}>{m.matter_number} — {m.title}</SelectItem>)}</SelectContent></Select>
                 </div>
-                <div className="lc-field"><label>Date</label><DatePicker date={parseDateOnly(date) ?? null} onChange={d => setDate(toDateOnlyString(d))} /></div>
-                <div className="lc-field"><label>Hours</label><Input type="number" step="0.25" min="0.25" value={hours} onChange={e => setHours(e.target.value)} placeholder="1.5" /></div>
-                <div className="lc-field"><label>Rate (optional)</label><Input type="number" step="any" min="0" value={rate} onChange={e => setRate(e.target.value)} placeholder="Rate per hour" /></div>
+                <div className="lc-field"><label>Date</label><DatePicker date={parseDateOnly(date) ?? null} onChange={d => setDate(toDateOnlyString(d))} aria-label="Date" /></div>
+                <div className="lc-field"><label>Hours</label><Input type="number" step="0.25" min="0.25" value={hours} onChange={e => setHours(e.target.value)} placeholder="1.5" aria-label="Hours" /></div>
+                <div className="lc-field"><label>Rate (optional)</label><Input type="number" step="any" min="0" value={rate} onChange={e => setRate(e.target.value)} placeholder="Rate per hour" aria-label="Rate (optional)" /></div>
                 <div className="lc-field"><label>Billable</label>
-                  <Select value={billable} onValueChange={setBillable}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent><SelectItem value="true">Billable</SelectItem><SelectItem value="false">Non-billable</SelectItem></SelectContent></Select>
+                  <Select value={billable} onValueChange={setBillable}><SelectTrigger aria-label="Billable"><SelectValue /></SelectTrigger><SelectContent><SelectItem value="true">Billable</SelectItem><SelectItem value="false">Non-billable</SelectItem></SelectContent></Select>
                 </div>
-                <div className="lc-field lc-field-full"><label>Description</label><Textarea value={desc} onChange={e => setDesc(e.target.value)} rows={3} placeholder="Work performed…" /></div>
+                <div className="lc-field lc-field-full"><label>Description</label><Textarea value={desc} onChange={e => setDesc(e.target.value)} rows={3} placeholder="Work performed…" aria-label="Description" /></div>
               </div>
             </DialogBody>
             <DialogFooter><Button type="submit" loading={saving} disabled={!matterId || !desc.trim() || !hours} loadingText="Saving…">Log Entry</Button></DialogFooter>

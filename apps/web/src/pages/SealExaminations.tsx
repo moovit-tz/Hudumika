@@ -69,7 +69,7 @@ export function SealExaminations() {
         crumbs={['SEAL', 'Customs', 'Examinations']}
         titlePlain="Customs"
         titleEm="examinations"
-        subtitle="Selectivity worklist — YELLOW and RED channel entries are blocked for release until an officer completes an examination here."
+        subtitle="Review flagged entries. Yellow and red entries need an examination before release."
       />
 
       {/* KPI strip */}
@@ -102,7 +102,7 @@ export function SealExaminations() {
           <SearchToolbar
             search={search}
             onSearch={setSearch}
-            placeholder="Search lot, channel, examination type…"
+            placeholder="Search lot, channel, or exam type…"
             activeFilterCount={statusFilter !== '__all__' ? 1 : 0}
           />
         </div>

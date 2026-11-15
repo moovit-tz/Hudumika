@@ -207,8 +207,7 @@ function InviteModal({
               onChange={e => setEmail(e.target.value)}
               placeholder="colleague@company.com"
               className="text-sm"
-              autoFocus
-            />
+              autoFocus aria-label="Email Address" />
           </div>
 
           {mode === 'direct' && (
@@ -222,8 +221,7 @@ function InviteModal({
                 value={name}
                 onChange={e => setName(e.target.value)}
                 placeholder="Jane Doe"
-                className="text-sm"
-              />
+                className="text-sm" aria-label="Full Name" />
             </div>
           )}
 
@@ -232,7 +230,7 @@ function InviteModal({
               Assigned Role <span className="text-red-500">*</span>
             </label>
             <Select value={role} onValueChange={setRole}>
-              <SelectTrigger className="w-full text-sm">
+              <SelectTrigger className="w-full text-sm" aria-label="Assigned Role">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
@@ -264,8 +262,7 @@ function InviteModal({
                 value={password}
                 onChange={e => setPassword(e.target.value)}
                 placeholder="Set a password to share with them"
-                className="text-sm"
-              />
+                className="text-sm" aria-label="Password" />
             </div>
           )}
 

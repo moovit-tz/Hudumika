@@ -458,7 +458,7 @@ export function HuduBIKpiCenter() {
                   <p className="text-xs text-muted-foreground">Set standing performance goals for your workspace</p>
                 </div>
               </div>
-              <button
+              <button aria-label="Close"
                 onClick={() => setShowModal(false)}
                 className="text-muted-foreground hover:text-foreground p-1 rounded-lg"
                data-ui-native-button="">
@@ -473,7 +473,7 @@ export function HuduBIKpiCenter() {
                   Metric Key <span className="text-destructive">*</span>
                 </label>
                 <Select value={selectedMetricKey || undefined} onValueChange={setSelectedMetricKey}>
-                  <SelectTrigger className="w-full"><SelectValue placeholder="Select a metric definition..." /></SelectTrigger>
+                  <SelectTrigger className="w-full" aria-label="Metric Key"><SelectValue placeholder="Select a metric definition..." /></SelectTrigger>
                   <SelectContent>
                   {metricDefs.map(m => (
                     <SelectItem key={m.metric_key} value={m.metric_key}>

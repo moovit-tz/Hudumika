@@ -1799,7 +1799,7 @@ export function Contacts() {
                       </SelectContent>
                     </Select>
                     <input data-ui-field="input" className="input-field" type="email" placeholder="Additional email" value={row.email} onChange={e => setFormExtraEmails(prev => prev.map((r, j) => j === i ? { ...r, email: e.target.value } : r))} />
-                    <button type="button" onClick={() => setFormExtraEmails(prev => prev.filter((_, j) => j !== i))} style={{ border: 'none', background: 'none', cursor: 'pointer', padding: "var(--action-py) var(--space-md)", flexShrink: 0 }} data-ui-native-button="">
+                    <button aria-label="Remove" type="button" onClick={() => setFormExtraEmails(prev => prev.filter((_, j) => j !== i))} style={{ border: 'none', background: 'none', cursor: 'pointer', padding: "var(--action-py) var(--space-md)", flexShrink: 0 }} data-ui-native-button="">
                       <Icon name="x" size={14} color="var(--ink3)" />
                     </button>
                   </div>
@@ -1821,7 +1821,7 @@ export function Contacts() {
                       </SelectContent>
                     </Select>
                     <input data-ui-field="input" className="input-field" placeholder="Additional phone" value={row.phone} onChange={e => setFormExtraPhones(prev => prev.map((r, j) => j === i ? { ...r, phone: e.target.value } : r))} />
-                    <button type="button" onClick={() => setFormExtraPhones(prev => prev.filter((_, j) => j !== i))} style={{ border: 'none', background: 'none', cursor: 'pointer', padding: "var(--action-py) var(--space-md)", flexShrink: 0 }} data-ui-native-button="">
+                    <button aria-label="Remove" type="button" onClick={() => setFormExtraPhones(prev => prev.filter((_, j) => j !== i))} style={{ border: 'none', background: 'none', cursor: 'pointer', padding: "var(--action-py) var(--space-md)", flexShrink: 0 }} data-ui-native-button="">
                       <Icon name="x" size={14} color="var(--ink3)" />
                     </button>
                   </div>
@@ -1839,7 +1839,7 @@ export function Contacts() {
               </div>
               <div>
                 <label style={{ display: 'block', fontSize: 11, fontWeight: 700, color: 'var(--ink2)', marginBottom: 4 }}>Birthday</label>
-                <DatePicker date={parseDateOnly(formBirthday)} onChange={d => setFormBirthday(toDateOnlyString(d))} />
+                <DatePicker date={parseDateOnly(formBirthday)} onChange={d => setFormBirthday(toDateOnlyString(d))} aria-label="Birthday" />
               </div>
             </div>
 
@@ -1977,7 +1977,7 @@ export function Contacts() {
               </div>
               <div>
                 <label style={{ display: 'block', fontSize: 11, fontWeight: 700, color: 'var(--ink2)', marginBottom: 4 }}>Last Contacted Date</label>
-                <DatePicker date={parseDateOnly(formLastContactedAt)} onChange={d => setFormLastContactedAt(toDateOnlyString(d))} />
+                <DatePicker date={parseDateOnly(formLastContactedAt)} onChange={d => setFormLastContactedAt(toDateOnlyString(d))} aria-label="Last Contacted Date" />
               </div>
             </div>
             </>)}

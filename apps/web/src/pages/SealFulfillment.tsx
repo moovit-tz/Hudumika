@@ -92,7 +92,7 @@ export function SealFulfillment() {
         crumbs={['SEAL', 'Outbound Fulfillment']}
         titlePlain="Outbound"
         titleEm="fulfillment"
-        subtitle="Pick, pack, and dispatch stock out of the warehouse — every picked unit is a real ledger movement, never a separate count."
+        subtitle="Pick, pack, and dispatch orders. Each pick updates the stock ledger."
       />
       <div className="seal-page-hdr">
         <Button type="button" onClick={() => setShowNew(v => !v)} disabled={!compartmentId}>
@@ -110,8 +110,7 @@ export function SealFulfillment() {
               <Combobox
                 options={customers.map(c => ({ value: c.id, label: c.name }))}
                 value={newCustomerId} onChange={v => { setNewCustomerId(v); setNewLines([]); setPendingLotId(''); setPendingQty(''); }}
-                placeholder="Search customers…" searchPlaceholder="Search…" emptyText="No matching customers."
-              />
+                placeholder="Search customers…" searchPlaceholder="Search…" emptyText="No matching customers." aria-label="Customer" />
             </div>
 
             {newLines.length > 0 && (
@@ -122,7 +121,7 @@ export function SealFulfillment() {
                     <tr key={l.lotId}>
                       <td>{l.description}</td>
                       <td>{l.qty} {l.uom}</td>
-                      <td><Button type="button" variant="ghost" size="sm" onClick={() => handleRemoveLine(l.lotId)}><Icon name="x" size={13} /></Button></td>
+                      <td><Button aria-label="Remove" type="button" variant="ghost" size="sm" onClick={() => handleRemoveLine(l.lotId)}><Icon name="x" size={13} /></Button></td>
                     </tr>
                   ))}
                 </tbody>
@@ -133,7 +132,7 @@ export function SealFulfillment() {
               <div className="seal-field-row" style={{ minWidth: 240, flex: 1 }}>
                 <label className="seal-field-label">Lot</label>
                 <Select value={pendingLotId} onValueChange={setPendingLotId} disabled={!newCustomerId}>
-                  <SelectTrigger className="input-field"><SelectValue placeholder={newCustomerId ? 'Choose a lot' : 'Choose a customer first'} /></SelectTrigger>
+                  <SelectTrigger className="input-field" aria-label="Lot"><SelectValue placeholder={newCustomerId ? 'Choose a lot' : 'Choose a customer first'} /></SelectTrigger>
                   <SelectContent>
                     {lots.filter(l => !newLines.some(nl => nl.lotId === l.id)).map(l => (
                       <SelectItem key={l.id} value={l.id}>{l.description} ({l.qtyOnHand} {l.uom} on hand)</SelectItem>
@@ -143,7 +142,7 @@ export function SealFulfillment() {
               </div>
               <div className="seal-field-row" style={{ width: 140 }}>
                 <label className="seal-field-label">Quantity</label>
-                <Input type="number" min="0" step="any" value={pendingQty} onChange={e => setPendingQty(e.target.value)} placeholder="0" />
+                <Input type="number" min="0" step="any" value={pendingQty} onChange={e => setPendingQty(e.target.value)} placeholder="0" aria-label="Quantity" />
               </div>
               <Button type="button" variant="outline" disabled={!pendingLotId || !pendingQty} onClick={handleAddLine}>
                 <Icon name="plus" size={13} /><span>Add Line</span>

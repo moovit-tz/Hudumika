@@ -221,7 +221,7 @@ export function OnsiteMonitoring() {
                 <div className="onsite-form-group">
                   <label>HTTP Method</label>
                   <Select value={method} onValueChange={setMethod}>
-                    <SelectTrigger><SelectValue /></SelectTrigger>
+                    <SelectTrigger aria-label="HTTP Method"><SelectValue /></SelectTrigger>
                     <SelectContent>
                       <SelectItem value="GET">GET</SelectItem>
                       <SelectItem value="HEAD">HEAD</SelectItem>

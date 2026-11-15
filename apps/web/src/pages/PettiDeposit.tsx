@@ -221,12 +221,12 @@ export function PettiDeposit() {
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
                 <div>
                   <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: 'var(--ink2)', marginBottom: 6 }}>Payment Reference</label>
-                  <Input value={reference} onChange={e => setReference(e.target.value)} placeholder="e.g. MPESA-REF-890214 or SLIP-441" />
+                  <Input value={reference} onChange={e => setReference(e.target.value)} placeholder="e.g. MPESA-REF-890214 or SLIP-441" aria-label="Payment Reference" />
                 </div>
 
                 <div>
                   <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: 'var(--ink2)', marginBottom: 6 }}>Deposit Note</label>
-                  <Input value={note} onChange={e => setNote(e.target.value)} placeholder="e.g. Monthly branch replenishment" />
+                  <Input value={note} onChange={e => setNote(e.target.value)} placeholder="e.g. Monthly branch replenishment" aria-label="Deposit Note" />
                 </div>
               </div>
             </div>
@@ -244,7 +244,7 @@ export function PettiDeposit() {
               <div>
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                    <div style={{ width: 34, height: 24, borderRadius: 4, background: 'linear-gradient(135deg, #d4af37, #fef08a)', border: '1px solid rgba(255,255,255,0.4)', position: 'relative', overflow: 'hidden' }}>
+                    <div style={{ width: 34, height: 24, borderRadius: 'var(--r-sm)', background: 'linear-gradient(135deg, #d4af37, #fef08a)', border: '1px solid rgba(255,255,255,0.4)', position: 'relative', overflow: 'hidden' }}>
                       <div style={{ position: 'absolute', top: 5, left: 3, width: 26, height: 14, border: '1px solid rgba(0,0,0,0.3)', borderRadius: 2 }} />
                     </div>
                     <div>

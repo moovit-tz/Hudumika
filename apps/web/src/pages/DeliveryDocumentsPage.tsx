@@ -394,11 +394,11 @@ export function DeliveryDocumentsPage() {
                   </div>
                   <div>
                     <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: 'var(--ink2)', marginBottom: 6 }}>Valid from</label>
-                    <DatePicker date={parseDateOnly(form.validFrom)} onChange={d => setForm(p => ({ ...p, validFrom: toDateOnlyString(d) }))} />
+                    <DatePicker date={parseDateOnly(form.validFrom)} onChange={d => setForm(p => ({ ...p, validFrom: toDateOnlyString(d) }))} aria-label="Valid from" />
                   </div>
                   <div>
                     <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: 'var(--ink2)', marginBottom: 6 }}>Valid until</label>
-                    <DatePicker date={parseDateOnly(form.validUntil)} onChange={d => setForm(p => ({ ...p, validUntil: toDateOnlyString(d) }))} />
+                    <DatePicker date={parseDateOnly(form.validUntil)} onChange={d => setForm(p => ({ ...p, validUntil: toDateOnlyString(d) }))} aria-label="Valid until" />
                   </div>
                 </div>
 
@@ -430,7 +430,7 @@ export function DeliveryDocumentsPage() {
 
                 <div style={{ marginBottom: 16 }}>
                   <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: 'var(--ink2)', marginBottom: 6 }}>Release conditions</label>
-                  <Textarea value={form.releaseConditions} onChange={e => setForm(p => ({ ...p, releaseConditions: e.target.value }))} rows={2} placeholder="e.g. Subject to payment of outstanding demurrage." />
+                  <Textarea value={form.releaseConditions} onChange={e => setForm(p => ({ ...p, releaseConditions: e.target.value }))} rows={2} placeholder="e.g. Subject to payment of outstanding demurrage." aria-label="Release conditions" />
                 </div>
               </>
             ) : (
@@ -438,23 +438,23 @@ export function DeliveryDocumentsPage() {
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(240px, 100%), 1fr))', gap: 16, marginBottom: 16 }}>
                   <div>
                     <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: 'var(--ink2)', marginBottom: 6 }}>Delivery address</label>
-                    <Input value={form.deliveryAddress} onChange={e => setForm(p => ({ ...p, deliveryAddress: e.target.value }))} />
+                    <Input value={form.deliveryAddress} onChange={e => setForm(p => ({ ...p, deliveryAddress: e.target.value }))} aria-label="Delivery address" />
                   </div>
                   <div>
                     <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: 'var(--ink2)', marginBottom: 6 }}>City</label>
-                    <Input value={form.city} onChange={e => setForm(p => ({ ...p, city: e.target.value }))} />
+                    <Input value={form.city} onChange={e => setForm(p => ({ ...p, city: e.target.value }))} aria-label="City" />
                   </div>
                   <div>
                     <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: 'var(--ink2)', marginBottom: 6 }}>Driver name</label>
-                    <Input value={form.driverName} onChange={e => setForm(p => ({ ...p, driverName: e.target.value }))} />
+                    <Input value={form.driverName} onChange={e => setForm(p => ({ ...p, driverName: e.target.value }))} aria-label="Driver name" />
                   </div>
                   <div>
                     <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: 'var(--ink2)', marginBottom: 6 }}>Vehicle no.</label>
-                    <Input value={form.vehicleNo} onChange={e => setForm(p => ({ ...p, vehicleNo: e.target.value }))} />
+                    <Input value={form.vehicleNo} onChange={e => setForm(p => ({ ...p, vehicleNo: e.target.value }))} aria-label="Vehicle no." />
                   </div>
                   <div>
                     <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: 'var(--ink2)', marginBottom: 6 }}>Delivery date</label>
-                    <DatePicker date={parseDateOnly(form.deliveryDate)} onChange={d => setForm(p => ({ ...p, deliveryDate: toDateOnlyString(d) }))} />
+                    <DatePicker date={parseDateOnly(form.deliveryDate)} onChange={d => setForm(p => ({ ...p, deliveryDate: toDateOnlyString(d) }))} aria-label="Delivery date" />
                   </div>
                 </div>
 
@@ -479,7 +479,7 @@ export function DeliveryDocumentsPage() {
 
                 <div style={{ marginBottom: 16 }}>
                   <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: 'var(--ink2)', marginBottom: 6 }}>Discrepancy notes</label>
-                  <Textarea value={form.discrepancyNotes} onChange={e => setForm(p => ({ ...p, discrepancyNotes: e.target.value }))} rows={2} placeholder="Describe any discrepancies, damages or missing items…" />
+                  <Textarea value={form.discrepancyNotes} onChange={e => setForm(p => ({ ...p, discrepancyNotes: e.target.value }))} rows={2} placeholder="Describe any discrepancies, damages or missing items…" aria-label="Discrepancy notes" />
                 </div>
               </>
             )}

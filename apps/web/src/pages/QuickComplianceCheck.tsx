@@ -34,7 +34,7 @@ function ComplyOSPromoCard() {
     <div style={{
       background: 'linear-gradient(135deg, var(--teal-l) 0%, var(--green-l) 100%)',
       border: '1px solid var(--teal-m)',
-      borderRadius: 18,
+      borderRadius: 'var(--r-lg)',
       padding: 'clamp(18px, 4vw, 24px)',
       boxShadow: '0 4px 20px var(--teal-l)',
     }}>
@@ -286,7 +286,7 @@ export const QuickComplianceCheck: React.FC = () => {
                 Country of Origin
               </label>
               <Select value={origin} onValueChange={setOrigin}>
-                <SelectTrigger className="input-field" style={{ height: "var(--ctl-h)" }}>
+                <SelectTrigger className="input-field" style={{ height: "var(--ctl-h)" }} aria-label="Country of Origin">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>

@@ -224,18 +224,18 @@ function EditVendorModal({
             </div>
             <div>
               <label style={labelStyle}>Telephone Number</label>
-              <Input value={phone} onChange={e => setPhone(e.target.value)} placeholder="+255..." />
+              <Input value={phone} onChange={e => setPhone(e.target.value)} placeholder="+255..." aria-label="Telephone Number" />
             </div>
           </div>
 
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
             <div>
               <label style={labelStyle}>Email Address</label>
-              <Input type="email" value={email} onChange={e => setEmail(e.target.value)} placeholder="contact@domain.com" />
+              <Input type="email" value={email} onChange={e => setEmail(e.target.value)} placeholder="contact@domain.com" aria-label="Email Address" />
             </div>
             <div>
               <label style={labelStyle}>Depot / Physical Address</label>
-              <Input value={address} onChange={e => setAddress(e.target.value)} placeholder="Plot, Street, City" />
+              <Input value={address} onChange={e => setAddress(e.target.value)} placeholder="Plot, Street, City" aria-label="Depot / Physical Address" />
             </div>
           </div>
 
@@ -387,7 +387,7 @@ function QuickExpenseModal({
 
           <div>
             <label style={labelStyle}>Description / Reference Note</label>
-            <Input value={description} onChange={e => setDescription(e.target.value)} placeholder={`Invoice # / service details`} />
+            <Input value={description} onChange={e => setDescription(e.target.value)} placeholder={`Invoice # / service details`} aria-label="Description / Reference Note" />
           </div>
 
           {error && <div style={{ fontSize: 12.5, color: 'var(--red)', background: 'var(--red-l)', padding: '8px 12px', borderRadius: 'var(--r-sm)' }}>{error}</div>}
@@ -493,7 +493,7 @@ function QuickMaintenanceModal({
             </div>
             <div>
               <label style={labelStyle}>Total Cost (TZS)</label>
-              <Input type="number" min="0" step="1000" value={cost} onChange={e => setCost(e.target.value)} placeholder="e.g. 450000" />
+              <Input type="number" min="0" step="1000" value={cost} onChange={e => setCost(e.target.value)} placeholder="e.g. 450000" aria-label="Total Cost (TZS)" />
             </div>
           </div>
 
@@ -504,18 +504,18 @@ function QuickMaintenanceModal({
             </div>
             <div>
               <label style={labelStyle}>Next PM Due Date</label>
-              <DatePicker date={parseDateOnly(nextDueDate) ?? null} onChange={d => setNextDueDate(toDateOnlyString(d))} />
+              <DatePicker date={parseDateOnly(nextDueDate) ?? null} onChange={d => setNextDueDate(toDateOnlyString(d))} aria-label="Next PM Due Date" />
             </div>
           </div>
 
           <div>
             <label style={labelStyle}>Odometer Reading at Service (km)</label>
-            <Input type="number" min="0" value={odometerKm} onChange={e => setOdometerKm(e.target.value)} placeholder="e.g. 54200" />
+            <Input type="number" min="0" value={odometerKm} onChange={e => setOdometerKm(e.target.value)} placeholder="e.g. 54200" aria-label="Odometer Reading at Service (km)" />
           </div>
 
           <div>
             <label style={labelStyle}>Work Order Description / Mechanic Notes</label>
-            <Input value={description} onChange={e => setDescription(e.target.value)} placeholder="Replaced fuel filter, synthetic oil 5W-30..." />
+            <Input value={description} onChange={e => setDescription(e.target.value)} placeholder="Replaced fuel filter, synthetic oil 5W-30..." aria-label="Work Order Description / Mechanic Notes" />
           </div>
 
           {error && <div style={{ fontSize: 12.5, color: 'var(--red)', background: 'var(--red-l)', padding: '8px 12px', borderRadius: 'var(--r-sm)' }}>{error}</div>}
@@ -606,18 +606,18 @@ function QuickFuelModal({
             </div>
             <div>
               <label style={labelStyle}>Total Cost (TZS)</label>
-              <Input type="number" min="0" step="500" value={cost} onChange={e => setCost(e.target.value)} placeholder="e.g. 245000" />
+              <Input type="number" min="0" step="500" value={cost} onChange={e => setCost(e.target.value)} placeholder="e.g. 245000" aria-label="Total Cost (TZS)" />
             </div>
           </div>
 
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
             <div>
               <label style={labelStyle}>Odometer Reading (km)</label>
-              <Input type="number" min="0" value={odometerKm} onChange={e => setOdometerKm(e.target.value)} placeholder="e.g. 54200" />
+              <Input type="number" min="0" value={odometerKm} onChange={e => setOdometerKm(e.target.value)} placeholder="e.g. 54200" aria-label="Odometer Reading (km)" />
             </div>
             <div>
               <label style={labelStyle}>Station / Pump Facility</label>
-              <Input value={station} onChange={e => setStation(e.target.value)} />
+              <Input value={station} onChange={e => setStation(e.target.value)} aria-label="Station / Pump Facility" />
             </div>
           </div>
 
@@ -699,12 +699,12 @@ function QuickPartModal({
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
             <div>
               <label style={labelStyle}>Part SKU / Number</label>
-              <Input value={partNumber} onChange={e => setPartNumber(e.target.value)} placeholder="OEM Part #" />
+              <Input value={partNumber} onChange={e => setPartNumber(e.target.value)} placeholder="OEM Part #" aria-label="Part SKU / Number" />
             </div>
             <div>
               <label style={labelStyle}>Component Category</label>
               <Select value={category} onValueChange={setCategory}>
-                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectTrigger aria-label="Component Category"><SelectValue /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="FILTERS">Filters &amp; Intakes</SelectItem>
                   <SelectItem value="BRAKES">Brakes &amp; Hydraulics</SelectItem>
@@ -722,15 +722,15 @@ function QuickPartModal({
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 12 }}>
             <div>
               <label style={labelStyle}>Initial Units</label>
-              <Input type="number" min="0" value={quantity} onChange={e => setQuantity(e.target.value)} required />
+              <Input type="number" min="0" value={quantity} onChange={e => setQuantity(e.target.value)} required aria-label="Initial Units" />
             </div>
             <div>
               <label style={labelStyle}>Unit Cost (TZS)</label>
-              <Input type="number" min="0" step="500" value={unitCost} onChange={e => setUnitCost(e.target.value)} placeholder="e.g. 45000" />
+              <Input type="number" min="0" step="500" value={unitCost} onChange={e => setUnitCost(e.target.value)} placeholder="e.g. 45000" aria-label="Unit Cost (TZS)" />
             </div>
             <div>
               <label style={labelStyle}>Reorder Alert</label>
-              <Input type="number" min="1" value={reorderLevel} onChange={e => setReorderLevel(e.target.value)} required />
+              <Input type="number" min="1" value={reorderLevel} onChange={e => setReorderLevel(e.target.value)} required aria-label="Reorder Alert" />
             </div>
           </div>
 

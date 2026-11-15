@@ -70,7 +70,7 @@ export function DriveMembersModal({ driveId, driveName, onClose }: { driveId: st
               {picked ? (
                 <div className="input-field" style={{ display: 'flex', alignItems: 'center', gap: 8, justifyContent: 'space-between' }}>
                   <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{picked.name || picked.email}</span>
-                  <button onClick={() => { setPicked(null); setQuery(''); }} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink3)' }}>
+                  <button aria-label="Clear search" onClick={() => { setPicked(null); setQuery(''); }} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink3)' }}>
                     <Icon name="x" size={13} />
                   </button>
                 </div>

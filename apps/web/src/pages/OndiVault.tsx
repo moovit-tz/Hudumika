@@ -224,7 +224,7 @@ export const OndiVault: React.FC = () => {
                     className="ov-search-input"
                   />
                   {search && (
-                    <button
+                    <button aria-label="Close"
                       type="button"
                       onClick={() => setSearch('')}
                       style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink3)' }}
@@ -311,7 +311,7 @@ export const OndiVault: React.FC = () => {
                           <Icon name="download" size={13} style={{ marginRight: 4 }} />
                           Download
                         </Button>
-                        <Button
+                        <Button aria-label={`Delete ${f.name ?? ''}`.trim()}
                           variant="outline"
                           size="sm"
                           onClick={() => handleDelete(f)}

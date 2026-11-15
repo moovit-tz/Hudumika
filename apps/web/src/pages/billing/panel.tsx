@@ -96,7 +96,7 @@ function SendForSignatureDialog({ invoiceId, invoiceNumber, customerName, custom
                     <Input placeholder="Name" value={r.name} onChange={e => updateRecipient(i, 'name', e.target.value)} />
                     <Input placeholder="Email" type="email" value={r.email} onChange={e => updateRecipient(i, 'email', e.target.value)} />
                     {recipients.length > 1 && (
-                      <Button type="button" size="icon" variant="ghost" onClick={() => removeRecipient(i)}><Icon name="x" size={14} /></Button>
+                      <Button aria-label={`Remove ${r.name ?? ''}`.trim()} type="button" size="icon" variant="ghost" onClick={() => removeRecipient(i)}><Icon name="x" size={14} /></Button>
                     )}
                   </div>
                 ))}
@@ -206,7 +206,7 @@ function CollectOnlineDialog({ invoiceId, invoiceNumber, balance, currency, cust
               </p>
               <div>
                 <label className="block text-xs font-semibold text-muted-foreground mb-1">Customer email</label>
-                <Input type="email" value={email} onChange={e => setEmail(e.target.value)} placeholder="customer@example.com" />
+                <Input type="email" value={email} onChange={e => setEmail(e.target.value)} placeholder="customer@example.com" aria-label="Customer email" />
               </div>
             </div>
           )}

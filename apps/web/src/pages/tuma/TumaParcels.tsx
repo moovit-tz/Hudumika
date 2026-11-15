@@ -210,7 +210,7 @@ export function TumaParcels() {
                           {(TRANSITIONS[p.status]?.length ?? 0) > 0 && (
                             <DropdownMenu>
                               <DropdownMenuTrigger asChild>
-                                <button type="button" className="btn-icon" data-ui-native-button="" style={{ padding: "var(--action-py) var(--space-md)" }}>
+                                <button aria-label="More actions" type="button" className="btn-icon" data-ui-native-button="" style={{ padding: "var(--action-py) var(--space-md)" }}>
                                   <Icon name="moreVertical" size={16} />
                                 </button>
                               </DropdownMenuTrigger>

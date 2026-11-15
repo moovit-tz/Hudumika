@@ -388,7 +388,7 @@ export function OnsiteDomains() {
             onChange={(e) => setSearchQuery(e.target.value)}
           />
           {searchQuery && (
-            <button onClick={() => setSearchQuery('')} style={{ border: 'none', background: 'transparent', cursor: 'pointer', color: 'var(--ink3)' }} data-ui-native-button="">
+            <button aria-label="Close" onClick={() => setSearchQuery('')} style={{ border: 'none', background: 'transparent', cursor: 'pointer', color: 'var(--ink3)' }} data-ui-native-button="">
               <Icon name="close" size={14} />
             </button>
           )}
@@ -559,7 +559,7 @@ export function OnsiteDomains() {
                             </label>
                           </td>
                           <td>
-                            <span style={{ background: 'var(--bg)', color: 'var(--ink)', fontSize: '0.75rem', fontWeight: 600, padding: '0.2rem 0.6rem', borderRadius: '0.375rem', border: '1px solid var(--border)' }}>
+                            <span style={{ background: 'var(--bg)', color: 'var(--ink)', fontSize: '0.75rem', fontWeight: 600, padding: '0.2rem 0.6rem', borderRadius: 'var(--r-sm)', border: '1px solid var(--border)' }}>
                               {d.registrar || 'Not recorded'}
                             </span>
                           </td>

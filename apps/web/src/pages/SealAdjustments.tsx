@@ -146,8 +146,7 @@ export function SealAdjustments() {
                       rows={3}
                       value={newNotes}
                       onChange={e => setNewNotes(e.target.value)}
-                      placeholder="e.g. Q4 Wall-to-Wall Physical Audit, High-Value SKU verification..."
-                    />
+                      placeholder="e.g. Q4 Wall-to-Wall Physical Audit, High-Value SKU verification..." aria-label="Audit Scope & Notes (optional)" />
                   </div>
                 </div>
               </DialogBody>
@@ -173,7 +172,7 @@ export function SealAdjustments() {
         ]}
         titlePlain="Counts &"
         titleEm="adjustments"
-        subtitle="Periodic physical inventory verification — count lots, reconcile variances, and post adjustments."
+        subtitle="Count stock, review variances, and post adjustments."
         actions={
           <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
             <Button variant="outline" size="sm" onClick={load}>
@@ -285,7 +284,7 @@ export function SealAdjustments() {
           <SearchToolbar
             search={search}
             onSearch={setSearch}
-            placeholder="Search by count reference, notes..."
+            placeholder="Search count reference or notes…"
             activeFilterCount={statusFilter !== '__all__' ? 1 : 0}
           />
         </div>

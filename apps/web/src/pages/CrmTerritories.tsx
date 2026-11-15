@@ -280,8 +280,7 @@ export function CrmTerritories() {
                 <Input
                   autoFocus value={draft.name}
                   onChange={e => setDraft(d => ({ ...d, name: e.target.value }))}
-                  placeholder="e.g. East Africa, Fintech Segment"
-                />
+                  placeholder="e.g. East Africa, Fintech Segment" aria-label="Territory name" />
               </div>
               <div>
                 <label className="mb-1.5 block text-xs font-semibold text-foreground">Color</label>

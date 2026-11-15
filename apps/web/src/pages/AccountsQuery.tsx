@@ -237,11 +237,11 @@ export function AccountsQuery() {
             <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
               <div>
                 <label style={{ fontSize: 11, color: 'var(--ink3)', marginBottom: 3, display: 'block' }}>From</label>
-                <DatePicker date={parseDateOnly(dateFrom)} onChange={d => setDateFrom(toDateOnlyString(d))} />
+                <DatePicker date={parseDateOnly(dateFrom)} onChange={d => setDateFrom(toDateOnlyString(d))} aria-label="From" />
               </div>
               <div>
                 <label style={{ fontSize: 11, color: 'var(--ink3)', marginBottom: 3, display: 'block' }}>To</label>
-                <DatePicker date={parseDateOnly(dateTo)} onChange={d => setDateTo(toDateOnlyString(d))} />
+                <DatePicker date={parseDateOnly(dateTo)} onChange={d => setDateTo(toDateOnlyString(d))} aria-label="To" />
               </div>
             </div>
           </div>

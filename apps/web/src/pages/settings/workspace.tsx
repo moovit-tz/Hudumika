@@ -478,7 +478,7 @@ export const LocationsSection: React.FC = () => {
                             fontSize: compactRows ? 11 : 11.5,
                             fontWeight: 700,
                             padding: '2px 6px',
-                            borderRadius: 4,
+                            borderRadius: 'var(--r-sm)',
                             background: 'var(--bg)',
                             border: '1px solid var(--border)',
                             color: 'var(--ink)',
@@ -676,7 +676,7 @@ export const LocationsSection: React.FC = () => {
               </div>
 
               {formError && (
-                <div style={{ padding: '8px 12px', borderRadius: 'var(--r-sm)', background: '#fef2f2', border: '1px solid #fecaca', color: 'var(--red)', fontSize: 12 }}>
+                <div style={{ padding: '8px 12px', borderRadius: 'var(--r-sm)', background: 'var(--red-l)', border: '1px solid #fecaca', color: 'var(--red)', fontSize: 12 }}>
                   {formError}
                 </div>
               )}

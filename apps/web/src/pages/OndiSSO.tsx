@@ -161,8 +161,7 @@ function AddSamlSpModal({ onClose, onAdded }: { onClose: () => void; onAdded: ()
               value={name}
               onChange={e => setName(e.target.value)}
               placeholder="e.g. Corporate Jira / Workday"
-              autoFocus
-            />
+              autoFocus aria-label="Application Name" />
           </div>
 
           <div className="space-y-1.5">
@@ -173,8 +172,7 @@ function AddSamlSpModal({ onClose, onAdded }: { onClose: () => void; onAdded: ()
               required
               value={entityId}
               onChange={e => setEntityId(e.target.value)}
-              placeholder="https://app.example.com/saml/metadata"
-            />
+              placeholder="https://app.example.com/saml/metadata" aria-label="SP Entity ID (Audience URI)" />
           </div>
 
           <div className="space-y-1.5">
@@ -185,8 +183,7 @@ function AddSamlSpModal({ onClose, onAdded }: { onClose: () => void; onAdded: ()
               required
               value={acsUrl}
               onChange={e => setAcsUrl(e.target.value)}
-              placeholder="https://app.example.com/saml/acs"
-            />
+              placeholder="https://app.example.com/saml/acs" aria-label="Assertion Consumer Service (ACS) URL" />
           </div>
 
           <div className="space-y-1.5">
@@ -196,8 +193,7 @@ function AddSamlSpModal({ onClose, onAdded }: { onClose: () => void; onAdded: ()
             <Input
               value={sloUrl}
               onChange={e => setSloUrl(e.target.value)}
-              placeholder="https://app.example.com/saml/slo"
-            />
+              placeholder="https://app.example.com/saml/slo" aria-label="Single Logout (SLO) URL (Optional)" />
           </div>
 
           <div className="space-y-1.5">
@@ -303,8 +299,7 @@ function AddClientModal({ onClose, onAdded }: { onClose: () => void; onAdded: ()
               value={name}
               onChange={e => setName(e.target.value)}
               placeholder="e.g. Corporate Helpdesk"
-              autoFocus
-            />
+              autoFocus aria-label="Application Display Name" />
           </div>
 
           <div className="space-y-1.5">
@@ -316,8 +311,7 @@ function AddClientModal({ onClose, onAdded }: { onClose: () => void; onAdded: ()
               value={clientId}
               onChange={e => setClientId(e.target.value)}
               placeholder="e.g. corp-helpdesk"
-              className="font-mono text-xs"
-            />
+              className="font-mono text-xs" aria-label="Client ID (Unique identifier slug)" />
           </div>
 
           <div className="space-y-1.5">
@@ -353,8 +347,7 @@ function AddClientModal({ onClose, onAdded }: { onClose: () => void; onAdded: ()
             <Input
               value={logoUrl}
               onChange={e => setLogoUrl(e.target.value)}
-              placeholder="https://company.com/logo.png"
-            />
+              placeholder="https://company.com/logo.png" aria-label="App Logo URL (Optional)" />
           </div>
 
           <div className="flex items-center gap-2 pt-1">
@@ -483,8 +476,7 @@ function AddProviderModal({
               required
               value={name}
               onChange={e => setName(e.target.value)}
-              placeholder={type === 'SAML' ? 'e.g. Company Okta' : 'e.g. Google Workspace'}
-            />
+              placeholder={type === 'SAML' ? 'e.g. Company Okta' : 'e.g. Google Workspace'} aria-label="Display Name" />
           </div>
 
           {type === 'SAML' ? (
@@ -496,15 +488,15 @@ function AddProviderModal({
             <>
               <div className="space-y-1.5">
                 <label className="text-xs font-bold text-foreground/85 block">Client ID</label>
-                <Input value={clientId} onChange={e => setClientId(e.target.value)} className="font-mono text-xs" />
+                <Input value={clientId} onChange={e => setClientId(e.target.value)} className="font-mono text-xs" aria-label="Client ID" />
               </div>
               <div className="space-y-1.5">
                 <label className="text-xs font-bold text-foreground/85 block">Client Secret</label>
-                <Input type="password" value={clientSecret} onChange={e => setClientSecret(e.target.value)} className="font-mono text-xs" />
+                <Input type="password" value={clientSecret} onChange={e => setClientSecret(e.target.value)} className="font-mono text-xs" aria-label="Client Secret" />
               </div>
               <div className="space-y-1.5">
                 <label className="text-xs font-bold text-foreground/85 block">Metadata URL (OIDC)</label>
-                <Input value={metadataUrl} onChange={e => setMetadataUrl(e.target.value)} placeholder="https://..." />
+                <Input value={metadataUrl} onChange={e => setMetadataUrl(e.target.value)} placeholder="https://..." aria-label="Metadata URL (OIDC)" />
               </div>
             </>
           )}
@@ -761,8 +753,7 @@ function SamlSetupWizard({
                   autoFocus
                   value={name}
                   onChange={e => setName(e.target.value)}
-                  placeholder="e.g. Company Okta"
-                />
+                  placeholder="e.g. Company Okta" aria-label="Display Name" />
               </div>
 
               <div className="space-y-1.5">
@@ -828,8 +819,7 @@ function SamlSetupWizard({
                   required
                   value={idpEntityId}
                   onChange={e => setIdpEntityId(e.target.value)}
-                  placeholder="https://your-idp.example.com/entity"
-                />
+                  placeholder="https://your-idp.example.com/entity" aria-label="IdP Entity ID / Issuer" />
               </div>
 
               <div className="space-y-1.5">
@@ -840,8 +830,7 @@ function SamlSetupWizard({
                   required
                   value={idpSsoUrl}
                   onChange={e => setIdpSsoUrl(e.target.value)}
-                  placeholder="https://your-idp.example.com/sso"
-                />
+                  placeholder="https://your-idp.example.com/sso" aria-label="IdP SSO / Login URL" />
               </div>
 
               <div className="space-y-1.5">
@@ -1782,7 +1771,7 @@ export const OndiSSO: React.FC = () => {
                             </a>
                           </td>
                           <td style={{ textAlign: 'right' }}>
-                            <Button
+                            <Button aria-label={`Delete ${client.name ?? ''}`.trim()}
                               type="button"
                               variant="ghost"
                               size="sm"

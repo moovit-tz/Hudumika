@@ -227,7 +227,7 @@ export const LandedCostHistoryPage: React.FC = () => {
       <style>{`
         .lch-page { padding: 0; }
         .lch-card { min-width: 0; background: var(--card-bg, var(--white)); border: 1px solid var(--border);
-                    border-radius: 16px; box-shadow: 0 4px 20px rgba(0,0,0,0.04); overflow: hidden; }
+                    border-radius: var(--r-lg); box-shadow: 0 4px 20px rgba(0,0,0,0.04); overflow: hidden; }
         .lch-card { --ctl-h: 44px; }
         .lch-card .input-field, .lch-card .btn, .lch-card [data-slot="select-trigger"],
         .lch-card [data-slot="combobox-trigger"] {

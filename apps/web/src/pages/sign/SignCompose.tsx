@@ -75,14 +75,14 @@ const BOILERPLATE_CLAUSES = [
 const SIGNATURE_BLOCK_HTML = `
   <table style="width: 100%; margin-top: 36px; border-collapse: collapse; page-break-inside: avoid;">
     <tr>
-      <td style="width: 48%; vertical-align: top; padding: 14px 16px; border: 1px dashed var(--border, #cbd5e1); background: var(--bg-subtle, #f8fafc); border-radius: 6px;">
+      <td style="width: 48%; vertical-align: top; padding: 14px 16px; border: 1px dashed var(--border, #cbd5e1); background: var(--bg-subtle, #f8fafc); border-radius: var(--r-sm);">
         <p style="margin: 0 0 6px 0; font-size: 11px; font-weight: bold; color: var(--ink, #0f172a); text-transform: uppercase;">FOR AND ON BEHALF OF FIRST PARTY:</p>
         <p style="margin: 0 0 16px 0; font-size: 13px; font-weight: 600; color: var(--ink, #0f172a);">[Company / Individual Name]</p>
         <div style="border-bottom: 1.5px solid var(--ink, #0f172a); margin-bottom: 6px; height: 38px;"></div>
         <p style="margin: 0; font-size: 11px; color: var(--ink3, #64748b);">Authorized Signatory / Title / Date</p>
       </td>
       <td style="width: 4%;"></td>
-      <td style="width: 48%; vertical-align: top; padding: 14px 16px; border: 1px dashed var(--border, #cbd5e1); background: var(--bg-subtle, #f8fafc); border-radius: 6px;">
+      <td style="width: 48%; vertical-align: top; padding: 14px 16px; border: 1px dashed var(--border, #cbd5e1); background: var(--bg-subtle, #f8fafc); border-radius: var(--r-sm);">
         <p style="margin: 0 0 6px 0; font-size: 11px; font-weight: bold; color: var(--ink, #0f172a); text-transform: uppercase;">FOR AND ON BEHALF OF SECOND PARTY:</p>
         <p style="margin: 0 0 16px 0; font-size: 13px; font-weight: 600; color: var(--ink, #0f172a);">[Counterparty / Client Name]</p>
         <div style="border-bottom: 1.5px solid var(--ink, #0f172a); margin-bottom: 6px; height: 38px;"></div>
@@ -117,7 +117,7 @@ const MILESTONE_TABLE_HTML = `
 `;
 
 const CODE_BLOCK_HTML = `
-  <pre style="background: #0f172a; color: #38bdf8; padding: 12px 16px; border-radius: 6px; font-family: 'Courier New', Courier, monospace; font-size: 10pt; overflow-x: auto; margin: 16px 0;"><code>// Technical Schedule & Parameter Specifications
+  <pre style="background: #0f172a; color: #38bdf8; padding: 12px 16px; border-radius: var(--r-sm); font-family: 'Courier New', Courier, monospace; font-size: 10pt; overflow-x: auto; margin: 16px 0;"><code>// Technical Schedule & Parameter Specifications
 {
   "contract_spec_version": "2.4",
   "sla_uptime_percent": 99.95,
@@ -446,7 +446,7 @@ export function SignCompose() {
       const dataUrl = ev.target?.result as string;
       insertHtmlAtCursor(`
         <div style="margin: 16px 0; text-align: center;">
-          <img src="${dataUrl}" alt="${escape(file.name)}" style="max-width: 100%; max-height: 360px; border-radius: 4px; box-shadow: 0 2px 8px rgba(0,0,0,0.08);" />
+          <img src="${dataUrl}" alt="${escape(file.name)}" style="max-width: 100%; max-height: 360px; border-radius: var(--r-sm); box-shadow: 0 2px 8px rgba(0,0,0,0.08);" />
         </div><p></p>
       `);
     };
@@ -688,7 +688,7 @@ export function SignCompose() {
     }
     setEditing(true);
     setDirty(true);
-    setNotice('Document draft generated with Hudumika AI.');
+    setNotice('Document draft generated with Hudu.');
     updateStats();
   };
 

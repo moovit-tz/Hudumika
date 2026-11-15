@@ -121,7 +121,7 @@ export function SealAutomation() {
         crumbs={['SEAL', 'Automation Rules']}
         titlePlain="Automation"
         titleEm="rules"
-        subtitle="On-demand trigger→action rules — press &quot;Run Automation Check&quot; to evaluate them against current lots and examinations. There is no background scheduler; this always runs when you ask it to."
+        subtitle="Run rules on demand against current lots and examinations. Rules do not run in the background."
       />
       <div className="seal-page-hdr">
         <div style={{ display: 'flex', gap: 8 }}>
@@ -139,7 +139,7 @@ export function SealAutomation() {
           <div className="seal-form-grid-2">
             <div className="seal-field-row" style={{ gridColumn: '1 / -1' }}>
               <label className="seal-field-label">Rule Name</label>
-              <Input type="text" value={newName} onChange={e => setNewName(e.target.value)} placeholder="e.g. Escalate seized lots to Support" />
+              <Input type="text" value={newName} onChange={e => setNewName(e.target.value)} placeholder="e.g. Escalate seized lots to Support" aria-label="Rule Name" />
             </div>
             <div className="seal-field-row">
               <label className="seal-field-label">Applies To</label>
@@ -182,8 +182,7 @@ export function SealAutomation() {
                 <Combobox
                   options={staff.map(s => ({ value: s.id, label: s.name }))}
                   value={newAssignee} onChange={setNewAssignee}
-                  placeholder="Unassigned" searchPlaceholder="Search staff…" emptyText="No matching staff."
-                />
+                  placeholder="Unassigned" searchPlaceholder="Search staff…" emptyText="No matching staff." aria-label="Assign Task To" />
               </div>
             )}
           </div>
@@ -212,7 +211,7 @@ export function SealAutomation() {
                     <td><Badge variant={r.active ? 'success' : 'gray'}>{r.active ? 'Active' : 'Paused'}</Badge></td>
                     <td style={{ display: 'flex', gap: 6 }}>
                       <Button type="button" variant="outline" size="sm" onClick={() => handleToggle(r)}>{r.active ? 'Pause' : 'Activate'}</Button>
-                      <Button type="button" variant="outline" size="sm" onClick={() => handleDelete(r)}><Icon name="trash" size={13} /></Button>
+                      <Button aria-label={`Delete ${r.name ?? ''}`.trim()} type="button" variant="outline" size="sm" onClick={() => handleDelete(r)}><Icon name="trash" size={13} /></Button>
                     </td>
                   </tr>
                 ))}

@@ -80,8 +80,8 @@ export const OndiOrgTrust: React.FC = () => {
                         <span style={{ fontWeight: 700, color: TIER_COLOR[tier] }}>{tier} TIER</span>
                         <span style={{ color: 'var(--ink2)', fontWeight: 600 }}>{count} members ({pct}%)</span>
                       </div>
-                      <div style={{ height: 8, borderRadius: 4, background: 'var(--bg)', overflow: 'hidden' }}>
-                        <div style={{ height: '100%', width: `${pct}%`, background: TIER_COLOR[tier], borderRadius: 4, transition: 'width 0.4s ease' }} />
+                      <div style={{ height: 8, borderRadius: 'var(--r-sm)', background: 'var(--bg)', overflow: 'hidden' }}>
+                        <div style={{ height: '100%', width: `${pct}%`, background: TIER_COLOR[tier], borderRadius: 'var(--r-sm)', transition: 'width 0.4s ease' }} />
                       </div>
                     </div>
                   );

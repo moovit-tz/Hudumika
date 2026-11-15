@@ -140,7 +140,7 @@ export function UpdatesTab({ job, shipmentId, isLive, onRefresh }: { job: Cleara
         <div style={{ background: 'var(--white)', border: '1px solid var(--teal)', borderRadius: 'var(--r)', overflow: 'hidden', marginBottom: 12 }}>
           <div style={{ padding: '10px 14px', background: 'var(--teal-l)', borderBottom: '1px solid var(--border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
             <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--teal)' }}>Set Stage — click to update</span>
-            <button type="button" onClick={() => setShowStageBar(false)} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: "var(--action-py) var(--space-md)" }} data-ui-native-button=""><Icon name="x" size={13} color="var(--teal)" /></button>
+            <button aria-label="Close" type="button" onClick={() => setShowStageBar(false)} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: "var(--action-py) var(--space-md)" }} data-ui-native-button=""><Icon name="x" size={13} color="var(--teal)" /></button>
           </div>
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, padding: '10px 14px' }}>
             {(() => { const uiSteps = jobUiSteps(job); const curIdx = jobCurrentIdx(job); return uiSteps.map((s, i) => {

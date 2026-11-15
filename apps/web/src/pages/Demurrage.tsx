@@ -532,7 +532,7 @@ export const Demurrage: React.FC = () => {
           </DialogHeader>
           <div>
             <label style={{ display: 'block', ...label, marginBottom: 6 }}>Return Date</label>
-            <DatePicker date={parseDateOnly(returnDate)} onChange={d => setReturnDate(toDateOnlyString(d))} />
+            <DatePicker date={parseDateOnly(returnDate)} onChange={d => setReturnDate(toDateOnlyString(d))} aria-label="Return Date" />
           </div>
           <DialogFooter>
             <Button variant="outline" type="button" onClick={() => setReturnModal(null)}>Cancel</Button>
@@ -562,8 +562,7 @@ export const Demurrage: React.FC = () => {
                 onChange={setRechargeInvoiceId}
                 placeholder="Select an invoice…"
                 searchPlaceholder="Search invoices…"
-                emptyText="No invoices found."
-              />
+                emptyText="No invoices found." aria-label="Invoice" />
             </div>
           )}
           <DialogFooter>

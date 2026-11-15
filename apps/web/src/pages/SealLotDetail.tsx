@@ -337,7 +337,7 @@ export function SealLotDetail() {
                 <div className="seal-lot-form">
                   <div>
                     <label className="seal-field-label seal-lot-field-block">Reference</label>
-                    <Input value={reference} onChange={e => setReference(e.target.value)} placeholder="Entry no., certificate no., etc." />
+                    <Input value={reference} onChange={e => setReference(e.target.value)} placeholder="Entry no., certificate no., etc." aria-label="Reference" />
                   </div>
                   <div className="seal-lot-action-btns">
                     {legalActions.map((a, i) => (
@@ -365,7 +365,7 @@ export function SealLotDetail() {
                   <div className="seal-lot-ops-field">
                     <label className="seal-field-label seal-lot-field-block">Destination Location</label>
                     <Select value={transferTo} onValueChange={setTransferTo}>
-                      <SelectTrigger><SelectValue placeholder="Select location…" /></SelectTrigger>
+                      <SelectTrigger aria-label="Destination Location"><SelectValue placeholder="Select location…" /></SelectTrigger>
                       <SelectContent>
                         {locations.map(loc => <SelectItem key={loc.id} value={loc.id}>{loc.code}</SelectItem>)}
                       </SelectContent>
@@ -389,7 +389,7 @@ export function SealLotDetail() {
                   </div>
                   <div className="seal-lot-ops-field--ref">
                     <label className="seal-field-label seal-lot-field-block">Return Reference</label>
-                    <Input value={returnReference} onChange={e => setReturnReference(e.target.value)} placeholder="RMA / return reference" />
+                    <Input value={returnReference} onChange={e => setReturnReference(e.target.value)} placeholder="RMA / return reference" aria-label="Return Reference" />
                   </div>
                   <Button size="sm" disabled={!returnQty || Number(returnQty) <= 0 || Number(returnQty)>outstandingReturns || !returnReference.trim() || acting !== null} onClick={handleReturn}>
                     {acting === 'return' ? 'Processing…' : 'Process Return'}

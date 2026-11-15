@@ -75,13 +75,13 @@ export function InventoryCounts() {
             <div className="inv-field-row">
               <label className="inv-field-label">Warehouse</label>
               <Select value={newWarehouseId} onValueChange={setNewWarehouseId}>
-                <SelectTrigger><SelectValue placeholder="Choose a warehouse" /></SelectTrigger>
+                <SelectTrigger aria-label="Warehouse"><SelectValue placeholder="Choose a warehouse" /></SelectTrigger>
                 <SelectContent>{warehouses.map(w => <SelectItem key={w.id} value={w.id}>{w.name}</SelectItem>)}</SelectContent>
               </Select>
             </div>
             <div className="inv-field-row" style={{ gridColumn: 'span 2' }}>
               <label className="inv-field-label">Notes (optional)</label>
-              <Input type="text" value={newNotes} onChange={e => setNewNotes(e.target.value)} placeholder="e.g. Monthly cycle count" />
+              <Input type="text" value={newNotes} onChange={e => setNewNotes(e.target.value)} placeholder="e.g. Monthly cycle count" aria-label="Notes (optional)" />
             </div>
           </div>
           <div style={{ padding: '0 20px 20px' }}>

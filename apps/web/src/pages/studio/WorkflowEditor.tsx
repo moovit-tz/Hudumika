@@ -464,7 +464,7 @@ export function WorkflowEditor() {
                 <div className="studio-field">
                   <label className="studio-field-label">Description</label>
                   <Textarea value={workflow.description ?? ''} rows={3}
-                    onChange={e => patchWorkflow(w => ({ ...w, description: e.target.value }))} />
+                    onChange={e => patchWorkflow(w => ({ ...w, description: e.target.value }))} aria-label="Description" />
                 </div>
                 <div className="studio-field">
                   <label className="studio-field-label">Trigger</label>
@@ -566,7 +566,7 @@ export function WorkflowEditor() {
               <>
                 <div className="studio-field">
                   <label className="studio-field-label">Title</label>
-                  <Input value={selectedNode.title} onChange={e => updateNode(selectedNode.id, { title: e.target.value })} />
+                  <Input value={selectedNode.title} onChange={e => updateNode(selectedNode.id, { title: e.target.value })} aria-label="Title" />
                 </div>
 
                 {selectedNode.type === 'condition' && (

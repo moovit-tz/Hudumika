@@ -55,6 +55,7 @@ export const SmsService = {
         provider_message_id: result.messageId ?? null,
         error: result.success ? null : (result.error ?? 'Unknown send error'),
         segments: countSegments(input.body), source_app: input.sourceApp,
+        gateway_id: input.gatewayId ?? result.gatewayId ?? null,
         campaign_id: input.campaignId ?? null, template_id: input.templateId ?? null,
         contact_name: input.contactName ?? null, attempts: 1,
         sent_at: result.success ? new Date().toISOString() : null,
@@ -80,6 +81,7 @@ export const SmsService = {
       const row = await trx.insertInto('sms_messages').values({
         tenant_id: tenantId, user_id: userId, to_number: input.to, body: input.body,
         status: 'queued', segments: countSegments(input.body), source_app: input.sourceApp,
+        gateway_id: input.gatewayId ?? null,
         campaign_id: input.campaignId ?? null, template_id: input.templateId ?? null,
         contact_name: input.contactName ?? null,
       }).returning('id').executeTakeFirstOrThrow();
@@ -89,13 +91,27 @@ export const SmsService = {
 
   /** Enqueues one row per recipient. Returns the count queued (not sent —
    *  sms-outbox.job.ts sends them). */
-  async enqueueBulk(tenantId: string, userId: string | null, recipients: { phone: string; name?: string }[], body: string, sourceApp: string, campaignId?: string, templateId?: string): Promise<number> {
+  async enqueueBulk(tenantId: string, userId: string | null, recipients: { phone: string; name?: string }[], body: string, sourceApp: string, campaignId?: string, templateId?: string, gatewayId?: string): Promise<number> {
     if (recipients.length === 0) return 0;
     return withTenant(tenantId, async (trx) => {
       const rows = recipients.map(r => ({
         tenant_id: tenantId, user_id: userId, to_number: r.phone, body,
         status: 'queued' as const, segments: countSegments(body), source_app: sourceApp,
+        gateway_id: gatewayId ?? null,
         campaign_id: campaignId ?? null, template_id: templateId ?? null, contact_name: r.name ?? null,
+      }));
+      await trx.insertInto('sms_messages').values(rows).execute();
+      return rows.length;
+    });
+  },
+
+  async enqueueBulkPersonalized(tenantId: string, userId: string | null, recipients: { phone: string; body: string; name?: string }[], sourceApp: string, gatewayId?: string): Promise<number> {
+    if (recipients.length === 0) return 0;
+    return withTenant(tenantId, async (trx) => {
+      const rows = recipients.map(r => ({
+        tenant_id: tenantId, user_id: userId, to_number: r.phone, body: r.body,
+        status: 'queued' as const, segments: countSegments(r.body), source_app: sourceApp,
+        gateway_id: gatewayId ?? null, contact_name: r.name ?? null,
       }));
       await trx.insertInto('sms_messages').values(rows).execute();
       return rows.length;

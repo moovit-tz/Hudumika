@@ -141,7 +141,7 @@ export function CMSRequestApprovalModal({
               </div>
             </div>
           </div>
-          <button
+          <button aria-label="Close"
             type="button"
             onClick={onClose}
             style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink3)' }}

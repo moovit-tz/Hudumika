@@ -87,15 +87,15 @@ export function InventoryWarehouses() {
           <div className="inv-form-grid-3">
             <div className="inv-field-row">
               <label className="inv-field-label">Code</label>
-              <Input type="text" value={newCode} onChange={e => setNewCode(e.target.value)} placeholder="WH-01" />
+              <Input type="text" value={newCode} onChange={e => setNewCode(e.target.value)} placeholder="WH-01" aria-label="Code" />
             </div>
             <div className="inv-field-row">
               <label className="inv-field-label">Name</label>
-              <Input type="text" value={newName} onChange={e => setNewName(e.target.value)} placeholder="Main Warehouse" />
+              <Input type="text" value={newName} onChange={e => setNewName(e.target.value)} placeholder="Main Warehouse" aria-label="Name" />
             </div>
             <div className="inv-field-row">
               <label className="inv-field-label">Address (optional)</label>
-              <Input type="text" value={newAddress} onChange={e => setNewAddress(e.target.value)} placeholder="Street, city" />
+              <Input type="text" value={newAddress} onChange={e => setNewAddress(e.target.value)} placeholder="Street, city" aria-label="Address (optional)" />
             </div>
           </div>
           <div style={{ padding: '0 20px 20px' }}>

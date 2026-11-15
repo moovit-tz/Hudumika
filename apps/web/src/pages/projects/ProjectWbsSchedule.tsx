@@ -519,8 +519,7 @@ export const ProjectWbsSchedule: React.FC<ProjectWbsScheduleProps> = ({
                     onChange={setWbsPhaseId}
                     options={[{ value: '', label: 'No phase' }, ...phases.map(phase => ({ value: phase.id, label: phase.name }))]}
                     placeholder="Select phase"
-                    searchPlaceholder="Search phases"
-                  />
+                    searchPlaceholder="Search phases" aria-label="Phase" />
                 </div>
               </div>
 
@@ -555,13 +554,13 @@ export const ProjectWbsSchedule: React.FC<ProjectWbsScheduleProps> = ({
                   <label className="text-xs font-semibold text-foreground block mb-1">
                     Planned Start
                   </label>
-                  <DatePicker date={parseDateOnly(wbsPlannedStart)} onChange={date => setWbsPlannedStart(toDateOnlyString(date))} />
+                  <DatePicker date={parseDateOnly(wbsPlannedStart)} onChange={date => setWbsPlannedStart(toDateOnlyString(date))} aria-label="Planned Start" />
                 </div>
                 <div>
                   <label className="text-xs font-semibold text-foreground block mb-1">
                     Planned End
                   </label>
-                  <DatePicker date={parseDateOnly(wbsPlannedEnd)} onChange={date => setWbsPlannedEnd(toDateOnlyString(date))} />
+                  <DatePicker date={parseDateOnly(wbsPlannedEnd)} onChange={date => setWbsPlannedEnd(toDateOnlyString(date))} aria-label="Planned End" />
                 </div>
               </div>
 
@@ -574,8 +573,7 @@ export const ProjectWbsSchedule: React.FC<ProjectWbsScheduleProps> = ({
                   value={wbsDesc}
                   onChange={(e) => setWbsDesc(e.target.value)}
                   placeholder="Detailed work package specifications..."
-                  className="w-full text-xs px-3 py-2 rounded-lg border border-border bg-slate-50 dark:bg-slate-900"
-                />
+                  className="w-full text-xs px-3 py-2 rounded-lg border border-border bg-slate-50 dark:bg-slate-900" aria-label="Scope Description" />
               </div>
 
               <div className="flex justify-end gap-2 pt-2 border-t border-border">
@@ -615,7 +613,7 @@ export const ProjectWbsSchedule: React.FC<ProjectWbsScheduleProps> = ({
                   <label className="text-xs font-semibold text-foreground block mb-1">
                     Stage Gate Review Date
                   </label>
-                  <DatePicker date={parseDateOnly(phaseGateDate)} onChange={date => setPhaseGateDate(toDateOnlyString(date))} />
+                  <DatePicker date={parseDateOnly(phaseGateDate)} onChange={date => setPhaseGateDate(toDateOnlyString(date))} aria-label="Stage Gate Review Date" />
                 </div>
                 <div>
                   <label className="text-xs font-semibold text-foreground block mb-1">
@@ -625,8 +623,7 @@ export const ProjectWbsSchedule: React.FC<ProjectWbsScheduleProps> = ({
                     type="text"
                     value={phaseRole}
                     onChange={(e) => setPhaseRole(e.target.value)}
-                    className="w-full text-xs px-3 py-2 rounded-lg border border-border bg-slate-50 dark:bg-slate-900"
-                  />
+                    className="w-full text-xs px-3 py-2 rounded-lg border border-border bg-slate-50 dark:bg-slate-900" aria-label="Approver Role" />
                 </div>
               </div>
 
@@ -672,14 +669,13 @@ export const ProjectWbsSchedule: React.FC<ProjectWbsScheduleProps> = ({
                     value={delivCode}
                     onChange={(e) => setDelivCode(e.target.value)}
                     placeholder="DEL-STR-01"
-                    className="w-full text-xs px-3 py-2 rounded-lg border border-border bg-slate-50 dark:bg-slate-900"
-                  />
+                    className="w-full text-xs px-3 py-2 rounded-lg border border-border bg-slate-50 dark:bg-slate-900" aria-label="Deliverable Code" />
                 </div>
                 <div>
                   <label className="text-xs font-semibold text-foreground block mb-1">
                     Due Date
                   </label>
-                  <DatePicker date={parseDateOnly(delivDueDate)} onChange={date => setDelivDueDate(toDateOnlyString(date))} />
+                  <DatePicker date={parseDateOnly(delivDueDate)} onChange={date => setDelivDueDate(toDateOnlyString(date))} aria-label="Due Date" />
                 </div>
               </div>
 
@@ -692,8 +688,7 @@ export const ProjectWbsSchedule: React.FC<ProjectWbsScheduleProps> = ({
                   value={delivCriteria}
                   onChange={(e) => setDelivCriteria(e.target.value)}
                   placeholder="Specific technical verification requirements..."
-                  className="w-full text-xs px-3 py-2 rounded-lg border border-border bg-slate-50 dark:bg-slate-900"
-                />
+                  className="w-full text-xs px-3 py-2 rounded-lg border border-border bg-slate-50 dark:bg-slate-900" aria-label="Acceptance Criteria" />
               </div>
 
               <div className="flex justify-end gap-2 pt-2 border-t border-border">

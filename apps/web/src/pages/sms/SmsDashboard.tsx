@@ -15,6 +15,8 @@ interface Stats {
   sentThisMonth: number;
   deliveredThisMonth: number;
   failedThisMonth: number;
+  deliveredToday: number;
+  failedToday: number;
   totalThisMonth: number;
   gatewayConfigured: boolean;
   gatewayProvider: string | null;
@@ -94,8 +96,8 @@ export function SmsDashboard() {
   }, []);
 
   const totalSent = timeframe === 'today' ? (stats?.sentToday ?? 0) : (stats?.sentThisMonth ?? 0);
-  const delivered = stats?.deliveredThisMonth ?? 0;
-  const failed = stats?.failedThisMonth ?? 0;
+  const delivered = timeframe === 'today' ? (stats?.deliveredToday ?? 0) : (stats?.deliveredThisMonth ?? 0);
+  const failed = timeframe === 'today' ? (stats?.failedToday ?? 0) : (stats?.failedThisMonth ?? 0);
   const deliveryRate = totalSent > 0 ? Math.round((delivered / Math.max(totalSent, 1)) * 100) : 100;
 
   // Breakdown metrics
@@ -186,7 +188,7 @@ export function SmsDashboard() {
       )}
 
       {/* Hero KPIs Grid */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 16, marginBottom: 20 }}>
+      <div className="sms-dashboard-stat-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 16, marginBottom: 20 }}>
         <div style={{ background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 'var(--r)', padding: '16px 18px', display: 'flex', alignItems: 'center', gap: 14 }}>
           <FeaturedIcon variant="brand" size="md" shape="circle"><Icon name="send" size={18} /></FeaturedIcon>
           <div>
@@ -242,7 +244,7 @@ export function SmsDashboard() {
       </div>
 
       {/* Gateway & Delivery Telemetry Row */}
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 340px', gap: 16, marginBottom: 20 }}>
+      <div className="sms-dashboard-main-grid" style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) 340px', gap: 16, marginBottom: 20 }}>
         {/* Delivery Success Breakdown */}
         <div style={{ background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 'var(--r)', padding: '18px 20px' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
@@ -251,12 +253,12 @@ export function SmsDashboard() {
           </div>
 
           {/* Visual Progress Bar */}
-          <div style={{ height: 10, borderRadius: 5, background: 'var(--bg)', overflow: 'hidden', display: 'flex', marginBottom: 14 }}>
+          <div style={{ height: 10, borderRadius: 'var(--r-sm)', background: 'var(--bg)', overflow: 'hidden', display: 'flex', marginBottom: 14 }}>
             <div style={{ width: `${deliveryRate}%`, background: 'var(--green)', transition: 'width 0.4s' }} title={`Delivered: ${deliveryRate}%`} />
             <div style={{ width: `${totalSent > 0 ? Math.round((failed / totalSent) * 100) : 0}%`, background: 'var(--red)', transition: 'width 0.4s' }} title="Failed" />
           </div>
 
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 10, fontSize: 12 }}>
+          <div className="sms-dashboard-detail-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 10, fontSize: 12 }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
               <span style={{ width: 8, height: 8, borderRadius: '50%', background: 'var(--green)' }} />
               <span style={{ color: 'var(--ink2)' }}>Delivered: <strong>{delivered}</strong></span>

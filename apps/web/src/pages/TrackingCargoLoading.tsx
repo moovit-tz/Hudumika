@@ -246,8 +246,8 @@ function OfficialManifestModal({
             </div>
             <div>
               <span style={{ fontSize: 10, fontWeight: 700, color: 'var(--ink3)', textTransform: 'uppercase' }}>Loading Point &amp; Security Seals</span>
-              <div style={{ fontWeight: 800, fontSize: 13, color: '#0891b2' }}>Primary: {sealNumber || 'NOT RECORDED'}</div>
-              {secondarySeal && <div style={{ color: '#0891b2', fontSize: 11, fontWeight: 700 }}>Sec: {secondarySeal}</div>}
+              <div style={{ fontWeight: 800, fontSize: 13, color: 'var(--teal)' }}>Primary: {sealNumber || 'NOT RECORDED'}</div>
+              {secondarySeal && <div style={{ color: 'var(--teal)', fontSize: 11, fontWeight: 700 }}>Sec: {secondarySeal}</div>}
               <div style={{ color: 'var(--ink2)', fontSize: 11 }}>Location/Dock: {dockNumber || manifest.loading_bay || 'Dock #1'}</div>
             </div>
           </div>
@@ -308,7 +308,7 @@ function OfficialManifestModal({
           </div>
 
           {manifest.discrepancy_notes && (
-            <div style={{ marginTop: 12, padding: '8px 12px', background: '#fffbeb', border: '1px solid #fef3c7', borderRadius: 'var(--r-sm)', fontSize: 11.5 }}>
+            <div style={{ marginTop: 12, padding: '8px 12px', background: 'var(--gold-l)', border: '1px solid #fef3c7', borderRadius: 'var(--r-sm)', fontSize: 11.5 }}>
               <strong>Discrepancy Notes:</strong> {manifest.discrepancy_notes}
             </div>
           )}
@@ -400,8 +400,7 @@ function CargoUnitDialog({
               required
               placeholder="e.g. Pallet #4 · Industrial Motors"
               value={label}
-              onChange={(e) => setLabel(e.target.value)}
-            />
+              onChange={(e) => setLabel(e.target.value)} aria-label="Unit Description / Reference" />
           </div>
 
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
@@ -424,7 +423,7 @@ function CargoUnitDialog({
               <label style={{ fontSize: 12, fontWeight: 700, color: 'var(--ink2)', display: 'block', marginBottom: 4 }}>
                 Quantity
               </label>
-              <Input type="number" min="1" value={quantity} onChange={(e) => setQuantity(e.target.value)} />
+              <Input type="number" min="1" value={quantity} onChange={(e) => setQuantity(e.target.value)} aria-label="Quantity" />
             </div>
           </div>
 
@@ -433,19 +432,19 @@ function CargoUnitDialog({
               <label style={{ fontSize: 12, fontWeight: 700, color: 'var(--ink2)', display: 'block', marginBottom: 4 }}>
                 Length (cm)
               </label>
-              <Input type="number" min="1" value={lengthCm} onChange={(e) => setLengthCm(e.target.value)} />
+              <Input type="number" min="1" value={lengthCm} onChange={(e) => setLengthCm(e.target.value)} aria-label="Length (cm)" />
             </div>
             <div>
               <label style={{ fontSize: 12, fontWeight: 700, color: 'var(--ink2)', display: 'block', marginBottom: 4 }}>
                 Width (cm)
               </label>
-              <Input type="number" min="1" value={widthCm} onChange={(e) => setWidthCm(e.target.value)} />
+              <Input type="number" min="1" value={widthCm} onChange={(e) => setWidthCm(e.target.value)} aria-label="Width (cm)" />
             </div>
             <div>
               <label style={{ fontSize: 12, fontWeight: 700, color: 'var(--ink2)', display: 'block', marginBottom: 4 }}>
                 Height (cm)
               </label>
-              <Input type="number" min="1" value={heightCm} onChange={(e) => setHeightCm(e.target.value)} />
+              <Input type="number" min="1" value={heightCm} onChange={(e) => setHeightCm(e.target.value)} aria-label="Height (cm)" />
             </div>
           </div>
 
@@ -454,13 +453,13 @@ function CargoUnitDialog({
               <label style={{ fontSize: 12, fontWeight: 700, color: 'var(--ink2)', display: 'block', marginBottom: 4 }}>
                 Gross Weight per Unit (kg)
               </label>
-              <Input type="number" min="1" value={weightKg} onChange={(e) => setWeightKg(e.target.value)} />
+              <Input type="number" min="1" value={weightKg} onChange={(e) => setWeightKg(e.target.value)} aria-label="Gross Weight per Unit (kg)" />
             </div>
             <div>
               <label style={{ fontSize: 12, fontWeight: 700, color: 'var(--ink2)', display: 'block', marginBottom: 4 }}>
                 Max Stacking Limit
               </label>
-              <Input type="number" min="1" max="5" value={stackingMax} onChange={(e) => setStackingMax(e.target.value)} />
+              <Input type="number" min="1" max="5" value={stackingMax} onChange={(e) => setStackingMax(e.target.value)} aria-label="Max Stacking Limit" />
             </div>
           </div>
 
@@ -471,8 +470,7 @@ function CargoUnitDialog({
             <Input
               placeholder="e.g. Keep upright, do not clamp, fork from wide side"
               value={handlingInstructions}
-              onChange={(e) => setHandlingInstructions(e.target.value)}
-            />
+              onChange={(e) => setHandlingInstructions(e.target.value)} aria-label="Handling Instructions (Optional)" />
           </div>
 
           <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 4 }}>
@@ -1350,19 +1348,19 @@ export const TrackingCargoLoading: React.FC = () => {
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 12 }}>
                   <div>
                     <label style={{ fontSize: 11.5, fontWeight: 700, color: 'var(--ink2)' }}>Job Reference</label>
-                    <Input value={jobRef} onChange={(e) => setJobRef(e.target.value)} placeholder="e.g. TRC-901 Expedited" />
+                    <Input value={jobRef} onChange={(e) => setJobRef(e.target.value)} placeholder="e.g. TRC-901 Expedited" aria-label="Job Reference" />
                   </div>
                   <div>
                     <label style={{ fontSize: 11.5, fontWeight: 700, color: 'var(--ink2)' }}>Consignee / Client</label>
-                    <Input value={customerName} onChange={(e) => setCustomerName(e.target.value)} placeholder="Client Name" />
+                    <Input value={customerName} onChange={(e) => setCustomerName(e.target.value)} placeholder="Client Name" aria-label="Consignee / Client" />
                   </div>
                   <div>
                     <label style={{ fontSize: 11.5, fontWeight: 700, color: 'var(--ink2)' }}>Origin</label>
-                    <Input value={originText} onChange={(e) => setOriginText(e.target.value)} />
+                    <Input value={originText} onChange={(e) => setOriginText(e.target.value)} aria-label="Origin" />
                   </div>
                   <div>
                     <label style={{ fontSize: 11.5, fontWeight: 700, color: 'var(--ink2)' }}>Destination</label>
-                    <Input value={destinationText} onChange={(e) => setDestinationText(e.target.value)} />
+                    <Input value={destinationText} onChange={(e) => setDestinationText(e.target.value)} aria-label="Destination" />
                   </div>
                 </div>
               </div>
@@ -1421,7 +1419,7 @@ export const TrackingCargoLoading: React.FC = () => {
                         <img
                           src={v.photo_url || 'https://images.unsplash.com/photo-1601584115197-04ecc0da31d7?auto=format&fit=crop&w=400&q=80'}
                           alt={v.name}
-                          style={{ width: 68, height: 44, objectFit: 'contain', borderRadius: 4 }}
+                          style={{ width: 68, height: 44, objectFit: 'contain', borderRadius: 'var(--r-sm)' }}
                         />
                         <div style={{ flex: 1, minWidth: 0 }}>
                           <div style={{ fontWeight: 700, fontSize: 13, color: 'var(--ink)' }}>{v.name}</div>
@@ -1500,8 +1498,7 @@ export const TrackingCargoLoading: React.FC = () => {
                   <Input
                     placeholder="e.g. TZ-SEAL-892014-X (Optional for now, verified in Stage 5)"
                     value={primarySeal}
-                    onChange={(e) => setPrimarySeal(e.target.value)}
-                  />
+                    onChange={(e) => setPrimarySeal(e.target.value)} aria-label="High-Security Seal Allocation (Stage 5 Verification)" />
                 </div>
               </div>
 
@@ -1644,7 +1641,7 @@ export const TrackingCargoLoading: React.FC = () => {
                     <span>Payload Mass Utilization</span>
                     <span style={{ color: weightUtilPct > 100 ? 'var(--red)' : 'var(--teal)' }}>{weightUtilPct}%</span>
                   </div>
-                  <div style={{ height: 8, background: 'var(--border)', borderRadius: 4, overflow: 'hidden' }}>
+                  <div style={{ height: 8, background: 'var(--border)', borderRadius: 'var(--r-sm)', overflow: 'hidden' }}>
                     <div style={{ height: '100%', width: `${Math.min(100, weightUtilPct)}%`, background: weightUtilPct > 100 ? 'var(--red)' : 'var(--teal)' }} />
                   </div>
                   <div style={{ fontSize: 11, color: 'var(--ink3)', marginTop: 4 }}>
@@ -1657,7 +1654,7 @@ export const TrackingCargoLoading: React.FC = () => {
                     <span>Compartment Volume Utilization</span>
                     <span style={{ color: volumeUtilPct > 100 ? 'var(--red)' : 'var(--teal)' }}>{volumeUtilPct}%</span>
                   </div>
-                  <div style={{ height: 8, background: 'var(--border)', borderRadius: 4, overflow: 'hidden' }}>
+                  <div style={{ height: 8, background: 'var(--border)', borderRadius: 'var(--r-sm)', overflow: 'hidden' }}>
                     <div style={{ height: '100%', width: `${Math.min(100, volumeUtilPct)}%`, background: volumeUtilPct > 100 ? 'var(--red)' : 'var(--teal)' }} />
                   </div>
                   <div style={{ fontSize: 11, color: 'var(--ink3)', marginTop: 4 }}>
@@ -1794,7 +1791,7 @@ export const TrackingCargoLoading: React.FC = () => {
 
               {/* Warning if discrepancies exist */}
               {hasDiscrepancies && (
-                <div style={{ padding: '12px 16px', background: '#fffbeb', border: '1px solid #fef3c7', borderRadius: 'var(--r-sm)', display: 'flex', alignItems: 'center', gap: 12 }}>
+                <div style={{ padding: '12px 16px', background: 'var(--gold-l)', border: '1px solid #fef3c7', borderRadius: 'var(--r-sm)', display: 'flex', alignItems: 'center', gap: 12 }}>
                   <Icon name="alertTriangle" size={20} style={{ color: 'var(--gold)', flexShrink: 0 }} />
                   <div style={{ flex: 1, fontSize: 12.5, color: '#92400e' }}>
                     <strong>Discrepancies detected:</strong> Actual loaded quantities differ from planned handling units, or cargo damage has been logged. Explicit exception authorization is required below.
@@ -1917,8 +1914,7 @@ export const TrackingCargoLoading: React.FC = () => {
                   <Input
                     placeholder="Loader name"
                     value={loaderName}
-                    onChange={(e) => setLoaderName(e.target.value)}
-                  />
+                    onChange={(e) => setLoaderName(e.target.value)} aria-label="Loading Bay Crew Lead" />
                 </div>
 
                 <div>
@@ -1928,8 +1924,7 @@ export const TrackingCargoLoading: React.FC = () => {
                   <Input
                     placeholder="Checker name"
                     value={checkerName}
-                    onChange={(e) => setCheckerName(e.target.value)}
-                  />
+                    onChange={(e) => setCheckerName(e.target.value)} aria-label="Dock Checker / Seal Verifier" />
                 </div>
               </div>
 
@@ -1959,7 +1954,7 @@ export const TrackingCargoLoading: React.FC = () => {
 
               {/* Exception Acknowledgment (if discrepancies) */}
               {hasDiscrepancies && (
-                <div style={{ padding: 16, background: '#fffbeb', border: '1px solid #fde68a', borderRadius: 'var(--r-sm)' }}>
+                <div style={{ padding: 16, background: 'var(--gold-l)', border: '1px solid #fde68a', borderRadius: 'var(--r-sm)' }}>
                   <label style={{ display: 'flex', alignItems: 'flex-start', gap: 10, cursor: 'pointer' }}>
                     <input
                       type="checkbox"
@@ -1997,7 +1992,7 @@ export const TrackingCargoLoading: React.FC = () => {
                 <div style={{ padding: 18, background: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: 'var(--r-sm)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 12 }}>
                   <div>
                     <div style={{ fontWeight: 800, fontSize: 16, color: '#166534' }}>Vehicle Officially Dispatched</div>
-                    <div style={{ fontSize: 12.5, color: '#15803d', marginTop: 2 }}>
+                    <div style={{ fontSize: 12.5, color: 'var(--green)', marginTop: 2 }}>
                       Released on {activeManifest.dispatched_at ? new Date(activeManifest.dispatched_at).toLocaleString() : 'Now'} by {activeManifest.dispatcher_name || 'Fleet Operations'}.
                     </div>
                   </div>

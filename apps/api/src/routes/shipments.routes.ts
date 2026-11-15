@@ -731,6 +731,7 @@ export async function shipmentRoutes(fastify: FastifyInstance) {
 
       const created = await ShipmentService.createCase(user.tenant_id, {
         ...input,
+        actor_id: user.sub,
         assigned_to: preferredAssignee,
       });
 
@@ -1708,6 +1709,7 @@ export async function shipmentRoutes(fastify: FastifyInstance) {
       if (!entry.is_revenue) {
         emitDomainEvent(trx, user.tenant_id, {
           type: 'shipment.cost_recorded',
+          actorId: user.sub,
           sourceApp: 'finops',
           entityType: 'shipment',
           entityId: id,

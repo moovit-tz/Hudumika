@@ -188,11 +188,11 @@ export function DepotPage() {
                 </div>
                 <div>
                   <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: 'var(--ink2)', marginBottom: 6 }}>Location</label>
-                  <Input value={eqForm.location} onChange={e => setEqForm(p => ({ ...p, location: e.target.value }))} placeholder="Depot Yard A" />
+                  <Input value={eqForm.location} onChange={e => setEqForm(p => ({ ...p, location: e.target.value }))} placeholder="Depot Yard A" aria-label="Location" />
                 </div>
                 <div>
                   <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: 'var(--ink2)', marginBottom: 6 }}>Owner carrier</label>
-                  <Input value={eqForm.ownerCarrier} onChange={e => setEqForm(p => ({ ...p, ownerCarrier: e.target.value }))} />
+                  <Input value={eqForm.ownerCarrier} onChange={e => setEqForm(p => ({ ...p, ownerCarrier: e.target.value }))} aria-label="Owner carrier" />
                 </div>
               </div>
               {error && <div style={{ color: 'var(--red)', fontSize: 12.5, marginBottom: 12 }}>{error}</div>}
@@ -287,16 +287,16 @@ export function DepotPage() {
                 </div>
                 <div>
                   <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: 'var(--ink2)', marginBottom: 6 }}>Driver</label>
-                  <Input value={rcForm.driverName} onChange={e => setRcForm(p => ({ ...p, driverName: e.target.value }))} />
+                  <Input value={rcForm.driverName} onChange={e => setRcForm(p => ({ ...p, driverName: e.target.value }))} aria-label="Driver" />
                 </div>
                 <div>
                   <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: 'var(--ink2)', marginBottom: 6 }}>Vehicle reg.</label>
-                  <Input value={rcForm.vehicleReg} onChange={e => setRcForm(p => ({ ...p, vehicleReg: e.target.value }))} />
+                  <Input value={rcForm.vehicleReg} onChange={e => setRcForm(p => ({ ...p, vehicleReg: e.target.value }))} aria-label="Vehicle reg." />
                 </div>
                 {rcForm.conditionAtInterchange === 'DAMAGED' && (
                   <div style={{ gridColumn: 'span 3' }}>
                     <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: 'var(--ink2)', marginBottom: 6 }}>Damage notes</label>
-                    <Input value={rcForm.damageNotes} onChange={e => setRcForm(p => ({ ...p, damageNotes: e.target.value }))} />
+                    <Input value={rcForm.damageNotes} onChange={e => setRcForm(p => ({ ...p, damageNotes: e.target.value }))} aria-label="Damage notes" />
                   </div>
                 )}
               </div>

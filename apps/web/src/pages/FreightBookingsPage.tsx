@@ -204,7 +204,7 @@ export function FreightBookingsPage() {
                       </div>
                       <div>
                         <label style={{ display: 'block', fontSize: 11, fontWeight: 600, color: 'var(--ink2)', marginBottom: 5 }}>Carrier</label>
-                        <Combobox options={carriers.map(c => ({ value: c.id, label: c.name }))} value={quoteForm.carrier_id} onChange={v => setQuoteForm(p => ({ ...p, carrier_id: v }))} placeholder="Choose carrier…" />
+                        <Combobox options={carriers.map(c => ({ value: c.id, label: c.name }))} value={quoteForm.carrier_id} onChange={v => setQuoteForm(p => ({ ...p, carrier_id: v }))} placeholder="Choose carrier…" aria-label="Carrier" />
                       </div>
                       <div>
                         <label style={{ display: 'block', fontSize: 11, fontWeight: 600, color: 'var(--ink2)', marginBottom: 5 }}>Cost rate *</label>
@@ -246,7 +246,7 @@ export function FreightBookingsPage() {
                       </div>
                       <div>
                         <label style={{ display: 'block', fontSize: 11, fontWeight: 600, color: 'var(--ink2)', marginBottom: 5 }}>ETA</label>
-                        <DatePicker date={parseDateOnly(confirmForm.eta)} onChange={d => setConfirmForm(p => ({ ...p, eta: toDateOnlyString(d) }))} />
+                        <DatePicker date={parseDateOnly(confirmForm.eta)} onChange={d => setConfirmForm(p => ({ ...p, eta: toDateOnlyString(d) }))} aria-label="ETA" />
                       </div>
                     </div>
                     {error && <div style={{ color: 'var(--red)', fontSize: 12, marginBottom: 10 }}>{error}</div>}

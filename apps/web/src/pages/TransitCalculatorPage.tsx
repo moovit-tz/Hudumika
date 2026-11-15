@@ -368,8 +368,8 @@ function RouteReferenceTable({ routes, onChanged }: { routes: TransitRoute[]; on
                 <td style={{ padding: '7px 12px', color: 'var(--ink2)', textAlign: 'right' }}>${r.transport_40ft_usd}</td>
                 <td style={{ padding: '7px 12px', color: 'var(--ink2)', textAlign: 'right' }}>{r.weighbridge_count}</td>
                 <td style={{ padding: '7px 12px', whiteSpace: 'nowrap' }}>
-                  <button type="button" onClick={() => startEdit(r)} style={iconBtnStyle} data-ui-native-button=""><Icon name="edit" size={13} color="var(--ink3)" /></button>
-                  <button type="button" onClick={() => remove(r.id, r.destination)} style={iconBtnStyle} data-ui-native-button=""><Icon name="trash" size={13} color="var(--red)" /></button>
+                  <button aria-label="Edit" type="button" onClick={() => startEdit(r)} style={iconBtnStyle} data-ui-native-button=""><Icon name="edit" size={13} color="var(--ink3)" /></button>
+                  <button aria-label="Delete" type="button" onClick={() => remove(r.id, r.destination)} style={iconBtnStyle} data-ui-native-button=""><Icon name="trash" size={13} color="var(--red)" /></button>
                 </td>
               </tr>
             ))}

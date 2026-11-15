@@ -654,7 +654,7 @@ export function FinanceTaxCodes() {
                 Country
               </label>
               <Select value={reg.status.jurisdiction} onValueChange={switchCountry} disabled={switching}>
-                <SelectTrigger style={{ minWidth: 210 }}><SelectValue /></SelectTrigger>
+                <SelectTrigger style={{ minWidth: 210 }} aria-label="Country"><SelectValue /></SelectTrigger>
                 <SelectContent>
                   {(reg.jurisdictions ?? []).map(j => (
                     <SelectItem key={j.code} value={j.code}>

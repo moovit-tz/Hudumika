@@ -79,7 +79,7 @@ export async function recordInvoicePayment(
   // Money received against an invoice — the closing leg of a consignment's
   // journey, and the trigger downstream apps care about.
   const event = await emitDomainEvent(trx, tenantId, {
-    type: 'invoice.payment_recorded', sourceApp: 'finops', entityType: 'invoice', entityId: invoiceId,
+    type: 'invoice.payment_recorded', sourceApp: 'finops', entityType: 'invoice', entityId: invoiceId, actorId: actorId ?? null,
     payload: { amount: Number(amount), method: method || null, customerId: (inv as any).customer_id ?? null },
   }, { deferDispatch: true });
 

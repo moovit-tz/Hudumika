@@ -110,7 +110,7 @@ export const StoreDeveloperPortal: React.FC = () => {
             </div>
             <div>
               <label style={{ display: 'block', fontSize: '13px', fontWeight: 600, marginBottom: '6px' }}>App Icon URL</label>
-              <Input type="url" name="icon_url" value={formData.icon_url} onChange={handleChange} placeholder="https://example.com/icon.png" />
+              <Input type="url" name="icon_url" value={formData.icon_url} onChange={handleChange} placeholder="https://example.com/icon.png" aria-label="App Icon URL" />
             </div>
           </div>
 
@@ -137,7 +137,7 @@ export const StoreDeveloperPortal: React.FC = () => {
 
           <div style={{ marginBottom: '30px' }}>
             <label style={{ display: 'block', fontSize: '13px', fontWeight: 600, marginBottom: '6px' }}>Webhook URL (Optional)</label>
-            <Input type="url" name="webhook_url" value={formData.webhook_url} onChange={handleChange} placeholder="https://your-api.com/hudumika/webhook" />
+            <Input type="url" name="webhook_url" value={formData.webhook_url} onChange={handleChange} placeholder="https://your-api.com/hudumika/webhook" aria-label="Webhook URL (Optional)" />
             <p style={{ fontSize: '12px', color: 'var(--ink3)', marginTop: '4px' }}>We will send event notifications to this URL.</p>
           </div>
 

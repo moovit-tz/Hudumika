@@ -175,23 +175,23 @@ function CreateJobModal({ onClose, onCreated }: { onClose: () => void; onCreated
         <form onSubmit={submit} style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
           <div>
             <label style={lbl}>Title</label>
-            <Input required autoFocus value={title} onChange={e => setTitle(e.target.value)} placeholder="e.g. Senior Backend Engineer" />
+            <Input required autoFocus value={title} onChange={e => setTitle(e.target.value)} placeholder="e.g. Senior Backend Engineer" aria-label="Title" />
           </div>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
             <div>
               <label style={lbl}>Department</label>
-              <Input value={department} onChange={e => setDepartment(e.target.value)} />
+              <Input value={department} onChange={e => setDepartment(e.target.value)} aria-label="Department" />
             </div>
             <div>
               <label style={lbl}>Location</label>
-              <Input value={location} onChange={e => setLocation(e.target.value)} placeholder="Remote, Dar es Salaam…" />
+              <Input value={location} onChange={e => setLocation(e.target.value)} placeholder="Remote, Dar es Salaam…" aria-label="Location" />
             </div>
           </div>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
             <div>
               <label style={lbl}>Employment type</label>
               <Select value={employmentType} onValueChange={setEmploymentType}>
-                <SelectTrigger style={inp}><SelectValue /></SelectTrigger>
+                <SelectTrigger style={inp} aria-label="Employment type"><SelectValue /></SelectTrigger>
                 <SelectContent>
                   {EMP_TYPES.map(t => <SelectItem key={t} value={t}>{prettyType(t)}</SelectItem>)}
                 </SelectContent>
@@ -199,7 +199,7 @@ function CreateJobModal({ onClose, onCreated }: { onClose: () => void; onCreated
             </div>
             <div>
               <label style={lbl}>Positions</label>
-              <Input type="number" min={1} value={openingsCount} onChange={e => setOpeningsCount(e.target.value)} />
+              <Input type="number" min={1} value={openingsCount} onChange={e => setOpeningsCount(e.target.value)} aria-label="Positions" />
             </div>
           </div>
           <DialogFooter style={{ marginTop: 6 }}>
@@ -243,21 +243,21 @@ function AddCandidateModal({ jobOpeningId, jobTitle, onClose, onCreated }: { job
         <form onSubmit={submit} style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
           <div>
             <label style={lbl}>Full name</label>
-            <Input required autoFocus value={name} onChange={e => setName(e.target.value)} />
+            <Input required autoFocus value={name} onChange={e => setName(e.target.value)} aria-label="Full name" />
           </div>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
             <div>
               <label style={lbl}>Email</label>
-              <Input type="email" value={email} onChange={e => setEmail(e.target.value)} />
+              <Input type="email" value={email} onChange={e => setEmail(e.target.value)} aria-label="Email" />
             </div>
             <div>
               <label style={lbl}>Phone</label>
-              <Input value={phone} onChange={e => setPhone(e.target.value)} />
+              <Input value={phone} onChange={e => setPhone(e.target.value)} aria-label="Phone" />
             </div>
           </div>
           <div>
             <label style={lbl}>Source</label>
-            <Input value={source} onChange={e => setSource(e.target.value)} placeholder="LinkedIn, referral, walk-in…" />
+            <Input value={source} onChange={e => setSource(e.target.value)} placeholder="LinkedIn, referral, walk-in…" aria-label="Source" />
           </div>
           <DialogFooter style={{ marginTop: 6 }}>
             <Button type="button" variant="outline" onClick={onClose}>Cancel</Button>
@@ -310,7 +310,7 @@ function ScheduleInterviewModal({ application, staff, onClose, onScheduled }: {
             <div>
               <label style={lbl}>Mode</label>
               <Select value={mode} onValueChange={setMode}>
-                <SelectTrigger style={inp}><SelectValue /></SelectTrigger>
+                <SelectTrigger style={inp} aria-label="Mode"><SelectValue /></SelectTrigger>
                 <SelectContent>
                   {INTERVIEW_MODES.map(m => <SelectItem key={m} value={m}>{prettyType(m)}</SelectItem>)}
                 </SelectContent>
@@ -318,12 +318,12 @@ function ScheduleInterviewModal({ application, staff, onClose, onScheduled }: {
             </div>
             <div>
               <label style={lbl}>Interviewer</label>
-              <Combobox options={staffOptions} value={interviewerId} onChange={setInterviewerId} placeholder="Select staff…" searchPlaceholder="Search staff…" emptyText="No staff found" />
+              <Combobox options={staffOptions} value={interviewerId} onChange={setInterviewerId} placeholder="Select staff…" searchPlaceholder="Search staff…" emptyText="No staff found" aria-label="Interviewer" />
             </div>
           </div>
           <div>
             <label style={lbl}>Notes</label>
-            <Textarea value={notes} onChange={e => setNotes(e.target.value)} rows={2} />
+            <Textarea value={notes} onChange={e => setNotes(e.target.value)} rows={2} aria-label="Notes" />
           </div>
           <DialogFooter style={{ marginTop: 6 }}>
             <Button type="button" variant="outline" onClick={onClose}>Cancel</Button>
@@ -399,82 +399,82 @@ function CreateRequisitionModal({ staff, onClose, onCreated }: {
         <form onSubmit={submit} style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
           <div>
             <label style={lbl}>Position title</label>
-            <Input required autoFocus value={title} onChange={e => setTitle(e.target.value)} placeholder="e.g. Senior Accountant" />
+            <Input required autoFocus value={title} onChange={e => setTitle(e.target.value)} placeholder="e.g. Senior Accountant" aria-label="Position title" />
           </div>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
             <div>
               <label style={lbl}>Department</label>
-              <Combobox options={departments.map(d => ({ value: d.id, label: d.name }))} value={departmentId} onChange={setDepartmentId} placeholder="Select…" emptyText="No departments yet" />
+              <Combobox options={departments.map(d => ({ value: d.id, label: d.name }))} value={departmentId} onChange={setDepartmentId} placeholder="Select…" emptyText="No departments yet" aria-label="Department" />
             </div>
             <div>
               <label style={lbl}>Designation</label>
-              <Combobox options={designations.map(d => ({ value: d.id, label: d.title }))} value={designationId} onChange={setDesignationId} placeholder="Select…" emptyText="No designations yet" />
+              <Combobox options={designations.map(d => ({ value: d.id, label: d.title }))} value={designationId} onChange={setDesignationId} placeholder="Select…" emptyText="No designations yet" aria-label="Designation" />
             </div>
           </div>
           <div>
             <label style={lbl}>Hiring manager</label>
-            <Combobox options={staffOptions} value={hiringManagerId} onChange={setHiringManagerId} placeholder="Select staff…" searchPlaceholder="Search staff…" emptyText="No staff found" />
+            <Combobox options={staffOptions} value={hiringManagerId} onChange={setHiringManagerId} placeholder="Select staff…" searchPlaceholder="Search staff…" emptyText="No staff found" aria-label="Hiring manager" />
           </div>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 12 }}>
             <div>
               <label style={lbl}>Employment type</label>
               <Select value={employmentType} onValueChange={setEmploymentType}>
-                <SelectTrigger style={inp}><SelectValue /></SelectTrigger>
+                <SelectTrigger style={inp} aria-label="Employment type"><SelectValue /></SelectTrigger>
                 <SelectContent>{EMP_TYPES.map(t => <SelectItem key={t} value={t}>{prettyType(t)}</SelectItem>)}</SelectContent>
               </Select>
             </div>
             <div>
               <label style={lbl}>Openings</label>
-              <Input type="number" min={1} value={openingsCount} onChange={e => setOpeningsCount(e.target.value)} />
+              <Input type="number" min={1} value={openingsCount} onChange={e => setOpeningsCount(e.target.value)} aria-label="Openings" />
             </div>
             <div>
               <label style={lbl}>Priority</label>
               <Select value={priority} onValueChange={setPriority}>
-                <SelectTrigger style={inp}><SelectValue /></SelectTrigger>
+                <SelectTrigger style={inp} aria-label="Priority"><SelectValue /></SelectTrigger>
                 <SelectContent>{PRIORITIES.map(p => <SelectItem key={p} value={p}>{prettyType(p)}</SelectItem>)}</SelectContent>
               </Select>
             </div>
           </div>
           <div>
             <label style={lbl}>Location</label>
-            <Input value={location} onChange={e => setLocation(e.target.value)} placeholder="Remote, Dar es Salaam…" />
+            <Input value={location} onChange={e => setLocation(e.target.value)} placeholder="Remote, Dar es Salaam…" aria-label="Location" />
           </div>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
             <div>
               <label style={lbl}>Reason for hiring</label>
               <Select value={reason} onValueChange={setReason}>
-                <SelectTrigger style={inp}><SelectValue /></SelectTrigger>
+                <SelectTrigger style={inp} aria-label="Reason for hiring"><SelectValue /></SelectTrigger>
                 <SelectContent>{REASONS.map(r => <SelectItem key={r} value={r}>{prettyType(r)}</SelectItem>)}</SelectContent>
               </Select>
             </div>
             {reason === 'REPLACEMENT' && (
               <div>
                 <label style={lbl}>Replacing</label>
-                <Combobox options={staffOptions} value={replacementForId} onChange={setReplacementForId} placeholder="Select staff…" searchPlaceholder="Search staff…" emptyText="No staff found" />
+                <Combobox options={staffOptions} value={replacementForId} onChange={setReplacementForId} placeholder="Select staff…" searchPlaceholder="Search staff…" emptyText="No staff found" aria-label="Replacing" />
               </div>
             )}
           </div>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 12 }}>
             <div>
               <label style={lbl}>Salary min</label>
-              <Input type="number" min={0} value={salaryMin} onChange={e => setSalaryMin(e.target.value)} />
+              <Input type="number" min={0} value={salaryMin} onChange={e => setSalaryMin(e.target.value)} aria-label="Salary min" />
             </div>
             <div>
               <label style={lbl}>Salary max</label>
-              <Input type="number" min={0} value={salaryMax} onChange={e => setSalaryMax(e.target.value)} />
+              <Input type="number" min={0} value={salaryMax} onChange={e => setSalaryMax(e.target.value)} aria-label="Salary max" />
             </div>
             <div>
               <label style={lbl}>Currency</label>
-              <Input value={salaryCurrency} onChange={e => setSalaryCurrency(e.target.value.toUpperCase())} maxLength={3} />
+              <Input value={salaryCurrency} onChange={e => setSalaryCurrency(e.target.value.toUpperCase())} maxLength={3} aria-label="Currency" />
             </div>
           </div>
           <div>
             <label style={lbl}>Description</label>
-            <Textarea value={description} onChange={e => setDescription(e.target.value)} rows={2} />
+            <Textarea value={description} onChange={e => setDescription(e.target.value)} rows={2} aria-label="Description" />
           </div>
           <div>
             <label style={lbl}>Requirements</label>
-            <Textarea value={requirements} onChange={e => setRequirements(e.target.value)} rows={2} />
+            <Textarea value={requirements} onChange={e => setRequirements(e.target.value)} rows={2} aria-label="Requirements" />
           </div>
           <DialogFooter style={{ marginTop: 6 }}>
             <Button type="button" variant="outline" onClick={onClose}>Cancel</Button>
@@ -528,21 +528,21 @@ function CreateOfferModal({ applicationId, positionTitle, supersedesOfferId, onC
         <form onSubmit={submit} style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
           <div>
             <label style={lbl}>Position title</label>
-            <Input required autoFocus value={title} onChange={e => setTitle(e.target.value)} />
+            <Input required autoFocus value={title} onChange={e => setTitle(e.target.value)} aria-label="Position title" />
           </div>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 12 }}>
             <div>
               <label style={lbl}>Amount</label>
-              <Input type="number" min={0} value={amount} onChange={e => setAmount(e.target.value)} />
+              <Input type="number" min={0} value={amount} onChange={e => setAmount(e.target.value)} aria-label="Amount" />
             </div>
             <div>
               <label style={lbl}>Currency</label>
-              <Input value={currency} onChange={e => setCurrency(e.target.value.toUpperCase())} maxLength={3} />
+              <Input value={currency} onChange={e => setCurrency(e.target.value.toUpperCase())} maxLength={3} aria-label="Currency" />
             </div>
             <div>
               <label style={lbl}>Period</label>
               <Select value={period} onValueChange={setPeriod}>
-                <SelectTrigger style={inp}><SelectValue /></SelectTrigger>
+                <SelectTrigger style={inp} aria-label="Period"><SelectValue /></SelectTrigger>
                 <SelectContent><SelectItem value="MONTHLY">Monthly</SelectItem><SelectItem value="ANNUAL">Annual</SelectItem></SelectContent>
               </Select>
             </div>
@@ -550,11 +550,11 @@ function CreateOfferModal({ applicationId, positionTitle, supersedesOfferId, onC
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
             <div>
               <label style={lbl}>Start date</label>
-              <DatePicker date={startDate} onChange={setStartDate} triggerClassName="w-full" />
+              <DatePicker date={startDate} onChange={setStartDate} triggerClassName="w-full" aria-label="Start date" />
             </div>
             <div>
               <label style={lbl}>Expiry date</label>
-              <DatePicker date={expiryDate} onChange={setExpiryDate} triggerClassName="w-full" />
+              <DatePicker date={expiryDate} onChange={setExpiryDate} triggerClassName="w-full" aria-label="Expiry date" />
             </div>
           </div>
           <DialogFooter style={{ marginTop: 6 }}>
@@ -646,15 +646,15 @@ function CandidateProfileModal({ candidateId, candidateName, onClose }: { candid
             </div>
             <div>
               <label style={lbl}>Cover letter</label>
-              <Textarea value={coverLetter} onChange={e => setCoverLetter(e.target.value)} rows={4} />
+              <Textarea value={coverLetter} onChange={e => setCoverLetter(e.target.value)} rows={4} aria-label="Cover letter" />
             </div>
             <div>
               <label style={lbl}>Skills</label>
-              <Input value={skills} onChange={e => setSkills(e.target.value)} placeholder="e.g. Kysely, Fastify, React" />
+              <Input value={skills} onChange={e => setSkills(e.target.value)} placeholder="e.g. Kysely, Fastify, React" aria-label="Skills" />
             </div>
             <div>
               <label style={lbl}>Education</label>
-              <Textarea value={education} onChange={e => setEducation(e.target.value)} rows={2} />
+              <Textarea value={education} onChange={e => setEducation(e.target.value)} rows={2} aria-label="Education" />
             </div>
             <DialogFooter>
               <Button variant="outline" onClick={onClose}>Cancel</Button>
@@ -699,7 +699,7 @@ function ScreeningDialog({ application, onClose, onSaved }: { application: Appli
         <form onSubmit={submit} style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
           <div>
             <label style={lbl}>Score (0–100)</label>
-            <Input type="number" min={0} max={100} value={score} onChange={e => setScore(e.target.value)} />
+            <Input type="number" min={0} max={100} value={score} onChange={e => setScore(e.target.value)} aria-label="Score (0–100)" />
           </div>
           <div>
             <label style={lbl}>Outcome</label>
@@ -714,7 +714,7 @@ function ScreeningDialog({ application, onClose, onSaved }: { application: Appli
           {passed === 'fail' && (
             <div>
               <label style={lbl}>Disqualification reason</label>
-              <Textarea value={reason} onChange={e => setReason(e.target.value)} rows={2} />
+              <Textarea value={reason} onChange={e => setReason(e.target.value)} rows={2} aria-label="Disqualification reason" />
             </div>
           )}
           <DialogFooter>

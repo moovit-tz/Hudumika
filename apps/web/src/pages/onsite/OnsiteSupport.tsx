@@ -158,7 +158,7 @@ export function OnsiteSupport() {
                   <div className="onsite-form-group">
                     <label>Category</label>
                     <Select value={category} onValueChange={setCategory}>
-                      <SelectTrigger><SelectValue /></SelectTrigger>
+                      <SelectTrigger aria-label="Category"><SelectValue /></SelectTrigger>
                       <SelectContent>
                         {CATEGORIES.map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}
                       </SelectContent>

@@ -271,19 +271,19 @@ export function CarriersPage() {
             </div>
             <div>
               <label style={fieldLabel}>SCAC / IATA code</label>
-              <Input value={form.scac_or_iata} onChange={e => setForm(p => ({ ...p, scac_or_iata: e.target.value }))} placeholder="e.g. MAEU" />
+              <Input value={form.scac_or_iata} onChange={e => setForm(p => ({ ...p, scac_or_iata: e.target.value }))} placeholder="e.g. MAEU" aria-label="SCAC / IATA code" />
             </div>
             <div>
               <label style={fieldLabel}>Contact name</label>
-              <Input value={form.contact_name} onChange={e => setForm(p => ({ ...p, contact_name: e.target.value }))} />
+              <Input value={form.contact_name} onChange={e => setForm(p => ({ ...p, contact_name: e.target.value }))} aria-label="Contact name" />
             </div>
             <div>
               <label style={fieldLabel}>Contact email</label>
-              <Input type="email" value={form.contact_email} onChange={e => setForm(p => ({ ...p, contact_email: e.target.value }))} />
+              <Input type="email" value={form.contact_email} onChange={e => setForm(p => ({ ...p, contact_email: e.target.value }))} aria-label="Contact email" />
             </div>
             <div>
               <label style={fieldLabel}>Contact phone</label>
-              <Input value={form.contact_phone} onChange={e => setForm(p => ({ ...p, contact_phone: e.target.value }))} />
+              <Input value={form.contact_phone} onChange={e => setForm(p => ({ ...p, contact_phone: e.target.value }))} aria-label="Contact phone" />
             </div>
           </div>
           {error && <div style={{ color: 'var(--red)', fontSize: 12.5, marginBottom: 12 }}>{error}</div>}

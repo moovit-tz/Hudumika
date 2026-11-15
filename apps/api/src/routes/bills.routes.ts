@@ -1145,7 +1145,7 @@ export async function billRoutes(fastify: FastifyInstance) {
       // Money paid out to a supplier — the A/P counterpart of an invoice
       // payment, so cross-app subscribers see cash leaving, not just cash in.
       committedEvent = await emitDomainEvent(trx, user.tenant_id, {
-        type: 'bill.payment_recorded', sourceApp: 'finops', entityType: 'bill', entityId: id,
+        type: 'bill.payment_recorded', sourceApp: 'finops', entityType: 'bill', entityId: id, actorId: user.sub,
         payload: { amount: Number(amount), method: method || null, supplierId: (bill as any).supplier_id ?? null },
       }, { deferDispatch: true });
 

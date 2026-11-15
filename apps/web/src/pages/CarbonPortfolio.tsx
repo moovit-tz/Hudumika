@@ -291,7 +291,7 @@ export const CarbonPortfolio: React.FC = () => {
         </div>
 
         {error && (
-          <div style={{ padding: '10px 14px', borderRadius: 8, background: 'var(--bg)', border: '1px solid var(--border)', color: 'var(--red, #cf222e)', fontSize: 12.5 }}>
+          <div style={{ padding: '10px 14px', borderRadius: 'var(--r)', background: 'var(--bg)', border: '1px solid var(--border)', color: 'var(--red, #cf222e)', fontSize: 12.5 }}>
             {error}
           </div>
         )}
@@ -315,7 +315,7 @@ export const CarbonPortfolio: React.FC = () => {
                 <div style={{
                   width: 32,
                   height: 32,
-                  borderRadius: 7,
+                  borderRadius: 'var(--r-sm)',
                   background: 'var(--bg)',
                   border: '1px solid var(--border)',
                   display: 'flex',
@@ -364,7 +364,7 @@ export const CarbonPortfolio: React.FC = () => {
                     <XAxis dataKey="month" axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: C.axisText }} />
                     <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: C.axisText }} width={32} />
                     <RechartsTooltip
-                      contentStyle={{ background: C.tooltipBg, border: `1px solid ${C.tooltipBorder}`, borderRadius: 6, fontSize: 11.5 }}
+                      contentStyle={{ background: C.tooltipBg, border: `1px solid ${C.tooltipBorder}`, borderRadius: 'var(--r-sm)', fontSize: 11.5 }}
                       formatter={(val: any) => [`${Number(val).toLocaleString('en')} kg`, 'Emissions']}
                       labelStyle={{ color: 'var(--ink)', fontWeight: 600, marginBottom: 2 }}
                     />
@@ -447,7 +447,7 @@ export const CarbonPortfolio: React.FC = () => {
                   width: '100%',
                   boxSizing: 'border-box',
                   padding: '5px 24px 5px 28px',
-                  borderRadius: 6,
+                  borderRadius: 'var(--r-sm)',
                   border: '1px solid var(--border)',
                   background: 'var(--bg)',
                   fontSize: 12,
@@ -456,7 +456,7 @@ export const CarbonPortfolio: React.FC = () => {
                 }}
               />
               {searchQuery && (
-                <button
+                <button aria-label="Clear search"
                   type="button"
                   onClick={() => handleSearchChange('')}
                   style={{ position: 'absolute', right: 6, top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink3)', padding: 2 }}

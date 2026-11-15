@@ -269,7 +269,7 @@ export function OnsiteWebsites() {
                       {site.status === 'failed' && (
                         <div style={{ display: 'inline-flex', alignItems: 'center', gap: '0.4rem', marginTop: '0.25rem', background: 'var(--red-l)', color: 'var(--red)', padding: '0.2rem 0.6rem', borderRadius: '9999px', fontSize: '0.75rem', fontWeight: 600 }}>
                           <Icon name="alertCircle" size={12} /> Review website status and provider configuration
-                          <Icon name="refresh" size={12} style={{ cursor: 'pointer', marginLeft: '0.25rem' }} onClick={() => fetchWebsites(true)} />
+                          <Icon name="refresh" size={12} style={{ cursor: 'pointer', marginLeft: '0.25rem' }} onClick={() => fetchWebsites(true)} label="Check website status again" />
                         </div>
                       )}
                     </div>
@@ -385,7 +385,7 @@ function AddWebsiteModal({ onClose, onCreated }: { onClose: () => void; onCreate
               <div className="onsite-form-group">
                 <label>Type</label>
                 <Select value={type} onValueChange={setType}>
-                  <SelectTrigger className="w-full text-sm rounded-lg border-border shadow-sm">
+                  <SelectTrigger className="w-full text-sm rounded-lg border-border shadow-sm" aria-label="Type">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>

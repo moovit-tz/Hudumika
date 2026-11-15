@@ -4990,9 +4990,10 @@ export interface SmsMessagesTable {
   user_id: string | null;
   to_number: string;
   body: string;
-  status: Generated<string>; // 'queued' | 'sent' | 'delivered' | 'failed' | 'undelivered'
+  status: Generated<string>; // 'queued' | 'processing' | 'sent' | 'delivered' | 'failed' | 'undelivered'
   provider: string | null;
   provider_message_id: string | null;
+  gateway_id: ColumnType<string | null, string | null | undefined, string | null>;
   error: string | null;
   segments: Generated<number>;
   source_app: string;
@@ -5000,6 +5001,7 @@ export interface SmsMessagesTable {
   template_id: string | null;
   contact_name: string | null;
   attempts: Generated<number>;
+  processing_at: ColumnType<Date | null, string | null | undefined, string | null>;
   sent_at: ColumnType<Date, string, string> | null;
   delivered_at: ColumnType<Date, string, string> | null;
   created_at: Generated<Date>;
@@ -5256,6 +5258,15 @@ export interface TrackingSnapshotsTable {
 export interface SupportTicketsTable {
   id: Generated<string>;
   tenant_id: string;
+  /** Support network (761): where the ticket is handled and why. */
+  site_id: Generated<string | null>;
+  zone_id: Generated<string | null>;
+  product_id: Generated<string | null>;
+  customer_lat: Generated<number | null>;
+  customer_lng: Generated<number | null>;
+  routed_reason: Generated<string | null>;
+  /** Answers to the product's ticket form (763), keyed by field key. */
+  custom_fields: Generated<Record<string, string | number | boolean>>;
   ref_number: string;
   customer_id: string;
   subject: string;
@@ -5341,6 +5352,70 @@ export interface SupportGroupsTable {
   name: string;
   color: string;
   created_at: Generated<Date>;
+  /** Queue fields (761): a group is a queue for a centre and/or product. */
+  site_id: string | null;
+  product_id: string | null;
+  skills: Generated<string[]>;
+  languages: Generated<string[]>;
+  overflow: Generated<'none' | 'zone' | 'network'>;
+}
+
+export interface SupportFormField {
+  key: string; label: string; type: 'text' | 'number' | 'date' | 'select' | 'textarea';
+  options?: string[]; required?: boolean;
+}
+
+/** Support network (761): a place hierarchy — country > region > zone > area. */
+export interface GeoZonesTable {
+  id: Generated<string>; tenant_id: string; parent_id: string | null;
+  name: string; code: string | null; kind: Generated<'country' | 'region' | 'zone' | 'area'>;
+  center_lat: number | null; center_lng: number | null; radius_km: number | null;
+  boundary: unknown | null; timezone: string | null;
+  status: Generated<'active' | 'inactive'>; created_at: Generated<Date>; updated_at: Generated<Date>;
+}
+
+export interface SupportProductsTable {
+  id: Generated<string>; tenant_id: string; name: string; code: string | null;
+  color: string | null; description: string | null;
+  source_apps: Generated<string[]>; sla_hours: Generated<Record<string, number>>;
+  /** Ticket form for this product (763): [{ key, label, type, options?, required? }]. */
+  form_fields: Generated<SupportFormField[]>;
+  status: Generated<'active' | 'inactive'>; created_at: Generated<Date>; updated_at: Generated<Date>;
+}
+
+/** Support network (764): a phone or WhatsApp number for a centre, with its phone menu. */
+export interface SupportLineMenuOption {
+  digit: string; label: string; action: 'route' | 'voicemail';
+  product_id?: string | null; site_id?: string | null;
+}
+export interface SupportLinesTable {
+  id: Generated<string>; tenant_id: string; kind: 'voice' | 'whatsapp'; name: string; phone_number: string;
+  carrier: Generated<'vodacom' | 'yas' | 'airtel' | 'halotel' | 'ttcl' | 'zantel' | 'other'>;
+  provider: Generated<'africastalking' | 'sip' | 'meta'>; external_id: string | null;
+  site_id: string | null; product_id: string | null; greeting: string | null; greeting_audio_url: string | null;
+  menu: Generated<SupportLineMenuOption[]>; after_hours: Generated<'voicemail' | 'overflow'>;
+  ring_agents: Generated<boolean>; webhook_token: Generated<string>;
+  status: Generated<'active' | 'inactive'>; created_at: Generated<Date>; updated_at: Generated<Date>;
+}
+export interface SupportCallsTable {
+  id: Generated<string>; tenant_id: string; line_id: string | null; provider_session: string;
+  caller_number: string | null;
+  status: Generated<'menu' | 'ringing' | 'voicemail' | 'completed' | 'missed' | 'after_hours'>;
+  digits: string | null; site_id: string | null; product_id: string | null; ticket_id: string | null;
+  agent_id: string | null; recording_url: string | null; duration_seconds: number | null;
+  started_at: Generated<Date>; ended_at: Date | null;
+}
+
+export interface SupportGroupMembersTable {
+  tenant_id: string; group_id: string; user_id: string; created_at: Generated<Date>;
+}
+
+export interface SupportAgentMembershipsTable {
+  id: Generated<string>; tenant_id: string; user_id: string;
+  site_id: string | null; zone_id: string | null;
+  role: Generated<'agent' | 'lead' | 'centre_manager' | 'zone_manager'>;
+  skills: Generated<string[]>; languages: Generated<string[]>; max_open: Generated<number>;
+  created_at: Generated<Date>; updated_at: Generated<Date>;
 }
 
 export interface SupportViewsTable {
@@ -6463,6 +6538,12 @@ export interface Database {
   support_message_attachments: SupportMessageAttachmentsTable;
   support_macros: SupportMacrosTable;
   support_groups: SupportGroupsTable;
+  geo_zones: GeoZonesTable;
+  support_products: SupportProductsTable;
+  support_group_members: SupportGroupMembersTable;
+  support_agent_memberships: SupportAgentMembershipsTable;
+  support_lines: SupportLinesTable;
+  support_calls: SupportCallsTable;
   support_views: SupportViewsTable;
   support_rules: SupportRulesTable;
   case_escalations: CaseEscalationsTable;
@@ -7880,6 +7961,15 @@ export interface Database {
     start_date: Date; end_date: Date; hold_expires_at: Date | null; notes: string | null;
     created_at: Generated<Date>; updated_at: Generated<Date>;
   };
+  zentra_audit_events: ZentraAuditEventsTable;
+  zentra_event_outbox: ZentraEventOutboxTable;
+  zentra_risk_rules: ZentraRiskRulesTable;
+  zentra_risk_signals: ZentraRiskSignalsTable;
+  zentra_investigation_cases: ZentraInvestigationCasesTable;
+  zentra_policies: ZentraPoliciesTable;
+  zentra_settings: ZentraSettingsTable;
+  zentra_platform_audit: ZentraPlatformAuditTable;
+  zentra_case_events: ZentraCaseEventsTable;
 }
 
 // ─── Shared Org Model Tables (Migration 641) ─────────────────────────────────
@@ -7896,13 +7986,15 @@ export interface TenantEntitiesTable {
 
 export interface TenantSitesTable {
   id: Generated<string>; tenant_id: string; entity_id: string | null; name: string;
-  code: string | null; site_type: Generated<'office' | 'factory' | 'warehouse' | 'retail' | 'clinic' | 'mine' | 'farm' | 'port' | 'other'>;
+  code: string | null; site_type: Generated<'office' | 'factory' | 'warehouse' | 'retail' | 'clinic' | 'mine' | 'farm' | 'port' | 'contact_centre' | 'hub' | 'other'>;
   address: string | null; city: string | null; region: string | null;
   country_code: Generated<string>; timezone: Generated<string>;
   latitude: number | null; longitude: number | null;
   status: Generated<'active' | 'inactive' | 'under_construction' | 'closed'>;
   metadata: Generated<Record<string, unknown>>; created_by: string | null;
   created_at: Generated<Date>; updated_at: Generated<Date>;
+  /** Support network (761): the zone this centre sits in, whether Bliss routes work here, and its hours. */
+  zone_id: string | null; support_enabled: Generated<boolean>; opening_hours: Record<string, [string, string]> | null;
 }
 
 export interface EntityIndustriesTable {
@@ -14671,5 +14763,162 @@ export interface ComplyRenewalAuditTable {
   previous_value: string | null;
   new_value: string | null;
   reason: string | null;
+  created_at: Generated<Date>;
+}
+
+export interface ZentraAuditEventsTable {
+  id: Generated<string>;
+  tenant_id: string;
+  app_id: string;
+  event_name: string;
+  actor_id: string;
+  actor_role: string | null;
+  actor_name: string | null;
+  actor_ip: string | null;
+  actor_user_agent: string | null;
+  resource_type: string;
+  resource_id: string;
+  action: string;
+  outcome: 'success' | 'denied' | 'failure';
+  correlation_id: string | null;
+  schema_version: Generated<string>;
+  safe_summary: string | null;
+  safe_metadata: Generated<Record<string, unknown> | string>;
+  created_at: Generated<Date>;
+}
+
+export interface ZentraEventOutboxTable {
+  id: Generated<string>;
+  tenant_id: string;
+  app_id: string;
+  event_name: string;
+  payload: Record<string, unknown> | string;
+  status: Generated<'pending' | 'processing' | 'completed' | 'failed'>;
+  retry_count: Generated<number>;
+  max_retries: Generated<number>;
+  last_error: string | null;
+  idempotency_key: string | null;
+  scheduled_at: Generated<Date>;
+  processed_at: Date | null;
+  created_at: Generated<Date>;
+}
+
+export interface ZentraRiskRulesTable {
+  id: Generated<string>;
+  tenant_id: string;
+  code: string;
+  name: string;
+  description: string;
+  category: 'access_control' | 'data_exfiltration' | 'financial' | 'privilege' | 'operational' | 'telemetry';
+  severity: 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL';
+  enabled: Generated<boolean>;
+  parameters: Generated<Record<string, unknown> | string>;
+  created_at: Generated<Date>;
+  updated_at: Generated<Date>;
+}
+
+export interface ZentraRiskSignalsTable {
+  id: Generated<string>;
+  tenant_id: string;
+  app_id: string;
+  rule_id: string | null;
+  rule_code: string;
+  title: string;
+  description: string;
+  severity: 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL';
+  status: Generated<'NEW' | 'TRIAGED' | 'CASE_OPEN' | 'RESOLVED' | 'FALSE_POSITIVE'>;
+  actor_id: string | null;
+  actor_name: string | null;
+  resource_type: string | null;
+  resource_id: string | null;
+  evidence_event_ids: Generated<string[] | string>;
+  evidence_summary: string | null;
+  resolution_notes: string | null;
+  resolved_by: string | null;
+  resolved_at: Date | null;
+  case_id: string | null;
+  created_at: Generated<Date>;
+  updated_at: Generated<Date>;
+}
+
+export interface ZentraInvestigationCasesTable {
+  id: Generated<string>;
+  tenant_id: string;
+  case_number: string;
+  title: string;
+  summary: string;
+  severity: 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL';
+  status: Generated<'OPEN' | 'INVESTIGATING' | 'REMEDIATION' | 'CLOSED'>;
+  assigned_to_user_id: string | null;
+  assigned_to_name: string | null;
+  lead_signal_id: string | null;
+  evidence_event_ids: Generated<string[] | string>;
+  internal_notes: Generated<unknown[] | string>;
+  timeline: Generated<unknown[] | string>;
+  resolution: string | null;
+  resolution_outcome: string | null;
+  closed_by: string | null;
+  closed_at: Date | null;
+  created_by: string;
+  created_at: Generated<Date>;
+  updated_at: Generated<Date>;
+}
+
+export interface ZentraPoliciesTable {
+  id: Generated<string>;
+  tenant_id: string;
+  name: string;
+  description: string | null;
+  resource_type: string;
+  action: string;
+  subject_type: 'role' | 'user' | 'team' | 'service';
+  subject_id: string;
+  effect: 'allow' | 'deny';
+  condition_type: 'always' | 'owner_only' | 'assigned_only' | 'team_only' | 'classification_le' | 'amount_lt';
+  condition_value: Generated<Record<string, unknown> | string>;
+  enabled: Generated<boolean>;
+  created_at: Generated<Date>;
+  updated_at: Generated<Date>;
+}
+
+export interface ZentraSettingsTable {
+  id: Generated<string>;
+  tenant_id: string;
+  retention_days: Generated<number>;
+  alert_email: string | null;
+  alert_min_severity: Generated<'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL'>;
+  telemetry_monitoring_enabled: Generated<boolean>;
+  monitored_apps: Generated<string[] | string>;
+  dormant_threshold_hours: Generated<number>;
+  updated_at: Generated<Date>;
+  /** Migration 767: purge does nothing while on. */
+  legal_hold: Generated<boolean>;
+  /** Migration 767: a shorter retention period waiting out its 30-day delay. */
+  retention_pending_days: number | null;
+  retention_pending_at: Date | null;
+}
+
+export interface ZentraPlatformAuditTable {
+  id: Generated<string>;
+  actor_user_id: string | null;
+  actor_name: string;
+  actor_email: string;
+  action: string;
+  target_tenant_id: string | null;
+  target_tenant_name: string | null;
+  target_resource_type: string | null;
+  target_resource_id: string | null;
+  reason: string | null;
+  ip_address: string | null;
+  metadata: Generated<Record<string, unknown> | string>;
+  created_at: Generated<Date>;
+}
+
+/** Zentra (765): append-only, hash-chained record of an investigation case. */
+export interface ZentraCaseEventsTable {
+  id: Generated<string>; tenant_id: string; case_id: string;
+  kind: 'created' | 'note' | 'status' | 'assignment' | 'severity' | 'evidence_added' | 'resolved';
+  actor_id: string | null; actor_name: string; body: string | null;
+  data: Generated<Record<string, unknown>>; prev_hash: string | null; hash: string;
   created_at: Generated<Date>;
 }

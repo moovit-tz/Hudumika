@@ -212,16 +212,16 @@ function NewSurveyModal({ onClose, onCreated }: { onClose: () => void; onCreated
         <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
           <div>
             <label style={{ fontSize: 12, fontWeight: 600, color: 'var(--ink2)', display: 'block', marginBottom: 4 }}>Title</label>
-            <Input value={title} onChange={e => setTitle(e.target.value)} placeholder="Q3 engagement pulse" required />
+            <Input value={title} onChange={e => setTitle(e.target.value)} placeholder="Q3 engagement pulse" required aria-label="Title" />
           </div>
           <div>
             <label style={{ fontSize: 12, fontWeight: 600, color: 'var(--ink2)', display: 'block', marginBottom: 4 }}>Description (optional)</label>
-            <Textarea value={description} onChange={e => setDescription(e.target.value)} rows={2} />
+            <Textarea value={description} onChange={e => setDescription(e.target.value)} rows={2} aria-label="Description (optional)" />
           </div>
           <div style={{ display: 'flex', gap: 14 }}>
             <div style={{ flex: 1 }}>
               <label style={{ fontSize: 12, fontWeight: 600, color: 'var(--ink2)', display: 'block', marginBottom: 4 }}>Ends (optional)</label>
-              <DatePicker date={parseDateOnly(endsAt)} onChange={d => setEndsAt(toDateOnlyString(d))} />
+              <DatePicker date={parseDateOnly(endsAt)} onChange={d => setEndsAt(toDateOnlyString(d))} aria-label="Ends (optional)" />
             </div>
             <label style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 12.5, color: 'var(--ink2)', paddingTop: 22 }}>
               <Checkbox checked={isAnonymous} onCheckedChange={c => setIsAnonymous(c === true)} />

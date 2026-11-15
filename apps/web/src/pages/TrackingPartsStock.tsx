@@ -75,8 +75,7 @@ function AddPartModal({ vendors, onClose, onAdded }: { vendors: Vendor[]; onClos
             <label className="freight-field">Storage location<Combobox value={locationId} onChange={setLocationId} options={[{value:'',label:'Unassigned'},...locations.map(l=>({value:l.id,label:l.name,sublabel:l.code}))]} /></label>{locationError && <p className="freight-note">Locations unavailable: {locationError}</p>}<label style={labelStyle}>Supplier</label>
             <Combobox
               options={[{ value: '', label: '— None —' }, ...vendors.map(v => ({ value: v.id, label: v.name }))]}
-              value={vendorId} onChange={setVendorId} placeholder="— None —"
-            />
+              value={vendorId} onChange={setVendorId} placeholder="— None —" aria-label="Supplier" />
           </div>
           {error && <div style={{ fontSize: 12, color: 'var(--red)' }}>{error}</div>}
           <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end', marginTop: 4 }}>

@@ -10,6 +10,13 @@ import { squirclePath, SQUIRCLE_PATH_40 } from '../lib/squircle.js';
  *  these out unless the signed-in user is a SuperAdmin. */
 export const INTERNAL_APP_IDS = new Set(['lens']);
 
+/** Apps only some roles can use. The launcher hides them from everyone else
+ *  (the API refuses them too). Zentra: zentra.routes.ts VIEW roles. */
+export const ROLE_GATED_APPS: Record<string, readonly string[]> = {
+  zentra: ['SUPER_ADMIN', 'ADMIN', 'TENANT_ADMIN', 'MANAGER'],
+};
+export const roleCanOpenApp = (appId: string, role?: string | null) => !ROLE_GATED_APPS[appId] || ROLE_GATED_APPS[appId].includes(role ?? '');
+
 export const LAUNCHER_APPS: Array<{ id: string; name: string; color: string; path: string }> = [
   { id: 'lens',      name: 'Lens',     color: '#475569', path: '/lens'      },
   { id: 'clearos',   name: 'ClearOS',  color: '#ea580c', path: '/clearos'   },
@@ -59,11 +66,13 @@ export const LAUNCHER_APPS: Array<{ id: string; name: string; color: string; pat
   { id: 'ngao',      name: 'Ngao',      color: '#059669', path: import.meta.env.VITE_NGAO_URL?.trim() || (import.meta.env.DEV ? 'http://localhost:5176/sso' : '/ngao/sso') },
   ...(import.meta.env.DEV || import.meta.env.VITE_STRIDE_URL?.trim() ? [{ id: 'stride', name: 'Stride', color: '#4f46e5', path: import.meta.env.VITE_STRIDE_URL?.trim() || 'http://localhost:3101/' }] : []),
   { id: 'gereji',    name: 'Gereji',    color: '#d97706', path: '/gereji'    },
+  { id: 'zentra',    name: 'Zentra',    color: '#0f766e', path: '/zentra'    },
 ];
 
 // ── App SVG icons for launcher ─────────────────────────────────
 
 export const LAUNCHER_SVG_ICONS: Record<string, React.ReactElement> = {
+  zentra: (<g stroke="white" strokeWidth="2.2" fill="none" strokeLinecap="round" strokeLinejoin="round"><path d="M20 7L31 11.5V19.5C31 26 26.5 30.5 20 33C13.5 30.5 9 26 9 19.5V11.5L20 7Z"/><path d="M16 19.5L19 22.5L25 16.5" strokeWidth="2.4"/></g>),
   // A lens: what the tool is for — looking closely at the platform itself.
   lens:     (<g stroke="white" strokeWidth="2.4" fill="none" strokeLinecap="round"><circle cx="17" cy="17" r="9"/><line x1="24" y1="24" x2="32" y2="32"/><line x1="13.5" y1="17" x2="20.5" y2="17" opacity="0.7"/><line x1="17" y1="13.5" x2="17" y2="20.5" opacity="0.7"/></g>),
   // A globe — content/website, distinct on purpose from onsite's server-rack

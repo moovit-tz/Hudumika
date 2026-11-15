@@ -150,7 +150,7 @@ export default function ComponentShowcase() {
             <div>
               <label className="mb-1.5 block text-xs font-semibold text-muted-foreground">Shipment mode</label>
               <Select value={mode} onValueChange={setMode}>
-                <SelectTrigger className="w-full"><SelectValue /></SelectTrigger>
+                <SelectTrigger className="w-full" aria-label="Shipment mode"><SelectValue /></SelectTrigger>
                 <SelectContent>
                   {SHIPMENT_MODES.map((o) => (
                     <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>
@@ -356,11 +356,11 @@ export default function ComponentShowcase() {
           <div className="flex flex-col gap-4">
             <div>
               <label className="mb-1.5 block text-xs font-semibold text-muted-foreground">ETA</label>
-              <DatePicker date={singleDate} onChange={setSingleDate} />
+              <DatePicker date={singleDate} onChange={setSingleDate} aria-label="ETA" />
             </div>
             <div>
               <label className="mb-1.5 block text-xs font-semibold text-muted-foreground">Free-time window</label>
-              <DateRangePicker range={dateRange} onChange={setDateRange} />
+              <DateRangePicker range={dateRange} onChange={setDateRange} aria-label="Free-time window" />
             </div>
           </div>
         </section>
@@ -569,7 +569,7 @@ function TwotoneShowcaseGrid() {
                 key={sz}
                 type="button"
                 onClick={() => setIconSize(sz)}
-                className={`px-2 py-0.5 text-xs font-medium rounded-md transition-colors ${
+                data-ui-target="" className={`relative px-2 py-0.5 text-xs font-medium rounded-md transition-colors ${
                   iconSize === sz ? 'bg-primary text-primary-foreground font-semibold' : 'text-muted-foreground hover:text-foreground'
                 }`}
                data-ui-native-button="">

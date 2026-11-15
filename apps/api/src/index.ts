@@ -1,3 +1,5 @@
+import { registerZentraTelemetryHooks } from './services/zentra-telemetry.service.js';
+import { registerZentraPolicyEnforcement } from './services/zentra-enforce.service.js';
 import { financeDocumentsRoutes } from './routes/finance-documents.routes.js';
 import fastify from 'fastify';
 import helmet from '@fastify/helmet';
@@ -66,6 +68,7 @@ import { notesRoutes } from './routes/notes.routes.js';
 import { analyticsRoutes } from './routes/analytics.routes.js';
 import { notificationRoutes } from './routes/notifications.routes.js';
 import { webhookRoutes } from './routes/webhooks.routes.js';
+import { supportVoiceRoutes } from './routes/support-voice.routes.js';
 import { billingWebhookRoutes } from './routes/billing-webhooks.routes.js';
 import { invoiceGatewayWebhookRoutes } from './routes/invoice-gateway-webhooks.routes.js';
 import { declarationRoutes } from './routes/declarations.routes.js';
@@ -226,6 +229,7 @@ import { cloudComplianceRoutes } from './routes/cloud-compliance.routes.js';
 import { drivesRoutes } from './routes/drives.routes.js';
 import { orgRoutes } from './routes/org.routes.js';
 import { orgModelRoutes, industryRegistryRoutes, platformAuditRoutes } from './routes/org-model.routes.js';
+import { zentraRoutes } from './routes/zentra.routes.js';
 import { requirementDefRoutes, lifecycleRoutes, jurisdictionPackRoutes } from './routes/permit-engine.routes.js';
 import { permitCaptureRoutes, permitCheckRoutes, appCoverageRoutes } from './routes/permit-check.routes.js';
 import { renewalFinanceRoutes } from './routes/renewal-finance.routes.js';
@@ -236,6 +240,7 @@ import { listingRoutes, enquiryRoutes, quotationRoutes as marketplaceQuotationRo
 import { platformMetricsRoutes, tenantMetricsRoutes, resourceLimitRoutes, jobRoutes, bulkOperationRoutes } from './routes/enterprise-metrics.routes.js';
 import { organizationsRoutes } from './routes/organizations.routes.js';
 import supportRoutes from './routes/support.routes.js';
+import { supportNetworkRoutes } from './routes/support-network.routes.js';
 import { platformRoutes } from './routes/platform.routes.js';
 import { privacyPolicyRoutes } from './routes/privacy-policy.routes.js';
 import { landedCostShareRoutes } from './routes/landed-cost-share.routes.js';
@@ -502,6 +507,12 @@ export async function registerApp() {
       if (appId) incrementAppUsage(user.tenant_id, appId).catch(() => {});
     });
 
+    // Zentra: record every refused (403) request and every file download,
+    // for every app, as server-observed audit telemetry.
+    registerZentraTelemetryHooks(server);
+    // Zentra access policies, enforced in the apps that own the records.
+    registerZentraPolicyEnforcement(server);
+
     // 3. WebSocket handler — authenticated and tenant-tagged the same way
     // the Bliss calls-signal socket already does (routes/calls.routes.ts):
     // browsers can't set an Authorization header on a WS handshake, but they
@@ -611,6 +622,8 @@ export async function registerApp() {
     await server.register(analyticsRoutes, { prefix: '/v1/analytics' });
     await server.register(notificationRoutes, { prefix: '/v1/notifications' });
     await server.register(webhookRoutes, { prefix: '/v1/webhooks' });
+    // Inbound phone calls to Bliss support lines (Africa's Talking voice callbacks).
+    await server.register(supportVoiceRoutes, { prefix: '/v1/webhooks/voice' });
     await server.register(billingWebhookRoutes, { prefix: '/v1/webhooks/billing' });
     await server.register(invoiceGatewayWebhookRoutes, { prefix: '/v1/webhooks/invoice-gateway' });
     await server.register(declarationRoutes, { prefix: '/v1/declarations' });
@@ -807,6 +820,7 @@ export async function registerApp() {
     await server.register(orgRoutes, { prefix: '/v1/org' });
     await server.register(organizationsRoutes, { prefix: '/v1/organizations' });
     await server.register(supportRoutes, { prefix: '/v1/support' });
+    await server.register(supportNetworkRoutes, { prefix: '/v1/support/network' });
     await server.register(platformRoutes, { prefix: '/v1/platform' });
     await server.register(privacyPolicyRoutes, { prefix: '/v1/privacy-policy' });
     await server.register(dsrRoutes, { prefix: '/v1' });
@@ -859,6 +873,7 @@ export async function registerApp() {
     await server.register(orgModelRoutes, { prefix: '/v1/org-model' });
     await server.register(industryRegistryRoutes, { prefix: '/v1/industry-registry' });
     await server.register(platformAuditRoutes, { prefix: '/v1/platform/audit' });
+    await server.register(zentraRoutes, { prefix: '/v1/zentra' });
     await server.register(requirementDefRoutes, { prefix: '/v1/permit-engine/requirements' });
     await server.register(lifecycleRoutes, { prefix: '/v1/permit-engine/cycles' });
     await server.register(jurisdictionPackRoutes, { prefix: '/v1/permit-engine/jurisdictions' });

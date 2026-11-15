@@ -59,7 +59,7 @@
 .seal-kpi-card {
   background: var(--card-bg, var(--white));
   border: var(--card-border, 1px solid var(--border));
-  border-radius: var(--card-radius, var(--r));
+  border-radius: var(--card-radius);
   padding: 16px 18px;
   box-shadow: var(--card-shadow, var(--elev-sm));
   transition: transform 0.15s ease, box-shadow 0.15s ease, border-color 0.15s ease;
@@ -74,7 +74,7 @@
 .seal-card {
   background: var(--card-bg, var(--white));
   border: var(--card-border, 1px solid var(--border));
-  border-radius: var(--card-radius, var(--r));
+  border-radius: var(--card-radius);
   overflow: hidden;
   box-shadow: var(--card-shadow, var(--elev-sm));
   transition: box-shadow 0.15s ease;
@@ -139,7 +139,7 @@
   padding: 0 12px;
   background: var(--surface, var(--white));
   border: 1px solid var(--border);
-  border-radius: var(--r);
+  border-radius: var(--r-sm);
   font-family: var(--font);
   font-size: 13px;
   color: var(--ink);
@@ -690,6 +690,22 @@
 .seal-appointments-search .stb {
   width: 100%;
 }
+
+/* Keep Seal search surfaces in step with the shared control and card tokens. */
+[data-seal="true"] .stb {
+  background: var(--card-bg);
+  border: var(--card-border);
+  border-radius: var(--r-sm);
+  box-shadow: none;
+}
+[data-seal="true"] .seal-toolbar-row,
+[data-seal="true"] .seal-kpi-tile,
+[data-seal="true"] .seal-consign-card {
+  background: var(--card-bg);
+  border: var(--card-border);
+  border-radius: var(--card-radius);
+  box-shadow: var(--card-shadow, var(--elev-sm));
+}
 @media (max-width: 767px) {
   .seal-appointments-toolbar {
     gap: 8px;
@@ -742,9 +758,9 @@
 }
 
 .seal-kpi-tile {
-  background: var(--card-bg, #ffffff);
-  border: 1px solid var(--border);
-  border-radius: var(--r, 14px);
+  background: var(--card-bg);
+  border: var(--card-border, 1px solid var(--border));
+  border-radius: var(--card-radius);
   padding: 14px 16px;
   display: flex;
   align-items: center;
@@ -752,12 +768,12 @@
   cursor: pointer;
   transition: all 0.16s ease;
   position: relative;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+  box-shadow: var(--card-shadow, var(--elev-sm));
 }
 
 .seal-kpi-tile:hover {
   transform: translateY(-1px);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.06);
+  box-shadow: var(--elev);
   border-color: color-mix(in srgb, var(--seal, var(--teal)) 40%, var(--border));
 }
 
@@ -822,10 +838,10 @@
   gap: 12px;
   flex-wrap: wrap;
   padding: 12px 16px;
-  background: var(--card-bg, #ffffff);
+  background: var(--card-bg);
   border: 1px solid var(--border);
-  border-radius: var(--r, 12px);
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.03);
+  border-radius: var(--card-radius);
+  box-shadow: var(--card-shadow, var(--elev-sm));
 }
 
 .seal-toolbar-left {
@@ -846,15 +862,15 @@
 /* Cards Grid */
 .seal-consign-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 340px), 1fr));
   gap: 16px;
 }
 
 .seal-consign-card {
-  background: var(--card-bg, #ffffff);
-  border: 1px solid var(--border);
-  border-radius: var(--r, 14px);
-  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.04);
+  background: var(--card-bg);
+  border: var(--card-border, 1px solid var(--border));
+  border-radius: var(--card-radius);
+  box-shadow: var(--card-shadow, var(--elev-sm));
   padding: 18px 20px;
   display: flex;
   flex-direction: column;
@@ -866,7 +882,7 @@
 
 .seal-consign-card:hover {
   transform: translateY(-2px);
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.08);
+  box-shadow: var(--elev);
   border-color: color-mix(in srgb, var(--seal, var(--teal)) 50%, var(--border));
 }
 

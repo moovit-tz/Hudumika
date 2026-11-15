@@ -231,12 +231,12 @@ function NewPlanModal({ onClose, onCreated }: { onClose: () => void; onCreated: 
         <div style={{ display: 'flex', flexDirection: 'column', gap: 14, marginTop: 14 }}>
           <div>
             <label style={{ fontSize: 12, fontWeight: 600, color: 'var(--ink2)', display: 'block', marginBottom: 4 }}>Plan name</label>
-            <Input value={name} onChange={e => setName(e.target.value)} placeholder="AAR Silver Health Cover" required />
+            <Input value={name} onChange={e => setName(e.target.value)} placeholder="AAR Silver Health Cover" required aria-label="Plan name" />
           </div>
           <div>
             <label style={{ fontSize: 12, fontWeight: 600, color: 'var(--ink2)', display: 'block', marginBottom: 4 }}>Type</label>
             <Select value={type} onValueChange={setType}>
-              <SelectTrigger><SelectValue /></SelectTrigger>
+              <SelectTrigger aria-label="Type"><SelectValue /></SelectTrigger>
               <SelectContent>
                 <SelectItem value="health">Health</SelectItem>
                 <SelectItem value="retirement">Retirement</SelectItem>
@@ -247,24 +247,24 @@ function NewPlanModal({ onClose, onCreated }: { onClose: () => void; onCreated: 
           </div>
           <div>
             <label style={{ fontSize: 12, fontWeight: 600, color: 'var(--ink2)', display: 'block', marginBottom: 4 }}>Provider (optional)</label>
-            <Input value={provider} onChange={e => setProvider(e.target.value)} placeholder="AAR Insurance" />
+            <Input value={provider} onChange={e => setProvider(e.target.value)} placeholder="AAR Insurance" aria-label="Provider (optional)" />
           </div>
           <div>
             <label style={{ fontSize: 12, fontWeight: 600, color: 'var(--ink2)', display: 'block', marginBottom: 4 }}>Description (optional)</label>
-            <Textarea value={description} onChange={e => setDescription(e.target.value)} rows={2} />
+            <Textarea value={description} onChange={e => setDescription(e.target.value)} rows={2} aria-label="Description (optional)" />
           </div>
           <div style={{ display: 'flex', gap: 10 }}>
             <div style={{ flex: 1 }}>
               <label style={{ fontSize: 12, fontWeight: 600, color: 'var(--ink2)', display: 'block', marginBottom: 4 }}>Employee cost / mo</label>
-              <Input type="number" min={0} value={employeeCost} onChange={e => setEmployeeCost(e.target.value)} />
+              <Input type="number" min={0} value={employeeCost} onChange={e => setEmployeeCost(e.target.value)} aria-label="Employee cost / mo" />
             </div>
             <div style={{ flex: 1 }}>
               <label style={{ fontSize: 12, fontWeight: 600, color: 'var(--ink2)', display: 'block', marginBottom: 4 }}>Employer cost / mo</label>
-              <Input type="number" min={0} value={employerCost} onChange={e => setEmployerCost(e.target.value)} />
+              <Input type="number" min={0} value={employerCost} onChange={e => setEmployerCost(e.target.value)} aria-label="Employer cost / mo" />
             </div>
             <div style={{ width: 90 }}>
               <label style={{ fontSize: 12, fontWeight: 600, color: 'var(--ink2)', display: 'block', marginBottom: 4 }}>Currency</label>
-              <Input value={currency} onChange={e => setCurrency(e.target.value)} />
+              <Input value={currency} onChange={e => setCurrency(e.target.value)} aria-label="Currency" />
             </div>
           </div>
           {error && <div style={{ fontSize: 12.5, color: 'var(--red)' }}>{error}</div>}

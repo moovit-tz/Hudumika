@@ -144,7 +144,7 @@ export function GerejiAngaGoodsReceipts() {
                                       <td style={{ padding: '8px 12px' }}><Badge variant={OUTCOME_BADGE[l.inspection_outcome] ?? 'gray'}>{l.inspection_outcome}</Badge></td>
                                       <td style={{ padding: '8px 12px', textAlign: 'right' }}>
                                         <DropdownMenu>
-                                          <DropdownMenuTrigger asChild><Button variant="ghost" size="icon"><Icon name="moreHorizontal" size={14} /></Button></DropdownMenuTrigger>
+                                          <DropdownMenuTrigger asChild><Button aria-label="More actions" variant="ghost" size="icon"><Icon name="moreHorizontal" size={14} /></Button></DropdownMenuTrigger>
                                           <DropdownMenuContent align="end">
                                             {l.inspection_outcome === 'pending' && <DropdownMenuItem onClick={() => setInspectDialog({ receiptId: r.id, lineId: l.id })}>Inspect</DropdownMenuItem>}
                                             {locations.map(loc => (
@@ -181,11 +181,11 @@ export function GerejiAngaGoodsReceipts() {
                 <div>
                   <label style={LABEL}>Supplier (optional)</label>
                   <Select value={supplierId} onValueChange={setSupplierId}>
-                    <SelectTrigger><SelectValue placeholder="None" /></SelectTrigger>
+                    <SelectTrigger aria-label="Supplier (optional)"><SelectValue placeholder="None" /></SelectTrigger>
                     <SelectContent>{suppliers.map(s => <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>)}</SelectContent>
                   </Select>
                 </div>
-                <div><label style={LABEL}>PO reference</label><Input value={poReference} onChange={e => setPoReference(e.target.value)} /></div>
+                <div><label style={LABEL}>PO reference</label><Input value={poReference} onChange={e => setPoReference(e.target.value)} aria-label="PO reference" /></div>
               </div>
               <div>
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
@@ -199,7 +199,7 @@ export function GerejiAngaGoodsReceipts() {
                       <SelectContent>{parts.map(p => <SelectItem key={p.id} value={p.id}>{p.pn}</SelectItem>)}</SelectContent>
                     </Select>
                     <Input placeholder="Serial (optional)" value={l.serial} onChange={e => setDraftLines(prev => prev.map((x, j) => j === i ? { ...x, serial: e.target.value } : x))} />
-                    <Button variant="ghost" size="icon" onClick={() => setDraftLines(prev => prev.filter((_, j) => j !== i))} disabled={draftLines.length === 1}><Icon name="close" size={14} /></Button>
+                    <Button aria-label="Close" variant="ghost" size="icon" onClick={() => setDraftLines(prev => prev.filter((_, j) => j !== i))} disabled={draftLines.length === 1}><Icon name="close" size={14} /></Button>
                   </div>
                 ))}
               </div>

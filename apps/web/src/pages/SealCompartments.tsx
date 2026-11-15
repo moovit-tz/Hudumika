@@ -162,7 +162,7 @@ export function SealCompartments() {
         crumbs={['SEAL', 'Compartments']}
         titlePlain="Bonded"
         titleEm="compartments"
-        subtitle="Separately-licensed bonded perimeters — each with its own zones and locations underneath."
+        subtitle="Manage bonded perimeters, zones, and storage locations."
         actions={
           <Button size="sm" onClick={() => setShowNewCompartment(v => !v)}>
             <Icon name={showNewCompartment ? 'x' : 'plus'} size={14} />
@@ -187,7 +187,7 @@ export function SealCompartments() {
           >
             <div>
               <label className="seal-field-label" style={{ display: 'block', marginBottom: 6 }}>Code</label>
-              <Input value={newCode} onChange={e => setNewCode(e.target.value)} placeholder="CFS-DSM-01" required />
+              <Input value={newCode} onChange={e => setNewCode(e.target.value)} placeholder="CFS-DSM-01" required aria-label="Code" />
             </div>
             <div>
               <label className="seal-field-label" style={{ display: 'block', marginBottom: 6 }}>Name</label>
@@ -195,13 +195,12 @@ export function SealCompartments() {
                 value={newName}
                 onChange={e => setNewName(e.target.value)}
                 placeholder="Dar es Salaam Container Freight Station"
-                required
-              />
+                required aria-label="Name" />
             </div>
             <div>
               <label className="seal-field-label" style={{ display: 'block', marginBottom: 6 }}>Type</label>
               <Select value={newType} onValueChange={setNewType}>
-                <SelectTrigger className="w-full">
+                <SelectTrigger className="w-full" aria-label="Type">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -215,7 +214,7 @@ export function SealCompartments() {
             </div>
             <div>
               <label className="seal-field-label" style={{ display: 'block', marginBottom: 6 }}>License Number</label>
-              <Input value={newLicence} onChange={e => setNewLicence(e.target.value)} placeholder="BW-TZ-9821" />
+              <Input value={newLicence} onChange={e => setNewLicence(e.target.value)} placeholder="BW-TZ-9821" aria-label="License Number" />
             </div>
           </div>
           <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 10 }}>

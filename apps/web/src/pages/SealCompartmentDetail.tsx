@@ -226,7 +226,7 @@ export function SealCompartmentDetail() {
         ]}
         titlePlain="Bonded"
         titleEm="compartment"
-        subtitle="Its zones, locations and what is stored in them."
+        subtitle="View zones, locations, and stored lots."
         actions={
           <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
             <Button variant="outline" size="sm" onClick={() => navigate('/seal/compartments')}>
@@ -409,8 +409,7 @@ export function SealCompartmentDetail() {
                       value={newZoneCode}
                       onChange={e => setNewZoneCode(e.target.value)}
                       placeholder="Z-BULK-01"
-                      required
-                    />
+                      required aria-label="Zone Code" />
                   </div>
                   <div style={{ flex: 1, minWidth: 200 }}>
                     <label className="seal-field-label" style={{ display: 'block', marginBottom: 6 }}>
@@ -420,15 +419,14 @@ export function SealCompartmentDetail() {
                       value={newZoneName}
                       onChange={e => setNewZoneName(e.target.value)}
                       placeholder="Bulk Storage Area"
-                      required
-                    />
+                      required aria-label="Zone Name" />
                   </div>
                   <div style={{ width: 180, minWidth: 150 }}>
                     <label className="seal-field-label" style={{ display: 'block', marginBottom: 6 }}>
                       Zone Type
                     </label>
                     <Select value={newZoneType} onValueChange={setNewZoneType}>
-                      <SelectTrigger className="w-full">
+                      <SelectTrigger className="w-full" aria-label="Zone Type">
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
@@ -527,7 +525,7 @@ export function SealCompartmentDetail() {
               <SearchToolbar
                 search={lotSearch}
                 onSearch={setLotSearch}
-                placeholder="Search lot number, description, or status…"
+                placeholder="Search lot, description, or status…"
               />
             </div>
           )}

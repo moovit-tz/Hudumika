@@ -92,7 +92,7 @@ function RuleForm({ type, agents, onCancel, onSave, saving }: {
           <div className="ssg-field">
             <label>Strategy</label>
             <Select value={strategy} onValueChange={setStrategy}>
-              <SelectTrigger className="input-field"><SelectValue /></SelectTrigger>
+              <SelectTrigger className="input-field" aria-label="Strategy"><SelectValue /></SelectTrigger>
               <SelectContent>
                 <SelectItem value="round_robin">Round robin</SelectItem>
                 <SelectItem value="load_based">Least open tickets</SelectItem>
@@ -124,7 +124,7 @@ function RuleForm({ type, agents, onCancel, onSave, saving }: {
           <div className="ssg-field">
             <label>Escalate to role</label>
             <Select value={escalateToRole} onValueChange={setEscalateToRole}>
-              <SelectTrigger className="input-field"><SelectValue /></SelectTrigger>
+              <SelectTrigger className="input-field" aria-label="Escalate to role"><SelectValue /></SelectTrigger>
               <SelectContent>
                 <SelectItem value="MANAGER">Manager</SelectItem>
                 <SelectItem value="TENANT_ADMIN">Tenant Admin</SelectItem>
@@ -147,7 +147,7 @@ function RuleForm({ type, agents, onCancel, onSave, saving }: {
           <div className="ssg-field">
             <label>Event</label>
             <Select value={event} onValueChange={setEvent}>
-              <SelectTrigger className="input-field"><SelectValue /></SelectTrigger>
+              <SelectTrigger className="input-field" aria-label="Event"><SelectValue /></SelectTrigger>
               <SelectContent>
                 <SelectItem value="new_ticket">New ticket</SelectItem>
                 <SelectItem value="sla_breach">SLA breach</SelectItem>
@@ -159,7 +159,7 @@ function RuleForm({ type, agents, onCancel, onSave, saving }: {
           <div className="ssg-field">
             <label>Notify</label>
             <Select value={notify} onValueChange={setNotify}>
-              <SelectTrigger className="input-field"><SelectValue /></SelectTrigger>
+              <SelectTrigger className="input-field" aria-label="Notify"><SelectValue /></SelectTrigger>
               <SelectContent>
                 <SelectItem value="assignee">The ticket's assignee</SelectItem>
                 <SelectItem value="manager_role">All managers</SelectItem>

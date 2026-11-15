@@ -70,13 +70,12 @@ function AddDocModal({ vehicles, onClose, onAdded }: { vehicles: Vehicle[]; onCl
               <label style={labelStyle}>Vehicle</label>
               <Combobox
                 options={vehicles.map(v => ({ value: v.id, label: v.name, sublabel: v.plate_number || undefined }))}
-                value={vehicleId} onChange={setVehicleId} placeholder="Select vehicle…"
-              />
+                value={vehicleId} onChange={setVehicleId} placeholder="Select vehicle…" aria-label="Vehicle" />
             </div>
             <div style={{ flex: 1 }}>
               <label style={labelStyle}>Type</label>
               <Select value={docType} onValueChange={setDocType}>
-                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectTrigger aria-label="Type"><SelectValue /></SelectTrigger>
                 <SelectContent>
                   {DOC_TYPES.map(t => <SelectItem key={t} value={t}>{t}</SelectItem>)}
                 </SelectContent>
@@ -86,8 +85,8 @@ function AddDocModal({ vehicles, onClose, onAdded }: { vehicles: Vehicle[]; onCl
           <label className="freight-field">ComplyOS certificate (optional)<Combobox value={certificateId} onChange={value => { setCertificateId(value); const c = certificates.find(c => c.id === value); if(c) { setDocNumber(c.cert_number); setIssuedDate(c.issued_date || ''); setExpiryDate(c.expiry_date || ''); setFileUrl(c.document_url || ''); } }} options={[{value:'',label:'No linked certificate'},...certificates.map(c => ({value:c.id,label:c.name,sublabel:c.cert_number}))]} /></label>{certificateError && <p className="freight-note">ComplyOS certificates unavailable: {certificateError}</p>}<label className="freight-field">Document link<Input value={fileUrl} onChange={e => setFileUrl(e.target.value)} placeholder="https://…" /></label><Button type="button" variant="outline" onClick={() => setPickerOpen(true)}>Attach from Drive</Button>
           <div><label htmlFor="trackingdocuments-field-1" style={labelStyle}>Document number</label><Input id="trackingdocuments-field-1" value={docNumber} onChange={e => setDocNumber(e.target.value)} /></div>
           <div style={{ display: 'flex', gap: 10 }}>
-            <div style={{ flex: 1 }}><label style={labelStyle}>Issued date</label><DatePicker date={parseDateOnly(issuedDate)} onChange={d => setIssuedDate(toDateOnlyString(d))} /></div>
-            <div style={{ flex: 1 }}><label style={labelStyle}>Expiry date</label><DatePicker date={parseDateOnly(expiryDate)} onChange={d => setExpiryDate(toDateOnlyString(d))} /></div>
+            <div style={{ flex: 1 }}><label style={labelStyle}>Issued date</label><DatePicker date={parseDateOnly(issuedDate)} onChange={d => setIssuedDate(toDateOnlyString(d))} aria-label="Issued date" /></div>
+            <div style={{ flex: 1 }}><label style={labelStyle}>Expiry date</label><DatePicker date={parseDateOnly(expiryDate)} onChange={d => setExpiryDate(toDateOnlyString(d))} aria-label="Expiry date" /></div>
           </div>
           {error && <div style={{ fontSize: 12, color: 'var(--red)' }}>{error}</div>}
           <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end', marginTop: 4 }}>

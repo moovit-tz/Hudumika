@@ -700,7 +700,7 @@ export const CommandCenter: React.FC = () => {
         {/* ── Page Header ── */}
         <PageHeader
           crumbs={['ClearOS', 'Shipments']}
-          titlePlain={isJunior ? 'My' : 'Ops'}
+          titlePlain={isJunior ? 'My' : 'Shipment'}
           titleEm={isJunior ? 'cases' : 'operations'}
           subtitle={isJunior ? 'Shipments assigned to you, across every stage.' : 'Every shipment in the pipeline — filter by stage or switch to the board below.'}
           actions={

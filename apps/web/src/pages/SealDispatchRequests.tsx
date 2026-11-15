@@ -73,7 +73,7 @@ export function SealDispatchRequests() {
         crumbs={['SEAL', 'Dispatch Requests']}
         titlePlain="Dispatch"
         titleEm="requests"
-        subtitle="Cross-tenant requests an Organization has filed against goods it owns here — approving one creates a draft fulfillment order."
+        subtitle="Review requests from goods owners. Approval creates a draft fulfillment order."
       />
 
       <div className="seal-card">

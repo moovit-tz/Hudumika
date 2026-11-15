@@ -215,7 +215,7 @@ export class DeclarationService {
 
       if (newStatus === 'RELEASED') {
         releaseEvent = await emitDomainEvent(trx, tenantId, {
-          type: 'declaration.released', sourceApp: 'clearos', entityType: 'declaration', entityId: declarationId,
+          type: 'declaration.released', sourceApp: 'clearos', entityType: 'declaration', entityId: declarationId, actorId,
           payload: { shipmentId: updated.shipment_id, tancisRef: updated.tancis_ref, tansadNumber: updated.tansad_number },
         }, { deferDispatch: true });
       }

@@ -92,7 +92,7 @@ export function StepGoal({ draft, update, onNext }: StepProps) {
           />
           <Icon name="search" size={16} color="var(--ink3)" style={{ position: 'absolute', left: 14, top: '50%', transform: 'translateY(-50%)' }} />
           {query && (
-            <button
+            <button aria-label="Close"
               type="button"
               onClick={() => setQuery('')}
               style={{ position: 'absolute', right: 12, top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink3)', padding: "var(--action-py) var(--space-md)", display: 'flex', alignItems: 'center' }}

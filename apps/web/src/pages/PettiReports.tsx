@@ -153,7 +153,7 @@ export function PettiReports() {
             body { font-family: system-ui, sans-serif; padding: 40px; color: #161A1E; }
             .header { display: flex; justify-content: space-between; border-bottom: 2px solid #0d7a6b; padding-bottom: 16px; margin-bottom: 24px; }
             .brand { font-size: 22px; font-weight: 800; color: #0d7a6b; }
-            .hero-card { background: #0e1f3d; color: #fff; padding: 24px; border-radius: 12px; margin-bottom: 24px; }
+            .hero-card { background: #0e1f3d; color: #fff; padding: 24px; border-radius: var(--r); margin-bottom: 24px; }
             table { width: 100%; border-collapse: collapse; margin-top: 16px; }
             th, td { border-bottom: 1px solid #e2e8f0; padding: 10px; text-align: left; font-size: 13px; }
             th { font-size: 11px; text-transform: uppercase; color: #64748b; background: #f8fafc; }

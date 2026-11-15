@@ -1788,7 +1788,7 @@ export async function hrRoutes(fastify: FastifyInstance) {
       // anything that happened in HR. Operations needs to know a clearing
       // officer will be away before it assigns them next week's consignments.
       await emitDomainEvent(trx, user.tenant_id, {
-        type: 'hr.leave_requested', sourceApp: 'nexushr', entityType: 'leave', entityId: row.id,
+        type: 'hr.leave_requested', sourceApp: 'nexushr', entityType: 'leave', entityId: row.id, actorId: user.sub,
         payload: { userId: row.user_id, leaveType: row.type, fromDate: isoDate(row.from_date),
                    toDate: isoDate(row.to_date), days: Number(row.days) },
       }).catch(err => console.error('[HR] leave_requested emit failed:', err?.message));
@@ -1884,7 +1884,7 @@ export async function hrRoutes(fastify: FastifyInstance) {
       const toDate = isoDate(updated.to_date);
       if (body.status === 'APPROVED') {
         await emitDomainEvent(trx, user.tenant_id, {
-          type: 'hr.leave_approved', sourceApp: 'nexushr', entityType: 'leave', entityId: updated.id,
+          type: 'hr.leave_approved', sourceApp: 'nexushr', entityType: 'leave', entityId: updated.id, actorId: user.sub,
           payload: {
             userId: updated.user_id, leaveType: updated.type, fromDate, toDate,
             days: Number(updated.days), decidedBy: user.sub,
@@ -1892,7 +1892,7 @@ export async function hrRoutes(fastify: FastifyInstance) {
         }).catch(err => console.error('[HR] leave_approved emit failed:', err?.message));
       } else if (body.status === 'REJECTED') {
         await emitDomainEvent(trx, user.tenant_id, {
-          type: 'hr.leave_rejected', sourceApp: 'nexushr', entityType: 'leave', entityId: updated.id,
+          type: 'hr.leave_rejected', sourceApp: 'nexushr', entityType: 'leave', entityId: updated.id, actorId: user.sub,
           payload: {
             userId: updated.user_id, leaveType: updated.type, fromDate, toDate,
             days: Number(updated.days), decidedBy: user.sub,
@@ -4069,7 +4069,7 @@ export async function hrRoutes(fastify: FastifyInstance) {
       // this is the one HR change other apps most need to hear about.
       await emitDomainEvent(trx, user.tenant_id, {
         type: 'hr.staff_role_changed', sourceApp: 'nexushr', entityType: 'user', entityId: updated.id,
-        payload: { userId: updated.id, name: updated.name, email: updated.email, role: updated.role, changedBy: user.sub },
+        payload: { userId: updated.id, name: updated.name, email: updated.email, role: updated.role, changedBy: user.sub, previous_role: target?.role ?? null, new_role: updated.role },
         actorId: user.sub,
       }).catch(err => console.error('[HR] staff_role_changed emit failed:', err?.message));
       return updated;
@@ -4873,7 +4873,7 @@ export async function hrRoutes(fastify: FastifyInstance) {
         trx.selectFrom('shipment_cases')
           .select((eb) => eb.fn.countAll<number>().as('count'))
           .where('tenant_id', '=', user.tenant_id)
-          .where(sql<boolean>`upper(stage) not in ('COMPLETED', 'CANCELLED', 'CLOSED')`).where('deleted_at', 'is', null)
+          .where(sql<boolean>`upper(stage) not in ('COMPLETED', 'CANCELLED', 'CLOSED', 'DELIVERY')`).where('deleted_at', 'is', null)
           .executeTakeFirst(),
         trx.selectFrom('shipment_tasks')
           .select((eb) => eb.fn.countAll<number>().as('count'))

@@ -150,12 +150,12 @@ export function GerejiAngaCustomers() {
           <DialogHeader><DialogTitle>New customer</DialogTitle></DialogHeader>
           <DialogBody>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-              <div><label style={LABEL}>Name</label><Input value={name} onChange={e => setName(e.target.value)} /></div>
+              <div><label style={LABEL}>Name</label><Input value={name} onChange={e => setName(e.target.value)} aria-label="Name" /></div>
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
-                <div><label style={LABEL}>Email</label><Input value={email} onChange={e => setEmail(e.target.value)} /></div>
-                <div><label style={LABEL}>Phone</label><Input value={phone} onChange={e => setPhone(e.target.value)} /></div>
-                <div><label style={LABEL}>Credit limit</label><Input type="number" min={0} value={creditLimit} onChange={e => setCreditLimit(e.target.value)} /></div>
-                <div><label style={LABEL}>Payment terms (days)</label><Input type="number" min={0} value={paymentTerms} onChange={e => setPaymentTerms(e.target.value)} /></div>
+                <div><label style={LABEL}>Email</label><Input value={email} onChange={e => setEmail(e.target.value)} aria-label="Email" /></div>
+                <div><label style={LABEL}>Phone</label><Input value={phone} onChange={e => setPhone(e.target.value)} aria-label="Phone" /></div>
+                <div><label style={LABEL}>Credit limit</label><Input type="number" min={0} value={creditLimit} onChange={e => setCreditLimit(e.target.value)} aria-label="Credit limit" /></div>
+                <div><label style={LABEL}>Payment terms (days)</label><Input type="number" min={0} value={paymentTerms} onChange={e => setPaymentTerms(e.target.value)} aria-label="Payment terms (days)" /></div>
               </div>
             </div>
           </DialogBody>

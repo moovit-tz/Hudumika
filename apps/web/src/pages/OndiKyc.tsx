@@ -346,7 +346,7 @@ export const OndiKyc: React.FC = () => {
                   <div style={{ fontSize: 12, color: 'var(--ink3)', marginTop: 2 }}>{selectedRow.user_email}</div>
                 </div>
               </div>
-              <button
+              <button aria-label="Close"
                 onClick={() => { setSelectedRow(null); setPreviewUrl(null); }}
                 style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink3)', padding: "var(--action-py) var(--space-md)" }}
                data-ui-native-button="">

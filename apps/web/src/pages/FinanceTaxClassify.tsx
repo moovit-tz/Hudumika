@@ -326,7 +326,7 @@ export function FinanceTaxClassify() {
             Treatment to apply
           </label>
           <Select value={codeId} onValueChange={setCodeId}>
-            <SelectTrigger><SelectValue placeholder="Choose a treatment…" /></SelectTrigger>
+            <SelectTrigger aria-label="Treatment to apply"><SelectValue placeholder="Choose a treatment…" /></SelectTrigger>
             <SelectContent>
               {codes.map(c => (
                 <SelectItem key={c.id} value={c.id}>

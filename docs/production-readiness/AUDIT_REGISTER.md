@@ -2867,7 +2867,7 @@ before, and found **30 more real unguarded instances**:
   unrelated concurrent-CMS-session warnings). Shared dev server used directly throughout, confirmed
   healthy.
 
-### HUD-0126 — Phase 5: Hudumika AI (`ai.routes.ts`, `ai-tools.service.ts`, `ai-memory.service.ts` — chat with read-only tool-calling, proactive insights digest, per-user/workspace memory, conversation history) traced live and adversarially · CLEAN (no finding)
+### HUD-0126 — Phase 5: Hudu (`ai.routes.ts`, `ai-tools.service.ts`, `ai-memory.service.ts` — chat with read-only tool-calling, proactive insights digest, per-user/workspace memory, conversation history) traced live and adversarially · CLEAN (no finding)
 - **Category:** Security (Phase 5, eighty-second journey). The platform's cross-app AI assistant —
   conversational chat with an agentic tool-calling loop (Anthropic and OpenAI wire formats both
   supported) that lets the model call real, read-only tenant-data tools (`get_at_risk_shipments`,

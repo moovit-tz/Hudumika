@@ -213,19 +213,19 @@ export function JournalEntries() {
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: 12, marginBottom: 14 }}>
             <div>
               <label style={{ display: 'block', fontSize: 11.5, fontWeight: 600, color: 'var(--ink2)', marginBottom: 5 }}>Date</label>
-              <DatePicker date={parseDateOnly(entryDate)} onChange={d => setEntryDate(toDateOnlyString(d))} />
+              <DatePicker date={parseDateOnly(entryDate)} onChange={d => setEntryDate(toDateOnlyString(d))} aria-label="Date" />
             </div>
             <div>
               <label style={{ display: 'block', fontSize: 11.5, fontWeight: 600, color: 'var(--ink2)', marginBottom: 5 }}>Description</label>
-              <Input value={description} onChange={e => setDescription(e.target.value)} placeholder="What is this entry for?" />
+              <Input value={description} onChange={e => setDescription(e.target.value)} placeholder="What is this entry for?" aria-label="Description" />
             </div>
             <div>
               <label style={{ display: 'block', fontSize: 11.5, fontWeight: 600, color: 'var(--ink2)', marginBottom: 5 }}>Reference (optional)</label>
-              <Input value={reference} onChange={e => setReference(e.target.value)} />
+              <Input value={reference} onChange={e => setReference(e.target.value)} aria-label="Reference (optional)" />
             </div>
             <div>
               <label style={{ display: 'block', fontSize: 11.5, fontWeight: 600, color: 'var(--ink2)', marginBottom: 5 }}>Business line (optional)</label>
-              <Combobox options={businessLineOptions} value={businessLineId} onChange={setBusinessLineId} placeholder="Unassigned" searchPlaceholder="Search business lines…" />
+              <Combobox options={businessLineOptions} value={businessLineId} onChange={setBusinessLineId} placeholder="Unassigned" searchPlaceholder="Search business lines…" aria-label="Business line (optional)" />
             </div>
           </div>
 

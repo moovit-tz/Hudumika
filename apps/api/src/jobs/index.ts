@@ -23,6 +23,9 @@ import { runSubscriptionBillingJob } from './subscription-billing.job.js';
 import { runOnsiteBackupJob } from './onsite-backup.job.js';
 import { runAccountingOutboxJob } from '../services/accounting-outbox.service.js';
 import { runMailOutboxJob } from './mail-outbox.job.js';
+import { runZentraOutboxJob } from '../services/zentra-outbox.service.js';
+import { runZentraRetentionJob } from '../services/zentra-event.service.js';
+import { evaluateZentraTelemetryGaps } from '../services/zentra-risk.service.js';
 import { runImapTicketIngestJob } from './imap-ticket-ingest.job.js';
 import { runImapEmailIngestJob } from './imap-email-ingest.job.js';
 import { runScheduledEmailSendJob } from './scheduled-email-send.job.js';
@@ -406,6 +409,18 @@ function startBullMQ(): void {
     const studioOutboxQueue = track(new Queue('studio-event-outbox', { connection: redisConnection as any }));
     track(new Worker('studio-event-outbox', async () => { await runStudioOutboxJob(); }, { connection: redisConnection as any }));
     studioOutboxQueue.add('sweep', {}, { repeat: { every: 30 * 1000 }, removeOnComplete: 20, removeOnFail: 20 }).catch(console.error);
+    // Zentra: move queued app events into the audit log and run the risk rules.
+    const zentraOutboxQueue = track(new Queue('zentra-outbox', { connection: redisConnection as any }));
+    track(new Worker('zentra-outbox', async () => { await runZentraOutboxJob(); }, { connection: redisConnection as any }));
+    zentraOutboxQueue.add('sweep', {}, { repeat: { every: 60 * 1000 }, removeOnComplete: 20, removeOnFail: 20 }).catch(console.error);
+    // Zentra: daily retention purge (respects legal hold and case evidence),
+    // hourly check for apps that went silent.
+    const zentraRetentionQueue = track(new Queue('zentra-retention', { connection: redisConnection as any }));
+    track(new Worker('zentra-retention', async () => { await runZentraRetentionJob(); }, { connection: redisConnection as any }));
+    zentraRetentionQueue.add('daily', {}, { repeat: { pattern: '30 2 * * *' }, removeOnComplete: 10, removeOnFail: 10 }).catch(console.error);
+    const zentraGapQueue = track(new Queue('zentra-telemetry-gaps', { connection: redisConnection as any }));
+    track(new Worker('zentra-telemetry-gaps', async () => { await evaluateZentraTelemetryGaps(); }, { connection: redisConnection as any }));
+    zentraGapQueue.add('hourly', {}, { repeat: { every: 60 * 60 * 1000 }, removeOnComplete: 10, removeOnFail: 10 }).catch(console.error);
 
     // Worker for the mail outbox sweep — its own queue since it polls far
     // more frequently (1 min, mail needs to go out promptly) than the
@@ -983,6 +998,10 @@ function startIntervalFallback(): void {
 
   setInterval(() => { runAccountingOutboxJob().catch(console.error); }, 60 * 1000);
   setInterval(() => { runStudioOutboxJob().catch(console.error); }, 30 * 1000);
+  // Zentra outbox — every minute; claiming with SKIP LOCKED makes overlap safe.
+  setInterval(() => { runZentraOutboxJob().catch(console.error); }, 60 * 1000);
+  setInterval(() => { evaluateZentraTelemetryGaps().catch(console.error); }, 60 * 60 * 1000);
+  setInterval(() => { runZentraRetentionJob().catch(console.error); }, 24 * 60 * 60 * 1000);
 
   // Mail outbox sweep — every minute. Safe to also run immediately on
   // startup (above): each row is processed exactly once and marked sent/

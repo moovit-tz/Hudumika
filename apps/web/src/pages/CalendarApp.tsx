@@ -1340,7 +1340,7 @@ export const CalendarApp: React.FC = () => {
                     </DropdownMenuContent>
                   </DropdownMenu>
                 )}
-                <button onClick={() => setShowModal(false)} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: "var(--action-py) var(--space-md)", color: 'var(--ink3)', borderRadius: 'var(--r-sm)'}} data-ui-native-button="">
+                <button aria-label="Close" onClick={() => setShowModal(false)} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: "var(--action-py) var(--space-md)", color: 'var(--ink3)', borderRadius: 'var(--r-sm)'}} data-ui-native-button="">
                   <Icon name="close" size={18} />
                 </button>
               </div>
@@ -1944,7 +1944,7 @@ const EventGuestPicker: React.FC<{ guests: CalendarGuest[]; onAdd: (p: Person) =
           {guests.map(g => (
             <span key={g.userId ?? g.email} style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: 12.5, fontWeight: 600, padding: '4px 6px 4px 10px', borderRadius: 'var(--badge-radius)', background: 'var(--bg)', color: 'var(--ink2)' }}>
               {g.name || g.email}
-              <button type="button" onClick={() => onRemove(g.userId, g.email)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink3)', display: 'flex', padding: "var(--action-py) var(--space-md)" }} data-ui-native-button="">
+              <button aria-label={`Remove ${g.name ?? ''}`.trim()} type="button" onClick={() => onRemove(g.userId, g.email)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink3)', display: 'flex', padding: "var(--action-py) var(--space-md)" }} data-ui-native-button="">
                 <Icon name="x" size={11} />
               </button>
             </span>
@@ -2043,7 +2043,7 @@ const BookingPagesPanel: React.FC<{ isMobile: boolean; onClose: () => void }> = 
       <DialogContent hideClose className="max-w-140 w-[94vw] max-h-[88vh] overflow-y-auto" style={{ padding: isMobile ? 18 : 24 }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 18 }}>
           <DialogTitle style={{ fontSize: 18, fontWeight: 600 }}>{creating ? (editing ? 'Edit booking page' : 'New booking page') : 'Booking pages'}</DialogTitle>
-          <button onClick={creating ? () => setCreating(false) : onClose} style={{ background: 'none', border: 'none', cursor: 'pointer', display: 'flex', color: 'var(--ink3)' }} data-ui-native-button="">
+          <button aria-label="Close" onClick={creating ? () => setCreating(false) : onClose} style={{ background: 'none', border: 'none', cursor: 'pointer', display: 'flex', color: 'var(--ink3)' }} data-ui-native-button="">
             <Icon name={creating ? 'chevronLeft' : 'x'} size={18} />
           </button>
         </div>
@@ -2072,7 +2072,7 @@ const BookingPagesPanel: React.FC<{ isMobile: boolean; onClose: () => void }> = 
                   <button type="button" onClick={() => startEdit(p)} style={{ display: 'flex', alignItems: 'center', gap: 6, padding: "var(--action-py) var(--space-md)", border: '1px solid var(--border)', borderRadius: 'var(--r)', background: 'var(--white)', cursor: 'pointer', fontSize: "var(--text-base)", fontWeight: 500, color: 'var(--ink2)' }} data-ui-native-button="">
                     <Icon name="edit" size={13} /> Edit
                   </button>
-                  <button type="button" onClick={() => handleDeletePage(p)} style={{ display: 'flex', alignItems: 'center', gap: 6, padding: "var(--action-py) var(--space-md)", border: 'none', borderRadius: 'var(--r)', background: 'none', cursor: 'pointer', fontSize: "var(--text-base)", fontWeight: 500, color: 'var(--red)', marginLeft: 'auto' }} data-ui-native-button="">
+                  <button aria-label={`Delete ${p.title ?? ''}`.trim()} type="button" onClick={() => handleDeletePage(p)} style={{ display: 'flex', alignItems: 'center', gap: 6, padding: "var(--action-py) var(--space-md)", border: 'none', borderRadius: 'var(--r)', background: 'none', cursor: 'pointer', fontSize: "var(--text-base)", fontWeight: 500, color: 'var(--red)', marginLeft: 'auto' }} data-ui-native-button="">
                     <Icon name="trash" size={13} />
                   </button>
                 </div>

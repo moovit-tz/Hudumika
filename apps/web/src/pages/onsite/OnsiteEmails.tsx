@@ -348,13 +348,12 @@ export function OnsiteEmails() {
                   options={availableDomains.map(d => ({ value: d.id, label: d.domain }))}
                   value={addDomainId}
                   onChange={setAddDomainId}
-                  placeholder="Select a domain"
-                />
+                  placeholder="Select a domain" aria-label="Domain" />
               </div>
               <div>
                 <label style={{ display: 'block', fontSize: '0.8125rem', fontWeight: 600, marginBottom: '0.35rem' }}>Email provider</label>
                 <Select value={addProvider} onValueChange={setAddProvider}>
-                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectTrigger aria-label="Email provider"><SelectValue /></SelectTrigger>
                   <SelectContent>
                     <SelectItem value="platform">cPanel hosting</SelectItem>
                     <SelectItem value="google">Google Workspace</SelectItem>
@@ -390,7 +389,7 @@ export function OnsiteEmails() {
               <div>
                 <label style={{ display: 'block', fontSize: '0.8125rem', fontWeight: 600, marginBottom: '0.35rem' }}>Type</label>
                 <Select value={mbType} onValueChange={setMbType}>
-                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectTrigger aria-label="Type"><SelectValue /></SelectTrigger>
                   <SelectContent>
                     <SelectItem value="mailbox">Mailbox — a real inbox linked to a user</SelectItem>
                     <SelectItem value="alias">Alias — another name for an existing mailbox</SelectItem>
@@ -408,7 +407,7 @@ export function OnsiteEmails() {
               </div>
               <div>
                 <label style={{ display: 'block', fontSize: '0.8125rem', fontWeight: 600, marginBottom: '0.35rem' }}>Display name</label>
-                <Input value={mbDisplayName} onChange={e => setMbDisplayName(e.target.value)} placeholder="Company Support" />
+                <Input value={mbDisplayName} onChange={e => setMbDisplayName(e.target.value)} placeholder="Company Support" aria-label="Display name" />
               </div>
               {mbType === 'mailbox' && (
                 <div>

@@ -375,7 +375,7 @@ const TemplatePickerPanel: React.FC<TemplatePickerPanelProps> = ({ templates, se
           onChange={e => setSearch(e.target.value)}
           autoFocus
         />
-        {search && <button type="button" className="em-tpl-search-clear" onClick={() => setSearch('')} data-ui-native-button=""><Icon name="x" size={12} /></button>}
+        {search && <button aria-label="Clear search" type="button" className="em-tpl-search-clear" onClick={() => setSearch('')} data-ui-native-button=""><Icon name="x" size={12} /></button>}
       </div>
       <div className="em-tpl-stats">
         <span className="em-tpl-stats-total">{templates.length} {templates.length === 1 ? 'template' : 'templates'}</span>
@@ -1957,7 +1957,7 @@ export const EmailApp: React.FC = () => {
                   <Icon name="paperclip" size={12} />
                   <span>{a.uploading ? 'Uploading…' : a.filename}</span>
                   {a.error && <span className="em-attach-chip-error">{a.error}</span>}
-                  <button type="button" className="em-attach-chip-remove" onClick={() => removeAttachment(a.localId, 'reply')} data-ui-native-button=""><Icon name="x" size={11} /></button>
+                  <button aria-label={`Remove ${a.filename ?? ''}`.trim()} type="button" className="em-attach-chip-remove" onClick={() => removeAttachment(a.localId, 'reply')} data-ui-native-button=""><Icon name="x" size={11} /></button>
                 </div>
               ))}
             </div>
@@ -1996,7 +1996,7 @@ export const EmailApp: React.FC = () => {
             <input ref={replyFileInputRef} type="file" multiple style={{ display: 'none' }} onChange={e => { const files = Array.from(e.target.files ?? []); if (files.length) uploadAttachments(files, 'reply'); e.target.value = ''; }} />
             <MeetingTimeSuggestor onInsert={text => setReplyBody(prev => prev.trim() ? `${prev}\n\n${text}` : text)} />
             <Tip label={quickTemplates.length > 0 ? 'Insert template' : 'Manage templates'}>
-              <button
+              <button aria-label="Templates"
                 type="button"
                 className="em-icon-btn em-icon-btn--ghost"
                 onClick={() => quickTemplates.length > 0 ? setTemplatePickerOpen(v => !v) : navigate('/email/templates')}
@@ -2036,7 +2036,7 @@ export const EmailApp: React.FC = () => {
 
             <div className="em-search-bar">
               {isMobile && (
-                <button type="button" className="em-icon-btn em-icon-btn--ghost" onClick={() => setMobileOpen(true)} data-ui-native-button="">
+                <button aria-label="Open menu" type="button" className="em-icon-btn em-icon-btn--ghost" onClick={() => setMobileOpen(true)} data-ui-native-button="">
                   <Icon name="menu" size={20} />
                 </button>
               )}
@@ -2046,8 +2046,8 @@ export const EmailApp: React.FC = () => {
                   className="em-search-ai-trigger"
                   onClick={runAiSearch}
                   disabled={!search.trim() || aiSearchLoading}
-                  aria-label="Ask AI to search this mailbox"
-                  title="Ask AI"
+                  aria-label="Ask Hudu to search this mailbox"
+                  title="Ask Hudu"
                  data-ui-native-button="">
                   {aiSearchLoading
                     ? <Spinner size={14} />
@@ -2539,7 +2539,7 @@ export const EmailApp: React.FC = () => {
                     </div>
                     <div className="em-detail-from-right">
                       <span className="em-detail-from-date">{fmtDateLong(selectedEmail.date)}</span>
-                      <button type="button" className="em-icon-btn em-icon-btn--ghost" onClick={e => toggleStar(selectedEmail.id, e)} data-ui-native-button="">
+                      <button aria-label={selectedEmail.starred ? 'Remove star' : 'Star'} type="button" className="em-icon-btn em-icon-btn--ghost" onClick={e => toggleStar(selectedEmail.id, e)} data-ui-native-button="">
                         <Icon name="star" size={16} color={selectedEmail.starred ? 'var(--gold)' : 'var(--border)'} />
                       </button>
                     </div>
@@ -2629,7 +2629,7 @@ export const EmailApp: React.FC = () => {
                   <div className="em-reply-hdr">
                     <span>{replyCc.length > 0 ? 'Reply all' : 'Reply'}</span>
                     <div style={{ flex: 1 }} />
-                    <button type="button" className="em-icon-btn em-icon-btn--ghost" onClick={() => setReplyOpen(false)} data-ui-native-button="">
+                    <button aria-label="Close" type="button" className="em-icon-btn em-icon-btn--ghost" onClick={() => setReplyOpen(false)} data-ui-native-button="">
                       <Icon name="x" size={14} />
                     </button>
                   </div>
@@ -2685,7 +2685,7 @@ export const EmailApp: React.FC = () => {
                 </button>
               </Tip>
             )}
-            <button type="button" className="em-icon-btn em-icon-btn--ghost" style={{ color: '#fff' }} onClick={e => { e.stopPropagation(); setComposeOpen(false); }} data-ui-native-button="">
+            <button aria-label="Close" type="button" className="em-icon-btn em-icon-btn--ghost" style={{ color: '#fff' }} onClick={e => { e.stopPropagation(); setComposeOpen(false); }} data-ui-native-button="">
               <Icon name="x" size={16} color="#fff" />
             </button>
           </div>
@@ -2743,7 +2743,7 @@ export const EmailApp: React.FC = () => {
                     <span>{a.uploading ? 'Uploading…' : a.filename}</span>
                     {a.size != null && !a.uploading && <span className="em-attach-chip-size">{(a.size / 1024).toFixed(0)} KB</span>}
                     {a.error && <span className="em-attach-chip-error">{a.error}</span>}
-                    <button type="button" className="em-attach-chip-remove" onClick={() => removeAttachment(a.localId, 'compose')} data-ui-native-button=""><Icon name="x" size={11} /></button>
+                    <button aria-label={`Remove ${a.filename ?? ''}`.trim()} type="button" className="em-attach-chip-remove" onClick={() => removeAttachment(a.localId, 'compose')} data-ui-native-button=""><Icon name="x" size={11} /></button>
                   </div>
                 ))}
               </div>
@@ -2783,7 +2783,7 @@ export const EmailApp: React.FC = () => {
               <input ref={composeFileInputRef} type="file" multiple style={{ display: 'none' }} onChange={e => { const files = Array.from(e.target.files ?? []); if (files.length) uploadAttachments(files, 'compose'); e.target.value = ''; }} />
               <MeetingTimeSuggestor onInsert={text => setCompose(p => ({ ...p, body: p.body.trim() ? `${p.body}\n\n${text}` : text }))} />
               <Tip label={quickTemplates.length > 0 ? 'Insert template' : 'Manage templates'}>
-                <button
+                <button aria-label="Templates"
                   type="button"
                   className="em-icon-btn em-icon-btn--ghost"
                   onClick={() => quickTemplates.length > 0 ? setTemplatePickerOpen(v => !v) : navigate('/email/templates')}
@@ -2957,8 +2957,7 @@ export const EmailApp: React.FC = () => {
                                     ...settings,
                                     vacationStart: r?.from ? r.from.toISOString() : null,
                                     vacationEnd: r?.to ? r.to.toISOString() : null,
-                                  })}
-                                />
+                                  })} aria-label="Active Period" />
                               </div>
                               <div className="em-settings-field">
                                 <label className="em-field-label">Subject</label>

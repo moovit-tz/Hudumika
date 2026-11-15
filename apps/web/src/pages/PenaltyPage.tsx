@@ -178,7 +178,7 @@ export const PenaltyPage: React.FC = () => {
       <PageHeader
         crumbs={['Customs Tools', 'Penalty Estimator']}
         titlePlain="Penalty"
-        titleEm="Estimator"
+        titleEm="estimator"
         subtitle="Estimate Tanzania customs penalties under CEMA CAP 403"
         actions={
           step === 3 ? (

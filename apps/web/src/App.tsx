@@ -125,6 +125,7 @@ const TumaShell = React.lazy(() => import('./shells/TumaShell.js').then(m => ({ 
 const LexCoreShell = React.lazy(() => import('./shells/LexCoreShell.js').then(m => ({ default: m.LexCoreShell })));
 const NgaoShell = React.lazy(() => import('./shells/NgaoShell.js').then(m => ({ default: m.NgaoShell })));
 const GerejiShell = React.lazy(() => import('./shells/GerejiShell.js').then(m => ({ default: m.GerejiShell })));
+const ZentraShell = React.lazy(() => import('./shells/ZentraShell.js').then(m => ({ default: m.ZentraShell })));
 
 /* ── Hub page — shares search state between header and workspace.
    Branches between the Advanced hub (WorkspaceHome, under the shared
@@ -548,6 +549,7 @@ const AppContentBody: React.FC = () => {
             <Route path="/lexcore/*"   element={<LexCoreShell />} />
             <Route path="/ngao/*"      element={<NgaoShell />} />
             <Route path="/gereji/*"    element={<GerejiShell />} />
+            <Route path="/zentra/*"    element={<ZentraShell />} />
             <Route path="/dev/*"       element={<Navigate to="/developer" replace />} />
 
             {/* Legacy redirects for old routes */}

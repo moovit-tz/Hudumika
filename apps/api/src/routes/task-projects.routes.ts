@@ -1020,6 +1020,7 @@ export async function taskProjectsRoutes(fastify: FastifyInstance) {
       const project = await trx.selectFrom('projects').select('customer_id').where('id', '=', request.params.id).executeTakeFirstOrThrow();
       if (!project.customer_id) return reply.status(400).send({ error: 'This project has no customer — link an existing ticket instead, or set a customer on the project first' });
       const ticket = await createTicketRow(trx, user.tenant_id, {
+        actorId: user.sub,
         customerId: project.customer_id, subject: body.subject, description: body.description,
         channel: 'IN_APP', priority: body.priority, category: body.category,
       });

@@ -744,7 +744,7 @@ export async function fleetOpsRoutes(fastify: FastifyInstance) {
 
       // The haulage leg of a consignment's journey has been booked.
       emitDomainEvent(trx, user.tenant_id, {
-        type: 'trip.created', sourceApp: 'tracking', entityType: 'trip', entityId: trip.id,
+        type: 'trip.created', sourceApp: 'tracking', entityType: 'trip', entityId: trip.id, actorId: user.sub,
         payload: {
           shipmentId: body.shipment_id ?? null,
           origin: body.origin ?? null,
@@ -804,7 +804,7 @@ export async function fleetOpsRoutes(fastify: FastifyInstance) {
       } as any).returningAll().executeTakeFirstOrThrow();
 
       emitDomainEvent(trx, user.tenant_id, {
-        type: 'trip.border_crossing_recorded', sourceApp: 'tracking', entityType: 'trip', entityId: id,
+        type: 'trip.border_crossing_recorded', sourceApp: 'tracking', entityType: 'trip', entityId: id, actorId: user.sub,
         payload: { borderName: body.border_name, countryFrom: body.country_from, countryTo: body.country_to },
       }).catch(err => console.error('[Fleet] border_crossing emit failed:', err.message));
 

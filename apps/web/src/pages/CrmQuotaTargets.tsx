@@ -517,7 +517,7 @@ export function CrmQuotaTargets() {
               className="quota-search-input"
             />
             {search && (
-              <button
+              <button aria-label="Clear search"
                 type="button"
                 onClick={() => setSearch('')}
                 className="absolute right-2.5 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
@@ -800,7 +800,7 @@ export function CrmQuotaTargets() {
 
               <div>
                 <label className="font-semibold text-foreground block mb-1">Target Period</label>
-                <Input value={formatPeriod(period)} disabled className="h-9 text-xs bg-muted/40 font-semibold" />
+                <Input value={formatPeriod(period)} disabled className="h-9 text-xs bg-muted/40 font-semibold" aria-label="Target Period" />
               </div>
 
               <div className="grid grid-cols-2 gap-3">
@@ -823,8 +823,7 @@ export function CrmQuotaTargets() {
                     value={newTargetCount}
                     onChange={e => setNewTargetCount(e.target.value)}
                     placeholder="e.g. 10"
-                    className="h-9 text-xs font-mono font-bold"
-                  />
+                    className="h-9 text-xs font-mono font-bold" aria-label="Deal Count Goal" />
                 </div>
               </div>
             </div>

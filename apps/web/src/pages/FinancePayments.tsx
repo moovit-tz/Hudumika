@@ -319,7 +319,7 @@ export const FinancePayments: React.FC = () => {
                 </div>
                 <div style={{ flex: 1 }}>
                   <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: 'var(--ink2)', marginBottom: 4 }}>Date</label>
-                  <DatePicker date={parseDateOnly(fDate)} onChange={d => setFDate(toDateOnlyString(d))} />
+                  <DatePicker date={parseDateOnly(fDate)} onChange={d => setFDate(toDateOnlyString(d))} aria-label="Date" />
                 </div>
               </div>
 

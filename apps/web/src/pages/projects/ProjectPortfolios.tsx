@@ -425,7 +425,7 @@ export const ProjectPortfolios: React.FC<ProjectPortfoliosProps> = ({
                 <div>
                   <label style={{ display: 'block', fontSize: 12, fontWeight: 700, marginBottom: 5 }}>Currency</label>
                   <Select value={portfolioCurrency} onValueChange={setPortfolioCurrency}>
-                    <SelectTrigger><SelectValue /></SelectTrigger>
+                    <SelectTrigger aria-label="Currency"><SelectValue /></SelectTrigger>
                     <SelectContent>
                       {['TZS', 'KES', 'USD', 'EUR', 'GBP', 'UGX'].map(code => (
                         <SelectItem key={code} value={code}>{code}</SelectItem>
@@ -439,8 +439,7 @@ export const ProjectPortfolios: React.FC<ProjectPortfoliosProps> = ({
                     type="number"
                     value={portfolioBudget}
                     onChange={(e) => setPortfolioBudget(e.target.value)}
-                    placeholder="0"
-                  />
+                    placeholder="0" aria-label="Allocated Budget" />
                 </div>
                 <div>
                   <label style={{ display: 'block', fontSize: 12, fontWeight: 700, marginBottom: 5 }}>Target ROI (%)</label>
@@ -460,8 +459,7 @@ export const ProjectPortfolios: React.FC<ProjectPortfoliosProps> = ({
                   rows={3}
                   value={portfolioDesc}
                   onChange={(e) => setPortfolioDesc(e.target.value)}
-                  placeholder="Strategic charter, market focus, and targets..."
-                />
+                  placeholder="Strategic charter, market focus, and targets..." aria-label="Strategic Objectives" />
               </div>
             </DialogBody>
 
@@ -512,7 +510,7 @@ export const ProjectPortfolios: React.FC<ProjectPortfoliosProps> = ({
                 <div>
                   <label style={{ display: 'block', fontSize: 12, fontWeight: 700, marginBottom: 5 }}>Currency</label>
                   <Select value={programCurrency} onValueChange={setProgramCurrency}>
-                    <SelectTrigger><SelectValue /></SelectTrigger>
+                    <SelectTrigger aria-label="Currency"><SelectValue /></SelectTrigger>
                     <SelectContent>
                       {['TZS', 'KES', 'USD', 'EUR', 'GBP', 'UGX'].map(code => (
                         <SelectItem key={code} value={code}>{code}</SelectItem>
@@ -526,8 +524,7 @@ export const ProjectPortfolios: React.FC<ProjectPortfoliosProps> = ({
                     type="number"
                     value={programBudget}
                     onChange={(e) => setProgramBudget(e.target.value)}
-                    placeholder="0"
-                  />
+                    placeholder="0" aria-label="Program Budget" />
                 </div>
                 <div>
                   <label style={{ display: 'block', fontSize: 12, fontWeight: 700, marginBottom: 5 }}>Parent Portfolio</label>
@@ -535,8 +532,7 @@ export const ProjectPortfolios: React.FC<ProjectPortfoliosProps> = ({
                     value={programPortfolioId}
                     onChange={setProgramPortfolioId}
                     options={[{ value: '', label: 'No Portfolio', sublabel: 'Independent' }, ...portfolios.map(p => ({ value: p.id, label: p.name, sublabel: p.code }))]}
-                    placeholder="Select portfolio"
-                  />
+                    placeholder="Select portfolio" aria-label="Parent Portfolio" />
                 </div>
               </div>
 
@@ -546,8 +542,7 @@ export const ProjectPortfolios: React.FC<ProjectPortfoliosProps> = ({
                   type="text"
                   value={programBenefit}
                   onChange={(e) => setProgramBenefit(e.target.value)}
-                  placeholder="e.g. 250MW grid generation, 35% cost reduction"
-                />
+                  placeholder="e.g. 250MW grid generation, 35% cost reduction" aria-label="Target Benefits" />
               </div>
 
               <div>
@@ -556,8 +551,7 @@ export const ProjectPortfolios: React.FC<ProjectPortfoliosProps> = ({
                   rows={2}
                   value={programDesc}
                   onChange={(e) => setProgramDesc(e.target.value)}
-                  placeholder="Program scope and operational governance..."
-                />
+                  placeholder="Program scope and operational governance..." aria-label="Program Description" />
               </div>
             </DialogBody>
 

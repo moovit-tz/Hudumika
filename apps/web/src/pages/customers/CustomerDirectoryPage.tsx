@@ -402,7 +402,7 @@ export const CustomerDirectoryPage: React.FC = () => {
             <Tip label="Column visibility" side="bottom">
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                  <Button variant="outline" size="sm" style={{ padding: '0 8px', height: "var(--ctl-h)" }}>
+                  <Button aria-label="Settings" variant="outline" size="sm" style={{ padding: '0 8px', height: "var(--ctl-h)" }}>
                     <Icon name="settings" size={14} style={{ color: 'var(--ink3)' }} />
                   </Button>
                 </DropdownMenuTrigger>

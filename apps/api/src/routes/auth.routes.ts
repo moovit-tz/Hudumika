@@ -454,7 +454,7 @@ export async function authRoutes(fastify: FastifyInstance) {
       // ondi.subscribers.ts) listens for this to grant a configured default
       // role, same as leaver automation already reacts to hr.staff_deactivated.
       await emitDomainEvent(trx, invite.tenant_id, {
-        type: 'user.joined', sourceApp: 'auth', entityType: 'user', entityId: newUser.id,
+        type: 'user.joined', sourceApp: 'auth', entityType: 'user', entityId: newUser.id, actorId: newUser.id,
         payload: { userId: newUser.id, name: newUser.name, email: newUser.email, role: newUser.role },
       });
 

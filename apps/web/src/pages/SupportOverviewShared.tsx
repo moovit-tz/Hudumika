@@ -6,6 +6,7 @@
 // KPI-card/section-header/bar-row look.
 import React, { useState, useEffect, useCallback } from 'react';
 import { Link } from 'react-router-dom';
+import { useCentreScope, withScope } from '../lib/supportNetwork.js';
 import { apiFetch } from '../lib/api.js';
 import { Icon } from '../components/Icon.js';
 import type { IconName } from '../components/Icon.js';
@@ -29,6 +30,7 @@ export interface AgentStat {
 
 export function useSupportMetrics() {
   const [period, setPeriod] = useState<'7d' | '30d' | '90d'>('30d');
+  const [centreScope] = useCentreScope();
   const [tickets, setTickets] = useState<Ticket[]>([]);
   const [loading, setLoading] = useState(true);
   const [metrics, setMetrics] = useState<any>(null);
@@ -53,20 +55,20 @@ export function useSupportMetrics() {
 
   useEffect(() => {
     setTicketsError(null);
-    apiFetch('/v1/support/tickets')
+    apiFetch(withScope('/v1/support/tickets', centreScope))
       .then((r: any) => setTickets(buildTickets(r.data ?? r ?? [])))
       .catch((error: any) => setTicketsError(error?.message || 'Could not load support tickets.'))
       .finally(() => setLoading(false));
-  }, [buildTickets]);
+  }, [buildTickets, centreScope]);
 
   useEffect(() => {
     setMetricsLoading(true);
     setMetricsError(null);
-    apiFetch(`/v1/support/metrics?period=${period}`)
+    apiFetch(withScope(`/v1/support/metrics?period=${period}`, centreScope))
       .then((r: any) => setMetrics(r))
       .catch((error: any) => setMetricsError(error?.message || 'Could not load support metrics.'))
       .finally(() => setMetricsLoading(false));
-  }, [period]);
+  }, [period, centreScope]);
 
   return { period, setPeriod, tickets, loading, metrics, metricsLoading, ticketsError, metricsError };
 }

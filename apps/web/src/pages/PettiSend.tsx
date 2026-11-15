@@ -195,7 +195,7 @@ export function PettiSend() {
 
             <div>
               <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: 'var(--ink2)', marginBottom: 6 }}>Reason / Transfer Note</label>
-              <Input value={note} onChange={e => setNote(e.target.value)} placeholder="e.g. Rebalancing regional branch liquidity" />
+              <Input value={note} onChange={e => setNote(e.target.value)} placeholder="e.g. Rebalancing regional branch liquidity" aria-label="Reason / Transfer Note" />
             </div>
 
             <Button type="submit" disabled={saving} style={{ padding: '12px', fontWeight: 700, fontSize: 14 }}>

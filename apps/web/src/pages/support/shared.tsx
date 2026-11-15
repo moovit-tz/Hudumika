@@ -51,6 +51,12 @@ export interface Ticket {
   source_app?: string | null; sla_deadline?: string | null;
   channel?: string | null;
   origin_ip?: string | null; origin_user_agent?: string | null;
+  // Support network: which centre and product line handle this ticket, and why.
+  site_id?: string | null; site_name?: string | null;
+  product_id?: string | null; product_name?: string | null;
+  routed_reason?: string | null;
+  /** Answers to the product line's ticket form. */
+  custom_fields?: Record<string, string | number | boolean> | null;
 }
 
 export interface SupportGroup { id: string; name: string; color: string; ticket_count?: number; }

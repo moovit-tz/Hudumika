@@ -428,7 +428,7 @@ export const Chat: React.FC = () => {
               }}
             />
             {search && (
-              <button
+              <button aria-label="Clear search"
                 type="button"
                 onClick={() => setSearch('')}
                 style={{
@@ -594,7 +594,7 @@ export const Chat: React.FC = () => {
             <header style={{ height: 50, padding: '0 16px', background: 'var(--card-bg, var(--white))', borderBottom: '1px solid var(--border)', position: 'relative', zIndex: 1, display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexShrink: 0, boxSizing: 'border-box' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 10, minWidth: 0 }}>
                 {isMobile && (
-                  <button type="button" onClick={() => setActiveId(null)} style={{ background: 'none', border: 'none', padding: "var(--action-py) var(--space-md)", cursor: 'pointer', color: 'var(--ink2)', flexShrink: 0 }} data-ui-native-button="">
+                  <button aria-label="Back to conversations" type="button" onClick={() => setActiveId(null)} style={{ background: 'none', border: 'none', padding: "var(--action-py) var(--space-md)", cursor: 'pointer', color: 'var(--ink2)', flexShrink: 0 }} data-ui-native-button="">
                     <Icon name="arrowLeft" size={18} />
                   </button>
                 )}
@@ -783,7 +783,7 @@ export const Chat: React.FC = () => {
                     <Popover open={showEmoji} onOpenChange={setShowEmoji}>
                       <Tip label="Emoji">
                         <PopoverTrigger asChild>
-                          <button type="button" style={{ width: 'var(--ctl-h-sm)', height: 'var(--ctl-h-sm)', borderRadius: 'var(--r)', background: 'none', border: 'none', color: 'var(--ink3)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }} data-ui-native-button="">
+                          <button aria-label="Insert emoji" type="button" style={{ width: 'var(--ctl-h-sm)', height: 'var(--ctl-h-sm)', borderRadius: 'var(--r)', background: 'none', border: 'none', color: 'var(--ink3)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }} data-ui-native-button="">
                             <Icon name="smile" size={16} />
                           </button>
                         </PopoverTrigger>
@@ -833,7 +833,7 @@ export const Chat: React.FC = () => {
           {/* Header */}
           <div style={{ height: 50, padding: '0 16px', borderBottom: '1px solid var(--border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexShrink: 0, boxSizing: 'border-box', background: 'var(--card-bg, var(--white))' }}>
             <span style={{ fontSize: 13, fontWeight: 800, color: 'var(--ink)' }}>{activeCh.type === 'dm' ? 'User Details' : 'Channel Details'}</span>
-            <button type="button" onClick={() => setShowDetails(false)} style={{ background: 'none', border: 'none', color: 'var(--ink3)', cursor: 'pointer', padding: "var(--action-py) var(--space-md)", display: 'flex', alignItems: 'center', justifyContent: 'center' }} data-ui-native-button="">
+            <button aria-label="Close" type="button" onClick={() => setShowDetails(false)} style={{ background: 'none', border: 'none', color: 'var(--ink3)', cursor: 'pointer', padding: "var(--action-py) var(--space-md)", display: 'flex', alignItems: 'center', justifyContent: 'center' }} data-ui-native-button="">
               <Icon name="close" size={16} />
             </button>
           </div>
@@ -903,7 +903,7 @@ export const Chat: React.FC = () => {
                       style={{ width: '100%', height: "var(--ctl-h)", background: 'var(--card-sunken)', border: '1px solid var(--border2)', borderRadius: 'var(--r-sm)', paddingLeft: 26, paddingRight: "var(--space-md)", color: 'var(--ink)', fontSize: "var(--text-base)", outline: 'none' }}
                     />
                     {memberSearch && (
-                      <button type="button" onClick={() => setMemberSearch('')} style={{ position: 'absolute', right: 6, background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink3)', padding: 0 }} data-ui-native-button="">
+                      <button aria-label="Close" type="button" onClick={() => setMemberSearch('')} style={{ position: 'absolute', right: 6, background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink3)', padding: 0 }} data-ui-native-button="">
                         <Icon name="close" size={11} />
                       </button>
                     )}
@@ -1224,7 +1224,7 @@ function ConversationItem({
       <DropdownMenu>
         <Tip label="More">
           <DropdownMenuTrigger asChild>
-            <button
+            <button aria-label="More actions"
               type="button"
               onClick={(e) => e.stopPropagation()}
               style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink3)', flexShrink: 0, padding: "var(--action-py) var(--space-md)", display: 'flex' }}

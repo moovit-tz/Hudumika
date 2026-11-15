@@ -68,6 +68,7 @@ export async function emitDomainEvent(trx: Transaction<Database>, tenantId: stri
     payload: JSON.stringify(event.payload),
     actor_id: event.actorId ?? null,
   }).returning('id').executeTakeFirstOrThrow();
+  await queueForZentra(trx, tenantId, event, row.id);
   if (TRIGGERS_BY_ID.get(event.type)?.kind === 'DOMAIN_EVENT') {
     const snapshots = await trx.selectFrom('workflow_studio_apps')
       .select(['id', 'tenant_id', 'name', 'trigger_event', 'nodes', 'edges', 'targeting', 'updated_at'])
@@ -81,6 +82,51 @@ export async function emitDomainEvent(trx: Transaction<Database>, tenantId: stri
 
   if (!options?.deferDispatch) dispatchDomainEvent(tenantId, delivered);
   return delivered;
+}
+
+/**
+ * Zentra's trusted telemetry feed: every domain event an app emits on the
+ * server is queued for Zentra's audit log (zentra-outbox.service.ts moves it
+ * there and runs the risk rules). These come from the apps' own code paths,
+ * so unlike Zentra's public /events endpoint a user can't invent them, and
+ * every app that emits domain events is covered without a hand-kept list.
+ *
+ * Same transaction as the caller's change (so a rolled-back change never
+ * reaches the audit log), but inside a savepoint: if Zentra's queue fails,
+ * the caller's own work still commits. The domain event id is the
+ * idempotency key, so a retried emit is queued once.
+ */
+const ZENTRA_SAFE_KEYS = /^(amount|total|currency|count|status|from|to|stage|priority|channel|role|previous_role|new_role|outcome|is_bulk|format|quantity|reason_code)$/;
+async function queueForZentra(trx: Transaction<Database>, tenantId: string, event: DomainEvent, eventId: string): Promise<void> {
+  const safe: Record<string, unknown> = {};
+  for (const [k, v] of Object.entries(event.payload ?? {})) {
+    if (ZENTRA_SAFE_KEYS.test(k) && (typeof v === 'number' || typeof v === 'boolean' || (typeof v === 'string' && v.length <= 120))) safe[k] = v;
+  }
+  const verb = event.type.split('.').pop() || event.type;
+  try {
+    await sql`SAVEPOINT zentra_bridge`.execute(trx);
+    await trx.insertInto('zentra_event_outbox').values({
+      tenant_id: tenantId,
+      app_id: event.sourceApp.slice(0, 64),
+      event_name: event.type.slice(0, 120),
+      payload: JSON.stringify({
+        actor_id: event.actorId ?? 'system',
+        resource_type: event.entityType,
+        resource_id: event.entityId ?? 'none',
+        action: verb,
+        outcome: 'success',
+        correlation_id: eventId,
+        safe_summary: `${event.type} on ${event.entityType}${event.entityId ? ` ${event.entityId}` : ''}`,
+        safe_metadata: { ...safe, source: 'domain_event', domain_event_id: eventId },
+      }),
+      status: 'pending',
+      idempotency_key: `domain:${eventId}`,
+    } as any).onConflict(oc => oc.column('idempotency_key').doNothing()).execute();
+    await sql`RELEASE SAVEPOINT zentra_bridge`.execute(trx);
+  } catch (err: any) {
+    await sql`ROLLBACK TO SAVEPOINT zentra_bridge`.execute(trx).catch(() => {});
+    console.warn('[Zentra bridge] could not queue domain event:', err?.message);
+  }
 }
 
 /** Dispatch an event after its owning transaction commits. */

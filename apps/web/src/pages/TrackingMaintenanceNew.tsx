@@ -71,29 +71,27 @@ export const TrackingMaintenanceNew: React.FC = () => {
             <label style={labelStyle}>Vehicle</label>
             <Combobox
               options={vehicles.map(v => ({ value: v.id, label: v.name, sublabel: v.plate_number || undefined }))}
-              value={vehicleId} onChange={setVehicleId} placeholder="Select vehicle…"
-            />
+              value={vehicleId} onChange={setVehicleId} placeholder="Select vehicle…" aria-label="Vehicle" />
           </div>
           <div style={{ flex: 1 }}>
             <label style={labelStyle}>Vendor</label>
             <Combobox
               options={[{ value: '', label: '— None —' }, ...vendors.map(v => ({ value: v.id, label: v.name }))]}
-              value={vendorId} onChange={setVendorId} placeholder="— None —"
-            />
+              value={vendorId} onChange={setVendorId} placeholder="— None —" aria-label="Vendor" />
           </div>
         </div>
-        <div><label style={labelStyle}>Service type</label><Input required value={serviceType} onChange={e => setServiceType(e.target.value)} placeholder="e.g. Oil change" /></div>
+        <div><label style={labelStyle}>Service type</label><Input required value={serviceType} onChange={e => setServiceType(e.target.value)} placeholder="e.g. Oil change" aria-label="Service type" /></div>
         <div>
           <label style={labelStyle}>Description</label>
-          <Textarea value={description} onChange={e => setDescription(e.target.value)} style={{ minHeight: 90 }} className="resize-y" />
+          <Textarea value={description} onChange={e => setDescription(e.target.value)} style={{ minHeight: 90 }} className="resize-y" aria-label="Description" />
         </div>
         <div style={{ display: 'flex', gap: 10 }}>
-          <div style={{ flex: 1 }}><label style={labelStyle}>Cost</label><Input type="number" value={cost} onChange={e => setCost(e.target.value)} /></div>
-          <div style={{ flex: 1 }}><label style={labelStyle}>Odometer (km)</label><Input type="number" value={odometer} onChange={e => setOdometer(e.target.value)} /></div>
+          <div style={{ flex: 1 }}><label style={labelStyle}>Cost</label><Input type="number" value={cost} onChange={e => setCost(e.target.value)} aria-label="Cost" /></div>
+          <div style={{ flex: 1 }}><label style={labelStyle}>Odometer (km)</label><Input type="number" value={odometer} onChange={e => setOdometer(e.target.value)} aria-label="Odometer (km)" /></div>
         </div>
         <div style={{ display: 'flex', gap: 10 }}>
-          <div style={{ flex: 1 }}><label style={labelStyle}>Service date (previous)</label><DatePicker date={parseDateOnly(serviceDate)} onChange={d => setServiceDate(toDateOnlyString(d))} /></div>
-          <div style={{ flex: 1 }}><label style={labelStyle}>Next due date (expected)</label><DatePicker date={parseDateOnly(nextDueDate)} onChange={d => setNextDueDate(toDateOnlyString(d))} /></div>
+          <div style={{ flex: 1 }}><label style={labelStyle}>Service date (previous)</label><DatePicker date={parseDateOnly(serviceDate)} onChange={d => setServiceDate(toDateOnlyString(d))} aria-label="Service date (previous)" /></div>
+          <div style={{ flex: 1 }}><label style={labelStyle}>Next due date (expected)</label><DatePicker date={parseDateOnly(nextDueDate)} onChange={d => setNextDueDate(toDateOnlyString(d))} aria-label="Next due date (expected)" /></div>
         </div>
         {error && <div style={{ fontSize: 12, color: 'var(--red)' }}>{error}</div>}
         <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end', marginTop: 6 }}>

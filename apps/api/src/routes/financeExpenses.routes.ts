@@ -1,3 +1,4 @@
+import { emitDomainEvent } from '../services/domain-events.service.js';
 import { requireEntitlement } from '../middleware/entitlement.js';
 import type { FastifyInstance } from 'fastify';
 import { z } from 'zod';
@@ -476,6 +477,10 @@ export async function financeExpensesRoutes(fastify: FastifyInstance) {
       if (row.status !== 'SUBMITTED') return reply.status(409).send({ error: 'This expense is not pending approval.' });
       if (Number(row.amount) <= 0) return reply.status(422).send({ error: 'Approval requires a positive expense amount.' });
       await postExpenseToGl(user.tenant_id, row, user.sub, trx);
+      await emitDomainEvent(trx, user.tenant_id, {
+        type: 'expense.approved', sourceApp: 'finops', entityType: 'expense', entityId: id, actorId: user.sub,
+        payload: { amount: Number(row.amount), status: 'approved' },
+      }).catch(err => console.error('[Expenses] approved emit failed:', err?.message));
       return trx.updateTable('finance_expenses').set({ status: 'APPROVED', reviewed_by: user.sub, reviewed_at: new Date() })
         .where('tenant_id', '=', user.tenant_id).where('id', '=', id).returningAll().executeTakeFirstOrThrow();
     });

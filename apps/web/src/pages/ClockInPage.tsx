@@ -927,8 +927,7 @@ export function ClockInPage() {
               <DatePicker
                 date={parseDateOnly(manualDate)}
                 onChange={d => { if (!correctionSession) setManualDate(toDateOnlyString(d)); }}
-                placeholder="Select date"
-              />
+                placeholder="Select date" aria-label="Date" />
             </div>
 
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
@@ -938,8 +937,7 @@ export function ClockInPage() {
                   type="time"
                   value={manualClockIn}
                   onChange={e => setManualClockIn(e.target.value)}
-                  required
-                />
+                  required aria-label="Clock In Time" />
               </div>
               <div>
                 <label style={{ fontSize: 12, fontWeight: 600, color: 'var(--ink)', marginBottom: 4, display: 'block' }}>Clock Out Time</label>
@@ -947,8 +945,7 @@ export function ClockInPage() {
                   type="time"
                   value={manualClockOut}
                   onChange={e => setManualClockOut(e.target.value)}
-                  required
-                />
+                  required aria-label="Clock Out Time" />
               </div>
             </div>
 
@@ -958,8 +955,7 @@ export function ClockInPage() {
                 type="number"
                 value={manualBreakMins}
                 onChange={e => setManualBreakMins(e.target.value)}
-                min="0"
-              />
+                min="0" aria-label="Break (Minutes)" />
             </div>
 
             <div>
@@ -968,8 +964,7 @@ export function ClockInPage() {
                 type="text"
                 value={manualProject}
                 onChange={e => setManualProject(e.target.value)}
-                placeholder="e.g. Mobile App Redesign"
-              />
+                placeholder="e.g. Mobile App Redesign" aria-label="Project / Activity Name" />
             </div>
 
             <DialogFooter>
@@ -1005,8 +1000,7 @@ export function ClockInPage() {
               value={rejectNote}
               onChange={e => setRejectNote(e.target.value)}
               placeholder="Let them know what needs correcting…"
-              rows={3}
-            />
+              rows={3} aria-label="Reason (optional)" />
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setRejectTarget(null)}>Cancel</Button>

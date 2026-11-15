@@ -553,7 +553,7 @@ function BillFormView({ initial, allBills, suppliers, onSupplierCreated, onSave,
             </div>
           </div>
 
-          <div><label style={lbl}>Notes</label><Textarea title="Notes" placeholder="Payment terms, references, or other notes…" value={f.notes} onChange={e => setField('notes', e.target.value)} rows={3} style={{ ...inp, resize:'vertical' }} /></div>
+          <div><label style={lbl}>Notes</label><Textarea title="Notes" placeholder="Payment terms, references, or other notes…" value={f.notes} onChange={e => setField('notes', e.target.value)} rows={3} style={{ ...inp, resize:'vertical' }} aria-label="Notes" /></div>
         </div>
     </FormPage>
   );
@@ -647,7 +647,7 @@ function RecurFormView({ initial, suppliers, onSupplierCreated, onSave, onClose 
             <div><label style={lbl}>Category</label><Select value={f.category} onValueChange={v => set('category', v as BillCat)}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent>{[...new Set([...financeCatalogOptions(financeConfiguration.data?.industries ?? []).expenses,f.category])].map(c => <SelectItem key={c} value={c}>{CAT_CFG[c]?.label ?? c}</SelectItem>)}</SelectContent></Select></div>
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-3" style={{ gap:12, marginBottom:14 }}>
-            <div><label style={lbl}>Amount</label><Input type="number" title="Amount" value={f.amount} min={0} step={0.01} onChange={e => set('amount', parseFloat(e.target.value)||0)} style={inp} /></div>
+            <div><label style={lbl}>Amount</label><Input type="number" title="Amount" value={f.amount} min={0} step={0.01} onChange={e => set('amount', parseFloat(e.target.value)||0)} style={inp} aria-label="Amount" /></div>
             <div>
                 <label style={lbl}>Currency {f.currency === getCompany().currency && <span style={{ fontWeight:400, color:'var(--teal)', fontSize:10.5 }}>· company default</span>}</label>
                 <Select value={f.currency} onValueChange={v => set('currency', v)}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent>{CURRENCIES.map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}</SelectContent></Select>
@@ -669,10 +669,10 @@ function RecurFormView({ initial, suppliers, onSupplierCreated, onSave, onClose 
               </Select>
             </div>
           </div>
-          <div style={{ marginBottom:14 }}><label style={lbl}>Description</label><Textarea title="Description" placeholder="Description of the recurring charge…" value={f.description} onChange={e => set('description', e.target.value)} rows={2} style={{ ...inp, resize:'vertical' }} /></div>
+          <div style={{ marginBottom:14 }}><label style={lbl}>Description</label><Textarea title="Description" placeholder="Description of the recurring charge…" value={f.description} onChange={e => set('description', e.target.value)} rows={2} style={{ ...inp, resize:'vertical' }} aria-label="Description" /></div>
           <div className="grid grid-cols-1 sm:grid-cols-2" style={{ gap:12, marginBottom:14 }}>
-            <div><label style={lbl}>First / Next Due Date</label><DatePicker date={parseDateOnly(f.next_due)} onChange={d => set('next_due', toDateOnlyString(d))} /></div>
-            <div><label style={lbl}>End Date (optional)</label><DatePicker date={parseDateOnly(f.end_date)} onChange={d => set('end_date', toDateOnlyString(d))} /></div>
+            <div><label style={lbl}>First / Next Due Date</label><DatePicker date={parseDateOnly(f.next_due)} onChange={d => set('next_due', toDateOnlyString(d))} aria-label="First / Next Due Date" /></div>
+            <div><label style={lbl}>End Date (optional)</label><DatePicker date={parseDateOnly(f.end_date)} onChange={d => set('end_date', toDateOnlyString(d))} aria-label="End Date (optional)" /></div>
           </div>
           <div style={{ marginBottom:14 }}><label style={lbl}>Payment Terms</label><Select value={f.payment_terms} onValueChange={v => set('payment_terms', v)}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent>{['Net 15','Net 30','Net 45','Net 60','COD','Advance'].map(t => <SelectItem key={t} value={t}>{t}</SelectItem>)}</SelectContent></Select></div>
           <div style={{ background:'var(--teal-l)', borderRadius: 'var(--r)', padding:'14px 16px' }}>

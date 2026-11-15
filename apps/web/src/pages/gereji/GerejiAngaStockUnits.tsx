@@ -119,7 +119,7 @@ export function GerejiAngaStockUnits() {
                         <td style={{ ...TD, color: 'var(--ink3)' }}>{formatDate(u.created_at)}</td>
                         <td style={{ ...TD, textAlign: 'right' }} onClick={e => e.stopPropagation()}>
                           <DropdownMenu>
-                            <DropdownMenuTrigger asChild><Button variant="ghost" size="icon"><Icon name="moreHorizontal" size={16} /></Button></DropdownMenuTrigger>
+                            <DropdownMenuTrigger asChild><Button aria-label="More actions" variant="ghost" size="icon"><Icon name="moreHorizontal" size={16} /></Button></DropdownMenuTrigger>
                             <DropdownMenuContent align="end">
                               {(AVAILABILITY_TRANSITIONS[u.availability] ?? []).map(a => (
                                 <DropdownMenuItem key={a} onClick={() => transition(u.id, a)}>Move to {a.replace(/_/g, ' ')}</DropdownMenuItem>
@@ -168,11 +168,11 @@ export function GerejiAngaStockUnits() {
               <div>
                 <label style={LABEL}>Type</label>
                 <Select value={certType} onValueChange={setCertType}>
-                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectTrigger aria-label="Type"><SelectValue /></SelectTrigger>
                   <SelectContent>{CERT_TYPES.map(t => <SelectItem key={t} value={t}>{t.replace(/_/g, ' ')}</SelectItem>)}</SelectContent>
                 </Select>
               </div>
-              <div><label style={LABEL}>Expiry (optional)</label><DatePicker date={parseDateOnly(certExpiry) ?? null} onChange={d => setCertExpiry(toDateOnlyString(d))} /></div>
+              <div><label style={LABEL}>Expiry (optional)</label><DatePicker date={parseDateOnly(certExpiry) ?? null} onChange={d => setCertExpiry(toDateOnlyString(d))} aria-label="Expiry (optional)" /></div>
             </div>
           </DialogBody>
           <DialogFooter>

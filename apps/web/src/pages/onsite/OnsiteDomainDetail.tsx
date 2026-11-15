@@ -326,7 +326,7 @@ export function OnsiteDomainDetail() {
                       <Link to={`/onsite/websites/${sub.website_id}`} style={{ color: 'var(--teal)', fontSize: '0.8125rem' }}>{sub.website_name}</Link>
                     ) : <span style={{ color: 'var(--ink3)', fontSize: '0.8125rem' }}>—</span>}</td>
                     <td style={{ textAlign: 'right' }}>
-                      <Button variant="ghost" size="sm" onClick={() => handleDeleteSubdomain(sub.name)}>
+                      <Button aria-label="Delete subdomain" variant="ghost" size="sm" onClick={() => handleDeleteSubdomain(sub.name)}>
                         <Icon name="trash2" size={14} />
                       </Button>
                     </td>
@@ -381,7 +381,7 @@ export function OnsiteDomainDetail() {
               <div>
                 <label style={{ display: 'block', fontSize: '0.8125rem', fontWeight: 600, marginBottom: '0.35rem' }}>Record type</label>
                 <Select value={subType} onValueChange={setSubType}>
-                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectTrigger aria-label="Record type"><SelectValue /></SelectTrigger>
                   <SelectContent>
                     <SelectItem value="A">A — Point to an IPv4 address</SelectItem>
                     <SelectItem value="CNAME">CNAME — Point to another hostname</SelectItem>

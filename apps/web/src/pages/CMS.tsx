@@ -801,7 +801,7 @@ export const CMS: React.FC = () => {
                       <td style={{ padding: '11px 16px', color: 'var(--ink3)' }}>{post.author}</td>
                       <td style={{ padding: '11px 16px', color: 'var(--ink3)' }}>{post.category || '—'}</td>
                       <td style={{ padding: '11px 16px', color: 'var(--ink3)' }}>
-                        <span style={{ fontSize: 11.5, fontFamily: 'var(--font)', background: 'var(--bg)', padding: '2px 6px', borderRadius: 4 }}>
+                        <span style={{ fontSize: 11.5, fontFamily: 'var(--font)', background: 'var(--bg)', padding: '2px 6px', borderRadius: 'var(--r-sm)' }}>
                           {post.locale?.toUpperCase() || 'EN'}
                         </span>
                       </td>
@@ -927,7 +927,7 @@ export const CMS: React.FC = () => {
                       </td>
                       <td style={{ padding: '11px 16px', fontFamily: 'var(--font)', color: 'var(--ink3)', fontSize: 12 }}>{pg.slug}</td>
                       <td style={{ padding: '11px 16px', color: 'var(--ink3)' }}>
-                        <span style={{ fontSize: 11.5, fontFamily: 'var(--font)', background: 'var(--bg)', padding: '2px 6px', borderRadius: 4 }}>
+                        <span style={{ fontSize: 11.5, fontFamily: 'var(--font)', background: 'var(--bg)', padding: '2px 6px', borderRadius: 'var(--r-sm)' }}>
                           {pg.locale?.toUpperCase() || 'EN'}
                         </span>
                       </td>

@@ -76,6 +76,7 @@ export async function analyticsRoutes(fastify: FastifyInstance) {
         .selectFrom('shipment_cases')
         .select(trx.fn.count('id').as('cnt'))
         .where('tenant_id', '=', user.tenant_id)
+        .where('deleted_at', 'is', null)
         .where('stage', 'not in', ['CLOSED', 'DELIVERY'])
         .executeTakeFirst())?.cnt ?? 0);
 
@@ -84,6 +85,7 @@ export async function analyticsRoutes(fastify: FastifyInstance) {
         .selectFrom('shipment_cases')
         .select(trx.fn.count('id').as('cnt'))
         .where('tenant_id', '=', user.tenant_id)
+        .where('deleted_at', 'is', null)
         .where('stage', 'not in', ['CLOSED', 'DELIVERY'])
         .where('free_time_end', 'is not', null)
         .where('free_time_end', '>=', now)
@@ -94,6 +96,7 @@ export async function analyticsRoutes(fastify: FastifyInstance) {
         .selectFrom('shipment_cases')
         .select(trx.fn.count('id').as('cnt'))
         .where('tenant_id', '=', user.tenant_id)
+        .where('deleted_at', 'is', null)
         .where('stage', 'not in', ['CLOSED', 'DELIVERY'])
         .where('free_time_end', '<', now)
         .executeTakeFirst())?.cnt ?? 0);
@@ -103,23 +106,23 @@ export async function analyticsRoutes(fastify: FastifyInstance) {
         .selectFrom('shipment_cases')
         .select(trx.fn.count('id').as('cnt'))
         .where('tenant_id', '=', user.tenant_id)
+        .where('deleted_at', 'is', null)
         .where('stage', 'not in', ['CLOSED', 'DELIVERY'])
         .where('sla_deadline', '<', now)
         .executeTakeFirst())?.cnt ?? 0);
 
-      // Delivered today
       const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+      // Delivered today: shipments that entered DELIVERY or CLOSED today, from
+      // stage_history. updated_at was used before, so editing any old
+      // delivered shipment counted it as "delivered today".
       const delivered_today = Number((await trx
-        .selectFrom('shipment_cases')
-        .select(trx.fn.count('id').as('cnt'))
-        .where('tenant_id', '=', user.tenant_id)
-        .where((eb) =>
-          eb.or([
-            eb('stage', '=', 'DELIVERY'),
-            eb('stage', '=', 'CLOSED'),
-          ])
-        )
-        .where('updated_at', '>=', todayStart)
+        .selectFrom('stage_history')
+        .innerJoin('shipment_cases', 'shipment_cases.id', 'stage_history.shipment_id')
+        .select(sql<string>`count(distinct stage_history.shipment_id)`.as('cnt'))
+        .where('stage_history.tenant_id', '=', user.tenant_id)
+        .where('shipment_cases.deleted_at', 'is', null)
+        .where('stage_history.stage', 'in', ['DELIVERY', 'CLOSED'])
+        .where('stage_history.entered_at', '>=', todayStart)
         .executeTakeFirst())?.cnt ?? 0);
 
       // Cases this month
@@ -128,6 +131,7 @@ export async function analyticsRoutes(fastify: FastifyInstance) {
         .selectFrom('shipment_cases')
         .select(trx.fn.count('id').as('cnt'))
         .where('tenant_id', '=', user.tenant_id)
+        .where('deleted_at', 'is', null)
         .where('created_at', '>=', monthStart)
         .executeTakeFirst())?.cnt ?? 0);
 
@@ -136,6 +140,7 @@ export async function analyticsRoutes(fastify: FastifyInstance) {
         .selectFrom('shipment_cases')
         .select(trx.fn.count('id').as('cnt'))
         .where('tenant_id', '=', user.tenant_id)
+        .where('deleted_at', 'is', null)
         .where('stage', '=', 'CLOSED')
         .executeTakeFirst())?.cnt ?? 0);
 
@@ -152,6 +157,7 @@ export async function analyticsRoutes(fastify: FastifyInstance) {
           .where('risk_flags.tenant_id', '=', user.tenant_id)
           .where('risk_flags.type', '=', 'SLA_BREACH')
           .where('shipment_cases.stage', '=', 'CLOSED')
+          .where('shipment_cases.deleted_at', 'is', null)
           .executeTakeFirst();
         const breached_closed = Number(breachedResult?.cnt ?? 0);
         on_time_rate_pct = Math.round(((closed_cases - breached_closed) / closed_cases) * 100);
@@ -165,6 +171,7 @@ export async function analyticsRoutes(fastify: FastifyInstance) {
           sql<string>`coalesce(sum(carbon_credits_saved), 0)`.as('total_credits'),
         ])
         .where('tenant_id', '=', user.tenant_id)
+        .where('deleted_at', 'is', null)
         .executeTakeFirst();
       const total_co2_emissions_kg = Math.round(Number(co2Result?.total_co2 ?? 0) * 100) / 100;
       const total_carbon_credits_saved = Math.round(Number(co2Result?.total_credits ?? 0) * 10000) / 10000;
@@ -316,6 +323,7 @@ export async function analyticsRoutes(fastify: FastifyInstance) {
         .selectFrom('shipment_cases')
         .select(['id', 'assigned_to', 'stage', 'created_at'])
         .where('tenant_id', '=', user.tenant_id)
+        .where('deleted_at', 'is', null)
         .execute();
 
       // Real close timestamps per shipment, from stage_history's CLOSED entry
@@ -406,6 +414,7 @@ export async function analyticsRoutes(fastify: FastifyInstance) {
       const shipments = await trx.selectFrom('shipment_cases')
         .select(['id', 'stage', 'customer_id', 'created_at', 'free_time_end', 'sla_deadline'])
         .where('tenant_id', '=', user.tenant_id)
+        .where('deleted_at', 'is', null)
         .execute();
 
       const shipmentStatus = { IN_TRANSIT: 0, AT_PORT: 0, CUSTOMS_HOLD: 0, CLEARED: 0 };

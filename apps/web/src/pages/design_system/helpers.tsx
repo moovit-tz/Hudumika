@@ -118,7 +118,7 @@ function StrokeIconGrid() {
                 key={sz}
                 type="button"
                 onClick={() => setIconSize(sz)}
-                className={`px-2 py-0.5 text-xs font-medium rounded-md transition-colors ${
+                data-ui-target="" className={`relative px-2 py-0.5 text-xs font-medium rounded-md transition-colors ${
                   iconSize === sz ? 'bg-primary text-primary-foreground font-semibold' : 'text-muted-foreground hover:text-foreground'
                 }`}
                data-ui-native-button="">
@@ -202,7 +202,7 @@ function TwotoneIconGrid() {
                 key={sz}
                 type="button"
                 onClick={() => setIconSize(sz)}
-                className={`px-2 py-0.5 text-xs font-medium rounded-md transition-colors ${
+                data-ui-target="" className={`relative px-2 py-0.5 text-xs font-medium rounded-md transition-colors ${
                   iconSize === sz ? 'bg-primary text-primary-foreground font-semibold' : 'text-muted-foreground hover:text-foreground'
                 }`}
                data-ui-native-button="">
@@ -303,7 +303,7 @@ function HugeiconsIconGrid() {
                 key={sz}
                 type="button"
                 onClick={() => setIconSize(sz)}
-                className={`px-2 py-0.5 text-xs font-medium rounded-md transition-colors ${
+                data-ui-target="" className={`relative px-2 py-0.5 text-xs font-medium rounded-md transition-colors ${
                   iconSize === sz ? 'bg-primary text-primary-foreground font-semibold' : 'text-muted-foreground hover:text-foreground'
                 }`}
                data-ui-native-button="">

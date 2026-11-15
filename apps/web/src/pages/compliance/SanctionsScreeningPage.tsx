@@ -427,7 +427,7 @@ export function SanctionsScreeningPage() {
                   onBlur={e => { e.currentTarget.style.borderColor = 'var(--border)'; e.currentTarget.style.background = 'var(--bg)'; }}
                 />
                 {adhocName && (
-                  <button
+                  <button aria-label="Clear"
                     type="button"
                     onClick={() => setAdhocName('')}
                     style={{ position: 'absolute', right: 8, top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink3)', padding: 2 }}
@@ -566,7 +566,7 @@ export function SanctionsScreeningPage() {
                     onBlur={e => { e.currentTarget.style.borderColor = 'var(--border)'; e.currentTarget.style.background = 'var(--bg)'; }}
                   />
                   {searchQuery && (
-                    <button
+                    <button aria-label="Clear search"
                       type="button"
                       onClick={() => handleSearchChange('')}
                       style={{ position: 'absolute', right: 6, top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink3)', padding: 2 }}
@@ -602,7 +602,7 @@ export function SanctionsScreeningPage() {
                         onClick={() => handleTabChange(tabKey)}
                         style={{
                           padding: '4px 9px',
-                          borderRadius: 5,
+                          borderRadius: 'var(--r-sm)',
                           fontSize: 11.5,
                           fontWeight: isActive ? 600 : 500,
                           border: isActive ? '1px solid var(--border)' : '1px solid transparent',

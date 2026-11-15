@@ -394,8 +394,7 @@ export const ProjectApprovalsPage: React.FC = () => {
                 value={comment}
                 onChange={e => setComment(e.target.value)}
                 placeholder="Add audit rationale, conditions, or instructions…"
-                rows={4}
-              />
+                rows={4} aria-label="Comments (Optional)" />
             </div>
           </DialogBody>
           <DialogFooter>

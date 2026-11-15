@@ -615,7 +615,7 @@ function BlockProps({ block, onChange, varGroups, settings }: {
         <div className="ebb-props">
           <div className="ebb-props-title">Heading</div>
           <label className="ebb-props-label">Text</label>
-          <Input ref={ref('text') as any} value={block.text} onChange={e => handleFieldChange('text', e.target.value)} onFocus={() => focusField('text')} />
+          <Input ref={ref('text') as any} value={block.text} onChange={e => handleFieldChange('text', e.target.value)} onFocus={() => focusField('text')} aria-label="Text" />
           <label className="ebb-props-label">Level</label>
           <Select value={String(block.level)} onValueChange={v => onChange({ ...block, level: Number(v) as 1|2|3 })}>
             <SelectTrigger><SelectValue /></SelectTrigger>
@@ -643,11 +643,11 @@ function BlockProps({ block, onChange, varGroups, settings }: {
         <div className="ebb-props">
           <div className="ebb-props-title">Paragraph</div>
           <label className="ebb-props-label">Text</label>
-          <Textarea ref={ref('text') as any} value={block.text} rows={6} onChange={e => handleFieldChange('text', e.target.value)} onFocus={() => focusField('text')} />
+          <Textarea ref={ref('text') as any} value={block.text} rows={6} onChange={e => handleFieldChange('text', e.target.value)} onFocus={() => focusField('text')} aria-label="Text" />
           <label className="ebb-props-label">Alignment</label>
           <AlignGroup value={block.align ?? 'left'} onChange={v => onChange({ ...block, align: v as any })} />
           <label className="ebb-props-label">Font size (px)</label>
-          <Input type="number" value={block.fontSize ?? 14} min={11} max={24} step={1} onChange={e => onChange({ ...block, fontSize: Number(e.target.value) })} />
+          <Input type="number" value={block.fontSize ?? 14} min={11} max={24} step={1} onChange={e => onChange({ ...block, fontSize: Number(e.target.value) })} aria-label="Font size (px)" />
           <ColorRow label="Text color" value={block.color ?? '#374151'} onChange={c => onChange({ ...block, color: c })} />
           <FontPicker
             label="Font override"
@@ -664,11 +664,11 @@ function BlockProps({ block, onChange, varGroups, settings }: {
         <div className="ebb-props">
           <div className="ebb-props-title">Quote</div>
           <label className="ebb-props-label">Quote text</label>
-          <Textarea ref={ref('text') as any} value={block.text} rows={4} onChange={e => handleFieldChange('text', e.target.value)} onFocus={() => focusField('text')} />
+          <Textarea ref={ref('text') as any} value={block.text} rows={4} onChange={e => handleFieldChange('text', e.target.value)} onFocus={() => focusField('text')} aria-label="Quote text" />
           <label className="ebb-props-label">Author name</label>
-          <Input ref={ref('author') as any} value={block.author} onChange={e => handleFieldChange('author', e.target.value)} onFocus={() => focusField('author')} />
+          <Input ref={ref('author') as any} value={block.author} onChange={e => handleFieldChange('author', e.target.value)} onFocus={() => focusField('author')} aria-label="Author name" />
           <label className="ebb-props-label">Role / Company (optional)</label>
-          <Input ref={ref('role') as any} value={block.role ?? ''} placeholder="CEO, Company Name" onChange={e => handleFieldChange('role', e.target.value)} onFocus={() => focusField('role')} />
+          <Input ref={ref('role') as any} value={block.role ?? ''} placeholder="CEO, Company Name" onChange={e => handleFieldChange('role', e.target.value)} onFocus={() => focusField('role')} aria-label="Role / Company (optional)" />
           {varPicker}
         </div>
       );
@@ -678,14 +678,14 @@ function BlockProps({ block, onChange, varGroups, settings }: {
         <div className="ebb-props">
           <div className="ebb-props-title">Button</div>
           <label className="ebb-props-label">Label</label>
-          <Input ref={ref('label') as any} value={block.label} onChange={e => handleFieldChange('label', e.target.value)} onFocus={() => focusField('label')} />
+          <Input ref={ref('label') as any} value={block.label} onChange={e => handleFieldChange('label', e.target.value)} onFocus={() => focusField('label')} aria-label="Label" />
           <label className="ebb-props-label">URL</label>
-          <Input ref={ref('url') as any} value={block.url} onChange={e => handleFieldChange('url', e.target.value)} onFocus={() => focusField('url')} />
+          <Input ref={ref('url') as any} value={block.url} onChange={e => handleFieldChange('url', e.target.value)} onFocus={() => focusField('url')} aria-label="URL" />
           <label className="ebb-props-label">Alignment</label>
           <AlignGroup value={block.align} onChange={v => onChange({ ...block, align: v as any })} options={['left', 'center']} />
           <ColorRow label="Background color" value={block.color} onChange={c => onChange({ ...block, color: c })} />
           <label className="ebb-props-label">Border radius (px)</label>
-          <Input type="number" value={block.borderRadius ?? 6} min={0} max={999} step={1} onChange={e => onChange({ ...block, borderRadius: Number(e.target.value) })} />
+          <Input type="number" value={block.borderRadius ?? 6} min={0} max={999} step={1} onChange={e => onChange({ ...block, borderRadius: Number(e.target.value) })} aria-label="Border radius (px)" />
           <label className="ebb-props-label">Full width</label>
           <div className="ebb-props-toggle-row">
             <input type="checkbox" id="btn-fullwidth" checked={!!block.fullWidth} onChange={e => onChange({ ...block, fullWidth: e.target.checked })} />
@@ -742,15 +742,15 @@ function BlockProps({ block, onChange, varGroups, settings }: {
           <div className="ebb-props-title">Image</div>
           <ImageUploader src={block.src} onSrc={url => onChange({ ...block, src: url })} label="image" />
           <label className="ebb-props-label">Or paste external URL</label>
-          <Input ref={ref('src') as any} value={block.src} placeholder="https://…" onChange={e => handleFieldChange('src', e.target.value)} onFocus={() => focusField('src')} />
+          <Input ref={ref('src') as any} value={block.src} placeholder="https://…" onChange={e => handleFieldChange('src', e.target.value)} onFocus={() => focusField('src')} aria-label="Or paste external URL" />
           <label className="ebb-props-label">Alt text</label>
-          <Input ref={ref('alt') as any} value={block.alt} onChange={e => handleFieldChange('alt', e.target.value)} onFocus={() => focusField('alt')} />
+          <Input ref={ref('alt') as any} value={block.alt} onChange={e => handleFieldChange('alt', e.target.value)} onFocus={() => focusField('alt')} aria-label="Alt text" />
           <label className="ebb-props-label">Width</label>
-          <Input value={block.width} placeholder="100% or 300px" onChange={e => onChange({ ...block, width: e.target.value })} />
+          <Input value={block.width} placeholder="100% or 300px" onChange={e => onChange({ ...block, width: e.target.value })} aria-label="Width" />
           <label className="ebb-props-label">Click-through URL (optional)</label>
-          <Input ref={ref('link') as any} value={block.link ?? ''} placeholder="https://… (makes image clickable)" onChange={e => handleFieldChange('link', e.target.value)} onFocus={() => focusField('link')} />
+          <Input ref={ref('link') as any} value={block.link ?? ''} placeholder="https://… (makes image clickable)" onChange={e => handleFieldChange('link', e.target.value)} onFocus={() => focusField('link')} aria-label="Click-through URL (optional)" />
           <label className="ebb-props-label">Border radius</label>
-          <Input value={block.borderRadius ?? ''} placeholder="e.g. 8px or 50%" onChange={e => onChange({ ...block, borderRadius: e.target.value })} />
+          <Input value={block.borderRadius ?? ''} placeholder="e.g. 8px or 50%" onChange={e => onChange({ ...block, borderRadius: e.target.value })} aria-label="Border radius" />
           <label className="ebb-props-label">Alignment</label>
           <AlignGroup value={block.align} onChange={v => onChange({ ...block, align: v as any })} options={['left', 'center']} />
         </div>
@@ -763,9 +763,9 @@ function BlockProps({ block, onChange, varGroups, settings }: {
           <div className="ebb-props-title">Logo</div>
           <ImageUploader src={block.src} onSrc={url => onChange({ ...block, src: url })} label="logo" />
           <label className="ebb-props-label">Or paste external URL</label>
-          <Input ref={ref('src') as any} value={block.src} placeholder="https://…" onChange={e => handleFieldChange('src', e.target.value)} onFocus={() => focusField('src')} />
+          <Input ref={ref('src') as any} value={block.src} placeholder="https://…" onChange={e => handleFieldChange('src', e.target.value)} onFocus={() => focusField('src')} aria-label="Or paste external URL" />
           <label className="ebb-props-label">Alt text</label>
-          <Input ref={ref('alt') as any} value={block.alt} onChange={e => handleFieldChange('alt', e.target.value)} onFocus={() => focusField('alt')} />
+          <Input ref={ref('alt') as any} value={block.alt} onChange={e => handleFieldChange('alt', e.target.value)} onFocus={() => focusField('alt')} aria-label="Alt text" />
           <div className="ebb-props-label-row">
             <label className="ebb-props-label">Logo width</label>
             <span className="ebb-props-value">{widthValue}px</span>
@@ -791,9 +791,9 @@ function BlockProps({ block, onChange, varGroups, settings }: {
         <div className="ebb-props">
           <div className="ebb-props-title">Banner</div>
           <label className="ebb-props-label">Headline</label>
-          <Input ref={ref('title') as any} value={block.title} onChange={e => handleFieldChange('title', e.target.value)} onFocus={() => focusField('title')} />
+          <Input ref={ref('title') as any} value={block.title} onChange={e => handleFieldChange('title', e.target.value)} onFocus={() => focusField('title')} aria-label="Headline" />
           <label className="ebb-props-label">Subheading (optional)</label>
-          <Input ref={ref('subtitle') as any} value={block.subtitle ?? ''} placeholder="Supporting text" onChange={e => handleFieldChange('subtitle', e.target.value)} onFocus={() => focusField('subtitle')} />
+          <Input ref={ref('subtitle') as any} value={block.subtitle ?? ''} placeholder="Supporting text" onChange={e => handleFieldChange('subtitle', e.target.value)} onFocus={() => focusField('subtitle')} aria-label="Subheading (optional)" />
           <ColorRow label="Background color" value={block.bgColor} onChange={c => onChange({ ...block, bgColor: c })} />
           <ColorRow label="Text color" value={block.textColor} onChange={c => onChange({ ...block, textColor: c })} />
           {varPicker}
@@ -814,7 +814,7 @@ function BlockProps({ block, onChange, varGroups, settings }: {
             </SelectContent>
           </Select>
           <label className="ebb-props-label">Thickness (px)</label>
-          <Input type="number" value={block.thickness ?? 1} min={1} max={8} step={1} onChange={e => onChange({ ...block, thickness: Number(e.target.value) })} />
+          <Input type="number" value={block.thickness ?? 1} min={1} max={8} step={1} onChange={e => onChange({ ...block, thickness: Number(e.target.value) })} aria-label="Thickness (px)" />
           <ColorRow label="Line color" value={block.color ?? '#e5e7eb'} onChange={c => onChange({ ...block, color: c })} />
         </div>
       );
@@ -824,7 +824,7 @@ function BlockProps({ block, onChange, varGroups, settings }: {
         <div className="ebb-props">
           <div className="ebb-props-title">Spacer</div>
           <label className="ebb-props-label">Height (px)</label>
-          <Input type="number" value={block.size} min={4} max={120} step={4} onChange={e => onChange({ ...block, size: Number(e.target.value) })} />
+          <Input type="number" value={block.size} min={4} max={120} step={4} onChange={e => onChange({ ...block, size: Number(e.target.value) })} aria-label="Height (px)" />
           <div className="ebb-props-hint">Drag the edges of the spacer on the canvas, or type a value here.</div>
         </div>
       );
@@ -875,7 +875,7 @@ function BlockProps({ block, onChange, varGroups, settings }: {
         <div className="ebb-props">
           <div className="ebb-props-title">Callout</div>
           <label className="ebb-props-label">Text</label>
-          <Textarea ref={ref('text') as any} value={block.text} rows={4} onChange={e => handleFieldChange('text', e.target.value)} onFocus={() => focusField('text')} />
+          <Textarea ref={ref('text') as any} value={block.text} rows={4} onChange={e => handleFieldChange('text', e.target.value)} onFocus={() => focusField('text')} aria-label="Text" />
           <label className="ebb-props-label">Style</label>
           <Select value={block.variant} onValueChange={v => onChange({ ...block, variant: v as any })}>
             <SelectTrigger><SelectValue /></SelectTrigger>
@@ -895,7 +895,7 @@ function BlockProps({ block, onChange, varGroups, settings }: {
         <div className="ebb-props">
           <div className="ebb-props-title">Footer</div>
           <label className="ebb-props-label">Text</label>
-          <Textarea ref={ref('text') as any} value={block.text} rows={3} onChange={e => handleFieldChange('text', e.target.value)} onFocus={() => focusField('text')} />
+          <Textarea ref={ref('text') as any} value={block.text} rows={3} onChange={e => handleFieldChange('text', e.target.value)} onFocus={() => focusField('text')} aria-label="Text" />
           <label className="ebb-props-label">Alignment</label>
           <AlignGroup value={block.align ?? 'center'} onChange={v => onChange({ ...block, align: v as any })} />
           {varPicker}
@@ -907,7 +907,7 @@ function BlockProps({ block, onChange, varGroups, settings }: {
         <div className="ebb-props">
           <div className="ebb-props-title">Unsubscribe</div>
           <label className="ebb-props-label">Text (HTML allowed)</label>
-          <Textarea ref={ref('text') as any} value={block.text} rows={4} onChange={e => handleFieldChange('text', e.target.value)} onFocus={() => focusField('text')} />
+          <Textarea ref={ref('text') as any} value={block.text} rows={4} onChange={e => handleFieldChange('text', e.target.value)} onFocus={() => focusField('text')} aria-label="Text (HTML allowed)" />
           <p className="ebb-props-hint">Use <code>{"{{unsubscribe_url}}"}</code> for the unsubscribe link and <code>{"{{preferences_url}}"}</code> for preference management.</p>
           {varPicker}
         </div>
@@ -1098,7 +1098,7 @@ export function EmailBlockBuilder({ blocks, onChange, varGroups = [], accentColo
             className="ebb-palette-search-input"
           />
           {search && (
-            <button type="button" className="ebb-palette-search-clear" onClick={() => setSearch('')} data-ui-native-button="">
+            <button aria-label="Clear search" type="button" className="ebb-palette-search-clear" onClick={() => setSearch('')} data-ui-native-button="">
               <Icon name="x" size={11} />
             </button>
           )}

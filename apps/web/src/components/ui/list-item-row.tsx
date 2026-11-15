@@ -66,19 +66,23 @@ export function FeatureToggleRow({
   // gray title/description) the same way the reference kill-switch list does,
   // while staying fully clickable to turn back on.
   const muted = disabled || !checked
+  // Name and describe the switch by its row, as SwitchRow does — without it a
+  // screen reader announced only "switch, on" for every app in the list.
+  const labelId = React.useId()
+  const descriptionId = React.useId()
   return (
     <div className={cn("flex items-center justify-between gap-4 py-4", className)}>
       <div className="flex min-w-0 items-center gap-3.5">
         <FeaturedIcon variant={muted ? "gray" : "brand"} shape="circle">{icon}</FeaturedIcon>
         <div className={textClass}>
-          <div className={cn(titleClass, muted && "text-muted-foreground")}>{title}</div>
-          {description && <div className={cn(descClass, muted && "opacity-70")}>{description}</div>}
+          <div id={labelId} className={cn(titleClass, muted && "text-muted-foreground")}>{title}</div>
+          {description && <div id={descriptionId} className={cn(descClass, muted && "opacity-70")}>{description}</div>}
           {action && <div className="mt-1">{action}</div>}
         </div>
       </div>
       <div className="flex shrink-0 items-center gap-2.5">
         {trailingExtra}
-        <Switch checked={checked} onCheckedChange={onCheckedChange} disabled={disabled} />
+        <Switch aria-labelledby={labelId} aria-describedby={description ? descriptionId : undefined} checked={checked} onCheckedChange={onCheckedChange} disabled={disabled} />
       </div>
     </div>
   )

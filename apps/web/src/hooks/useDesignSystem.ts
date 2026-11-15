@@ -853,6 +853,13 @@ export function applyDesignTokens(tokens: DesignTokens): void {
   const blueFgDark = pickForegroundHsl(tokens.semantic.dark.blue);
   const purpleFgDark = pickForegroundHsl(tokens.semantic.dark.purple);
 
+  // The shared Button's `destructive` variant (Delete, Remove…) fills with
+  // --destructive. It was a fixed #ef4444 under near-white text: 3.59:1 in
+  // light mode, below AA, and it ignored the theme's own red. It now uses
+  // the theme red, floored like --primary. Dark mode's deep red already
+  // measures 9.56:1, so it keeps its static value in index.css.
+  const destructiveLight = enforceContrastFloor(tokens.semantic.light.red);
+
   // Saved tenant themes may predate the accessible neutral defaults. Apply a
   // runtime floor so older configurations improve immediately without
   // overwriting the values a SuperAdmin saved in the database.
@@ -891,6 +898,8 @@ export function applyDesignTokens(tokens: DesignTokens): void {
     '--purple': tokens.semantic.light.purple,
     '--gold-foreground': goldFgLight,
     '--red-foreground': redFgLight,
+    '--destructive': hexToHslTriplet(destructiveLight.hex),
+    '--destructive-foreground': pickForegroundHsl(destructiveLight.hex),
     '--green-foreground': greenFgLight,
     '--blue-foreground': blueFgLight,
     '--purple-foreground': purpleFgLight,
@@ -1053,6 +1062,10 @@ export function applyDesignTokens(tokens: DesignTokens): void {
     '--purple': tokens.semantic.dark.purple,
     '--gold-foreground': goldFgDark,
     '--red-foreground': redFgDark,
+    // Dark mode keeps its own deep red (9.56:1); it must be restated here or
+    // the light-theme value above, injected later than index.css, wins.
+    '--destructive': '0 62.8% 30.6%',
+    '--destructive-foreground': '210 40% 98%',
     '--green-foreground': greenFgDark,
     '--blue-foreground': blueFgDark,
     '--purple-foreground': purpleFgDark,

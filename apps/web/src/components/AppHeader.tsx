@@ -14,7 +14,6 @@ import { useLocale } from '../hooks/useLocale.js';
 import { AppLauncher } from './AppLauncher.js';
 import { LAUNCHER_APPS, LauncherAppSvg } from './LauncherApps.js';
 import { apiFetch } from '../lib/api.js';
-import { useLandingStyle } from '../hooks/useLandingStyle.js';
 import { useClockIn } from '../contexts/ClockInContext.js';
 import { getJobs } from '../pages/clearanceData.js';
 import {
@@ -202,9 +201,6 @@ export function AppHeader({
   function toggleTheme(e?: React.MouseEvent) {
     toggleThemeWithAnimation(e);
   }
-
-  // ── Landing style (Basic/Agentic vs Advanced) ──
-  const { isAgentic, setLandingStyle, toggleLandingStyle, isSaving: landingStyleSaving } = useLandingStyle();
 
   // ── Layout toggle (boxed ↔ full-width) ──
   // Full-width is the default. Boxed capped every page at 1100-1380px, which
@@ -770,7 +766,11 @@ export function AppHeader({
                       className="app-header-search-scope"
                       aria-label={scopeNextLabel}
                       onClick={cycleSearchScope}
-                     data-ui-native-button="">{scopeLabel}</button>
+                      data-ui-native-button=""
+                    >
+                      <span>{scopeLabel}</span>
+                      <Icon name="chevronDown" size={10} className="app-header-search-scope-chevron" />
+                    </button>
                   </Tip>
                 )}
               </div>
@@ -896,20 +896,6 @@ export function AppHeader({
               </Tip>
             )}
 
-            {/* Landing style mode toggle: icon-only in the compact header */}
-            <Tip label={isAgentic ? 'Switch to Normal Workspace View' : 'Switch to Agentic View (AI workspace with Agent Flow, Automations & Controls)'} side="bottom">
-              <button data-ui-native-button=""
-                type="button"
-                className={`app-header-icon-btn app-header-mode-icon${isAgentic ? ' app-header-icon-btn--active' : ''}`}
-                onClick={() => setLandingStyle(isAgentic ? 'advanced' : 'basic')}
-                disabled={landingStyleSaving}
-                aria-label={isAgentic ? 'Switch to Normal View' : 'Switch to Agentic View'}
-                aria-pressed={isAgentic}
-               data-ui-chrome-button="">
-                <Icon name={isAgentic ? 'layoutDashboard' : 'sparkle'} size={18} />
-              </button>
-            </Tip>
-
             {/* Theme toggle */}
             <Tip label={isDark ? t('header.lightMode') : t('header.darkMode')} side="bottom">
               <button
@@ -960,7 +946,6 @@ export function AppHeader({
               </Tip>
               <DropdownMenuContent align="end" className="w-64 max-w-[calc(100vw-32px)]">
                 {isStaff && <DropdownMenuItem onSelect={() => triggerOpen(clockContext())}><Icon name="clock" size={18} />{isCheckedIn ? 'Manage current task' : t('header.clockIn')}</DropdownMenuItem>}
-                <DropdownMenuItem disabled={landingStyleSaving} onSelect={() => setLandingStyle(isAgentic ? 'advanced' : 'basic')}><Icon name="sparkle" size={18} />{isAgentic ? 'Normal View' : 'Agentic View'}</DropdownMenuItem>
                 <DropdownMenuItem onSelect={() => toggleTheme()}><Icon name={isDark ? 'sun' : 'moon'} size={18} />{isDark ? t('header.lightMode') : t('header.darkMode')}</DropdownMenuItem>
                 {filterControl && <DropdownMenuItem onSelect={filterControl.onToggle}><Icon name="filter" size={18} />{filterControl.open ? 'Collapse filters' : 'Expand filters'}</DropdownMenuItem>}
                 <DropdownMenuItem onSelect={toggleFullPage}><Icon name={isFs ? 'minimize' : 'maximize'} size={18} />{isFs ? t('header.exitFullPage') : t('header.fullPage')}</DropdownMenuItem>
@@ -1033,16 +1018,6 @@ export function AppHeader({
 
                 {/* Navigation items (Refreshed) */}
                 <div className="ah-menu-nav-group">
-                  <DropdownMenuItem
-                    onClick={() => setLandingStyle(isAgentic ? 'advanced' : 'basic')}
-                    className="ah-menu-item-link ah-menu-item-mode-switch"
-                  >
-                    <div className="ah-menu-icon-box" style={{ '--icon-color': isAgentic ? 'var(--teal)' : '#8b5cf6', '--icon-bg': isAgentic ? 'var(--teal-l)' : 'rgba(139, 92, 246, 0.14)' } as React.CSSProperties}>
-                      <Icon name={isAgentic ? 'layoutDashboard' : 'sparkle'} size={13} />
-                    </div>
-                    <span className="ah-menu-item-label">{isAgentic ? 'Switch to Normal View' : 'Switch to Agentic View'}</span>
-                  </DropdownMenuItem>
-
                   <DropdownMenuItem asChild>
                     <Link to="/profile" className="ah-menu-item-link">
                       <div className="ah-menu-icon-box" style={{ '--icon-color': 'var(--teal)', '--icon-bg': 'var(--teal-l)' } as React.CSSProperties}>

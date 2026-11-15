@@ -1727,7 +1727,7 @@ export const StaffDetail: React.FC = () => {
           <DialogContent hideClose steady className="w-full max-w-180 h-[min(760px,90vh)] flex flex-col p-0 gap-0">
             <DialogHeader style={{ padding: '20px 24px', borderBottom: '1px solid var(--border)', flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', textAlign: 'left' }}>
               <DialogTitle style={{ fontSize: 18, fontWeight: 800 }}>Edit Employee Profile</DialogTitle>
-              <button type="button" onClick={() => setIsEditing(false)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink3)' }} data-ui-native-button=""><Icon name="close" size={20} /></button>
+              <button aria-label="Close" type="button" onClick={() => setIsEditing(false)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink3)' }} data-ui-native-button=""><Icon name="close" size={20} /></button>
             </DialogHeader>
 
             <DialogBody style={{ padding: 24, display: 'flex', flexDirection: 'column', gap: 24 }}>
@@ -1738,7 +1738,7 @@ export const StaffDetail: React.FC = () => {
                 <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: 16 }}>
                   <div>
                     <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: 'var(--ink2)', marginBottom: 6 }}>Employee Code</label>
-                    <Input value={editForm.profile.employee_code || ''} onChange={e => updateProfileField('employee_code', e.target.value)} />
+                    <Input value={editForm.profile.employee_code || ''} onChange={e => updateProfileField('employee_code', e.target.value)} aria-label="Employee Code" />
                   </div>
                   <div>
                     <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: 'var(--ink2)', marginBottom: 6 }}>Designation</label>
@@ -1747,8 +1747,7 @@ export const StaffDetail: React.FC = () => {
                       value={editForm.designation_id || ''}
                       onChange={v => setEditForm(prev => ({ ...prev, designation_id: v }))}
                       placeholder="Select a designation…"
-                      emptyText="No designations yet — add one under People ▸ Designations."
-                    />
+                      emptyText="No designations yet — add one under People ▸ Designations." aria-label="Designation" />
                   </div>
                   <div>
                     <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: 'var(--ink2)', marginBottom: 6 }}>Department</label>
@@ -1757,16 +1756,15 @@ export const StaffDetail: React.FC = () => {
                       value={editForm.department_id || ''}
                       onChange={v => setEditForm(prev => ({ ...prev, department_id: v }))}
                       placeholder="Select a department…"
-                      emptyText="No departments yet — add one under People ▸ Departments."
-                    />
+                      emptyText="No departments yet — add one under People ▸ Departments." aria-label="Department" />
                   </div>
                   <div>
                     <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: 'var(--ink2)', marginBottom: 6 }}>Reports To</label>
-                    <Input value={editForm.profile.reports_to || ''} onChange={e => updateProfileField('reports_to', e.target.value)} />
+                    <Input value={editForm.profile.reports_to || ''} onChange={e => updateProfileField('reports_to', e.target.value)} aria-label="Reports To" />
                   </div>
                   <div>
                     <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: 'var(--ink2)', marginBottom: 6 }}>Employment Type</label>
-                    <Input value={editForm.profile.employment_type || ''} onChange={e => updateProfileField('employment_type', e.target.value)} />
+                    <Input value={editForm.profile.employment_type || ''} onChange={e => updateProfileField('employment_type', e.target.value)} aria-label="Employment Type" />
                   </div>
                 </div>
                 <label style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 14, fontSize: 12.5, color: 'var(--ink2)', cursor: 'pointer' }}>
@@ -1784,23 +1782,23 @@ export const StaffDetail: React.FC = () => {
                 <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: 16 }}>
                   <div>
                     <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: 'var(--ink2)', marginBottom: 6 }}>Full Name</label>
-                    <Input value={editForm.name || ''} onChange={e => setEditForm(p => ({ ...p, name: e.target.value }))} />
+                    <Input value={editForm.name || ''} onChange={e => setEditForm(p => ({ ...p, name: e.target.value }))} aria-label="Full Name" />
                   </div>
                   <div>
                     <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: 'var(--ink2)', marginBottom: 6 }}>Phone Number</label>
-                    <Input value={editForm.phone || ''} onChange={e => setEditForm(p => ({ ...p, phone: e.target.value }))} />
+                    <Input value={editForm.phone || ''} onChange={e => setEditForm(p => ({ ...p, phone: e.target.value }))} aria-label="Phone Number" />
                   </div>
                   <div style={{ gridColumn: '1 / -1' }}>
                     <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: 'var(--ink2)', marginBottom: 6 }}>Address</label>
-                    <Input value={editForm.profile.address || ''} onChange={e => updateProfileField('address', e.target.value)} />
+                    <Input value={editForm.profile.address || ''} onChange={e => updateProfileField('address', e.target.value)} aria-label="Address" />
                   </div>
                   <div>
                     <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: 'var(--ink2)', marginBottom: 6 }}>City</label>
-                    <Input value={editForm.profile.city || ''} onChange={e => updateProfileField('city', e.target.value)} />
+                    <Input value={editForm.profile.city || ''} onChange={e => updateProfileField('city', e.target.value)} aria-label="City" />
                   </div>
                   <div>
                     <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: 'var(--ink2)', marginBottom: 6 }}>Country</label>
-                    <Input value={editForm.profile.country || ''} onChange={e => updateProfileField('country', e.target.value)} />
+                    <Input value={editForm.profile.country || ''} onChange={e => updateProfileField('country', e.target.value)} aria-label="Country" />
                   </div>
                 </div>
               </div>
@@ -1814,8 +1812,7 @@ export const StaffDetail: React.FC = () => {
                     <DatePicker
                       date={parseDateOnly(editForm.profile.date_of_birth)}
                       onChange={d => updateProfileField('date_of_birth', toDateOnlyString(d))}
-                      placeholder="Select date"
-                    />
+                      placeholder="Select date" aria-label="Date of Birth" />
                   </div>
                   <div>
                     <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: 'var(--ink2)', marginBottom: 6 }}>Gender</label>
@@ -1831,11 +1828,11 @@ export const StaffDetail: React.FC = () => {
                   </div>
                   <div>
                     <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: 'var(--ink2)', marginBottom: 6 }}>Language</label>
-                    <Input value={editForm.profile.language || ''} onChange={e => updateProfileField('language', e.target.value)} />
+                    <Input value={editForm.profile.language || ''} onChange={e => updateProfileField('language', e.target.value)} aria-label="Language" />
                   </div>
                   <div>
                     <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: 'var(--ink2)', marginBottom: 6 }}>Biometric ID</label>
-                    <Input value={editForm.profile.biometric_id || ''} onChange={e => updateProfileField('biometric_id', e.target.value)} />
+                    <Input value={editForm.profile.biometric_id || ''} onChange={e => updateProfileField('biometric_id', e.target.value)} aria-label="Biometric ID" />
                   </div>
                 </div>
               </div>
@@ -1849,8 +1846,7 @@ export const StaffDetail: React.FC = () => {
                     <DatePicker
                       date={parseDateOnly(editForm.hire_date)}
                       onChange={d => updateField('hire_date', toDateOnlyString(d))}
-                      placeholder="Select date"
-                    />
+                      placeholder="Select date" aria-label="Hire date" />
                   </div>
                   <div>
                     <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: 'var(--ink2)', marginBottom: 6 }}>Tax residency</label>
@@ -1865,15 +1861,15 @@ export const StaffDetail: React.FC = () => {
                   </div>
                   <div>
                     <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: 'var(--ink2)', marginBottom: 6 }}>NIDA / National ID</label>
-                    <Input value={editForm.national_id || ''} onChange={e => updateField('national_id', e.target.value)} />
+                    <Input value={editForm.national_id || ''} onChange={e => updateField('national_id', e.target.value)} aria-label="NIDA / National ID" />
                   </div>
                   <div>
                     <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: 'var(--ink2)', marginBottom: 6 }}>TIN</label>
-                    <Input value={editForm.tax_id || ''} onChange={e => updateField('tax_id', e.target.value)} />
+                    <Input value={editForm.tax_id || ''} onChange={e => updateField('tax_id', e.target.value)} aria-label="TIN" />
                   </div>
                   <div>
                     <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: 'var(--ink2)', marginBottom: 6 }}>Social security number</label>
-                    <Input value={editForm.social_security_no || ''} onChange={e => updateField('social_security_no', e.target.value)} />
+                    <Input value={editForm.social_security_no || ''} onChange={e => updateField('social_security_no', e.target.value)} aria-label="Social security number" />
                   </div>
                   <div>
                     <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: 'var(--ink2)', marginBottom: 6 }}>Pension fund</label>
@@ -1888,7 +1884,7 @@ export const StaffDetail: React.FC = () => {
                   </div>
                   <div>
                     <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: 'var(--ink2)', marginBottom: 6 }}>NHIF number</label>
-                    <Input value={editForm.health_insurance_no || ''} onChange={e => updateField('health_insurance_no', e.target.value)} />
+                    <Input value={editForm.health_insurance_no || ''} onChange={e => updateField('health_insurance_no', e.target.value)} aria-label="NHIF number" />
                   </div>
                 </div>
               </div>
@@ -1903,16 +1899,14 @@ export const StaffDetail: React.FC = () => {
                       <Input
                         type="number" min="0" step="0.01"
                         value={editForm.basic_salary ?? ''}
-                        onChange={e => updateField('basic_salary', e.target.value)}
-                      />
+                        onChange={e => updateField('basic_salary', e.target.value)} aria-label="Basic salary" />
                     </div>
                     <div>
                       <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: 'var(--ink2)', marginBottom: 6 }}>Currency</label>
                       <Input
                         value={editForm.pay_currency || ''}
                         onChange={e => updateField('pay_currency', e.target.value.toUpperCase())}
-                        placeholder="TZS" maxLength={3}
-                      />
+                        placeholder="TZS" maxLength={3} aria-label="Currency" />
                     </div>
                     <div style={{ gridColumn: '1 / -1' }}>
                       <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: 'var(--ink2)', marginBottom: 6 }}>Paid by</label>
@@ -1941,7 +1935,7 @@ export const StaffDetail: React.FC = () => {
                         </div>
                         <div>
                           <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: 'var(--ink2)', marginBottom: 6 }}>Mobile number</label>
-                          <Input value={editForm.mobile_money_number || ''} onChange={e => updateField('mobile_money_number', e.target.value)} placeholder="07XX XXX XXX" />
+                          <Input value={editForm.mobile_money_number || ''} onChange={e => updateField('mobile_money_number', e.target.value)} placeholder="07XX XXX XXX" aria-label="Mobile number" />
                         </div>
                       </>
                     )}
@@ -1950,19 +1944,19 @@ export const StaffDetail: React.FC = () => {
                       <>
                         <div>
                           <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: 'var(--ink2)', marginBottom: 6 }}>Bank</label>
-                          <Input value={editForm.bank_name || ''} onChange={e => updateField('bank_name', e.target.value)} />
+                          <Input value={editForm.bank_name || ''} onChange={e => updateField('bank_name', e.target.value)} aria-label="Bank" />
                         </div>
                         <div>
                           <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: 'var(--ink2)', marginBottom: 6 }}>Branch</label>
-                          <Input value={editForm.bank_branch || ''} onChange={e => updateField('bank_branch', e.target.value)} />
+                          <Input value={editForm.bank_branch || ''} onChange={e => updateField('bank_branch', e.target.value)} aria-label="Branch" />
                         </div>
                         <div>
                           <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: 'var(--ink2)', marginBottom: 6 }}>Account number</label>
-                          <Input value={editForm.bank_account_no || ''} onChange={e => updateField('bank_account_no', e.target.value)} />
+                          <Input value={editForm.bank_account_no || ''} onChange={e => updateField('bank_account_no', e.target.value)} aria-label="Account number" />
                         </div>
                         <div>
                           <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: 'var(--ink2)', marginBottom: 6 }}>Account name</label>
-                          <Input value={editForm.bank_account_name || ''} onChange={e => updateField('bank_account_name', e.target.value)} />
+                          <Input value={editForm.bank_account_name || ''} onChange={e => updateField('bank_account_name', e.target.value)} aria-label="Account name" />
                         </div>
                       </>
                     )}

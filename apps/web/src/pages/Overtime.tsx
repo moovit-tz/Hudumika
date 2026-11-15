@@ -159,7 +159,7 @@ export function OvertimePage() {
           <div>
             <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: 'var(--ink2)', marginBottom: 4 }}>Employee</label>
             <Select value={fPerson} onValueChange={setFPerson}>
-              <SelectTrigger style={{ width: 200 }}><SelectValue placeholder="-- Select --" /></SelectTrigger>
+              <SelectTrigger style={{ width: 200 }} aria-label="Employee"><SelectValue placeholder="-- Select --" /></SelectTrigger>
               <SelectContent>
                 {people.map(p => <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>)}
               </SelectContent>
@@ -182,11 +182,11 @@ export function OvertimePage() {
           </div>
           <div>
             <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: 'var(--ink2)', marginBottom: 4 }}>Hours</label>
-            <Input value={fHours} onChange={e => setFHours(e.target.value)} type="number" step="0.5" min="0.5" max="12" className="w-24" />
+            <Input value={fHours} onChange={e => setFHours(e.target.value)} type="number" step="0.5" min="0.5" max="12" className="w-24" aria-label="Hours" />
           </div>
           <div style={{ flex: 1, minWidth: 180 }}>
             <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: 'var(--ink2)', marginBottom: 4 }}>Reason</label>
-            <Input value={fReason} onChange={e => setFReason(e.target.value)} placeholder="Why was the extra time needed?" />
+            <Input value={fReason} onChange={e => setFReason(e.target.value)} placeholder="Why was the extra time needed?" aria-label="Reason" />
           </div>
           <Button type="submit">Submit</Button>
           <Button type="button" variant="outline" onClick={() => { setShowNew(false); setError(null); }}>Cancel</Button>

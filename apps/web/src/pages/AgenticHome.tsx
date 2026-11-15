@@ -311,7 +311,7 @@ export const AgenticHome: React.FC = () => {
   // ── Active app brand details based on current tab and active workflow ──
   const activeAppBrand = useMemo(() => {
     if (tab === 'agent') {
-      return { appId: 'ai', name: 'Workspace agent', color: 'var(--teal)', icon: 'sparkle' as IconName, assignee: '', contextRef: 'Task planner', sub: 'Plan & run' };
+      return { appId: 'ai', name: 'Hudu', color: 'var(--teal)', icon: 'sparkle' as IconName, assignee: '', contextRef: 'Task planner', sub: 'Plan & run' };
     }
     if (tab === 'feed') {
       return {

@@ -16,6 +16,8 @@ import { showAlert } from '../../lib/alert.js';
 import type { ChannelId, StatusKey, PriorityKey, Ticket, SupportGroup } from './shared.js';
 import { PRIORITY_CFG, STATUS_CFG, CHANNEL_CFG, CATEGORIES, COMPLYOS_AGENCIES, relTime, ticketOrigin, Av, PBadge, SBadge, ChPill, parseUserAgent } from './shared.js';
 import { Button } from '../../components/ui/button.js';
+import { useSupportNetwork } from '../../lib/supportNetwork.js';
+import { ProductFormFields, type FormValues } from '../../components/ProductFormFields.js';
 
 /** Bliss → ComplyOS bridge modal */
 function SendToComplyOSModal({ ticket, onClose }: { ticket: Ticket; onClose: () => void }) {
@@ -53,7 +55,7 @@ function SendToComplyOSModal({ ticket, onClose }: { ticket: Ticket; onClose: () 
           <div>
             <label style={{ display: 'block', fontSize: 11.5, fontWeight: 700, color: 'var(--ink2)', marginBottom: 5 }}>Agency</label>
             <Select value={agencyCode} onValueChange={setAgencyCode}>
-              <SelectTrigger className="input-field"><SelectValue /></SelectTrigger>
+              <SelectTrigger className="input-field" aria-label="Agency"><SelectValue /></SelectTrigger>
               <SelectContent>
                 {COMPLYOS_AGENCIES.map(a => <SelectItem key={a.code} value={a.code}>{a.name}</SelectItem>)}
               </SelectContent>
@@ -222,7 +224,7 @@ function EditAttributesDialog({ open, onClose, ticket, onSave }: {
           <div>
             <label style={{ display: 'block', fontSize: 11.5, fontWeight: 700, color: 'var(--ink2)', marginBottom: 5 }}>Category</label>
             <Select value={category} onValueChange={setCategory}>
-              <SelectTrigger className="input-field"><SelectValue /></SelectTrigger>
+              <SelectTrigger className="input-field" aria-label="Category"><SelectValue /></SelectTrigger>
               <SelectContent>
                 {CATEGORIES.map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}
               </SelectContent>
@@ -231,7 +233,7 @@ function EditAttributesDialog({ open, onClose, ticket, onSave }: {
           <div>
             <label style={{ display: 'block', fontSize: 11.5, fontWeight: 700, color: 'var(--ink2)', marginBottom: 5 }}>Priority</label>
             <Select value={priority === 'NORMAL' ? 'MEDIUM' : priority} onValueChange={v => setPriority(v as PriorityKey)}>
-              <SelectTrigger className="input-field"><SelectValue /></SelectTrigger>
+              <SelectTrigger className="input-field" aria-label="Priority"><SelectValue /></SelectTrigger>
               <SelectContent>
                 <SelectItem value="LOW">Low</SelectItem>
                 <SelectItem value="MEDIUM">Medium</SelectItem>
@@ -253,15 +255,41 @@ function EditAttributesDialog({ open, onClose, ticket, onSave }: {
   );
 }
 
-export function DetailsPanel({ ticket, agents, onReassign, onStatusChange, onUpdateTags, onUpdateAttributes, groups, onUpdateGroup, onClose }: {
+export function DetailsPanel({ ticket, agents, onReassign, onStatusChange, onUpdateTags, onUpdateAttributes, groups, onUpdateGroup, onTransfer, onClose }: {
   ticket: Ticket; agents: { id: string; name: string }[]; onReassign: (id: string, assigneeId: string) => void;
   onStatusChange: (id: string, s: StatusKey) => void;
   onUpdateTags: (id: string, tags: string[]) => void;
   onUpdateAttributes: (id: string, attrs: { subject?: string; category?: string; priority?: PriorityKey }) => Promise<void>;
   groups: SupportGroup[];
   onUpdateGroup: (id: string, groupId: string | null) => void;
+  /** Support network: move to another centre/product (the server re-routes it). */
+  onTransfer?: (id: string, siteId: string, productId: string | null) => Promise<void>;
   onClose?: () => void;
 }) {
+  const { data: network } = useSupportNetwork();
+  const centres = (network?.centres ?? []).filter(c => c.support_enabled);
+  const products = (network?.products ?? []).filter(p => p.status === 'active');
+  const [moving, setMoving] = useState(false);
+  const move = async (siteId: string, productId: string | null) => {
+    if (!onTransfer) return;
+    setMoving(true);
+    try { await onTransfer(ticket.id, siteId, productId); } finally { setMoving(false); }
+  };
+  const siteName = ticket.site_name ?? centres.find(c => c.id === ticket.site_id)?.name ?? null;
+  const productName = ticket.product_name ?? products.find(p => p.id === ticket.product_id)?.name ?? null;
+  const productFields = products.find(p => p.id === ticket.product_id)?.form_fields ?? [];
+  const [answers, setAnswers] = useState<FormValues>(ticket.custom_fields ?? {});
+  useEffect(() => { setAnswers(ticket.custom_fields ?? {}); }, [ticket.id, ticket.custom_fields]);
+  const saveAnswer = async (key: string, value: string) => {
+    if (String(ticket.custom_fields?.[key] ?? '') === value) return;
+    try {
+      const res: any = await apiFetch(`/v1/support/tickets/${ticket.id}/custom-fields`, { method: 'PATCH', body: JSON.stringify({ custom_fields: { [key]: value === '' ? null : value } }) });
+      setAnswers(res.custom_fields ?? {});
+    } catch (err: any) {
+      showAlert(err?.message || 'Could not save that answer.');
+      setAnswers(ticket.custom_fields ?? {});
+    }
+  };
   const { user } = useAuth();
   // Assignee/status/group are day-to-day ticket-ops actions — gated to real
   // working staff (OPS_ROLES: SENIOR/JUNIOR/OFFICER and up), not blanket-open
@@ -302,7 +330,7 @@ export function DetailsPanel({ ticket, agents, onReassign, onStatusChange, onUpd
           <DropdownMenu>
             <Tip label="More options">
               <DropdownMenuTrigger asChild>
-                <button type="button" className="spt-bedesk-icon-btn" data-ui-native-button="">
+                <button aria-label="More actions" type="button" className="spt-bedesk-icon-btn" data-ui-native-button="">
                   <Icon name="moreVertical" size={16} />
                 </button>
               </DropdownMenuTrigger>
@@ -357,7 +385,7 @@ export function DetailsPanel({ ticket, agents, onReassign, onStatusChange, onUpd
             <div className="spt-bedesk-attr-val">
               {canEdit ? (
                 <Select value={currentAssigneeId} onValueChange={v => v !== '__unassigned__' && onReassign(ticket.id, v)}>
-                  <SelectTrigger className="spt-bedesk-val-select">
+                  <SelectTrigger className="spt-bedesk-val-select" aria-label="Assignee">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
@@ -388,7 +416,7 @@ export function DetailsPanel({ ticket, agents, onReassign, onStatusChange, onUpd
             <div className="spt-bedesk-attr-val">
               {canEdit ? (
                 <Select value={ticket.status} onValueChange={v => onStatusChange(ticket.id, v as StatusKey)}>
-                  <SelectTrigger className={`spt-status-select spt-status-select--${ticket.status.toLowerCase().replace('_', '-')}`}>
+                  <SelectTrigger className={`spt-status-select spt-status-select--${ticket.status.toLowerCase().replace('_', '-')}`} aria-label="Status">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
@@ -412,7 +440,7 @@ export function DetailsPanel({ ticket, agents, onReassign, onStatusChange, onUpd
             <div className="spt-bedesk-attr-val">
               {canEdit ? (
                 <Select value={currentGroupId} onValueChange={v => onUpdateGroup(ticket.id, v === '__none__' ? null : v)}>
-                  <SelectTrigger className="spt-bedesk-val-select">
+                  <SelectTrigger className="spt-bedesk-val-select" aria-label="Group">
                     <SelectValue>
                       <span className="spt-bedesk-group-pill">
                         <span className="spt-bedesk-group-dot" style={{ background: ticket.group_color || '#06b6d4' }} />
@@ -446,12 +474,62 @@ export function DetailsPanel({ ticket, agents, onReassign, onStatusChange, onUpd
             </div>
           </div>
 
+          {centres.length > 0 && (
+            <div className="spt-bedesk-attr-row">
+              <span className="spt-bedesk-attr-lbl">Centre</span>
+              <div className="spt-bedesk-attr-val">
+                {canEdit && onTransfer ? (
+                  <Select value={ticket.site_id ?? '__none__'} disabled={moving}
+                    onValueChange={v => { if (v !== '__none__' && v !== ticket.site_id) move(v, ticket.product_id ?? null); }}>
+                    <SelectTrigger className="spt-bedesk-val-select" aria-label="Move to centre">
+                      <SelectValue>{siteName ?? 'Not placed yet'}</SelectValue>
+                    </SelectTrigger>
+                    <SelectContent>
+                      {!ticket.site_id && <SelectItem value="__none__">Not placed yet</SelectItem>}
+                      {centres.map(c => <SelectItem key={c.id} value={c.id}>{c.name}{c.open_now === false ? ' (closed now)' : ''}</SelectItem>)}
+                    </SelectContent>
+                  </Select>
+                ) : <span className="spt-bedesk-readonly-val">{siteName ?? 'Not placed yet'}</span>}
+              </div>
+            </div>
+          )}
+          {products.length > 0 && (
+            <div className="spt-bedesk-attr-row">
+              <span className="spt-bedesk-attr-lbl">Product</span>
+              <div className="spt-bedesk-attr-val">
+                {canEdit && onTransfer && ticket.site_id ? (
+                  <Select value={ticket.product_id ?? '__none__'} disabled={moving}
+                    onValueChange={v => { const next = v === '__none__' ? null : v; if (next !== (ticket.product_id ?? null)) move(ticket.site_id!, next); }}>
+                    <SelectTrigger className="spt-bedesk-val-select" aria-label="Product line">
+                      <SelectValue>{productName ?? 'Not set'}</SelectValue>
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="__none__">Not set</SelectItem>
+                      {products.map(p => <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>)}
+                    </SelectContent>
+                  </Select>
+                ) : <span className="spt-bedesk-readonly-val">{productName ?? 'Not set'}</span>}
+              </div>
+            </div>
+          )}
+          {productFields.length > 0 && (
+            <div style={{ padding: '6px 0 8px' }}>
+              <ProductFormFields compact fields={productFields} values={answers} disabled={!canEdit}
+                onChange={(k, v) => setAnswers(a => ({ ...a, [k]: v }))} onCommit={saveAnswer} />
+            </div>
+          )}
+          {ticket.routed_reason && (
+            <div style={{ fontSize: 11.5, color: 'var(--ink3)', lineHeight: 1.45, padding: '2px 0 6px' }}>
+              <Icon name="mapPin" size={11} /> {ticket.routed_reason}
+            </div>
+          )}
+
           <div className="spt-bedesk-tags-block">
             <div className="spt-bedesk-tags-wrap">
               {tags.map(t => (
                 <span key={t} className="spt-bedesk-tag-chip">
                   <span>{t}</span>
-                  <button type="button" onClick={() => removeTag(t)} data-ui-native-button="">
+                  <button aria-label="Remove" type="button" onClick={() => removeTag(t)} data-ui-native-button="">
                     <Icon name="x" size={10} />
                   </button>
                 </span>

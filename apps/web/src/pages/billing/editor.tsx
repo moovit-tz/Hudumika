@@ -301,7 +301,7 @@ function ChargeSectionEditor({ title, color, group, currency, items, onChange, c
                 </td>
                 <td style={{ padding: '6px 4px', verticalAlign: 'middle' }}>
                   {items.length > 0 && (
-                    <button type="button" onClick={() => remove(item.uid)}
+                    <button aria-label="Delete" type="button" onClick={() => remove(item.uid)}
                       style={{ width: "var(--ctl-h-xs)", height: "var(--ctl-h-xs)", border: 'none', background: 'none', cursor: 'pointer', borderRadius: 'var(--r-sm)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
                       onMouseEnter={e => (e.currentTarget.style.background = 'var(--red-l)')}
                       onMouseLeave={e => (e.currentTarget.style.background = 'none')} data-ui-native-button="">
@@ -721,8 +721,7 @@ export function InvoiceEditor({ initial, nextId, onSave, onCancel, isMobile = fa
                 <Input
                   value={initial?.id || 'Assigned when saved'}
                   disabled
-                  className="bg-[var(--bg)] font-mono text-xs text-[var(--ink2)]"
-                />
+                  className="bg-[var(--bg)] font-mono text-xs text-[var(--ink2)]" aria-label="Invoice Number" />
               </div>
 
               <div>
@@ -753,8 +752,7 @@ export function InvoiceEditor({ initial, nextId, onSave, onCancel, isMobile = fa
                 </label>
                 <DatePicker
                   date={parseDateOnly(dueDate.split('-').reverse().join('-'))}
-                  onChange={date => setDueDate(toDateOnlyString(date).split('-').reverse().join('-'))}
-                />
+                  onChange={date => setDueDate(toDateOnlyString(date).split('-').reverse().join('-'))} aria-label="Due Date" />
               </div>
 
               <div>
@@ -787,8 +785,7 @@ export function InvoiceEditor({ initial, nextId, onSave, onCancel, isMobile = fa
                   value={exRate}
                   onChange={e => setExRate(e.target.value)}
                   placeholder="Foreign amount → invoice currency"
-                  className="font-mono text-xs"
-                />
+                  className="font-mono text-xs" aria-label="Foreign Exchange Rate" />
                 {todayFxRate && documentCurrency !== 'USD' && (
                   <button
                     type="button"
@@ -864,13 +861,13 @@ export function InvoiceEditor({ initial, nextId, onSave, onCancel, isMobile = fa
                   <label className="block text-xs font-semibold uppercase tracking-wider text-[var(--ink3)] mb-1.5">
                     Origin Port / City
                   </label>
-                  <Input value={origin} onChange={e => setOrigin(e.target.value)} placeholder="e.g. Shanghai" className="text-xs" />
+                  <Input value={origin} onChange={e => setOrigin(e.target.value)} placeholder="e.g. Shanghai" className="text-xs" aria-label="Origin Port / City" />
                 </div>
                 <div>
                   <label className="block text-xs font-semibold uppercase tracking-wider text-[var(--ink3)] mb-1.5">
                     Destination Port / City
                   </label>
-                  <Input value={dest} onChange={e => setDest(e.target.value)} placeholder="e.g. Dar es Salaam" className="text-xs" />
+                  <Input value={dest} onChange={e => setDest(e.target.value)} placeholder="e.g. Dar es Salaam" className="text-xs" aria-label="Destination Port / City" />
                 </div>
                 <div>
                   <label className="block text-xs font-semibold uppercase tracking-wider text-[var(--ink3)] mb-1.5">

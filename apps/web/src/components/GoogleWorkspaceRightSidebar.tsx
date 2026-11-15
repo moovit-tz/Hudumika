@@ -68,7 +68,7 @@ const RAIL_APPS: RailApp[] = [
 
 // 'ai' isn't in RAIL_APPS at all (not just excluded from the default pin
 // list) — it has its own dedicated, always-visible button below the
-// pinned-app list with the real Hudumika AI brand glyph, so offering it as
+// pinned-app list with the real Hudu brand glyph, so offering it as
 // a pinnable rail app too would just duplicate that same trigger. This used
 // to be a RAIL_APPS entry excluded only from DEFAULT_PINNED, which still
 // let it be pinned (and end up looking duplicated) via the "+" customize
@@ -435,7 +435,7 @@ export const GoogleWorkspaceRightSidebar: React.FC = () => {
   }
   useEffect(() => { loadInboxEmails(); }, [emailEnabled]);
 
-  // ── AI Assistant — the governed agent runtime (/v1/agent/runs): saved
+  // ── Hudu — the governed Hudumika assistant runtime (/v1/agent/runs): saved
   // memory + "remember that…" (same ai_memory as before), read/write tools
   // across apps, and an inline approval card when a tool needs a human
   // decision. Replaced /v1/ai/chat here once the runtime reached parity. ──
@@ -740,7 +740,7 @@ export const GoogleWorkspaceRightSidebar: React.FC = () => {
               {activePanel === 'sms' && <><Icon name="smartphone" size={17} style={{ color: branding.getAppColor('sms', '#1257c6') }} /> SMS</>}
               {activePanel === 'email' && <><Icon name="mail" size={17} style={{ color: '#ea4335' }} /> Email</>}
               {activePanel === 'contacts' && <><Icon name="contact" size={17} style={{ color: '#2563eb' }} /> Contacts</>}
-              {activePanel === 'ai' && <><Icon name="sparkle" size={17} style={{ color: 'var(--teal)' }} /> AI Assistant</>}
+              {activePanel === 'ai' && <><Icon name="sparkle" size={17} style={{ color: 'var(--teal)' }} /> Hudu</>}
               {activePanel === 'clearos' && <><Icon name="ship" size={17} style={{ color: '#f97316' }} /> ClearOS</>}
               {activePanel === 'finops' && <><Icon name="bankNote" size={17} style={{ color: 'var(--green)' }} /> FinOps</>}
               {activePanel === 'petti' && <><Icon name="wallet" size={17} style={{ color: '#0d9488' }} /> Petti</>}
@@ -789,7 +789,7 @@ export const GoogleWorkspaceRightSidebar: React.FC = () => {
                 className="gws-drawer-search-input"
               />
               {searchQuery && (
-                <button type="button" onClick={() => setSearchQuery('')} className="gws-drawer-search-clear" data-ui-native-button="">
+                <button aria-label="Clear search" type="button" onClick={() => setSearchQuery('')} className="gws-drawer-search-clear" data-ui-native-button="">
                   <Icon name="x" size={13} />
                 </button>
               )}
@@ -836,7 +836,7 @@ export const GoogleWorkspaceRightSidebar: React.FC = () => {
                         onOpenChange={o => setOpenReminderTodoId(o ? todo.id : null)}
                         triggerStyle={{ background: 'none', border: 'none', cursor: 'pointer', color: todo.reminder ? 'var(--teal)' : 'var(--ink3)', display: 'flex', padding: 2 }}
                       />
-                      <button type="button" onClick={() => deleteTodo(todo.id)} style={{ background: 'none', border: 'none', color: 'var(--ink3)', cursor: 'pointer', display: 'flex', padding: "var(--action-py) var(--space-md)" }} data-ui-native-button="">
+                      <button aria-label={`Delete ${todo.title ?? ''}`.trim()} type="button" onClick={() => deleteTodo(todo.id)} style={{ background: 'none', border: 'none', color: 'var(--ink3)', cursor: 'pointer', display: 'flex', padding: "var(--action-py) var(--space-md)" }} data-ui-native-button="">
                         <Icon name="trash" size={13} />
                       </button>
                     </div>
@@ -1081,7 +1081,7 @@ export const GoogleWorkspaceRightSidebar: React.FC = () => {
                         {n.title && <div style={{ fontSize: 12.5, fontWeight: 700, color: 'var(--ink)', marginBottom: 2, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{n.title}</div>}
                         <div style={{ fontSize: 12, color: 'var(--ink2)', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>{n.content || 'Empty note'}</div>
                       </div>
-                      <button type="button" onClick={e => { e.preventDefault(); handleDeleteNote(n.id); }} style={{ background: 'none', border: 'none', color: 'var(--ink3)', cursor: 'pointer', display: 'flex', padding: "var(--action-py) var(--space-md)", flexShrink: 0 }} data-ui-native-button="">
+                      <button aria-label={`Delete ${n.title ?? ''}`.trim()} type="button" onClick={e => { e.preventDefault(); handleDeleteNote(n.id); }} style={{ background: 'none', border: 'none', color: 'var(--ink3)', cursor: 'pointer', display: 'flex', padding: "var(--action-py) var(--space-md)", flexShrink: 0 }} data-ui-native-button="">
                         <Icon name="trash" size={13} />
                       </button>
                     </a>
@@ -1473,12 +1473,12 @@ export const GoogleWorkspaceRightSidebar: React.FC = () => {
               </div>
             )}
 
-            {/* AI ASSISTANT PANEL — real, /v1/ai/chat (agentic chat, tenant memory + tools) */}
+            {/* HUDU ASSISTANT PANEL — governed agent runtime with tenant memory and tools */}
             {activePanel === 'ai' && (
               <div style={{ display: 'flex', flexDirection: 'column', height: '100%', gap: 10 }}>
                 <div style={{ flex: 1, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 8, minHeight: 0 }}>
                   {aiMessages.length === 0 && (
-                    <div style={{ fontSize: 12.5, color: 'var(--ink3)', textAlign: 'center', padding: '24px 0' }}>Ask anything about this workspace.</div>
+                    <div style={{ fontSize: 12.5, color: 'var(--ink3)', textAlign: 'center', padding: '24px 0' }}>Ask Hudu about this workspace.</div>
                   )}
                   {aiMessages.map((m, i) => (
                     <div
@@ -1527,7 +1527,7 @@ export const GoogleWorkspaceRightSidebar: React.FC = () => {
                   <input data-ui-field="input"
                     value={aiInput}
                     onChange={e => setAiInput(e.target.value)}
-                    placeholder={aiApproval ? 'Waiting on an approval decision…' : 'Ask the AI assistant…'}
+                    placeholder={aiApproval ? 'Waiting on an approval decision…' : 'Ask Hudu…'}
                     disabled={aiSending || !!aiApproval}
                     style={{ flex: 1, padding: "var(--ds-input-py) var(--space-md)", border: '1px solid var(--border)', borderRadius: "var(--r-sm)", fontSize: "var(--text-base)", background: 'var(--bg)', color: 'var(--ink)' }}
                   />
@@ -1601,16 +1601,16 @@ export const GoogleWorkspaceRightSidebar: React.FC = () => {
 
         {/* Bottom Action Items */}
         <div className="gws-rail-bottom">
-          {/* AI Assistant — a flat sparkle glyph on this app's own accent
+          {/* Hudu — a sparkle glyph on this app's own accent
               (var(--teal)), matching the icon already used for "AI" in the
               drawer header/AI Digest buttons rather than the launcher grid's
               separate multi-point glyph (LAUNCHER_SVG_ICONS.ai), which is
               shared platform-wide and not this button's to redraw. */}
-          <Tip label="AI Assistant" side="left">
+          <Tip label="Hudu assistant" side="left">
             <button
               className={`gws-ai-btn${activePanel === 'ai' ? ' active' : ''}`}
               onClick={() => togglePanel('ai')}
-              aria-label="AI Assistant"
+              aria-label="Open Hudu assistant"
               aria-pressed={activePanel === 'ai'}
              data-ui-native-button="">
               <div className="gws-ai-btn-tile">

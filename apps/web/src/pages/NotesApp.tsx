@@ -478,7 +478,7 @@ export const NotesApp: React.FC<{ filter: NotesFilterId }> = ({ filter: activeFi
                               setChecklist(prev => prev.map(i => i.id === item.id ? { ...i, text: val } : i));
                             }}
                           />
-                          <button
+                          <button aria-label="Close"
                             type="button"
                             className="notes-icon-btn"
                             onClick={() => removeComposerChecklistItem(item.id)}
@@ -1008,7 +1008,7 @@ export const NotesApp: React.FC<{ filter: NotesFilterId }> = ({ filter: activeFi
         className={`note-card keep-color-${note.color}`}
         onClick={() => { setEditingNote(note); setShowSharePanel(false); setShowHistoryPanel(false); setShowMeetingPanel(false); }}
       >
-        <button
+        <button aria-label={note.pinned ? 'Unpin note' : 'Pin note'}
           type="button"
           className={`note-card-pin${note.pinned ? ' pinned' : ''}`}
           onClick={e => {

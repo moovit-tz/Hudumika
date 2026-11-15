@@ -125,8 +125,8 @@ export function OndiItAdmin() {
             return (
               <div key={role} style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 12 }}>
                 <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--ink)', flex: 1 }}>{role}</span>
-                <div style={{ width: 110, height: 8, borderRadius: 4, background: 'var(--bg)', overflow: 'hidden' }}>
-                  <div style={{ height: '100%', width: `${Math.round((n / roleMax) * 100)}%`, background: colors[i % colors.length], borderRadius: 4, transition: 'width 0.4s ease' }} />
+                <div style={{ width: 110, height: 8, borderRadius: 'var(--r-sm)', background: 'var(--bg)', overflow: 'hidden' }}>
+                  <div style={{ height: '100%', width: `${Math.round((n / roleMax) * 100)}%`, background: colors[i % colors.length], borderRadius: 'var(--r-sm)', transition: 'width 0.4s ease' }} />
                 </div>
                 <span style={{ fontSize: 13, fontWeight: 800, color: 'var(--ink)', minWidth: 24, textAlign: 'right' }}>{n}</span>
               </div>

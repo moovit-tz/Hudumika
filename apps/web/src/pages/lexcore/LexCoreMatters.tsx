@@ -163,17 +163,17 @@ export function LexCoreMatters() {
           <form onSubmit={handleCreate}>
             <DialogBody>
               <div className="lc-form-grid">
-                <div className="lc-field lc-field-full"><label>Title</label><Input value={title} onChange={e => setTitle(e.target.value)} placeholder="Matter title" /></div>
+                <div className="lc-field lc-field-full"><label>Title</label><Input value={title} onChange={e => setTitle(e.target.value)} placeholder="Matter title" aria-label="Title" /></div>
                 <div className="lc-field"><label>Client</label>
-                  <Select value={clientId} onValueChange={setClientId}><SelectTrigger><SelectValue placeholder="Select client…" /></SelectTrigger><SelectContent>{clients.map(c => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}</SelectContent></Select>
+                  <Select value={clientId} onValueChange={setClientId}><SelectTrigger aria-label="Client"><SelectValue placeholder="Select client…" /></SelectTrigger><SelectContent>{clients.map(c => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}</SelectContent></Select>
                 </div>
                 <div className="lc-field"><label>Type</label>
-                  <Select value={mType} onValueChange={setMType}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent>{MATTER_TYPES.map(t => <SelectItem key={t} value={t}>{t.replace(/_/g, ' ')}</SelectItem>)}</SelectContent></Select>
+                  <Select value={mType} onValueChange={setMType}><SelectTrigger aria-label="Type"><SelectValue /></SelectTrigger><SelectContent>{MATTER_TYPES.map(t => <SelectItem key={t} value={t}>{t.replace(/_/g, ' ')}</SelectItem>)}</SelectContent></Select>
                 </div>
                 <div className="lc-field"><label>Billing Method</label>
-                  <Select value={billing} onValueChange={setBilling}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent>{BILLING_METHODS.map(b => <SelectItem key={b} value={b}>{b.replace(/_/g, ' ')}</SelectItem>)}</SelectContent></Select>
+                  <Select value={billing} onValueChange={setBilling}><SelectTrigger aria-label="Billing Method"><SelectValue /></SelectTrigger><SelectContent>{BILLING_METHODS.map(b => <SelectItem key={b} value={b}>{b.replace(/_/g, ' ')}</SelectItem>)}</SelectContent></Select>
                 </div>
-                <div className="lc-field lc-field-full"><label>Description</label><Textarea value={desc} onChange={e => setDesc(e.target.value)} rows={3} placeholder="Brief description…" /></div>
+                <div className="lc-field lc-field-full"><label>Description</label><Textarea value={desc} onChange={e => setDesc(e.target.value)} rows={3} placeholder="Brief description…" aria-label="Description" /></div>
               </div>
             </DialogBody>
             <DialogFooter><Button type="submit" loading={saving} disabled={!title.trim() || !clientId} loadingText="Saving…">Create</Button></DialogFooter>

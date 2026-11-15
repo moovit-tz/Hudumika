@@ -629,8 +629,7 @@ export function HrDocuments() {
                     }}
                     placeholder="Select employee…"
                     searchPlaceholder="Search staff…"
-                    emptyText="No matching staff."
-                  />
+                    emptyText="No matching staff." aria-label="Target Employee" />
                 </div>
 
                 {Object.keys(genVariables).map(k => (
@@ -732,14 +731,14 @@ export function HrDocuments() {
 
             <div>
               <label style={{ fontSize: 12, fontWeight: 700, display: 'block', marginBottom: 4 }}>Document Title</label>
-              <Input value={uploadName} onChange={e => setUploadName(e.target.value)} placeholder="e.g. Passport Copy 2026" />
+              <Input value={uploadName} onChange={e => setUploadName(e.target.value)} placeholder="e.g. Passport Copy 2026" aria-label="Document Title" />
             </div>
 
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
               <div>
                 <label style={{ fontSize: 12, fontWeight: 700, display: 'block', marginBottom: 4 }}>Category</label>
                 <Select value={uploadCategory} onValueChange={setUploadCategory}>
-                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectTrigger aria-label="Category"><SelectValue /></SelectTrigger>
                   <SelectContent>
                     <SelectItem value="PERSONAL_ID">Personal ID / Passport</SelectItem>
                     <SelectItem value="QUALIFICATION">Degree / Certificate</SelectItem>
@@ -751,7 +750,7 @@ export function HrDocuments() {
               </div>
               <div>
                 <label style={{ fontSize: 12, fontWeight: 700, display: 'block', marginBottom: 4 }}>Type</label>
-                <Input value={uploadType} onChange={e => setUploadType(e.target.value)} placeholder="CONTRACT / ID_SCAN" />
+                <Input value={uploadType} onChange={e => setUploadType(e.target.value)} placeholder="CONTRACT / ID_SCAN" aria-label="Type" />
               </div>
             </div>
 
@@ -763,8 +762,7 @@ export function HrDocuments() {
                 onChange={setUploadUserId}
                 placeholder="Unattached (Organization Policy)"
                 searchPlaceholder="Search staff…"
-                emptyText="No matching staff."
-              />
+                emptyText="No matching staff." aria-label="Assign Employee Owner" />
             </div>
 
             <div>
@@ -773,8 +771,7 @@ export function HrDocuments() {
                 date={uploadExpiry ? new Date(uploadExpiry) : undefined}
                 onChange={d => setUploadExpiry(d ? d.toISOString().slice(0, 10) : '')}
                 placeholder="Select expiration date"
-                triggerClassName="w-full"
-              />
+                triggerClassName="w-full" aria-label="Expiry Date (Optional)" />
             </div>
 
             <DialogFooter>

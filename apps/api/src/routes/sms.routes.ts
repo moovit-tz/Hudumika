@@ -2,6 +2,7 @@ import type { FastifyInstance, FastifyRequest, FastifyReply } from 'fastify';
 import { z } from 'zod';
 import { withTenant, dbPlatform } from '../db/client.js';
 import { requireEntitlement } from '../middleware/entitlement.js';
+import { requireRole } from '../middleware/rbac.js';
 import { SmsService } from '../services/sms.service.js';
 import { SmsIntegration } from '../integrations/sms.js';
 import { formatTemplate } from '../lib/template.js';
@@ -13,7 +14,8 @@ import { verifyTwilioSignature } from '../integrations/sms.js';
 // TENANT_ADMIN is a live, still-issued legacy alias for ADMIN — every file
 // that wants admin-equivalent access lists both explicitly (cms.routes.ts's
 // own CMS_ADMIN_ROLES, metrics-registry.service.ts's METRICS_MGMT_ROLES, …).
-const SMS_ADMIN_ROLES: readonly string[] = ['ADMIN', 'TENANT_ADMIN'];
+const SMS_ADMIN_ROLES: readonly string[] = ['SUPER_ADMIN', 'ADMIN', 'TENANT_ADMIN'];
+const SMS_ACCESS_ROLES = ['SUPER_ADMIN', 'ADMIN', 'TENANT_ADMIN', 'MANAGER', 'SALES'] as const;
 
 const uuidSchema = z.string().uuid();
 const gatewaySchema = z.object({
@@ -52,8 +54,13 @@ const quickSendSchema = z.object({
   body: z.string().trim().max(1600).optional(),
   templateId: uuidSchema.optional(),
   gatewayId: uuidSchema.optional(),
-}).refine(b => (b.to && b.to.length > 0) || b.groupId, { message: 'to or groupId is required' })
-  .refine(b => (b.body && b.body.trim()) || b.templateId, { message: 'body or templateId is required' });
+  personalized: z.array(z.object({
+    to: z.string().trim().min(6).max(32),
+    body: z.string().trim().min(1).max(1600),
+    name: z.string().trim().max(200).optional(),
+  })).max(500).optional(),
+}).refine(b => (b.to && b.to.length > 0) || b.groupId || (b.personalized?.length ?? 0) > 0, { message: 'to, groupId, or personalized recipients are required' })
+  .refine(b => (b.body && b.body.trim()) || b.templateId || (b.personalized?.length ?? 0) > 0, { message: 'body, templateId, or personalized messages are required' });
 
 function normalizeName(first?: string | null, last?: string | null): string {
   return [first, last].filter(Boolean).join(' ').trim();
@@ -68,12 +75,17 @@ function normalizeName(first?: string | null, last?: string | null): string {
 export async function smsRoutes(fastify: FastifyInstance) {
   fastify.addHook('preHandler', fastify.authenticate);
   fastify.addHook('preHandler', requireEntitlement('sms'));
-  // HUD-0024 continuation: internal bulk/transactional SMS tool — its
-  // contact groups carry real phone numbers for the whole tenant's customer
-  // base, not just the caller's own.
-  fastify.addHook('preHandler', async (request: any, reply) => {
-    if (request.user.role === 'CUSTOMER') {
-      return reply.status(403).send({ error: 'Not available for this account type.' });
+  // SMS contacts, message bodies, and delivery history contain customer PII.
+  // Exclude junior/officer and external roles until scoped SMS permissions exist.
+  fastify.addHook('preHandler', requireRole(...SMS_ACCESS_ROLES));
+  fastify.addHook('preHandler', async (request, reply) => {
+    const path = request.routeOptions.url ?? '';
+    const method = request.method.toUpperCase();
+    const gatewayMutation = path.startsWith('/gateways') && method !== 'GET';
+    const senderIdMutation = path.startsWith('/gateways/') && path.includes('/sender-ids') && method !== 'GET';
+    const optOutRemoval = path.startsWith('/opt-outs/') && method === 'DELETE';
+    if ((gatewayMutation || senderIdMutation || optOutRemoval) && !SMS_ADMIN_ROLES.includes(request.user.role)) {
+      return reply.status(403).send({ error: 'Only workspace administrators can change SMS provider settings or remove opt-outs.' });
     }
   });
 
@@ -84,7 +96,7 @@ export async function smsRoutes(fastify: FastifyInstance) {
       const todayStart = new Date(); todayStart.setHours(0, 0, 0, 0);
       const monthStart = new Date(todayStart.getFullYear(), todayStart.getMonth(), 1);
 
-      const [sentToday, sentMonth, delivered, failed, totalMonth] = await Promise.all([
+      const [sentToday, sentMonth, delivered, failed, totalMonth, deliveredToday, failedToday] = await Promise.all([
         trx.selectFrom('sms_messages').select(({ fn }) => fn.countAll<number>().as('c'))
           .where('tenant_id', '=', user.tenant_id).where('created_at', '>=', todayStart)
           .where('status', 'in', ['sent', 'delivered']).executeTakeFirst(),
@@ -100,6 +112,12 @@ export async function smsRoutes(fastify: FastifyInstance) {
         trx.selectFrom('sms_messages').select(({ fn }) => fn.countAll<number>().as('c'))
           .where('tenant_id', '=', user.tenant_id).where('created_at', '>=', monthStart)
           .executeTakeFirst(),
+        trx.selectFrom('sms_messages').select(({ fn }) => fn.countAll<number>().as('c'))
+          .where('tenant_id', '=', user.tenant_id).where('created_at', '>=', todayStart)
+          .where('status', '=', 'delivered').executeTakeFirst(),
+        trx.selectFrom('sms_messages').select(({ fn }) => fn.countAll<number>().as('c'))
+          .where('tenant_id', '=', user.tenant_id).where('created_at', '>=', todayStart)
+          .where('status', 'in', ['failed', 'undelivered']).executeTakeFirst(),
       ]);
 
       const activeGateways = await trx.selectFrom('sms_gateways').select(['provider'])
@@ -112,6 +130,8 @@ export async function smsRoutes(fastify: FastifyInstance) {
           sentThisMonth: Number(sentMonth?.c ?? 0),
           deliveredThisMonth: Number(delivered?.c ?? 0),
           failedThisMonth: Number(failed?.c ?? 0),
+          deliveredToday: Number(deliveredToday?.c ?? 0),
+          failedToday: Number(failedToday?.c ?? 0),
           totalThisMonth: Number(totalMonth?.c ?? 0),
           gatewayConfigured, gatewayProvider: gatewayConfigured ? activeGateways[0].provider : null,
           gatewayCount: activeGateways.length,
@@ -143,6 +163,23 @@ export async function smsRoutes(fastify: FastifyInstance) {
   fastify.post('/send', async (request, reply) => {
     const user = request.user;
     const body = quickSendSchema.parse(request.body);
+    if (body.gatewayId) {
+      const gateway = await withTenant(user.tenant_id, trx => trx.selectFrom('sms_gateways').select('id')
+        .where('id', '=', body.gatewayId!).where('tenant_id', '=', user.tenant_id)
+        .where('active', '=', true).executeTakeFirst());
+      if (!gateway) return reply.status(404).send({ error: 'SMS gateway not found or inactive.' });
+    }
+
+    if (body.personalized?.length) {
+      if (body.to?.length || body.groupId) return reply.status(400).send({ error: 'Use either personalized recipients or a phone list/group, not both.' });
+      const normalized = new Map<string, typeof body.personalized[number]>();
+      for (const recipient of body.personalized) normalized.set(normalizePhone(recipient.to) || recipient.to, recipient);
+      const queued = await SmsService.enqueueBulkPersonalized(user.tenant_id, user.sub, [...normalized.values()].map(r => ({
+        phone: r.to, body: r.body, name: r.name,
+      })), 'sms', body.gatewayId);
+      reply.status(202);
+      return { data: { queued } };
+    }
 
     let messageBody = body.body?.trim() || '';
     if (body.templateId && !messageBody) {
@@ -160,7 +197,12 @@ export async function smsRoutes(fastify: FastifyInstance) {
     }
     // De-dupe by phone — a number in both an explicit list and the group shouldn't be charged twice.
     const seen = new Set<string>();
-    recipients = recipients.filter(r => (seen.has(r.phone) ? false : (seen.add(r.phone), true)));
+    recipients = recipients.filter(r => {
+      const key = normalizePhone(r.phone) || r.phone;
+      if (seen.has(key)) return false;
+      seen.add(key);
+      return true;
+    });
     if (recipients.length === 0) return reply.status(400).send({ error: 'No recipients resolved.' });
 
     if (recipients.length === 1) {
@@ -173,7 +215,7 @@ export async function smsRoutes(fastify: FastifyInstance) {
       return { data: result };
     }
 
-    const queued = await SmsService.enqueueBulk(user.tenant_id, user.sub, recipients, messageBody, 'sms', undefined, body.templateId);
+    const queued = await SmsService.enqueueBulk(user.tenant_id, user.sub, recipients, messageBody, 'sms', undefined, body.templateId, body.gatewayId);
     reply.status(202);
     return { data: { queued } };
   });
@@ -448,12 +490,24 @@ export async function smsRoutes(fastify: FastifyInstance) {
         ? formatTemplate((await trx.selectFrom('sms_templates').select('body').where('id', '=', campaign.template_id).executeTakeFirst())?.body ?? campaign.body, {})
         : campaign.body;
 
-      await trx.updateTable('sms_campaigns').set({ status: 'sending', total_recipients: members.length, updated_at: new Date() })
-        .where('id', '=', campaign.id).execute();
+      // Claim and enqueue in one transaction. Only one concurrent request can
+      // transition this campaign into sending; a rollback restores both.
+      const claimed = await trx.updateTable('sms_campaigns')
+        .set({ status: 'sending', total_recipients: members.length, updated_at: new Date() })
+        .where('id', '=', campaign.id).where('tenant_id', '=', user.tenant_id)
+        .where('status', 'in', ['draft', 'scheduled']).returning('id').executeTakeFirst();
+      if (!claimed) return reply.status(409).send({ error: 'This campaign is already being processed.' });
 
-      await SmsService.enqueueBulk(user.tenant_id, user.sub, members.map(m => ({ phone: m.phone, name: m.name ?? undefined })), body, 'sms', campaign.id, campaign.template_id ?? undefined);
+      const distinct = new Map<string, typeof members[number]>();
+      for (const member of members) distinct.set(normalizePhone(member.phone) || member.phone, member);
+      const rows = [...distinct.values()].map(m => ({
+        tenant_id: user.tenant_id, user_id: user.sub, to_number: m.phone, body,
+        status: 'queued' as const, segments: body.length <= 160 ? 1 : Math.ceil(body.length / 153),
+        source_app: 'sms', campaign_id: campaign.id, template_id: campaign.template_id, contact_name: m.name,
+      }));
+      await trx.insertInto('sms_messages').values(rows).execute();
 
-      return { data: { queued: members.length } };
+      return { data: { queued: rows.length } };
     });
   });
 
@@ -835,7 +889,7 @@ async function handleInboundMessage(opts: {
     to: from,
     body: "You've been unsubscribed and won't receive further messages. Reply START to resubscribe.",
     sourceApp: 'sms',
-  }, { bypassOptOut: true }).catch(err => console.error(`[SMS] STOP confirmation reply failed for ${from}:`, err));
+  }, { bypassOptOut: true }).catch(err => console.error('[SMS] STOP confirmation reply failed:', err));
 }
 
 /**
@@ -854,7 +908,7 @@ async function registerInboundRoutes(fastify: FastifyInstance) {
 
     const gateway = await dbPlatform.selectFrom('sms_gateways').select(['id', 'tenant_id'])
       .where('provider', '=', 'africas_talking').where('sender_id', '=', to).executeTakeFirst();
-    if (!gateway) { console.warn(`[SMS inbound] No gateway matches Africa's Talking "to"=${to} — cannot attribute tenant`); return { ok: true }; }
+    if (!gateway) { console.warn('[SMS inbound] No gateway matches Africa\'s Talking destination — cannot attribute tenant'); return { ok: true }; }
 
     // Africa's Talking has no confirmed inbound-message-id field in this
     // session's references — providerMessageId stays null, falling back to
@@ -870,7 +924,7 @@ async function registerInboundRoutes(fastify: FastifyInstance) {
 
     const gateway = await dbPlatform.selectFrom('sms_gateways').select(['id', 'tenant_id'])
       .where('provider', '=', 'twilio').where('sender_id', '=', to).executeTakeFirst();
-    if (!gateway) { console.warn(`[SMS inbound] No gateway matches Twilio "To"=${to} — cannot attribute tenant`); return { ok: true }; }
+    if (!gateway) { console.warn('[SMS inbound] No gateway matches Twilio destination — cannot attribute tenant'); return { ok: true }; }
 
     await handleInboundMessage({ tenantId: gateway.tenant_id, gatewayId: gateway.id, from, text, providerMessageId: body.MessageSid || null });
     return { ok: true };
@@ -888,7 +942,7 @@ async function registerInboundRoutes(fastify: FastifyInstance) {
       .where('active', '=', true)
       .where(eb => eb.or([eb('sender_id', '=', to), eb('sender_id', 'is', null)]))
       .executeTakeFirst();
-    if (!gateway) { console.warn(`[SMS inbound] No gateway matches Beem Africa "to"=${to} — cannot attribute tenant`); return { ok: true }; }
+    if (!gateway) { console.warn('[SMS inbound] No gateway matches Beem Africa destination — cannot attribute tenant'); return { ok: true }; }
 
     await handleInboundMessage({
       tenantId: gateway.tenant_id,

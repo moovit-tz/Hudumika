@@ -244,7 +244,7 @@ export const FinanceLedger: React.FC = () => {
               <h2 style={{ margin: 0, fontSize: 16, fontWeight: 800, color: '#ffffff' }}>
                 Corporate Accounting Control Center
               </h2>
-              <span style={{ fontSize: 11, fontWeight: 700, padding: '3px 10px', borderRadius: 20, background: 'rgba(255,255,255,0.18)', border: '1px solid rgba(255,255,255,0.35)', color: '#ffffff', textTransform: 'uppercase', letterSpacing: '0.04em', whiteSpace: 'nowrap' }}>
+              <span style={{ fontSize: 11, fontWeight: 700, padding: '3px 10px', borderRadius: 'var(--r-lg)', background: 'rgba(255,255,255,0.18)', border: '1px solid rgba(255,255,255,0.35)', color: '#ffffff', textTransform: 'uppercase', letterSpacing: '0.04em', whiteSpace: 'nowrap' }}>
                 ✓ {balanceScore}% Balanced
               </span>
             </div>

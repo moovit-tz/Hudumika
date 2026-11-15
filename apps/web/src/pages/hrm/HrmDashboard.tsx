@@ -147,7 +147,7 @@ export function HrmDashboard() {
                 <Icon name="check" size={16} color="var(--green)" />
                 <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--ink)' }}>Today's Attendance Overview</span>
               </div>
-              <Link to="/nexushr/attendance" style={{ fontSize: 12, fontWeight: 700, color: 'var(--teal)', textDecoration: 'none' }}>Mark Attendance →</Link>
+              <Link to="/nexushr/attendance" style={{ fontSize: 12, fontWeight: 700, color: 'var(--teal)', textDecoration: 'none', display: 'inline-flex', alignItems: 'center', minHeight: 'var(--target-min, 24px)' }}>Mark Attendance →</Link>
             </div>
             <div style={{ padding: '20px' }}>
               {[
@@ -194,7 +194,7 @@ export function HrmDashboard() {
                 <Icon name="building" size={16} color="var(--purple)" />
                 <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--ink)' }}>Department Distribution</span>
               </div>
-              <Link to="/nexushr/departments" style={{ fontSize: 12, fontWeight: 700, color: 'var(--teal)', textDecoration: 'none' }}>Manage →</Link>
+              <Link to="/nexushr/departments" style={{ fontSize: 12, fontWeight: 700, color: 'var(--teal)', textDecoration: 'none', display: 'inline-flex', alignItems: 'center', minHeight: 'var(--target-min, 24px)' }}>Manage →</Link>
             </div>
             <div style={{ padding: '18px 20px' }}>
               {depts.length === 0 ? (
@@ -230,7 +230,7 @@ export function HrmDashboard() {
                 <Icon name="activity" size={16} color="var(--blue)" />
                 <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--ink)' }}>Recent Audit Activity</span>
               </div>
-              <Link to="/nexushr/activity-logs" style={{ fontSize: 12, fontWeight: 700, color: 'var(--teal)', textDecoration: 'none' }}>View All →</Link>
+              <Link to="/nexushr/activity-logs" style={{ fontSize: 12, fontWeight: 700, color: 'var(--teal)', textDecoration: 'none', display: 'inline-flex', alignItems: 'center', minHeight: 'var(--target-min, 24px)' }}>View All →</Link>
             </div>
             <div style={{ padding: '14px 20px' }}>
               {activities.length === 0 ? (
@@ -264,7 +264,7 @@ export function HrmDashboard() {
                 <Icon name="userPlus" size={16} color="var(--purple)" />
                 <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--ink)' }}>Upcoming Interviews</span>
               </div>
-              <Link to="/nexushr/recruitment" style={{ fontSize: 12, fontWeight: 700, color: 'var(--teal)', textDecoration: 'none' }}>Recruitment →</Link>
+              <Link to="/nexushr/recruitment" style={{ fontSize: 12, fontWeight: 700, color: 'var(--teal)', textDecoration: 'none', display: 'inline-flex', alignItems: 'center', minHeight: 'var(--target-min, 24px)' }}>Recruitment →</Link>
             </div>
             <div style={{ padding: '14px 20px' }}>
               {interviews.length === 0 ? (
@@ -311,7 +311,7 @@ export function HrmDashboard() {
                 <Icon name="dollarSign" size={16} color="var(--green)" />
                 <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--ink)' }}>Payroll Engine</span>
               </div>
-              <Link to="/nexushr/payroll" style={{ fontSize: 12, fontWeight: 700, color: 'var(--teal)', textDecoration: 'none' }}>Payroll →</Link>
+              <Link to="/nexushr/payroll" style={{ fontSize: 12, fontWeight: 700, color: 'var(--teal)', textDecoration: 'none', display: 'inline-flex', alignItems: 'center', minHeight: 'var(--target-min, 24px)' }}>Payroll →</Link>
             </div>
             <div style={{ padding: '18px 20px' }}>
               {runs.length === 0 ? (
@@ -362,7 +362,7 @@ export function HrmDashboard() {
                 <Icon name="calendar" size={16} color="var(--gold)" />
                 <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--ink)' }}>Pending Leave Approvals</span>
               </div>
-              <Link to="/nexushr/leaves" style={{ fontSize: 12, fontWeight: 700, color: 'var(--teal)', textDecoration: 'none' }}>Review ({pendingLeaves.length}) →</Link>
+              <Link to="/nexushr/leaves" style={{ fontSize: 12, fontWeight: 700, color: 'var(--teal)', textDecoration: 'none', display: 'inline-flex', alignItems: 'center', minHeight: 'var(--target-min, 24px)' }}>Review ({pendingLeaves.length}) →</Link>
             </div>
             <div style={{ padding: '14px 20px' }}>
               {pendingLeaves.length === 0 ? (
@@ -392,7 +392,7 @@ export function HrmDashboard() {
                 <Icon name="sun" size={16} color="var(--teal)" />
                 <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--ink)' }}>Upcoming Holidays</span>
               </div>
-              <Link to="/nexushr/holidays" style={{ fontSize: 12, fontWeight: 700, color: 'var(--teal)', textDecoration: 'none' }}>Calendar →</Link>
+              <Link to="/nexushr/holidays" style={{ fontSize: 12, fontWeight: 700, color: 'var(--teal)', textDecoration: 'none', display: 'inline-flex', alignItems: 'center', minHeight: 'var(--target-min, 24px)' }}>Calendar →</Link>
             </div>
             <div style={{ padding: '14px 20px' }}>
               {holidays.length === 0 ? (
@@ -427,7 +427,7 @@ export function HrmDashboard() {
                 <Icon name="volume2" size={16} color="var(--ink3)" />
                 <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--ink)' }}>Latest Announcements</span>
               </div>
-              <Link to="/nexushr/announcements" style={{ fontSize: 12, fontWeight: 700, color: 'var(--teal)', textDecoration: 'none' }}>View All →</Link>
+              <Link to="/nexushr/announcements" style={{ fontSize: 12, fontWeight: 700, color: 'var(--teal)', textDecoration: 'none', display: 'inline-flex', alignItems: 'center', minHeight: 'var(--target-min, 24px)' }}>View All →</Link>
             </div>
             <div style={{ padding: '14px 20px' }}>
               {(() => {

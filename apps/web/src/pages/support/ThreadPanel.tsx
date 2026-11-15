@@ -516,7 +516,7 @@ export function ThreadPanel({ ticket, authorName, onClose, onOpenDetails, aiSugg
                 <span key={a.id} style={{ display: 'flex', alignItems: 'center', gap: 5, padding: '4px 6px 4px 9px', borderRadius: 'var(--r)', background: 'var(--bg)', border: '1px solid var(--border)', fontSize: 11.5, color: 'var(--ink2)' }}>
                   <Icon name={(a.mime_type || '').startsWith('image/') ? 'image' : 'paperclip'} size={12} />
                   <span style={{ maxWidth: 140, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{a.name}</span>
-                  <button type="button" onClick={() => setPendingAttachments(prev => prev.filter(x => x.id !== a.id))} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink3)', padding: "var(--action-py) var(--space-md)", display: 'flex' }} data-ui-native-button="">
+                  <button aria-label={`Remove ${a.name ?? ''}`.trim()} type="button" onClick={() => setPendingAttachments(prev => prev.filter(x => x.id !== a.id))} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink3)', padding: "var(--action-py) var(--space-md)", display: 'flex' }} data-ui-native-button="">
                     <Icon name="x" size={11} />
                   </button>
                 </span>
@@ -527,7 +527,7 @@ export function ThreadPanel({ ticket, authorName, onClose, onOpenDetails, aiSugg
             <Popover open={showEmoji} onOpenChange={setShowEmoji}>
               <Tip label="Insert Emoji">
                 <PopoverTrigger asChild>
-                  <button type="button" className="spt-bedesk-tb-btn" data-ui-native-button="">
+                  <button aria-label="Insert emoji" type="button" className="spt-bedesk-tb-btn" data-ui-native-button="">
                     <Icon name="smile" size={15} />
                   </button>
                 </PopoverTrigger>
@@ -545,7 +545,7 @@ export function ThreadPanel({ ticket, authorName, onClose, onOpenDetails, aiSugg
             <Popover open={showMacros} onOpenChange={o => { setShowMacros(o); if (o) loadMacros(); else setNewMacroOpen(false); }}>
               <Tip label="Canned responses / Macros">
                 <PopoverTrigger asChild>
-                  <button type="button" className="spt-bedesk-tb-btn" data-ui-native-button="">
+                  <button aria-label="Insert saved reply" type="button" className="spt-bedesk-tb-btn" data-ui-native-button="">
                     <Icon name="cannedResponse" size={15} />
                   </button>
                 </PopoverTrigger>
@@ -619,7 +619,7 @@ export function ThreadPanel({ ticket, authorName, onClose, onOpenDetails, aiSugg
                 </>
               );
             })()}
-            <Tip label="Hudumika AI">
+            <Tip label="Hudu">
               <button
                 type="button"
                 className="spt-bedesk-tb-btn"

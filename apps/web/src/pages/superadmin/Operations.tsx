@@ -807,7 +807,7 @@ export function TransactionsView() {
                     {tx.packageCode ?? '—'}
                   </span>
                   {tx.billingCycle && (
-                    <span style={{ fontSize: 10, padding: '1px 5px', borderRadius: 4, background: 'var(--bg)', color: 'var(--ink3)', textTransform: 'capitalize', border: '1px solid var(--border)', fontWeight: 500 }}>
+                    <span style={{ fontSize: 10, padding: '1px 5px', borderRadius: 'var(--r-sm)', background: 'var(--bg)', color: 'var(--ink3)', textTransform: 'capitalize', border: '1px solid var(--border)', fontWeight: 500 }}>
                       {tx.billingCycle}
                     </span>
                   )}
@@ -1248,7 +1248,7 @@ export function ActivityView() {
                       </div>
                     </div>
                     {risk && (
-                      <span style={{ flexShrink:0, display:'inline-flex', alignItems:'center', gap:5, fontSize:11, fontWeight:700, padding:'3px 10px', borderRadius:20, background:risk.bg, color:risk.color }}>
+                      <span style={{ flexShrink:0, display:'inline-flex', alignItems:'center', gap:5, fontSize:11, fontWeight:700, padding:'3px 10px', borderRadius: 'var(--r-lg)', background:risk.bg, color:risk.color }}>
                         <span style={{ width:6, height:6, borderRadius:'50%', background:risk.color, display:'inline-block' }} />
                         {risk.label}
                       </span>

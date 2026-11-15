@@ -1,5 +1,17 @@
 # Hudumika design system
 
+## Product principles and team guidance
+
+This file defines the implementation contract: shared components, tokens,
+behavior, and accessibility rules. Product and department teams should also
+follow [`HUDUMIKA_PRODUCT_DESIGN_PRINCIPLES.md`](HUDUMIKA_PRODUCT_DESIGN_PRINCIPLES.md),
+which defines the decisions behind that contract, Hudumika's voice, domain
+patterns, and the contribution/review process for new products. When a local
+mockup or preference conflicts with the shared contract, document the user
+need and extend the shared system deliberately; do not ship a one-off pattern.
+[`DESIGN_SYSTEM_ADOPTION.md`](DESIGN_SYSTEM_ADOPTION.md) holds the migration
+plan, owners, the exception register and the adoption metrics.
+
 ## Global controls contract (7 October 2026)
 
 - The `Tabs & Strips` setting chooses the format for shared tabs, semantic
@@ -242,6 +254,25 @@ action.
 - Both properties are checked in a real browser, light and dark, by
   `node scripts/check-ui-focus-targets.mjs` (needs the web dev server).
   Run it after touching any primitive in `components/ui/`.
+- **Accessible names for icon-only controls.** An icon-only `Button` or
+  `<button>` carries `aria-label` (or `aria-labelledby`/`title`), or sits
+  directly inside `<Tip label="…">`, which passes its text on as the name.
+  `npm run check:design-system` fails on an unnamed one
+  (`scripts/check-icon-button-names.mjs`), and `Button size="icon"` warns
+  in development. A bare `<Icon>` inside `Tip` becomes a focusable image
+  named by the tip, not a fake button. A clickable `<Icon onClick>` is
+  keyboard-operable and takes a `label`, but prefer a real button.
+- **Rows label their switches.** `SwitchRow` and `FeatureToggleRow` name
+  and describe their `Switch` by the row's title and description. A bare
+  `Switch` or `Select` needs `aria-label` when no `<label>` wraps it; a
+  visible `<span>` beside it is not a label.
+- **Target extender by class.** Breadcrumb links, Ondi row menus and the
+  design-system pills use the same invisible hit-area extender as
+  `data-ui-target` (`control-contract.css`).
+- **Reduced motion is global.** Under `prefers-reduced-motion: reduce`,
+  every animation and transition collapses to an instant change
+  (`index.css`); loading spinners keep turning slowly because they report
+  real pending work. Mark any other essential motion `data-motion-essential`.
 
 ## HeaderPill — announcement & event ticker
 
@@ -449,8 +480,11 @@ before *how*:
 3. **Keep it under ~200ms, ease-out.** `transition: all var(--dur, 150ms)
    var(--ease, ease)` (already the `.input-field` convention) is the
    default; do not invent a new duration/easing pair per component.
-4. **Respect `prefers-reduced-motion`.** Any transition longer than a
-   button-hover fade should have a reduced-motion fallback.
+4. **Respect `prefers-reduced-motion`.** A global rule in `index.css`
+   already collapses every animation and transition for viewers who ask
+   for less motion, so you do not need a per-component fallback. Do not
+   defeat it with `!important` timings; mark genuinely essential motion
+   (a progress indicator) `data-motion-essential` instead.
 
 ### Global modal motion
 
@@ -590,7 +624,7 @@ Before hand-building any of these, use the shared component (paths under `apps/w
 
 All popover/dropdown/select/menu content renders inside Radix Popper portals; `index.css` has a global rule pinning their font to `var(--font)`, and `PopoverContent`/`SelectContent`/`DropdownMenuContent`/etc. all share one visual bar: `rounded-xl`, soft layered shadow, `backdrop-blur-md`, `ring-1 ring-black/5 dark:ring-white/10`. Match that bar if you ever add a new primitive rather than inventing a new shadow/radius style.
 
-`Button` / `Input` / `Textarea` (`ui/button.tsx` etc.) exist and are polished to the same `rounded-lg` bar, but almost nothing in the app calls them yet — most pages still hand-roll `<button style={{...}}>` or use the legacy `.btn`/`.btn-primary` CSS classes. Prefer the `ui/` versions in new code; don't feel obligated to retrofit old call sites on sight.
+`Button` / `Input` / `Textarea` (`ui/button.tsx` etc.) are polished to the same `rounded-lg` bar and widely used (about 3,800 imports from `components/ui` in November 2026), but many pages still hand-roll `<button style={{...}}>` or use the legacy `.btn`/`.btn-primary` CSS classes. Prefer the `ui/` versions in new code; migrate an old call site when you are already changing that screen.
 
 **Stack note:** this design system is Radix UI + **Tailwind v4** (`@import "tailwindcss"` + `@theme{}` in `index.css`, `@tailwindcss/postcss`, no `tailwind.config.js`) — not React Aria. If a visual reference (Dribbble, Figma, another design system) uses a different headless-UI library, match its *look* on top of the existing Radix components rather than importing its source — mixing two headless-UI libraries means two portal/focus-trap/keyboard-nav systems fighting each other.
 
@@ -626,7 +660,7 @@ Three rules, each learned from a real defect:
 
 Hand-rolled `<button style={{…}}>` is still the majority of the app (~900 of them). If you touch one, point its vertical padding and radius at these tokens rather than leaving a frozen number behind. Verify with a live measurement, not by reading the CSS — inline styles beat classes, and this codebase has burned several sessions on fixes that were real in the source and invisible on screen.
 
-**A button surface's text is `hsl(var(--primary-foreground))`, never a hardcoded `#fff`/`white`.** `--teal` (and the per-app accent it carries) is the tenant's raw brand hex with no contrast guarantee at all — a tenant can pick a light pink, a pale gold, anything. `--primary`/`--primary-foreground` are the *derived* pair: `useDesignSystem.ts` and `WorkspaceApp.tsx` both run the brand colour through `enforceContrastFloor()` (nudges it until AA passes) and `pickForegroundHsl()` (picks dark-navy or near-white, whichever actually wins the contrast check) before writing them — see `apps/web/src/lib/color.ts`. The modern `ui/button.tsx` `Button` already reads this pair via Tailwind's `bg-primary text-primary-foreground`, which is why it always renders correctly regardless of theme or tenant colour. Every hand-rolled button/pill/badge that instead wrote `background: var(--teal); color: #fff;` (or `var(--white)`) skipped that math — it looked fine for the default orange but rendered illegible-or-borderline white-on-pastel text for any tenant whose colour didn't clear the floor, in *both* themes, not just dark. Found and fixed platform-wide (~40 call sites across `index.css` and per-page CSS, plus ~145 inline-style occurrences across 75 `.tsx` files) after a NexusHR dark-mode button was compared against the same pattern elsewhere: the fix in every case was `background: hsl(var(--primary)); color: hsl(var(--primary-foreground));` — background and foreground always change **together**, never just the text, or the pairing math is void. Note `--primary`/`--primary-foreground` are raw `H S% L%` triplets (matching Tailwind's `hsl(var(--x))` convention) — write `hsl(var(--primary))`, not bare `var(--primary)`, in plain CSS or an inline `style`. This floor currently exists only for `--primary` (the button-surface token); `--teal` and the semantic colours (`--red`/`--green`/`--gold`/`--blue`/`--purple`) are still un-floored and meant for tints/accents/text, not as a solid fill with a hardcoded-contrast label on top — `.btn-danger`'s `background: var(--red); color: #fff;` is the same shape of risk and hasn't been given the same treatment yet.
+**A button surface's text is `hsl(var(--primary-foreground))`, never a hardcoded `#fff`/`white`.** `--teal` (and the per-app accent it carries) is the tenant's raw brand hex with no contrast guarantee at all — a tenant can pick a light pink, a pale gold, anything. `--primary`/`--primary-foreground` are the *derived* pair: `useDesignSystem.ts` and `WorkspaceApp.tsx` both run the brand colour through `enforceContrastFloor()` (nudges it until AA passes) and `pickForegroundHsl()` (picks dark-navy or near-white, whichever actually wins the contrast check) before writing them — see `apps/web/src/lib/color.ts`. The modern `ui/button.tsx` `Button` already reads this pair via Tailwind's `bg-primary text-primary-foreground`, which is why it always renders correctly regardless of theme or tenant colour. Every hand-rolled button/pill/badge that instead wrote `background: var(--teal); color: #fff;` (or `var(--white)`) skipped that math — it looked fine for the default orange but rendered illegible-or-borderline white-on-pastel text for any tenant whose colour didn't clear the floor, in *both* themes, not just dark. Found and fixed platform-wide (~40 call sites across `index.css` and per-page CSS, plus ~145 inline-style occurrences across 75 `.tsx` files) after a NexusHR dark-mode button was compared against the same pattern elsewhere: the fix in every case was `background: hsl(var(--primary)); color: hsl(var(--primary-foreground));` — background and foreground always change **together**, never just the text, or the pairing math is void. Note `--primary`/`--primary-foreground` are raw `H S% L%` triplets (matching Tailwind's `hsl(var(--x))` convention) — write `hsl(var(--primary))`, not bare `var(--primary)`, in plain CSS or an inline `style`. The same treatment now covers the other solid fills: each semantic colour has a picked text colour (`--red-foreground`, `--gold-foreground`, `--green-foreground`, `--blue-foreground`, `--purple-foreground`), `.btn-danger` uses `background: var(--red); color: hsl(var(--red-foreground))`, and the shared `Button`'s `destructive` variant reads `--destructive`/`--destructive-foreground`, which `useDesignSystem.ts` derives from the theme red floored to AA in light mode (`#d61c44`, 4.88:1; it was a fixed `#ef4444` at 3.59:1). Dark mode keeps its deep red (9.56:1). `--teal` itself is still un-floored: use it for tints, accents and text, never as a fill under a hardcoded label colour.
 
 **Elevation lives in `--elev-sm` / `--elev` / `--elev-lg`, never in `--shadow-*`.** `--shadow-*` belongs to Tailwind's own scale, and `@theme` aliases it onto the `--elev-*` values. It used to read `--shadow-sm: var(--shadow-sm)` — a property defined as itself, which CSS treats as invalid at computed-value time — so every `shadow-sm`/`shadow-md`/`shadow-lg` in the `ui/` library rendered a fully transparent shadow and the SuperAdmin elevation setting reached nothing built on Radix. **Never alias an `@theme` key to a variable of the same name.** `.card` reads `--card-shadow`, which defaults to `var(--elev-sm)` — it was a hardcoded `none`, so no card in any app carried a shadow at all.
 

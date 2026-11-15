@@ -289,7 +289,7 @@ export const TrackingDashboard: React.FC = () => {
               <span className="logistics-design-icon logistics-design-icon--brand">
                 <Icon name="sparkle" size={14} />
               </span>
-              <span>Ask Hudumika</span>
+              <span>Ask Hudu</span>
             </Button>
             <Button
               variant="default"
@@ -779,7 +779,7 @@ export const TrackingDashboard: React.FC = () => {
                   <h3 style={{ fontSize: 15, fontWeight: 800, margin: 0 }}>Active Alerts</h3>
                   <span style={{ width: 8, height: 8, borderRadius: '50%', background: 'var(--red)' }} />
                 </div>
-                <Link to="/tracking/alerts" style={{ fontSize: 12, fontWeight: 600, color: 'var(--teal)', textDecoration: 'none' }}>
+                <Link to="/tracking/alerts" style={{ fontSize: 12, fontWeight: 600, color: 'var(--teal)', textDecoration: 'none', display: 'inline-flex', alignItems: 'center', minHeight: 'var(--target-min, 24px)' }}>
                   View All
                 </Link>
               </div>
@@ -1187,7 +1187,7 @@ export const TrackingDashboard: React.FC = () => {
 
       {activeTab === 'all' && <SectionCard title="Trips"><p>Manage trip assignments, cargo, schedules and status in the shared trip register.</p><Button asChild><Link to="/tracking/shipments">Open trips</Link></Button></SectionCard>}
 
-      {/* ── INTERACTIVE DRAWER: AI Logistics Copilot ── */}
+      {/* ── INTERACTIVE DRAWER: Hudu logistics drawer ── */}
       {copilotOpen && (
         <>
           <div className="logistics-drawer-overlay" onClick={() => setCopilotOpen(false)} />
@@ -1198,11 +1198,11 @@ export const TrackingDashboard: React.FC = () => {
                   <Icon name="sparkle" size={16} />
                 </span>
                 <div>
-                  <h3 style={{ fontSize: 16, fontWeight: 800, margin: 0 }}>Logistics assistant</h3>
+                  <h3 style={{ fontSize: 16, fontWeight: 800, margin: 0 }}>Hudu</h3>
                   <div style={{ fontSize: 11, color: 'var(--ink3)' }}>Live network reasoning & proactive alerts</div>
                 </div>
               </div>
-              <button
+              <button aria-label="Close"
                 type="button"
                 onClick={() => setCopilotOpen(false)}
                 style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink3)', padding: "var(--action-py) var(--space-md)" }}
@@ -1305,7 +1305,7 @@ export const TrackingDashboard: React.FC = () => {
                   placeholder="Ask about trips, vehicles, or warehouses…"
                   style={{ flex: 1 }}
                 />
-                <Button size="sm" onClick={() => handleSendCopilot()}>
+                <Button aria-label="Send" size="sm" onClick={() => handleSendCopilot()}>
                   <Icon name="send" size={14} />
                 </Button>
               </div>

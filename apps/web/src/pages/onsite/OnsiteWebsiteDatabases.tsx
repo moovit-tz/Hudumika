@@ -140,7 +140,7 @@ export function OnsiteWebsiteDatabases() {
                     <td>{db.type || 'MySQL'}</td>
                     <td style={{ textAlign: 'right' }}>{formatSize(db.sizeBytes)}</td>
                     <td style={{ textAlign: 'right' }}>
-                      <Button variant="ghost" size="sm" onClick={() => handleDelete(db.name)}>
+                      <Button aria-label="Delete database" variant="ghost" size="sm" onClick={() => handleDelete(db.name)}>
                         <Icon name="trash2" size={14} />
                       </Button>
                     </td>
@@ -159,11 +159,11 @@ export function OnsiteWebsiteDatabases() {
             <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
               <div>
                 <label style={{ display: 'block', fontSize: '0.8125rem', fontWeight: 600, marginBottom: '0.35rem' }}>Database name</label>
-                <Input value={dbName} onChange={e => setDbName(e.target.value)} placeholder="my_database" />
+                <Input value={dbName} onChange={e => setDbName(e.target.value)} placeholder="my_database" aria-label="Database name" />
               </div>
               <div>
                 <label style={{ display: 'block', fontSize: '0.8125rem', fontWeight: 600, marginBottom: '0.35rem' }}>Password</label>
-                <Input value={dbPassword} onChange={e => setDbPassword(e.target.value)} type="password" placeholder="Strong password (min 8 chars)" />
+                <Input value={dbPassword} onChange={e => setDbPassword(e.target.value)} type="password" placeholder="Strong password (min 8 chars)" aria-label="Password" />
               </div>
             </div>
           </DialogBody>

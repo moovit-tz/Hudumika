@@ -230,16 +230,14 @@ function InvoiceDateFilterPopover({
                 <DatePicker
                   date={parseDateOnly(from)}
                   onChange={d => onChange(toDateOnlyString(d), to && d && toDateOnlyString(d) > to ? '' : to)}
-                  placeholder="Start date"
-                />
+                  placeholder="Start date" aria-label="From" />
               </div>
               <div>
                 <label className="text-[10.5px] font-medium text-muted-foreground block mb-1">To</label>
                 <DatePicker
                   date={parseDateOnly(to)}
                   onChange={d => onChange(from && d && toDateOnlyString(d) < from ? '' : from, toDateOnlyString(d))}
-                  placeholder="End date"
-                />
+                  placeholder="End date" aria-label="To" />
               </div>
             </div>
           </div>

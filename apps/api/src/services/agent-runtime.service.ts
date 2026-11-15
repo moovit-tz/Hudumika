@@ -21,7 +21,7 @@ import type { AgentApprovalPolicy } from '@hudumika/types';
  *      consequential tool call a human hasn't cleared.
  */
 
-const SYSTEM_PROMPT = `You are the Hudumika Workspace Agent, embedded across every app on the
+const SYSTEM_PROMPT = `You are Hudu, the Hudumika workspace agent, embedded across every app on the
 platform. Use the tools provided to answer questions and carry out real work on the tenant's
 own operational data — never guess a number or claim an action succeeded that you didn't
 actually take. If a tool result says an approval is required, tell the user plainly that
@@ -302,7 +302,7 @@ export async function runAgentLoop(
 
 // ── Persistence ─────────────────────────────────────────────────────────
 
-/** The tenant's one built-in "Workspace Agent" identity (kind='platform',
+/** The tenant's one built-in "Hudu" agent identity (kind='platform',
  *  migration 490's partial unique index), created on first use so every
  *  run is attributed to a real agent_identities row instead of a null
  *  agent_id. Safe under concurrent first runs: the insert is a no-op if
@@ -314,7 +314,7 @@ export async function getOrCreatePlatformAgentId(tenantId: string): Promise<stri
     const existing = await find();
     if (existing) return existing.id;
     await trx.insertInto('agent_identities')
-      .values({ tenant_id: tenantId, name: 'Workspace Agent', kind: 'platform' })
+      .values({ tenant_id: tenantId, name: 'Hudu', kind: 'platform' })
       .onConflict(oc => oc.column('tenant_id').where('kind', '=', 'platform').doNothing())
       .execute();
     return (await find())!.id;

@@ -156,11 +156,11 @@ export function CarrierContractsPage() {
             </div>
             <div>
               <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: 'var(--ink2)', marginBottom: 6 }}>Origin</label>
-              <Input value={shop.origin_port} onChange={e => setShop(p => ({ ...p, origin_port: e.target.value }))} placeholder="e.g. Shanghai" style={{ width: 180 }} />
+              <Input value={shop.origin_port} onChange={e => setShop(p => ({ ...p, origin_port: e.target.value }))} placeholder="e.g. Shanghai" style={{ width: 180 }} aria-label="Origin" />
             </div>
             <div>
               <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: 'var(--ink2)', marginBottom: 6 }}>Destination</label>
-              <Input value={shop.destination_port} onChange={e => setShop(p => ({ ...p, destination_port: e.target.value }))} placeholder="e.g. Dar es Salaam" style={{ width: 180 }} />
+              <Input value={shop.destination_port} onChange={e => setShop(p => ({ ...p, destination_port: e.target.value }))} placeholder="e.g. Dar es Salaam" style={{ width: 180 }} aria-label="Destination" />
             </div>
             <Button disabled={shopping} onClick={runRateShopping}>{shopping ? 'Searching…' : 'Compare carriers'}</Button>
           </div>
@@ -196,7 +196,7 @@ export function CarrierContractsPage() {
               </div>
               <div>
                 <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: 'var(--ink2)', marginBottom: 6 }}>Contract reference</label>
-                <Input value={form.contract_reference} onChange={e => setForm(p => ({ ...p, contract_reference: e.target.value }))} placeholder="Carrier's own contract no." />
+                <Input value={form.contract_reference} onChange={e => setForm(p => ({ ...p, contract_reference: e.target.value }))} placeholder="Carrier's own contract no." aria-label="Contract reference" />
               </div>
               <div>
                 <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: 'var(--ink2)', marginBottom: 6 }}>Mode</label>
@@ -215,7 +215,7 @@ export function CarrierContractsPage() {
               </div>
               <div>
                 <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: 'var(--ink2)', marginBottom: 6 }}>Transit days</label>
-                <Input type="number" min="0" value={form.transit_days} onChange={e => setForm(p => ({ ...p, transit_days: e.target.value }))} />
+                <Input type="number" min="0" value={form.transit_days} onChange={e => setForm(p => ({ ...p, transit_days: e.target.value }))} aria-label="Transit days" />
               </div>
               <div>
                 <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: 'var(--ink2)', marginBottom: 6 }}>Buy rate * <span style={{ fontWeight: 400, color: 'var(--ink3)' }}>(carrier charges you)</span></label>
@@ -223,16 +223,16 @@ export function CarrierContractsPage() {
               </div>
               <div>
                 <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: 'var(--ink2)', marginBottom: 6 }}>Currency</label>
-                <Input value={form.currency} onChange={e => setForm(p => ({ ...p, currency: e.target.value.toUpperCase() }))} maxLength={3} />
+                <Input value={form.currency} onChange={e => setForm(p => ({ ...p, currency: e.target.value.toUpperCase() }))} maxLength={3} aria-label="Currency" />
               </div>
               <div />
               <div>
                 <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: 'var(--ink2)', marginBottom: 6 }}>Valid from</label>
-                <DatePicker date={parseDateOnly(form.valid_from)} onChange={d => setForm(p => ({ ...p, valid_from: toDateOnlyString(d) }))} />
+                <DatePicker date={parseDateOnly(form.valid_from)} onChange={d => setForm(p => ({ ...p, valid_from: toDateOnlyString(d) }))} aria-label="Valid from" />
               </div>
               <div>
                 <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: 'var(--ink2)', marginBottom: 6 }}>Valid until</label>
-                <DatePicker date={parseDateOnly(form.valid_to)} onChange={d => setForm(p => ({ ...p, valid_to: toDateOnlyString(d) }))} />
+                <DatePicker date={parseDateOnly(form.valid_to)} onChange={d => setForm(p => ({ ...p, valid_to: toDateOnlyString(d) }))} aria-label="Valid until" />
               </div>
             </div>
             {error && <div style={{ color: 'var(--red)', fontSize: 12.5, marginBottom: 12 }}>{error}</div>}

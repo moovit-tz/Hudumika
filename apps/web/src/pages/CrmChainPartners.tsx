@@ -645,7 +645,7 @@ function PartnerDetailPageView({
             )}
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Button variant="outline" size="icon">
+                <Button aria-label="More actions" variant="outline" size="icon">
                   <Icon name="moreHorizontal" size={15} />
                 </Button>
               </DropdownMenuTrigger>
@@ -1227,7 +1227,7 @@ function NewPartnerPageView({ onBack, onCreated }: NewPartnerPageProps) {
             <div className="partner-form-grid-full">
               <label className="seal-field-label">Partner Category</label>
               <Select value={partnerRole} onValueChange={setPartnerRole}>
-                <SelectTrigger>
+                <SelectTrigger aria-label="Partner Category">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>

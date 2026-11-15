@@ -67,7 +67,7 @@ export function SealYardSlots() {
         crumbs={['SEAL', 'Yard Slots']}
         titlePlain="Yard"
         titleEm="slots"
-        subtitle="Where a gated-in container sits before/during devanning — a different physical spot from the rack/bin a devanned lot is put away into."
+        subtitle="Track container positions before and during devanning."
         actions={
           <Button onClick={() => setShowNew(v => !v)}>
             <Icon name="plus" size={14} />
@@ -82,17 +82,17 @@ export function SealYardSlots() {
             <div className="seal-field-row">
               <label className="seal-field-label">Compartment</label>
               <Select value={newCompartmentId} onValueChange={setNewCompartmentId}>
-                <SelectTrigger className="w-full"><SelectValue placeholder="Choose a compartment" /></SelectTrigger>
+                <SelectTrigger className="w-full" aria-label="Compartment"><SelectValue placeholder="Choose a compartment" /></SelectTrigger>
                 <SelectContent>{compartments.map(c => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}</SelectContent>
               </Select>
             </div>
             <div className="seal-field-row">
               <label className="seal-field-label">Code</label>
-              <Input value={newCode} onChange={e => setNewCode(e.target.value)} placeholder="e.g. Y-A12" />
+              <Input value={newCode} onChange={e => setNewCode(e.target.value)} placeholder="e.g. Y-A12" aria-label="Code" />
             </div>
             <div className="seal-field-row">
               <label className="seal-field-label">Capacity (TEU)</label>
-              <Input type="number" min="1" value={newCapacity} onChange={e => setNewCapacity(e.target.value)} />
+              <Input type="number" min="1" value={newCapacity} onChange={e => setNewCapacity(e.target.value)} aria-label="Capacity (TEU)" />
             </div>
           </div>
           <div style={{ padding: '0 20px 20px', display: 'flex', gap: 10 }}>

@@ -133,7 +133,7 @@ export const TravelTrips: React.FC = () => {
                   <h3 className="tv-trip-list-title">{t.title}</h3>
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>
-                      <Button variant="ghost" size="xs" style={{ padding: '0 4px' }}>
+                      <Button aria-label={`More actions ${t.title ?? ''}`.trim()} variant="ghost" size="xs" style={{ padding: '0 4px' }}>
                         <Icon name="moreHorizontal" size={14} />
                       </Button>
                     </DropdownMenuTrigger>

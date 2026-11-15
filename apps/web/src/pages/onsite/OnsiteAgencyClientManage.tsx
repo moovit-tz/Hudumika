@@ -378,7 +378,7 @@ function AddRecordModal({ base, domainId, onClose, onCreated }: { base: string; 
             <div className="onsite-form-group">
               <label>Type</label>
               <Select value={type} onValueChange={setType}>
-                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectTrigger aria-label="Type"><SelectValue /></SelectTrigger>
                 <SelectContent>
                   {['A', 'AAAA', 'CNAME', 'MX', 'TXT', 'NS', 'SRV', 'CAA'].map((t) => <SelectItem key={t} value={t}>{t}</SelectItem>)}
                 </SelectContent>
@@ -530,7 +530,7 @@ function AddAppModal({ base, onClose, onCreated }: { base: string; onClose: () =
           <div className="onsite-form-group">
             <label>Runtime</label>
             <Select value={runtime} onValueChange={setRuntime}>
-              <SelectTrigger><SelectValue /></SelectTrigger>
+              <SelectTrigger aria-label="Runtime"><SelectValue /></SelectTrigger>
               <SelectContent>
                 {['static', 'nodejs', 'python', 'php', 'ruby', 'go', 'rust', 'container', 'custom'].map((r) => <SelectItem key={r} value={r}>{r}</SelectItem>)}
               </SelectContent>

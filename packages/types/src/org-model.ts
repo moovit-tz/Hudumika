@@ -59,7 +59,7 @@ export interface UpdateEntityInput {
 
 // ── Site types ──────────────────────────────────────────────────────────────
 
-export type SiteType = 'office' | 'factory' | 'warehouse' | 'retail' | 'clinic' | 'mine' | 'farm' | 'port' | 'other';
+export type SiteType = 'office' | 'factory' | 'warehouse' | 'retail' | 'clinic' | 'mine' | 'farm' | 'port' | 'contact_centre' | 'hub' | 'other';
 export type SiteStatus = 'active' | 'inactive' | 'under_construction' | 'closed';
 
 export interface TenantSite {

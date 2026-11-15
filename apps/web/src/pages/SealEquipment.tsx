@@ -135,7 +135,7 @@ export function SealEquipment() {
         crumbs={['SEAL', 'Equipment & Tools']}
         titlePlain="Equipment &"
         titleEm="tools"
-        subtitle="Forklifts, scanners, racking hardware and plant — maintenance history, condition, and due-for-service alerts."
+        subtitle="Track equipment condition, maintenance, and service due dates."
       />
       <div className="seal-page-hdr">
         <Button type="button" onClick={() => setShowNew(v => !v)}>
@@ -165,24 +165,24 @@ export function SealEquipment() {
             <div className="seal-field-row" style={{ width: 180 }}>
               <label className="seal-field-label">Compartment</label>
               <Select value={newCompartmentId} onValueChange={setNewCompartmentId}>
-                <SelectTrigger className="input-field"><SelectValue placeholder="Choose a compartment" /></SelectTrigger>
+                <SelectTrigger className="input-field" aria-label="Compartment"><SelectValue placeholder="Choose a compartment" /></SelectTrigger>
                 <SelectContent>{compartments.map(c => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}</SelectContent>
               </Select>
             </div>
             <div className="seal-field-row" style={{ width: 160 }}>
               <label className="seal-field-label">Type</label>
               <Select value={newType} onValueChange={setNewType}>
-                <SelectTrigger className="input-field"><SelectValue /></SelectTrigger>
+                <SelectTrigger className="input-field" aria-label="Type"><SelectValue /></SelectTrigger>
                 <SelectContent>{EQUIPMENT_TYPES.map(t => <SelectItem key={t} value={t}>{t.replace(/_/g, ' ')}</SelectItem>)}</SelectContent>
               </Select>
             </div>
             <div className="seal-field-row" style={{ width: 140 }}>
               <label className="seal-field-label">Asset Tag</label>
-              <Input type="text" value={newAssetTag} onChange={e => setNewAssetTag(e.target.value)} placeholder="FLT-001" />
+              <Input type="text" value={newAssetTag} onChange={e => setNewAssetTag(e.target.value)} placeholder="FLT-001" aria-label="Asset Tag" />
             </div>
             <div className="seal-field-row" style={{ width: 220, flex: 1 }}>
               <label className="seal-field-label">Name</label>
-              <Input type="text" value={newName} onChange={e => setNewName(e.target.value)} placeholder="e.g. Toyota 2.5T Diesel Forklift" />
+              <Input type="text" value={newName} onChange={e => setNewName(e.target.value)} placeholder="e.g. Toyota 2.5T Diesel Forklift" aria-label="Name" />
             </div>
             <Button type="submit" disabled={saving || !newCompartmentId || !newAssetTag.trim() || !newName.trim()}>
               {saving ? 'Adding…' : 'Add'}
@@ -256,7 +256,7 @@ export function SealEquipment() {
                                   <div className="seal-field-row" style={{ width: 140 }}>
                                     <label className="seal-field-label">Type</label>
                                     <Select value={logType} onValueChange={setLogType}>
-                                      <SelectTrigger className="input-field"><SelectValue /></SelectTrigger>
+                                      <SelectTrigger className="input-field" aria-label="Type"><SelectValue /></SelectTrigger>
                                       <SelectContent>
                                         <SelectItem value="inspection">Inspection</SelectItem>
                                         <SelectItem value="repair">Repair</SelectItem>
@@ -267,23 +267,22 @@ export function SealEquipment() {
                                   </div>
                                   <div className="seal-field-row" style={{ width: 220 }}>
                                     <label className="seal-field-label">Description</label>
-                                    <Input type="text" value={logDesc} onChange={e => setLogDesc(e.target.value)} />
+                                    <Input type="text" value={logDesc} onChange={e => setLogDesc(e.target.value)} aria-label="Description" />
                                   </div>
                                   <div className="seal-field-row" style={{ width: 180 }}>
                                     <label className="seal-field-label">Performed By</label>
                                     <Combobox
                                       options={staff.map(s => ({ value: s.id, label: s.name }))}
                                       value={logPerformedBy} onChange={setLogPerformedBy}
-                                      placeholder="Unspecified" searchPlaceholder="Search staff…" emptyText="No matching staff."
-                                    />
+                                      placeholder="Unspecified" searchPlaceholder="Search staff…" emptyText="No matching staff." aria-label="Performed By" />
                                   </div>
                                   <div className="seal-field-row" style={{ width: 100 }}>
                                     <label className="seal-field-label">Cost</label>
-                                    <Input type="number" min="0" step="any" value={logCost} onChange={e => setLogCost(e.target.value)} />
+                                    <Input type="number" min="0" step="any" value={logCost} onChange={e => setLogCost(e.target.value)} aria-label="Cost" />
                                   </div>
                                   <div className="seal-field-row" style={{ width: 150 }}>
                                     <label className="seal-field-label">Next Due</label>
-                                    <DatePicker date={logNextDue} onChange={setLogNextDue} />
+                                    <DatePicker date={logNextDue} onChange={setLogNextDue} aria-label="Next Due" />
                                   </div>
                                   <Button type="button" disabled={saving} onClick={() => handleLog(item.id)}>{saving ? 'Saving…' : 'Log It'}</Button>
                                   <Button type="button" variant="outline" onClick={() => setLogging(null)}>Cancel</Button>

@@ -117,7 +117,7 @@ export function LexCoreTrustAccounts() {
                       <td><Badge variant={a.status === 'active' ? 'success' : 'gray'}>{a.status}</Badge></td>
                       <td>
                         <DropdownMenu>
-                          <DropdownMenuTrigger asChild><button data-ui-native-button="" type="button" style={{ background: 'none', border: 'none', cursor: 'pointer', padding: "var(--action-py) var(--space-md)", color: 'var(--ink3)' }} onClick={e => e.stopPropagation()}><Icon name="moreHorizontal" size={16} /></button></DropdownMenuTrigger>
+                          <DropdownMenuTrigger asChild><button aria-label="More actions" data-ui-native-button="" type="button" style={{ background: 'none', border: 'none', cursor: 'pointer', padding: "var(--action-py) var(--space-md)", color: 'var(--ink3)' }} onClick={e => e.stopPropagation()}><Icon name="moreHorizontal" size={16} /></button></DropdownMenuTrigger>
                           <DropdownMenuContent>
                             <DropdownMenuItem onClick={() => { setTxnDialog({ type: 'deposit', account: a }); }}><Icon name="plus" size={14} /> Deposit Funds</DropdownMenuItem>
                             <DropdownMenuItem onClick={() => { setTxnDialog({ type: 'disburse', account: a }); }}><Icon name="minus" size={14} /> Disburse Funds</DropdownMenuItem>
@@ -168,10 +168,10 @@ export function LexCoreTrustAccounts() {
           <form onSubmit={handleCreate}>
             <DialogBody>
               <div className="lc-form-grid">
-                <div className="lc-field lc-field-full"><label>Account Name</label><Input value={name} onChange={e => setName(e.target.value)} placeholder="Client trust account" /></div>
-                <div className="lc-field"><label>Bank</label><Input value={bank} onChange={e => setBank(e.target.value)} placeholder="Bank name" /></div>
-                <div className="lc-field"><label>Account Number</label><Input value={accNo} onChange={e => setAccNo(e.target.value)} placeholder="Account number" /></div>
-                <div className="lc-field"><label>Currency</label><Input value={currency} onChange={e => setCurrency(e.target.value)} placeholder="TZS" /></div>
+                <div className="lc-field lc-field-full"><label>Account Name</label><Input value={name} onChange={e => setName(e.target.value)} placeholder="Client trust account" aria-label="Account Name" /></div>
+                <div className="lc-field"><label>Bank</label><Input value={bank} onChange={e => setBank(e.target.value)} placeholder="Bank name" aria-label="Bank" /></div>
+                <div className="lc-field"><label>Account Number</label><Input value={accNo} onChange={e => setAccNo(e.target.value)} placeholder="Account number" aria-label="Account Number" /></div>
+                <div className="lc-field"><label>Currency</label><Input value={currency} onChange={e => setCurrency(e.target.value)} placeholder="TZS" aria-label="Currency" /></div>
               </div>
             </DialogBody>
             <DialogFooter><Button type="submit" loading={saving} disabled={!name.trim()} loadingText="Saving…">Create</Button></DialogFooter>
@@ -192,17 +192,17 @@ export function LexCoreTrustAccounts() {
                 </div>
                 <div className="lc-field lc-field-full">
                   <label>Description</label>
-                  <Input value={txnDesc} onChange={e => setTxnDesc(e.target.value)} placeholder={txnDialog?.type === 'deposit' ? 'Client retainer deposit' : 'Court filing fee'} />
+                  <Input value={txnDesc} onChange={e => setTxnDesc(e.target.value)} placeholder={txnDialog?.type === 'deposit' ? 'Client retainer deposit' : 'Court filing fee'} aria-label="Description" />
                 </div>
                 {txnDialog?.type === 'disburse' && (
                   <div className="lc-field lc-field-full">
                     <label>Payee</label>
-                    <Input value={txnPayee} onChange={e => setTxnPayee(e.target.value)} placeholder="Payee name" />
+                    <Input value={txnPayee} onChange={e => setTxnPayee(e.target.value)} placeholder="Payee name" aria-label="Payee" />
                   </div>
                 )}
                 <div className="lc-field lc-field-full">
                   <label>Reference (optional)</label>
-                  <Input value={txnRef} onChange={e => setTxnRef(e.target.value)} placeholder="Check/transfer reference" />
+                  <Input value={txnRef} onChange={e => setTxnRef(e.target.value)} placeholder="Check/transfer reference" aria-label="Reference (optional)" />
                 </div>
               </div>
             </DialogBody>

@@ -208,7 +208,7 @@ function MetricRow({ def }: { def: MetricDef }) {
           </div>
           {sourceTables.length > 0 && (
             <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
-              {sourceTables.map(t => <code key={t} style={{ fontSize: 10.5, background: 'var(--bg)', padding: '2px 6px', borderRadius: 4, color: 'var(--ink2)' }}>{t}</code>)}
+              {sourceTables.map(t => <code key={t} style={{ fontSize: 10.5, background: 'var(--bg)', padding: '2px 6px', borderRadius: 'var(--r-sm)', color: 'var(--ink2)' }}>{t}</code>)}
             </div>
           )}
           <div style={{ fontSize: 11.5, color: 'var(--ink3)', display: 'flex', gap: 16 }}>

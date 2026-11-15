@@ -122,7 +122,7 @@ export function SelectBox({ checked, onToggle }: { checked: boolean; onToggle: (
   return (
     <div onClick={onToggle} role="checkbox" aria-checked={checked} tabIndex={0}
       onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); e.stopPropagation(); onToggle(e as any); } }}
-      style={{ width: 16, height: 16, borderRadius: 4, border: `1.5px solid ${checked ? 'hsl(var(--primary))' : 'var(--border)'}`, background: checked ? 'hsl(var(--primary))' : 'var(--white)', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}>
+      style={{ width: 16, height: 16, borderRadius: 'var(--r-sm)', border: `1.5px solid ${checked ? 'hsl(var(--primary))' : 'var(--border)'}`, background: checked ? 'hsl(var(--primary))' : 'var(--white)', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}>
       {checked && <Icon name="check" size={10} color="hsl(var(--primary-foreground))" />}
     </div>
   );
@@ -188,7 +188,7 @@ export function MediaPicker({ open, onClose, onSelect }: { open: boolean; onClos
       <div style={{ background: 'var(--white)', borderRadius: 'var(--r)', width: 'min(640px, 94vw)', maxHeight: '80vh', display: 'flex', flexDirection: 'column', overflow: 'hidden' }} onClick={e => e.stopPropagation()}>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '14px 18px', borderBottom: '1px solid var(--border)' }}>
           <div style={{ fontWeight: 700, fontSize: 14, color: 'var(--ink)' }}>Media Library</div>
-          <button type="button" onClick={onClose} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink3)' }} data-ui-native-button=""><Icon name="x" size={16} /></button>
+          <button aria-label="Close" type="button" onClick={onClose} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink3)' }} data-ui-native-button=""><Icon name="x" size={16} /></button>
         </div>
         <div style={{ padding: '12px 18px', borderBottom: '1px solid var(--border)' }}>
           <Button size="sm" type="button" onClick={() => fileRef.current?.click()} loading={uploading} loadingText="Uploading…">

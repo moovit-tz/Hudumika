@@ -993,7 +993,7 @@ export function ComplyDashboard() {
                               {formatDate(a.submitted_at ?? a.created_at)}
                             </TableCell>
                             <TableCell className="text-right">
-                              <Button
+                              <Button aria-label="Open applications"
                                 variant="ghost"
                                 size="icon"
                                 className="h-7 w-7 text-muted-foreground hover:text-foreground"

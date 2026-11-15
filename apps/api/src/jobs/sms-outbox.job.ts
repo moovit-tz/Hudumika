@@ -4,12 +4,8 @@ import { formatTemplate } from '../lib/template.js';
 import { NotificationService } from '../services/notification.service.js';
 
 const BATCH_SIZE = 50;
-// A send that never got a real provider response (a network-level throw —
-// see integrations/sms.ts's own `transient` flag) is safe to retry a
-// bounded number of times, since there's no evidence it was ever actually
-// processed. A send a provider genuinely answered — even with a rejection
-// — is never auto-retried; see this job's own header comment below for why.
-const MAX_TRANSIENT_ATTEMPTS = 3;
+// Provider timeouts are ambiguous: a request may have been accepted before
+// its response was lost. Do not blindly retry and risk duplicate paid sends.
 
 /**
  * Polls sms_messages for 'queued' rows and sends them via SmsIntegration —
@@ -20,29 +16,44 @@ const MAX_TRANSIENT_ATTEMPTS = 3;
  * retry loop, unlike mail-outbox.job.ts): SMS gateways are synchronous REST
  * calls, not a bounce-and-retry transport, so silently re-attempting a
  * rejected send risks double-charging; a user can always re-send from the
- * Reports view instead. A send that failed before any provider ever
- * answered (a real network-level exception, `result.transient`) is the one
- * case genuinely safe to retry automatically — requeued up to
- * MAX_TRANSIENT_ATTEMPTS times, naturally spaced by this job's own polling
- * cadence rather than a second scheduler.
+ * Reports view instead. Network-level failures are also ambiguous and are
+ * marked failed for human review instead of being blindly retried.
  */
 export async function runSmsOutboxJob(): Promise<void> {
   try {
-    const due = await dbPlatform.selectFrom('sms_messages').selectAll()
-      .where('status', '=', 'queued')
-      .orderBy('created_at', 'asc')
-      .limit(BATCH_SIZE)
-      .execute();
+    // A worker may have crashed after provider acceptance but before recording
+    // the response. Mark stale claims for reconciliation; never resend blindly.
+    await dbPlatform.updateTable('sms_messages').set({
+      status: 'failed', processing_at: null,
+      error: 'Worker interrupted; delivery outcome is unknown. Check the provider before retrying.',
+    })
+      .where('status', '=', 'processing').where('processing_at', '<', new Date(Date.now() - 15 * 60_000)).execute();
+    // The conditional UPDATE is the claim. Concurrent workers may select the
+    // same candidate IDs, but only one can change each row from queued to processing.
+    const candidates = dbPlatform.selectFrom('sms_messages').select('id')
+      .where('status', '=', 'queued').orderBy('created_at', 'asc').limit(BATCH_SIZE);
+    const due = await dbPlatform.updateTable('sms_messages')
+      .set({ status: 'processing', processing_at: new Date() })
+      .where('id', 'in', candidates).where('status', '=', 'queued')
+      .returningAll().execute();
 
     if (due.length > 0) {
       let sent = 0, failed = 0;
       for (const item of due) {
-        const result = await SmsIntegration.sendSms(item.tenant_id, item.to_number, item.body);
+        let result: Awaited<ReturnType<typeof SmsIntegration.sendSms>>;
+        try {
+          result = await SmsIntegration.sendSms(item.tenant_id, item.to_number, item.body, { gatewayId: item.gateway_id ?? undefined });
+        } catch (error) {
+          result = { success: false, transient: true, error: error instanceof Error ? error.message : 'SMS provider request failed' };
+        }
         const nextAttempts = item.attempts + 1;
-        const willRetry = !result.success && result.transient && nextAttempts < MAX_TRANSIENT_ATTEMPTS;
+        // A network timeout is ambiguous: the provider may have accepted the
+        // SMS before the response was lost. Never blindly retry and double-send.
         await withTenant(item.tenant_id, async (trx) => {
           await trx.updateTable('sms_messages').set({
-            status: result.success ? 'sent' : willRetry ? 'queued' : 'failed',
+            status: result.success ? 'sent' : 'failed',
+            processing_at: null,
+            gateway_id: result.gatewayId ?? item.gateway_id,
             provider: result.provider ?? null,
             provider_message_id: result.messageId ?? null,
             error: result.success ? null : (result.error ?? 'Unknown send error'),
@@ -51,7 +62,6 @@ export async function runSmsOutboxJob(): Promise<void> {
           }).where('id', '=', item.id).execute();
         });
         if (result.success) sent++;
-        else if (willRetry) console.log(`📱 [SMS transient failure — requeued, attempt ${nextAttempts}/${MAX_TRANSIENT_ATTEMPTS}] id=${item.id}: ${result.error}`);
         else failed++;
       }
       console.log(`📱 SMS outbox sweep — sent: ${sent}, failed: ${failed} (of ${due.length} due)`);
@@ -68,6 +78,11 @@ export async function runSmsOutboxJob(): Promise<void> {
 
     for (const campaign of dueCampaigns) {
       await withTenant(campaign.tenant_id, async (trx) => {
+        const claimed = await trx.updateTable('sms_campaigns')
+          .set({ status: 'sending', updated_at: new Date() })
+          .where('id', '=', campaign.id).where('tenant_id', '=', campaign.tenant_id)
+          .where('status', '=', 'scheduled').returning('id').executeTakeFirst();
+        if (!claimed) return;
         if (!campaign.group_id) {
           await trx.updateTable('sms_campaigns').set({ status: 'failed', updated_at: new Date() }).where('id', '=', campaign.id).execute();
           if (campaign.created_by) {
@@ -93,14 +108,17 @@ export async function runSmsOutboxJob(): Promise<void> {
           if (template) body = formatTemplate(template.body, {});
         }
 
-        await trx.insertInto('sms_messages').values(members.map(m => ({
+        const distinct = new Map<string, typeof members[number]>();
+        for (const member of members) distinct.set(member.phone.replace(/\D/g, ''), member);
+        const recipients = [...distinct.values()];
+        await trx.insertInto('sms_messages').values(recipients.map(m => ({
           tenant_id: campaign.tenant_id, user_id: campaign.created_by, to_number: m.phone, body,
           status: 'queued' as const, segments: body.length <= 160 ? 1 : Math.ceil(body.length / 153), source_app: 'sms',
           campaign_id: campaign.id, template_id: campaign.template_id, contact_name: m.name,
         }))).execute();
 
         await trx.updateTable('sms_campaigns').set({
-          status: 'sending', total_recipients: members.length, sent_at: new Date().toISOString(), updated_at: new Date(),
+          status: 'sending', total_recipients: recipients.length, sent_at: new Date().toISOString(), updated_at: new Date(),
         }).where('id', '=', campaign.id).execute();
       });
       console.log(`📱 SMS campaign "${campaign.name}" (${campaign.id}) fanned out to its group.`);
@@ -114,7 +132,7 @@ export async function runSmsOutboxJob(): Promise<void> {
     for (const c of inFlight) {
       await withTenant(c.tenant_id, async (trx) => {
         const remaining = await trx.selectFrom('sms_messages').select(({ fn }) => fn.countAll<number>().as('c'))
-          .where('campaign_id', '=', c.id).where('status', '=', 'queued').executeTakeFirst();
+          .where('campaign_id', '=', c.id).where('status', 'in', ['queued', 'processing']).executeTakeFirst();
         if (Number(remaining?.c ?? 0) === 0) {
           await trx.updateTable('sms_campaigns').set({ status: 'sent', updated_at: new Date() }).where('id', '=', c.id).execute();
           // Say how it went. A campaign where half the numbers failed looked

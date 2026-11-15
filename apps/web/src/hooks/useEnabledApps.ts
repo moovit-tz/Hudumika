@@ -1,3 +1,4 @@
+import { resetTenantPlanCache } from './useTenantPlan.js';
 import { useState, useEffect } from 'react';
 import { useEntitlements, resetEntitlementsCache } from './useEntitlements.js';
 
@@ -18,4 +19,5 @@ export function useEnabledApps(): Record<string, boolean> | null {
 /** Call on login/logout/impersonate so the next tenant's session doesn't see a stale cache. */
 export function resetEnabledAppsCache(): void {
   resetEntitlementsCache();
+  resetTenantPlanCache();
 }

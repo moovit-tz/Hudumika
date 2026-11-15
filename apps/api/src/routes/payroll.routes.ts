@@ -1,3 +1,4 @@
+import { emitDomainEvent } from '../services/domain-events.service.js';
 import { sql } from 'kysely';
 import { PayrollSalaryError, salaryForPeriod } from '../services/payroll-salary.service.js';
 import { z } from 'zod';
@@ -575,10 +576,15 @@ export async function payrollRoutes(fastify: FastifyInstance) {
         return reply.status(409).send({ error: 'This run has no payslips — recalculate before approving' });
       }
 
-      return trx.updateTable('payroll_runs').set({
+      const approvedRun = await trx.updateTable('payroll_runs').set({
         status: 'APPROVED', approved_by: user.sub, approved_at: new Date(), updated_at: new Date(),
       } as any).where('id', '=', id).where('tenant_id', '=', user.tenant_id)
         .returningAll().executeTakeFirstOrThrow();
+      await emitDomainEvent(trx, user.tenant_id, {
+        type: 'payroll.run_approved', sourceApp: 'nexushr', entityType: 'payroll_run', entityId: id, actorId: user.sub,
+        payload: { amount: Number(approvedRun.total_gross ?? 0), total: Number(approvedRun.total_net ?? 0), count: Number(count?.n ?? 0) },
+      }).catch(err => console.error('[Payroll] approved emit failed:', err?.message));
+      return approvedRun;
     });
   });
 

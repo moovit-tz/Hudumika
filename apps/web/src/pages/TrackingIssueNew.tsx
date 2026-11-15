@@ -68,15 +68,14 @@ export const TrackingIssueNew: React.FC = () => {
           <label style={labelStyle}>Vehicle</label>
           <Combobox
             options={vehicles.map(v => ({ value: v.id, label: v.name, sublabel: v.plate_number || undefined }))}
-            value={vehicleId} onChange={setVehicleId} placeholder="Select vehicle…"
-          />
+            value={vehicleId} onChange={setVehicleId} placeholder="Select vehicle…" aria-label="Vehicle" />
         </div>
-        <div><label style={labelStyle}>Title</label><Input required value={title} onChange={e => setTitle(e.target.value)} placeholder="e.g. Chip in windshield" /></div>
+        <div><label style={labelStyle}>Title</label><Input required value={title} onChange={e => setTitle(e.target.value)} placeholder="e.g. Chip in windshield" aria-label="Title" /></div>
         <div style={{ display: 'flex', gap: 10 }}>
           <div style={{ flex: 1 }}>
             <label style={labelStyle}>Priority</label>
             <Select value={severity} onValueChange={setSeverity}>
-              <SelectTrigger><SelectValue /></SelectTrigger>
+              <SelectTrigger aria-label="Priority"><SelectValue /></SelectTrigger>
               <SelectContent>
                 {['LOW', 'MEDIUM', 'HIGH', 'CRITICAL'].map(s => <SelectItem key={s} value={s}>{s}</SelectItem>)}
               </SelectContent>
@@ -85,7 +84,7 @@ export const TrackingIssueNew: React.FC = () => {
           <div style={{ flex: 1 }}>
             <label style={labelStyle}>Source</label>
             <Select value={source} onValueChange={setSource}>
-              <SelectTrigger><SelectValue /></SelectTrigger>
+              <SelectTrigger aria-label="Source"><SelectValue /></SelectTrigger>
               <SelectContent>
                 {['Manual', 'Driver Report', 'Inspection'].map(s => <SelectItem key={s} value={s}>{s}</SelectItem>)}
               </SelectContent>
@@ -94,17 +93,16 @@ export const TrackingIssueNew: React.FC = () => {
         </div>
         <div>
           <label style={labelStyle}>Description</label>
-          <Textarea value={description} onChange={e => setDescription(e.target.value)} style={{ minHeight: 90 }} className="resize-y" />
+          <Textarea value={description} onChange={e => setDescription(e.target.value)} style={{ minHeight: 90 }} className="resize-y" aria-label="Description" />
         </div>
         <div style={{ display: 'flex', gap: 10 }}>
           <div style={{ flex: 1 }}>
             <label style={labelStyle}>Assign To</label>
             <Combobox
               options={[{ value: '', label: 'Unassigned' }, ...staff.map(s => ({ value: s.id, label: s.name }))]}
-              value={assignedTo} onChange={setAssignedTo} placeholder="Unassigned"
-            />
+              value={assignedTo} onChange={setAssignedTo} placeholder="Unassigned" aria-label="Assign To" />
           </div>
-          <div style={{ flex: 1 }}><label style={labelStyle}>Due Date</label><DatePicker date={parseDateOnly(dueDate)} onChange={d => setDueDate(toDateOnlyString(d))} /></div>
+          <div style={{ flex: 1 }}><label style={labelStyle}>Due Date</label><DatePicker date={parseDateOnly(dueDate)} onChange={d => setDueDate(toDateOnlyString(d))} aria-label="Due Date" /></div>
         </div>
         {error && <div style={{ fontSize: 12, color: 'var(--red)' }}>{error}</div>}
         <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end', marginTop: 6 }}>

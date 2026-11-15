@@ -80,7 +80,7 @@ export function LabelChips({ subjectType, subjectId }: { subjectType: SubjectTyp
           padding: '3px 9px', borderRadius: 999, background: COLOR_BG[l.color] ?? COLOR_BG.teal, color: COLOR_VAR[l.color] ?? COLOR_VAR.teal,
         }}>
           {l.name}
-          <button type="button" onClick={() => toggle(l, false)} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0, color: 'inherit', display: 'flex' }} data-ui-native-button="">
+          <button aria-label={`Remove ${l.name}`} type="button" onClick={() => toggle(l, false)} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0, color: 'inherit', display: 'flex' }} data-ui-native-button="">
             <Icon name="x" size={9} />
           </button>
         </span>

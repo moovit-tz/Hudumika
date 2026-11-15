@@ -63,6 +63,7 @@ export const APP_LABELS: Record<AppId, string> = {
   lexcore:       'LexCore',
   ngao:          'Ngao',
   gereji:        'Gereji',
+  zentra:        'Zentra',
 };
 
 // Every app defaults to the single brand accent (matches --teal in index.css)
@@ -103,6 +104,7 @@ export const APP_COLORS: Record<AppId, string> = {
   lexcore: '#7c3aed',
   ngao: '#059669',
   gereji: '#d97706',
+  zentra: '#0f766e',
 };
 
 /**
@@ -147,6 +149,7 @@ export const APP_PALETTE_SLOT: Record<AppId, number> = {
   lexcore: 2, // compliance & legal — law firm ERP
   ngao: 2,    // compliance & legal — privacy/data protection
   gereji: 3,  // warehouse & stock — automotive workshop uses shared inventory
+  zentra: 2,  // compliance, trust & risk
 };
 
 export const ActiveAppContext = React.createContext<AppId | null>(null);

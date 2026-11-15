@@ -133,7 +133,7 @@ export const SuperAdminKyb: React.FC = () => {
           <DialogTitle className="sr-only">KYB document preview</DialogTitle>
           {previewUrl && <>
             <img src={previewUrl} alt="KYB document" style={{ maxWidth: '90vw', maxHeight: '90vh', borderRadius: 'var(--r)', boxShadow: 'var(--elev-lg)', display: 'block' }} />
-            <button type="button" onClick={() => { URL.revokeObjectURL(previewUrl); setPreviewUrl(null); }}
+            <button aria-label="Close" type="button" onClick={() => { URL.revokeObjectURL(previewUrl); setPreviewUrl(null); }}
               style={{ position: 'absolute', top: 24, right: 24, background: "var(--white)", border: 'none', borderRadius: '50%', width: "var(--ctl-h)", height: "var(--ctl-h)", cursor: 'pointer' }} data-ui-native-button="">
               <Icon name="x" size={18} />
             </button>

@@ -259,8 +259,7 @@ export function SealCompartmentEdit() {
                     setLogoUrl(e.target.value);
                     setLogoPreviewFailed(false);
                   }}
-                  placeholder="https://example.com/logo.png"
-                />
+                  placeholder="https://example.com/logo.png" aria-label="Or Image URL" />
               </div>
 
               {logoUrl && (
@@ -296,14 +295,14 @@ export function SealCompartmentEdit() {
               <label className="seal-field-label" style={{ display: 'block', marginBottom: 6 }}>
                 Compartment Code
               </label>
-              <Input value={code} onChange={e => setCode(e.target.value)} required />
+              <Input value={code} onChange={e => setCode(e.target.value)} required aria-label="Compartment Code" />
             </div>
 
             <div>
               <label className="seal-field-label" style={{ display: 'block', marginBottom: 6 }}>
                 Compartment / Warehouse Name
               </label>
-              <Input value={name} onChange={e => setName(e.target.value)} required />
+              <Input value={name} onChange={e => setName(e.target.value)} required aria-label="Compartment / Warehouse Name" />
             </div>
 
             <div>
@@ -311,7 +310,7 @@ export function SealCompartmentEdit() {
                 Warehouse Type
               </label>
               <Select value={warehouseType} onValueChange={setWarehouseType}>
-                <SelectTrigger className="w-full">
+                <SelectTrigger className="w-full" aria-label="Warehouse Type">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -332,8 +331,7 @@ export function SealCompartmentEdit() {
                 value={jurisdiction}
                 onChange={e => setJurisdiction(e.target.value.toUpperCase())}
                 maxLength={3}
-                required
-              />
+                required aria-label="Jurisdiction" />
             </div>
 
             <div>
@@ -344,8 +342,7 @@ export function SealCompartmentEdit() {
                 type="number"
                 value={defaultStorageDays}
                 onChange={e => setDefaultStorageDays(Number(e.target.value))}
-                required
-              />
+                required aria-label="Default Storage Limit (Days)" />
             </div>
           </div>
         </div>
@@ -375,8 +372,7 @@ export function SealCompartmentEdit() {
               <Input
                 value={licenceNumber}
                 onChange={e => setLicenceNumber(e.target.value)}
-                placeholder="BW-TZ-9821"
-              />
+                placeholder="BW-TZ-9821" aria-label="License Number" />
             </div>
 
             <div>
@@ -387,8 +383,7 @@ export function SealCompartmentEdit() {
                 date={parseDateOnly(licenceExpiry)}
                 onChange={d => setLicenceExpiry(toDateOnlyString(d))}
                 placeholder="Select date"
-                triggerClassName="w-full"
-              />
+                triggerClassName="w-full" aria-label="License Expiry Date" />
             </div>
 
             <div>
@@ -398,8 +393,7 @@ export function SealCompartmentEdit() {
               <Input
                 value={customsOfficeCode}
                 onChange={e => setCustomsOfficeCode(e.target.value)}
-                placeholder="TZDAR01"
-              />
+                placeholder="TZDAR01" aria-label="Customs Office Code" />
             </div>
           </div>
         </div>
@@ -447,8 +441,7 @@ export function SealCompartmentEdit() {
                   min="0"
                   step="any"
                   value={storageFeePerDay}
-                  onChange={e => setStorageFeePerDay(e.target.value)}
-                />
+                  onChange={e => setStorageFeePerDay(e.target.value)} aria-label="Storage Fee / Day" />
               </div>
             ) : (
               <div>
@@ -460,8 +453,7 @@ export function SealCompartmentEdit() {
                   min="0"
                   step="any"
                   value={storageFeePerCbmPerDay}
-                  onChange={e => setStorageFeePerCbmPerDay(e.target.value)}
-                />
+                  onChange={e => setStorageFeePerCbmPerDay(e.target.value)} aria-label="Storage Fee / CBM / Day" />
               </div>
             )}
 
@@ -472,8 +464,7 @@ export function SealCompartmentEdit() {
               <Input
                 value={storageFeeCurrency}
                 onChange={e => setStorageFeeCurrency(e.target.value.toUpperCase())}
-                maxLength={3}
-              />
+                maxLength={3} aria-label="Currency" />
             </div>
 
             <div>
@@ -485,8 +476,7 @@ export function SealCompartmentEdit() {
                 min="0"
                 step="any"
                 value={handlingFeeFlat}
-                onChange={e => setHandlingFeeFlat(e.target.value)}
-              />
+                onChange={e => setHandlingFeeFlat(e.target.value)} aria-label="One-Time Handling Fee" />
             </div>
           </div>
         </div>

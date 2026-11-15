@@ -247,7 +247,7 @@ export function PettiRetirements() {
 
                 <div>
                   <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: 'var(--ink2)', marginBottom: 6 }}>Reconciliation Note</label>
-                  <Textarea value={note} onChange={e => setNote(e.target.value)} rows={2} placeholder="Optional — e.g. details on exact receipt total, change returned, or discrepancy" />
+                  <Textarea value={note} onChange={e => setNote(e.target.value)} rows={2} placeholder="Optional — e.g. details on exact receipt total, change returned, or discrepancy" aria-label="Reconciliation Note" />
                 </div>
               </div>
               <DialogFooter>

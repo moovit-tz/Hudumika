@@ -277,11 +277,11 @@ export default function BuildingBlocksShowcase() {
   <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: 16 }}>
     <div>
       <label style={{ fontSize: 11, fontWeight: 700, textTransform: 'uppercase', color: 'var(--ink3)', display: 'block', marginBottom: 6 }}>Company Name</label>
-      <Input defaultValue="Hudumika Global Corp" />
+      <Input defaultValue="Hudumika Global Corp" aria-label="Company Name" />
     </div>
     <div>
       <label style={{ fontSize: 11, fontWeight: 700, textTransform: 'uppercase', color: 'var(--ink3)', display: 'block', marginBottom: 6 }}>Primary Contact Email</label>
-      <Input defaultValue="ops@hudumika.io" />
+      <Input defaultValue="ops@hudumika.io" aria-label="Primary Contact Email" />
     </div>
   </div>
   <div style={{ marginTop: 18, display: 'flex', justifyContent: 'flex-end', gap: 10 }}>
@@ -294,11 +294,11 @@ export default function BuildingBlocksShowcase() {
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 16 }}>
             <div>
               <label style={{ fontSize: 11, fontWeight: 700, textTransform: 'uppercase', color: 'var(--ink3)', display: 'block', marginBottom: 6 }}>Company Name</label>
-              <Input defaultValue="Hudumika Global Corp" />
+              <Input defaultValue="Hudumika Global Corp" aria-label="Company Name" />
             </div>
             <div>
               <label style={{ fontSize: 11, fontWeight: 700, textTransform: 'uppercase', color: 'var(--ink3)', display: 'block', marginBottom: 6 }}>Primary Contact Email</label>
-              <Input defaultValue="ops@hudumika.io" />
+              <Input defaultValue="ops@hudumika.io" aria-label="Primary Contact Email" />
             </div>
           </div>
           <div style={{ marginTop: 18, display: 'flex', justifyContent: 'flex-end', gap: 10 }}>

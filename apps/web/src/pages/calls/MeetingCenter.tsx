@@ -730,7 +730,7 @@ export function MeetingCenter() {
               onChange={e => { setSearchMeeting(e.target.value); setMeetingsPage(1); }}
             />
             {searchMeeting && (
-              <button
+              <button aria-label="Clear search"
                 type="button"
                 onClick={() => { setSearchMeeting(''); setMeetingsPage(1); }}
                 style={{ position: 'absolute', right: 6, top: 7, background: 'none', border: 'none', color: 'var(--ink3)', cursor: 'pointer', padding: "var(--action-py) var(--space-md)" }}
@@ -985,7 +985,7 @@ export function MeetingCenter() {
                           {/* More Options Dropdown */}
                           <DropdownMenu>
                             <DropdownMenuTrigger asChild>
-                              <Button variant="ghost" size="icon" style={{ borderRadius: 'var(--r-sm)', width: "var(--ctl-h)", height: "var(--ctl-h)" }}>
+                              <Button aria-label="More actions" variant="ghost" size="icon" style={{ borderRadius: 'var(--r-sm)', width: "var(--ctl-h)", height: "var(--ctl-h)" }}>
                                 <Icon name="moreHorizontal" size={15} />
                               </Button>
                             </DropdownMenuTrigger>
@@ -1281,7 +1281,7 @@ export function MeetingCenter() {
             Page {meetingsPage} of {totalMeetingsPages} · {meetingsTotal} {meetingsTotal === 1 ? 'meeting' : 'meetings'}
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-            <Button
+            <Button aria-label="Previous"
               variant="outline"
               size="sm"
               disabled={meetingsPage <= 1}
@@ -1311,7 +1311,7 @@ export function MeetingCenter() {
                 {p}
               </button>
             ))}
-            <Button
+            <Button aria-label="Next"
               variant="outline"
               size="sm"
               disabled={meetingsPage >= totalMeetingsPages}
@@ -1409,7 +1409,7 @@ export function MeetingCenter() {
                   <label style={{ fontSize: 11.5, fontWeight: 700, color: 'var(--ink2)', display: 'block', marginBottom: 4 }}>
                     DATE
                   </label>
-                  <DatePicker date={schedDate} onChange={setSchedDate} placeholder="Select date" />
+                  <DatePicker date={schedDate} onChange={setSchedDate} placeholder="Select date" aria-label="DATE" />
                 </div>
                 <div>
                   <label style={{ fontSize: 11.5, fontWeight: 700, color: 'var(--ink2)', display: 'block', marginBottom: 4 }}>
@@ -1696,7 +1696,7 @@ export function MeetingCenter() {
                       <Icon name="clipboardList" size={14} color="var(--teal)" />
                       <span>{t.title}</span>
                     </div>
-                    <button
+                    <button aria-label={`Remove ${t.title ?? ''}`.trim()}
                       type="button"
                       onClick={() => setTaskList(prev => prev.filter(x => x.id !== t.id))}
                       style={{ background: 'none', border: 'none', color: 'var(--ink3)', cursor: 'pointer', padding: "var(--action-py) var(--space-md)" }}

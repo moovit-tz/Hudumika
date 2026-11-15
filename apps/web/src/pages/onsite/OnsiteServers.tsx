@@ -225,7 +225,7 @@ export function OnsiteServers() {
                   <div className="onsite-form-group">
                     <label>Provider</label>
                     <Select value={provider} onValueChange={setProvider}>
-                      <SelectTrigger><SelectValue /></SelectTrigger>
+                      <SelectTrigger aria-label="Provider"><SelectValue /></SelectTrigger>
                       <SelectContent>
                         <SelectItem value="hetzner">Hetzner</SelectItem>
                         <SelectItem value="digitalocean">DigitalOcean</SelectItem>

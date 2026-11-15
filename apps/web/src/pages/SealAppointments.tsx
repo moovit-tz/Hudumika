@@ -271,7 +271,7 @@ export function SealAppointments() {
         ]}
         titlePlain="Gate"
         titleEm="appointments"
-        subtitle="Schedule arrivals and departures, manage dock slots, and track driver check-ins."
+        subtitle="Schedule dock arrivals and departures; track driver check-ins."
         actions={
           <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
             <Button variant="outline" size="sm" onClick={() => setVersion(v => v + 1)}>
@@ -385,7 +385,7 @@ export function SealAppointments() {
           <SearchToolbar
             search={search}
             onSearch={setSearch}
-            placeholder="Search driver, vehicle plate, reference or notes…"
+            placeholder="Search driver, plate, reference, or notes…"
             activeFilterCount={
               (statusFilter !== '__all__' ? 1 : 0) +
               (typeFilter !== '__all__' ? 1 : 0) +
@@ -842,8 +842,7 @@ export function SealAppointmentPage() {
                       onChange={setWarehouse}
                       disabled={!!id}
                       options={warehouses.map(w => ({ value: w.id, label: w.name }))}
-                      placeholder="Choose warehouse"
-                    />
+                      placeholder="Choose warehouse" aria-label="Warehouse Facility" />
                   </div>
 
                   <div>
@@ -851,7 +850,7 @@ export function SealAppointmentPage() {
                       Visit Direction
                     </label>
                     <Select value={type} onValueChange={setType}>
-                      <SelectTrigger className="w-full">
+                      <SelectTrigger className="w-full" aria-label="Visit Direction">
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
@@ -865,7 +864,7 @@ export function SealAppointmentPage() {
                     <label className="seal-field-label" style={{ display: 'block', marginBottom: 6 }}>
                       Scheduled Date
                     </label>
-                    <DatePicker date={date} onChange={setDate} triggerClassName="w-full" />
+                    <DatePicker date={date} onChange={setDate} triggerClassName="w-full" aria-label="Scheduled Date" />
                   </div>
 
                   <div>
@@ -876,8 +875,7 @@ export function SealAppointmentPage() {
                       type="time"
                       value={time}
                       onChange={e => setTime(e.target.value)}
-                      required
-                    />
+                      required aria-label="Expected Arrival Time" />
                   </div>
                 </div>
               )}
@@ -893,8 +891,7 @@ export function SealAppointmentPage() {
                       value={plate}
                       maxLength={40}
                       onChange={e => setPlate(e.target.value)}
-                      placeholder="e.g. T 482 DFP"
-                    />
+                      placeholder="e.g. T 482 DFP" aria-label="Vehicle Registration Plate" />
                   </div>
 
                   <div>
@@ -905,8 +902,7 @@ export function SealAppointmentPage() {
                       value={driver}
                       maxLength={200}
                       onChange={e => setDriver(e.target.value)}
-                      placeholder="e.g. Juma Hamisi"
-                    />
+                      placeholder="e.g. Juma Hamisi" aria-label="Driver Full Name" />
                   </div>
 
                   <div style={{ gridColumn: '1 / -1' }}>
@@ -917,8 +913,7 @@ export function SealAppointmentPage() {
                       value={reference}
                       maxLength={200}
                       onChange={e => setReference(e.target.value)}
-                      placeholder="e.g. BL-DSM-8820, Delivery Order No."
-                    />
+                      placeholder="e.g. BL-DSM-8820, Delivery Order No." aria-label="Consignment / Document Reference (optional)" />
                   </div>
                 </div>
               )}
@@ -958,8 +953,7 @@ export function SealAppointmentPage() {
                       value={notes}
                       maxLength={5000}
                       onChange={e => setNotes(e.target.value)}
-                      placeholder="Dock bay requirements, seal checks, container numbers..."
-                    />
+                      placeholder="Dock bay requirements, seal checks, container numbers..." aria-label="Gate & Dock Instructions / Notes" />
                   </div>
                 </div>
               )}

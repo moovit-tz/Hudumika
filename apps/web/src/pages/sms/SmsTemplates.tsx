@@ -348,10 +348,10 @@ export function SmsTemplates() {
                             <Icon name="send" size={12} /> Use
                           </Button>
                         </Link>
-                        <Button size="sm" variant="ghost" onClick={() => startEdit(t)}>
+                        <Button aria-label={`Edit ${t.name ?? ''}`.trim()} size="sm" variant="ghost" onClick={() => startEdit(t)}>
                           <Icon name="edit" size={13} />
                         </Button>
-                        <Button size="sm" variant="ghost" onClick={() => remove(t.id, t.name)}>
+                        <Button aria-label={`Delete ${t.name ?? ''}`.trim()} size="sm" variant="ghost" onClick={() => remove(t.id, t.name)}>
                           <Icon name="trash" size={13} color="var(--red)" />
                         </Button>
                       </div>

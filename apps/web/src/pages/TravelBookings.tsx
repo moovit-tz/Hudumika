@@ -143,7 +143,7 @@ export const TravelBookings: React.FC = () => {
                       <Badge variant={STATUS_MAP[b.status] ?? 'gray'}>{b.status}</Badge>
                     </td>
                     <td>
-                      <Button variant="ghost" size="xs" onClick={() => handleDelete(b.id)}>
+                      <Button aria-label={`Delete ${b.title ?? ''}`.trim()} variant="ghost" size="xs" onClick={() => handleDelete(b.id)}>
                         <Icon name="trash" size={12} style={{ color: 'var(--red)' }} />
                       </Button>
                     </td>

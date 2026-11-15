@@ -109,15 +109,14 @@ export function InventoryTasks() {
           <div className="inv-form-grid-2">
             <div className="inv-field-row" style={{ gridColumn: '1 / -1' }}>
               <label className="inv-field-label">Title</label>
-              <Input type="text" value={newTitle} onChange={e => setNewTitle(e.target.value)} placeholder="e.g. Restock 20L Cooking Oil Jerrycan" />
+              <Input type="text" value={newTitle} onChange={e => setNewTitle(e.target.value)} placeholder="e.g. Restock 20L Cooking Oil Jerrycan" aria-label="Title" />
             </div>
             <div className="inv-field-row">
               <label className="inv-field-label">Related Item (optional)</label>
               <Combobox
                 options={items.map(i => ({ value: i.id, label: i.name, sublabel: i.sku }))}
                 value={newItemId} onChange={setNewItemId}
-                placeholder="None" searchPlaceholder="Search items…" emptyText="No matching items."
-              />
+                placeholder="None" searchPlaceholder="Search items…" emptyText="No matching items." aria-label="Related Item (optional)" />
             </div>
             <div className="inv-field-row">
               <label className="inv-field-label">Priority</label>
@@ -136,12 +135,11 @@ export function InventoryTasks() {
               <Combobox
                 options={staff.map(s => ({ value: s.id, label: s.name }))}
                 value={newAssignee} onChange={setNewAssignee}
-                placeholder="Unassigned" searchPlaceholder="Search staff…" emptyText="No matching staff."
-              />
+                placeholder="Unassigned" searchPlaceholder="Search staff…" emptyText="No matching staff." aria-label="Assign To" />
             </div>
             <div className="inv-field-row">
               <label className="inv-field-label">Due Date</label>
-              <DatePicker date={newDue} onChange={setNewDue} />
+              <DatePicker date={newDue} onChange={setNewDue} aria-label="Due Date" />
             </div>
           </div>
           <div style={{ padding: '0 20px 20px' }}>

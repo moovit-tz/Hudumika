@@ -207,18 +207,18 @@ function RightPanel({wf, step, allSteps, customers, onUpdateStep, onDeleteStep, 
       <div className="wfb-panel-head">
         <Icon name="settings" size={15} color="var(--ink3)"/>
         <span className="wfb-panel-title">Workflow Settings</span>
-        <button className="wf-icon-btn" onClick={onClose} data-ui-native-button=""><Icon name="x" size={13}/></button>
+        <button aria-label="Close" className="wf-icon-btn" onClick={onClose} data-ui-native-button=""><Icon name="x" size={13}/></button>
       </div>
       <div className="wfb-panel-body">
         <div className="wfb-panel-section">
           <div className="wfb-panel-section-title">Identity</div>
           <div className="wfb-field" style={{marginBottom:10}}>
             <label className="wfb-label">Workflow Name</label>
-            <Input value={wf.name} onChange={e=>onUpdateWf({name:e.target.value})}/>
+            <Input value={wf.name} onChange={e=>onUpdateWf({name:e.target.value})} aria-label="Workflow Name" />
           </div>
           <div className="wfb-field">
             <label className="wfb-label">Description</label>
-            <Textarea rows={2} value={wf.description} onChange={e=>onUpdateWf({description:e.target.value})} style={{minHeight:60}}/>
+            <Textarea rows={2} value={wf.description} onChange={e=>onUpdateWf({description:e.target.value})} style={{minHeight:60}} aria-label="Description" />
           </div>
         </div>
         <div className="wfb-panel-section">
@@ -303,15 +303,15 @@ function RightPanel({wf, step, allSteps, customers, onUpdateStep, onDeleteStep, 
           {isOpen('basics')&&<div className="wfb-acc-body">
             <div className="wfb-field">
               <label className="wfb-label">Name</label>
-              <Input value={step.name} onChange={e=>onUpdateStep(step.id,{name:e.target.value})} placeholder="Step name"/>
+              <Input value={step.name} onChange={e=>onUpdateStep(step.id,{name:e.target.value})} placeholder="Step name" aria-label="Name" />
             </div>
             <div className="wfb-field">
               <label className="wfb-label">Description</label>
-              <Textarea rows={2} style={{minHeight:56}} value={step.description} onChange={e=>onUpdateStep(step.id,{description:e.target.value})} placeholder="What happens here?"/>
+              <Textarea rows={2} style={{minHeight:56}} value={step.description} onChange={e=>onUpdateStep(step.id,{description:e.target.value})} placeholder="What happens here?" aria-label="Description" />
             </div>
             <div className="wfb-field">
               <label className="wfb-label">SLA (hours optional)</label>
-              <Input type="number" min="0" value={step.slaHours??''} onChange={e=>onUpdateStep(step.id,{slaHours:e.target.value?Number(e.target.value):undefined})} placeholder="No SLA"/>
+              <Input type="number" min="0" value={step.slaHours??''} onChange={e=>onUpdateStep(step.id,{slaHours:e.target.value?Number(e.target.value):undefined})} placeholder="No SLA" aria-label="SLA (hours optional)" />
             </div>
             <div className="wfb-field">
               <label className="wfb-label">Automation role</label>
@@ -375,7 +375,7 @@ function RightPanel({wf, step, allSteps, customers, onUpdateStep, onDeleteStep, 
                       {SHIPMENT_FIELDS.map(f=><SelectItem key={f.value} value={f.value}>{f.label}</SelectItem>)}
                     </SelectContent>
                   </Select>
-                  <button className="wf-icon-btn danger" style={{flexShrink:0,width:'var(--ctl-h-xs)',height:'var(--ctl-h-xs)'}} onClick={()=>delCond(cond.id)} data-ui-native-button=""><Icon name="trash" size={11}/></button>
+                  <button aria-label="Delete" className="wf-icon-btn danger" style={{flexShrink:0,width:'var(--ctl-h-xs)',height:'var(--ctl-h-xs)'}} onClick={()=>delCond(cond.id)} data-ui-native-button=""><Icon name="trash" size={11}/></button>
                 </div>
                 <Select value={cond.operator} onValueChange={v=>updCond(cond.id,{operator:v as FieldCondition['operator']})}>
                   <SelectTrigger className="h-11 text-sm" style={{fontSize:"var(--text-base)"}}>
@@ -408,7 +408,7 @@ function RightPanel({wf, step, allSteps, customers, onUpdateStep, onDeleteStep, 
                 <div className="wfb-comm-card-head">
                   <span className="wfb-comm-ch-badge" style={{background:ch?.color,display:'inline-flex',alignItems:'center',gap:4}}>{ch&&<Icon name={ch.icon} size={11} />} {ch?.label}</span>
                   <span style={{flex:1,fontSize:11,color:'var(--ink3)'}}>→ {RECIPIENTS.find(r=>r.value===comm.recipient)?.label}</span>
-                  <button className="wf-icon-btn danger" style={{width:'var(--ctl-h-xs)',height:'var(--ctl-h-xs)'}} onClick={()=>delComm(comm.id)} data-ui-native-button=""><Icon name="trash" size={11}/></button>
+                  <button aria-label="Delete" className="wf-icon-btn danger" style={{width:'var(--ctl-h-xs)',height:'var(--ctl-h-xs)'}} onClick={()=>delComm(comm.id)} data-ui-native-button=""><Icon name="trash" size={11}/></button>
                 </div>
                 <div className="wfb-comm-card-body">
                   <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:5}}>

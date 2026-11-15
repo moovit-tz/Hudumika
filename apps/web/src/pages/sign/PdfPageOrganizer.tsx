@@ -344,7 +344,7 @@ export function PdfPageOrganizer({ documentSrc, fileName, onExport, onClose }: {
                         <Icon name="x" size={12} />
                       </button>
                     )}
-                    <div style={{ width: THUMB_TARGET_WIDTH, height: thumbHeight, display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#fff', border: '1px solid var(--border)', borderRadius: 4, overflow: 'hidden', boxShadow: '0 1px 3px rgba(0,0,0,0.06)', filter: isDeleted ? 'grayscale(1)' : undefined, opacity: isDeleted ? 0.5 : 1 }}>
+                    <div style={{ width: THUMB_TARGET_WIDTH, height: thumbHeight, display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#fff', border: '1px solid var(--border)', borderRadius: 'var(--r-sm)', overflow: 'hidden', boxShadow: '0 1px 3px rgba(0,0,0,0.06)', filter: isDeleted ? 'grayscale(1)' : undefined, opacity: isDeleted ? 0.5 : 1 }}>
                       <PdfPageCanvas doc={src.doc} pageNumber={p.pageNumber} scale={thumbScale} style={{ display: 'block' }} />
                     </div>
                     {badgeLabel && (
@@ -359,10 +359,10 @@ export function PdfPageOrganizer({ documentSrc, fileName, onExport, onClose }: {
                     </div>
                     {isMobile && !isDeleted && (
                       <div style={{ width: '100%', display: 'flex', gap: 6 }}>
-                        <Button variant="outline" size="xs" onClick={() => movePage(i, i - 1)} disabled={i === 0} style={{ flex: 1 }}>
+                        <Button aria-label="Previous" variant="outline" size="xs" onClick={() => movePage(i, i - 1)} disabled={i === 0} style={{ flex: 1 }}>
                           <Icon name="chevronLeft" size={12} />
                         </Button>
-                        <Button variant="outline" size="xs" onClick={() => movePage(i, i + 1)} disabled={i === pages.length - 1} style={{ flex: 1 }}>
+                        <Button aria-label="Next" variant="outline" size="xs" onClick={() => movePage(i, i + 1)} disabled={i === pages.length - 1} style={{ flex: 1 }}>
                           <Icon name="chevronRight" size={12} />
                         </Button>
                       </div>

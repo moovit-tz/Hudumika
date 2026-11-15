@@ -343,7 +343,7 @@ export const ProjectTimeline: React.FC = () => {
                       </p>
                     </div>
                   </div>
-                  <Button variant="ghost" size="sm" onClick={() => setShowUnscheduled(!showUnscheduled)}>
+                  <Button aria-label={showUnscheduled ? 'Hide unscheduled tasks' : 'Show unscheduled tasks'} variant="ghost" size="sm" onClick={() => setShowUnscheduled(!showUnscheduled)}>
                     <Icon name={showUnscheduled ? 'chevronUp' : 'chevronDown'} size={14} />
                   </Button>
                 </div>

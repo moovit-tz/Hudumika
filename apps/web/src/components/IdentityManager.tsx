@@ -106,7 +106,7 @@ export function IdentityManager({ onChange }: { onChange?: (ids: EmailSendIdenti
               <button type="button" className="em-text-btn" onClick={() => test(id.id)} disabled={testing === id.id} data-ui-native-button="">
                 {testing === id.id ? 'Testing…' : 'Test'}
               </button>
-              <button type="button" className="em-attach-chip-remove" onClick={() => remove(id.id)} data-ui-native-button=""><Icon name="trash" size={13} /></button>
+              <button aria-label="Delete" type="button" className="em-attach-chip-remove" onClick={() => remove(id.id)} data-ui-native-button=""><Icon name="trash" size={13} /></button>
             </div>
             {testResult?.id === id.id && (
               <span className={testResult.success ? 'em-settings-success' : 'em-settings-error'}>

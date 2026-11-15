@@ -2,6 +2,8 @@ import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react'
 import { createPortal } from 'react-dom';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { Panel, PanelGroup, PanelResizeHandle } from 'react-resizable-panels';
+import { useCentreScope, withScope, useSupportNetwork } from '../lib/supportNetwork.js';
+import { ProductFormFields, type FormValues } from '../components/ProductFormFields.js';
 import { apiFetch, apiDownload } from '../lib/api.js';
 import { useAuth } from '../hooks/useAuth.js';
 import { OPS_ROLES } from '../lib/permissions.js';
@@ -47,7 +49,13 @@ export const Support: React.FC<{
   const [custMap, setCustMap] = useState<Map<string, SysCustomer>>(new Map());
   const [loading, setLoading] = useState(true);
   const [showCreate, setShowCreate] = useState(false);
-  const [newForm, setNewForm] = useState({ subject: '', customer: '', customer_id: '', category: '', priority: 'MEDIUM', description: '' });
+  const [newForm, setNewForm] = useState({ subject: '', customer: '', customer_id: '', category: '', priority: 'MEDIUM', description: '', site_id: '', product_id: '' });
+  // Support network: centres and product lines a new ticket can be filed under.
+  const { data: network } = useSupportNetwork();
+  const networkCentres = (network?.centres ?? []).filter(c => c.support_enabled);
+  const networkProducts = (network?.products ?? []).filter(p => p.status === 'active');
+  const [newAnswers, setNewAnswers] = useState<FormValues>({});
+  const newProductFields = networkProducts.find(p => p.id === newForm.product_id)?.form_fields ?? [];
   const [groups, setGroups] = useState<SupportGroup[]>([]);
   const [views, setViews] = useState<SupportView[]>([]);
 
@@ -116,13 +124,21 @@ export const Support: React.FC<{
       source_app: s.source_app ?? null,
       sla_deadline: s.sla_deadline ?? null,
       channel: s.channel ?? 'IN_APP',
+      site_id: s.site_id ?? null,
+      site_name: s.site_name ?? null,
+      product_id: s.product_id ?? null,
+      product_name: s.product_name ?? null,
+      routed_reason: s.routed_reason ?? null,
+      custom_fields: s.custom_fields ?? null,
     }));
   }, []);
 
   const [loadError, setLoadError] = useState<string | null>(null);
 
+  // Which centre/zone the sidebar picker is showing (support network).
+  const [centreScope] = useCentreScope();
   const refreshTickets = useCallback(() => {
-    return apiFetch('/v1/support/tickets')
+    return apiFetch(withScope('/v1/support/tickets', centreScope))
       .then((r: any) => {
         const data = r.data ?? r ?? [];
         setTickets(Array.isArray(data) ? buildTickets(data) : []);
@@ -133,7 +149,7 @@ export const Support: React.FC<{
         setLoadError(err?.message || 'Could not load tickets');
       })
       .finally(() => setLoading(false));
-  }, [buildTickets]);
+  }, [buildTickets, centreScope]);
 
   useEffect(() => { refreshTickets(); }, [refreshTickets]);
 
@@ -246,6 +262,23 @@ export const Support: React.FC<{
   // Group had a real backend endpoint (PATCH /tickets/:id/group) with no
   // frontend caller anywhere — the Details panel showed it as a read-only
   // pill next to an Assignee row that was already a real, editable Select.
+  // Move a ticket to another centre and/or product line; the server re-routes
+  // it there (queue + available agent) and records why on the ticket.
+  const transferTicket = async (id: string, siteId: string, productId: string | null) => {
+    let res: any;
+    try {
+      res = await apiFetch(`/v1/support/network/tickets/${id}/transfer`, { method: 'POST', body: JSON.stringify({ site_id: siteId, product_id: productId }) });
+    } catch (err: any) { showAlert(err.message || 'Could not move this ticket.'); return; }
+    const site = networkCentres.find(c => c.id === siteId);
+    const product = productId ? networkProducts.find(p => p.id === productId) : null;
+    const assignee = res?.assigned_to ? agents.find(a => a.id === res.assigned_to) : null;
+    const patch = { site_id: siteId, site_name: site?.name ?? null, product_id: productId, product_name: product?.name ?? null,
+      routed_reason: res?.reason ?? null, assigned_to: assignee?.name, assigned_to_id: res?.assigned_to ?? undefined };
+    setTickets(ts => ts.map(t => t.id === id ? { ...t, ...patch } : t));
+    setSelected(prev => prev?.id === id ? { ...prev, ...patch } : prev);
+    refreshTickets();
+  };
+
   const updateTicketGroup = async (id: string, groupId: string | null) => {
     try {
       await apiFetch(`/v1/support/tickets/${id}/group`, { method: 'PATCH', body: JSON.stringify({ group_id: groupId }) });
@@ -343,6 +376,9 @@ export const Support: React.FC<{
           channel: 'IN_APP',
           priority: newForm.priority,
           category: newForm.category || 'General Query',
+          site_id: newForm.site_id || undefined,
+          product_id: newForm.product_id || undefined,
+          custom_fields: newForm.product_id ? Object.fromEntries(Object.entries(newAnswers).filter(([, v]) => v !== '' && v != null)) : undefined,
         })
       });
       // POST returns the raw support_tickets row (no customer join), so the
@@ -352,7 +388,8 @@ export const Support: React.FC<{
       const [created] = buildTickets([{ ...res, customer: newForm.customer, messages: [] }]);
       setTickets(prev => [created, ...prev]);
       setShowCreate(false);
-      setNewForm({ subject: '', customer: '', customer_id: '', category: '', priority: 'MEDIUM', description: '' });
+      setNewForm({ subject: '', customer: '', customer_id: '', category: '', priority: 'MEDIUM', description: '', site_id: '', product_id: '' });
+      setNewAnswers({});
     } catch (err: any) {
       showAlert(err?.message || 'Could not create this ticket — please try again.');
     } finally {
@@ -424,7 +461,7 @@ export const Support: React.FC<{
                   <PanelResizeHandle className="spt-resize-handle" />
                   <Panel defaultSize={26} minSize={20} maxSize={38} className="spt-details-panel">
                     <div className="spt-rcol" style={{ width: '100%', height: '100%', display: 'flex', flexDirection: 'column' }}>
-                      <DetailsPanel ticket={selected} agents={agents} onReassign={reassignTicket} onStatusChange={updateStatus} onUpdateTags={updateTicketTags} onUpdateAttributes={updateTicketAttributes} groups={groups} onUpdateGroup={updateTicketGroup} onClose={() => setSelected(null)} />
+                      <DetailsPanel ticket={selected} agents={agents} onReassign={reassignTicket} onStatusChange={updateStatus} onUpdateTags={updateTicketTags} onUpdateAttributes={updateTicketAttributes} groups={groups} onUpdateGroup={updateTicketGroup} onTransfer={transferTicket} onClose={() => setSelected(null)} />
                     </div>
                   </Panel>
                 </>
@@ -473,7 +510,7 @@ export const Support: React.FC<{
                     <Icon name="x" size={16} strokeWidth={2} />
                   </button>
                 </Tip>
-                <DetailsPanel ticket={selected} agents={agents} onReassign={reassignTicket} onStatusChange={updateStatus} onUpdateTags={updateTicketTags} onUpdateAttributes={updateTicketAttributes} groups={groups} onUpdateGroup={updateTicketGroup} onClose={() => setDetailsOpen(false)} />
+                <DetailsPanel ticket={selected} agents={agents} onReassign={reassignTicket} onStatusChange={updateStatus} onUpdateTags={updateTicketTags} onUpdateAttributes={updateTicketAttributes} groups={groups} onUpdateGroup={updateTicketGroup} onTransfer={transferTicket} onClose={() => setDetailsOpen(false)} />
               </div>
             </>,
             document.body
@@ -516,6 +553,38 @@ export const Support: React.FC<{
                   </Select>
                 </div>
               </div>
+              {(networkCentres.length > 0 || networkProducts.length > 0) && (
+                <div className="spt-modal-grid">
+                  {networkCentres.length > 0 && (
+                    <div className="spt-modal-field">
+                      <label className="spt-modal-label">Centre</label>
+                      <Select value={newForm.site_id || '__auto__'} onValueChange={v => setNewForm(p => ({ ...p, site_id: v === '__auto__' ? '' : v }))}>
+                        <SelectTrigger aria-label="Centre" className="spt-modal-select"><SelectValue /></SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="__auto__">Route automatically</SelectItem>
+                          {networkCentres.map(c => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  )}
+                  {networkProducts.length > 0 && (
+                    <div className="spt-modal-field">
+                      <label className="spt-modal-label">Product</label>
+                      <Select value={newForm.product_id || '__auto__'} onValueChange={v => { setNewForm(p => ({ ...p, product_id: v === '__auto__' ? '' : v })); setNewAnswers({}); }}>
+                        <SelectTrigger aria-label="Product" className="spt-modal-select"><SelectValue /></SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="__auto__">Not set</SelectItem>
+                          {networkProducts.map(p => <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>)}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  )}
+                </div>
+              )}
+              {newProductFields.length > 0 && (
+                <ProductFormFields fields={newProductFields} values={newAnswers}
+                  onChange={(k, v) => setNewAnswers(a => ({ ...a, [k]: v }))} />
+              )}
               <div className="spt-modal-field">
                 <label className="spt-modal-label">Category</label>
                 <Select value={newForm.category || '__none__'} onValueChange={v => setNewForm(p => ({ ...p, category: v === '__none__' ? '' : v }))}>

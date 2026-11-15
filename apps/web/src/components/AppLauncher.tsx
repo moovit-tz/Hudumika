@@ -6,7 +6,7 @@ import { useBranding } from '../hooks/useBranding.js';
 import { LauncherAppSvg } from './LauncherApps.js';
 import { useLocale } from '../hooks/useLocale.js';
 import { useEnabledApps, isAppEnabled } from '../hooks/useEnabledApps.js';
-import { LAUNCHER_APPS, INTERNAL_APP_IDS } from './LauncherApps.js';
+import { LAUNCHER_APPS, INTERNAL_APP_IDS, roleCanOpenApp } from './LauncherApps.js';
 import { useAuth } from '../hooks/useAuth.js';
 import { getRecentApps, recordRecentApp } from '../lib/recentApps.js';
 import { Tip } from './ui/tooltip.js';
@@ -111,14 +111,15 @@ export function AppLauncher({ renderTrigger, variant = 'icon' }: AppLauncherProp
     const ids = getRecentApps(); // no fallback — only genuinely visited apps
     const allowed = LAUNCHER_APPS
       .filter(a => isAppEnabled(a.id, enabledApps))
-      .filter(a => canSeeInternal || !INTERNAL_APP_IDS.has(a.id));
+      .filter(a => canSeeInternal || !INTERNAL_APP_IDS.has(a.id))
+      .filter(a => roleCanOpenApp(a.id, user?.role));
 
     const fromRecent = ids
       .map(id => allowed.find(a => a.id === id))
       .filter((a): a is (typeof LAUNCHER_APPS)[0] => Boolean(a));
 
     setRecentApps(fromRecent.slice(0, 4));
-  }, [launcherOpen, enabledApps, canSeeInternal]);
+  }, [launcherOpen, enabledApps, canSeeInternal, user?.role]);
 
   const orderedApps = useMemo(() => {
     const ordered = appOrder
@@ -127,8 +128,9 @@ export function AppLauncher({ renderTrigger, variant = 'icon' }: AppLauncherProp
     const extras = LAUNCHER_APPS.filter(a => !appOrder.includes(a.id));
     return [...ordered, ...extras]
       .filter(a => isAppEnabled(a.id, enabledApps))
-      .filter(a => canSeeInternal || !INTERNAL_APP_IDS.has(a.id));
-  }, [appOrder, enabledApps]);
+      .filter(a => canSeeInternal || !INTERNAL_APP_IDS.has(a.id))
+      .filter(a => roleCanOpenApp(a.id, user?.role));
+  }, [appOrder, enabledApps, user?.role]);
 
   function closeLauncher() { setLauncherOpen(false); setEditMode(false); }
 

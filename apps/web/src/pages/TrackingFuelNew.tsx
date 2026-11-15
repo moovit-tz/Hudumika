@@ -66,24 +66,22 @@ export const TrackingFuelNew: React.FC = () => {
             <label style={labelStyle}>Vehicle</label>
             <Combobox
               options={vehicles.map(v => ({ value: v.id, label: v.name, sublabel: v.plate_number || undefined }))}
-              value={vehicleId} onChange={setVehicleId} placeholder="Select vehicle…"
-            />
+              value={vehicleId} onChange={setVehicleId} placeholder="Select vehicle…" aria-label="Vehicle" />
           </div>
           <div style={{ flex: 1 }}>
             <label style={labelStyle}>Driver</label>
             <Combobox
               options={[{ value: '', label: '— None —' }, ...drivers.map(d => ({ value: d.id, label: d.name }))]}
-              value={driverId} onChange={setDriverId} placeholder="— None —"
-            />
+              value={driverId} onChange={setDriverId} placeholder="— None —" aria-label="Driver" />
           </div>
         </div>
         <div style={{ display: 'flex', gap: 10 }}>
-          <div style={{ flex: 1 }}><label style={labelStyle}>Liters</label><Input required type="number" step="0.01" value={liters} onChange={e => setLiters(e.target.value)} /></div>
-          <div style={{ flex: 1 }}><label style={labelStyle}>Cost</label><Input type="number" value={cost} onChange={e => setCost(e.target.value)} /></div>
+          <div style={{ flex: 1 }}><label style={labelStyle}>Liters</label><Input required type="number" step="0.01" value={liters} onChange={e => setLiters(e.target.value)} aria-label="Liters" /></div>
+          <div style={{ flex: 1 }}><label style={labelStyle}>Cost</label><Input type="number" value={cost} onChange={e => setCost(e.target.value)} aria-label="Cost" /></div>
         </div>
         <div style={{ display: 'flex', gap: 10 }}>
-          <div style={{ flex: 1 }}><label style={labelStyle}>Odometer (km)</label><Input type="number" value={odometer} onChange={e => setOdometer(e.target.value)} /></div>
-          <div style={{ flex: 1 }}><label style={labelStyle}>Station</label><Input value={station} onChange={e => setStation(e.target.value)} /></div>
+          <div style={{ flex: 1 }}><label style={labelStyle}>Odometer (km)</label><Input type="number" value={odometer} onChange={e => setOdometer(e.target.value)} aria-label="Odometer (km)" /></div>
+          <div style={{ flex: 1 }}><label style={labelStyle}>Station</label><Input value={station} onChange={e => setStation(e.target.value)} aria-label="Station" /></div>
         </div>
         {error && <div style={{ fontSize: 12, color: 'var(--red)' }}>{error}</div>}
         <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end', marginTop: 6 }}>

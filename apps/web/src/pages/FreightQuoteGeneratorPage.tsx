@@ -458,7 +458,7 @@ export function FreightQuoteGeneratorPage() {
                       CONTAINER / LOAD TYPE
                     </label>
                     <Select value={subMode} onValueChange={setSubMode}>
-                      <SelectTrigger>
+                      <SelectTrigger aria-label="CONTAINER / LOAD TYPE">
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
@@ -496,7 +496,7 @@ export function FreightQuoteGeneratorPage() {
                       HAULAGE TYPE
                     </label>
                     <Select value={subMode} onValueChange={setSubMode}>
-                      <SelectTrigger>
+                      <SelectTrigger aria-label="HAULAGE TYPE">
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
@@ -532,7 +532,7 @@ export function FreightQuoteGeneratorPage() {
                       AIR SERVICE LEVEL
                     </label>
                     <Select value={subMode} onValueChange={setSubMode}>
-                      <SelectTrigger>
+                      <SelectTrigger aria-label="AIR SERVICE LEVEL">
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
@@ -636,8 +636,7 @@ export function FreightQuoteGeneratorPage() {
                   <DatePicker
                     date={parseDateOnly(form.pickup_date)}
                     onChange={d => setForm(p => ({ ...p, pickup_date: d ? toDateOnlyString(d) : '' }))}
-                    placeholder="Select pickup date"
-                  />
+                    placeholder="Select pickup date" aria-label="Preferred Pickup Date" />
                 </div>
 
                 {/* Field 6: Cargo Type */}
@@ -700,8 +699,7 @@ export function FreightQuoteGeneratorPage() {
                     options={customers.map(c => ({ value: c.id, label: c.name }))}
                     value={form.customer_id}
                     onChange={v => setForm(p => ({ ...p, customer_id: v }))}
-                    placeholder="Search customer workspace to link quotation…"
-                  />
+                    placeholder="Search customer workspace to link quotation…" aria-label="Customer Account (Optional)" />
                 </div>
               )}
 

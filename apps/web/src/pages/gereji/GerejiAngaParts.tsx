@@ -112,11 +112,11 @@ export function GerejiAngaParts() {
           <DialogHeader><DialogTitle>New part</DialogTitle></DialogHeader>
           <DialogBody>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-              <div><label style={LABEL}>Part number</label><Input value={pn} onChange={e => setPn(e.target.value)} placeholder="e.g. ABC-123" /></div>
-              <div><label style={LABEL}>Description</label><Textarea value={description} onChange={e => setDescription(e.target.value)} rows={2} /></div>
+              <div><label style={LABEL}>Part number</label><Input value={pn} onChange={e => setPn(e.target.value)} placeholder="e.g. ABC-123" aria-label="Part number" /></div>
+              <div><label style={LABEL}>Description</label><Textarea value={description} onChange={e => setDescription(e.target.value)} rows={2} aria-label="Description" /></div>
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
-                <div><label style={LABEL}>Manufacturer</label><Input value={manufacturer} onChange={e => setManufacturer(e.target.value)} /></div>
-                <div><label style={LABEL}>ATA chapter</label><Input value={ataChapter} onChange={e => setAtaChapter(e.target.value)} /></div>
+                <div><label style={LABEL}>Manufacturer</label><Input value={manufacturer} onChange={e => setManufacturer(e.target.value)} aria-label="Manufacturer" /></div>
+                <div><label style={LABEL}>ATA chapter</label><Input value={ataChapter} onChange={e => setAtaChapter(e.target.value)} aria-label="ATA chapter" /></div>
               </div>
               <CheckboxRow title="Rotable (life-limited, tracked by TSN/CSN)" checked={rotable} onCheckedChange={setRotable} />
               <CheckboxRow title="Export controlled" checked={exportControlled} onCheckedChange={setExportControlled} />

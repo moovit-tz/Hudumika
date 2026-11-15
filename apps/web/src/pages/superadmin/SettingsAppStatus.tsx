@@ -2245,7 +2245,7 @@ export function AppStatusView() {
                 <span>All Systems Operational</span>
               </div>
             ) : (
-              <div style={{ display: 'inline-flex', alignItems: 'center', gap: 7, padding: '5px 12px', borderRadius: 'var(--r-sm)', background: '#fee2e2', border: '1px solid rgba(220, 38, 38, 0.3)', fontSize: 12.5, fontWeight: 700, color: 'var(--red)' }}>
+              <div style={{ display: 'inline-flex', alignItems: 'center', gap: 7, padding: '5px 12px', borderRadius: 'var(--r-sm)', background: 'var(--red-l)', border: '1px solid rgba(220, 38, 38, 0.3)', fontSize: 12.5, fontWeight: 700, color: 'var(--red)' }}>
                 <span className="as-maint-pulse-dot" />
                 <span>{maintenanceCount} App(s) In Maintenance</span>
               </div>

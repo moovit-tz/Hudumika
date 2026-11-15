@@ -236,7 +236,7 @@ export const TrackingNewVehicle: React.FC = () => {
                   <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
                     <div>
                       <label style={labelStyle}>In-Service Date</label>
-                      <DatePicker date={parseDateOnly(form.in_service_date)} onChange={d => handleChange('in_service_date', toDateOnlyString(d))} />
+                      <DatePicker date={parseDateOnly(form.in_service_date)} onChange={d => handleChange('in_service_date', toDateOnlyString(d))} aria-label="In-Service Date" />
                     </div>
                     <div>
                       <label style={labelStyle}>In-Service Odometer</label>
@@ -269,7 +269,7 @@ export const TrackingNewVehicle: React.FC = () => {
                   <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
                     <div>
                       <label style={labelStyle}>Out-of-Service Date</label>
-                      <DatePicker date={parseDateOnly(form.out_of_service_date)} onChange={d => handleChange('out_of_service_date', toDateOnlyString(d))} />
+                      <DatePicker date={parseDateOnly(form.out_of_service_date)} onChange={d => handleChange('out_of_service_date', toDateOnlyString(d))} aria-label="Out-of-Service Date" />
                     </div>
                     <div>
                       <label style={labelStyle}>Out-of-Service Odometer</label>
@@ -290,7 +290,7 @@ export const TrackingNewVehicle: React.FC = () => {
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
                   <div>
                     <label style={labelStyle}>Purchase Date</label>
-                    <DatePicker date={parseDateOnly(form.purchase_date)} onChange={d => handleChange('purchase_date', toDateOnlyString(d))} />
+                    <DatePicker date={parseDateOnly(form.purchase_date)} onChange={d => handleChange('purchase_date', toDateOnlyString(d))} aria-label="Purchase Date" />
                   </div>
                   <div>
                     <label style={labelStyle}>Purchase Price</label>

@@ -63,7 +63,7 @@ function AddReminderModal({ vehicles, drivers, onClose, onAdded }: {
             <div style={{ flex: 1 }}>
               <label style={labelStyle}>Type</label>
               <Select value={reminderType} onValueChange={setReminderType}>
-                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectTrigger aria-label="Type"><SelectValue /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="MAINTENANCE">MAINTENANCE</SelectItem>
                   <SelectItem value="DOCUMENT">DOCUMENT</SelectItem>
@@ -71,22 +71,20 @@ function AddReminderModal({ vehicles, drivers, onClose, onAdded }: {
                 </SelectContent>
               </Select>
             </div>
-            <div style={{ flex: 1 }}><label style={labelStyle}>Due date</label><DatePicker date={parseDateOnly(dueDate)} onChange={d => setDueDate(toDateOnlyString(d))} /></div>
+            <div style={{ flex: 1 }}><label style={labelStyle}>Due date</label><DatePicker date={parseDateOnly(dueDate)} onChange={d => setDueDate(toDateOnlyString(d))} aria-label="Due date" /></div>
           </div>
           <div style={{ display: 'flex', gap: 10 }}>
             <div style={{ flex: 1 }}>
               <label style={labelStyle}>Vehicle</label>
               <Combobox
                 options={[{ value: '', label: '— None —' }, ...vehicles.map(v => ({ value: v.id, label: v.name }))]}
-                value={vehicleId} onChange={setVehicleId} placeholder="— None —"
-              />
+                value={vehicleId} onChange={setVehicleId} placeholder="— None —" aria-label="Vehicle" />
             </div>
             <div style={{ flex: 1 }}>
               <label style={labelStyle}>Driver</label>
               <Combobox
                 options={[{ value: '', label: '— None —' }, ...drivers.map(d => ({ value: d.id, label: d.name }))]}
-                value={driverId} onChange={setDriverId} placeholder="— None —"
-              />
+                value={driverId} onChange={setDriverId} placeholder="— None —" aria-label="Driver" />
             </div>
           </div>
           <div><label htmlFor="trackingreminders-field-2" style={labelStyle}>Notes</label><Input id="trackingreminders-field-2" value={notes} onChange={e => setNotes(e.target.value)} /></div>

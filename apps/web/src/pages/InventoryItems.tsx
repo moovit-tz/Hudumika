@@ -150,38 +150,37 @@ export function InventoryItems() {
           <div className="inv-form-grid-3">
             <div className="inv-field-row">
               <label className="inv-field-label">SKU</label>
-              <Input type="text" value={newSku} onChange={e => setNewSku(e.target.value)} placeholder="SKU-0001" />
+              <Input type="text" value={newSku} onChange={e => setNewSku(e.target.value)} placeholder="SKU-0001" aria-label="SKU" />
             </div>
             <div className="inv-field-row" style={{ gridColumn: 'span 2' }}>
               <label className="inv-field-label">Name</label>
-              <Input type="text" value={newName} onChange={e => setNewName(e.target.value)} placeholder="e.g. 20L Cooking Oil Jerrycan" />
+              <Input type="text" value={newName} onChange={e => setNewName(e.target.value)} placeholder="e.g. 20L Cooking Oil Jerrycan" aria-label="Name" />
             </div>
             <div className="inv-field-row">
               <label className="inv-field-label">Type</label>
               <Select value={newItemType} onValueChange={setNewItemType}>
-                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectTrigger aria-label="Type"><SelectValue /></SelectTrigger>
                 <SelectContent>{ITEM_TYPES.map(t => <SelectItem key={t} value={t}>{t.replace(/_/g, ' ')}</SelectItem>)}</SelectContent>
               </Select>
             </div>
             <div className="inv-field-row">
               <label className="inv-field-label">Base Unit</label>
-              <Input type="text" value={newBaseUom} onChange={e => setNewBaseUom(e.target.value)} placeholder="each" />
+              <Input type="text" value={newBaseUom} onChange={e => setNewBaseUom(e.target.value)} placeholder="each" aria-label="Base Unit" />
             </div>
             <div className="inv-field-row">
               <label className="inv-field-label">Linked Product (optional)</label>
               <Combobox
                 options={products.map(p => ({ value: p.id, label: p.name, sublabel: p.code }))}
                 value={newProductId} onChange={setNewProductId}
-                placeholder="None" searchPlaceholder="Search catalog…" emptyText="No matching products."
-              />
+                placeholder="None" searchPlaceholder="Search catalog…" emptyText="No matching products." aria-label="Linked Product (optional)" />
             </div>
             <div className="inv-field-row">
               <label className="inv-field-label">Reorder Point</label>
-              <Input type="number" min="0" step="any" value={newReorderPoint} onChange={e => setNewReorderPoint(e.target.value)} placeholder="0" />
+              <Input type="number" min="0" step="any" value={newReorderPoint} onChange={e => setNewReorderPoint(e.target.value)} placeholder="0" aria-label="Reorder Point" />
             </div>
             <div className="inv-field-row">
               <label className="inv-field-label">Reorder Qty</label>
-              <Input type="number" min="0" step="any" value={newReorderQty} onChange={e => setNewReorderQty(e.target.value)} placeholder="0" />
+              <Input type="number" min="0" step="any" value={newReorderQty} onChange={e => setNewReorderQty(e.target.value)} placeholder="0" aria-label="Reorder Qty" />
             </div>
             <label style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 13, fontWeight: 600, color: 'var(--ink2)', cursor: 'pointer' }}>
               <Checkbox checked={newBatchTracked} onCheckedChange={c => setNewBatchTracked(c === true)} />

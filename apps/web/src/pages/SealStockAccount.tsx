@@ -109,7 +109,7 @@ export function SealStockAccount() {
         crumbs={['SEAL', 'Stock Account']}
         titlePlain="Stock"
         titleEm="account"
-        subtitle="The periodic compliance report — opening/closing balances per lot, reconstructed from the movement ledger, never hand-entered."
+        subtitle="View opening and closing balances by lot from the movement ledger."
         actions={
           <Button onClick={() => setShowNew(v => !v)}>
             <Icon name="plus" size={14} /><span>Generate Period</span>
@@ -124,17 +124,17 @@ export function SealStockAccount() {
             <div className="seal-field-row">
               <label className="seal-field-label">Compartment</label>
               <Select value={newCompartmentId} onValueChange={setNewCompartmentId}>
-                <SelectTrigger className="w-full"><SelectValue placeholder="Choose a compartment" /></SelectTrigger>
+                <SelectTrigger className="w-full" aria-label="Compartment"><SelectValue placeholder="Choose a compartment" /></SelectTrigger>
                 <SelectContent>{compartments.map(c => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}</SelectContent>
               </Select>
             </div>
             <div className="seal-field-row">
               <label className="seal-field-label">Period Start</label>
-              <DatePicker date={periodStart} onChange={setPeriodStart} />
+              <DatePicker date={periodStart} onChange={setPeriodStart} aria-label="Period Start" />
             </div>
             <div className="seal-field-row">
               <label className="seal-field-label">Period End</label>
-              <DatePicker date={periodEnd} onChange={setPeriodEnd} />
+              <DatePicker date={periodEnd} onChange={setPeriodEnd} aria-label="Period End" />
             </div>
           </div>
           <div style={{ padding: '0 20px 20px', display: 'flex', gap: 10 }}>
