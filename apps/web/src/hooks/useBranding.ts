@@ -147,6 +147,8 @@ export interface AppBrandingConfig {
   slogan?: string;
   color?: string;
   logo?: string;
+  /** Content hash of the stored logo, so icon URLs only change when the logo does. */
+  logoVersion?: string;
 }
 
 /**
@@ -159,6 +161,7 @@ export async function pushBranding(state: Partial<BrandingState> & { apps?: Reco
     method: 'PUT',
     body: JSON.stringify(state),
   });
+  invalidateBrandingCache();
 }
 
 /**
@@ -169,6 +172,7 @@ export async function pushTenantBranding(
   state: Record<string, unknown> & { apps?: Record<string, { color?: string }> },
 ): Promise<void> {
   await apiFetch('/v1/settings/branding', { method: 'PUT', body: JSON.stringify(state) });
+  invalidateBrandingCache();
   // The same event the SuperAdmin view fires, so every mounted useBranding
   // re-reads without a reload.
   window.dispatchEvent(new Event('hudumika-brand-updated'));
@@ -198,9 +202,111 @@ export async function pushTenantBranding(
  * what stops a SuperAdmin's own hub header/favicon from showing whatever
  * logo the one tenant their account happens to sit under has uploaded.
  */
+
+/**
+ * One branding request shared by every mounted useBranding().
+ *
+ * Forty components call useBranding(), and each used to fetch both branding
+ * endpoints on mount — six platform and six tenant requests on one cold page
+ * load (perf audit 2026-11-16). These share one in-flight request per kind and
+ * reuse it for BRANDING_TTL_MS; a save in this tab clears it (pushBranding,
+ * pushTenantBranding), and other sessions pick changes up on their next fetch.
+ * The tenant entry is keyed by tenant and user, and a response that lands after
+ * the session moved to another workspace is dropped instead of written.
+ */
+const BRANDING_TTL_MS = 5 * 60_000;
+let platformSync: { at: number; done: Promise<void> } | null = null;
+let tenantSync: { key: string; at: number; done: Promise<void> } | null = null;
+
+export function invalidateBrandingCache(): void {
+  platformSync = null;
+  tenantSync = null;
+}
+
+function syncPlatformBranding(): Promise<void> {
+  if (platformSync && Date.now() - platformSync.at < BRANDING_TTL_MS) return platformSync.done;
+  const done = apiFetch('/v1/platform/branding').then((data: any) => {
+    if (!data) return;
+    if (data.platformName) localStorage.setItem('hudumika_platform_name', data.platformName);
+    if (data.platformTagline) localStorage.setItem('hudumika_platform_tagline', data.platformTagline);
+    try { if (data.logoLight) localStorage.setItem('hudumika_brand_logo_light', data.logoLight); } catch {}
+    for (const [field, key] of [['logoVerticalLight', 'hudumika_brand_logo_vertical_light'], ['logoVerticalDark', 'hudumika_brand_logo_vertical_dark']]) {
+      try { if (data[field]) localStorage.setItem(key, data[field]); else localStorage.removeItem(key); } catch {}
+    }
+    try { if (data.logoDark) localStorage.setItem('hudumika_brand_logo_dark', data.logoDark); } catch {}
+    try { if (data.favicon) localStorage.setItem('hudumika_brand_favicon', data.favicon); } catch {}
+    if (data.loginHeadline) localStorage.setItem('hudumika_login_headline', data.loginHeadline);
+    if (data.loginSubtext) localStorage.setItem('hudumika_login_subtext', data.loginSubtext);
+    if (data.loginBgStyle) localStorage.setItem('hudumika_login_bg', data.loginBgStyle);
+    if (data.supportEmail) localStorage.setItem('hudumika_support_email', data.supportEmail);
+    // Only update hudumika_email_accent from the API if it hasn't been
+    // explicitly set to something different via the Identity section — the
+    // Identity "Accent Color" field is an intentional per-tenant override of
+    // brand.primary, and the two are kept in sync by BrandingView's saveIdentity.
+    if (data.accentColor) {
+      const existing = localStorage.getItem('hudumika_email_accent');
+      if (!existing || existing.toLowerCase() === '#0b1e3a') {
+        localStorage.setItem('hudumika_email_accent', data.accentColor);
+      }
+    }
+
+    if (data.apps) {
+      for (const [appId, cfg] of Object.entries(data.apps as Record<string, AppBrandingConfig>)) {
+        if (cfg.name)   try { localStorage.setItem(`hudumika_app_name_${appId}`, cfg.name); } catch {}
+        if (cfg.slogan) try { localStorage.setItem(`hudumika_app_slogan_${appId}`, cfg.slogan); } catch {}
+        if (cfg.color)  try { localStorage.setItem(`hudumika_app_color_${appId}`, cfg.color); } catch {}
+        // Store a timestamp token so getAppLogo() returns the API URL, rather
+        // than writing raw base64 bytes into localStorage (blows the ~5 MB quota).
+        if (cfg.logo) {
+          // The server's content hash keeps the icon URL stable (cacheable) until the
+          // logo actually changes; a per-fetch Date.now() re-downloaded every icon
+          // on every page load. Older servers send no version: keep the token we have.
+          const version = cfg.logoVersion ?? localStorage.getItem(`hudumika_app_logo_ts_${appId}`) ?? String(Date.now());
+          try { localStorage.setItem(`hudumika_app_logo_ts_${appId}`, version); } catch {}
+        } else if (cfg.logo === null || cfg.logo === '') {
+          localStorage.removeItem(`hudumika_app_logo_ts_${appId}`);
+        }
+        // Clean up any stale base64 blob written by an older build.
+        localStorage.removeItem(`hudumika_app_logo_${appId}`);
+      }
+    }
+  }).catch(() => { platformSync = null; });
+  platformSync = { at: Date.now(), done };
+  return done;
+}
+
+function syncTenantBranding(key: string): Promise<void> {
+  if (tenantSync && tenantSync.key === key && Date.now() - tenantSync.at < BRANDING_TTL_MS) return tenantSync.done;
+  const done = apiFetch('/v1/settings/branding').then((t: any) => {
+    if (tenantSync?.key !== key) return; // the session changed workspace mid-flight
+    if (!t || typeof t !== 'object') return;
+    const put = (key: string, value: unknown) => {
+      if (value) localStorage.setItem(key, String(value));
+      else localStorage.removeItem(key);
+    };
+    put('hudumika_tenant_name', t.workspaceName);
+    put('hudumika_tenant_logo_light', t.logoLight);
+    put('hudumika_tenant_logo_dark', t.logoDark);
+    put('hudumika_tenant_logo_vertical_light', t.logoVerticalLight);
+    put('hudumika_tenant_logo_vertical_dark', t.logoVerticalDark);
+    put('hudumika_tenant_favicon', t.favicon);
+    put('hudumika_tenant_accent', t.accentColor);
+    for (const [appId, cfg] of Object.entries((t.apps ?? {}) as Record<string, { color?: string }>)) {
+      put(`hudumika_tenant_app_color_${appId}`, cfg?.color);
+    }
+  }).catch(() => {
+    // A workspace with no branding of its own is the ordinary case, and an
+    // unreachable API must not blank the platform's.
+    if (tenantSync?.key === key) tenantSync = null;
+  });
+  tenantSync = { key, at: Date.now(), done };
+  return done;
+}
+
 export function useBranding(platformOnly = false): BrandingState {
   const { user } = useAuth();
   const effectivePlatformOnly = platformOnly || user?.role === 'SUPER_ADMIN';
+  const tenantKey = user ? `${(user as any).tenant_id ?? ''}:${user.id}` : '';
   const [state, setState] = useState<BrandingState>(() => readBranding(effectivePlatformOnly));
 
   useEffect(() => {
@@ -222,52 +328,11 @@ export function useBranding(platformOnly = false): BrandingState {
     };
     window.addEventListener('storage', storageHandler);
 
-    // Fetch initial from API (the real, shared source of truth) and populate localStorage,
-    // which useBranding's getters read from for fast, synchronous access.
-    apiFetch('/v1/platform/branding').then((data: any) => {
-      if (!data) return;
-      if (data.platformName) localStorage.setItem('hudumika_platform_name', data.platformName);
-      if (data.platformTagline) localStorage.setItem('hudumika_platform_tagline', data.platformTagline);
-      try { if (data.logoLight) localStorage.setItem('hudumika_brand_logo_light', data.logoLight); } catch {}
-      for (const [field, key] of [['logoVerticalLight', 'hudumika_brand_logo_vertical_light'], ['logoVerticalDark', 'hudumika_brand_logo_vertical_dark']]) {
-        try { if (data[field]) localStorage.setItem(key, data[field]); else localStorage.removeItem(key); } catch {}
-      }
-      try { if (data.logoDark) localStorage.setItem('hudumika_brand_logo_dark', data.logoDark); } catch {}
-      try { if (data.favicon) localStorage.setItem('hudumika_brand_favicon', data.favicon); } catch {}
-      if (data.loginHeadline) localStorage.setItem('hudumika_login_headline', data.loginHeadline);
-      if (data.loginSubtext) localStorage.setItem('hudumika_login_subtext', data.loginSubtext);
-      if (data.loginBgStyle) localStorage.setItem('hudumika_login_bg', data.loginBgStyle);
-      if (data.supportEmail) localStorage.setItem('hudumika_support_email', data.supportEmail);
-      // Only update hudumika_email_accent from the API if it hasn't been
-      // explicitly set to something different via the Identity section — the
-      // Identity "Accent Color" field is an intentional per-tenant override of
-      // brand.primary, and the two are kept in sync by BrandingView's saveIdentity.
-      if (data.accentColor) {
-        const existing = localStorage.getItem('hudumika_email_accent');
-        if (!existing || existing.toLowerCase() === '#0b1e3a') {
-          localStorage.setItem('hudumika_email_accent', data.accentColor);
-        }
-      }
-
-      if (data.apps) {
-        for (const [appId, cfg] of Object.entries(data.apps as Record<string, AppBrandingConfig>)) {
-          if (cfg.name)   try { localStorage.setItem(`hudumika_app_name_${appId}`, cfg.name); } catch {}
-          if (cfg.slogan) try { localStorage.setItem(`hudumika_app_slogan_${appId}`, cfg.slogan); } catch {}
-          if (cfg.color)  try { localStorage.setItem(`hudumika_app_color_${appId}`, cfg.color); } catch {}
-          // Store a timestamp token so getAppLogo() returns the API URL, rather
-          // than writing raw base64 bytes into localStorage (blows the ~5 MB quota).
-          if (cfg.logo) {
-            try { localStorage.setItem(`hudumika_app_logo_ts_${appId}`, String(Date.now())); } catch {}
-          } else if (cfg.logo === null || cfg.logo === '') {
-            localStorage.removeItem(`hudumika_app_logo_ts_${appId}`);
-          }
-          // Clean up any stale base64 blob written by an older build.
-          localStorage.removeItem(`hudumika_app_logo_${appId}`);
-        }
-      }
-
-      handler(); // Triggers UI update
-    }).catch(() => {});
+    // Populate localStorage from the API (the shared source of truth), which
+    // useBranding's getters read synchronously. One request per kind is shared
+    // by every mounted instance — see syncPlatformBranding above.
+    let live = true;
+    syncPlatformBranding().then(() => { if (live) handler(); });
 
     /**
      * The workspace's own branding, layered on top — skipped entirely for a
@@ -285,36 +350,17 @@ export function useBranding(platformOnly = false): BrandingState {
      * platform's rather than to nothing. Fetched separately because the platform
      * call above is public and this one needs a session.
      */
-    if (!effectivePlatformOnly) {
-      apiFetch('/v1/settings/branding').then((t: any) => {
-        if (!t || typeof t !== 'object') return;
-        const put = (key: string, value: unknown) => {
-          if (value) localStorage.setItem(key, String(value));
-          else localStorage.removeItem(key);
-        };
-        put('hudumika_tenant_name', t.workspaceName);
-        put('hudumika_tenant_logo_light', t.logoLight);
-        put('hudumika_tenant_logo_dark', t.logoDark);
-        put('hudumika_tenant_logo_vertical_light', t.logoVerticalLight);
-        put('hudumika_tenant_logo_vertical_dark', t.logoVerticalDark);
-        put('hudumika_tenant_favicon', t.favicon);
-        put('hudumika_tenant_accent', t.accentColor);
-        for (const [appId, cfg] of Object.entries((t.apps ?? {}) as Record<string, { color?: string }>)) {
-          put(`hudumika_tenant_app_color_${appId}`, cfg?.color);
-        }
-        handler();
-      }).catch(() => {
-        // A workspace with no branding of its own is the ordinary case, and an
-        // unreachable API must not blank the platform's.
-      });
+    if (!effectivePlatformOnly && tenantKey) {
+      syncTenantBranding(tenantKey).then(() => { if (live) handler(); });
     }
 
     return () => {
+      live = false;
       window.removeEventListener('hudumika-brand-updated', handler);
       window.removeEventListener('storage', storageHandler);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [effectivePlatformOnly]);
+  }, [effectivePlatformOnly, tenantKey]);
 
   return state;
 }

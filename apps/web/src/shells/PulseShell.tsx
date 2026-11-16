@@ -1,4 +1,6 @@
+import React from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
+import { lazyPage } from '../lib/lazyPage.js';
 import { WorkspaceApp } from './WorkspaceApp.js';
 import { GoogleWorkspaceRightSidebar } from '../components/GoogleWorkspaceRightSidebar.js';
 import { AppSidebar } from '../components/AppSidebar.js';
@@ -10,19 +12,31 @@ import { Icon } from '../components/Icon.js';
 import { roleCanOpenApp } from '../components/LauncherApps.js';
 import '../pages/pulse/Pulse.css';
 
-import { PulseOverview } from '../pages/pulse/PulseOverview.js';
-import { PulseAudiences, PulseAudienceDetail } from '../pages/pulse/PulseAudiences.js';
-import { PulseSegmentEditor } from '../pages/pulse/PulseSegmentEditor.js';
-import { PulseConsents } from '../pages/pulse/PulseConsents.js';
-import { PulseCampaigns } from '../pages/pulse/PulseCampaigns.js';
-import { PulseCampaignNew, PulseCampaignEditor } from '../pages/pulse/PulseCampaignEditor.js';
-import { PulseCampaignReport } from '../pages/pulse/PulseCampaignReport.js';
-import { PulseJourneys, PulseJourneyNew } from '../pages/pulse/PulseJourneys.js';
-import { PulseJourneyBuilder } from '../pages/pulse/PulseJourneyBuilder.js';
-import { PulseForms, PulseFormDetail, PulseAttribution, PulseLinkBuilder } from '../pages/pulse/PulseForms.js';
-import { PulseSocial, PulseSocialComposer, PulseSocialCallback } from '../pages/pulse/PulseSocial.js';
-import { PulseAds, PulseAdsCallback } from '../pages/pulse/PulseAds.js';
-import { PulseAccounts, PulseAccountDetail } from '../pages/pulse/PulseAccounts.js';
+// Each page loads when its route is opened (perf audit 2026-11-16).
+const PulseOverview = lazyPage(() => import('../pages/pulse/PulseOverview.js'), 'PulseOverview');
+const PulseAudiences = lazyPage(() => import('../pages/pulse/PulseAudiences.js'), 'PulseAudiences');
+const PulseAudienceDetail = lazyPage(() => import('../pages/pulse/PulseAudiences.js'), 'PulseAudienceDetail');
+const PulseSegmentEditor = lazyPage(() => import('../pages/pulse/PulseSegmentEditor.js'), 'PulseSegmentEditor');
+const PulseConsents = lazyPage(() => import('../pages/pulse/PulseConsents.js'), 'PulseConsents');
+const PulseCampaigns = lazyPage(() => import('../pages/pulse/PulseCampaigns.js'), 'PulseCampaigns');
+const PulseCampaignNew = lazyPage(() => import('../pages/pulse/PulseCampaignEditor.js'), 'PulseCampaignNew');
+const PulseCampaignEditor = lazyPage(() => import('../pages/pulse/PulseCampaignEditor.js'), 'PulseCampaignEditor');
+const PulseCampaignReport = lazyPage(() => import('../pages/pulse/PulseCampaignReport.js'), 'PulseCampaignReport');
+const PulseJourneys = lazyPage(() => import('../pages/pulse/PulseJourneys.js'), 'PulseJourneys');
+const PulseJourneyNew = lazyPage(() => import('../pages/pulse/PulseJourneys.js'), 'PulseJourneyNew');
+const PulseJourneyBuilder = lazyPage(() => import('../pages/pulse/PulseJourneyBuilder.js'), 'PulseJourneyBuilder');
+const PulseForms = lazyPage(() => import('../pages/pulse/PulseForms.js'), 'PulseForms');
+const PulseFormDetail = lazyPage(() => import('../pages/pulse/PulseForms.js'), 'PulseFormDetail');
+const PulseAttribution = lazyPage(() => import('../pages/pulse/PulseForms.js'), 'PulseAttribution');
+const PulseLinkBuilder = lazyPage(() => import('../pages/pulse/PulseForms.js'), 'PulseLinkBuilder');
+const PulseSocial = lazyPage(() => import('../pages/pulse/PulseSocial.js'), 'PulseSocial');
+const PulseSocialComposer = lazyPage(() => import('../pages/pulse/PulseSocial.js'), 'PulseSocialComposer');
+const PulseSocialCallback = lazyPage(() => import('../pages/pulse/PulseSocial.js'), 'PulseSocialCallback');
+const PulseAds = lazyPage(() => import('../pages/pulse/PulseAds.js'), 'PulseAds');
+const PulseAdsCallback = lazyPage(() => import('../pages/pulse/PulseAds.js'), 'PulseAdsCallback');
+const PulseAccounts = lazyPage(() => import('../pages/pulse/PulseAccounts.js'), 'PulseAccounts');
+const PulseAccountDetail = lazyPage(() => import('../pages/pulse/PulseAccounts.js'), 'PulseAccountDetail');
+
 
 const NAV: SidebarSection[] = [
   { items: [{ label: 'Overview', icon: 'activity', path: '/pulse', exact: true }] },

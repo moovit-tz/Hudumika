@@ -1,5 +1,4 @@
 import { FinanceRoutedPage } from '../components/FinanceRoutedPage.js';
-import { FinanceDocumentPreview } from '../pages/FinanceDocumentPreview.js';
 import React from 'react';
 import { Routes, Route, Navigate, Link, useLocation, useNavigate } from 'react-router-dom';
 import '../pages/FinOps.css';
@@ -24,6 +23,9 @@ import { SectionLoading } from '../components/ui/spinner.js';
 const L = (load: () => Promise<Record<string, any>>, name: string) =>
   React.lazy(() => load().then(m => ({ default: m[name] })));
 
+// The PDF preview pulls in the PDF renderer (~356 KB); load it with its route,
+// not with every FinOps page (perf audit 2026-11-16).
+const FinanceDocumentPreview = L(() => import('../pages/FinanceDocumentPreview.js'), 'FinanceDocumentPreview');
 const FinanceIndustries = L(() => import('../pages/FinanceIndustries.js'), 'FinanceIndustries');
 const FinanceIndustryWorkspace = L(() => import('../pages/FinanceIndustries.js'), 'FinanceIndustryWorkspace');
 const FinanceIndustryNew = L(() => import('../pages/FinanceIndustries.js'), 'FinanceIndustryNew');

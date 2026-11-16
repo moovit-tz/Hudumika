@@ -1,3 +1,4 @@
+import { sql } from 'kysely';
 import { dbPlatform } from '../db/client.js';
 import { decryptSecret, encryptSecret, MASKED_VALUE } from '../services/onsite-secrets.service.js';
 import { AI_PROVIDER_CONFIG, AI_PROVIDERS, detectAiProvider, type AiProvider } from './ai-providers.js';
@@ -25,20 +26,73 @@ const GLOBAL_TENANT_ID = '00000000-0000-0000-0000-000000000000';
 const CACHE_MS = 30_000;
 
 let cache: { at: number; settings: Record<string, any> } | null = null;
+let loading: Promise<Record<string, any>> | null = null;
+let generation = 0;
 
+/**
+ * The platform settings row, with each app logo's bytes replaced by its icon
+ * URL and a short content hash (perf audit 2026-11-16).
+ *
+ * SuperAdmin branding stores every app's logo as a base64 data URI in this
+ * row (~9 MB in dev). Postgres keeps the jsonb as one compressed TOAST value,
+ * so even `settings -> 'one-key'` reads and decompresses all of it — and this
+ * row was read on every authenticated request (the maintenance gate) and by
+ * several public endpoints every page calls. One stripped snapshot, shared by
+ * concurrent callers and cached for CACHE_MS, replaces all of those reads.
+ * Logo bytes are still served, from Postgres, by /branding/app-icon/:appId.
+ */
 async function readRaw(): Promise<Record<string, any>> {
   if (cache && Date.now() - cache.at < CACHE_MS) return cache.settings;
-  const row = await dbPlatform.selectFrom('tenant_settings').select('settings')
-    .where('tenant_id', '=', GLOBAL_TENANT_ID).executeTakeFirst();
-  const settings = row ? (typeof row.settings === 'string' ? JSON.parse(row.settings) : row.settings) : {};
-  cache = { at: Date.now(), settings };
-  return settings;
+  if (loading) return loading;
+  const gen = generation;
+  const load = sql<{ settings: Record<string, any> | null }>`
+    SELECT (settings - 'branding'::text) || CASE WHEN jsonb_typeof(settings->'branding') = 'object' THEN jsonb_build_object('branding',
+        ((settings->'branding') - 'apps'::text) || CASE WHEN jsonb_typeof(settings->'branding'->'apps') = 'object' THEN jsonb_build_object('apps', coalesce((
+          SELECT jsonb_object_agg(k, CASE
+              WHEN jsonb_typeof(v) = 'object' AND coalesce(v->>'logo', '') LIKE 'data:%'
+                THEN (v - 'logo'::text) || jsonb_build_object('logo', '/v1/platform/branding/app-icon/' || k, 'logoVersion', left(md5(v->>'logo'), 12))
+              WHEN jsonb_typeof(v) = 'object' AND coalesce(v->>'logo', '') <> ''
+                THEN v || jsonb_build_object('logoVersion', left(md5(v->>'logo'), 12))
+              ELSE v END)
+          FROM jsonb_each(settings->'branding'->'apps') AS e(k, v)), '{}'::jsonb)) ELSE '{}'::jsonb END)
+      ELSE '{}'::jsonb END AS settings
+    -- Parenthesise every '->' before a '-': Postgres binds '-' tighter, so
+    -- settings->'branding' - 'apps' would parse as settings->('branding' - 'apps').
+    FROM (SELECT settings::jsonb AS settings FROM tenant_settings WHERE tenant_id = ${GLOBAL_TENANT_ID}) t`
+    .execute(dbPlatform)
+    .then(res => {
+      const raw = res.rows[0]?.settings ?? {};
+      const settings = typeof raw === 'string' ? JSON.parse(raw) : raw;
+      if (gen === generation) cache = { at: Date.now(), settings };
+      return settings;
+    })
+    .finally(() => { if (loading === load) loading = null; });
+  loading = load;
+  return load;
+}
+
+/** One top-level key of the platform settings, from the shared snapshot. */
+export async function readGlobalSettingKey<T = any>(key: string): Promise<T | undefined> {
+  return (await readRaw())[key] as T | undefined;
+}
+
+/** Public platform branding without logo bytes (see readRaw). */
+export async function getPublicPlatformBranding(): Promise<Record<string, any>> {
+  return (await readRaw()).branding || {};
+}
+
+/** SuperAdmin's platform-wide maintenance switch. Served from the 30 s cache
+ *  above, which the SuperAdmin settings save invalidates immediately. */
+export async function isPlatformInMaintenance(): Promise<boolean> {
+  return (await readRaw()).maintenance === true;
 }
 
 /** Call right after POST /v1/superadmin/settings writes a new value, so the
  *  very next request sees it instead of waiting out the cache window. */
 export function invalidatePlatformSettingsCache(): void {
   cache = null;
+  loading = null;
+  generation++;
 }
 
 function splitList(value: unknown): string[] {

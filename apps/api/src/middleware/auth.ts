@@ -1,3 +1,4 @@
+import { sql } from 'kysely';
 import { loginEmail } from '../lib/login-email.js';
 import type { FastifyRequest, FastifyReply, FastifyInstance } from 'fastify';
 import type { JWTPayload } from '@hudumika/types';
@@ -5,7 +6,7 @@ import { createHash } from 'crypto';
 import { dbPlatform, withTenant } from '../db/client.js';
 import { isMeteredPath, checkUsageLimit } from '../lib/usage.js';
 import { verifyCsrf } from './csrf.js';
-import { getPlatformSecuritySettings, ipMatchesAllowlist } from '../lib/platform-settings.js';
+import { getPlatformSecuritySettings, ipMatchesAllowlist, isPlatformInMaintenance } from '../lib/platform-settings.js';
 import { verifyJwt, issuerUrl } from '../lib/oidc.js';
 import { isOauthAccessTokenRevoked } from '../routes/ondi-oauth.routes.js';
 import { oauthOperationForRequest, oauthResourceForPath } from '../lib/ondi-oauth-access.js';
@@ -87,8 +88,6 @@ export function hashApiKey(rawKey: string): string {
   return createHash('sha256').update(rawKey).digest('hex');
 }
 
-const GLOBAL_TENANT_ID = '00000000-0000-0000-0000-000000000000';
-
 /** Blocks the request with 503 when Platform Settings ▸ Maintenance Mode is
  *  on — the same app_status/SUPER_ADMIN-bypass shape entitlement.ts's
  *  checkEntitlement() already applies per-app (line ~68-74), generalized to
@@ -99,11 +98,12 @@ const GLOBAL_TENANT_ID = '00000000-0000-0000-0000-000000000000';
  *  at login), they're naturally exempt without any route-prefix allowlist. */
 async function enforceMaintenanceGate(request: FastifyRequest, reply: FastifyReply): Promise<boolean> {
   if (request.user.role === 'SUPER_ADMIN') return false;
-  const row = await dbPlatform.selectFrom('tenant_settings').select('settings')
-    .where('tenant_id', '=', GLOBAL_TENANT_ID).executeTakeFirst();
-  if (!row) return false;
-  const settings = typeof row.settings === 'string' ? JSON.parse(row.settings) : row.settings;
-  if (settings?.maintenance === true) {
+  // Runs on every authenticated request. It used to read and parse the whole
+  // platform settings row — ~9 MB, because SuperAdmin branding stores every
+  // app's logo there — uncached, adding most of a second to each API call
+  // (perf audit 2026-11-16). The cached read is invalidated by the SuperAdmin
+  // settings save that flips this switch.
+  if (await isPlatformInMaintenance()) {
     reply.status(503).send({ error: 'Hudumika is temporarily down for maintenance. Please check back shortly.', code: 'PLATFORM_MAINTENANCE' });
     return true;
   }
@@ -384,9 +384,12 @@ export const authPlugin = fp(async (fastify: FastifyInstance) => {
       // "now". A tenant with no policy configured enforces nothing (the
       // untouched default), same as before this existed.
       if (device?.last_used_at) {
-        const settingsRow = await dbPlatform.selectFrom('tenant_settings').select('settings')
+        // Only the policy key: the tenant's settings row also carries its
+        // base64 logos and favicon, which this per-request check never needs.
+        const settingsRow = await dbPlatform.selectFrom('tenant_settings')
+          .select(sql<any>`settings -> 'sessionPolicy'`.as('sessionPolicy'))
           .where('tenant_id', '=', request.user.tenant_id).executeTakeFirst();
-        const settings = settingsRow ? (typeof settingsRow.settings === 'string' ? JSON.parse(settingsRow.settings) : settingsRow.settings) : null;
+        const settings = settingsRow ? { sessionPolicy: settingsRow.sessionPolicy } : null;
         // A tenant's own policy wins when set; otherwise fall back to
         // SuperAdmin ▸ Settings ▸ Security & Sessions' platform-wide default
         // (also previously saved and never read) — same "untouched default

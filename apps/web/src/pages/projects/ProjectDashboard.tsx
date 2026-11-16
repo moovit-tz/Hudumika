@@ -1,11 +1,11 @@
-import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { useCanCreateProjects } from './projectPowers.js';
 import { useNavigate, Link } from 'react-router-dom';
 import { Icon } from '../../components/Icon.js';
 import { Badge } from '../../components/ui/badge.js';
 import { Button } from '../../components/ui/button.js';
 import { SectionCard } from '../../components/SectionCard.js';
-import { SectionLoading } from '../../components/ui/spinner.js';
+import { SectionLoading, Spinner } from '../../components/ui/spinner.js';
 import { PageHeader } from '../../components/PageHeader.js';
 import { PersonAvatar } from '../../components/PersonAvatar.js';
 import { FeaturedIcon } from '../../components/ui/featured-icon.js';
@@ -90,6 +90,11 @@ export const ProjectDashboard: React.FC = () => {
 
   const [projects, setProjects] = useState<DashProject[]>([]);
   const [metrics, setMetrics] = useState<CommandMetrics | null>(null);
+  const [metricsState, setMetricsState] = useState<'loading' | 'ready' | 'error'>('loading');
+  // Each load bumps its counter; a response for an older load (a refresh, or
+  // the page unmounting mid-flight) is dropped instead of overwriting newer data.
+  const projectsSeq = useRef(0);
+  const metricsSeq = useRef(0);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [loadError, setLoadError] = useState('');
@@ -116,46 +121,53 @@ export const ProjectDashboard: React.FC = () => {
   const [creating, setCreating] = useState(false);
   const [createError, setCreateError] = useState('');
 
-  const loadData = useCallback(async (isRefresh = false) => {
-    if (isRefresh) setRefreshing(true);
-    else setLoading(true);
-    setLoadError('');
-
+  // The portfolio indices (CPI/SPI) load on their own: they only fill two chips
+  // in the radar header, so the project list no longer waits for them.
+  const loadMetrics = useCallback(async () => {
+    const mine = ++metricsSeq.current;
+    setMetricsState('loading');
     try {
-      const [projRes, metricRes] = await Promise.allSettled([
-        apiFetch('/v1/tasks/projects'),
-        apiFetch('/v1/project-os/command-center'),
-      ]);
-
-      if (projRes.status === 'fulfilled') {
-        const raw = projRes.value;
-        const data = Array.isArray(raw.data) ? raw.data : (Array.isArray(raw) ? raw : []);
-        setProjects(data.map((row: any) => ({
-          ...row,
-          health_status: healthOf(row.health_status),
-          baseline_budget: Number(row.baseline_budget || row.current_budget || 0),
-          actual_cost: Number(row.actual_cost || 0),
-          contract_value: Number(row.contract_value || 0),
-          progress_pct: Number(row.progress_pct || 0),
-        })));
-      } else {
-        throw projRes.reason;
-      }
-
-      if (metricRes.status === 'fulfilled') {
-        const m = metricRes.value;
-        setMetrics(m.data || m);
-      }
-    } catch (err: any) {
-      setLoadError(err.message || 'Unable to load project portfolio');
-    } finally {
-      setLoading(false);
-      setRefreshing(false);
+      const m = await apiFetch('/v1/project-os/command-center');
+      if (mine !== metricsSeq.current) return;
+      setMetrics(m.data || m);
+      setMetricsState('ready');
+    } catch {
+      if (mine === metricsSeq.current) setMetricsState('error');
     }
   }, []);
 
+  const loadData = useCallback(async (isRefresh = false) => {
+    const mine = ++projectsSeq.current;
+    if (isRefresh) setRefreshing(true);
+    else setLoading(true);
+    setLoadError('');
+    void loadMetrics();
+
+    try {
+      const raw = await apiFetch('/v1/tasks/projects');
+      if (mine !== projectsSeq.current) return;
+      const data = Array.isArray(raw.data) ? raw.data : (Array.isArray(raw) ? raw : []);
+      setProjects(data.map((row: any) => ({
+        ...row,
+        health_status: healthOf(row.health_status),
+        baseline_budget: Number(row.baseline_budget || row.current_budget || 0),
+        actual_cost: Number(row.actual_cost || 0),
+        contract_value: Number(row.contract_value || 0),
+        progress_pct: Number(row.progress_pct || 0),
+      })));
+    } catch (err: any) {
+      if (mine === projectsSeq.current) setLoadError(err.message || 'Unable to load project portfolio');
+    } finally {
+      if (mine === projectsSeq.current) {
+        setLoading(false);
+        setRefreshing(false);
+      }
+    }
+  }, [loadMetrics]);
+
   useEffect(() => {
     void loadData();
+    return () => { projectsSeq.current++; metricsSeq.current++; };
   }, [loadData]);
 
   // Computed metrics across portfolio
@@ -442,7 +454,18 @@ export const ProjectDashboard: React.FC = () => {
             </div>
           </div>
 
-          <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
+          <div style={{ display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap' }}>
+            {metricsState === 'loading' && !metrics && (
+              <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 12, color: 'var(--ink3)' }}>
+                <Spinner size={12} /> Loading indices
+              </span>
+            )}
+            {metricsState === 'error' && (
+              <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 12, color: 'var(--ink3)' }}>
+                Cost and schedule indices unavailable
+                <Button variant="outline" size="sm" onClick={() => void loadMetrics()}>Retry</Button>
+              </span>
+            )}
             {metrics?.portfolio_cpi != null && Number.isFinite(metrics.portfolio_cpi) && (
               <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, background: 'var(--bg)', padding: '4px 10px', borderRadius: 'var(--r-sm)' }}>
                 <span style={{ color: 'var(--ink3)', fontWeight: 600 }}>Cost CPI:</span>

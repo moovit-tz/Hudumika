@@ -61,13 +61,19 @@ export function PulseOverview() {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
+    // Switching the period quickly used to let an older, slower response land
+    // last and show the wrong period's figures under the new label.
+    let live = true;
     setData(null);
+    setError(null);
     apiFetch(`/v1/pulse/overview?days=${days}`)
       .then((r: any) => {
+        if (!live) return;
         setData(r.data);
         setError(null);
       })
-      .catch((e) => setError(apiError(e)));
+      .catch((e) => { if (live) setError(apiError(e)); });
+    return () => { live = false; };
   }, [days]);
 
   const header = (

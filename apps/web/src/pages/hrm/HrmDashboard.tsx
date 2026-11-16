@@ -7,6 +7,7 @@ import { MetricsRow, type MetricCardProps } from '../../components/MetricCard.js
 import { apiFetch } from '../../lib/api.js';
 import { Button } from '../../components/ui/button.js';
 import { SectionLoading } from '../../components/ui/spinner.js';
+import { Skeleton } from '../../components/ui/skeleton.js';
 import { Banner } from '../../components/ui/alert.js';
 import { PersonAvatar } from '../../components/PersonAvatar.js';
 import { Avatar, Badge, PageHeader, Card, S } from './shared.js';
@@ -32,31 +33,39 @@ export function HrmDashboard() {
   const [interviews, setInterviews] = useState<any[]>([]);
   const [announcements, setAnnouncements] = useState<any[]>([]);
   const [dashboardErrors, setDashboardErrors] = useState<string[]>([]);
+  // The KPI cards used to show 0 staff / TZS 0.00M until their requests landed,
+  // which reads as real data. They show a placeholder until then instead.
+  const [metricsState, setMetricsState] = useState<'loading' | 'ready' | 'error'>('loading');
+  const [runsState, setRunsState] = useState<'loading' | 'ready' | 'error'>('loading');
 
   useEffect(() => {
-    const failed = (label: string) => setDashboardErrors(prev => prev.includes(label) ? prev : [...prev, label]);
-    apiFetch('/v1/hr/tools-overview').then(d => setMetrics(d)).catch(() => failed('workforce metrics'));
+    let live = true;
+    const failed = (label: string) => { if (live) setDashboardErrors(prev => prev.includes(label) ? prev : [...prev, label]); };
+    apiFetch('/v1/hr/tools-overview')
+      .then(d => { if (live) { setMetrics(d); setMetricsState('ready'); } })
+      .catch(() => { if (live) setMetricsState('error'); failed('workforce metrics'); });
     apiFetch('/v1/hr/departments')
-      .then((r: any) => setDepts((Array.isArray(r) ? r : []).map((d: any) => ({ name: d.name, employees: d.employee_count || 0 }))))
-      .catch(() => { setDepts([]); failed('departments'); });
+      .then((r: any) => live && setDepts((Array.isArray(r) ? r : []).map((d: any) => ({ name: d.name, employees: d.employee_count || 0 }))))
+      .catch(() => { if (live) setDepts([]); failed('departments'); });
     apiFetch('/v1/payroll/runs')
-      .then((r: any) => setRuns(Array.isArray(r) ? r : []))
-      .catch(() => { setRuns([]); failed('payroll'); });
+      .then((r: any) => { if (live) { setRuns(Array.isArray(r) ? r : []); setRunsState('ready'); } })
+      .catch(() => { if (live) { setRuns([]); setRunsState('error'); } failed('payroll'); });
     apiFetch('/v1/hr/leaves?status=PENDING')
-      .then((r: any) => setPendingLeaves(Array.isArray(r) ? r.slice(0, 5) : []))
-      .catch(() => { setPendingLeaves([]); failed('leave approvals'); });
+      .then((r: any) => live && setPendingLeaves(Array.isArray(r) ? r.slice(0, 5) : []))
+      .catch(() => { if (live) setPendingLeaves([]); failed('leave approvals'); });
     apiFetch('/v1/hr/holidays?upcoming=true&limit=4')
-      .then((r: any) => setHolidays(Array.isArray(r) ? r : []))
-      .catch(() => { setHolidays([]); failed('holidays'); });
+      .then((r: any) => live && setHolidays(Array.isArray(r) ? r : []))
+      .catch(() => { if (live) setHolidays([]); failed('holidays'); });
     apiFetch('/v1/hr/activity-log')
-      .then((r: any) => setActivities(Array.isArray(r) ? r.slice(0, 5) : []))
-      .catch(() => { setActivities([]); failed('activity'); });
+      .then((r: any) => live && setActivities(Array.isArray(r) ? r.slice(0, 5) : []))
+      .catch(() => { if (live) setActivities([]); failed('activity'); });
     apiFetch('/v1/hr/recruitment/interviews/upcoming?limit=5')
-      .then((r: any) => setInterviews(Array.isArray(r) ? r : []))
-      .catch(() => { setInterviews([]); failed('interviews'); });
+      .then((r: any) => live && setInterviews(Array.isArray(r) ? r : []))
+      .catch(() => { if (live) setInterviews([]); failed('interviews'); });
     apiFetch('/v1/hr/announcements')
-      .then((r: any) => setAnnouncements(Array.isArray(r) ? r.slice(0, 3) : []))
-      .catch(() => { setAnnouncements([]); failed('announcements'); });
+      .then((r: any) => live && setAnnouncements(Array.isArray(r) ? r.slice(0, 3) : []))
+      .catch(() => { if (live) setAnnouncements([]); failed('announcements'); });
+    return () => { live = false; };
   }, []);
 
   const hr = metrics?.hr ?? { total_staff:0, active_staff:0, on_leave:0, pending_leaves:0, today_present:0, today_absent:0 };
@@ -70,11 +79,11 @@ export function HrmDashboard() {
   const nextHoliday = holidays[0] ?? null;
 
   const kpis = [
-    { label:'Total Staff',       value: hr.total_staff,       sub: `${hr.active_staff} active`, icon:'users' as IconName, subColor:'var(--ink3)', path:'/nexushr/employees' },
-    { label:'Present Today',     value: hr.today_present,     sub: `${attRate}% of active staff`, icon:'check' as IconName, subColor:'var(--ink3)', path:'/nexushr/attendance' },
-    { label:'On Leave',          value: hr.on_leave,          sub: `${hr.pending_leaves} pending`, icon:'calendar' as IconName, subColor:'var(--ink3)', path:'/nexushr/leaves' },
-    { label:'Leave Approvals',   value: hr.pending_leaves,    sub: hr.pending_leaves > 0 ? 'Action required' : 'All caught up', icon:'clock' as IconName, subColor: hr.pending_leaves > 0 ? 'var(--gold)' : 'var(--ink3)', path:'/nexushr/leaves' },
-    { label:'Latest Payroll',    value: `TZS ${latestRunNet}M`, sub: latestRun?.name || 'No run yet', icon:'dollarSign' as IconName, subColor:'var(--ink3)', path:'/nexushr/payroll' },
+    { label:'Total Staff',       state: metricsState, value: hr.total_staff,       sub: `${hr.active_staff} active`, icon:'users' as IconName, subColor:'var(--ink3)', path:'/nexushr/employees' },
+    { label:'Present Today',     state: metricsState, value: hr.today_present,     sub: `${attRate}% of active staff`, icon:'check' as IconName, subColor:'var(--ink3)', path:'/nexushr/attendance' },
+    { label:'On Leave',          state: metricsState, value: hr.on_leave,          sub: `${hr.pending_leaves} pending`, icon:'calendar' as IconName, subColor:'var(--ink3)', path:'/nexushr/leaves' },
+    { label:'Leave Approvals',   state: metricsState, value: hr.pending_leaves,    sub: hr.pending_leaves > 0 ? 'Action required' : 'All caught up', icon:'clock' as IconName, subColor: hr.pending_leaves > 0 ? 'var(--gold)' : 'var(--ink3)', path:'/nexushr/leaves' },
+    { label:'Latest Payroll',    state: runsState, value: `TZS ${latestRunNet}M`, sub: latestRun?.name || 'No run yet', icon:'dollarSign' as IconName, subColor:'var(--ink3)', path:'/nexushr/payroll' },
   ];
 
   return (
@@ -101,9 +110,11 @@ export function HrmDashboard() {
                 <Icon name={k.icon} size={16} color="var(--ink2)" />
               </div>
             </div>
-            <div style={{ fontSize: 24, fontWeight: 800, color: 'var(--ink)', letterSpacing: '-0.02em', lineHeight: 1.1, fontVariantNumeric: 'tabular-nums' }}>{k.value}</div>
+            <div style={{ fontSize: 24, fontWeight: 800, color: 'var(--ink)', letterSpacing: '-0.02em', lineHeight: 1.1, fontVariantNumeric: 'tabular-nums' }}>
+              {k.state === 'loading' ? <Skeleton style={{ width: 64, height: 24 }} /> : k.state === 'error' ? '—' : k.value}
+            </div>
             <div style={{ fontSize: 11.5, fontWeight: 600, color: k.subColor, marginTop: 6, display: 'flex', alignItems: 'center', gap: 4 }}>
-              <span>{k.sub}</span>
+              <span>{k.state === 'ready' ? k.sub : '\u00a0'}</span>
             </div>
           </Link>
         ))}
@@ -147,6 +158,18 @@ export function HrmDashboard() {
               </div>
               <Link to="/nexushr/attendance" style={{ fontSize: 12, fontWeight: 700, color: 'var(--teal)', textDecoration: 'none', display: 'inline-flex', alignItems: 'center', minHeight: 'var(--target-min, 24px)' }}>Mark Attendance →</Link>
             </div>
+            {/* Same rule as the KPI cards: no 0% / "Attention Needed" verdict
+                before the figures have actually arrived. */}
+            {metricsState === 'loading' ? (
+              <div style={{ padding: '20px', display: 'flex', flexDirection: 'column', gap: 18 }}>
+                {[0, 1, 2].map(i => <Skeleton key={i} style={{ height: 30 }} />)}
+                <Skeleton style={{ height: 64 }} />
+              </div>
+            ) : metricsState === 'error' ? (
+              <div style={{ padding: '28px 20px', fontSize: 13, color: 'var(--ink3)', textAlign: 'center' }}>
+                Attendance figures are unavailable right now.
+              </div>
+            ) : (
             <div style={{ padding: '20px' }}>
               {[
                 { label: 'Present Today', val: hr.today_present, total: hr.active_staff, color: 'var(--green)' },
@@ -183,6 +206,7 @@ export function HrmDashboard() {
                 </div>
               </div>
             </div>
+            )}
           </div>
 
           {/* 2. Department Breakdown */}

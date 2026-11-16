@@ -122,6 +122,15 @@ export const GoogleWorkspaceRightSidebar: React.FC = () => {
   const [newTaskTitle, setNewTaskTitle] = useState('');
   const [openReminderTodoId, setOpenReminderTodoId] = useState<string | null>(null);
   const [pinnedIds, setPinnedIds] = useState<CompanionPanelId[]>(loadPinned);
+  // Panels whose data is only visible inside the drawer load it the first time
+  // that drawer opens. This rail is mounted in every app shell, and fetching
+  // all of them on mount sent ~20 requests to unrelated apps ahead of each
+  // page's own data (perf audit 2026-11-16). Panels that drive a rail badge
+  // (tasks, e-sign, chat, notifications, email) still load up front.
+  const [openedPanels, setOpenedPanels] = useState<ReadonlySet<CompanionPanelId>>(() => new Set());
+  useEffect(() => {
+    if (activePanel && !openedPanels.has(activePanel)) setOpenedPanels(prev => new Set(prev).add(activePanel));
+  }, [activePanel]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const todos = useTodos();
   const events = useEvents();
@@ -156,7 +165,7 @@ export const GoogleWorkspaceRightSidebar: React.FC = () => {
       .then(res => setNotesList(Array.isArray(res?.notes) ? res.notes : []))
       .catch(() => {});
   }
-  useEffect(() => { loadNotes(); }, [notesEnabled]);
+  useEffect(() => { if (openedPanels.has('notes')) loadNotes(); }, [notesEnabled, openedPanels.has('notes')]); // eslint-disable-line react-hooks/exhaustive-deps
   async function handleCreateNote(e: React.FormEvent) {
     e.preventDefault();
     const text = noteComposerText.trim();
@@ -363,7 +372,7 @@ export const GoogleWorkspaceRightSidebar: React.FC = () => {
       .then(res => setSmsMessages(Array.isArray(res?.data) ? res.data : []))
       .catch(() => {});
   }
-  useEffect(() => { loadSmsMessages(); }, [smsEnabled]);
+  useEffect(() => { if (openedPanels.has('sms')) loadSmsMessages(); }, [smsEnabled, openedPanels.has('sms')]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const [smsComposerOpen, setSmsComposerOpen] = useState(false);
   // Picker's id doubles as the phone number itself — there's nothing else to
@@ -403,7 +412,7 @@ export const GoogleWorkspaceRightSidebar: React.FC = () => {
       .then(rows => setContacts(Array.isArray(rows) ? rows.slice(0, 8) : []))
       .catch(() => {});
   }
-  useEffect(() => { loadContacts(); }, [contactsEnabled]);
+  useEffect(() => { if (openedPanels.has('contacts')) loadContacts(); }, [contactsEnabled, openedPanels.has('contacts')]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const [contactComposerOpen, setContactComposerOpen] = useState(false);
   const [newContactName, setNewContactName] = useState('');
@@ -462,7 +471,7 @@ export const GoogleWorkspaceRightSidebar: React.FC = () => {
       .then((res: any) => setShipments((Array.isArray(res?.data) ? res.data : Array.isArray(res) ? res : []).slice(0, 6)))
       .catch(() => {});
   }
-  useEffect(() => { loadShipments(); }, [clearosEnabled]);
+  useEffect(() => { if (openedPanels.has('clearos')) loadShipments(); }, [clearosEnabled, openedPanels.has('clearos')]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // ── FinOps — real, /v1/invoices (GET) + POST for a minimal quick invoice
   // (client name + a single line item) — the full form has line items, tax
@@ -475,7 +484,7 @@ export const GoogleWorkspaceRightSidebar: React.FC = () => {
       .then((res: any) => setInvoices((Array.isArray(res?.data) ? res.data : Array.isArray(res) ? res : []).slice(0, 6)))
       .catch(() => {});
   }
-  useEffect(() => { loadInvoices(); }, [finopsEnabled]);
+  useEffect(() => { if (openedPanels.has('finops')) loadInvoices(); }, [finopsEnabled, openedPanels.has('finops')]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const [invoiceComposerOpen, setInvoiceComposerOpen] = useState(false);
   const [invoiceClientName, setInvoiceClientName] = useState('');
@@ -513,7 +522,7 @@ export const GoogleWorkspaceRightSidebar: React.FC = () => {
       .then((res: any) => setPettiWallets(Array.isArray(res?.data) ? res.data : []))
       .catch(() => {});
   }
-  useEffect(() => { loadPettiWallets(); }, [pettiEnabled]);
+  useEffect(() => { if (openedPanels.has('petti')) loadPettiWallets(); }, [pettiEnabled, openedPanels.has('petti')]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const [depositComposerOpen, setDepositComposerOpen] = useState(false);
   const [depositWalletId, setDepositWalletId] = useState('');
@@ -551,7 +560,7 @@ export const GoogleWorkspaceRightSidebar: React.FC = () => {
       .then((res: any) => setStaffList((Array.isArray(res?.data) ? res.data : Array.isArray(res) ? res : []).slice(0, 8)))
       .catch(() => {});
   }
-  useEffect(() => { loadStaff(); }, [nexushrEnabled]);
+  useEffect(() => { if (openedPanels.has('nexushr')) loadStaff(); }, [nexushrEnabled, openedPanels.has('nexushr')]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const [inviteComposerOpen, setInviteComposerOpen] = useState(false);
   const [inviteEmail, setInviteEmail] = useState('');
@@ -582,7 +591,7 @@ export const GoogleWorkspaceRightSidebar: React.FC = () => {
       .then((res: any) => setConsignments((Array.isArray(res) ? res : res?.data || []).slice(0, 6)))
       .catch(() => {});
   }
-  useEffect(() => { loadConsignments(); }, [sealEnabled]);
+  useEffect(() => { if (openedPanels.has('seal')) loadConsignments(); }, [sealEnabled, openedPanels.has('seal')]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // ── CargoTracker — real, /v1/freight-booking/bookings (GET only — booking
   // requests originate elsewhere; this app quotes/confirms them, it doesn't
@@ -595,7 +604,7 @@ export const GoogleWorkspaceRightSidebar: React.FC = () => {
       .then((res: any) => setBookings((Array.isArray(res?.data) ? res.data : Array.isArray(res) ? res : []).slice(0, 6)))
       .catch(() => {});
   }
-  useEffect(() => { loadBookings(); }, [cargotrackerEnabled]);
+  useEffect(() => { if (openedPanels.has('cargotracker')) loadBookings(); }, [cargotrackerEnabled, openedPanels.has('cargotracker')]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // ── Cloud/Drive — real, /v1/drives (to find the default drive) then
   // /v1/files?drive_id=... for its recent files. No inline upload — file
@@ -618,7 +627,7 @@ export const GoogleWorkspaceRightSidebar: React.FC = () => {
       })
       .catch(() => {});
   }
-  useEffect(() => { loadDriveFiles(); }, [cloudEnabled]);
+  useEffect(() => { if (openedPanels.has('cloud')) loadDriveFiles(); }, [cloudEnabled, openedPanels.has('cloud')]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // ── ComplyOS — real, /v1/comply/obligations. No inline create — an
   // obligation is picked from a licence/agency catalog, not typed freehand,
@@ -631,7 +640,7 @@ export const GoogleWorkspaceRightSidebar: React.FC = () => {
       .then((res: any) => setObligations((Array.isArray(res) ? res : res?.data || []).slice(0, 8)))
       .catch(() => {});
   }
-  useEffect(() => { loadObligations(); }, [complyosEnabled]);
+  useEffect(() => { if (openedPanels.has('complyos')) loadObligations(); }, [complyosEnabled, openedPanels.has('complyos')]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // ── Store — real, /v1/store/apps catalog. Installing an add-on is a
   // bigger decision (permissions consent) than a rail quick-action, so this
@@ -644,7 +653,7 @@ export const GoogleWorkspaceRightSidebar: React.FC = () => {
       .then((res: any) => setStoreApps((Array.isArray(res?.data) ? res.data : Array.isArray(res) ? res : []).slice(0, 8)))
       .catch(() => {});
   }
-  useEffect(() => { loadStoreApps(); }, [storeEnabled]);
+  useEffect(() => { if (openedPanels.has('store')) loadStoreApps(); }, [storeEnabled, openedPanels.has('store')]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const [searchOpen, setSearchOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');

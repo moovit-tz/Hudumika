@@ -3,6 +3,7 @@ import { z } from 'zod';
 import { dbPlatform } from '../db/client.js';
 import { requireRole } from '../middleware/rbac.js';
 import { sql } from 'kysely';
+import { readGlobalSettingKey, getPublicPlatformBranding, invalidatePlatformSettingsCache } from '../lib/platform-settings.js';
 
 const GLOBAL_TENANT_ID = '00000000-0000-0000-0000-000000000000';
 
@@ -37,15 +38,22 @@ const designSystemVersionPatchSchema = z.object({
  * tenant_settings (the same sentinel-row pattern used by /v1/superadmin/settings).
  */
 export async function platformRoutes(fastify: FastifyInstance) {
-  // GET is public — even the pre-login screen needs the platform logo/name.
-  fastify.get('/branding', async (request, reply) => {
-    const row = await dbPlatform.selectFrom('tenant_settings')
-      .select('settings')
-      .where('tenant_id', '=', GLOBAL_TENANT_ID)
-      .executeTakeFirst();
-    const settings = row ? (typeof row.settings === 'string' ? JSON.parse(row.settings) : row.settings) : {};
-    return settings.branding || {};
+  // Reads of these settings come from a cached snapshot (lib/platform-settings.ts).
+  // Any write through this plugin clears it before the response is sent, so the
+  // saving admin's next read — and App Configurator's — sees the change at once.
+  fastify.addHook('onSend', async (request, _reply, payload) => {
+    if (request.method !== 'GET' && request.method !== 'HEAD') invalidatePlatformSettingsCache();
+    return payload;
   });
+
+  // GET is public — even the pre-login screen needs the platform logo/name.
+  // Public, and fetched by every page. Each app's logo is stored as a base64
+  // data URI (up to ~1.4 MB each, ~9 MB in all), but the client only needs to
+  // know a logo exists: it loads the image from /branding/app-icon/:appId. So
+  // the bytes are replaced in SQL — they never leave Postgres — by that URL and
+  // a short content hash the client uses to cache-bust only when the logo
+  // actually changes (perf audit 2026-11-16).
+  fastify.get('/branding', async () => getPublicPlatformBranding());
 
   fastify.put('/branding', {
     preHandler: [fastify.authenticate, requireRole('SUPER_ADMIN')],
@@ -87,12 +95,12 @@ export async function platformRoutes(fastify: FastifyInstance) {
     const { appId } = (request.params as { appId: string });
     if (!/^[a-z0-9_-]{1,32}$/.test(appId)) return reply.code(404).send();
 
+    // Just this app's logo, not the whole ~9 MB settings row.
     const row = await dbPlatform.selectFrom('tenant_settings')
-      .select('settings')
+      .select(sql<string | null>`settings->'branding'->'apps'->${appId}::text->>'logo'`.as('logo'))
       .where('tenant_id', '=', GLOBAL_TENANT_ID)
       .executeTakeFirst();
-    const settings = row ? (typeof row.settings === 'string' ? JSON.parse(row.settings) : row.settings) : {};
-    const logo: string | undefined = settings.branding?.apps?.[appId]?.logo;
+    const logo: string | undefined = row?.logo ?? undefined;
     if (!logo) return reply.code(404).send();
 
     if (logo.startsWith('data:')) {
@@ -113,12 +121,7 @@ export async function platformRoutes(fastify: FastifyInstance) {
   // 'design-tokens' key so the two never clobber each other (the settings
   // || jsonb merge below is per top-level key).
   fastify.get('/design-tokens', async (request, reply) => {
-    const row = await dbPlatform.selectFrom('tenant_settings')
-      .select('settings')
-      .where('tenant_id', '=', GLOBAL_TENANT_ID)
-      .executeTakeFirst();
-    const settings = row ? (typeof row.settings === 'string' ? JSON.parse(row.settings) : row.settings) : {};
-    return settings['design-tokens'] || {};
+    return (await readGlobalSettingKey('design-tokens')) || {};
   });
 
   fastify.put('/design-tokens', {
@@ -156,12 +159,7 @@ export async function platformRoutes(fastify: FastifyInstance) {
   // GET is public: every page (including pre-login) needs to know which
   // version is active to render the right brand color.
   fastify.get('/design-system-version', async (request, reply) => {
-    const row = await dbPlatform.selectFrom('tenant_settings')
-      .select('settings')
-      .where('tenant_id', '=', GLOBAL_TENANT_ID)
-      .executeTakeFirst();
-    const settings = row ? (typeof row.settings === 'string' ? JSON.parse(row.settings) : row.settings) : {};
-    return settings['design-system-version'] || { version: 'v1', v2Color: '#141e33' };
+    return (await readGlobalSettingKey('design-system-version')) || { version: 'v1', v2Color: '#141e33' };
   });
 
   fastify.put('/design-system-version', {
@@ -200,12 +198,7 @@ export async function platformRoutes(fastify: FastifyInstance) {
   // changing the endpoint) is SuperAdmin-only. Same sentinel-row pattern as
   // design-system-version above.
   fastify.get('/stirling-pdf', { preHandler: fastify.authenticate }, async (request, reply) => {
-    const row = await dbPlatform.selectFrom('tenant_settings')
-      .select('settings')
-      .where('tenant_id', '=', GLOBAL_TENANT_ID)
-      .executeTakeFirst();
-    const settings = row ? (typeof row.settings === 'string' ? JSON.parse(row.settings) : row.settings) : {};
-    return settings['stirling-pdf'] || { baseUrl: null };
+    return (await readGlobalSettingKey('stirling-pdf')) || { baseUrl: null };
   });
 
   fastify.put('/stirling-pdf', {
@@ -237,12 +230,7 @@ export async function platformRoutes(fastify: FastifyInstance) {
   // sibling 'seo' key. GET is public — tracking tags and verification meta
   // tags must render on pre-login pages (/signup, /track/shared/:token) too.
   fastify.get('/seo', async (request, reply) => {
-    const row = await dbPlatform.selectFrom('tenant_settings')
-      .select('settings')
-      .where('tenant_id', '=', GLOBAL_TENANT_ID)
-      .executeTakeFirst();
-    const settings = row ? (typeof row.settings === 'string' ? JSON.parse(row.settings) : row.settings) : {};
-    return settings.seo || {};
+    return (await readGlobalSettingKey('seo')) || {};
   });
 
   // Writes execute arbitrary script platform-wide via customHeadScripts/
@@ -275,12 +263,7 @@ export async function platformRoutes(fastify: FastifyInstance) {
 
   // ── Workspaces — platform-wide application list
   fastify.get('/workspaces', async (request, reply) => {
-    const row = await dbPlatform.selectFrom('tenant_settings')
-      .select('settings')
-      .where('tenant_id', '=', GLOBAL_TENANT_ID)
-      .executeTakeFirst();
-    const settings = row ? (typeof row.settings === 'string' ? JSON.parse(row.settings) : row.settings) : {};
-    return settings['workspaces'] || [];
+    return (await readGlobalSettingKey('workspaces')) || [];
   });
 
   fastify.put('/workspaces', {

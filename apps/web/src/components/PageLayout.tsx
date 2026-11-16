@@ -1,5 +1,6 @@
 import React from 'react';
 import { Outlet, Link } from 'react-router-dom';
+import { SkeletonPage } from './ui/skeleton.js';
 export const PageLayout: React.FC = () => {
 
   return (
@@ -7,7 +8,12 @@ export const PageLayout: React.FC = () => {
       {/* Grows to push the footer to the bottom of a short page and never
           shrinks below its own content on a tall one */}
       <div className="page-layout-content">
-        <Outlet />
+        {/* Routed pages are code-split. Without a boundary here the nearest one
+            is WorkspaceApp's, which wraps the sidebar and header too, so the
+            whole shell blanked to a skeleton while a page's chunk loaded. */}
+        <React.Suspense fallback={<SkeletonPage />}>
+          <Outlet />
+        </React.Suspense>
       </div>
       <PageFooter />
     </div>

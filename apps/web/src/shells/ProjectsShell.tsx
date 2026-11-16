@@ -1,32 +1,36 @@
+import React from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
+import { lazyPage } from '../lib/lazyPage.js';
 import { WorkspaceApp } from './WorkspaceApp.js';
 import { AppSidebar } from '../components/AppSidebar.js';
 import type { SidebarSection } from '../components/AppSidebar.js';
 import { AppHeader } from '../components/AppHeader.js';
 import { GoogleWorkspaceRightSidebar } from '../components/GoogleWorkspaceRightSidebar.js';
 import { PageLayout } from '../components/PageLayout.js';
-import { Contracts } from '../pages/Contracts.js';
-import { ContractDetail } from '../pages/ContractDetail.js';
-import { ProjectCreatePage } from '../pages/projects/ProjectCreatePage.js';
-import { ProjectEditPage } from '../pages/projects/ProjectEditPage.js';
-import { ProjectDashboard } from '../pages/projects/ProjectDashboard.js';
-import { ProjectDirectory } from '../pages/projects/ProjectDirectory.js';
-import { ProjectPortfoliosPage } from '../pages/projects/ProjectPortfoliosPage.js';
-import { ProjectTimeline } from '../pages/projects/ProjectTimeline.js';
-import { ProjectMyTasks } from '../pages/projects/ProjectMyTasks.js';
-import { ProjectMilestonesPage } from '../pages/projects/ProjectMilestonesPage.js';
-import { ProjectBudgetsPage } from '../pages/projects/ProjectBudgetsPage.js';
-import { ProjectProcurementPage } from '../pages/projects/ProjectProcurementPage.js';
-import { ProjectRisksPage } from '../pages/projects/ProjectRisksPage.js';
-import { ProjectApprovalsPage } from '../pages/projects/ProjectApprovalsPage.js';
-import { ProjectReportsPage } from '../pages/projects/ProjectReportsPage.js';
-import { ProjectTeamPage } from '../pages/projects/ProjectTeamPage.js';
-import { ProjectEquipmentPage } from '../pages/projects/ProjectEquipmentPage.js';
-import { ProjectDocumentsPage } from '../pages/projects/ProjectDocumentsPage.js';
-import { ProjectWorkspace } from '../pages/projects/ProjectWorkspace.js';
-import { EquipmentAssetPage } from '../pages/projects/equipment/EquipmentAssetPage.js';
-import { EquipmentAssetFormPage } from '../pages/projects/equipment/EquipmentAssetFormPage.js';
-import { EquipmentImportPage } from '../pages/projects/equipment/EquipmentImportPage.js';
+
+// Each page loads when its route is opened (perf audit 2026-11-16).
+const Contracts = lazyPage(() => import('../pages/Contracts.js'), 'Contracts');
+const ContractDetail = lazyPage(() => import('../pages/ContractDetail.js'), 'ContractDetail');
+const ProjectCreatePage = lazyPage(() => import('../pages/projects/ProjectCreatePage.js'), 'ProjectCreatePage');
+const ProjectEditPage = lazyPage(() => import('../pages/projects/ProjectEditPage.js'), 'ProjectEditPage');
+const ProjectDashboard = lazyPage(() => import('../pages/projects/ProjectDashboard.js'), 'ProjectDashboard');
+const ProjectDirectory = lazyPage(() => import('../pages/projects/ProjectDirectory.js'), 'ProjectDirectory');
+const ProjectPortfoliosPage = lazyPage(() => import('../pages/projects/ProjectPortfoliosPage.js'), 'ProjectPortfoliosPage');
+const ProjectTimeline = lazyPage(() => import('../pages/projects/ProjectTimeline.js'), 'ProjectTimeline');
+const ProjectMyTasks = lazyPage(() => import('../pages/projects/ProjectMyTasks.js'), 'ProjectMyTasks');
+const ProjectMilestonesPage = lazyPage(() => import('../pages/projects/ProjectMilestonesPage.js'), 'ProjectMilestonesPage');
+const ProjectBudgetsPage = lazyPage(() => import('../pages/projects/ProjectBudgetsPage.js'), 'ProjectBudgetsPage');
+const ProjectProcurementPage = lazyPage(() => import('../pages/projects/ProjectProcurementPage.js'), 'ProjectProcurementPage');
+const ProjectRisksPage = lazyPage(() => import('../pages/projects/ProjectRisksPage.js'), 'ProjectRisksPage');
+const ProjectApprovalsPage = lazyPage(() => import('../pages/projects/ProjectApprovalsPage.js'), 'ProjectApprovalsPage');
+const ProjectReportsPage = lazyPage(() => import('../pages/projects/ProjectReportsPage.js'), 'ProjectReportsPage');
+const ProjectTeamPage = lazyPage(() => import('../pages/projects/ProjectTeamPage.js'), 'ProjectTeamPage');
+const ProjectEquipmentPage = lazyPage(() => import('../pages/projects/ProjectEquipmentPage.js'), 'ProjectEquipmentPage');
+const ProjectDocumentsPage = lazyPage(() => import('../pages/projects/ProjectDocumentsPage.js'), 'ProjectDocumentsPage');
+const ProjectWorkspace = lazyPage(() => import('../pages/projects/ProjectWorkspace.js'), 'ProjectWorkspace');
+const EquipmentAssetPage = lazyPage(() => import('../pages/projects/equipment/EquipmentAssetPage.js'), 'EquipmentAssetPage');
+const EquipmentAssetFormPage = lazyPage(() => import('../pages/projects/equipment/EquipmentAssetFormPage.js'), 'EquipmentAssetFormPage');
+const EquipmentImportPage = lazyPage(() => import('../pages/projects/equipment/EquipmentImportPage.js'), 'EquipmentImportPage');
 
 const NAV: SidebarSection[] = [
   {

@@ -1,5 +1,6 @@
 import React from 'react';
 import { Routes, Route, Navigate, useLocation } from 'react-router-dom';
+import { lazyPage } from '../lib/lazyPage.js';
 import '../pages/OnePi.css';
 import { WorkspaceApp } from './WorkspaceApp.js';
 import { GoogleWorkspaceRightSidebar } from '../components/GoogleWorkspaceRightSidebar.js';
@@ -12,38 +13,50 @@ import { PageLayout } from '../components/PageLayout.js';
 import { Icon } from '../components/Icon.js';
 import { useAuth } from '../hooks/useAuth.js';
 import { MGMT_ROLES } from '../lib/permissions.js';
-import { SuperAdminAttendanceDevices } from '../pages/SuperAdminAttendanceDevices.js';
 
-import { StaffDetail } from '../pages/StaffDetail.js';
-import { OrgChart }    from '../pages/OrgChart.js';
-import { EmploymentRecords } from '../pages/EmploymentRecords.js';
-import { Performance }  from '../pages/Performance.js';
-import { HrDocuments }  from '../pages/HrDocuments.js';
-import { HrVisitors }   from '../pages/HrVisitors.js';
-import { OvertimePage } from '../pages/Overtime.js';
-import { HrAssets }     from '../pages/HrAssets.js';
-import { ClockInPage }  from '../pages/ClockInPage.js';
-import { MyHubPage }    from '../pages/MyHub.js';
-import { RecruitmentPage } from '../pages/Recruitment.js';
-import { WorkforcePlanning } from '../pages/WorkforcePlanning.js';
-import { Training } from '../pages/Training.js';
-import { Surveys } from '../pages/Surveys.js';
-import { CaseManagement } from '../pages/CaseManagement.js';
-import { HrChecklists } from '../pages/HrChecklists.js';
-import { HrBenefits } from '../pages/HrBenefits.js';
-import { OndiGroups } from '../pages/OndiGroups.js';
-import { AxisJobChangePage, AxisNewWorkerPage, AxisPendingChangesPage } from '../pages/hrm/AxisJobHistory.js';
-import { AxisTimeCorrectionsPage } from '../pages/hrm/AxisTimeCorrections.js';
-import { DPODashboard } from '../pages/DPODashboard.js';
+
+// Each page loads when its route is opened (perf audit 2026-11-16).
+const OrgChart = lazyPage(() => import('../pages/OrgChart.js'), 'OrgChart');
+const Performance = lazyPage(() => import('../pages/Performance.js'), 'Performance');
+const HrDocuments = lazyPage(() => import('../pages/HrDocuments.js'), 'HrDocuments');
+const HrVisitors = lazyPage(() => import('../pages/HrVisitors.js'), 'HrVisitors');
+const HrAssets = lazyPage(() => import('../pages/HrAssets.js'), 'HrAssets');
+const ClockInPage = lazyPage(() => import('../pages/ClockInPage.js'), 'ClockInPage');
+const MyHubPage = lazyPage(() => import('../pages/MyHub.js'), 'MyHubPage');
+const SuperAdminAttendanceDevices = lazyPage(() => import('../pages/SuperAdminAttendanceDevices.js'), 'SuperAdminAttendanceDevices');
+const StaffDetail = lazyPage(() => import('../pages/StaffDetail.js'), 'StaffDetail');
+const EmploymentRecords = lazyPage(() => import('../pages/EmploymentRecords.js'), 'EmploymentRecords');
+const OvertimePage = lazyPage(() => import('../pages/Overtime.js'), 'OvertimePage');
+const RecruitmentPage = lazyPage(() => import('../pages/Recruitment.js'), 'RecruitmentPage');
+const WorkforcePlanning = lazyPage(() => import('../pages/WorkforcePlanning.js'), 'WorkforcePlanning');
+const Training = lazyPage(() => import('../pages/Training.js'), 'Training');
+const Surveys = lazyPage(() => import('../pages/Surveys.js'), 'Surveys');
+const CaseManagement = lazyPage(() => import('../pages/CaseManagement.js'), 'CaseManagement');
+const HrChecklists = lazyPage(() => import('../pages/HrChecklists.js'), 'HrChecklists');
+const HrBenefits = lazyPage(() => import('../pages/HrBenefits.js'), 'HrBenefits');
+const OndiGroups = lazyPage(() => import('../pages/OndiGroups.js'), 'OndiGroups');
+const AxisJobChangePage = lazyPage(() => import('../pages/hrm/AxisJobHistory.js'), 'AxisJobChangePage');
+const AxisNewWorkerPage = lazyPage(() => import('../pages/hrm/AxisJobHistory.js'), 'AxisNewWorkerPage');
+const AxisPendingChangesPage = lazyPage(() => import('../pages/hrm/AxisJobHistory.js'), 'AxisPendingChangesPage');
+const AxisTimeCorrectionsPage = lazyPage(() => import('../pages/hrm/AxisTimeCorrections.js'), 'AxisTimeCorrectionsPage');
+const DPODashboard = lazyPage(() => import('../pages/DPODashboard.js'), 'DPODashboard');
+const HrmDashboard = lazyPage(() => import('../pages/hrm/HrmDashboard.js'), 'HrmDashboard');
+const EmployeesPage = lazyPage(() => import('../pages/hrm/People.js'), 'EmployeesPage');
+const DepartmentsPage = lazyPage(() => import('../pages/hrm/People.js'), 'DepartmentsPage');
+const DesignationsPage = lazyPage(() => import('../pages/hrm/PayrollAdmin.js'), 'DesignationsPage');
+const TeamsPage = lazyPage(() => import('../pages/hrm/People.js'), 'TeamsPage');
+const AttendancePage = lazyPage(() => import('../pages/hrm/TimeAttendance.js'), 'AttendancePage');
+const LeavesPage = lazyPage(() => import('../pages/hrm/TimeAttendance.js'), 'LeavesPage');
+const ShiftsPage = lazyPage(() => import('../pages/hrm/DevicesShiftsHolidays.js'), 'ShiftsPage');
+const HolidaysPage = lazyPage(() => import('../pages/hrm/DevicesShiftsHolidays.js'), 'HolidaysPage');
+const DevicesPage = lazyPage(() => import('../pages/hrm/DevicesShiftsHolidays.js'), 'DevicesPage');
+const PayrollPage = lazyPage(() => import('../pages/hrm/PayrollAdmin.js'), 'PayrollPage');
+const MyPayslipsPage = lazyPage(() => import('../pages/hrm/PayrollAdmin.js'), 'MyPayslipsPage');
+const ActivityLogsPage = lazyPage(() => import('../pages/hrm/People.js'), 'ActivityLogsPage');
+const DeleteRequestsPage = lazyPage(() => import('../pages/hrm/People.js'), 'DeleteRequestsPage');
+const AnnouncementsPage = lazyPage(() => import('../pages/hrm/PayrollAdmin.js'), 'AnnouncementsPage');
 // Calls (1:1 + group meetings) moved to Bliss, matching Team Chat's own
 // precedent — see BlissShell.tsx. The nav item below now just links out.
-import {
-  HrmDashboard, EmployeesPage, DepartmentsPage, DesignationsPage, TeamsPage,
-  AttendancePage, LeavesPage, ShiftsPage, HolidaysPage, DevicesPage,
-  PayrollPage, MyPayslipsPage,
-  ActivityLogsPage, DeleteRequestsPage,
-  AnnouncementsPage,
-} from '../pages/HRM.js';
 
 // Paths whose data is cross-tenant (dbPlatform, SUPER_ADMIN-only) rather than
 // the viewer's own workspace — same set the "PLATFORM · SUPER ADMIN" nav
