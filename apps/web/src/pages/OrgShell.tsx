@@ -493,7 +493,7 @@ export const OrgShell: React.FC = () => {
                     You also run your own workspace{workspaces.length > 1 ? 's' : ''} on Hudumika
                   </div>
                   <div style={{ fontSize: 12, color: 'var(--ink2)', marginTop: 2 }}>
-                    {workspaces.map(w => w.tenant_name).join(', ')} — sign in there with your staff account to use ComplyOS, NexusHR and other apps directly.
+                    {workspaces.map(w => w.tenant_name).join(', ')} — sign in there with your staff account to use ComplyOS, Axis and other apps directly.
                   </div>
                 </div>
                 <a href="/login" style={{ fontSize: 12.5, fontWeight: 700, color: 'var(--teal)', textDecoration: 'none', flexShrink: 0 }}>Go to staff sign-in →</a>

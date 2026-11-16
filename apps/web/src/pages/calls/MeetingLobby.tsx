@@ -292,9 +292,9 @@ export function MeetingLobby({ title, kind, onJoin, onCancel, hideWorkspaceLinks
               <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
                 {/* CRM Candidate Link */}
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-                  <label style={{ fontSize: 10.5, fontWeight: 700, color: 'var(--ink3)' }}>Link NexusHR CRM Candidate</label>
+                  <label style={{ fontSize: 10.5, fontWeight: 700, color: 'var(--ink3)' }}>Link Axis candidate</label>
                   <Select value={linkCandidate} onValueChange={setLinkCandidate}>
-                    <SelectTrigger className="h-8 text-xs" aria-label="Link NexusHR CRM Candidate"><SelectValue /></SelectTrigger>
+                    <SelectTrigger className="h-8 text-xs" aria-label="Link Axis candidate"><SelectValue /></SelectTrigger>
                     <SelectContent>
                       <SelectItem value="none">-- Select Candidate / Employee --</SelectItem>
                       <SelectItem value="viden_remi">Viden Remi (Figma Designer Candidate)</SelectItem>

@@ -19,9 +19,32 @@ import { settleAiCall } from '../lib/esb-ai-settle.js';
 import { callAI } from './ai.routes.js';
 import { getGeminiApiKey } from './ocr.routes.js';
 import { GoogleGenAI } from '@google/genai';
+import * as Equipment from '../services/project-equipment.service.js';
+import { hasOrgPermission, ORG_PERMISSIONS } from '../lib/org-rbac.js';
 
 const uuidSchema = z.string().uuid();
 const ADMIN_ROLES = ['SUPER_ADMIN', 'TENANT_ADMIN', 'ADMIN'];
+
+/** Portfolios and programs span projects, so writing them is a tenant-level
+ *  power: admins, or someone delegated projects.portfolios.manage. A portfolio
+ *  or program's own manager may edit (not delete) it. */
+async function canManagePortfolios(trx: any, user: { tenant_id: string; sub: string; role: string }, managerId?: string | null) {
+  if (ADMIN_ROLES.includes(user.role)) return true;
+  if (managerId && managerId === user.sub) return true;
+  return hasOrgPermission(user.tenant_id, user.sub, ORG_PERMISSIONS.PROJECT_PORTFOLIOS_MANAGE, trx);
+}
+const denyPortfolio = { error: 'Only workspace administrators or portfolio managers can change portfolios and programs.' };
+const upper = (v?: string) => v?.toUpperCase();
+
+/** Portfolio and program budgets (and the contract-value rollup across every
+ *  project in a portfolio) are visible to administrators and managers, anyone
+ *  delegated projects.portfolios.manage, and the record's own manager. Everyone
+ *  else gets null, the same way equipment costs are withheld (2026-11-16). */
+const BUDGET_ROLES = [...ADMIN_ROLES, 'MANAGER'];
+async function canSeePortfolioBudgets(trx: any, user: { tenant_id: string; sub: string; role: string }) {
+  if (BUDGET_ROLES.includes(user.role)) return true;
+  return hasOrgPermission(user.tenant_id, user.sub, ORG_PERMISSIONS.PROJECT_PORTFOLIOS_MANAGE, trx);
+}
 
 function accessibleProjectsFilter(trx: any, tenantId: string, userId: string, userRole: string) {
   if (ADMIN_ROLES.includes(userRole)) return undefined;
@@ -160,7 +183,9 @@ export async function projectOsRoutes(fastify: FastifyInstance) {
   fastify.get('/portfolios', async (request) => {
     const user = request.user;
     return withTenant(user.tenant_id, async (trx) => {
-      return await ProjectOsService.listPortfolios(trx, user.tenant_id);
+      const rows = await ProjectOsService.listPortfolios(trx, user.tenant_id);
+      if (await canSeePortfolioBudgets(trx, user)) return rows;
+      return rows.map(r => r.manager_id === user.sub ? r : { ...r, target_budget: null, allocated_budget: null, total_contract_value: null });
     });
   });
 
@@ -179,6 +204,7 @@ export async function projectOsRoutes(fastify: FastifyInstance) {
     }).parse(request.body);
 
     return withTenant(user.tenant_id, async (trx) => {
+      if (!await canManagePortfolios(trx, user)) return reply.code(403).send(denyPortfolio);
       if (body.owner_id && !await trx.selectFrom('users').select('id')
         .where('id', '=', body.owner_id).where('tenant_id', '=', user.tenant_id).executeTakeFirst()) {
         return reply.code(404).send({ error: 'Portfolio manager not found' });
@@ -201,11 +227,19 @@ export async function projectOsRoutes(fastify: FastifyInstance) {
       status: z.enum(['active', 'planning', 'on_hold', 'completed', 'archived']).optional(),
     }).parse(request.body);
     return withTenant(user.tenant_id, async (trx) => {
-      const row = await trx.updateTable('project_portfolios').set({ ...body, updated_at: new Date() })
-        .where('id', '=', params.portfolioId).where('tenant_id', '=', user.tenant_id)
-        .returningAll().executeTakeFirst();
-      if (!row) return reply.code(404).send({ error: 'Portfolio not found' });
-      return row;
+      const current = await trx.selectFrom('project_portfolios').select(['id', 'manager_id']).where('id', '=', params.portfolioId).where('tenant_id', '=', user.tenant_id).executeTakeFirst();
+      if (!current) return reply.code(404).send({ error: 'Portfolio not found' });
+      if (!await canManagePortfolios(trx, user, current.manager_id)) return reply.code(403).send(denyPortfolio);
+      if (body.owner_id && !await trx.selectFrom('users').select('id').where('id', '=', body.owner_id).where('tenant_id', '=', user.tenant_id).executeTakeFirst())
+        return reply.code(404).send({ error: 'Portfolio manager not found' });
+      // The API speaks owner_id/allocated_budget/lowercase status; the table has
+      // manager_id/target_budget/uppercase. Spreading the body straight in was a 500.
+      return trx.updateTable('project_portfolios').set({
+        ...(body.name !== undefined && { name: body.name }), ...(body.description !== undefined && { description: body.description }),
+        ...(body.owner_id !== undefined && { manager_id: body.owner_id }), ...(body.allocated_budget !== undefined && { target_budget: body.allocated_budget }),
+        ...(body.currency !== undefined && { currency: body.currency }), ...(body.status !== undefined && { status: upper(body.status) }),
+        updated_at: new Date(),
+      }).where('id', '=', params.portfolioId).where('tenant_id', '=', user.tenant_id).returningAll().executeTakeFirstOrThrow();
     });
   });
 
@@ -213,6 +247,7 @@ export async function projectOsRoutes(fastify: FastifyInstance) {
     const user = request.user;
     const params = z.object({ portfolioId: uuidSchema }).parse(request.params);
     return withTenant(user.tenant_id, async (trx) => {
+      if (!await canManagePortfolios(trx, user)) return reply.code(403).send(denyPortfolio);
       const hasProjects = await trx.selectFrom('projects').select('id')
         .where('portfolio_id', '=', params.portfolioId).where('tenant_id', '=', user.tenant_id).executeTakeFirst();
       if (hasProjects) return reply.code(409).send({ error: 'Cannot delete a portfolio that still has projects — reassign or remove them first' });
@@ -230,7 +265,9 @@ export async function projectOsRoutes(fastify: FastifyInstance) {
     }).parse(request.query);
 
     return withTenant(user.tenant_id, async (trx) => {
-      return await ProjectOsService.listPrograms(trx, user.tenant_id, query.portfolioId);
+      const rows = await ProjectOsService.listPrograms(trx, user.tenant_id, query.portfolioId);
+      if (await canSeePortfolioBudgets(trx, user)) return rows;
+      return rows.map(r => r.manager_id === user.sub ? r : { ...r, budget: null });
     });
   });
 
@@ -251,6 +288,7 @@ export async function projectOsRoutes(fastify: FastifyInstance) {
     }).parse(request.body);
 
     return withTenant(user.tenant_id, async (trx) => {
+      if (!await canManagePortfolios(trx, user)) return reply.code(403).send(denyPortfolio);
       if (body.portfolio_id && !await trx.selectFrom('project_portfolios').select('id')
         .where('id', '=', body.portfolio_id).where('tenant_id', '=', user.tenant_id).executeTakeFirst()) {
         return reply.code(404).send({ error: 'Portfolio not found' });
@@ -279,11 +317,17 @@ export async function projectOsRoutes(fastify: FastifyInstance) {
       end_date: z.string().nullable().optional(),
     }).parse(request.body);
     return withTenant(user.tenant_id, async (trx) => {
-      const row = await trx.updateTable('project_programs').set({ ...body, updated_at: new Date() })
-        .where('id', '=', params.programId).where('tenant_id', '=', user.tenant_id)
-        .returningAll().executeTakeFirst();
-      if (!row) return reply.code(404).send({ error: 'Program not found' });
-      return row;
+      const current = await trx.selectFrom('project_programs').select(['id', 'manager_id']).where('id', '=', params.programId).where('tenant_id', '=', user.tenant_id).executeTakeFirst();
+      if (!current) return reply.code(404).send({ error: 'Program not found' });
+      if (!await canManagePortfolios(trx, user, current.manager_id)) return reply.code(403).send(denyPortfolio);
+      if (body.portfolio_id && !await trx.selectFrom('project_portfolios').select('id').where('id', '=', body.portfolio_id).where('tenant_id', '=', user.tenant_id).executeTakeFirst())
+        return reply.code(404).send({ error: 'Portfolio not found' });
+      if (body.program_manager_id && !await trx.selectFrom('users').select('id').where('id', '=', body.program_manager_id).where('tenant_id', '=', user.tenant_id).executeTakeFirst())
+        return reply.code(404).send({ error: 'Program manager not found' });
+      const { program_manager_id, status, ...rest } = body;
+      return trx.updateTable('project_programs').set({ ...rest,
+        ...(program_manager_id !== undefined && { manager_id: program_manager_id }), ...(status !== undefined && { status: upper(status) }),
+        updated_at: new Date() }).where('id', '=', params.programId).where('tenant_id', '=', user.tenant_id).returningAll().executeTakeFirstOrThrow();
     });
   });
 
@@ -291,6 +335,7 @@ export async function projectOsRoutes(fastify: FastifyInstance) {
     const user = request.user;
     const params = z.object({ programId: uuidSchema }).parse(request.params);
     return withTenant(user.tenant_id, async (trx) => {
+      if (!await canManagePortfolios(trx, user)) return reply.code(403).send(denyPortfolio);
       const hasProjects = await trx.selectFrom('projects').select('id')
         .where('program_id', '=', params.programId).where('tenant_id', '=', user.tenant_id).executeTakeFirst();
       if (hasProjects) return reply.code(409).send({ error: 'Cannot delete a program that still has projects — reassign or remove them first' });
@@ -979,7 +1024,11 @@ export async function projectOsRoutes(fastify: FastifyInstance) {
     }).parse(request.query);
 
     return withTenant(user.tenant_id, async (trx) => {
-      return await ProjectResourcesService.listResources(trx, user.tenant_id, query.type as any);
+      const powers = await Equipment.equipmentPowers(trx, Equipment.actorFrom(user));
+      const rows = await ProjectResourcesService.listResources(trx, user.tenant_id, query.type as any);
+      if (powers.seeCost) return rows;
+      // Cost and charge-out rates are commercial data: admins, FINANCE and equipment managers only.
+      return rows.map(({ cost_rate, billing_rate, cost_rate_hourly, cost_rate_daily, ...rest }: any) => rest);
     });
   });
 
@@ -1005,23 +1054,42 @@ export async function projectOsRoutes(fastify: FastifyInstance) {
     }).parse(request.body);
 
     return withTenant(user.tenant_id, async (trx) => {
-      const res = await ProjectResourcesService.createResource(trx, user.tenant_id, body);
+      // Was open to every staff user; the register's rules (equipment managers) now apply.
+      const hourly = body.cost_rate_hourly !== undefined;
+      const res = await Equipment.createAsset(trx, Equipment.actorFrom(user), {
+        resource_type: body.resource_type, name: body.name, code: body.code, make_model: body.make_model, serial_number: body.serial_number,
+        registration_number: body.license_plate, capacity_rating: body.capacity_rating, custodian_id: body.user_id,
+        current_location: body.location, next_service_due: body.next_maintenance_date,
+        cost_rate: hourly ? body.cost_rate_hourly : body.cost_rate_daily, rate_unit: hourly ? 'HOUR' : 'DAY', currency: body.currency,
+        cost_rate_hourly: body.cost_rate_hourly, cost_rate_daily: body.cost_rate_daily,
+        status: body.status === 'maintenance' ? 'maintenance' : 'available',
+      });
       return reply.code(201).send(res);
     });
   });
 
   fastify.patch('/resources/:resourceId', async (request, reply) => {
     const user = request.user;
-    if (!['SUPER_ADMIN', 'TENANT_ADMIN', 'ADMIN'].includes(user.role)) return reply.code(403).send({ error: 'Only workspace administrators can edit fleet assets' });
     const params = z.object({ resourceId: uuidSchema }).parse(request.params);
     const body = z.object({ name: z.string().trim().min(1).max(200).optional(), make_model: z.string().max(1000).nullable().optional(), capacity_rating: z.string().max(1000).nullable().optional(), cost_rate_hourly: z.number().min(0).optional(), cost_rate_daily: z.number().min(0).optional(), status: z.enum(['available', 'allocated', 'maintenance', 'decommissioned']).optional() }).parse(request.body);
-    return withTenant(user.tenant_id, trx => ProjectResourcesService.updateResource(trx, user.tenant_id, params.resourceId, body));
+    return withTenant(user.tenant_id, async trx => {
+      const actor = Equipment.actorFrom(user);
+      if (body.status === 'decommissioned') return Equipment.disposeAsset(trx, actor, params.resourceId, 'Decommissioned from the project fleet view');
+      const rate = body.cost_rate_hourly ?? body.cost_rate_daily;
+      return Equipment.updateAsset(trx, actor, params.resourceId, { name: body.name, make_model: body.make_model, capacity_rating: body.capacity_rating,
+        ...(rate !== undefined && { cost_rate: rate }), cost_rate_hourly: body.cost_rate_hourly, cost_rate_daily: body.cost_rate_daily, ...(body.status && body.status !== 'allocated' && { status: body.status === 'maintenance' ? 'maintenance' as const : 'available' as const }) });
+    });
   });
 
   fastify.post('/projects/:id/allocations/:allocationId/release', async (request) => {
     const user = request.user;
     const params = z.object({ id: uuidSchema, allocationId: uuidSchema }).parse(request.params);
-    return withTenant(user.tenant_id, trx => ProjectResourcesService.releaseAllocation(trx, user.tenant_id, params.id, params.allocationId));
+    return withTenant(user.tenant_id, async trx => {
+      const al = await trx.selectFrom('project_resource_allocations').select('id').where('tenant_id', '=', user.tenant_id).where('project_id', '=', params.id).where('id', '=', params.allocationId).executeTakeFirst();
+      if (!al) throw Object.assign(new Error('Allocation not found'), { statusCode: 404 });
+      const released = await Equipment.cancelAllocation(trx, Equipment.actorFrom(user), params.allocationId, 'Released from the project');
+      return { ...released, status: released.status.toUpperCase() }; // legacy shape
+    });
   });
 
   fastify.get('/projects/:id/allocations', async (request) => {
@@ -1048,7 +1116,8 @@ export async function projectOsRoutes(fastify: FastifyInstance) {
     }).parse(request.body);
 
     return withTenant(user.tenant_id, async (trx) => {
-      const alloc = await ProjectResourcesService.createAllocation(trx, user.tenant_id, params.id, body);
+      // Same eligibility, capacity and approval rules as the register's booking flow.
+      const alloc = await Equipment.requestAllocation(trx, Equipment.actorFrom(user), params.id, body);
       return reply.code(201).send(alloc);
     });
   });

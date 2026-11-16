@@ -54,6 +54,11 @@ export const ORG_PERMISSIONS = {
   HR_DOCUMENTS_MANAGE: 'hr.documents.manage',
   ORG_MODEL_MANAGE: 'org_model.manage',
   ORG_MODEL_VIEW: 'org_model.view',
+  // Projects: an equipment custodian runs the register (assets, reservations,
+  // issue/return, inspections, maintenance, cost rates); a portfolio manager
+  // creates and edits portfolios and programs. Neither grants project access.
+  PROJECT_EQUIPMENT_MANAGE: 'projects.equipment.manage',
+  PROJECT_PORTFOLIOS_MANAGE: 'projects.portfolios.manage',
 } as const;
 export type OrgPermission = (typeof ORG_PERMISSIONS)[keyof typeof ORG_PERMISSIONS];
 

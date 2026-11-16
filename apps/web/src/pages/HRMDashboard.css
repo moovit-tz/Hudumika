@@ -27,7 +27,7 @@
   transition: border-color var(--dur-fast, 120ms) ease, box-shadow var(--dur-fast, 120ms) ease, transform var(--dur-fast, 120ms) ease;
 }
 
-.hrd-kpi-card:hover { border-color: var(--teal-m); box-shadow: var(--elev); transform: translateY(-2px); }
+.hrd-kpi-card:hover { border-color: var(--border); box-shadow: var(--elev); transform: translateY(-1px); }
 .hrd-kpi-card:focus-visible { outline: 2px solid var(--teal); outline-offset: 2px; }
 
 .hrd-content-grid {
@@ -59,7 +59,7 @@
   text-decoration: none;
   transition: border-color var(--dur-fast, 120ms) ease, background var(--dur-fast, 120ms) ease, transform var(--dur-fast, 120ms) ease;
 }
-.hrd-hub-link:hover { border-color: var(--hrd-module-color); background: var(--hrd-module-bg); transform: translateY(-1px); }
+.hrd-hub-link:hover { border-color: var(--border); background: var(--hover-bg, var(--white)); box-shadow: var(--elev-sm); transform: translateY(-1px); }
 .hrd-hub-link:focus-visible { outline: 2px solid var(--teal); outline-offset: 2px; }
 
 @media (max-width: 1180px) {

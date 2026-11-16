@@ -58,7 +58,7 @@ async function main() {
   for (const u of users) {
     // Enough variation that the screens are worth reading, decided per person
     // rather than at random so a re-run tells the same story.
-    const seed = u.email.charCodeAt(0);
+    const seed = (u.email ?? u.name).charCodeAt(0);
     const lateDays = u.role === 'JUNIOR' ? [3, 11, 24] : u.role === 'SALES' ? [7] : [];
     const absentDays = u.role === 'JUNIOR' ? [17] : [];
 

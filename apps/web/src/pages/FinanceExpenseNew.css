@@ -39,8 +39,7 @@
 
 /* ── Hero Snapshot Banner ── */
 .expense-hero-card {
-  background: radial-gradient(ellipse 70% 90% at 95% -10%, color-mix(in srgb, var(--teal) 12%, transparent), transparent 70%),
-              var(--card-bg, #ffffff);
+  background: var(--card-bg, var(--white, #ffffff));
   border: 1px solid var(--border);
   border-radius: var(--card-radius, 14px);
   padding: 18px 22px;
@@ -79,7 +78,7 @@
 .expense-hero-currency {
   font-size: 13px;
   font-weight: 700;
-  color: var(--teal);
+  color: var(--ink2);
   text-transform: uppercase;
 }
 
@@ -104,9 +103,9 @@
 }
 
 .expense-hero-chip.teal {
-  background: var(--teal-l);
-  color: var(--teal);
-  border-color: transparent;
+  background: var(--bg);
+  color: var(--ink2);
+  border-color: var(--border);
 }
 
 /* ── Amount Input with Currency Badge ── */
@@ -160,7 +159,7 @@
 }
 
 .expense-section-icon {
-  color: var(--teal);
+  color: var(--ink2);
   flex-shrink: 0;
 }
 

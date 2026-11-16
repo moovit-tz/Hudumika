@@ -24,6 +24,9 @@ import { ProjectTeamPage } from '../pages/projects/ProjectTeamPage.js';
 import { ProjectEquipmentPage } from '../pages/projects/ProjectEquipmentPage.js';
 import { ProjectDocumentsPage } from '../pages/projects/ProjectDocumentsPage.js';
 import { ProjectWorkspace } from '../pages/projects/ProjectWorkspace.js';
+import { EquipmentAssetPage } from '../pages/projects/equipment/EquipmentAssetPage.js';
+import { EquipmentAssetFormPage } from '../pages/projects/equipment/EquipmentAssetFormPage.js';
+import { EquipmentImportPage } from '../pages/projects/equipment/EquipmentImportPage.js';
 
 const NAV: SidebarSection[] = [
   {
@@ -106,6 +109,10 @@ export function ProjectsShell() {
                 {/* Resources */}
                 <Route path="team" element={<ProjectTeamPage />} />
                 <Route path="equipment" element={<ProjectEquipmentPage />} />
+                <Route path="equipment/new" element={<EquipmentAssetFormPage />} />
+                <Route path="equipment/import" element={<EquipmentImportPage />} />
+                <Route path="equipment/:assetId" element={<EquipmentAssetPage />} />
+                <Route path="equipment/:assetId/edit" element={<EquipmentAssetFormPage />} />
                 <Route path="documents" element={<ProjectDocumentsPage />} />
 
                 {/* Individual project workspace */}

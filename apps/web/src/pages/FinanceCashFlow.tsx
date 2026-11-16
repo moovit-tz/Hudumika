@@ -1,4 +1,4 @@
-﻿import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { Icon } from '../components/Icon.js';
 import { apiFetch } from '../lib/api.js';
 import { useCompany } from '../data/companyStore.js';
@@ -80,9 +80,9 @@ export const FinanceCashFlow: React.FC = () => {
   const columns: TableColumn<MonthRow>[] = [
     { key: 'month', header: 'Month', accessor: 'month', render: row => <span className="font-semibold text-foreground">{row.month} {year}</span> },
     { key: 'open', header: 'Opening balance', accessor: 'open', sortable: true, align: 'right', hideAt: 'sm', render: row => fmtFull(row.open) },
-    { key: 'cashIn', header: 'Cash inflows', accessor: 'cashIn', sortable: true, align: 'right', render: row => <span className="font-semibold text-[var(--teal)]">{fmtFull(row.cashIn)}</span> },
-    { key: 'cashOut', header: 'Cash outflows', accessor: 'cashOut', sortable: true, align: 'right', render: row => <span className="font-semibold text-[var(--red)]">{fmtFull(row.cashOut)}</span> },
-    { key: 'net', header: 'Net change', accessor: 'net', sortable: true, align: 'right', render: row => <span className={row.net >= 0 ? 'font-bold text-[var(--green)]' : 'font-bold text-[var(--red)]'}>{row.net >= 0 ? '+' : ''}{fmtFull(row.net)}</span> },
+    { key: 'cashIn', header: 'Cash inflows', accessor: 'cashIn', sortable: true, align: 'right', render: row => <span className="font-semibold text-foreground">{fmtFull(row.cashIn)}</span> },
+    { key: 'cashOut', header: 'Cash outflows', accessor: 'cashOut', sortable: true, align: 'right', render: row => <span className="font-semibold text-foreground">{fmtFull(row.cashOut)}</span> },
+    { key: 'net', header: 'Net change', accessor: 'net', sortable: true, align: 'right', render: row => <span className={row.net < 0 ? 'font-bold text-[var(--red)]' : 'font-bold text-foreground'}>{row.net >= 0 ? '+' : ''}{fmtFull(row.net)}</span> },
     { key: 'close', header: 'Closing balance', accessor: 'close', sortable: true, align: 'right', render: row => <span className="font-bold text-foreground">{fmtFull(row.close)}</span> },
   ];
 

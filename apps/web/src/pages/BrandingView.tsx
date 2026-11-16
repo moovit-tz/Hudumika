@@ -1,5 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { APP_REGISTRY } from '../lib/appRegistry.js';
+import { Link } from 'react-router-dom';
+import { APP_REGISTRY, APP_DEFAULT_COLORS } from '../lib/appRegistry.js';
+import { DEFAULT_BRAND_ACCENT } from '../lib/appDefaults.js';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -23,15 +25,12 @@ import { ColorSwatchPicker, PLATFORM_SWATCHES } from '../components/ui/color-swa
 // this split cost nothing functionally — it's the exact same three panels,
 // just without a shared page shell around them.
 
-// Every app defaults to the single brand accent (matches WorkspaceApp.tsx's
-// APP_COLORS / index.css's --teal) rather than its own hue by default — the
-// color picker below still lets a SuperAdmin recolor individual apps.
-const DEFAULT_APP_COLOR = '#1257c6';
-
-/** Derived from APP_REGISTRY, which is itself derived from ALL_APP_IDS, so an
- *  app added to the platform gets a branding row here without touching this
- *  file. This used to be a 20-entry array that had drifted three apps behind. */
-const APP_META_BRAND_LIST = APP_REGISTRY.map(a => ({ ...a, defaultColor: DEFAULT_APP_COLOR }));
+/** Derived from APP_REGISTRY (which tracks ALL_APP_IDS) + canonical defaults in
+ *  appDefaults.ts, so SuperAdmin Branding and App Configurator share one source of truth. */
+const APP_META_BRAND_LIST = APP_REGISTRY.map(a => ({
+  ...a,
+  defaultColor: APP_DEFAULT_COLORS[a.id] ?? DEFAULT_BRAND_ACCENT,
+}));
 
 function readFile(file: File): Promise<string> {
   return new Promise((res, rej) => {
@@ -440,7 +439,11 @@ export function BrandingAppsSection() {
       <div className="flex items-center justify-between gap-3 flex-wrap">
         <p className="text-sm text-muted-foreground max-w-prose">
           Per-app name, accent colour, slogan and icon — the same identity shown in that app's sidebar, the launcher and the login screen.
-          Pick a theme on the Theme tab to prefill every app's color at once, or edit any app individually here.
+          Pick a theme on the Theme tab to prefill every app's color at once, or{' '}
+          <Link to="/design-system/configurator" className="text-primary underline underline-offset-4 font-medium">
+            open the full App Configurator
+          </Link>{' '}
+          for isolated light/dark multi-surface previews and 5-layer override inspection.
         </p>
         <div className="flex items-center gap-1 bg-muted/60 border border-border rounded-full p-1 shrink-0" role="group" aria-label="Layout">
           <button type="button" onClick={() => setAppView('grid')} title="Grid view" aria-pressed={appView === 'grid'}

@@ -7,16 +7,19 @@ import type { AppId } from '@hudumika/types';
 import { useBranding } from '../hooks/useBranding.js';
 import { RequireAppEnabled } from '../components/RequireAppEnabled.js';
 import { parseHex, darkenHex, lightenHex, hexToHslTriplet, pickForegroundHsl, enforceContrastFloor, focusRingHex } from '../lib/color.js';
+import { DEFAULT_APP_COLORS, type ShellAppId } from '../lib/appDefaults.js';
 import { SkeletonPage } from '../components/ui/skeleton.js';
 import { ActivityMonitorIndicator } from '../components/ActivityMonitorIndicator.js';
 import { recordRecentApp } from '../lib/recentApps.js';
 
-// The SuperAdmin platform panel is never gated by a tenant's enabled-apps config —
-// it's how a SuperAdmin fixes their own mistakes, so it can never lock itself out.
-const UNGATED_APP_IDS = new Set<AppId>(['admin']);
+export type { ShellAppId };
+
+// Platform Admin and Design System are never gated by a tenant's enabled-apps
+// config — they are internal platform surfaces, never customer plan add-ons.
+const UNGATED_APP_IDS = new Set<ShellAppId>(['admin', 'design-system']);
 
 interface WorkspaceAppProps {
-  appId: AppId;
+  appId: ShellAppId;
   children: React.ReactNode;
   /** See RequireAppEnabled's own doc comment — routes that must render even
    *  when this app is blocked by plan/maintenance. */
@@ -25,14 +28,15 @@ interface WorkspaceAppProps {
 }
 
 // Map app id → brand label shown next to the Hudumika logo
-export const APP_LABELS: Record<AppId, string> = {
+export const APP_LABELS: Record<ShellAppId, string> = {
+  'design-system': 'Design System',
   lens:      'Lens',
   studio:    'Studio',
   clearos:   'ClearOS',
   finops:    'FinOps',
   complyos:  'ComplyOS',
   bliss:     'Bliss',
-  nexushr:     'NexusHR',
+  nexushr:     'Axis',
   onesite:   'CMS',
   onsite:    'Onsite',
   ondi:     'Ondi',
@@ -67,47 +71,9 @@ export const APP_LABELS: Record<AppId, string> = {
   pulse:         'Pulse',
 };
 
-// Every app defaults to the single brand accent (matches --teal in index.css)
-// rather than its own hue — a SuperAdmin can still recolor individual apps
-// via BrandingView (see useBranding.ts's getAppColor override), this is just
-// the out-of-the-box default so switching apps doesn't re-theme the sidebar/
-// avatar accent by default.
-const DEFAULT_APP_COLOR = '#1257c6';
-export const APP_COLORS: Record<AppId, string> = {
-  // Slate, deliberately unlike the customer apps — it should not look like
-  // one of them in a screenshot.
-  lens:      '#475569',
-  studio:    '#4361ee',
-  clearos: DEFAULT_APP_COLOR, finops: DEFAULT_APP_COLOR, complyos: DEFAULT_APP_COLOR,
-  bliss: DEFAULT_APP_COLOR, nexushr: DEFAULT_APP_COLOR,
-  // CMS ('onesite') gets its own hue rather than the shared default — it and
-  // Onsite ('onsite') are two real, separate apps one letter apart in their id,
-  // and both defaulting to the same navy made them indistinguishable on
-  // BrandingView's app cards (reported as looking like a duplicate entry).
-  onesite: '#06b6d4',
-  ondi: DEFAULT_APP_COLOR, tracking: DEFAULT_APP_COLOR, cloud: DEFAULT_APP_COLOR,
-  onsite: DEFAULT_APP_COLOR,
-  ai: DEFAULT_APP_COLOR, workspace: DEFAULT_APP_COLOR, admin: DEFAULT_APP_COLOR,
-  email: DEFAULT_APP_COLOR, crm: DEFAULT_APP_COLOR,
-  // Contacts' whole visual language (the multicolour "+" mark, the nav
-  // shape) already deliberately echoes Google Contacts — this keeps its
-  // accent that same blue by default instead of silently going navy, now
-  // that Contacts.css reads it live via --teal rather than its own
-  // hardcoded hex (see Contacts.css's header comment).
-  contacts: '#1a73e8',
-  store: DEFAULT_APP_COLOR, calendar: DEFAULT_APP_COLOR, tasks: DEFAULT_APP_COLOR, notes: DEFAULT_APP_COLOR,
-  sign: '#1a56db',
-  demurrage: DEFAULT_APP_COLOR, cargotracker: DEFAULT_APP_COLOR, seal: DEFAULT_APP_COLOR,
-  hudubi: DEFAULT_APP_COLOR, petti: DEFAULT_APP_COLOR, pos: DEFAULT_APP_COLOR,
-  sms: DEFAULT_APP_COLOR, projects: DEFAULT_APP_COLOR, developer: '#0f766e',
-  travel: '#7c3aed',
-  tuma: '#0891b2',
-  lexcore: '#7c3aed',
-  ngao: '#059669',
-  gereji: '#d97706',
-  zentra: '#0f766e',
-  pulse: '#e11d48',
-};
+// Canonical per-app default accents live in lib/appDefaults.ts so the shell,
+// launcher grid, BrandingView, and App Configurator stay in exact sync.
+export const APP_COLORS: Record<ShellAppId, string> = DEFAULT_APP_COLORS;
 
 /**
  * Which palette slot each app takes when a SuperAdmin applies a theme preset.
@@ -124,10 +90,10 @@ export const APP_COLORS: Record<AppId, string> = {
  * A new app must pick a slot, which is the point — it is a design decision,
  * not an accident of where it landed in a list.
  */
-export const APP_PALETTE_SLOT: Record<AppId, number> = {
-  // Internal tooling — takes the neutral slot so a tenant's brand preset does
-  // not recolour a developer tool.
-  lens: 0, notes: 4,
+export const APP_PALETTE_SLOT: Record<ShellAppId, number> = {
+  // Internal tooling — takes the neutral/platform slot so a tenant's brand
+  // preset does not accidentally recolour internal reference tooling.
+  lens: 0, 'design-system': 7, notes: 4,
   // 0 — clearance & customs
   clearos: 0, cargotracker: 0, demurrage: 0,
   // 1 — finance & commerce
@@ -155,7 +121,7 @@ export const APP_PALETTE_SLOT: Record<AppId, number> = {
   pulse: 6,   // support, comms & relationships — marketing sits with CRM, Email, SMS
 };
 
-export const ActiveAppContext = React.createContext<AppId | null>(null);
+export const ActiveAppContext = React.createContext<ShellAppId | null>(null);
 
 export const MobileNavContext = React.createContext<{
   mobileOpen: boolean;
@@ -377,6 +343,6 @@ export function WorkspaceApp({ appId, children, bypassGatePaths, freeAccessPaths
   return <RequireAppEnabled appId={appId} bypassPaths={bypassGatePaths} freeAccessPaths={freeAccessPaths}>{body}</RequireAppEnabled>;
 }
 
-export function useActiveApp(): AppId | null {
+export function useActiveApp(): ShellAppId | null {
   return React.useContext(ActiveAppContext);
 }

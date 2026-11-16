@@ -369,7 +369,7 @@ export const ACTIONS: ActionDef[] = [
     id: 'hr.post_announcement',
     app: 'nexushr',
     label: 'Post a staff announcement',
-    description: 'Publishes to the NexusHR announcements board any app can raise something staff-wide.',
+    description: 'Publishes to the Axis announcements board any app can raise something staff-wide.',
     inputSchema: z.object({
       title: z.string().min(1),
       body: z.string().min(1),

@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import { useCanCreateProjects } from './projectPowers.js';
 import { useNavigate } from 'react-router-dom';
 import { Icon } from '../../components/Icon.js';
 import { Badge } from '../../components/ui/badge.js';
@@ -60,6 +61,7 @@ const INDUSTRIES = [
 ];
 
 export const ProjectDirectory: React.FC = () => {
+  const canCreate = useCanCreateProjects();
   const isMobile = useIsMobile();
   const navigate = useNavigate();
   const [projects, setProjects] = useState<ProjectSummary[]>([]);
@@ -164,11 +166,11 @@ export const ProjectDirectory: React.FC = () => {
         titlePlain="Project"
         titleEm="directory"
         subtitle="Cross-workspace directory — browse, filter, and inspect project governance across departments."
-        actions={
+        actions={canCreate ? (
           <Button onClick={() => navigate('/projects/new')}>
             <Icon name="plus" size={14} /> New Project
           </Button>
-        }
+        ) : undefined}
       />
 
       <div style={{ marginTop: 20 }}>
@@ -311,7 +313,7 @@ export const ProjectDirectory: React.FC = () => {
             </Button>
           </div>
         ) : viewMode === 'grid' ? (
-          <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(auto-fill, minmax(min(100%, 280px), 1fr))', gap: 16 }}>
+          <div style={{ display: 'grid', gridTemplateColumns: isMobile ? 'minmax(0, 1fr)' : 'repeat(auto-fill, minmax(min(100%, 280px), 1fr))', gap: 16 }}>
             {visible.map(p => {
               const pct = p.progress_pct || (p.task_count > 0 ? Math.round((p.task_done_count / p.task_count) * 100) : 0);
               const sm = STATUS_META[p.status] || STATUS_META.not_started;

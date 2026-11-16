@@ -124,7 +124,7 @@ export async function computeTrustScore(tenantId: string, userId: string): Promi
   });
 }
 
-export interface OrgTrustMember { user_id: string; name: string; email: string; role: string; score: number; tier: TrustScoreResult['tier'] }
+export interface OrgTrustMember { user_id: string; name: string; email: string | null; role: string; score: number; tier: TrustScoreResult['tier'] }
 export interface OrgTrustResult {
   average: number; tier: TrustScoreResult['tier'];
   distribution: { LOW: number; MEDIUM: number; HIGH: number };

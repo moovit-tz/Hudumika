@@ -376,7 +376,7 @@ export function HrDocuments() {
   return (
     <div style={{ flex: 1, overflowY: 'auto', paddingBottom: 40 }}>
       <PageHeader
-        crumbs={['NexusHR', 'Documents']}
+        crumbs={['Axis', 'Documents']}
         titlePlain="HR"
         titleEm="documents"
         subtitle="Automated letter generators, verification approval queue, compliance expiry radar, and mandatory document rules."

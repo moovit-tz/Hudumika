@@ -1309,7 +1309,7 @@ export class ContactsService {
         trx.selectFrom('users').select('email').where('tenant_id', '=', tenantId).where('id', '=', userId).executeTakeFirst(),
       ]);
       const saved = new Set([...contacts.map(c => c.email?.toLowerCase()).filter(Boolean), ...contactEmails.map(e => e.email.toLowerCase())]);
-      const own = me?.email.toLowerCase();
+      const own = me?.email?.toLowerCase();
       const people = new Map<string, { email: string; name: string; interaction_count: number; last_interaction_at: Date }>();
       for (const row of messages) {
         const participants = [

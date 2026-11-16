@@ -208,7 +208,7 @@ export const EsignSection: React.FC = () => {
       {saved && <div style={{ fontSize: 12.5, color: 'var(--green)', marginTop: 8 }}>Saved.</div>}
       <Card title="Who can apply the stamp">
         <div style={{ fontSize: 13, color: 'var(--ink2)' }}>
-          Managed from NexusHR ▸ <Link to="/nexushr/roles" style={{ color: 'var(--blue)' }}>Roles &amp; Permissions</Link> — the platform's real access-control page, not a second copy of it here.
+          Managed from Axis ▸ <Link to="/nexushr/roles" style={{ color: 'var(--blue)' }}>Roles &amp; Permissions</Link> — the platform's real access-control page, not a second copy of it here.
         </div>
       </Card>
     </>

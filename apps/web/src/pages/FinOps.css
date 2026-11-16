@@ -26,7 +26,7 @@
      app already gets now also reaches every FinOps card, modal, table and
      archive row below. */
   --fin-night-surface: var(--white);
-  --fin-night-raised: color-mix(in srgb, var(--white) 94%, var(--teal) 6%);
+  --fin-night-raised: var(--surface2);
   --fin-night-sunken: var(--bg);
   --fin-night-edge: var(--border);
   --fin-night-edge-strong: var(--border2);
@@ -58,7 +58,7 @@
 [data-theme="dark"] [data-finops="true"] .fin-modal-footer,
 [data-theme="dark"] [data-finops="true"] .frm-modal-header,
 [data-theme="dark"] [data-finops="true"] .frm-modal-footer {
-  background: color-mix(in srgb, var(--fin-night-surface) 94%, var(--fin-night-brand) 6%);
+  background: var(--fin-night-raised);
   border-color: var(--fin-night-edge);
 }
 
@@ -67,7 +67,7 @@
 [data-theme="dark"] [data-finops="true"] .fin-tab:hover,
 [data-theme="dark"] [data-finops="true"] .fin-tab-group-header:hover,
 [data-theme="dark"] [data-finops="true"] .fin-modal-tab-row:hover {
-  background: color-mix(in srgb, var(--teal) 9%, var(--fin-night-surface));
+  background: var(--hover-bg, var(--fin-night-raised));
 }
 
 [data-theme="dark"] [data-finops="true"] .fin-arch-row--active,
@@ -92,7 +92,7 @@
 [data-theme="dark"] [data-finops="true"] input:not([type="checkbox"]):not([type="radio"]):not([type="file"]):hover,
 [data-theme="dark"] [data-finops="true"] textarea:hover,
 [data-theme="dark"] [data-finops="true"] select:hover {
-  background: color-mix(in srgb, var(--fin-night-sunken) 90%, var(--fin-night-brand) 10%);
+  background: var(--fin-night-raised);
   border-color: var(--fin-night-edge-strong);
 }
 
@@ -121,9 +121,9 @@
 [data-theme="dark"] [data-finops="true"] .fin-arch-export-btn:hover,
 [data-theme="dark"] [data-finops="true"] .fin-page-btn:hover:not(:disabled),
 [data-theme="dark"] [data-finops="true"] .frm-btn:hover {
-  background: var(--teal-l);
+  background: var(--fin-night-raised);
   border-color: var(--fin-night-edge-strong);
-  color: var(--teal);
+  color: var(--ink);
 }
 
 [data-theme="dark"] [data-finops="true"] .fin-filter-pill[data-filter="Draft"],
@@ -184,11 +184,11 @@
 
 [data-theme="dark"] [data-finops="true"] .page-layout .rtbl tbody tr:hover,
 [data-theme="dark"] [data-finops="true"] .page-layout .tr:hover {
-  background: color-mix(in srgb, var(--fin-night-brand) 10%, var(--fin-night-surface));
+  background: var(--hover-bg, var(--fin-night-raised));
 }
 
 [data-theme="dark"] [data-finops="true"] .page-layout .card-interactive:hover {
-  background: color-mix(in srgb, var(--fin-night-brand) 7%, var(--fin-night-surface));
+  background: var(--fin-night-raised);
   border-color: var(--fin-night-edge-strong);
   box-shadow: var(--elev);
   transform: translateY(-1px);
@@ -196,8 +196,8 @@
 
 [data-theme="dark"] [data-finops="true"] .page-layout .dp-tab:hover,
 [data-theme="dark"] [data-finops="true"] .page-layout .dp-close:hover {
-  background: color-mix(in srgb, var(--fin-night-brand) 12%, var(--fin-night-surface));
-  color: var(--teal);
+  background: var(--fin-night-raised);
+  color: var(--ink);
 }
 
 [data-theme="dark"] [data-finops="true"] .page-layout :is(button, a, [role="button"]):focus-visible {
@@ -215,7 +215,10 @@
   transition: background-color 160ms ease, box-shadow 160ms ease;
 }
 
-[data-finops="true"] .finance-ledger-account-row:hover,
+[data-finops="true"] .finance-ledger-account-row:hover {
+  background: var(--hover-bg, var(--bg));
+}
+
 [data-finops="true"] .finance-ledger-account-row[data-open="true"] {
   background: var(--teal-l);
   box-shadow: inset 3px 0 0 var(--teal);
@@ -231,13 +234,17 @@
 }
 
 [data-finops="true"] .finance-ledger-entry-row:hover {
-  background: var(--teal-l);
+  background: var(--hover-bg, var(--surface2));
 }
 
 [data-theme="dark"] [data-finops="true"] .finance-ledger-account-row:hover,
-[data-theme="dark"] [data-finops="true"] .finance-ledger-account-row[data-open="true"],
 [data-theme="dark"] [data-finops="true"] .finance-ledger-entry-row:hover {
+  background: var(--hover-bg, var(--fin-night-raised));
+}
+
+[data-theme="dark"] [data-finops="true"] .finance-ledger-account-row[data-open="true"] {
   background: color-mix(in srgb, var(--fin-night-brand) 12%, var(--fin-night-surface));
+  box-shadow: inset 3px 0 0 var(--teal);
 }
 
 [data-theme="dark"] [data-finops="true"] .finance-ledger-detail {
@@ -262,8 +269,8 @@
 }
 
 [data-finops="true"] .finance-icon-action:hover {
-  background: var(--teal-l);
-  border-color: color-mix(in srgb, var(--teal) 30%, transparent);
+  background: var(--hover-bg, var(--bg));
+  border-color: var(--border2);
 }
 
 [data-finops="true"] .finance-hover-card {
@@ -272,13 +279,13 @@
 }
 
 [data-finops="true"] .finance-hover-card:hover {
-  transform: translateY(-2px);
-  border-color: color-mix(in srgb, var(--teal) 44%, var(--border)) !important;
-  box-shadow: var(--elev);
+  transform: translateY(-1px);
+  border-color: var(--border2) !important;
+  box-shadow: var(--elev-sm);
 }
 
 [data-theme="dark"] [data-finops="true"] .finance-hover-card:hover {
-  background: color-mix(in srgb, var(--fin-night-brand) 7%, var(--fin-night-surface)) !important;
+  background: var(--fin-night-raised) !important;
   border-color: var(--fin-night-edge-strong) !important;
   box-shadow: var(--elev);
 }
@@ -359,32 +366,19 @@
   [data-finops] .mc-sub-label { font-size:9px; }
   [data-finops] .mc-sub-value { white-space:normal; font-size:11px; overflow-wrap:anywhere; }
 }
-/* FinOps-only premium emphasis. Other apps retain their existing metric styles. */
+/* FinOps metric emphasis — neutral card surface with clean typography & border hierarchy. */
 [data-finops] :is(.mc-card[data-emphasis="primary"]:not([aria-busy="true"]):not(:has(.mc-error)), [data-finops-accent]) {
-  --fin-metric-fg: hsl(var(--primary-foreground));
-  --foreground: var(--primary-foreground);
-  --muted-foreground: var(--primary-foreground);
-  --card-foreground: var(--primary-foreground);
-  --color-foreground: var(--fin-metric-fg);
-  --color-muted-foreground: var(--fin-metric-fg);
-  --color-card-foreground: var(--fin-metric-fg);
-  --card-bg: hsl(var(--primary));
-  --ink: var(--fin-metric-fg);
-  --ink2: var(--fin-metric-fg);
-  --ink3: var(--fin-metric-fg);
-  --teal: var(--fin-metric-fg);
-  --teal-l: color-mix(in srgb, var(--fin-metric-fg) 12%, transparent);
-  --border: color-mix(in srgb, var(--fin-metric-fg) 20%, transparent);
-  --card-sunken: color-mix(in srgb, var(--fin-metric-fg) 16%, transparent);
-  background: hsl(var(--primary));
-  color: var(--fin-metric-fg);
-  border-color: var(--border) !important;
-  box-shadow: var(--elev-sm);
+  background: var(--card-bg, var(--white));
+  color: var(--ink);
+  border: 1px solid var(--border);
+  box-shadow: var(--card-shadow, var(--elev-sm));
 }
-[data-finops] .mc-card[data-emphasis="primary"] .icon-chip.is-primary {
-  background: var(--teal-l); color: var(--fin-metric-fg);
+[data-finops] .mc-card .icon-chip:is(.is-primary, .is-info, .is-success) {
+  background: var(--bg);
+  color: var(--ink2);
+  border: 1px solid var(--border);
 }
-[data-finops] .mc-card[data-emphasis="primary"] .mc-progress-track { background: var(--card-sunken); }
+[data-finops] .mc-card[data-emphasis="primary"] .mc-progress-track { background: var(--card-sunken, var(--bg)); }
 [data-finops] .mc-card[data-emphasis="primary"] .mc-trend {
   background: var(--white);
 }

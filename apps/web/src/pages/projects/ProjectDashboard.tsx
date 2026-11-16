@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import { useCanCreateProjects } from './projectPowers.js';
 import { useNavigate, Link } from 'react-router-dom';
 import { Icon } from '../../components/Icon.js';
 import { Badge } from '../../components/ui/badge.js';
@@ -85,6 +86,7 @@ export const ProjectDashboard: React.FC = () => {
   const isMobile = useIsMobile();
   const navigate = useNavigate();
   const { user } = useAuth();
+  const canCreate = useCanCreateProjects();
 
   const [projects, setProjects] = useState<DashProject[]>([]);
   const [metrics, setMetrics] = useState<CommandMetrics | null>(null);
@@ -317,9 +319,11 @@ export const ProjectDashboard: React.FC = () => {
                 <Icon name="refresh" size={14} style={{ animation: refreshing ? 'spin 1s linear infinite' : 'none' }} />
                 <span className="hidden sm:inline">Sync</span>
               </Button>
-              <Button onClick={() => navigate('/projects/new')}>
-                <Icon name="plus" size={14} /> New Project
-              </Button>
+              {canCreate && (
+                <Button onClick={() => navigate('/projects/new')}>
+                  <Icon name="plus" size={14} /> New Project
+                </Button>
+              )}
             </div>
           }
         />
@@ -680,11 +684,13 @@ export const ProjectDashboard: React.FC = () => {
               <div className="project-empty-sub">
                 Organize projects, plan deliverables, track milestones, monitor budgets, and coordinate field teams with full enterprise multi-tenancy.
               </div>
-              <div style={{ display: 'flex', gap: 12, marginTop: 12 }}>
-                <Button onClick={() => navigate('/projects/new')}>
-                  <Icon name="plus" size={14} /> Create Your First Project
-                </Button>
-              </div>
+              {canCreate && (
+                <div style={{ display: 'flex', gap: 12, marginTop: 12 }}>
+                  <Button onClick={() => navigate('/projects/new')}>
+                    <Icon name="plus" size={14} /> Create Your First Project
+                  </Button>
+                </div>
+              )}
             </div>
           )}
 

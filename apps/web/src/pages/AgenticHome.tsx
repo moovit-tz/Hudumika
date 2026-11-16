@@ -81,7 +81,7 @@ function buildSuggestions(data: CockpitData): Suggestion[] {
   const pendingApproval = data.pettyCash?.pendingMyApproval?.length ?? 0;
   if (pendingApproval) out.push({ text: `${pendingApproval} petty-cash request${pendingApproval === 1 ? '' : 's'} waiting on your approval.`, linkTo: '/petti', linkLabel: 'Review in Petti' });
   const pendingLeave = data.leave?.pendingRequests?.length ?? 0;
-  if (pendingLeave) out.push({ text: `${pendingLeave} leave request${pendingLeave === 1 ? '' : 's'} still pending.`, linkTo: '/nexushr', linkLabel: 'Open NexusHR' });
+  if (pendingLeave) out.push({ text: `${pendingLeave} leave request${pendingLeave === 1 ? '' : 's'} still pending.`, linkTo: '/nexushr', linkLabel: 'Open Axis' });
   const actionShipments = data.shipments?.filter(s => /action|incomplete|pending/i.test(s.stage)) ?? [];
   if (actionShipments.length) out.push({ text: `${actionShipments.length} shipment${actionShipments.length === 1 ? '' : 's'} need${actionShipments.length === 1 ? 's' : ''} your attention.`, linkTo: '/clearos', linkLabel: 'Open ClearOS' });
   if (out.length === 0) out.push({ text: "You're all caught up — nothing urgent right now." });
@@ -800,7 +800,7 @@ export const AgenticHome: React.FC = () => {
                       <Link to="/tasks" className="ah-action-btn"><Icon name="check" size={15} color="var(--teal)" />Open Tasks</Link>
                       {d.shipments !== null && <Link to="/clearos" className="ah-action-btn"><Icon name="package" size={15} color="var(--teal)" />Open ClearOS</Link>}
                       {d.pettyCash && <Link to="/petti" className="ah-action-btn"><Icon name="wallet" size={15} color="var(--teal)" />Open Petty Cash</Link>}
-                      {d.leave && <Link to="/nexushr" className="ah-action-btn"><Icon name="users" size={15} color="var(--teal)" />Open NexusHR</Link>}
+                      {d.leave && <Link to="/nexushr" className="ah-action-btn"><Icon name="users" size={15} color="var(--teal)" />Open Axis</Link>}
                       {openTicketCount > 0 && <Link to="/bliss" className="ah-action-btn"><Icon name="inbox" size={15} color="var(--teal)" />Open Bliss</Link>}
                     </div>
                   </SectionCard>

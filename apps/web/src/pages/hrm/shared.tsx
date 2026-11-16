@@ -60,7 +60,7 @@ export const S: Record<string, { bg: string; color: string; label: string }> = {
 };
 
 export function Badge({ status }: { status: string }) {
-  const c = S[status] ?? { bg: 'rgba(100, 116, 139, 0.12)', color: 'var(--ink2)', label: status };
+  const c = S[status] ?? { bg: 'hsl(var(--muted))', color: 'var(--ink2)', label: status };
   return (
     <span style={{
       display: 'inline-flex', alignItems: 'center', gap: 5, padding: '3px 10px',
@@ -76,7 +76,7 @@ export function Badge({ status }: { status: string }) {
 export function PageHeader({ icon, title, sub, children }: { icon?: IconName; title: string; sub?: string; children?: React.ReactNode; backTo?: string }) {
   return (
     <SharedPageHeader
-      crumbs={['NexusHR', title]}
+      crumbs={['Axis', title]}
       title={title}
       subtitle={sub}
       actions={children ? <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap', justifyContent: 'flex-end' }}>{children}</div> : undefined}
@@ -138,19 +138,14 @@ export function PrimaryBtn({ label, icon, onClick, type = 'button' }: { label: s
 export function ActionBtn({ label, color = 'var(--teal)', onClick }: { label: string; color?: string; onClick?: () => void }) {
   const isDanger = color.includes('red');
   return (
-    <button
+    <Button
       type="button"
+      variant={isDanger ? 'destructive' : 'outline'}
+      size="sm"
       onClick={onClick}
-      style={{
-        display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
-        padding: '0 10px', height: "var(--action-h)", borderRadius: "var(--r-sm)", fontSize: "var(--text-base)", fontWeight: 600,
-        fontFamily: 'var(--font)', cursor: 'pointer', marginRight: 6, transition: 'all 0.15s ease',
-        background: isDanger ? 'rgba(225, 29, 72, 0.08)' : 'rgba(15, 118, 110, 0.08)',
-        color: isDanger ? 'var(--red)' : 'var(--teal, #0f766e)',
-        border: isDanger ? '1px solid rgba(225, 29, 72, 0.2)' : '1px solid rgba(15, 118, 110, 0.2)',
-      }}
-     data-ui-native-button="">
+      style={{ marginRight: 6 }}
+    >
       {label}
-    </button>
+    </Button>
   );
 }

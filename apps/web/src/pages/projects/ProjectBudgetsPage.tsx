@@ -17,9 +17,6 @@ export const ProjectBudgetsPage: React.FC = () => {
         subtitle="Financial control console — baseline allocations, current budgets, recorded actuals, and burn rate variance."
         actions={
           <div style={{ display: 'flex', gap: 8 }}>
-            <Button variant="outline" size="sm" onClick={() => navigate('/projects/procurement')}>
-              <Icon name="shoppingCart" size={13} style={{ marginRight: 6 }} /> Procurement
-            </Button>
             <Button variant="outline" size="sm" onClick={() => navigate('/finance')}>
               <Icon name="dollarSign" size={13} style={{ marginRight: 6 }} /> Finance App
             </Button>

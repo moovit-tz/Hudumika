@@ -50,7 +50,7 @@ export const ListPagination: React.FC<ListPaginationProps> = ({
       <span style={{ fontSize: 12.5, color: 'var(--ink3)' }}>
         Showing {start}–{end} of {total} {noun}
       </span>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+      <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 8 }}>
         <Button variant="outline" size="sm" disabled={currentPage <= 1} onClick={() => onPageChange(currentPage - 1)}>
           Previous
         </Button>
@@ -61,7 +61,7 @@ export const ListPagination: React.FC<ListPaginationProps> = ({
           Next
         </Button>
         <Select value={String(pageSize)} onValueChange={v => { onPageSizeChange(Number(v)); onPageChange(1); }}>
-          <SelectTrigger style={{ height: 32, width: 100, fontSize: 12 }}>
+          <SelectTrigger style={{ height: 'var(--ctl-h, 32px)', width: 100, fontSize: 12 }}>
             <SelectValue />
           </SelectTrigger>
           <SelectContent>

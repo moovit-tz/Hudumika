@@ -1,5 +1,4 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
-import { useNavigate } from 'react-router-dom';
 import { Icon } from '../../components/Icon.js';
 import { Badge } from '../../components/ui/badge.js';
 import { Button } from '../../components/ui/button.js';
@@ -52,7 +51,6 @@ const STATUS_BADGE: Record<string, { label: string; variant: 'gray' | 'brand' | 
 
 export const ProjectApprovalsPage: React.FC = () => {
   const isMobile = useIsMobile();
-  const navigate = useNavigate();
   const { user } = useAuth();
   const currentUserId = (user as any)?.sub || user?.id;
 
@@ -163,16 +161,6 @@ export const ProjectApprovalsPage: React.FC = () => {
         titlePlain="Approval"
         titleEm="queue"
         subtitle="Multi-step governance workflows — formal sign-offs, gate reviews, and budget change controls."
-        actions={
-          <div style={{ display: 'flex', gap: 8 }}>
-            <Button variant="outline" size="sm" onClick={() => navigate('/projects/risks')}>
-              <Icon name="shield" size={13} style={{ marginRight: 6 }} /> Risk Register
-            </Button>
-            <Button variant="outline" size="sm" onClick={() => navigate('/projects/reports')}>
-              <Icon name="barChart2" size={13} style={{ marginRight: 6 }} /> Reports
-            </Button>
-          </div>
-        }
       />
 
       <div style={{ marginTop: 20 }}>

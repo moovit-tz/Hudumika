@@ -279,7 +279,7 @@ export function FinanceDashboard() {
             <div className="fin-hero-barometer">
               <div className="fin-barometer-header">
                 <span className="fin-barometer-title">Working Capital Coverage</span>
-                <Badge variant="brand" className="fin-badge-nowrap">
+                <Badge variant={netWorkingCapital >= 0 ? 'gray' : 'error'} className="fin-badge-nowrap">
                   {netWorkingCapital >= 0 ? 'Sufficient Capital' : 'Capital Deficit'}
                 </Badge>
               </div>
@@ -317,7 +317,7 @@ export function FinanceDashboard() {
               <div className="fin-kpi-header-block">
                 <div className="fin-kpi-top">
                   <span className="fin-kpi-label">Revenue This Month</span>
-                  <FeaturedIcon variant="brand" size="sm">
+                  <FeaturedIcon variant="gray" size="sm">
                     <Icon name="trendingUp" size={15} />
                   </FeaturedIcon>
                 </div>
@@ -327,13 +327,13 @@ export function FinanceDashboard() {
               <div className="fin-kpi-middle">
                 <div className="fin-kpi-subline">
                   <span className="fin-kpi-sublabel">Net Margin</span>
-                  <Badge variant="brand" className="fin-badge-nowrap">
+                  <Badge variant={monthNet >= 0 ? 'gray' : 'error'} className="fin-badge-nowrap">
                     {monthNet >= 0 ? `+${monthMarginPct}% Net` : `${monthMarginPct}% Loss`}
                   </Badge>
                 </div>
                 <div className="fin-kpi-meter-bar" title={`Net Result: ${money(monthNet)}`}>
                   <div
-                    className="fin-kpi-meter-fill fin-kpi-meter-fill--brand"
+                    className={`fin-kpi-meter-fill ${monthNet < 0 ? 'fin-kpi-meter-fill--risk' : 'fin-kpi-meter-fill--brand'}`}
                     style={{
                       width: `${Math.min(100, Math.max(8, 100 - monthExpPct))}%`
                     }}
@@ -355,7 +355,7 @@ export function FinanceDashboard() {
               <div className="fin-kpi-header-block">
                 <div className="fin-kpi-top">
                   <span className="fin-kpi-label">Year to Date Revenue</span>
-                  <FeaturedIcon variant="brand" size="sm">
+                  <FeaturedIcon variant="gray" size="sm">
                     <Icon name="barChart" size={15} />
                   </FeaturedIcon>
                 </div>
@@ -365,13 +365,13 @@ export function FinanceDashboard() {
               <div className="fin-kpi-middle">
                 <div className="fin-kpi-subline">
                   <span className="fin-kpi-sublabel">Operating Net</span>
-                  <Badge variant="brand" className="fin-badge-nowrap">
+                  <Badge variant={ytdNet >= 0 ? 'gray' : 'error'} className="fin-badge-nowrap">
                     {ytdNet >= 0 ? `+${ytdMarginPct}% YTD` : `${ytdMarginPct}% YTD`}
                   </Badge>
                 </div>
                 <div className="fin-kpi-meter-bar" title={`YTD Net: ${money(ytdNet)}`}>
                   <div
-                    className="fin-kpi-meter-fill fin-kpi-meter-fill--neutral"
+                    className={`fin-kpi-meter-fill ${ytdNet < 0 ? 'fin-kpi-meter-fill--risk' : 'fin-kpi-meter-fill--neutral'}`}
                     style={{
                       width: `${Math.min(100, Math.max(8, 100 - ytdExpPct))}%`
                     }}
@@ -393,7 +393,7 @@ export function FinanceDashboard() {
               <div className="fin-kpi-header-block">
                 <div className="fin-kpi-top">
                   <span className="fin-kpi-label">Accounts Receivable</span>
-                  <FeaturedIcon variant="brand" size="sm">
+                  <FeaturedIcon variant="gray" size="sm">
                     <Icon name="invoice" size={15} />
                   </FeaturedIcon>
                 </div>
@@ -403,7 +403,7 @@ export function FinanceDashboard() {
               <div className="fin-kpi-middle">
                 <div className="fin-kpi-subline">
                   <span className="fin-kpi-sublabel">{receivablesCount} Debtors</span>
-                  <Badge variant="brand" className="fin-badge-nowrap">
+                  <Badge variant={receivablesOverdue > 0 ? 'warning' : 'gray'} className="fin-badge-nowrap">
                     {receivablesOverdue > 0 ? `${arOverduePct}% Overdue` : 'Current'}
                   </Badge>
                 </div>
@@ -433,7 +433,7 @@ export function FinanceDashboard() {
               <div className="fin-kpi-header-block">
                 <div className="fin-kpi-top">
                   <span className="fin-kpi-label">Accounts Payable</span>
-                  <FeaturedIcon variant="brand" size="sm">
+                  <FeaturedIcon variant="gray" size="sm">
                     <Icon name="receipt" size={15} />
                   </FeaturedIcon>
                 </div>
@@ -443,13 +443,13 @@ export function FinanceDashboard() {
               <div className="fin-kpi-middle">
                 <div className="fin-kpi-subline">
                   <span className="fin-kpi-sublabel">{payablesCount} Creditors</span>
-                  <Badge variant="brand" className="fin-badge-nowrap">
+                  <Badge variant={payablesOverdue > 0 ? 'warning' : 'gray'} className="fin-badge-nowrap">
                     {payablesOverdue > 0 ? `${apOverduePct}% Overdue` : 'Current'}
                   </Badge>
                 </div>
                 <div className="fin-kpi-meter-bar" title={`Overdue: ${apOverduePct}%`}>
                   <div
-                    className={`fin-kpi-meter-fill ${payablesOverdue > 0 ? 'fin-kpi-meter-fill--risk' : 'fin-kpi-meter-fill--brand'}`}
+                    className={`fin-kpi-meter-fill ${payablesOverdue > 0 ? 'fin-kpi-meter-fill--risk' : 'fin-kpi-meter-fill--neutral'}`}
                     style={{
                       width: `${Math.max(6, apOverduePct)}%`
                     }}
@@ -475,7 +475,7 @@ export function FinanceDashboard() {
             <div className="fin-studio-card">
               <div className="fin-studio-header">
                 <div className="fin-studio-header-title">
-                  <FeaturedIcon variant="brand" size="sm">
+                  <FeaturedIcon variant="gray" size="sm">
                     <Icon name="barChart" size={16} />
                   </FeaturedIcon>
                   <div>
@@ -592,7 +592,7 @@ export function FinanceDashboard() {
             <div className="fin-studio-card">
               <div className="fin-studio-header">
                 <div className="fin-studio-header-title">
-                  <FeaturedIcon variant="brand" size="sm">
+                  <FeaturedIcon variant="gray" size="sm">
                     <Icon name="wallet" size={16} />
                   </FeaturedIcon>
                   <div>
@@ -600,7 +600,7 @@ export function FinanceDashboard() {
                     <p>Asset coverage, aging risk, and liability obligations.</p>
                   </div>
                 </div>
-                <Badge variant="brand" className="fin-badge-nowrap">
+                <Badge variant={netWorkingCapital >= 0 ? 'gray' : 'error'} className="fin-badge-nowrap">
                   {netWorkingCapital >= 0 ? 'Positive Capital' : 'Action Required'}
                 </Badge>
               </div>
@@ -609,7 +609,7 @@ export function FinanceDashboard() {
                 <div className="fin-working-capital-meter">
                   <div className="fin-wc-row">
                     <div className="fin-wc-left">
-                      <FeaturedIcon variant="brand" size="sm">
+                      <FeaturedIcon variant="gray" size="sm">
                         <Icon name="invoice" size={15} />
                       </FeaturedIcon>
                       <div className="fin-wc-copy">
@@ -624,7 +624,7 @@ export function FinanceDashboard() {
 
                   <div className="fin-wc-row">
                     <div className="fin-wc-left">
-                      <FeaturedIcon variant="brand" size="sm">
+                      <FeaturedIcon variant="gray" size="sm">
                         <Icon name="receipt" size={15} />
                       </FeaturedIcon>
                       <div className="fin-wc-copy">
@@ -639,7 +639,7 @@ export function FinanceDashboard() {
 
                   <div className="fin-wc-row fin-wc-row--summary">
                     <div className="fin-wc-left">
-                      <FeaturedIcon variant="brand" size="sm">
+                      <FeaturedIcon variant="gray" size="sm">
                         <Icon name="shield" size={15} />
                       </FeaturedIcon>
                       <div className="fin-wc-copy">
@@ -682,12 +682,12 @@ export function FinanceDashboard() {
             <div className="fin-ops-card">
               <div className="fin-ops-card-header">
                 <div className="fin-ops-card-title">
-                  <FeaturedIcon variant="brand" size="sm">
+                  <FeaturedIcon variant={totalApprovalsCount > 0 ? 'warning' : 'gray'} size="sm">
                     <Icon name="checkCircle" size={16} />
                   </FeaturedIcon>
                   <h3>Approval Queue</h3>
                 </div>
-                <Badge variant="brand" className="fin-badge-nowrap">
+                <Badge variant={totalApprovalsCount > 0 ? 'warning' : 'gray'} className="fin-badge-nowrap">
                   {totalApprovalsCount > 0 ? `${totalApprovalsCount} Pending` : 'All Clear'}
                 </Badge>
               </div>
@@ -742,12 +742,12 @@ export function FinanceDashboard() {
             <div className="fin-ops-card">
               <div className="fin-ops-card-header">
                 <div className="fin-ops-card-title">
-                  <FeaturedIcon variant="brand" size="sm">
+                  <FeaturedIcon variant="gray" size="sm">
                     <Icon name="calendar" size={16} />
                   </FeaturedIcon>
                   <h3>Period & Tax Controls</h3>
                 </div>
-                <Badge variant="brand" className="fin-badge-nowrap">Schedules</Badge>
+                <Badge variant="gray" className="fin-badge-nowrap">Schedules</Badge>
               </div>
 
               <div className="fin-ops-list">
@@ -761,7 +761,7 @@ export function FinanceDashboard() {
                     </span>
                   </div>
                   <div className="fin-ops-item-right">
-                    <Badge variant="brand" className="fin-badge-nowrap">{data.glPeriod ? 'Closed' : 'Open'}</Badge>
+                    <Badge variant={data.glPeriod ? 'warning' : 'gray'} className="fin-badge-nowrap">{data.glPeriod ? 'Closed' : 'Open'}</Badge>
                   </div>
                 </div>
 
@@ -800,12 +800,12 @@ export function FinanceDashboard() {
             <div className="fin-ops-card">
               <div className="fin-ops-card-header">
                 <div className="fin-ops-card-title">
-                  <FeaturedIcon variant="brand" size="sm">
+                  <FeaturedIcon variant="gray" size="sm">
                     <Icon name="building" size={16} />
                   </FeaturedIcon>
                   <h3>Bank & Statement Feeds</h3>
                 </div>
-                <Badge variant="brand" className="fin-badge-nowrap">Connected</Badge>
+                <Badge variant="gray" className="fin-badge-nowrap">Connected</Badge>
               </div>
 
               <div className="fin-ops-list">
@@ -832,7 +832,7 @@ export function FinanceDashboard() {
                         <Link to="/finance/pos">Open Till</Link>
                       </Button>
                     ) : (
-                      <Badge variant="brand" className="fin-badge-nowrap">Standard</Badge>
+                      <Badge variant="gray" className="fin-badge-nowrap">Standard</Badge>
                     )}
                   </div>
                 </div>
@@ -862,13 +862,13 @@ export function FinanceDashboard() {
                 <h3>Enterprise Financial Workspaces</h3>
                 <p>Direct access to operational accounting desks, customer ledgers, and industry modules.</p>
               </div>
-              <Badge variant="brand" className="fin-badge-nowrap">6 Modules</Badge>
+              <Badge variant="gray" className="fin-badge-nowrap">6 Modules</Badge>
             </div>
 
             <div className="fin-launchpad-grid">
               <Link to="/finance/invoices" className="fin-launchpad-card">
                 <div className="fin-launchpad-card-top">
-                  <FeaturedIcon variant="brand" size="sm">
+                  <FeaturedIcon variant="gray" size="sm">
                     <Icon name="invoice" size={16} />
                   </FeaturedIcon>
                   <Icon name="arrowRight" size={14} className="fin-launchpad-arrow" />
@@ -879,7 +879,7 @@ export function FinanceDashboard() {
 
               <Link to="/finance/bills" className="fin-launchpad-card">
                 <div className="fin-launchpad-card-top">
-                  <FeaturedIcon variant="brand" size="sm">
+                  <FeaturedIcon variant="gray" size="sm">
                     <Icon name="receipt" size={16} />
                   </FeaturedIcon>
                   <Icon name="arrowRight" size={14} className="fin-launchpad-arrow" />
@@ -890,7 +890,7 @@ export function FinanceDashboard() {
 
               <Link to="/finance/accounts/bank-reconciliation" className="fin-launchpad-card">
                 <div className="fin-launchpad-card-top">
-                  <FeaturedIcon variant="brand" size="sm">
+                  <FeaturedIcon variant="gray" size="sm">
                     <Icon name="building" size={16} />
                   </FeaturedIcon>
                   <Icon name="arrowRight" size={14} className="fin-launchpad-arrow" />
@@ -901,7 +901,7 @@ export function FinanceDashboard() {
 
               <Link to="/finance/industries" className="fin-launchpad-card">
                 <div className="fin-launchpad-card-top">
-                  <FeaturedIcon variant="brand" size="sm">
+                  <FeaturedIcon variant="gray" size="sm">
                     <Icon name="layers" size={16} />
                   </FeaturedIcon>
                   <Icon name="arrowRight" size={14} className="fin-launchpad-arrow" />
@@ -912,7 +912,7 @@ export function FinanceDashboard() {
 
               <Link to="/crm/customers" className="fin-launchpad-card">
                 <div className="fin-launchpad-card-top">
-                  <FeaturedIcon variant="brand" size="sm">
+                  <FeaturedIcon variant="gray" size="sm">
                     <Icon name="users" size={16} />
                   </FeaturedIcon>
                   <Icon name="arrowRight" size={14} className="fin-launchpad-arrow" />
@@ -923,7 +923,7 @@ export function FinanceDashboard() {
 
               <Link to="/agentic" className="fin-launchpad-card">
                 <div className="fin-launchpad-card-top">
-                  <FeaturedIcon variant="brand" size="sm">
+                  <FeaturedIcon variant="gray" size="sm">
                     <Icon name="sparkle" size={16} />
                   </FeaturedIcon>
                   <Icon name="arrowRight" size={14} className="fin-launchpad-arrow" />

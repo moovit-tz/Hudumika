@@ -10,7 +10,7 @@ import { LockScreen } from './components/LockScreen.js';
 import { useBranding } from './hooks/useBranding.js';
 import { AutoSEO } from './components/AutoSEO.js';
 import type { UserRole } from '@hudumika/types';
-import { OPS_ROLES, FIN_ROLES } from './lib/permissions.js';
+import { ALL_STAFF, OPS_ROLES, FIN_ROLES } from './lib/permissions.js';
 import { WorkspaceProvider } from './contexts/WorkspaceContext.js';
 import { Icon, type IconName } from './components/Icon.js';
 import { SkeletonPage } from './components/ui/skeleton.js';
@@ -94,6 +94,7 @@ const ClearOSShell = React.lazy(() => import('./shells/ClearOSShell.js').then(m 
 const FinOpsShell = React.lazy(() => import('./shells/FinOpsShell.js').then(m => ({ default: m.FinOpsShell })));
 const StandalonePos = React.lazy(() => import('./pages/StandalonePos.js').then(m => ({ default: m.StandalonePos })));
 const LensShell = React.lazy(() => import('./shells/LensShell.js').then(m => ({ default: m.LensShell })));
+const DesignSystemShell = React.lazy(() => import('./shells/DesignSystemShell.js').then(m => ({ default: m.DesignSystemShell })));
 const NexusHRShell = React.lazy(() => import('./shells/NexusHRShell.js').then(m => ({ default: m.NexusHRShell })));
 const BlissShell = React.lazy(() => import('./shells/BlissShell.js').then(m => ({ default: m.BlissShell })));
 const CloudShell = React.lazy(() => import('./shells/CloudShell.js').then(m => ({ default: m.CloudShell })));
@@ -495,6 +496,7 @@ const AppContentBody: React.FC = () => {
             {/* Lens — internal developer record. SuperAdmin only, never in a
                 customer launcher. */}
             <Route path="/lens/*"     element={<RequireRoles roles={['SUPER_ADMIN']}><LensShell /></RequireRoles>} />
+            <Route path="/design-system/*" element={<RequireRoles roles={ALL_STAFF}><DesignSystemShell /></RequireRoles>} />
             <Route path="/finance/*"  element={<RequireRoles roles={FIN_ROLES}><FinOpsShell /></RequireRoles>} />
             <Route path="/finops/*"   element={<RequireRoles roles={FIN_ROLES}><FinOpsShell /></RequireRoles>} />
             {/* POS's own standalone identity (migration 709) — /finance/pos

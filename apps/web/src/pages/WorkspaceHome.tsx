@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth.js';
 import { useBranding } from '../hooks/useBranding.js';
 import { useEnabledApps, isAppEnabled } from '../hooks/useEnabledApps.js';
-import { LauncherAppSvg as AppIcon, LAUNCHER_APPS } from '../components/LauncherApps.js';
+import { LauncherAppSvg as AppIcon, LAUNCHER_APPS, INTERNAL_APP_IDS, STAFF_INTERNAL_APP_IDS, roleCanOpenApp } from '../components/LauncherApps.js';
 import { Icon } from '../components/Icon.js';
 import { SingleSelectFilter } from '../components/ui/filter-dropdown.js';
 import { Tabs, TabsList, TabsTrigger } from '../components/ui/tabs.js';
@@ -11,7 +11,7 @@ import { SkeletonPage } from '../components/ui/skeleton.js';
 import { Tip } from '../components/ui/tooltip.js';
 import { SetupGuideWidget } from '../components/SetupGuideWidget.js';
 import { AttendanceStatusBanner } from '../components/AttendanceStatusBanner.js';
-import { MGMT_ROLES } from '../lib/permissions.js';
+import { ALL_STAFF, MGMT_ROLES } from '../lib/permissions.js';
 import { getRecentApps, recordRecentApp } from '../lib/recentApps.js';
 import './WorkspaceHome.css';
 
@@ -80,6 +80,7 @@ const APP_META: Record<string, Pick<HudumikaApp, 'desc' | 'category'>> = {
   stride:       { desc: 'Race operations, live telemetry and ticketing', category: 'Sports' },
   gereji:       { desc: 'Automotive workshop — vehicle records, job cards, estimates, labour & parts', category: 'Automotive' },
   pulse:        { desc: 'Marketing — audiences, email & SMS campaigns, journeys, social, ads and attribution', category: 'Sales' },
+  'design-system': { desc: 'Foundations, atomic components, interaction patterns, app configurator & quality governance', category: 'System' },
 };
 
 const apps: HudumikaApp[] = [
@@ -170,8 +171,10 @@ export function WorkspaceHome({ externalSearch }: WorkspaceHomeProps) {
     );
   };
 
-  const isSuperAdmin = (user as { role?: string } | null)?.role === 'SUPER_ADMIN';
-  const isManager = MGMT_ROLES.includes(((user as { role?: string } | null)?.role ?? '') as typeof MGMT_ROLES[number]);
+  const userRole = (user as { role?: string } | null)?.role;
+  const isSuperAdmin = userRole === 'SUPER_ADMIN';
+  const isStaff = !!userRole && (ALL_STAFF as readonly string[]).includes(userRole);
+  const isManager = MGMT_ROLES.includes((userRole ?? '') as typeof MGMT_ROLES[number]);
   const enabledApps = useEnabledApps();
   const q = (externalSearch ?? '').toLowerCase();
 
@@ -179,6 +182,9 @@ export function WorkspaceHome({ externalSearch }: WorkspaceHomeProps) {
 
   const enabledAndAllowedApps = apps.filter(app => {
     if (app.superAdminOnly && !isSuperAdmin) return false;
+    if (INTERNAL_APP_IDS.has(app.id) && !isSuperAdmin) return false;
+    if (STAFF_INTERNAL_APP_IDS.has(app.id) && !isStaff) return false;
+    if (!roleCanOpenApp(app.id, userRole)) return false;
     if (!isSuperAdmin && !isAppEnabled(app.id, enabledApps)) return false;
     return true;
   });

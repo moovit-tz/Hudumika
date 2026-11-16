@@ -74,7 +74,7 @@ export const TEMPLATES: TemplateDef[] = [
   {
     id: 'case-opened-hr',
     name: 'Case assignment shows up in HR',
-    description: "Records a new clearance case against the assigned officer so their real workload is visible in NexusHR.",
+    description: "Records a new clearance case against the assigned officer so their real workload is visible in Axis.",
     app: 'nexushr', icon: 'user-check', color: '#0d9488',
     triggerEvent: 'shipment.case_opened',
     needs: [],

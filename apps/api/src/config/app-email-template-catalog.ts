@@ -42,11 +42,11 @@ export const APP_EMAIL_TEMPLATE_CATALOG: AppEmailTemplateCatalogEntry[] = [
   template('FinOps', 'finops.cashflow.summary', 'Cash-flow Summary', 'Delivers periodic cash position and forecast metrics.', 'transactional', ['finance', 'cashflow', 'metrics']),
   template('FinOps', 'finops.month_end.report', 'Month-end Finance Report', 'Delivers the completed month-end finance report.', 'transactional', ['finance', 'report']),
 
-  template('NexusHR', 'nexushr.leave.requested', 'Leave Approval Required', 'Requests a manager decision on an employee leave request.', 'transactional', ['hr', 'leave', 'approval']),
-  template('NexusHR', 'nexushr.timesheet.submitted', 'Timesheet Submitted', 'Notifies a manager that a timesheet is ready for review.', 'transactional', ['hr', 'timesheet']),
-  template('NexusHR', 'nexushr.timesheet.approved', 'Timesheet Approved', 'Confirms approval of an employee timesheet.', 'transactional', ['hr', 'timesheet']),
-  template('NexusHR', 'nexushr.payroll.completed', 'Payroll Completed', 'Notifies payroll managers that a payroll run completed.', 'transactional', ['hr', 'payroll', 'report']),
-  template('NexusHR', 'nexushr.workforce.metrics', 'Workforce Metrics', 'Delivers headcount, attendance and workforce metrics.', 'transactional', ['hr', 'metrics', 'report']),
+  template('Axis', 'nexushr.leave.requested', 'Leave Approval Required', 'Requests a manager decision on an employee leave request.', 'transactional', ['hr', 'leave', 'approval']),
+  template('Axis', 'nexushr.timesheet.submitted', 'Timesheet Submitted', 'Notifies a manager that a timesheet is ready for review.', 'transactional', ['hr', 'timesheet']),
+  template('Axis', 'nexushr.timesheet.approved', 'Timesheet Approved', 'Confirms approval of an employee timesheet.', 'transactional', ['hr', 'timesheet']),
+  template('Axis', 'nexushr.payroll.completed', 'Payroll Completed', 'Notifies payroll managers that a payroll run completed.', 'transactional', ['hr', 'payroll', 'report']),
+  template('Axis', 'nexushr.workforce.metrics', 'Workforce Metrics', 'Delivers headcount, attendance and workforce metrics.', 'transactional', ['hr', 'metrics', 'report']),
 
   template('Bliss', 'bliss.meeting.invitation', 'Meeting Invitation', 'Invites participants to a Bliss meeting.', 'transactional', ['meeting', 'invitation']),
   template('Bliss', 'bliss.meeting.updated', 'Meeting Updated', 'Notifies participants that meeting details changed.', 'transactional', ['meeting', 'update']),

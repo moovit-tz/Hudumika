@@ -389,7 +389,7 @@ export class DeveloperService {
       developer_account_id: row.developer_account_id,
       user_id: row.user_id,
       name: user.name,
-      email: user.email,
+      email: user.email ?? undefined,
       role: row.role as OrgMemberRole,
       status: row.status as any,
       created_at: row.created_at.toISOString(),

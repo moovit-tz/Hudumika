@@ -29,6 +29,11 @@ const checks = [
   ['RTL pages order mixed English, numbers and signs per text run', 'apps/web/src/index.css', (source) => /\[dir="rtl"\] :where\(h1, h2, h3, h4, h5, h6, p, span, td, th[^)]*\) \{\s*unicode-bidi: plaintext;/.test(source)],
   ['Badge groups its text so RTL keeps "-52.8% YTD" in one run', 'apps/web/src/components/ui/badge.tsx', (source) => source.includes('function groupText') && source.includes('{groupText(children)}')],
   ['Icon-only Button warns in development when it has no accessible name', 'apps/web/src/components/ui/button.tsx', (source) => source.includes('unnamedIcon') && source.includes('Icon-only <Button> has no accessible name')],
+  ['Axis dashboard uses neutral KPI tiles, quiet hub shortcuts, and no full-bleed primary banner', 'apps/web/src/pages/hrm/HrmDashboard.tsx', (source) => !source.includes("background: 'hsl(var(--primary))'") && !source.includes('--hrd-module-color')],
+  ['Axis dashboard CSS keeps KPI card and hub link hover states neutral', 'apps/web/src/pages/HRMDashboard.css', (source) => !source.includes('--hrd-module-bg') && !source.includes('border-color: var(--teal-m)')],
+  ['Axis shared ActionBtn uses design-system Button instead of hardcoded teal rgba styles', 'apps/web/src/pages/hrm/shared.tsx', (source) => !source.includes('rgba(15, 118, 110') && source.includes('<Button')],
+  ['Design System standalone internal app shell wraps routes in PageLayout', 'apps/web/src/shells/DesignSystemShell.tsx', (source) => source.includes('<WorkspaceApp appId="design-system">') && source.includes('<Route element={<PageLayout />}>')],
+  ['App router exposes /design-system/* to internal staff roles', 'apps/web/src/App.tsx', (source) => source.includes('path="/design-system/*"') && source.includes('ALL_STAFF')],
 ];
 
 const failures = [];

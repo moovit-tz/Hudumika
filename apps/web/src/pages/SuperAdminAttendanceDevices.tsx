@@ -92,7 +92,7 @@ export function SuperAdminAttendanceDevices() {
   return (
     <div>
       <PageHeader
-        crumbs={['NexusHR', 'Devices']}
+        crumbs={['Axis', 'Devices']}
         titlePlain="Attendance"
         titleEm="devices"
         subtitle={loaded ? `${devices.length} biometric terminal(s) registered across every tenant.` : 'Loading…'}

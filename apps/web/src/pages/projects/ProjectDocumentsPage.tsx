@@ -123,9 +123,6 @@ export const ProjectDocumentsPage: React.FC = () => {
             <Button variant="outline" size="sm" onClick={() => navigate('/cloud')}>
               <Icon name="folder" size={13} style={{ marginRight: 6 }} /> Cloud Drive
             </Button>
-            <Button variant="outline" size="sm" onClick={() => navigate('/projects/directory')}>
-              <Icon name="briefcase" size={13} style={{ marginRight: 6 }} /> Projects Directory
-            </Button>
           </div>
         }
       />
@@ -223,7 +220,7 @@ export const ProjectDocumentsPage: React.FC = () => {
           </div>
         ) : view === 'grid' ? (
           <>
-          <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(auto-fill, minmax(280px, 1fr))', gap: 14 }}>
+          <div style={{ display: 'grid', gridTemplateColumns: isMobile ? 'minmax(0, 1fr)' : 'repeat(auto-fill, minmax(280px, 1fr))', gap: 14 }}>
             {paginate(filtered, docPage, docPageSize).visible.map(d => {
               const ext = d.file_type || d.name.split('.').pop() || '';
               const iconName = FILE_ICONS[ext.toLowerCase()] || 'file';

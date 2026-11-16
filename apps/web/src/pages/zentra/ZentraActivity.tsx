@@ -344,7 +344,7 @@ export function ZentraActivity() {
               <option value="clearos">ClearOS (Customs)</option>
               <option value="finops">FinOps (Finance)</option>
               <option value="complyos">ComplyOS (Regulatory)</option>
-              <option value="nexushr">NexusHR (People)</option>
+              <option value="nexushr">Axis (People)</option>
               <option value="bliss">Bliss (Support &amp; Voice)</option>
               <option value="seal">SEAL (Warehouse)</option>
               <option value="auth">Auth &amp; IAM</option>

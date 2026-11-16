@@ -16,10 +16,8 @@
   position: relative;
   overflow: hidden;
   border-radius: var(--card-radius, var(--r-lg, 16px));
-  border: 1px solid color-mix(in srgb, var(--teal) 22%, var(--border));
-  background: radial-gradient(ellipse 70% 90% at 95% -10%, color-mix(in srgb, var(--teal) 14%, transparent), transparent 70%),
-              radial-gradient(ellipse 50% 60% at 5% 110%, color-mix(in srgb, var(--navy) 10%, transparent), transparent 60%),
-              var(--white);
+  border: 1px solid var(--border);
+  background: var(--card-bg, var(--white));
   box-shadow: var(--shadow-sm, 0 1px 3px rgba(0, 0, 0, 0.05));
   padding: clamp(20px, 2.5vw, 26px);
   display: flex;
@@ -40,8 +38,8 @@
   width: 76px;
   height: 76px;
   border-radius: 50%;
-  background: color-mix(in srgb, var(--teal) 10%, var(--bg));
-  border: 3px solid color-mix(in srgb, var(--teal) 25%, transparent);
+  background: var(--bg);
+  border: 3px solid var(--border);
   border-top-color: var(--teal);
   border-right-color: var(--teal);
   display: flex;
@@ -49,13 +47,12 @@
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
-  box-shadow: 0 4px 14px color-mix(in srgb, var(--teal) 18%, transparent);
 }
 
 .bank-rec-ring strong {
   font-size: 1.45rem;
   font-weight: 850;
-  color: var(--teal);
+  color: var(--ink);
   line-height: 1;
 }
 
@@ -176,15 +173,15 @@
 }
 
 .bank-rec-feed-item:hover {
-  border-color: color-mix(in srgb, var(--teal) 45%, var(--border));
-  background: color-mix(in srgb, var(--teal) 3%, var(--white));
+  border-color: var(--border2, var(--ink4));
+  background: var(--bg);
   transform: translateY(-1px);
 }
 
 .bank-rec-feed-item--active {
   border: 1.5px solid var(--teal);
-  background: radial-gradient(ellipse 80% 60% at 50% 0%, color-mix(in srgb, var(--teal) 8%, transparent), transparent), var(--white);
-  box-shadow: 0 4px 16px color-mix(in srgb, var(--teal) 14%, transparent), var(--shadow-sm);
+  background: var(--white);
+  box-shadow: var(--shadow-sm);
 }
 
 .bank-rec-feed-head {
@@ -387,11 +384,11 @@
 }
 
 .bank-rec-amount--pos {
-  color: var(--green);
+  color: var(--ink);
 }
 
 .bank-rec-amount--neg {
-  color: var(--red);
+  color: var(--ink);
 }
 
 .bank-rec-empty-state {

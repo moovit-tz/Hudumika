@@ -438,6 +438,12 @@ export const TRIGGERS: TriggerDef[] = [
     samplePayload: { userId: '00000000-0000-0000-0000-000000000000', role: 'MANAGER', previous_role: 'SENIOR', new_role: 'MANAGER' },
   },
   {
+    id: 'hr.assignment_changed', kind: 'DOMAIN_EVENT', app: 'nexushr',
+    label: 'Worker job changed', description: 'A worker was hired, moved, promoted, given an extra assignment or offboarded in Axis — e.g. update their access, cost centre or equipment.',
+    entityType: 'hr_assignment', payloadSchema: z.object({ userId: z.string(), change: z.string(), effectiveDate: z.string() }).passthrough(),
+    samplePayload: { userId: '00000000-0000-0000-0000-000000000000', change: 'TRANSFER', effectiveDate: '2026-12-01', assignmentId: '00000000-0000-0000-0000-000000000000' },
+  },
+  {
     id: 'cms.form_submitted',
     kind: 'DOMAIN_EVENT',
     app: 'onesite',

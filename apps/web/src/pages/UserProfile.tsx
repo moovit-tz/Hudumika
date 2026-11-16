@@ -388,12 +388,12 @@ export const UserProfile: React.FC = () => {
               <CardHeader className="up-sidebar-ch">
                 <FeaturedIcon variant="success" size="sm"><Icon name="building" size={14} /></FeaturedIcon>
                 <div className="up-sidebar-ch-text">
-                  <CardTitle>NexusHR</CardTitle>
+                  <CardTitle>Axis</CardTitle>
                   <CardDescription>Employment, leave &amp; pay</CardDescription>
                 </div>
               </CardHeader>
               <CardContent className="up-cc up-nav-list">
-                <Tip label="Open NexusHR self-service employee portal">
+                <Tip label="Open Axis self-service employee portal">
                   <Button asChild size="sm" className="up-nav-primary h-7 text-xs rounded-[var(--task-radius,var(--r,8px))]">
                     <Link to="/nexushr/me">
                       My HR portal

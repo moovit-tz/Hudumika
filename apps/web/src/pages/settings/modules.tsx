@@ -56,7 +56,7 @@ export const MODULE_CATALOG: Record<string, ModuleCatalogEntry> = {
   petti:        { name: 'Petti',         desc: 'Tenant petty-cash wallets — deposit, request, approve & disburse.', category: 'Finance & Accounts', color: '#16a34a' },
   complyos:     { name: 'ComplyOS',      desc: 'Compliance tracking, BRELA business search, permits & audits.',   category: 'Compliance & Legal', color: 'var(--green)' },
   sign:         { name: 'eSign',         desc: 'Secure electronic document signatures, approvals & audit logs.',  category: 'Compliance & Legal', color: '#2563eb' },
-  nexushr:      { name: 'NexusHR',       desc: 'People operations, payroll, attendance & shift rosters.',         category: 'People & HR', color: '#0d9488' },
+  nexushr:      { name: 'Axis',       desc: 'People operations, payroll, attendance & shift rosters.',         category: 'People & HR', color: '#0d9488' },
   contacts:     { name: 'Contacts',      desc: 'Shared customer, vendor and partner contact directory.',          category: 'People & HR', color: '#1a73e8' },
   crm:          { name: 'CRM',           desc: 'Customer relationships, sales pipeline & lead tracking.',         category: 'Communication & CRM', color: 'var(--green)' },
   bliss:        { name: 'Bliss',         desc: 'Omnichannel customer helpdesk, ticketing & SLA reminders.',       category: 'Communication & CRM', color: '#7c3aed' },

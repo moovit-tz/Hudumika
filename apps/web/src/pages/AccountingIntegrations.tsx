@@ -1,4 +1,4 @@
-﻿import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { apiFetch } from '../lib/api.js';
 import { Icon } from '../components/Icon.js';
 import { Tabs, TabsList, TabsTrigger } from '../components/ui/tabs.js';
@@ -9,7 +9,6 @@ import { Badge } from '../components/ui/badge.js';
 import { Button } from '../components/ui/button.js';
 import { Input } from '../components/ui/input.js';
 import { SectionLoading } from '../components/ui/spinner.js';
-import { useIsDarkMode } from '../hooks/useIsDarkMode.js';
 
 /* ── SVG brand marks (vector, no 3D) ─────────────────────────────── */
 const XeroLogo = () => (
@@ -71,7 +70,6 @@ export function AccountingIntegrations() {
   const [activeTab, setActiveTab] = useState<TabId>('connected');
   const [marketplaceSearch, setMarketplaceSearch] = useState('');
   const [installingId, setInstallingId] = useState<string | null>(null);
-  const isDark = useIsDarkMode();
 
   const loadData = async () => {
     try {
@@ -195,7 +193,7 @@ export function AccountingIntegrations() {
           {(['connected', 'marketplace'] as TabId[]).map(tab => (
             <TabsTrigger key={tab} value={tab}>
               {tab === 'connected' ? 'Connected Platforms' : 'Marketplace'}
-              {tab === 'connected' && <span style={{ marginLeft: 6, fontSize: 11, fontWeight: 700, padding: '1px 6px', borderRadius: 'var(--badge-radius)', background: 'var(--teal-l)', color: 'var(--teal)' }}>{integrations.filter(i => i.status === 'CONNECTED').length}</span>}
+              {tab === 'connected' && <span style={{ marginLeft: 6, fontSize: 11, fontWeight: 700, padding: '1px 6px', borderRadius: 'var(--badge-radius)', background: 'var(--bg)', color: 'var(--ink2)' }}>{integrations.filter(i => i.status === 'CONNECTED').length}</span>}
               {tab === 'marketplace' && <span style={{ marginLeft: 6, fontSize: 11, fontWeight: 700, padding: '1px 6px', borderRadius: 'var(--badge-radius)', background: 'var(--bg)', color: 'var(--ink3)' }}>{MARKETPLACE.length}</span>}
             </TabsTrigger>
           ))}
@@ -216,7 +214,7 @@ export function AccountingIntegrations() {
                 const isError = p.status === 'ERROR';
                 const { Logo } = brand;
                 return (
-                  <div key={p.provider} style={{ border: `1.5px solid ${isConnected ? brand.color + '4d' : 'var(--border)'}`, borderRadius: 'var(--r)', background: 'var(--white)', overflow: 'hidden', display: 'flex', flexDirection: 'column', boxShadow: isConnected ? `0 2px 12px ${brand.color}18` : 'none' }}>
+                  <div key={p.provider} style={{ border: '1px solid var(--border)', borderRadius: 'var(--r)', background: 'var(--white)', overflow: 'hidden', display: 'flex', flexDirection: 'column', boxShadow: 'none' }}>
                     <div style={{ padding: 18, display: 'flex', gap: 14, alignItems: 'flex-start', flex: 1 }}>
                       <div style={{ flexShrink: 0 }}><Logo /></div>
                       <div style={{ flex: 1, minWidth: 0 }}>
@@ -347,17 +345,17 @@ export function AccountingIntegrations() {
 
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: 16 }}>
               {displayed.map(item => (
-                <div key={item.id} style={{ border: '1.5px solid var(--border)', borderRadius: 'var(--r)', background: 'var(--white)', overflow: 'hidden', display: 'flex', flexDirection: 'column', transition: 'border-color 0.15s, box-shadow 0.15s' }}
-                  onMouseEnter={e => { (e.currentTarget as HTMLElement).style.borderColor = item.color; (e.currentTarget as HTMLElement).style.boxShadow = `0 4px 16px ${item.color}20`; }}
+                <div key={item.id} style={{ border: '1px solid var(--border)', borderRadius: 'var(--r)', background: 'var(--white)', overflow: 'hidden', display: 'flex', flexDirection: 'column', transition: 'border-color 0.15s, box-shadow 0.15s' }}
+                  onMouseEnter={e => { (e.currentTarget as HTMLElement).style.borderColor = 'var(--border2, var(--ink4))'; (e.currentTarget as HTMLElement).style.boxShadow = 'var(--elev-sm, 0 2px 8px rgba(0,0,0,0.06))'; }}
                   onMouseLeave={e => { (e.currentTarget as HTMLElement).style.borderColor = 'var(--border)'; (e.currentTarget as HTMLElement).style.boxShadow = 'none'; }}>
                   <div style={{ padding: 18, flex: 1, display: 'flex', gap: 14 }}>
-                    <div style={{ width: 44, height: 44, borderRadius: 'var(--r-sm)', background: isDark ? item.color : item.bg, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, border: `1.5px solid ${item.color}${isDark ? '' : '30'}` }}>
-                      <span style={{ fontWeight: 800, fontSize: 13.5, color: isDark ? '#ffffff' : item.color, fontFamily: 'system-ui, sans-serif', letterSpacing: '-0.02em' }}>{item.initials}</span>
+                    <div style={{ width: 44, height: 44, borderRadius: 'var(--r-sm)', background: 'var(--bg)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, border: '1px solid var(--border)' }}>
+                      <span style={{ fontWeight: 800, fontSize: 13.5, color: 'var(--ink2)', fontFamily: 'system-ui, sans-serif', letterSpacing: '-0.02em' }}>{item.initials}</span>
                     </div>
                     <div style={{ flex: 1, minWidth: 0 }}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: 7, flexWrap: 'wrap', marginBottom: 4 }}>
                         <span style={{ fontWeight: 700, fontSize: 14.5, color: 'var(--ink)' }}>{item.name}</span>
-                        <span style={{ fontSize: 10, padding: '2px 7px', borderRadius: 'var(--badge-radius)', background: isDark ? item.color : item.bg, color: isDark ? '#ffffff' : item.color, fontWeight: 700 }}>{item.category}</span>
+                        <span style={{ fontSize: 10, padding: '2px 7px', borderRadius: 'var(--badge-radius)', background: 'var(--bg)', color: 'var(--ink2)', border: '1px solid var(--border)', fontWeight: 600 }}>{item.category}</span>
                       </div>
                       <div style={{ fontSize: 12.5, color: 'var(--ink3)', lineHeight: 1.45 }}>{item.desc}</div>
                     </div>

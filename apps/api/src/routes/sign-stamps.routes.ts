@@ -222,7 +222,8 @@ export async function signStampsRoutes(fastify: FastifyInstance) {
         tenantId: tid, userId: approver.id, app: 'sign', type: 'task', title, message,
         link: '/workspace/settings?s=other-esign', entityType: 'sign_stamp_request', entityId: row.id,
       }).catch(err => console.error('[Sign] Failed to notify stamp-request approver:', err.message));
-      await MailService.sendNow(tid, {
+      // No email (a worker without sign-in): the in-app notice above is enough.
+      if (approver.email) await MailService.sendNow(tid, {
         to: approver.email, subject: title,
         bodyHtml: `<p>Hi ${approver.name},</p><p>${userName(req)} is requesting the company stamp for: <strong>${message}</strong></p>`,
         sourceApp: 'sign',

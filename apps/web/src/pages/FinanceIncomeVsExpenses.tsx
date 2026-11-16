@@ -1,4 +1,4 @@
-﻿import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Icon } from '../components/Icon.js';
 import { apiFetch } from '../lib/api.js';
 import { useCompany } from '../data/companyStore.js';
@@ -88,9 +88,9 @@ export const FinanceIncomeVsExpenses: React.FC = () => {
 
   const columns: TableColumn<(typeof monthlyRows)[number]>[] = [
     { key: 'month', header: 'Month', accessor: 'month', sortable: true, render: row => <span className="font-semibold text-foreground">{row.month} {year}</span> },
-    { key: 'income', header: 'Income', accessor: 'income', sortable: true, align: 'right', render: row => <span className="font-semibold text-[var(--teal)]">{fmtFull(row.income)}</span> },
-    { key: 'expense', header: 'Expenses', accessor: 'expense', sortable: true, align: 'right', render: row => <span className="font-semibold text-[var(--red)]">{fmtFull(row.expense)}</span> },
-    { key: 'net', header: 'Net profit', accessor: 'net', sortable: true, align: 'right', render: row => <span className={row.net >= 0 ? 'font-bold text-[var(--green)]' : 'font-bold text-[var(--red)]'}>{fmtFull(row.net)}</span> },
+    { key: 'income', header: 'Income', accessor: 'income', sortable: true, align: 'right', render: row => <span className="font-semibold text-foreground">{fmtFull(row.income)}</span> },
+    { key: 'expense', header: 'Expenses', accessor: 'expense', sortable: true, align: 'right', render: row => <span className="font-semibold text-foreground">{fmtFull(row.expense)}</span> },
+    { key: 'net', header: 'Net profit', accessor: 'net', sortable: true, align: 'right', render: row => <span className={row.net < 0 ? 'font-bold text-[var(--red)]' : 'font-bold text-foreground'}>{fmtFull(row.net)}</span> },
     {
       key: 'margin', header: 'Margin', align: 'right',
       render: row => { const margin = row.income > 0 ? (row.net / row.income) * 100 : 0; return <div className="flex items-center justify-end gap-2"><div className="h-1 w-15 overflow-hidden rounded-full bg-border"><div className="h-full rounded-full bg-[var(--green)]" style={{ width: `${Math.min(100, Math.max(0, margin))}%` }} /></div><span className="font-semibold">{margin.toFixed(1)}%</span></div>; },

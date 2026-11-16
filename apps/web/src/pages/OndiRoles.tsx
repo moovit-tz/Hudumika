@@ -40,12 +40,14 @@ const PERMISSION_LABEL: Record<string, string> = {
   'automation.manage': 'Configure joiner/leaver automation',
   'compliance.review': 'View the compliance posture dashboard',
   'policies.manage': 'Configure org security policies',
-  'assets.manage': 'View company assets (NexusHR)',
-  'hr.cases.manage': 'Manage confidential HR cases (NexusHR)',
-  'hr.documents.manage': 'Manage confidential employee documents (NexusHR)',
+  'assets.manage': 'View company assets (Axis)',
+  'hr.cases.manage': 'Manage confidential HR cases (Axis)',
+  'hr.documents.manage': 'Manage confidential employee documents (Axis)',
   'integrations.manage': 'Manage third-party app event access',
   'visitors.manage': 'Log and manage front-desk visitors',
   'groups.manage': 'Create and manage org groups',
+  'projects.equipment.manage': 'Run the equipment register: reserve, issue, return, inspect (Projects)',
+  'projects.portfolios.manage': 'Create and edit project portfolios and programs (Projects)',
 };
 const ALL_PERMISSIONS = Object.keys(PERMISSION_LABEL);
 

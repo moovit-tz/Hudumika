@@ -34,16 +34,24 @@ export function PulseAds() {
   const [days, setDays] = useState('30');
   const [d, setD] = useState<AdsData | null>(null);
   const [loadError, setLoadError] = useState<string | null>(null);
+  const [loading, setLoading] = useState(true);
   const [segments, setSegments] = useState<Segment[]>([]);
   const [push, setPush] = useState({ account: '', segment: '' });
   const [busy, setBusy] = useState<string | null>(null);
+  // Requests can overlap (a retry, a quick change of period, a reload after
+  // an action), and they don't come back in order. Only the newest one may
+  // change what is shown; an older success or failure is dropped.
+  const latest = useRef(0);
   const load = useCallback(async () => {
-    setLoadError(null);
+    const id = ++latest.current;
+    setLoading(true);
     try {
       const response = await apiFetch(`/v1/pulse/ads?days=${days}`);
-      setD(response.data);
+      if (id === latest.current) { setD(response.data); setLoadError(null); }
     } catch (error) {
-      setLoadError(apiError(error));
+      if (id === latest.current) setLoadError(apiError(error));
+    } finally {
+      if (id === latest.current) setLoading(false);
     }
   }, [days]);
   useEffect(() => { load(); }, [load]);
@@ -67,13 +75,29 @@ export function PulseAds() {
     run(c.id, () => apiFetch(`/v1/pulse/ads/campaigns/${c.id}`, { method: 'POST', body: JSON.stringify({ action: 'budget', amount }) }), 'Budget changed.');
   }
 
-  if (loadError) return (
-    <div className="pulse-inline">
+  const header = (
+    <PageHeader crumbs={['Pulse', 'Ads']} titlePlain="Ad" titleEm="campaigns"
+      subtitle="Spend and results from Google Ads and Meta, next to the leads Pulse saw arrive from them. New ads are made in each platform's own tools."
+      actions={<Select value={days} onValueChange={setDays}><SelectTrigger aria-label="Period" className="pulse-filter"><SelectValue /></SelectTrigger>
+        <SelectContent><SelectItem value="7">Last 7 days</SelectItem><SelectItem value="30">Last 30 days</SelectItem></SelectContent></Select>} />
+  );
+  // The error stays on screen while a retry runs; Button's loading state
+  // marks it busy (not disabled, so keyboard focus stays) and ignores
+  // further presses until the attempt settles.
+  const errorBlock = loadError && (
+    <div className="pulse-note pulse-note-warn pulse-load-error">
       <p role="alert">{loadError}</p>
-      <Button variant="outline" onClick={load}>Retry loading ads</Button>
+      <Button variant="outline" loading={loading} onClick={load}>Retry loading ads</Button>
     </div>
   );
-  if (!d) return <SectionLoading />;
+  // Data for another period must never sit under this period's label.
+  const current = d && d.days === Number(days) ? d : null;
+  if (!current) return (
+    <div className="pulse-page">
+      {header}
+      {errorBlock || <SectionLoading />}
+    </div>
+  );
   const columns: TableColumn<AdCampaign>[] = [
     { key: 'name', header: 'Campaign', render: (c) => <div><div className="pulse-strong">{c.name}</div><div className="pulse-muted">{c.account_name} · {c.network === 'google' ? 'Google' : 'Meta'}</div></div> },
     { key: 'status', header: 'Status', render: (c) => <Badge variant={isLive(c.status) ? 'success' : 'gray'}>{isLive(c.status) ? 'Running' : c.status === 'PAUSED' ? 'Paused' : c.status.toLowerCase()}</Badge> },
@@ -96,34 +120,32 @@ export function PulseAds() {
 
   return (
     <div className="pulse-page">
-      <PageHeader crumbs={['Pulse', 'Ads']} titlePlain="Ad" titleEm="campaigns"
-        subtitle="Spend and results from Google Ads and Meta, next to the leads Pulse saw arrive from them. New ads are made in each platform's own tools."
-        actions={<Select value={days} onValueChange={setDays}><SelectTrigger aria-label="Period" className="pulse-filter"><SelectValue /></SelectTrigger>
-          <SelectContent><SelectItem value="7">Last 7 days</SelectItem><SelectItem value="30">Last 30 days</SelectItem></SelectContent></Select>} />
+      {header}
+      {errorBlock}
       <p className="pulse-note">“Leads in Pulse” counts website forms sent from links whose <strong>utm_campaign</strong> equals the ad campaign’s name. Tag your ad links with the link builder so this works.</p>
       <SectionCard title="Campaigns" padded={false} collapsible={false}>
-        <DataTable columns={columns} rows={d.campaigns} empty={!d.campaigns.length} emptyIcon="barChart"
-          emptyTitle={d.accounts.length ? 'No campaigns in these accounts' : 'No ad accounts connected'}
-          emptyMessage={d.accounts.length ? 'Campaigns appear here after the next sync.' : 'Connect Google Ads or Meta below.'} />
+        <DataTable columns={columns} rows={current.campaigns} empty={!current.campaigns.length} emptyIcon="barChart"
+          emptyTitle={current.accounts.length ? 'No campaigns in these accounts' : 'No ad accounts connected'}
+          emptyMessage={current.accounts.length ? 'Campaigns appear here after the next sync.' : 'Connect Google Ads or Meta below.'} />
       </SectionCard>
       <div className="pulse-split">
         <SectionCard title="Matched audiences" collapsible={false}>
           <div className="pulse-form">
             <p className="pulse-muted">Show ads to people already in a Pulse audience. Only people who opted in to marketing are shared, and their email and phone are hashed (SHA-256) before leaving Hudumika.</p>
-            {canEdit && d.accounts.length > 0 && (
+            {canEdit && current.accounts.length > 0 && (
               <div className="pulse-ab-grid">
                 <div className="pulse-field"><Label htmlFor="aud-acc">Ad account</Label>
                   <Select value={push.account} onValueChange={(v) => setPush({ ...push, account: v })}><SelectTrigger id="aud-acc"><SelectValue placeholder="Choose" /></SelectTrigger>
-                    <SelectContent>{d.accounts.filter((a) => a.status === 'connected').map((a) => <SelectItem key={a.id} value={a.id}>{a.name}</SelectItem>)}</SelectContent></Select></div>
+                    <SelectContent>{current.accounts.filter((a) => a.status === 'connected').map((a) => <SelectItem key={a.id} value={a.id}>{a.name}</SelectItem>)}</SelectContent></Select></div>
                 <div className="pulse-field"><Label htmlFor="aud-seg">Pulse audience</Label>
                   <Select value={push.segment} onValueChange={(v) => setPush({ ...push, segment: v })}><SelectTrigger id="aud-seg"><SelectValue placeholder="Choose" /></SelectTrigger>
                     <SelectContent>{segments.map((s) => <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>)}</SelectContent></Select></div>
               </div>
             )}
-            {canEdit && d.accounts.length > 0 && <div><Button variant="outline" disabled={!push.account || !push.segment || busy === 'push'} onClick={() => run('push', () => apiFetch('/v1/pulse/ads/audiences', { method: 'POST', body: JSON.stringify({ account_id: push.account, segment_id: push.segment }) }), 'Audience sent. Platforms take a few hours to match it.')}>Send audience</Button></div>}
-            {d.audiences.length > 0 && (
-              <ul className="pulse-links">{d.audiences.map((a) => (
-                <li key={a.id}><span>{a.segment_name ?? a.name}<span className="pulse-muted"> · {d.accounts.find((x) => x.id === a.account_id)?.name}</span></span>
+            {canEdit && current.accounts.length > 0 && <div><Button variant="outline" disabled={!push.account || !push.segment || busy === 'push'} onClick={() => run('push', () => apiFetch('/v1/pulse/ads/audiences', { method: 'POST', body: JSON.stringify({ account_id: push.account, segment_id: push.segment }) }), 'Audience sent. Platforms take a few hours to match it.')}>Send audience</Button></div>}
+            {current.audiences.length > 0 && (
+              <ul className="pulse-links">{current.audiences.map((a) => (
+                <li key={a.id}><span>{a.segment_name ?? a.name}<span className="pulse-muted"> · {current.accounts.find((x) => x.id === a.account_id)?.name}</span></span>
                   <span>{a.status === 'failed' ? <Badge variant="error">{a.last_error ?? 'Failed'}</Badge> : <span className="pulse-muted">{fmtNum(a.uploaded)} sent {a.synced_at ? fmtWhen(a.synced_at) : ''}</span>}</span></li>
               ))}</ul>
             )}
@@ -131,8 +153,8 @@ export function PulseAds() {
         </SectionCard>
         <SectionCard title="Ad accounts" collapsible={false}>
           <div className="pulse-form">
-            {d.accounts.length > 0 && (
-              <ul className="pulse-links">{d.accounts.map((a) => (
+            {current.accounts.length > 0 && (
+              <ul className="pulse-links">{current.accounts.map((a) => (
                 <li key={a.id}>
                   <span><span className="pulse-strong">{a.name}</span><span className="pulse-muted"> · {a.network === 'google' ? 'Google Ads' : 'Meta'}{a.synced_at ? ` · updated ${fmtWhen(a.synced_at)}` : ''}</span>
                     {a.last_error && <span className="pulse-note pulse-note-warn">{a.last_error}</span>}</span>
@@ -148,8 +170,8 @@ export function PulseAds() {
             {(['google', 'meta'] as const).map((n) => (
               <div key={n} className="pulse-provider">
                 <div><div className="pulse-strong">{PLATFORM[n]}</div>
-                  <div className="pulse-muted">{d.available[n] ? 'Connect the ad accounts you manage.' : n === 'google' ? 'Not available yet — the Hudumika team needs a Google Ads developer token (Google reviews these, usually over several weeks).' : 'Not available yet — the Hudumika team needs Meta to approve its app for ads access.'}</div></div>
-                {canEdit && <Button variant="outline" size="sm" disabled={!d.available[n]} onClick={() => connect(n)}>Connect</Button>}
+                  <div className="pulse-muted">{current.available[n] ? 'Connect the ad accounts you manage.' : n === 'google' ? 'Not available yet — the Hudumika team needs a Google Ads developer token (Google reviews these, usually over several weeks).' : 'Not available yet — the Hudumika team needs Meta to approve its app for ads access.'}</div></div>
+                {canEdit && <Button variant="outline" size="sm" disabled={!current.available[n]} onClick={() => connect(n)}>Connect</Button>}
               </div>
             ))}
           </div>

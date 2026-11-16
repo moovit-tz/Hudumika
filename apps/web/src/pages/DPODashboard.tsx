@@ -144,7 +144,7 @@ export function DPODashboard() {
   return (
     <div>
       <PageHeader
-        crumbs={['NexusHR', 'Privacy']}
+        crumbs={['Axis', 'Privacy']}
         titlePlain="Data"
         titleEm="protection"
         subtitle="DSR queue, PII access audit, processing register and consent analytics."

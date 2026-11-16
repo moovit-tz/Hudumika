@@ -1,4 +1,5 @@
 import React, { useState, useMemo } from 'react';
+import { useCanCreateProjects } from './projectPowers.js';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '../../components/ui/button.js';
 import { Badge } from '../../components/ui/badge.js';
@@ -26,6 +27,7 @@ export const ProjectBudgetTracking: React.FC<Props> = ({
 }) => {
   const isMobile = useIsMobile();
   const navigate = useNavigate();
+  const canCreate = useCanCreateProjects();
   const { rows, loading, error, load } = useProjectRows();
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
@@ -125,9 +127,11 @@ export const ProjectBudgetTracking: React.FC<Props> = ({
 
         <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
           <SearchToolbar search={search} onSearch={setSearch} placeholder="Search project budgets…" />
-          <Button onClick={onNewProject ?? (() => navigate('/projects/new'))} size="sm">
-            <Icon name="plus" size={13} style={{ marginRight: 6 }} /> New Project
-          </Button>
+          {canCreate && (
+            <Button onClick={onNewProject ?? (() => navigate('/projects/new'))} size="sm">
+              <Icon name="plus" size={13} style={{ marginRight: 6 }} /> New Project
+            </Button>
+          )}
         </div>
       </div>
 
@@ -143,7 +147,7 @@ export const ProjectBudgetTracking: React.FC<Props> = ({
           <p style={{ fontSize: 13, color: 'var(--ink3)', maxWidth: 400, margin: '0 auto 16px' }}>
             No project budgets match your current filter. Create a new project to establish budget allocations.
           </p>
-          <Button onClick={onNewProject ?? (() => navigate('/projects/new'))}>Create Project</Button>
+          {canCreate && <Button onClick={onNewProject ?? (() => navigate('/projects/new'))}>Create Project</Button>}
         </div>
       ) : (
         <div style={{ background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 'var(--r-lg)', overflow: 'hidden', overflowX: 'auto', boxShadow: 'var(--card-shadow)' }}>

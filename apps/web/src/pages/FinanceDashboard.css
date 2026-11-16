@@ -7,8 +7,8 @@
   /* Light mode: refined, soft hairline borders (replaces harsh #8998ab input borders) */
   --fin-border: color-mix(in srgb, var(--border) 50%, var(--white) 50%);
   --fin-border-subtle: color-mix(in srgb, var(--border) 36%, var(--white) 64%);
-  --fin-border-brand: color-mix(in srgb, var(--teal) 24%, var(--white) 76%);
-  --fin-border-hover: color-mix(in srgb, var(--teal) 44%, var(--white) 56%);
+  --fin-border-brand: var(--border);
+  --fin-border-hover: var(--border2);
   --color-border: var(--fin-border);
   --color-input: var(--fin-border);
 
@@ -29,8 +29,8 @@
   /* Dark mode: opaque, luminous borders mixed against card surface (--white) so they never vanish */
   --fin-border: color-mix(in srgb, var(--ink) 26%, var(--white) 74%);
   --fin-border-subtle: color-mix(in srgb, var(--ink) 18%, var(--white) 82%);
-  --fin-border-brand: color-mix(in srgb, var(--teal) 54%, var(--white) 46%);
-  --fin-border-hover: color-mix(in srgb, var(--teal) 74%, var(--white) 26%);
+  --fin-border-brand: #262c36;
+  --fin-border-hover: #30363d;
   --color-border: var(--fin-border);
   --color-input: var(--fin-border);
 }
@@ -63,11 +63,7 @@
 
 [data-theme="dark"] .fin-dashboard .fin-hero-banner,
 .dark .fin-dashboard .fin-hero-banner {
-  background: linear-gradient(
-    135deg,
-    color-mix(in srgb, var(--teal) 10%, var(--white)) 0%,
-    color-mix(in srgb, var(--white) 95%, var(--ink) 5%) 60%
-  );
+  background: color-mix(in srgb, var(--white) 95%, var(--ink) 5%);
 }
 
 .fin-dashboard :where(.fin-kpi-card, .fin-launchpad-card):hover {
@@ -89,13 +85,6 @@
   background: color-mix(in srgb, var(--teal) 76%, #0b1526) !important;
   color: #ffffff !important;
   border: 1px solid color-mix(in srgb, var(--teal) 85%, #ffffff) !important;
-}
-
-/* Ensure alerts/banners inside Finance Dashboard use the app-configured color */
-.fin-dashboard [role="alert"] {
-  background: var(--teal-l, color-mix(in srgb, var(--teal) 10%, var(--card-bg, var(--white)))) !important;
-  border-color: var(--fin-border-brand) !important;
-  color: var(--ink) !important;
 }
 
 .fin-badge-nowrap {
@@ -125,11 +114,7 @@
   overflow: hidden;
   border-radius: var(--card-radius, var(--r-lg, 14px));
   border: var(--card-border-width, 1px) solid var(--fin-border);
-  background: linear-gradient(
-    135deg,
-    color-mix(in srgb, var(--teal) 4%, var(--card-bg, var(--white))) 0%,
-    var(--card-bg, var(--white)) 55%
-  );
+  background: var(--card-bg, var(--white));
   box-shadow: var(--elev-sm, var(--card-shadow, 0 1px 3px rgba(0, 0, 0, 0.03)));
   padding: var(--card-padding, clamp(18px, 2vw, 24px));
   display: grid;
@@ -162,11 +147,11 @@
   padding: var(--badge-py, 3px) var(--badge-px, 10px);
   min-height: var(--badge-min-h, 24px);
   border-radius: var(--badge-radius, 9999px);
-  background: var(--teal-l, color-mix(in srgb, var(--teal) 10%, transparent));
-  border: var(--border-width, 1px) solid var(--fin-border-brand);
+  background: var(--card-sunken, color-mix(in srgb, var(--bg) 70%, transparent));
+  border: var(--border-width, 1px) solid var(--fin-border-subtle);
   font-size: var(--badge-fs, var(--text-xs, 11px));
   font-weight: 700;
-  color: var(--teal);
+  color: var(--ink2);
   letter-spacing: 0.03em;
   text-transform: uppercase;
 }
@@ -222,9 +207,9 @@
 .fin-hero-currency-tag {
   font-size: var(--text-xs, 11px);
   font-weight: 650;
-  color: var(--teal);
-  background: var(--teal-l, color-mix(in srgb, var(--teal) 10%, transparent));
-  border: var(--border-width, 1px) solid var(--fin-border-brand);
+  color: var(--ink2);
+  background: var(--card-sunken, color-mix(in srgb, var(--bg) 70%, transparent));
+  border: var(--border-width, 1px) solid var(--fin-border-subtle);
   padding: 3px 9px;
   border-radius: var(--badge-radius, 9999px);
   letter-spacing: 0.02em;
@@ -395,10 +380,14 @@
   white-space: nowrap;
 }
 
-/* Alert/highlight values use the app-configured color (--teal) */
-.fin-text-risk,
+/* Alert/risk values use semantic colors */
+.fin-text-risk {
+  color: var(--red) !important;
+  font-weight: 700;
+}
+
 .fin-text-warning {
-  color: var(--teal) !important;
+  color: var(--amber, var(--gold)) !important;
   font-weight: 700;
 }
 
@@ -512,10 +501,16 @@
   transition: width var(--dur-slow, 300ms) var(--ease, ease);
 }
 
-.fin-kpi-meter-fill--brand,
-.fin-kpi-meter-fill--warning,
-.fin-kpi-meter-fill--risk {
+.fin-kpi-meter-fill--brand {
   background: var(--teal);
+}
+
+.fin-kpi-meter-fill--warning {
+  background: var(--amber, var(--gold));
+}
+
+.fin-kpi-meter-fill--risk {
+  background: var(--red);
 }
 
 .fin-kpi-meter-fill--neutral {
@@ -684,8 +679,8 @@
 }
 
 .fin-pnl-tile--highlight {
-  background: color-mix(in srgb, var(--teal) 6%, var(--card-bg, var(--white)));
-  border-color: var(--fin-border-brand);
+  background: var(--card-sunken, color-mix(in srgb, var(--bg) 55%, transparent));
+  border-color: var(--fin-border);
 }
 
 .fin-pnl-tile-label {
@@ -726,7 +721,7 @@
 
 .fin-pnl-tile--link:hover {
   border-color: var(--fin-border-hover);
-  background: var(--teal-l, color-mix(in srgb, var(--teal) 6%, transparent));
+  background: var(--hover-bg, var(--card-bg, var(--white)));
 }
 
 /* Flow Ratio Bar */
@@ -850,8 +845,8 @@
 }
 
 .fin-wc-row--summary {
-  background: color-mix(in srgb, var(--teal) 6%, var(--card-bg, var(--white)));
-  border-color: var(--fin-border-brand);
+  background: var(--card-sunken, color-mix(in srgb, var(--bg) 50%, transparent));
+  border-color: var(--fin-border);
 }
 
 .fin-wc-left {

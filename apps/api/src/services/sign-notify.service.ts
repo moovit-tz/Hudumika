@@ -103,7 +103,7 @@ export async function attachMatchedUserIds<T extends { user_id: string | null; e
     .where('tenant_id', '=', tid)
     .where(({ eb, fn }) => eb(fn('lower', ['email']), 'in', unmatchedEmails))
     .execute();
-  const byEmail = new Map(matches.map(u => [u.email.toLowerCase(), u.id]));
+  const byEmail = new Map(matches.filter(u => u.email).map(u => [u.email!.toLowerCase(), u.id]));
   return recipients.map(r => ({
     ...r,
     matched_user_id: r.user_id ? null : (byEmail.get(r.email?.toLowerCase()) ?? null),

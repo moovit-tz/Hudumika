@@ -1,4 +1,4 @@
-﻿import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { apiFetch } from '../lib/api.js';
 import { Icon } from '../components/Icon.js';
 import { Tabs, TabsList, TabsTrigger } from '../components/ui/tabs.js';
@@ -187,6 +187,10 @@ export function Budgets() {
 
   const selectedBudget = budgets.find(b => b.id === selectedId);
   const grandTotal = rows.reduce((s, r) => s + r.amounts.reduce((a, b) => a + b, 0), 0);
+  const accountTypeByCode = useMemo(
+    () => new Map(accounts.map(a => [a.code, (a.type || '').toUpperCase()])),
+    [accounts]
+  );
 
   if (loading) return <SectionLoading />;
 
@@ -219,38 +223,37 @@ export function Budgets() {
               width: 72,
               height: 72,
               borderRadius: '50%',
-              border: '3px solid color-mix(in srgb, var(--teal) 40%, transparent)',
-              borderTopColor: 'var(--teal)',
+              border: '2px solid var(--border)',
               display: 'flex',
               flexDirection: 'column',
               alignItems: 'center',
               justifyContent: 'center',
-              background: 'rgba(0,0,0,0.25)',
+              background: 'var(--bg)',
               flexShrink: 0,
             }}
           >
-            <span style={{ fontSize: 22, fontWeight: 800, color: '#ffffff' }}>94%</span>
-            <span style={{ fontSize: 9, color: 'rgba(255,255,255,0.7)', textTransform: 'uppercase' }}>ACCURACY</span>
+            <span style={{ fontSize: 22, fontWeight: 800, color: 'var(--ink)' }}>{rows.length}</span>
+            <span style={{ fontSize: 9, color: 'var(--ink3)', textTransform: 'uppercase' }}>{rows.length === 1 ? 'LINE' : 'LINES'}</span>
           </div>
           <div>
-            <h2 style={{ fontSize: 20, fontWeight: 800, margin: '0 0 4px', color: '#ffffff', display: 'flex', alignItems: 'center', gap: 8 }}>
+            <h2 style={{ fontSize: 20, fontWeight: 800, margin: '0 0 4px', color: 'var(--ink)', display: 'flex', alignItems: 'center', gap: 8 }}>
               {selectedBudget ? selectedBudget.name : 'Corporate Operating Budget'}
-              <Badge variant="brand">FY{selectedBudget ? selectedBudget.fiscal_year : new Date().getFullYear()}</Badge>
+              <Badge variant="gray">FY{selectedBudget ? selectedBudget.fiscal_year : new Date().getFullYear()}</Badge>
             </h2>
-            <p style={{ fontSize: 12.5, color: 'rgba(255,255,255,0.85)', margin: 0 }}>
-              Total Planned Capital: <strong>{fmt(grandTotal)}</strong> across {rows.length} general ledger accounts.
+            <p style={{ fontSize: 12.5, color: 'var(--ink3)', margin: 0 }}>
+              Total Planned Capital: <strong style={{ color: 'var(--ink)' }}>{fmt(grandTotal)}</strong> across {rows.length} general ledger accounts.
             </p>
           </div>
         </div>
 
         <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
-          <div style={{ background: 'rgba(0,0,0,0.22)', padding: '10px 14px', borderRadius: 'var(--r)', border: '1px solid rgba(255,255,255,0.12)' }}>
-            <div style={{ fontSize: 10.5, fontWeight: 700, color: 'rgba(255,255,255,0.7)', textTransform: 'uppercase' }}>Monthly Cap</div>
-            <div style={{ fontSize: 15, fontWeight: 800, color: '#fff' }}>{fmt(grandTotal / 12)}</div>
+          <div style={{ background: 'var(--bg)', padding: '10px 14px', borderRadius: 'var(--r)', border: '1px solid var(--border)' }}>
+            <div style={{ fontSize: 10.5, fontWeight: 700, color: 'var(--ink3)', textTransform: 'uppercase' }}>Monthly Cap</div>
+            <div style={{ fontSize: 15, fontWeight: 800, color: 'var(--ink)' }}>{fmt(grandTotal / 12)}</div>
           </div>
-          <div style={{ background: 'rgba(0,0,0,0.22)', padding: '10px 14px', borderRadius: 'var(--r)', border: '1px solid rgba(255,255,255,0.12)' }}>
-            <div style={{ fontSize: 10.5, fontWeight: 700, color: 'rgba(255,255,255,0.7)', textTransform: 'uppercase' }}>Avg / Account</div>
-            <div style={{ fontSize: 15, fontWeight: 800, color: '#fff' }}>{fmt(rows.length ? grandTotal / rows.length : 0)}</div>
+          <div style={{ background: 'var(--bg)', padding: '10px 14px', borderRadius: 'var(--r)', border: '1px solid var(--border)' }}>
+            <div style={{ fontSize: 10.5, fontWeight: 700, color: 'var(--ink3)', textTransform: 'uppercase' }}>Avg / Account</div>
+            <div style={{ fontSize: 15, fontWeight: 800, color: 'var(--ink)' }}>{fmt(rows.length ? grandTotal / rows.length : 0)}</div>
           </div>
         </div>
       </div>
@@ -376,7 +379,7 @@ export function Budgets() {
                           {fmt(rows.reduce((s, r) => s + r.amounts[i], 0))}
                         </td>
                       ))}
-                      <td style={{ padding: '10px 12px', textAlign: 'right', fontFamily: 'var(--font)', color: 'var(--teal)' }}>
+                      <td style={{ padding: '10px 12px', textAlign: 'right', fontFamily: 'var(--font)', color: 'var(--ink)' }}>
                         {fmt(grandTotal)}
                       </td>
                       <td />
@@ -409,6 +412,9 @@ export function Budgets() {
                     ) : (
                       actuals.map((r: any) => {
                         const variance = r.total_actual - r.total_budgeted;
+                        const acctType = String(accountTypeByCode.get(r.account_code) || r.account_type || '').toUpperCase();
+                        const isIncome = acctType === 'REVENUE' || acctType === 'INCOME';
+                        const isAdverse = isIncome ? variance < 0 : variance > 0;
                         return (
                           <tr key={r.account_code} style={{ borderBottom: '1px solid var(--border)' }}>
                             <td style={{ padding: '10px 12px', fontWeight: 600, color: 'var(--ink)' }}>
@@ -426,7 +432,7 @@ export function Budgets() {
                                 textAlign: 'right',
                                 fontFamily: 'var(--font)',
                                 fontWeight: 700,
-                                color: variance > 0 ? 'var(--red)' : variance < 0 ? 'var(--green)' : 'var(--ink3)',
+                                color: variance === 0 ? 'var(--ink3)' : isAdverse ? 'var(--red)' : 'var(--ink)',
                               }}
                             >
                               {variance > 0 ? '+' : ''}

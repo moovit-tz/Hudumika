@@ -145,9 +145,6 @@ export const ProjectProcurementPage: React.FC = () => {
         subtitle="End-to-end supply chain — purchase requests, competitive RFQs, purchase orders, and goods receipts."
         actions={
           <div style={{ display: 'flex', gap: 8 }}>
-            <Button variant="outline" size="sm" onClick={() => navigate('/projects/budgets')}>
-              <Icon name="dollarSign" size={13} style={{ marginRight: 6 }} /> Budgets
-            </Button>
             <Button variant="outline" size="sm" onClick={() => navigate('/finance')}>
               <Icon name="creditCard" size={13} style={{ marginRight: 6 }} /> Finance
             </Button>

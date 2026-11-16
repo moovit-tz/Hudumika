@@ -1,3 +1,4 @@
+import { loginEmail } from '../lib/login-email.js';
 import type { FastifyRequest, FastifyReply, FastifyInstance } from 'fastify';
 import type { JWTPayload } from '@hudumika/types';
 import { createHash } from 'crypto';
@@ -291,7 +292,7 @@ export const authPlugin = fp(async (fastify: FastifyInstance) => {
         sub: user.id,
         tenant_id: user.tenant_id,
         role: user.role as JWTPayload['role'],
-        email: user.email,
+        email: loginEmail(user),
         name: user.name,
         iat: Number(claims.iat),
         exp: Number(claims.exp),

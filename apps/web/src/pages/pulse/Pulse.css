@@ -694,3 +694,7 @@
   color: var(--red);
   font-weight: 600;
 }
+
+/* Ads: load error with retry */
+.pulse-load-error { display: flex; align-items: center; flex-wrap: wrap; gap: 8px 12px; }
+.pulse-load-error p { margin: 0; flex: 1 1 240px; }

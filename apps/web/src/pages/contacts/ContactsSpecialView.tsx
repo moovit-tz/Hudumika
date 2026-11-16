@@ -144,7 +144,7 @@ export function ContactsSpecialView({ view, loading, directory, discovery, conta
                         className="cts-dir-row"
                         tabIndex={0}
                         role="link"
-                        aria-label={`Open ${row.name}'s NexusHR profile`}
+                        aria-label={`Open ${row.name}'s Axis profile`}
                         onClick={() => navigate(`/nexushr/staff/${row.id}`)}
                         onKeyDown={e => {
                           if (e.key === 'Enter' || e.key === ' ') {

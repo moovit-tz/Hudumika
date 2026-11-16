@@ -1,3 +1,4 @@
+import { loginEmail } from '../lib/login-email.js';
 import type { FastifyInstance } from 'fastify';
 import crypto from 'node:crypto';
 import * as samlify from 'samlify';
@@ -436,9 +437,9 @@ export async function ondiSamlIdpRoutes(fastify: FastifyInstance) {
         // a federated provider; don't assert a stronger authn method than we
         // can prove from the session itself.
         AuthnContextClassRef: 'urn:oasis:names:tc:SAML:2.0:ac:classes:unspecified',
-        attrEmail: user.email, attrDisplayName: user.name,
+        attrEmail: loginEmail(user), attrDisplayName: user.name,
       };
-      const result = await idp.createLoginResponse(sp, transaction.requestInfo, 'post', { email: user.email, displayName: user.name }, {
+      const result = await idp.createLoginResponse(sp, transaction.requestInfo, 'post', { email: loginEmail(user), displayName: user.name }, {
         relayState: transaction.relayState,
         customTagReplacement: template => {
           const attributes = samlify.SamlLib.attributeStatementBuilder(RESPONSE_ATTRIBUTES, undefined, undefined, 'strict');
@@ -451,7 +452,7 @@ export async function ondiSamlIdpRoutes(fastify: FastifyInstance) {
         tenant_id: session.tenant_id,
         client_id: client.id,
         user_id: user.id,
-        name_id: user.email,
+        name_id: loginEmail(user),
         session_index: sessionIndex,
         expires_at: new Date(now.getTime() + 8 * 60 * 60_000),
       }).execute());

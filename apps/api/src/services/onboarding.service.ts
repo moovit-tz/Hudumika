@@ -1,3 +1,4 @@
+import { loginEmail } from '../lib/login-email.js';
 import { sql } from 'kysely';
 import crypto from 'crypto';
 import { dbPlatform, withTenant } from '../db/client.js';
@@ -341,7 +342,7 @@ async function submitJoinRequest(
       message: `${name} (${email}) wants to join ${matched.name}.`,
       link, entityType: 'tenant_join_request', entityId: created.id, entityLabel: email,
     });
-    await MailService.enqueueTemplated(matched.id, 'onboarding.join_request', a.email, {
+    if (a.email) await MailService.enqueueTemplated(matched.id, 'onboarding.join_request', a.email, {
       requesterName: name, requesterEmail: email, tenantName: matched.name, link,
     }, 'onboarding').catch(() => { });
   }));
@@ -599,7 +600,7 @@ export class OnboardingService {
       sub: admin.id,
       tenant_id: tenant.id,
       role: admin.role as JWTPayload['role'],
-      email: admin.email,
+      email: loginEmail(admin),
       name: admin.name,
     };
     const accessToken = fastify.jwt.sign(payload as any);
@@ -611,7 +612,7 @@ export class OnboardingService {
       user: {
         id: admin.id,
         tenant_id: admin.tenant_id,
-        email: admin.email,
+        email: loginEmail(admin),
         role: admin.role as JWTPayload['role'],
         name: admin.name,
         phone: admin.phone || undefined,

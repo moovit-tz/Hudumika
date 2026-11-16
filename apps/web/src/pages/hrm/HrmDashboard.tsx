@@ -1,4 +1,4 @@
-﻿import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth.js';
 import { Icon } from '../../components/Icon.js';
@@ -70,11 +70,11 @@ export function HrmDashboard() {
   const nextHoliday = holidays[0] ?? null;
 
   const kpis = [
-    { label:'Total Staff',       value: hr.total_staff,       sub: `${hr.active_staff} active`, icon:'users' as IconName, color:'var(--teal)',  bg:'var(--teal-l)', path:'/nexushr/employees' },
-    { label:'Present Today',     value: hr.today_present,     sub: `${attRate}% of active staff`,          icon:'check' as IconName, color:'var(--green)', bg:'var(--green-l)',  path:'/nexushr/attendance' },
-    { label:'On Leave',          value: hr.on_leave,          sub: `${hr.pending_leaves} pending`, icon:'calendar' as IconName, color:'var(--gold)', bg:'var(--gold-l)', path:'/nexushr/leaves' },
-    { label:'Leave Approvals', value: hr.pending_leaves,    sub: 'Action required',           icon:'clock' as IconName, color:'var(--red)',   bg:'var(--red-l)',  path:'/nexushr/leaves' },
-    { label:'Latest Payroll',    value: `TZS ${latestRunNet}M`, sub: latestRun?.name || 'No run yet', icon:'dollarSign' as IconName, color:'var(--purple)', bg:'var(--purple-l)', path:'/nexushr/payroll' },
+    { label:'Total Staff',       value: hr.total_staff,       sub: `${hr.active_staff} active`, icon:'users' as IconName, subColor:'var(--ink3)', path:'/nexushr/employees' },
+    { label:'Present Today',     value: hr.today_present,     sub: `${attRate}% of active staff`, icon:'check' as IconName, subColor:'var(--ink3)', path:'/nexushr/attendance' },
+    { label:'On Leave',          value: hr.on_leave,          sub: `${hr.pending_leaves} pending`, icon:'calendar' as IconName, subColor:'var(--ink3)', path:'/nexushr/leaves' },
+    { label:'Leave Approvals',   value: hr.pending_leaves,    sub: hr.pending_leaves > 0 ? 'Action required' : 'All caught up', icon:'clock' as IconName, subColor: hr.pending_leaves > 0 ? 'var(--gold)' : 'var(--ink3)', path:'/nexushr/leaves' },
+    { label:'Latest Payroll',    value: `TZS ${latestRunNet}M`, sub: latestRun?.name || 'No run yet', icon:'dollarSign' as IconName, subColor:'var(--ink3)', path:'/nexushr/payroll' },
   ];
 
   return (
@@ -91,20 +91,18 @@ export function HrmDashboard() {
         </Banner>
       )}
 
-      {/* ── SmartHR Admin Welcome & Action Header Banner ──────────────── */}
-      {/* ── AI Insights Card Banner ───────────────────────────────────── */}
       {/* ── SmartHR 5 Metric KPI Cards Row ────────────────────────────── */}
       <div className="hrd-kpi-grid">
         {kpis.map(k => (
           <Link key={k.label} to={k.path} className="hrd-kpi-card">
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
               <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--ink3)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>{k.label}</span>
-              <div style={{ width: 36, height: 36, borderRadius: 'var(--r)', background: k.bg, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                <Icon name={k.icon} size={18} color={k.color} />
+              <div style={{ width: 34, height: 34, borderRadius: 'var(--r)', background: 'var(--bg)', border: '1px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                <Icon name={k.icon} size={16} color="var(--ink2)" />
               </div>
             </div>
-            <div style={{ fontSize: 24, fontWeight: 800, color: 'var(--ink)', letterSpacing: '-0.02em', lineHeight: 1.1 }}>{k.value}</div>
-            <div style={{ fontSize: 11.5, fontWeight: 600, color: k.color, marginTop: 6, display: 'flex', alignItems: 'center', gap: 4 }}>
+            <div style={{ fontSize: 24, fontWeight: 800, color: 'var(--ink)', letterSpacing: '-0.02em', lineHeight: 1.1, fontVariantNumeric: 'tabular-nums' }}>{k.value}</div>
+            <div style={{ fontSize: 11.5, fontWeight: 600, color: k.subColor, marginTop: 6, display: 'flex', alignItems: 'center', gap: 4 }}>
               <span>{k.sub}</span>
             </div>
           </Link>
@@ -114,21 +112,21 @@ export function HrmDashboard() {
       {/* ── Next Holiday Spotlight ─────────────────────────────────────── */}
       {nextHoliday && (
         <div style={{
-          background: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))',
-          borderRadius: 'var(--r)', padding: '16px 22px', marginBottom: 24,
-          display: 'flex', alignItems: 'center', gap: 16, boxShadow: 'var(--elev)',
+          background: 'var(--white)', color: 'var(--ink)', border: '1px solid var(--border)',
+          borderRadius: 'var(--r)', padding: '14px 20px', marginBottom: 24,
+          display: 'flex', alignItems: 'center', gap: 14, boxShadow: 'var(--elev-sm)', flexWrap: 'wrap',
         }}>
           <div style={{
-            width: 44, height: 44, borderRadius: 'var(--r)', background: 'hsl(var(--primary-foreground) / 0.15)',
+            width: 38, height: 38, borderRadius: 'var(--r)', background: 'var(--bg)', border: '1px solid var(--border)',
             display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
           }}>
-            <Icon name="sun" size={22} />
+            <Icon name="sun" size={18} color="var(--ink2)" />
           </div>
-          <div style={{ flex: 1, minWidth: 0 }}>
-            <div style={{ fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em', color: 'hsl(var(--primary-foreground) / 0.75)' }}>Next Holiday</div>
-            <div style={{ fontSize: 16, fontWeight: 800, marginTop: 2 }}>{nextHoliday.name || nextHoliday.title}</div>
+          <div style={{ flex: 1, minWidth: 180 }}>
+            <div style={{ fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--ink3)' }}>Next Holiday</div>
+            <div style={{ fontSize: 15, fontWeight: 700, marginTop: 2, color: 'var(--ink)' }}>{nextHoliday.name || nextHoliday.title}</div>
           </div>
-          <div style={{ fontSize: 13, fontWeight: 600, color: 'hsl(var(--primary-foreground) / 0.9)', whiteSpace: 'nowrap' }}>
+          <div style={{ fontSize: 12.5, fontWeight: 600, color: 'var(--ink2)' }}>
             {new Date(nextHoliday.date || nextHoliday.start_date).toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' })}
           </div>
         </div>
@@ -144,7 +142,7 @@ export function HrmDashboard() {
           <div style={{ background: 'var(--white)', borderRadius: 'var(--r)', border: '1px solid var(--border)', overflow: 'hidden', boxShadow: 'var(--elev-sm)' }}>
             <div style={{ padding: '14px 20px', borderBottom: '1px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                <Icon name="check" size={16} color="var(--green)" />
+                <Icon name="check" size={16} color="var(--ink3)" />
                 <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--ink)' }}>Today's Attendance Overview</span>
               </div>
               <Link to="/nexushr/attendance" style={{ fontSize: 12, fontWeight: 700, color: 'var(--teal)', textDecoration: 'none', display: 'inline-flex', alignItems: 'center', minHeight: 'var(--target-min, 24px)' }}>Mark Attendance →</Link>
@@ -191,7 +189,7 @@ export function HrmDashboard() {
           <div style={{ background: 'var(--white)', borderRadius: 'var(--r)', border: '1px solid var(--border)', overflow: 'hidden', boxShadow: 'var(--elev-sm)' }}>
             <div style={{ padding: '14px 20px', borderBottom: '1px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                <Icon name="building" size={16} color="var(--purple)" />
+                <Icon name="building" size={16} color="var(--ink3)" />
                 <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--ink)' }}>Department Distribution</span>
               </div>
               <Link to="/nexushr/departments" style={{ fontSize: 12, fontWeight: 700, color: 'var(--teal)', textDecoration: 'none', display: 'inline-flex', alignItems: 'center', minHeight: 'var(--target-min, 24px)' }}>Manage →</Link>
@@ -227,7 +225,7 @@ export function HrmDashboard() {
           <div style={{ background: 'var(--white)', borderRadius: 'var(--r)', border: '1px solid var(--border)', overflow: 'hidden', boxShadow: 'var(--elev-sm)' }}>
             <div style={{ padding: '14px 20px', borderBottom: '1px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                <Icon name="activity" size={16} color="var(--blue)" />
+                <Icon name="activity" size={16} color="var(--ink3)" />
                 <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--ink)' }}>Recent Audit Activity</span>
               </div>
               <Link to="/nexushr/activity-logs" style={{ fontSize: 12, fontWeight: 700, color: 'var(--teal)', textDecoration: 'none', display: 'inline-flex', alignItems: 'center', minHeight: 'var(--target-min, 24px)' }}>View All →</Link>
@@ -239,8 +237,8 @@ export function HrmDashboard() {
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
                   {activities.map((a: any, idx: number) => (
                     <div key={a.id || idx} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '8px 0', borderBottom: idx < activities.length - 1 ? '1px solid var(--border)' : 'none' }}>
-                      <div style={{ width: 30, height: 30, borderRadius: '50%', background: 'rgba(37,99,235,0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                        <Icon name="user" size={14} color="var(--blue)" />
+                      <div style={{ width: 30, height: 30, borderRadius: '50%', background: 'var(--bg)', border: '1px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                        <Icon name="user" size={14} color="var(--ink2)" />
                       </div>
                       <div style={{ flex: 1, minWidth: 0 }}>
                         <div style={{ fontSize: 12.5, fontWeight: 600, color: 'var(--ink)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
@@ -261,7 +259,7 @@ export function HrmDashboard() {
           <div style={{ background: 'var(--white)', borderRadius: 'var(--r)', border: '1px solid var(--border)', overflow: 'hidden', boxShadow: 'var(--elev-sm)' }}>
             <div style={{ padding: '14px 20px', borderBottom: '1px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                <Icon name="userPlus" size={16} color="var(--purple)" />
+                <Icon name="userPlus" size={16} color="var(--ink3)" />
                 <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--ink)' }}>Upcoming Interviews</span>
               </div>
               <Link to="/nexushr/recruitment" style={{ fontSize: 12, fontWeight: 700, color: 'var(--teal)', textDecoration: 'none', display: 'inline-flex', alignItems: 'center', minHeight: 'var(--target-min, 24px)' }}>Recruitment →</Link>
@@ -272,10 +270,10 @@ export function HrmDashboard() {
               ) : (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
                   {interviews.map((iv: any) => {
-                    const modeInfo: Record<string, { icon: IconName; label: string; color: string; bg: string }> = {
-                      VIDEO:  { icon: 'video' as IconName,  label: 'Video call', color: 'var(--blue)',   bg: 'var(--blue-l)' },
-                      PHONE:  { icon: 'phone' as IconName,  label: 'Phone',      color: 'var(--green)',  bg: 'var(--green-l)' },
-                      ONSITE: { icon: 'mapPin' as IconName, label: 'On-site',    color: 'var(--gold)',   bg: 'var(--gold-l)' },
+                    const modeInfo: Record<string, { icon: IconName; label: string }> = {
+                      VIDEO:  { icon: 'video' as IconName,  label: 'Video call' },
+                      PHONE:  { icon: 'phone' as IconName,  label: 'Phone' },
+                      ONSITE: { icon: 'mapPin' as IconName, label: 'On-site' },
                     };
                     const m = modeInfo[iv.mode] ?? modeInfo.VIDEO;
                     return (
@@ -288,7 +286,7 @@ export function HrmDashboard() {
                             {iv.interviewer_name ? ` · with ${iv.interviewer_name}` : ''}
                           </div>
                         </div>
-                        <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: 10.5, fontWeight: 700, padding: '3px 8px', borderRadius: 'var(--r)', background: m.bg, color: m.color, whiteSpace: 'nowrap' }}>
+                        <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: 10.5, fontWeight: 600, padding: '3px 8px', borderRadius: 'var(--r)', background: 'var(--bg)', border: '1px solid var(--border)', color: 'var(--ink2)', whiteSpace: 'nowrap' }}>
                           <Icon name={m.icon} size={10} /> {m.label}
                         </span>
                       </div>
@@ -308,7 +306,7 @@ export function HrmDashboard() {
           <div style={{ background: 'var(--white)', borderRadius: 'var(--r)', border: '1px solid var(--border)', overflow: 'hidden', boxShadow: 'var(--elev-sm)' }}>
             <div style={{ padding: '14px 20px', borderBottom: '1px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                <Icon name="dollarSign" size={16} color="var(--green)" />
+                <Icon name="dollarSign" size={16} color="var(--ink3)" />
                 <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--ink)' }}>Payroll Engine</span>
               </div>
               <Link to="/nexushr/payroll" style={{ fontSize: 12, fontWeight: 700, color: 'var(--teal)', textDecoration: 'none', display: 'inline-flex', alignItems: 'center', minHeight: 'var(--target-min, 24px)' }}>Payroll →</Link>
@@ -328,7 +326,7 @@ export function HrmDashboard() {
                           {String(latest.status).replace('_',' ')}
                         </span>
                       </div>
-                      <div style={{ fontSize: 24, fontWeight: 900, color: 'var(--green)', fontFamily: 'var(--font)', letterSpacing: '-0.02em' }}>
+                      <div style={{ fontSize: 24, fontWeight: 900, color: 'var(--ink)', fontFamily: 'var(--font)', letterSpacing: '-0.02em', fontVariantNumeric: 'tabular-nums' }}>
                         TZS {(Number(latest.total_net || 0) / 1_000_000).toFixed(2)}M
                       </div>
                       <div style={{ fontSize: 11.5, color: 'var(--ink3)', marginTop: 2 }}>Net payout across verified employee contracts</div>
@@ -359,7 +357,7 @@ export function HrmDashboard() {
           <div style={{ background: 'var(--white)', borderRadius: 'var(--r)', border: '1px solid var(--border)', overflow: 'hidden', boxShadow: 'var(--elev-sm)' }}>
             <div style={{ padding: '14px 20px', borderBottom: '1px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                <Icon name="calendar" size={16} color="var(--gold)" />
+                <Icon name="calendar" size={16} color="var(--ink3)" />
                 <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--ink)' }}>Pending Leave Approvals</span>
               </div>
               <Link to="/nexushr/leaves" style={{ fontSize: 12, fontWeight: 700, color: 'var(--teal)', textDecoration: 'none', display: 'inline-flex', alignItems: 'center', minHeight: 'var(--target-min, 24px)' }}>Review ({pendingLeaves.length}) →</Link>
@@ -375,7 +373,7 @@ export function HrmDashboard() {
                         <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--ink)' }}>{l.user_name || l.employee_name || 'Staff Member'}</div>
                         <div style={{ fontSize: 11.5, color: 'var(--ink3)' }}>{l.leave_type || 'Annual Leave'} • {l.start_date || 'Upcoming'}</div>
                       </div>
-                      <Link to="/nexushr/leaves" style={{ fontSize: 11, fontWeight: 700, padding: '4px 10px', borderRadius: 'var(--r-sm)', background: 'var(--teal-l)', color: 'var(--teal)', textDecoration: 'none' }}>
+                      <Link to="/nexushr/leaves" style={{ fontSize: 11, fontWeight: 700, padding: '4px 10px', borderRadius: 'var(--r-sm)', background: 'var(--white)', border: '1px solid var(--border)', color: 'var(--teal)', textDecoration: 'none' }}>
                         Review
                       </Link>
                     </div>
@@ -389,7 +387,7 @@ export function HrmDashboard() {
           <div style={{ background: 'var(--white)', borderRadius: 'var(--r)', border: '1px solid var(--border)', overflow: 'hidden', boxShadow: 'var(--elev-sm)' }}>
             <div style={{ padding: '14px 20px', borderBottom: '1px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                <Icon name="sun" size={16} color="var(--teal)" />
+                <Icon name="sun" size={16} color="var(--ink3)" />
                 <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--ink)' }}>Upcoming Holidays</span>
               </div>
               <Link to="/nexushr/holidays" style={{ fontSize: 12, fontWeight: 700, color: 'var(--teal)', textDecoration: 'none', display: 'inline-flex', alignItems: 'center', minHeight: 'var(--target-min, 24px)' }}>Calendar →</Link>
@@ -402,8 +400,8 @@ export function HrmDashboard() {
                   {holidays.map((h: any, idx: number) => (
                     <div key={h.id || idx} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '8px 0', borderBottom: idx < holidays.length - 1 ? '1px solid var(--border)' : 'none' }}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                        <div style={{ width: 32, height: 32, borderRadius: 'var(--r)', background: 'var(--teal-l)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                          <Icon name="sun" size={14} color="var(--teal)" />
+                        <div style={{ width: 32, height: 32, borderRadius: 'var(--r)', background: 'var(--bg)', border: '1px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                          <Icon name="sun" size={14} color="var(--ink2)" />
                         </div>
                         <div>
                           <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--ink)' }}>{h.name || h.title}</div>
@@ -430,36 +428,31 @@ export function HrmDashboard() {
               <Link to="/nexushr/announcements" style={{ fontSize: 12, fontWeight: 700, color: 'var(--teal)', textDecoration: 'none', display: 'inline-flex', alignItems: 'center', minHeight: 'var(--target-min, 24px)' }}>View All →</Link>
             </div>
             <div style={{ padding: '14px 20px' }}>
-              {(() => {
-                const catColor: Record<string, string> = { HR: 'var(--purple)', Policy: 'var(--teal)', IT: 'var(--blue)' };
-                const catBg: Record<string, string> = { HR: 'var(--purple-l)', Policy: 'var(--teal-l)', IT: 'var(--blue-l)' };
-                return announcements.length === 0 ? (
-                  <div style={{ fontSize: 13, color: 'var(--ink3)', padding: '12px 0', textAlign: 'center' }}>No announcements posted yet.</div>
-                ) : (
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-                    {announcements.map((a: any, idx: number) => (
-                      <div key={a.id || idx} style={{ display: 'flex', gap: 10, paddingBottom: idx < announcements.length - 1 ? 14 : 0, borderBottom: idx < announcements.length - 1 ? '1px solid var(--border)' : 'none' }}>
-                        <div style={{ width: 8, height: 8, borderRadius: '50%', background: catColor[a.category] || 'var(--ink3)', marginTop: 5, flexShrink: 0 }} />
-                        <div style={{ flex: 1, minWidth: 0 }}>
-                          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
-                            <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--ink)' }}>{a.title}</span>
-                            <span style={{ fontSize: 10.5, color: 'var(--ink3)', whiteSpace: 'nowrap' }}>{a.created_at ? new Date(a.created_at).toLocaleDateString() : ''}</span>
-                          </div>
-                          <div style={{ fontSize: 12, color: 'var(--ink2)', marginTop: 3, display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
-                            {a.body}
-                          </div>
-                          <div style={{ marginTop: 6, display: 'flex', alignItems: 'center', gap: 8 }}>
-                            <span style={{ fontSize: 10.5, fontWeight: 700, padding: '2px 8px', borderRadius: 'var(--r-sm)', background: catBg[a.category] || 'var(--bg)', color: catColor[a.category] || 'var(--ink2)' }}>
-                              {a.category || 'General'}
-                            </span>
-                            {a.author_name && <span style={{ fontSize: 11, color: 'var(--ink3)' }}>By {a.author_name}</span>}
-                          </div>
+              {announcements.length === 0 ? (
+                <div style={{ fontSize: 13, color: 'var(--ink3)', padding: '12px 0', textAlign: 'center' }}>No announcements posted yet.</div>
+              ) : (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+                  {announcements.map((a: any, idx: number) => (
+                    <div key={a.id || idx} style={{ display: 'flex', gap: 10, paddingBottom: idx < announcements.length - 1 ? 14 : 0, borderBottom: idx < announcements.length - 1 ? '1px solid var(--border)' : 'none' }}>
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
+                          <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--ink)' }}>{a.title}</span>
+                          <span style={{ fontSize: 10.5, color: 'var(--ink3)', whiteSpace: 'nowrap' }}>{a.created_at ? new Date(a.created_at).toLocaleDateString() : ''}</span>
+                        </div>
+                        <div style={{ fontSize: 12, color: 'var(--ink2)', marginTop: 3, display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
+                          {a.body}
+                        </div>
+                        <div style={{ marginTop: 6, display: 'flex', alignItems: 'center', gap: 8 }}>
+                          <span style={{ fontSize: 10.5, fontWeight: 600, padding: '2px 8px', borderRadius: 'var(--r-sm)', background: 'var(--bg)', border: '1px solid var(--border)', color: 'var(--ink2)' }}>
+                            {a.category || 'General'}
+                          </span>
+                          {a.author_name && <span style={{ fontSize: 11, color: 'var(--ink3)' }}>By {a.author_name}</span>}
                         </div>
                       </div>
-                    ))}
-                  </div>
-                );
-              })()}
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
           </div>
 
@@ -470,32 +463,32 @@ export function HrmDashboard() {
       <div className="hrd-hub">
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
           <div>
-            <h3 style={{ margin: 0, fontSize: 15, fontWeight: 800, color: 'var(--ink)' }}>SmartHR Management Hub</h3>
+            <h3 style={{ margin: 0, fontSize: 15, fontWeight: 800, color: 'var(--ink)' }}>Axis Management Hub</h3>
             <p style={{ margin: '2px 0 0 0', fontSize: 12, color: 'var(--ink3)' }}>Direct access shortcuts to core workforce applications & features</p>
           </div>
         </div>
         <div className="hrd-hub-grid">
           {[
-            { label:'Manage Staff',    icon:'users'      as IconName, path:'/nexushr/employees',   color:'var(--blue)', bg:'var(--blue-l)' },
-            { label:'Attendance',      icon:'clock'      as IconName, path:'/nexushr/attendance',  color:'var(--teal)', bg:'var(--teal-l)' },
-            { label:'Leave Requests',  icon:'calendar'   as IconName, path:'/nexushr/leaves',      color:'var(--gold)', bg:'var(--gold-l)' },
-            { label:'Payroll Engine',  icon:'dollarSign' as IconName, path:'/nexushr/payroll',     color:'var(--green)', bg:'var(--green-l)' },
-            { label:'Departments',     icon:'building'   as IconName, path:'/nexushr/departments', color:'var(--purple)', bg:'var(--purple-l)' },
-            { label:'Shift Roster',    icon:'timer'      as IconName, path:'/nexushr/shifts',      color:'var(--blue)', bg:'var(--blue-l)' },
-            { label:'Overtime',        icon:'zap'        as IconName, path:'/nexushr/overtime',    color:'var(--gold)', bg:'var(--gold-l)' },
-            { label:'Org Chart',       icon:'layers'     as IconName, path:'/nexushr/org-chart',   color:'var(--teal)', bg:'var(--teal-l)' },
-            { label:'Recruitment',     icon:'userPlus'   as IconName, path:'/nexushr/recruitment', color:'var(--purple)', bg:'var(--purple-l)' },
-            { label:'Performance',     icon:'target'     as IconName, path:'/nexushr/performance', color:'var(--green)', bg:'var(--green-l)' },
-            { label:'IT Admin',        icon:'barChart2'  as IconName, path:'/ondi/it-admin',       color:'var(--red)', bg:'var(--red-l)' },
-            { label:'Announcements',   icon:'volume2'    as IconName, path:'/nexushr/announcements',color:'var(--ink3)',bg:'rgba(100,116,139,0.08)' },
-            { label:'Roles & Security',icon:'shield'     as IconName, path:'/nexushr/roles',       color:'var(--red)', bg:'var(--red-l)' },
-            { label:'HR Documents',    icon:'fileText'   as IconName, path:'/nexushr/documents',   color:'var(--blue)', bg:'var(--blue-l)' },
-            { label:'Asset Tracking',  icon:'package'    as IconName, path:'/nexushr/assets',      color:'var(--teal)', bg:'var(--teal-l)' },
-            { label:'Visitors',        icon:'userPlus'   as IconName, path:'/nexushr/visitors',    color:'var(--purple)', bg:'var(--purple-l)' },
+            { label:'Manage Staff',     icon:'users'      as IconName, path:'/nexushr/employees'     },
+            { label:'Attendance',       icon:'clock'      as IconName, path:'/nexushr/attendance'    },
+            { label:'Leave Requests',   icon:'calendar'   as IconName, path:'/nexushr/leaves'        },
+            { label:'Payroll Engine',   icon:'dollarSign' as IconName, path:'/nexushr/payroll'       },
+            { label:'Departments',      icon:'building'   as IconName, path:'/nexushr/departments'   },
+            { label:'Shift Roster',     icon:'timer'      as IconName, path:'/nexushr/shifts'        },
+            { label:'Overtime',         icon:'zap'        as IconName, path:'/nexushr/overtime'      },
+            { label:'Org Chart',        icon:'layers'     as IconName, path:'/nexushr/org-chart'     },
+            { label:'Recruitment',      icon:'userPlus'   as IconName, path:'/nexushr/recruitment'   },
+            { label:'Performance',      icon:'target'     as IconName, path:'/nexushr/performance'   },
+            { label:'IT Admin',         icon:'barChart2'  as IconName, path:'/ondi/it-admin'         },
+            { label:'Announcements',    icon:'volume2'    as IconName, path:'/nexushr/announcements' },
+            { label:'Roles & Security', icon:'shield'     as IconName, path:'/nexushr/roles'         },
+            { label:'HR Documents',     icon:'fileText'   as IconName, path:'/nexushr/documents'     },
+            { label:'Asset Tracking',   icon:'package'    as IconName, path:'/nexushr/assets'        },
+            { label:'Visitors',         icon:'userPlus'   as IconName, path:'/nexushr/visitors'      },
           ].map(m => (
-            <Link key={m.path} to={m.path} className="hrd-hub-link" style={{ '--hrd-module-color': m.color, '--hrd-module-bg': m.bg } as React.CSSProperties}>
-              <div style={{ width: 32, height: 32, borderRadius: 'var(--r)', background: m.bg, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                <Icon name={m.icon} size={15} color={m.color} />
+            <Link key={m.path} to={m.path} className="hrd-hub-link">
+              <div style={{ width: 30, height: 30, borderRadius: 'var(--r)', background: 'var(--white)', border: '1px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                <Icon name={m.icon} size={14} color="var(--ink2)" />
               </div>
               <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--ink)', lineHeight: 1.25 }}>{m.label}</span>
             </Link>

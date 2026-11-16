@@ -111,14 +111,14 @@ function Section({ title, hint, items }: { title: string; hint: string; items: R
             className="card card-interactive"
             style={{ display: 'flex', gap: 12, alignItems: 'flex-start', textDecoration: 'none' }}
           >
-            <FeaturedIcon variant={r.variant} size="sm" shape="square">
+            <FeaturedIcon variant="gray" size="sm" shape="square">
               <Icon name={r.icon} size={15} strokeWidth={1.75} />
             </FeaturedIcon>
             <div style={{ minWidth: 0, flex: 1 }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
                 <span style={{ fontSize: 13.5, fontWeight: 700, color: 'var(--ink)' }}>{r.label}</span>
                 {r.source && <Badge variant="gray">{r.source}</Badge>}
-                {r.capability && <Badge variant="brand">Advanced</Badge>}
+                {r.capability && <Badge variant="gray">Advanced</Badge>}
               </div>
               <div style={{ fontSize: 12.5, color: 'var(--ink3)', marginTop: 4, lineHeight: 1.5 }}>
                 {r.blurb}

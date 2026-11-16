@@ -367,7 +367,7 @@ export async function revealZentraSensitiveEvidence(
 /** Apps that do business work worth auditing — the shared registry minus shell/infrastructure entries. */
 const NOT_MONITORED = new Set(['workspace', 'admin', 'developer', 'lens', 'zentra', 'store']);
 const APP_NAMES: Record<string, string> = {
-  clearos: 'ClearOS', finops: 'FinOps', complyos: 'ComplyOS', bliss: 'Bliss', nexushr: 'NexusHR', onesite: 'OneSite',
+  clearos: 'ClearOS', finops: 'FinOps', complyos: 'ComplyOS', bliss: 'Bliss', nexushr: 'Axis', onesite: 'OneSite',
   onsite: 'Onsite', ondi: 'Ondi', tracking: 'HuduFreight', cloud: 'Drive', email: 'Email', crm: 'CRM', contacts: 'Contacts',
   calendar: 'Calendar', tasks: 'Tasks', notes: 'Notes', sign: 'Sign', sms: 'SMS', demurrage: 'Demurrage',
   cargotracker: 'CargoTracker', seal: 'SEAL', studio: 'Studio', hudubi: 'HuduBI', petti: 'Petti', pos: 'POS',

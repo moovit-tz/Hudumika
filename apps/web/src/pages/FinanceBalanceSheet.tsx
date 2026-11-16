@@ -1,4 +1,4 @@
-﻿import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { Icon } from '../components/Icon.js';
 import { apiFetch } from '../lib/api.js';
 import { useCompany } from '../data/companyStore.js';
@@ -83,7 +83,7 @@ function StatementSection({ rows, highlight, cur }: { rows: LineItem[]; highligh
           }}>
             <span style={{
               fontSize: row.bold ? 13 : 12,
-              fontWeight: row.bold ? 700 : 400,
+              fontWeight: row.label.startsWith('TOTAL') ? 800 : row.bold ? 700 : 400,
               color: row.label.startsWith('TOTAL') ? highlight : row.bold ? 'var(--ink)' : 'var(--ink2)',
             }}>
               {row.label}
@@ -91,7 +91,7 @@ function StatementSection({ rows, highlight, cur }: { rows: LineItem[]; highligh
             {(row.amount !== 0 || row.bold) && !row.separator && row.label && (
               <span style={{
                 fontSize: row.bold ? 13 : 12,
-                fontWeight: row.bold ? 700 : 400,
+                fontWeight: row.label.startsWith('TOTAL') ? 800 : row.bold ? 700 : 400,
                 color: row.label.startsWith('TOTAL') ? highlight : row.bold ? 'var(--ink)' : 'var(--ink2)',
                 fontFamily: 'var(--font)',
               }}>
@@ -211,14 +211,14 @@ export const FinanceBalanceSheet: React.FC = () => {
           {/* Assets */}
           <div style={{ flex: 1, minWidth: isMobile ? '100%' : 300 }}>
           <SectionCard title="Assets" action={<span style={{ fontSize: 11, color: 'var(--ink3)' }}>As of {asOf}</span>}>
-            <StatementSection rows={assetRows} highlight="var(--teal)" cur={cur} />
+            <StatementSection rows={assetRows} highlight="var(--ink)" cur={cur} />
           </SectionCard>
           </div>
 
           {/* Liabilities & Equity */}
           <div style={{ flex: 1, minWidth: isMobile ? '100%' : 300 }}>
           <SectionCard title="Liabilities & Equity" action={<span style={{ fontSize: 11, color: 'var(--ink3)' }}>As of {asOf}</span>}>
-            <StatementSection rows={liabEquityRows} highlight="var(--blue)" cur={cur} />
+            <StatementSection rows={liabEquityRows} highlight="var(--ink)" cur={cur} />
           </SectionCard>
           </div>
         </div>

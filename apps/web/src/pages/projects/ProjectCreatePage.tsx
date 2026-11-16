@@ -15,6 +15,7 @@ import { Accordion, AccordionItem, AccordionTrigger, AccordionContent } from '..
 import { apiFetch } from '../../lib/api.js';
 import { ProjectCreateModal } from './ProjectCreateModal.js';
 import './ProjectCreatePage.css';
+import { useCanCreateProjects } from './projectPowers.js';
 
 function formatFileSize(bytes: number): string {
   if (bytes < 1024) return `${bytes} B`;
@@ -180,7 +181,32 @@ export function ProjectDocumentReview({
   );
 }
 
+/** Only administrators and managers start projects; the API refuses anyone else,
+ *  so say so here instead of letting someone fill in the whole form first. */
 export function ProjectCreatePage() {
+  const canCreate = useCanCreateProjects();
+  const navigate = useNavigate();
+  if (canCreate) return <ProjectCreateForm />;
+  return (
+    <div className="pcp-page">
+      <PageHeader
+        crumbs={[{ label: 'Projects', to: '/projects' }, 'New Project']}
+        titlePlain="New"
+        titleEm="project"
+      />
+      <Alert>
+        <AlertDescription>
+          Only administrators and managers can create projects. Ask one of them to set the project up and add you as a member.
+        </AlertDescription>
+      </Alert>
+      <div style={{ marginTop: 16 }}>
+        <Button variant="outline" onClick={() => navigate('/projects/directory')}>Browse projects</Button>
+      </div>
+    </div>
+  );
+}
+
+function ProjectCreateForm() {
   const navigate = useNavigate();
   const [files, setFiles] = useState<File[]>([]);
   const [analysis, setAnalysis] = useState<ProjectDocumentAnalysis | null>(null);

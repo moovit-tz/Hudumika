@@ -58,7 +58,7 @@ const RAIL_APPS: RailApp[] = [
   { id: 'clearos', label: 'ClearOS', icon: 'ship', color: '#f97316', entitlementKey: 'clearos' },
   { id: 'finops', label: 'FinOps', icon: 'bankNote', color: '#059669', entitlementKey: 'finops' },
   { id: 'petti', label: 'Petti', icon: 'wallet', color: '#0d9488', entitlementKey: 'petti' },
-  { id: 'nexushr', label: 'NexusHR', icon: 'users', color: '#db2777', entitlementKey: 'nexushr' },
+  { id: 'nexushr', label: 'Axis', icon: 'users', color: '#db2777', entitlementKey: 'nexushr' },
   { id: 'seal', label: 'SEAL', icon: 'warehouse', color: '#7c3aed', entitlementKey: 'seal' },
   { id: 'cargotracker', label: 'CargoTracker', icon: 'truck', color: '#0284c7', entitlementKey: 'cargotracker' },
   { id: 'cloud', label: 'Cloud', icon: 'folder', color: '#2563eb', entitlementKey: 'cloud' },
@@ -744,7 +744,7 @@ export const GoogleWorkspaceRightSidebar: React.FC = () => {
               {activePanel === 'clearos' && <><Icon name="ship" size={17} style={{ color: '#f97316' }} /> ClearOS</>}
               {activePanel === 'finops' && <><Icon name="bankNote" size={17} style={{ color: 'var(--green)' }} /> FinOps</>}
               {activePanel === 'petti' && <><Icon name="wallet" size={17} style={{ color: '#0d9488' }} /> Petti</>}
-              {activePanel === 'nexushr' && <><Icon name="users" size={17} style={{ color: '#db2777' }} /> NexusHR</>}
+              {activePanel === 'nexushr' && <><Icon name="users" size={17} style={{ color: '#db2777' }} /> Axis</>}
               {activePanel === 'seal' && <><Icon name="warehouse" size={17} style={{ color: '#7c3aed' }} /> SEAL</>}
               {activePanel === 'cargotracker' && <><Icon name="truck" size={17} style={{ color: '#0284c7' }} /> CargoTracker</>}
               {activePanel === 'cloud' && <><Icon name="folder" size={17} style={{ color: '#2563eb' }} /> Cloud</>}

@@ -1,3 +1,4 @@
+import { loginEmail } from '../lib/login-email.js';
 import { sql } from 'kysely';
 import { withTenant, dbPlatform } from '../db/client.js';
 import { NotificationService } from './notification.service.js';
@@ -551,13 +552,15 @@ export class CMSEnterpriseService {
         .select(['id', 'name', 'email', 'role'])
         .where('tenant_id', '=', tenantId)
         .where('active', '=', true)
+        // Reviewers sign in to review: workers without sign-in are not candidates.
+        .where('can_login', '=', true)
         .orderBy('name', 'asc')
         .execute();
 
       return users.map(u => ({
         id: u.id,
         name: u.name,
-        email: u.email,
+        email: loginEmail(u),
         role: u.role,
       }));
     });

@@ -1378,7 +1378,7 @@ export function RecruitmentPage() {
   return (
     <div>
       <PageHeader
-        crumbs={['NexusHR', 'People']}
+        crumbs={['Axis', 'People']}
         titlePlain="Talent"
         titleEm="recruitment"
         subtitle="Requisitions, job openings, candidate pipeline, interviews and offers — real data, not a preview."

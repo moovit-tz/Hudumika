@@ -197,7 +197,7 @@ export function ZentraPolicies() {
                   : draft.subject_type === 'team'
                   ? <Field label="Department">{departments.length
                       ? <Pick value={draft.subject_id ?? ''} onChange={v => setDraft({ ...draft, subject_id: v })} options={departments.map(d => ({ value: d.id, label: d.name }))} />
-                      : <span className="text-xs text-muted-foreground">No departments yet. Add them in NexusHR.</span>}</Field>
+                      : <span className="text-xs text-muted-foreground">No departments yet. Add them in Axis.</span>}</Field>
                   : <Field label="ID"><Input required value={draft.subject_id ?? ''} onChange={e => setDraft({ ...draft, subject_id: e.target.value })} /></Field>}
                 <Field label="Record type"><Pick value={draft.resource_type ?? 'shipment'} onChange={v => setDraft({ ...draft, resource_type: v })} options={TYPES.map(t => ({ value: t.value, label: t.value }))} /></Field>
                 <Field label="Action"><Pick value={draft.action ?? 'read'} onChange={v => setDraft({ ...draft, action: v })} options={['read', 'search', 'update', 'export', 'approve', 'delete'].map(a => ({ value: a, label: a }))} /></Field>

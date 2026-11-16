@@ -119,9 +119,6 @@ export const ProjectReportsPage: React.FC = () => {
             <Button variant="outline" size="sm" onClick={() => window.print()}>
               <Icon name="printer" size={13} style={{ marginRight: 6 }} /> Print Report
             </Button>
-            <Button variant="outline" size="sm" onClick={() => navigate('/projects/budgets')}>
-              <Icon name="dollarSign" size={13} style={{ marginRight: 6 }} /> Budgets
-            </Button>
           </div>
         }
       />
@@ -166,7 +163,7 @@ export const ProjectReportsPage: React.FC = () => {
             </div>
 
             {/* Distribution Charts */}
-            <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: 20, marginBottom: 24 }}>
+            <div style={{ display: 'grid', gridTemplateColumns: isMobile ? 'minmax(0, 1fr)' : '1fr 1fr', gap: 20, marginBottom: 24 }}>
               {/* Health Distribution */}
               <SectionCard title="Health Distribution">
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 12, padding: '4px 0' }}>

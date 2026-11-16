@@ -1,3 +1,4 @@
+import { AxisJobHistory } from './hrm/AxisJobHistory.js';
 import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { useParams, useNavigate, useSearchParams, Link } from 'react-router-dom';
 import { Icon } from '../components/Icon.js';
@@ -299,7 +300,7 @@ export const StaffDetail: React.FC = () => {
   const [staff, setStaff] = useState<StaffData | null>(null);
   const [loading, setLoading] = useState(true);
   const [searchParams] = useSearchParams();
-  const [tab, setTab] = useState(searchParams.get('tab') === 'Documents' ? 'Documents' : 'Profile');
+  const [tab, setTab] = useState(['Documents', 'Job history'].includes(searchParams.get('tab') ?? '') ? searchParams.get('tab')! : 'Profile');
 
   // Modals state inspired by DreamScore Tailwind Employee Details
 
@@ -321,7 +322,7 @@ export const StaffDetail: React.FC = () => {
 
   const PRIMARY_TABS = ['Profile', 'Attendance', 'Leaves', 'Timesheet', 'Documents', 'Payroll'];
   const SECONDARY_TABS = [
-    'Performance', 'Projects', 'Tasks', 'Tickets', 'Shift Roster',
+    'Job history', 'Performance', 'Projects', 'Tasks', 'Tickets', 'Shift Roster',
     'Coaching', 'Learning & Dev', 'Compensation', 'Benefits', 'Signature', 'Permissions', 'Activity'
   ];
   const TABS = [...PRIMARY_TABS, ...SECONDARY_TABS];
@@ -334,6 +335,7 @@ export const StaffDetail: React.FC = () => {
     Documents: 'fileText',
     Payroll: 'wallet',
     Performance: 'award',
+    'Job history': 'briefcase',
     Projects: 'folder',
     Tasks: 'checkSquare',
     Tickets: 'tag',
@@ -689,7 +691,7 @@ export const StaffDetail: React.FC = () => {
       {/* ── Breadcrumbs Bar ── */}
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '2px 2px', fontSize: 12.5 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 6, color: 'var(--ink3)' }}>
-          <Link to="/nexushr/employees" style={{ color: 'var(--teal)', textDecoration: 'none', fontWeight: 600 }}>NexusHR</Link>
+          <Link to="/nexushr/employees" style={{ color: 'var(--teal)', textDecoration: 'none', fontWeight: 600 }}>Axis</Link>
           <span>/</span>
           <Link to="/nexushr/employees" style={{ color: 'var(--ink2)', textDecoration: 'none' }}>Staff Directory</Link>
           <span>/</span>
@@ -1441,6 +1443,7 @@ export const StaffDetail: React.FC = () => {
           />
         )}
 
+        {tab === 'Job history' && id && <AxisJobHistory userId={id} name={staff?.name ?? 'This worker'} />}
         {tab === 'Projects' && !tabDenied && (
           <TabTable
             loading={tabLoading}
@@ -1705,7 +1708,8 @@ export const StaffDetail: React.FC = () => {
           </div>
         )}
 
-        {tab !== 'Profile' && !LIVE_TABS[tab] && !WITHHELD_TABS[tab] && (
+        {/* Job history renders its own component and data (AxisJobHistory). */}
+        {tab !== 'Profile' && tab !== 'Job history' && !LIVE_TABS[tab] && !WITHHELD_TABS[tab] && (
           <div style={{ textAlign: 'center', padding: '60px 0', color: 'var(--ink3)', background: 'var(--white)', borderRadius: 'var(--r-lg)', border: '1px solid var(--border)' }}>
             <Icon name="clock" size={32} color="var(--border)" />
             <div style={{ marginTop: 12, fontSize: 14, fontWeight: 500, color: 'var(--ink2)' }}>The {tab} module is coming soon</div>

@@ -88,8 +88,12 @@ export interface LocationsTable {
 export interface UsersTable {
   id: Generated<string>;
   tenant_id: string;
-  email: string;
+  /** Migration 911: optional for a worker who never signs in (can_login =
+   *  false). A CHECK keeps it required for anyone who can. */
+  email: string | null;
   password_hash: string;
+  /** Migration 911: false for a worker with a record but no sign-in. */
+  can_login: Generated<boolean>;
   role: UserRole;
   name: string;
   phone: string | null;
@@ -6742,6 +6746,8 @@ export interface Database {
   hr_delete_requests: HrDeleteRequestsTable;
   hr_login_history: HrLoginHistoryTable;
   hr_devices: HrDevicesTable;
+  hr_assignments: HrAssignmentsTable;
+  hr_time_corrections: HrTimeCorrectionsTable;
   hr_activity_log: HrActivityLogTable;
   password_reset_tokens: PasswordResetTokensTable;
   // HR Time Tracking
@@ -7408,6 +7414,11 @@ export interface Database {
   project_goods_receipts: ProjectGoodsReceiptsTable;
   project_resources: ProjectResourcesTable;
   project_resource_allocations: ProjectResourceAllocationsTable;
+  project_equipment_events: ProjectEquipmentEventsTable;
+  project_equipment_readings: ProjectEquipmentReadingsTable;
+  project_equipment_inspections: ProjectEquipmentInspectionsTable;
+  project_equipment_certificates: ProjectEquipmentCertificatesTable;
+  project_equipment_maintenance: ProjectEquipmentMaintenanceTable;
   project_industry_data: ProjectIndustryDataTable;
   // ── PII Protection System (Migrations 520–527) ────────────────────────────
   pii_data_domains: PiiDataDomainsTable;
@@ -8773,6 +8784,15 @@ export interface ProjectResourcesTable {
   currency: Generated<string>; owner_vendor_id: string | null; status: Generated<string>;
   availability_calendar: Generated<Record<string, any>>; metadata: Generated<Record<string, any>>;
   created_at: Generated<Date>; updated_at: Generated<Date>;
+  // 913 equipment register
+  ownership: Generated<string>; rental_reference: string | null; rental_start: string | null; rental_end: string | null;
+  home_site: string | null; current_location: string | null; custodian_id: string | null; condition: Generated<string>;
+  manufacturer: string | null; year_built: number | null; registration_number: string | null;
+  capacity_value: number | null; capacity_unit: string | null; meter_unit: string | null; meter_reading: number | null;
+  meter_read_at: Date | null; inspection_interval_days: number | null; next_inspection_due: string | null;
+  service_interval_days: number | null; service_interval_meter: number | null; next_service_due: string | null;
+  next_service_meter: number | null; fixed_asset_id: string | null; vehicle_id: string | null;
+  disposed_at: Date | null; disposal_reason: string | null; notes: string | null;
 }
 
 export interface ProjectResourceAllocationsTable {
@@ -8780,6 +8800,36 @@ export interface ProjectResourceAllocationsTable {
   start_date: string; end_date: string; allocation_pct: Generated<number>; allocated_cost: Generated<number>;
   status: Generated<string>; metadata: Generated<Record<string, any>>;
   created_at: Generated<Date>; updated_at: Generated<Date>;
+  // 913 lifecycle
+  request_key: string | null; requested_by: string | null; reserved_by: string | null; reserved_at: Date | null;
+  issued_by: string | null; issued_at: Date | null; handed_to: string | null; issue_condition: string | null;
+  issue_meter: number | null; returned_by: string | null; returned_at: Date | null; return_condition: string | null;
+  return_meter: number | null; cancelled_by: string | null; cancel_reason: string | null;
+}
+
+export interface ProjectEquipmentEventsTable {
+  id: Generated<string>; tenant_id: string; resource_id: string; allocation_id: string | null; project_id: string | null;
+  event_type: string; from_location: string | null; to_location: string | null; details: Generated<Record<string, any>>;
+  actor_id: string | null; impersonated_by: string | null; created_at: Generated<Date>;
+}
+export interface ProjectEquipmentReadingsTable {
+  id: Generated<string>; tenant_id: string; resource_id: string; allocation_id: string | null; reading: number;
+  unit: string; source: Generated<string>; read_at: Generated<Date>; recorded_by: string | null; created_at: Generated<Date>;
+}
+export interface ProjectEquipmentInspectionsTable {
+  id: Generated<string>; tenant_id: string; resource_id: string; allocation_id: string | null; inspection_type: string;
+  result: string; defects: string | null; next_due: string | null; inspected_by: string | null; inspected_at: Generated<Date>;
+}
+export interface ProjectEquipmentCertificatesTable {
+  id: Generated<string>; tenant_id: string; resource_id: string; certificate_type: string; reference: string | null;
+  issuer: string | null; issued_on: string | null; expires_on: string | null; blocks_assignment: Generated<boolean>;
+  file_id: string | null; created_by: string | null; created_at: Generated<Date>;
+}
+export interface ProjectEquipmentMaintenanceTable {
+  id: Generated<string>; tenant_id: string; resource_id: string; kind: string; status: Generated<string>; description: string;
+  scheduled_for: string | null; started_at: Date | null; completed_at: Date | null; downtime_hours: number | null;
+  meter_at_service: number | null; cost: number | null; currency: string | null; vendor_id: string | null;
+  created_by: string | null; completed_by: string | null; created_at: Generated<Date>; updated_at: Generated<Date>;
 }
 
 export interface ProjectIndustryDataTable {
@@ -15260,4 +15310,57 @@ export interface PulseTargetAccountsTable {
   id: Generated<string>; tenant_id: string; customer_id: string; tier: Generated<number>; owner_id: string | null; notes: string | null;
   score: Generated<number>; score_detail: Generated<any>; scored_at: Date | null; hot_since: Date | null;
   created_by: string | null; created_at: Generated<Date>;
+}
+
+// ── Axis worker assignments (migration 911) ─────────────────────────────────
+export interface HrAssignmentsTable {
+  id: Generated<string>;
+  tenant_id: string;
+  user_id: string;
+  worker_type: Generated<'EMPLOYEE' | 'CONTRACTOR' | 'CASUAL' | 'INTERN'>;
+  is_primary: Generated<boolean>;
+  legal_entity_id: string | null;
+  location_id: string | null;
+  department_id: string | null;
+  designation_id: string | null;
+  manager_id: string | null;
+  job_title: string | null;
+  fte: Generated<string>;
+  start_date: string;
+  end_date: string | null;
+  start_reason: 'HIRE' | 'TRANSFER' | 'PROMOTION' | 'REHIRE' | 'ADDITIONAL' | 'CORRECTION' | 'BACKFILL';
+  end_reason: 'TRANSFER' | 'PROMOTION' | 'RESIGNATION' | 'TERMINATION' | 'END_OF_CONTRACT' | 'RETIREMENT' | 'DEATH' | 'REDUNDANCY' | 'OTHER' | null;
+  status: Generated<'PENDING' | 'ACTIVE' | 'VOIDED'>;
+  notes: string | null;
+  corrects_id: string | null;
+  void_reason: string | null;
+  voided_by: string | null;
+  voided_at: Date | null;
+  requested_by: string | null;
+  approved_by: string | null;
+  approved_at: Date | null;
+  created_at: Generated<Date>;
+  updated_at: Generated<Date>;
+}
+
+/** Migration 912: append-only record of every change to recorded time. */
+export interface HrTimeCorrectionsTable {
+  id: Generated<string>;
+  tenant_id: string;
+  user_id: string;
+  work_date: string;
+  record_type: 'SESSION' | 'ATTENDANCE';
+  record_id: string;
+  before_values: unknown;
+  after_values: unknown;
+  reason: string;
+  corrected_by: string;
+  corrected_at: Generated<Date>;
+  payroll_run_id: string | null;
+  payroll_run_status: string | null;
+  review_status: Generated<'NOT_NEEDED' | 'PENDING' | 'REVIEWED'>;
+  review_outcome: 'NO_PAY_CHANGE' | 'ADJUST_NEXT_RUN' | null;
+  review_note: string | null;
+  reviewed_by: string | null;
+  reviewed_at: Date | null;
 }

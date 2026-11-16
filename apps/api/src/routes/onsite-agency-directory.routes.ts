@@ -124,8 +124,8 @@ export async function onsiteAgencyDirectoryPublicRoutes(fastify: FastifyInstance
       inquirerEmail: body.email,
       message: body.message,
     };
-    await Promise.all(admins.map(a =>
-      MailService.enqueueTemplated(profile.tenant_id, 'agency.directory_inquiry', a.email, vars, 'onsite').catch(() => {})
+    await Promise.all(admins.filter(a => a.email).map(a =>
+      MailService.enqueueTemplated(profile.tenant_id, 'agency.directory_inquiry', a.email!, vars, 'onsite').catch(() => {})
     ));
 
     return reply.send({ success: true });

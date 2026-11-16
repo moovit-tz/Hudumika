@@ -101,7 +101,7 @@ export function HrAssets() {
   return (
     <div style={{ flex: 1, overflowY: 'auto' }}>
       <PageHeader
-        crumbs={['NexusHR', 'Records']}
+        crumbs={['Axis', 'Records']}
         titlePlain="Company"
         titleEm="assets"
         subtitle="Company equipment and who is currently holding it."

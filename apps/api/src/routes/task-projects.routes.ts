@@ -25,6 +25,10 @@ const BILLING_TYPES = ['fixed', 'hourly'] as const;
 const MEMBER_ROLES = ['owner', 'member', 'viewer'] as const;
 const MILESTONE_STATUSES = ['upcoming', 'in_progress', 'completed'] as const;
 const ADMIN_ROLES = ['SUPER_ADMIN', 'TENANT_ADMIN', 'ADMIN'];
+/** Starting a project (new or copied) is limited to administrators and managers
+ *  (tenant policy decision, 2026-11-16). Staff join projects as members. */
+export const PROJECT_CREATOR_ROLES = [...ADMIN_ROLES, 'MANAGER'];
+const denyCreate = { error: 'Only administrators and managers can create projects.' };
 
 const projectCreateSchema = z.object({
   id: uuidSchema,
@@ -236,6 +240,7 @@ export async function taskProjectsRoutes(fastify: FastifyInstance) {
     return withTenant(user.tenant_id, async (trx) => {
       const resolved = await resolveProjectAccess(trx, user.tenant_id, user.sub, user.role, request.params.id);
       if (!resolved) return reply.status(404).send({ error: 'Project not found' });
+      if (!PROJECT_CREATOR_ROLES.includes(user.role)) return reply.status(403).send(denyCreate);
       const source = await trx.selectFrom('projects').selectAll().where('tenant_id', '=', user.tenant_id).where('id', '=', request.params.id).executeTakeFirstOrThrow();
       const ref = await getNextDocNumber(trx, user.tenant_id, 'project');
       // Copies the project + its milestones — NOT tasks, matching the
@@ -268,6 +273,7 @@ export async function taskProjectsRoutes(fastify: FastifyInstance) {
 
   fastify.post('/', async (request, reply) => {
     const user = request.user;
+    if (!PROJECT_CREATOR_ROLES.includes(user.role)) return reply.status(403).send(denyCreate);
     const body = projectCreateSchema.parse(request.body);
     return withTenant(user.tenant_id, async (trx) => {
       if (body.startDate && body.targetDate && body.targetDate < body.startDate) return reply.code(400).send({ error: 'Target date must be on or after start date' });
@@ -943,7 +949,8 @@ export async function taskProjectsRoutes(fastify: FastifyInstance) {
           tenantId: user.tenant_id, userId: uid, app: 'projects', type: 'mention',
           title, message: body.content.trim(), link: '/projects', entityType: 'project', entityId: request.params.id,
         }).catch(err => console.error('[Projects] Failed to notify on discussion post:', err.message));
-        await MailService.sendNow(user.tenant_id, {
+        // No email (a worker without sign-in): the in-app notice above is enough.
+        if (recipient.email) await MailService.sendNow(user.tenant_id, {
           to: recipient.email, subject: title,
           bodyHtml: `<p>Hi ${escHtml(recipient.name)},</p><p>${escHtml(actorName)} posted in <strong>${escHtml(projectName)}</strong>:</p><p>${escHtml(body.content.trim())}</p>`,
           sourceApp: 'tasks',

@@ -3,14 +3,13 @@ import { createPortal } from 'react-dom';
 import { useLocation, Link } from 'react-router-dom';
 import { Icon } from './Icon.js';
 import type { IconName } from './Icon.js';
-import { APP_LABELS, APP_COLORS, MobileNavContext } from '../shells/WorkspaceApp.js';
+import { APP_LABELS, APP_COLORS, MobileNavContext, type ShellAppId } from '../shells/WorkspaceApp.js';
 import { useBranding } from '../hooks/useBranding.js';
 import { useTenantPlan } from '../hooks/useTenantPlan.js';
 import { useLocale } from '../hooks/useLocale.js';
 import { lightenHex } from '../lib/color.js';
 import { toggleThemeWithAnimation } from '../lib/theme.js';
 import { LauncherAppSvg } from './LauncherApps.js';
-import type { AppId } from '@hudumika/types';
 import './AppSidebar.css';
 
 export interface SidebarNavItem {
@@ -34,7 +33,7 @@ export interface SidebarSection {
 }
 
 interface Props {
-  appId: AppId;
+  appId: ShellAppId;
   sections: SidebarSection[];
   beforeNav?: (opts: { collapsed: boolean }) => React.ReactNode;
   fillNav?: (opts: { collapsed: boolean }) => React.ReactNode;
@@ -42,7 +41,8 @@ interface Props {
   loading?: boolean;
 }
 
-const APP_ICONS: Record<AppId, IconName> = {
+const APP_ICONS: Record<ShellAppId, IconName> = {
+  'design-system': 'layers',
   lens:      'search',
   clearos:   'layers',
   finops:    'barChart',
@@ -84,7 +84,8 @@ const APP_ICONS: Record<AppId, IconName> = {
   pulse:     'activity',
 };
 
-const APP_SUBTITLES: Partial<Record<AppId, string>> = {
+const APP_SUBTITLES: Partial<Record<ShellAppId, string>> = {
+  'design-system': 'UI & Governance',
   clearos:   'Customs & Freight',
   finops:    'Finance & Accounts',
   complyos:  'Compliance Platform',

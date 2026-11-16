@@ -1,4 +1,4 @@
-﻿import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { Icon } from '../components/Icon.js';
 import { apiFetch } from '../lib/api.js';
 import { useCompany } from '../data/companyStore.js';
@@ -146,8 +146,10 @@ function PLSection({ rows, highlightColor, cur }: { rows: PLRow[]; highlightColo
               title={row.label}
               style={{
                 fontSize: row.bold ? 13 : 12,
-                fontWeight: row.bold ? 700 : 400,
-                color: isTotal ? highlightColor : row.bold ? 'var(--ink)' : 'var(--ink2)',
+                fontWeight: isTotal ? 800 : row.bold ? 700 : 400,
+                color: isTotal
+                  ? (row.label.startsWith('NET PROFIT') && row.amount < 0 ? 'var(--red)' : highlightColor)
+                  : row.bold ? 'var(--ink)' : 'var(--ink2)',
                 minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
               }}
             >
@@ -156,8 +158,10 @@ function PLSection({ rows, highlightColor, cur }: { rows: PLRow[]; highlightColo
             {row.amount !== 0 && (
               <span style={{
                 fontSize: row.bold ? 13 : 12,
-                fontWeight: row.bold ? 700 : 400,
-                color: isTotal ? highlightColor : row.sub ? 'var(--ink2)' : 'var(--ink)',
+                fontWeight: isTotal ? 800 : row.bold ? 700 : 400,
+                color: isTotal
+                  ? (row.label.startsWith('NET PROFIT') && row.amount < 0 ? 'var(--red)' : highlightColor)
+                  : row.sub ? 'var(--ink2)' : 'var(--ink)',
                 fontFamily: 'var(--font)',
                 // Digits line up column-wise, and the figure is never broken
                 // across lines or shrunk away.
@@ -304,13 +308,13 @@ export const FinanceProfitLoss: React.FC = () => {
         <div style={{ display: 'flex', flexDirection: isMobile ? 'column' : 'row', gap: 14, flexWrap: 'wrap' }}>
           <div style={{ flex: 1, minWidth: isMobile ? '100%' : 300 }}>
           <SectionCard title="Income" action={<span style={{ fontSize: 11, color: 'var(--ink3)' }}>{report?.business_line?.name ?? period}</span>}>
-            <PLSection rows={incomeRows} highlightColor="var(--teal)" cur={cur} />
+            <PLSection rows={incomeRows} highlightColor="var(--ink)" cur={cur} />
           </SectionCard>
           </div>
 
           <div style={{ flex: 1, minWidth: isMobile ? '100%' : 300 }}>
           <SectionCard title="Costs & Profit" action={<span style={{ fontSize: 11, color: 'var(--ink3)' }}>{report?.business_line?.name ?? period}</span>}>
-            <PLSection rows={costRows} highlightColor="var(--green)" cur={cur} />
+            <PLSection rows={costRows} highlightColor="var(--ink)" cur={cur} />
           </SectionCard>
           </div>
         </div>

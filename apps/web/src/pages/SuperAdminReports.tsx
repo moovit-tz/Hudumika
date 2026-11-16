@@ -52,7 +52,7 @@ interface ReportRun {
 }
 
 const APP_LABELS: Record<string, string> = {
-  clearos: 'ClearOS', finops: 'FinOps', nexushr: 'NexusHR', tracking: 'Tracking', complyos: 'ComplyOS',
+  clearos: 'ClearOS', finops: 'FinOps', nexushr: 'Axis', tracking: 'Tracking', complyos: 'ComplyOS',
 };
 const APP_ICONS: Record<string, IconName> = {
   clearos: 'ship', finops: 'dollarSign', nexushr: 'users', tracking: 'truck', complyos: 'shield',

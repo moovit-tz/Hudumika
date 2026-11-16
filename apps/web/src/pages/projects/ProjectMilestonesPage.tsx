@@ -131,13 +131,6 @@ export const ProjectMilestonesPage: React.FC = () => {
         titlePlain="Project"
         titleEm="milestones"
         subtitle="Critical delivery gates — schedule gates, target deadlines, and progress checkpoints across all projects."
-        actions={
-          <div style={{ display: 'flex', gap: 8 }}>
-            <Button variant="outline" size="sm" onClick={() => navigate('/projects/timeline')}>
-              <Icon name="calendar" size={13} style={{ marginRight: 6 }} /> Timeline Gantt
-            </Button>
-          </div>
-        }
       />
 
       <div style={{ marginTop: 20 }}>

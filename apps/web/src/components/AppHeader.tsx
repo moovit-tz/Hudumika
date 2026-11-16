@@ -9,6 +9,7 @@ import { HeaderPill } from './HeaderPill.js';
 import { useWebSocket } from '../hooks/useWebSocket.js';
 import { Icon, type IconName } from './Icon.js';
 import { APP_COLORS, ActiveAppContext, MobileNavContext } from '../shells/WorkspaceApp.js';
+import { ALL_STAFF } from '../lib/permissions.js';
 import { useBranding } from '../hooks/useBranding.js';
 import { useLocale } from '../hooks/useLocale.js';
 import { AppLauncher } from './AppLauncher.js';
@@ -1053,6 +1054,17 @@ export function AppHeader({
                       <span className="ah-menu-item-label">Developer Console</span>
                     </Link>
                   </DropdownMenuItem>
+
+                  {user?.role && (ALL_STAFF as readonly string[]).includes(user.role) && (
+                    <DropdownMenuItem asChild>
+                      <Link to="/design-system" className="ah-menu-item-link">
+                        <div className="ah-menu-icon-box" style={{ '--icon-color': 'var(--teal)', '--icon-bg': 'var(--teal-l)' } as React.CSSProperties}>
+                          <Icon name="layers" size={13} />
+                        </div>
+                        <span className="ah-menu-item-label">Design System</span>
+                      </Link>
+                    </DropdownMenuItem>
+                  )}
 
                   {user?.role === 'SUPER_ADMIN' && (
                     <DropdownMenuItem asChild>

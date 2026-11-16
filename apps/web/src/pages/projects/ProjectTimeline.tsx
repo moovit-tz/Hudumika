@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import { useCanCreateProjects } from './projectPowers.js';
 import { useNavigate } from 'react-router-dom';
 import { Icon } from '../../components/Icon.js';
 import { Badge } from '../../components/ui/badge.js';
@@ -56,6 +57,7 @@ const HEALTH_CONFIG: Record<string, { label: string; color: string; badge: 'succ
 };
 
 export const ProjectTimeline: React.FC = () => {
+  const canCreate = useCanCreateProjects();
   const isMobile = useIsMobile();
   const navigate = useNavigate();
   const [projects, setProjects] = useState<TimelineProject[]>([]);
@@ -145,16 +147,6 @@ export const ProjectTimeline: React.FC = () => {
         titlePlain="Project"
         titleEm="timeline"
         subtitle="Portfolio Gantt chart — unified timeline with start dates, targets, and delivery milestones."
-        actions={
-          <div style={{ display: 'flex', gap: 8 }}>
-            <Button variant="outline" size="sm" onClick={() => navigate('/projects/directory')}>
-              <Icon name="briefcase" size={13} style={{ marginRight: 6 }} /> Directory
-            </Button>
-            <Button variant="outline" size="sm" onClick={() => navigate('/projects/milestones')}>
-              <Icon name="flag" size={13} style={{ marginRight: 6 }} /> Milestones
-            </Button>
-          </div>
-        }
       />
 
       <div style={{ marginTop: 20 }}>
@@ -193,7 +185,7 @@ export const ProjectTimeline: React.FC = () => {
             <p style={{ fontSize: 13, color: 'var(--ink3)', maxWidth: 400, margin: '0 auto 16px' }}>
               No projects match the current search filters. Create a project and specify start and target dates to plot on the timeline.
             </p>
-            <Button onClick={() => navigate('/projects/new')}>Create Project</Button>
+            {canCreate && <Button onClick={() => navigate('/projects/new')}>Create Project</Button>}
           </div>
         ) : (
           <>
@@ -349,7 +341,7 @@ export const ProjectTimeline: React.FC = () => {
                 </div>
 
                 {showUnscheduled && (<>
-                  <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(auto-fill, minmax(280px, 1fr))', gap: 10, marginTop: 12 }}>
+                  <div style={{ display: 'grid', gridTemplateColumns: isMobile ? 'minmax(0, 1fr)' : 'repeat(auto-fill, minmax(280px, 1fr))', gap: 10, marginTop: 12 }}>
                     {paginate(unscheduled, unschedPage, unschedPageSize).visible.map(p => (
                       <div
                         key={p.id}

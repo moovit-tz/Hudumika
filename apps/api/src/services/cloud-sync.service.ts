@@ -49,7 +49,7 @@ export async function ensureHrDrive(trx:any,tenantId:string):Promise<string> {
   await sql`select pg_advisory_xact_lock(hashtextextended(${`hr-drive:${tenantId}`},0))`.execute(trx);
   const existing=await trx.selectFrom('cloud_drives').select('id').where('tenant_id','=',tenantId).where('managed_purpose','=','nexushr').executeTakeFirst();
   if(existing) return existing.id;
-  const drive=await trx.insertInto('cloud_drives').values({tenant_id:tenantId,name:'Personnel Records',type:'shared',owner_name:'NexusHR',managed_purpose:'nexushr'}).returning('id').executeTakeFirstOrThrow();
+  const drive=await trx.insertInto('cloud_drives').values({tenant_id:tenantId,name:'Personnel Records',type:'shared',owner_name:'Axis',managed_purpose:'nexushr'}).returning('id').executeTakeFirstOrThrow();
   return drive.id;
 }
 

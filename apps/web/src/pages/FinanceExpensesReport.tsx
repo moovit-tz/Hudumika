@@ -25,8 +25,8 @@ const CATS: Record<string, { label: string; color: string }> = {
   INSPECTION_FEE:  { label: 'Inspection Fee',  color: 'var(--green)' },
   AGENT_FEE:       { label: 'Agent Fee',       color: 'var(--red)' },
   MISCELLANEOUS:   { label: 'Miscellaneous',   color: 'var(--ink3)' },
-  FUEL:            { label: 'Fuel',            color: '#0891b2' },
-  MAINTENANCE:     { label: 'Maintenance',     color: '#7c3aed' },
+  FUEL:            { label: 'Fuel',            color: 'var(--teal)' },
+  MAINTENANCE:     { label: 'Maintenance',     color: 'var(--purple)' },
 };
 const PAGE_SIZE = 15;
 
@@ -169,13 +169,13 @@ export const FinanceExpensesReport: React.FC = () => {
         {/* Summary cards */}
         <div style={{ display: 'flex', gap: 14, flexWrap: 'wrap' }}>
           {[
-            { label: `Total Expenses (${period})`, value: fmtM(totalExpenses),      icon: 'receipt',  color: 'var(--red)',    bg: 'var(--red-l)' },
-            { label: 'Largest Category',            value: largestCategory,          icon: 'package',  color: 'var(--purple)', bg: 'var(--purple-l)' },
-            { label: 'This Month',                  value: fmtM(thisMonthTotal),      icon: 'calendar', color: 'var(--blue)',   bg: 'var(--blue-l)' },
+            { label: `Total Expenses (${period})`, value: fmtM(totalExpenses),      icon: 'receipt' },
+            { label: 'Largest Category',            value: largestCategory,          icon: 'package' },
+            { label: 'This Month',                  value: fmtM(thisMonthTotal),      icon: 'calendar' },
           ].map(s => (
             <div key={s.label} style={{ flex: 1, minWidth: 200, background: 'var(--white)', borderRadius: 'var(--r)', border: '1px solid var(--border)', padding: '16px 18px', display: 'flex', alignItems: 'center', gap: 14 }}>
-              <div style={{ width: 42, height: 42, borderRadius: 'var(--r)', background: s.bg, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                <Icon name={s.icon as IconName} size={18} color={s.color} />
+              <div style={{ width: 42, height: 42, borderRadius: 'var(--r)', background: 'var(--bg)', border: '1px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                <Icon name={s.icon as IconName} size={18} color="var(--ink2)" />
               </div>
               <div>
                 <div style={{ fontSize: 18, fontWeight: 800, color: 'var(--ink)', letterSpacing: '-0.02em' }}>{s.value}</div>

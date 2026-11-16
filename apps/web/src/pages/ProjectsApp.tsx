@@ -21,6 +21,7 @@ import { useIsMobile } from '../hooks/useIsMobile.js';
 import { useTodos, addTodo, updateTodo, deleteTodo, Todo, TaskStatus, TaskPriority } from '../data/calendarStore.js';
 import { BarChart, Bar, XAxis, YAxis, Tooltip as RechartsTooltip, ResponsiveContainer, CartesianGrid } from 'recharts';
 import { useAuth } from '../hooks/useAuth.js';
+import { useCanCreateProjects } from './projects/projectPowers.js';
 import { FileUploader } from '../components/ui/file-uploader.js';
 import { MentionInput, type MentionUser } from '../components/MentionInput.js';
 import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuSub, DropdownMenuSubTrigger, DropdownMenuSubContent, DropdownMenuCheckboxItem } from '../components/ui/dropdown-menu.js';
@@ -40,6 +41,7 @@ import { ProjectFinancialsEvm } from './projects/ProjectFinancialsEvm.js';
 import { ProjectGovernance } from './projects/ProjectGovernance.js';
 import { ProjectProcurement } from './projects/ProjectProcurement.js';
 import { ProjectResources } from './projects/ProjectResources.js';
+import { ProjectEquipmentPanel } from './projects/equipment/ProjectEquipmentPanel.js';
 import { ProjectIndustryPack } from './projects/ProjectIndustryPack.js';
 import { ProjectCreateModal } from './projects/ProjectCreateModal.js';
 import { ProjectRisksDashboard } from './projects/ProjectRisksDashboard.js';
@@ -310,6 +312,7 @@ export const ProjectsApp: React.FC<ProjectsAppProps> = ({ initialMode = 'command
   const [quickAddTitle, setQuickAddTitle] = useState('');
   const [detailTaskId, setDetailTaskId] = useState<string | null>(() => searchParams.get('task'));
   const { user } = useAuth();
+  const canCreate = useCanCreateProjects();
   const [boardView, setBoardView] = useState<'kanban' | 'table' | 'milestone'>('kanban');
   const [excludeCompletedMs, setExcludeCompletedMs] = useState(false);
   const [taskSearch, setTaskSearch] = useState('');
@@ -540,18 +543,6 @@ export const ProjectsApp: React.FC<ProjectsAppProps> = ({ initialMode = 'command
 
   const projectTasks = useMemo(() => selectedId ? allTodos.filter(t => t.projectId === selectedId && !t.deletedAt) : [], [allTodos, selectedId]);
   const detailTask = detailTaskId ? projectTasks.find(t => t.id === detailTaskId) || null : null;
-
-  const taskStatusCounts = useMemo(() => {
-    const c: Record<string, { total: number; mine: number }> = {};
-    for (const col of KANBAN_COLUMNS) c[col.status] = { total: 0, mine: 0 };
-    for (const t of projectTasks) {
-      const status = t.completed || t.status === 'completed' ? 'completed' : t.status;
-      if (!c[status]) continue;
-      c[status].total++;
-      if (user && t.assigneeId === user.id) c[status].mine++;
-    }
-    return c;
-  }, [projectTasks, user]);
 
   const visibleTasks = useMemo(() => {
     let rows = projectTasks;
@@ -803,11 +794,11 @@ export const ProjectsApp: React.FC<ProjectsAppProps> = ({ initialMode = 'command
             titlePlain={viewTitle[0]}
             titleEm={viewTitle[1]}
             subtitle="Plan delivery, monitor portfolio health, and keep every team aligned from one workspace."
-            actions={(
+            actions={canCreate ? (
               <Button size="sm" onClick={() => navigate('/projects/new')}>
                 <Icon name="plus" size={15} /> New project
               </Button>
-            )}
+            ) : undefined}
           />
 
           <Tabs value={appViewMode} onValueChange={(value) => setAppViewMode(value as typeof appViewMode)}>
@@ -912,7 +903,7 @@ export const ProjectsApp: React.FC<ProjectsAppProps> = ({ initialMode = 'command
                   : 'No projects registered in the OS yet. Click "New Enterprise Project" to create your first portfolio project.'}
               </div>
             ) : listViewMode === 'grid' ? (
-              <div className="ops-dashboard-grid" style={{ gridTemplateColumns: isMobile ? '1fr' : 'repeat(auto-fill, minmax(320px, 1fr))', gap: 18 }}>
+              <div className="ops-dashboard-grid" style={{ gridTemplateColumns: isMobile ? 'minmax(0, 1fr)' : 'repeat(auto-fill, minmax(320px, 1fr))', gap: 18 }}>
                 {filteredProjects.map((p) => {
                   const statusMeta = PROJECT_STATUS_META[p.status] || PROJECT_STATUS_META.not_started;
                   const healthMeta = HEALTH_STATUS_META[p.health_status || 'on_track'] || HEALTH_STATUS_META.on_track;
@@ -1160,7 +1151,6 @@ export const ProjectsApp: React.FC<ProjectsAppProps> = ({ initialMode = 'command
           titleEm={selected.name.split(' ').at(-1) || 'Project'}
           subtitle={
             <span style={{ display: 'inline-flex', alignItems: 'center', flexWrap: 'wrap', gap: 8 }}>
-              <Badge variant={healthBadgeVariant}>{healthMeta.label}</Badge>
               <span>
                 {(detail?.industry || selected.industry || 'general').replaceAll('_', ' ').replace(/\b\w/g, l => l.toUpperCase())}
               </span>
@@ -1174,7 +1164,7 @@ export const ProjectsApp: React.FC<ProjectsAppProps> = ({ initialMode = 'command
                 <>
                   <span>·</span>
                   <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
-                    <Icon name="mapPin" size={12} color="var(--teal)" />
+                    <Icon name="mapPin" size={12} color="var(--ink3)" />
                     {detail?.location_address || selected.location_address}
                   </span>
                 </>
@@ -1183,6 +1173,8 @@ export const ProjectsApp: React.FC<ProjectsAppProps> = ({ initialMode = 'command
           }
           actions={
             <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+              {/* Outside the subtitle: Badge is a block element and the subtitle is a <p>. */}
+              <Badge variant={healthBadgeVariant}>{healthMeta.label}</Badge>
               <Select value={selected.status} onValueChange={(v) => patchProject({ status: v })}>
                 <SelectTrigger className="project-workspace-status text-xs" aria-label="Project status">
                   <SelectValue />
@@ -1232,9 +1224,11 @@ export const ProjectsApp: React.FC<ProjectsAppProps> = ({ initialMode = 'command
                   <DropdownMenuItem onClick={(e) => togglePin(selected, e as unknown as React.MouseEvent)}>
                     <Icon name="bookmark" size={13} /> {selected.is_pinned ? 'Unpin project' : 'Pin project'}
                   </DropdownMenuItem>
-                  <DropdownMenuItem onClick={copyProject}>
-                    <Icon name="copy" size={13} /> Duplicate project
-                  </DropdownMenuItem>
+                  {canCreate && (
+                    <DropdownMenuItem onClick={copyProject}>
+                      <Icon name="copy" size={13} /> Duplicate project
+                    </DropdownMenuItem>
+                  )}
                   <DropdownMenuItem onClick={() => { setTemplateName(selected.name); setSavingTemplate(true); }}>
                     <Icon name="save" size={13} /> Save as template
                   </DropdownMenuItem>
@@ -1352,7 +1346,9 @@ export const ProjectsApp: React.FC<ProjectsAppProps> = ({ initialMode = 'command
         </div>
       </div>
 
-      {/* 4 Vital Horizon KPI Cards */}
+      {/* 4 Vital Horizon KPI Cards — the project summary, so Overview only;
+          every other tab opens straight onto its own content. */}
+      {tab === 'overview' && (
       <div className="pw-kpi-grid">
         <div className="pw-kpi-card">
           <div className="pw-kpi-top">
@@ -1438,6 +1434,7 @@ export const ProjectsApp: React.FC<ProjectsAppProps> = ({ initialMode = 'command
           </div>
         </div>
       </div>
+      )}
 
       {/* Main Workspace Content Area */}
       <div style={{ flex: 1, minWidth: 0 }}>
@@ -1867,7 +1864,7 @@ export const ProjectsApp: React.FC<ProjectsAppProps> = ({ initialMode = 'command
 
         {/* TAB 6: FLEET & RESOURCES */}
         {tab === 'resources' && (
-          <ProjectResources projectId={selected.id} currency={selected.currency} />
+          <ProjectEquipmentPanel projectId={selected.id} />
         )}
 
         {/* TAB 7: MODULAR INDUSTRY PACK */}
@@ -1882,19 +1879,6 @@ export const ProjectsApp: React.FC<ProjectsAppProps> = ({ initialMode = 'command
         {/* TAB 8: TASKS & KANBAN BOARD */}
         {tab === 'board' && (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-            <div style={{ display: 'grid', gridTemplateColumns: isMobile ? 'repeat(2, 1fr)' : 'repeat(5, 1fr)', gap: 12 }}>
-              {KANBAN_COLUMNS.map(col => {
-                const c = taskStatusCounts[col.status] || { total: 0, mine: 0 };
-                return (
-                  <div key={col.status} className="pw-kpi-card" style={{ padding: '12px 14px', gap: 6 }}>
-                    <div className="pw-kpi-label">{col.title}</div>
-                    <div style={{ fontSize: 20, fontWeight: 800, color: 'var(--ink)' }}>{c.total}</div>
-                    <div style={{ fontSize: 11.5, color: 'var(--ink3)' }}>Assigned to me: {c.mine}</div>
-                  </div>
-                );
-              })}
-            </div>
-
             <div className="pw-panel">
               <div className="pw-panel-header">
                 <div style={{ display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap' }}>

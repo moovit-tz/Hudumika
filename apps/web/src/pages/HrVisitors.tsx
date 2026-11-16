@@ -106,7 +106,7 @@ export const HrVisitors: React.FC = () => {
   return (
     <div>
       <PageHeader
-        crumbs={['NexusHR', 'Records']}
+        crumbs={['Axis', 'Records']}
         titlePlain="Front desk"
         titleEm="visitors"
         subtitle="Who's on-site right now, and who's been in recently."

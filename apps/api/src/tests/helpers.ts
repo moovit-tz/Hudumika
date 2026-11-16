@@ -4,6 +4,7 @@
 // — driven through server.inject() rather than mocks, matching how every
 // P0 fix in this module was verified by hand during the audit that
 // produced this suite.
+import { loginEmail } from '../lib/login-email.js';
 import { randomUUID } from 'crypto';
 import { server, registerApp } from '../index.js';
 import { dbPlatform } from '../db/client.js';
@@ -47,7 +48,7 @@ export async function createTestTenant(role: UserRole = 'TENANT_ADMIN'): Promise
     }).returningAll().executeTakeFirstOrThrow();
     const now = Math.floor(Date.now() / 1000);
     const token = server.jwt.sign({
-      sub: user.id, tenant_id: tenant.id, role: userRole, email: user.email, name: user.name,
+      sub: user.id, tenant_id: tenant.id, role: userRole, email: loginEmail(user), name: user.name,
       iat: now, exp: now + 3600,
     });
     return { userId: user.id, token };

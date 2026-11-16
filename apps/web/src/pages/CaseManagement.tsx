@@ -80,7 +80,7 @@ export function CaseManagement() {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
       <PageHeader
-        crumbs={['NexusHR', 'Cases']}
+        crumbs={['Axis', 'Cases']}
         titlePlain="Case"
         titleEm="management"
         subtitle="Warnings, PIPs, suspensions and grievances — restricted to authorised HR staff."

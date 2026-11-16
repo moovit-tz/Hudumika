@@ -1,4 +1,4 @@
-﻿import React, { useState, useMemo, useEffect } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { Icon } from '../components/Icon.js';
 import { useCompany } from '../data/companyStore.js';
 import { useCurrency } from '../hooks/useCurrency.js';
@@ -241,12 +241,12 @@ export const FinanceLedger: React.FC = () => {
           </div>
           <div className="acct-hero-details">
             <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap', marginBottom: 6 }}>
-              <h2 style={{ margin: 0, fontSize: 16, fontWeight: 800, color: '#ffffff' }}>
+              <h2 style={{ margin: 0, fontSize: 16, fontWeight: 800, color: 'var(--ink)' }}>
                 Corporate Accounting Control Center
               </h2>
-              <span style={{ fontSize: 11, fontWeight: 700, padding: '3px 10px', borderRadius: 'var(--r-lg)', background: 'rgba(255,255,255,0.18)', border: '1px solid rgba(255,255,255,0.35)', color: '#ffffff', textTransform: 'uppercase', letterSpacing: '0.04em', whiteSpace: 'nowrap' }}>
+              <Badge variant={balanceScore < 100 ? 'warning' : 'gray'}>
                 ✓ {balanceScore}% Balanced
-              </span>
+              </Badge>
             </div>
             <p className="acct-hero-desc">
               {currency} ledger · IFRS & TRA compliant · {accounts.length} active accounts · Period: {period.label}
@@ -318,7 +318,7 @@ export const FinanceLedger: React.FC = () => {
           {cashTZS !== 0 ? (
             <div className="acct-bank-sync-row">
               <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                <div style={{ width: 34, height: 34, borderRadius: 'var(--r-sm)', background: 'var(--teal-l)', color: 'var(--teal)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <div style={{ width: 34, height: 34, borderRadius: 'var(--r-sm)', background: 'var(--bg)', border: '1px solid var(--border)', color: 'var(--ink2)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                   <Icon name="building" size={16} />
                 </div>
                 <div>
@@ -326,14 +326,14 @@ export const FinanceLedger: React.FC = () => {
                   <div style={{ fontSize: 11, color: 'var(--ink3)' }}>GL account 1010</div>
                 </div>
               </div>
-              <Badge variant="success">{fmtCompact(cashTZS)}</Badge>
+              <Badge variant={cashTZS < 0 ? 'error' : 'gray'}>{fmtCompact(cashTZS)}</Badge>
             </div>
           ) : null}
 
           {cashUSD !== 0 ? (
             <div className="acct-bank-sync-row">
               <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                <div style={{ width: 34, height: 34, borderRadius: 'var(--r-sm)', background: 'var(--blue-l)', color: 'var(--blue)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <div style={{ width: 34, height: 34, borderRadius: 'var(--r-sm)', background: 'var(--bg)', border: '1px solid var(--border)', color: 'var(--ink2)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                   <Icon name="building" size={16} />
                 </div>
                 <div>
@@ -341,14 +341,14 @@ export const FinanceLedger: React.FC = () => {
                   <div style={{ fontSize: 11, color: 'var(--ink3)' }}>GL account 1011</div>
                 </div>
               </div>
-              <Badge variant="brand">{fmtCompact(cashUSD, 'USD')}</Badge>
+              <Badge variant={cashUSD < 0 ? 'error' : 'gray'}>{fmtCompact(cashUSD, 'USD')}</Badge>
             </div>
           ) : null}
 
           {cashOnHand !== 0 ? (
             <div className="acct-bank-sync-row">
               <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                <div style={{ width: 34, height: 34, borderRadius: 'var(--r-sm)', background: 'var(--gold-l)', color: 'var(--gold)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <div style={{ width: 34, height: 34, borderRadius: 'var(--r-sm)', background: 'var(--bg)', border: '1px solid var(--border)', color: 'var(--ink2)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                   <Icon name="wallet" size={16} />
                 </div>
                 <div>
@@ -356,7 +356,7 @@ export const FinanceLedger: React.FC = () => {
                   <div style={{ fontSize: 11, color: 'var(--ink3)' }}>GL account 1001</div>
                 </div>
               </div>
-              <Badge variant="gray">{fmtCompact(cashOnHand)}</Badge>
+              <Badge variant={cashOnHand < 0 ? 'error' : 'gray'}>{fmtCompact(cashOnHand)}</Badge>
             </div>
           ) : null}
 
@@ -387,7 +387,7 @@ export const FinanceLedger: React.FC = () => {
                 {apTotals.total > 0 ? `Total Outstanding: ${fmt(apTotals.total)}` : 'No outstanding payables'}
               </div>
             </div>
-            <Badge variant={apCurrentPct >= 90 ? 'brand' : apCurrentPct >= 70 ? 'warning' : 'error'}>
+            <Badge variant={apCurrentPct >= 90 ? 'gray' : apCurrentPct >= 70 ? 'warning' : 'error'}>
               {apCurrentPct}% Current
             </Badge>
           </div>
@@ -403,7 +403,7 @@ export const FinanceLedger: React.FC = () => {
               <div className="acct-aging-legend">
                 <div className="acct-aging-legend-item">
                   <span style={{ color: 'var(--ink3)' }}>Current</span>
-                  <strong style={{ color: 'var(--teal)' }}>{fmtCompact(apTotals.current)}</strong>
+                  <strong style={{ color: 'var(--ink)' }}>{fmtCompact(apTotals.current)}</strong>
                 </div>
                 <div className="acct-aging-legend-item">
                   <span style={{ color: 'var(--ink3)' }}>1–30 Days</span>
@@ -429,7 +429,7 @@ export const FinanceLedger: React.FC = () => {
                 {arTotals.total > 0 ? `Total Outstanding: ${fmt(arTotals.total)}` : 'No outstanding receivables'}
               </div>
             </div>
-            <Badge variant={arCurrentPct >= 90 ? 'success' : arCurrentPct >= 70 ? 'warning' : 'error'}>
+            <Badge variant={arCurrentPct >= 90 ? 'gray' : arCurrentPct >= 70 ? 'warning' : 'error'}>
               {arCurrentPct}% Current
             </Badge>
           </div>
@@ -445,7 +445,7 @@ export const FinanceLedger: React.FC = () => {
               <div className="acct-aging-legend">
                 <div className="acct-aging-legend-item">
                   <span style={{ color: 'var(--ink3)' }}>Current</span>
-                  <strong style={{ color: 'var(--teal)' }}>{fmtCompact(arTotals.current)}</strong>
+                  <strong style={{ color: 'var(--ink)' }}>{fmtCompact(arTotals.current)}</strong>
                 </div>
                 <div className="acct-aging-legend-item">
                   <span style={{ color: 'var(--ink3)' }}>1–30 Days</span>
@@ -497,8 +497,8 @@ export const FinanceLedger: React.FC = () => {
       ) : (
         TYPE_ORDER.filter(t => grouped[t]).map(t => (
           <div key={t} className="finance-ledger-group" style={{ marginBottom: 24 }}>
-            <div className="acct-type-group-header" style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 16px', background: TYPE_CFG[t].bg, borderRadius: 'var(--r) var(--r) 0 0', borderBottom: `2px solid ${TYPE_CFG[t].color}` }}>
-              <span style={{ fontSize: 11, fontWeight: 800, color: TYPE_CFG[t].color, textTransform: 'uppercase', letterSpacing: '0.08em' }}>{TYPE_CFG[t].label}S</span>
+            <div className="acct-type-group-header" style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 16px', background: 'var(--bg)', borderRadius: 'var(--r) var(--r) 0 0', borderBottom: '1px solid var(--border)' }}>
+              <span style={{ fontSize: 11, fontWeight: 800, color: 'var(--ink2)', textTransform: 'uppercase', letterSpacing: '0.08em' }}>{TYPE_CFG[t].label}S</span>
               <span style={{ fontSize: 11, color: 'var(--ink3)' }}>— {grouped[t]!.length} accounts</span>
             </div>
 
@@ -509,7 +509,6 @@ export const FinanceLedger: React.FC = () => {
                 const isOpen = expanded.has(acc.account_code);
                 const isLoadingLedger = ledgerLoading.has(acc.account_code);
                 const ledger = ledgerCache[acc.account_code];
-                const cfg = TYPE_CFG[acc.account_type];
 
                 return (
                   <div key={acc.account_code} style={{ borderBottom: ai < grouped[t]!.length - 1 ? '1px solid var(--border)' : 'none' }}>
@@ -533,14 +532,14 @@ export const FinanceLedger: React.FC = () => {
                         boxSizing: 'border-box',
                       }}
                      data-ui-native-button="">
-                      <span style={{ fontSize: 12, color: cfg.color, fontWeight: 700 }}>{isOpen ? '−' : '+'}</span>
+                      <span style={{ fontSize: 12, color: isOpen ? 'var(--teal)' : 'var(--ink3)', fontWeight: 700 }}>{isOpen ? '−' : '+'}</span>
                       <span style={{ fontSize: 12, fontFamily: 'var(--font)', color: 'var(--ink3)', fontWeight: 600 }}>{acc.account_code}</span>
                       <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--ink)' }}>{acc.account_name}</span>
                       <span style={{ fontSize: 12, fontFamily: 'var(--font)', color: 'var(--ink2)', textAlign: 'right' }}>{fmt(Math.abs(open))}</span>
-                      <span style={{ fontSize: 12, fontFamily: 'var(--font)', color: 'var(--blue)', textAlign: 'right' }}>{acc.period_debit > 0 ? fmt(acc.period_debit) : '—'}</span>
-                      <span style={{ fontSize: 12, fontFamily: 'var(--font)', color: 'var(--purple)', textAlign: 'right' }}>{acc.period_credit > 0 ? fmt(acc.period_credit) : '—'}</span>
+                      <span style={{ fontSize: 12, fontFamily: 'var(--font)', color: acc.period_debit > 0 ? 'var(--ink)' : 'var(--ink3)', textAlign: 'right' }}>{acc.period_debit > 0 ? fmt(acc.period_debit) : '—'}</span>
+                      <span style={{ fontSize: 12, fontFamily: 'var(--font)', color: acc.period_credit > 0 ? 'var(--ink)' : 'var(--ink3)', textAlign: 'right' }}>{acc.period_credit > 0 ? fmt(acc.period_credit) : '—'}</span>
                       <span style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}>
-                        <span style={{ fontSize: 11, fontWeight: 700, color: close < 0 ? 'var(--purple)' : 'var(--blue)', background: close < 0 ? 'var(--purple-l)' : 'var(--blue-l)', padding: '2px 6px', borderRadius: 'var(--r)', whiteSpace: 'nowrap' }}>
+                        <span style={{ fontSize: 11, fontWeight: 600, color: 'var(--ink2)', background: 'var(--bg)', border: '1px solid var(--border)', padding: '2px 6px', borderRadius: 'var(--r)', whiteSpace: 'nowrap' }}>
                           {close < 0 ? 'Cr' : 'Dr'}
                         </span>
                       </span>
@@ -567,8 +566,8 @@ export const FinanceLedger: React.FC = () => {
                                 <span style={{ fontSize: 11, fontFamily: 'var(--font)', color: 'var(--ink3)' }}>{e.entry_number}</span>
                                 <span style={{ fontSize: 11, color: 'var(--ink3)' }}>{fmtDate(e.date)}</span>
                                 <span style={{ fontSize: 12, color: 'var(--ink2)' }}>{e.description}</span>
-                                <span style={{ fontSize: 12, fontFamily: 'var(--font)', color: 'var(--blue)', textAlign: 'right' }}>{e.debit > 0 ? fmt(e.debit) : ''}</span>
-                                <span style={{ fontSize: 12, fontFamily: 'var(--font)', color: 'var(--purple)', textAlign: 'right' }}>{e.credit > 0 ? fmt(e.credit) : ''}</span>
+                                <span style={{ fontSize: 12, fontFamily: 'var(--font)', color: 'var(--ink)', textAlign: 'right' }}>{e.debit > 0 ? fmt(e.debit) : ''}</span>
+                                <span style={{ fontSize: 12, fontFamily: 'var(--font)', color: 'var(--ink)', textAlign: 'right' }}>{e.credit > 0 ? fmt(e.credit) : ''}</span>
                                 <span style={{ fontSize: 12, fontFamily: 'var(--font)', color: 'var(--ink)', textAlign: 'right' }}>{fmt(Math.abs(e.running_balance))} {e.running_balance < 0 ? 'Cr' : 'Dr'}</span>
                               </div>
                             ))}

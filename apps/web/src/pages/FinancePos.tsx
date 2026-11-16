@@ -509,7 +509,7 @@ export function FinancePos() {
 
       {!readOnly && <div className="pos-mobile-nav" role="group" aria-label="POS view">
         <Button size="sm" variant={mobilePane === 'products' ? 'secondary' : 'ghost'} aria-pressed={mobilePane === 'products'} onClick={() => setMobilePane('products')}><Icon name="package" size={16}/>Products</Button>
-        <Button size="sm" variant={mobilePane === 'sale' ? 'secondary' : 'ghost'} aria-pressed={mobilePane === 'sale'} onClick={() => setMobilePane('sale')}><Icon name="shoppingCart" size={16}/>Current sale <Badge variant="brand">{cartItemCount}</Badge></Button>
+        <Button size="sm" variant={mobilePane === 'sale' ? 'secondary' : 'ghost'} aria-pressed={mobilePane === 'sale'} onClick={() => setMobilePane('sale')}><Icon name="shoppingCart" size={16}/>Current sale <Badge variant={cartItemCount > 0 ? 'brand' : 'gray'}>{cartItemCount}</Badge></Button>
       </div>}
 
       {/* ═══ Main Body: Catalogue + Cart ═══ */}
@@ -550,7 +550,7 @@ export function FinancePos() {
               <DropdownMenu><DropdownMenuTrigger asChild><Button variant="outline" size="icon" aria-label="Product display"><Icon name={productView === 'grid' ? 'grid' : 'list'} size={16} /></Button></DropdownMenuTrigger><DropdownMenuContent><DropdownMenuItem onSelect={() => setProductView('grid')}>Grid view</DropdownMenuItem><DropdownMenuItem onSelect={() => setProductView('list')}>List view</DropdownMenuItem></DropdownMenuContent></DropdownMenu>
             </div>
 
-            {!sel.shift && <div className="pos-closed-banner"><FeaturedIcon variant="brand" size="sm"><Icon name="lock" size={16}/></FeaturedIcon><div><strong>Your register is closed</strong><span>Open the register to add products and take payments.</span></div><Button size="sm" onClick={() => setShiftDialog('open')}>Open register</Button></div>}
+            {!sel.shift && <div className="pos-closed-banner"><FeaturedIcon variant="warning" size="sm"><Icon name="lock" size={16}/></FeaturedIcon><div><strong>Your register is closed</strong><span>Open the register to add products and take payments.</span></div><Button size="sm" onClick={() => setShiftDialog('open')}>Open register</Button></div>}
 
             <div className="pos-grid" data-view={productView} ref={productGridRef}>
               {pageProducts.map(product => {
@@ -562,7 +562,7 @@ export function FinancePos() {
                     <div className="pos-tile-img">
                       <FeaturedIcon size="md" variant={inCart > 0 ? 'brand' : 'gray'}><Icon name={categoryIcon(product.category ?? '')} size={22}/></FeaturedIcon>
                       {locationId && available !== undefined && (
-                        <Badge variant={available <= 0 ? 'secondary' : 'brand'} className="pos-tile-stock">
+                        <Badge variant={available <= 0 ? 'error' : available <= 5 ? 'warning' : 'gray'} className="pos-tile-stock">
                           {available <= 0 ? 'Out of stock' : `${available} ${product.unit}`}
                         </Badge>
                       )}
@@ -629,7 +629,7 @@ export function FinancePos() {
               <div className="pos-lines">
                 {!cart.length && (
                   <div className="pos-lines-empty">
-                    <FeaturedIcon variant="brand" size="md"><Icon name="shoppingCart" size={24} /></FeaturedIcon>
+                    <FeaturedIcon variant="gray" size="md"><Icon name="shoppingCart" size={24} /></FeaturedIcon>
                     <strong>Your sale starts here</strong>
                     <span>Add products from the catalogue.</span>
                   </div>
@@ -1041,11 +1041,11 @@ export function FinancePos() {
             {!shifts.length && <div className="pos-history-empty">No register sessions recorded.</div>}
           </div>
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginTop: 16 }}>
-            <Button variant="ghost" size="xs" asChild style={{ color: 'var(--teal)' }}><Link to="/finance/products"><Icon name="package" size={14}/>Products &amp; stock</Link></Button>
-            <Button variant="ghost" size="xs" asChild style={{ color: 'var(--teal)' }}><Link to="/customers"><Icon name="users" size={14}/>Customers</Link></Button>
-            <Button variant="ghost" size="xs" asChild style={{ color: 'var(--teal)' }}><Link to="/finance/payments"><Icon name="creditCard" size={14}/>Payments</Link></Button>
-            <Button variant="ghost" size="xs" asChild style={{ color: 'var(--teal)' }}><Link to="/finance/reports/sales"><Icon name="barChart2" size={14}/>Sales report</Link></Button>
-            <Button variant="ghost" size="xs" asChild style={{ color: 'var(--teal)' }}><Link to="/finance/accounts/profit-loss"><Icon name="trendingUp" size={14}/>Profit &amp; loss</Link></Button>
+            <Button variant="ghost" size="xs" asChild><Link to="/finance/products"><Icon name="package" size={14}/>Products &amp; stock</Link></Button>
+            <Button variant="ghost" size="xs" asChild><Link to="/customers"><Icon name="users" size={14}/>Customers</Link></Button>
+            <Button variant="ghost" size="xs" asChild><Link to="/finance/payments"><Icon name="creditCard" size={14}/>Payments</Link></Button>
+            <Button variant="ghost" size="xs" asChild><Link to="/finance/reports/sales"><Icon name="barChart2" size={14}/>Sales report</Link></Button>
+            <Button variant="ghost" size="xs" asChild><Link to="/finance/accounts/profit-loss"><Icon name="trendingUp" size={14}/>Profit &amp; loss</Link></Button>
           </div>
         </DialogBody>
         <DialogFooter><Button onClick={() => setShiftHistoryOpen(false)}>Done</Button></DialogFooter>

@@ -203,10 +203,10 @@ function sampleInbox(tenantName: string) {
     },
     {
       folder: 'inbox' as Folder,
-      from_name: 'NexusHR Payroll', from_email: 'payroll@nexushr.internal',
+      from_name: 'Axis Payroll', from_email: 'payroll@nexushr.internal',
       to_addresses: [opsAddr],
       subject: 'July Payroll — Approval Required',
-      body: 'Hi,\n\nJuly payroll is ready for review and approval. Please log in to NexusHR to approve before the 25th to ensure timely disbursement.\n\nRegards,\nNexusHR',
+      body: 'Hi,\n\nJuly payroll is ready for review and approval. Please log in to Axis to approve before the 25th to ensure timely disbursement.\n\nRegards,\nAxis',
       snippet: 'July payroll is ready for review and approval before the 25th...',
       created_at: daysAgo(3, 14, 0), read: true, starred: false, labels: ['HR'], has_attachment: false,
     },

@@ -417,7 +417,7 @@ const EVENT_REGISTRATIONS: LegacyCommEventDefinition[] = [
   // ── HR ────────────────────────────────────────────────────────────────────
   {
     event_key: 'hr.employee.invited',
-    application: 'NexusHR',
+    application: 'Axis',
     name: 'Employee Invited',
     description: 'Welcome email sent to a new employee joining the workspace.',
     category: 'hr',
@@ -436,7 +436,7 @@ const EVENT_REGISTRATIONS: LegacyCommEventDefinition[] = [
   },
   {
     event_key: 'hr.leave.approved',
-    application: 'NexusHR',
+    application: 'Axis',
     name: 'Leave Approved',
     description: 'Sent to an employee when their leave request is approved.',
     category: 'hr',
@@ -455,7 +455,7 @@ const EVENT_REGISTRATIONS: LegacyCommEventDefinition[] = [
   },
   {
     event_key: 'hr.leave.rejected',
-    application: 'NexusHR',
+    application: 'Axis',
     name: 'Leave Rejected',
     description: 'Sent to an employee when their leave request is declined.',
     category: 'hr',
@@ -474,7 +474,7 @@ const EVENT_REGISTRATIONS: LegacyCommEventDefinition[] = [
   },
   {
     event_key: 'hr.payslip.ready',
-    application: 'NexusHR',
+    application: 'Axis',
     name: 'Payslip Ready',
     description: 'Sent to an employee when their monthly payslip is available.',
     category: 'hr',
@@ -741,7 +741,7 @@ for (const [templateKey, templateDefault] of Object.entries(EMAIL_TEMPLATE_DEFAU
     `${templateDefault.subject} ${templateDefault.body}`.matchAll(/{{\s*(\w+)\s*}}/g),
   )].map(match => match[1]);
   const application = catalog?.application
-    ?? ({ ondi: 'Ondi', finops: 'FinOps', nexushr: 'NexusHR', cargotracker: 'CargoTracker', freight: 'HuduFreight', bliss: 'Bliss', calendar: 'Calendar', complyos: 'ComplyOS', projects: 'Projects', crm: 'CRM', sms: 'SMS' } as Record<string, string>)[templateKey.split('.')[0]]
+    ?? ({ ondi: 'Ondi', finops: 'FinOps', nexushr: 'Axis', cargotracker: 'CargoTracker', freight: 'HuduFreight', bliss: 'Bliss', calendar: 'Calendar', complyos: 'ComplyOS', projects: 'Projects', crm: 'CRM', sms: 'SMS' } as Record<string, string>)[templateKey.split('.')[0]]
     ?? templateKey.split('.')[0].replace(/(^|_)(\w)/g, (_, __, char: string) => char.toUpperCase());
   const name = catalog?.title ?? templateKey.split('.').slice(1).join(' ').replace(/_/g, ' ').replace(/\b\w/g, value => value.toUpperCase());
   EVENT_REGISTRATIONS.push({

@@ -33,7 +33,7 @@ async function notifyComplyManagers(tenantId: string, title: string, message: st
     if (m.phone) {
       await WhatsAppIntegration.sendMessage(m.phone, `${title}\n${message}`).catch(() => {});
     }
-    await MailService.enqueueTemplated(tenantId, 'complyos.renewal_alert', m.email, { title, message, link }, 'complyos')
+    if (m.email) await MailService.enqueueTemplated(tenantId, 'complyos.renewal_alert', m.email, { title, message, link }, 'complyos')
       .catch(() => {});
   }));
 }

@@ -311,7 +311,7 @@ export function BankReconciliation() {
           <div className="bank-rec-hero-copy">
             <h2>
               Automated Bank Match Center
-              <Badge variant="brand">Real-Time Ledger Sync</Badge>
+              <Badge variant="gray">Real-Time Ledger Sync</Badge>
             </h2>
             <p>
               {brStats.matchedLines} of {brStats.totalLines} statement transactions verified against the General Ledger cash register across {brStats.total} bank account feed{brStats.total !== 1 ? 's' : ''}.
@@ -328,7 +328,7 @@ export function BankReconciliation() {
           </div>
           <div className="bank-rec-stat-tile">
             <span>Pending Lines</span>
-            <strong style={{ color: brStats.totalLines - brStats.matchedLines > 0 ? 'var(--gold)' : 'var(--green)' }}>
+            <strong style={{ color: brStats.totalLines - brStats.matchedLines > 0 ? 'var(--gold)' : 'var(--ink)' }}>
               {brStats.totalLines - brStats.matchedLines}
             </strong>
           </div>
@@ -455,8 +455,8 @@ export function BankReconciliation() {
         <div className="bank-rec-workspace">
           {!selected ? (
             <div className="bank-rec-empty-state">
-              <FeaturedIcon variant="brand" size="lg">
-                <Icon name="building" size={28} color="var(--teal)" />
+              <FeaturedIcon variant="gray" size="lg">
+                <Icon name="building" size={28} />
               </FeaturedIcon>
               <h3>Select a statement feed</h3>
               <p>
@@ -623,8 +623,8 @@ export function BankReconciliation() {
         <DialogContent size="sm">
           <DialogHeader>
             <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-              <FeaturedIcon variant="brand" size="md">
-                <Icon name="upload" size={18} color="var(--teal)" />
+              <FeaturedIcon variant="gray" size="md">
+                <Icon name="upload" size={18} />
               </FeaturedIcon>
               <div>
                 <DialogTitle style={{ fontWeight: 800, fontSize: 16, color: 'var(--ink)' }}>
@@ -691,8 +691,8 @@ export function BankReconciliation() {
             <>
               <DialogHeader>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                  <FeaturedIcon variant="brand" size="md">
-                    <Icon name="link" size={18} color="var(--teal)" />
+                  <FeaturedIcon variant="gray" size="md">
+                    <Icon name="link" size={18} />
                   </FeaturedIcon>
                   <div>
                     <DialogTitle style={{ fontWeight: 800, fontSize: 16, color: 'var(--ink)' }}>
@@ -707,18 +707,18 @@ export function BankReconciliation() {
 
               <DialogBody style={{ display: 'flex', flexDirection: 'column' }}>
               {/* Pending Transaction Highlight */}
-              <Banner variant="brand" icon={false} className="mb-3.5" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <div className="mb-3.5" style={{ padding: '10px 14px', borderRadius: 'var(--r)', background: 'var(--bg)', border: '1px solid var(--border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                 <div>
                   <div style={{ fontSize: 13, fontWeight: 750, color: 'var(--ink)' }}>{pendingLine.description || 'Transaction'}</div>
                   <div style={{ fontSize: 11.5, color: 'var(--ink3)', marginTop: 2 }}>
                     {new Date(pendingLine.txn_date).toLocaleDateString('en-GB')} · Ref {pendingLine.id.slice(0, 8)}
                   </div>
                 </div>
-                <div style={{ fontSize: 15, fontWeight: 800, color: pendingLine.amount >= 0 ? 'var(--green)' : 'var(--red)' }}>
+                <div style={{ fontSize: 15, fontWeight: 800, color: 'var(--ink)' }}>
                   {pendingLine.amount >= 0 ? '+' : ''}
                   {fmt(pendingLine.amount)}
                 </div>
-              </Banner>
+              </div>
 
               {/* Candidate Search */}
               <Input

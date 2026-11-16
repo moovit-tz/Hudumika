@@ -13,15 +13,22 @@ const TooltipTrigger = TooltipPrimitive.Trigger
 const TooltipContent = React.forwardRef<
   React.ElementRef<typeof TooltipPrimitive.Content>,
   React.ComponentPropsWithoutRef<typeof TooltipPrimitive.Content>
->(({ className, sideOffset = 4, ...props }, ref) => (
+>(({ className, sideOffset = 4, style, ...props }, ref) => (
   <TooltipPrimitive.Portal>
     <TooltipPrimitive.Content
       ref={ref}
       sideOffset={sideOffset}
       className={cn(
-        "ds-tooltip-content z-3000 overflow-hidden rounded-xl bg-[var(--white)] px-3 py-2 text-[12px] font-medium leading-5 text-[var(--ink)] shadow-[var(--elev-lg)] border border-[var(--border)] ring-1 ring-black/5 dark:ring-white/10 max-w-xs pointer-events-none backdrop-blur-md animate-in fade-in-0 zoom-in-95 data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=closed]:zoom-out-95 data-[side=bottom]:slide-in-from-top-2 data-[side=left]:slide-in-from-right-2 data-[side=right]:slide-in-from-left-2 data-[side=top]:slide-in-from-bottom-2 origin-(--radix-tooltip-content-transform-origin)",
+        "ds-tooltip-content z-3000 overflow-hidden bg-[var(--white)] px-3 py-2 font-medium leading-5 text-[var(--ink)] shadow-[var(--elev-lg)] border border-solid border-[var(--border)] ring-1 ring-black/5 dark:ring-white/10 max-w-xs pointer-events-none backdrop-blur-md animate-in fade-in-0 zoom-in-95 data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=closed]:zoom-out-95 data-[side=bottom]:slide-in-from-top-2 data-[side=left]:slide-in-from-right-2 data-[side=right]:slide-in-from-left-2 data-[side=top]:slide-in-from-bottom-2 origin-(--radix-tooltip-content-transform-origin)",
         className
       )}
+      style={{
+        borderRadius: 'var(--r-sm, 8px)',
+        borderWidth: 'var(--border-width, 1px)',
+        fontSize: 'var(--text-xs, 12px)',
+        fontFamily: 'var(--font)',
+        ...style,
+      }}
       {...props}
     >
       {props.children}

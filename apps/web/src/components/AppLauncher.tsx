@@ -6,8 +6,9 @@ import { useBranding } from '../hooks/useBranding.js';
 import { LauncherAppSvg } from './LauncherApps.js';
 import { useLocale } from '../hooks/useLocale.js';
 import { useEnabledApps, isAppEnabled } from '../hooks/useEnabledApps.js';
-import { LAUNCHER_APPS, INTERNAL_APP_IDS, roleCanOpenApp } from './LauncherApps.js';
+import { LAUNCHER_APPS, INTERNAL_APP_IDS, STAFF_INTERNAL_APP_IDS, roleCanOpenApp } from './LauncherApps.js';
 import { useAuth } from '../hooks/useAuth.js';
+import { ALL_STAFF } from '../lib/permissions.js';
 import { getRecentApps, recordRecentApp } from '../lib/recentApps.js';
 import { Tip } from './ui/tooltip.js';
 import './AppLauncher.css';
@@ -26,7 +27,7 @@ export const LAUNCHER_APP_META: Record<string, { icon: IconName; color: string; 
   bliss:        { icon: 'ticket',        color: '#b91c1c', label: 'Tickets' },
   clearos:      { icon: 'ship',          color: '#ea580c', label: 'ClearOS' },
   complyos:     { icon: 'shield',        color: '#059669', label: 'ComplyOS' },
-  nexushr:      { icon: 'users',         color: '#0d9488', label: 'NexusHR' },
+  nexushr:      { icon: 'users',         color: '#0d9488', label: 'Axis' },
   seal:         { icon: 'shield',        color: '#0f766e', label: 'SEAL' },
   sign:         { icon: 'edit',          color: '#2563eb', label: 'eSign' },
   store:        { icon: 'shoppingCart',  color: '#8b5cf6', label: 'Store' },
@@ -49,6 +50,7 @@ export const LAUNCHER_APP_META: Record<string, { icon: IconName; color: string; 
   stride:       { icon: 'grid',          color: '#4f46e5', label: 'Stride' },
   gereji:       { icon: 'tool',          color: '#d97706', label: 'Gereji' },
   pulse:        { icon: 'activity',      color: '#e11d48', label: 'Pulse' },
+  'design-system': { icon: 'layers',     color: '#1257c6', label: 'Design System' },
 };
 
 interface AppLauncherProps {
@@ -64,6 +66,7 @@ export function AppLauncher({ renderTrigger, variant = 'icon' }: AppLauncherProp
   const [launcherOpen, setLauncherOpen] = useState(false);
   const { user } = useAuth();
   const canSeeInternal = user?.role === 'SUPER_ADMIN';
+  const isStaff = !!user?.role && (ALL_STAFF as readonly string[]).includes(user.role);
 
   const [editMode, setEditMode] = useState(false);
   const [appOrder, setAppOrder] = useState<string[]>(() => {
@@ -113,6 +116,7 @@ export function AppLauncher({ renderTrigger, variant = 'icon' }: AppLauncherProp
     const allowed = LAUNCHER_APPS
       .filter(a => isAppEnabled(a.id, enabledApps))
       .filter(a => canSeeInternal || !INTERNAL_APP_IDS.has(a.id))
+      .filter(a => isStaff || !STAFF_INTERNAL_APP_IDS.has(a.id))
       .filter(a => roleCanOpenApp(a.id, user?.role));
 
     const fromRecent = ids
@@ -120,7 +124,7 @@ export function AppLauncher({ renderTrigger, variant = 'icon' }: AppLauncherProp
       .filter((a): a is (typeof LAUNCHER_APPS)[0] => Boolean(a));
 
     setRecentApps(fromRecent.slice(0, 4));
-  }, [launcherOpen, enabledApps, canSeeInternal, user?.role]);
+  }, [launcherOpen, enabledApps, canSeeInternal, isStaff, user?.role]);
 
   const orderedApps = useMemo(() => {
     const ordered = appOrder
@@ -130,8 +134,9 @@ export function AppLauncher({ renderTrigger, variant = 'icon' }: AppLauncherProp
     return [...ordered, ...extras]
       .filter(a => isAppEnabled(a.id, enabledApps))
       .filter(a => canSeeInternal || !INTERNAL_APP_IDS.has(a.id))
+      .filter(a => isStaff || !STAFF_INTERNAL_APP_IDS.has(a.id))
       .filter(a => roleCanOpenApp(a.id, user?.role));
-  }, [appOrder, enabledApps, user?.role]);
+  }, [appOrder, enabledApps, canSeeInternal, isStaff, user?.role]);
 
   function closeLauncher() { setLauncherOpen(false); setEditMode(false); }
 

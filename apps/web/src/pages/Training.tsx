@@ -325,7 +325,7 @@ export function Training() {
   return (
     <div>
       <PageHeader
-        crumbs={['NexusHR', 'People']}
+        crumbs={['Axis', 'People']}
         titlePlain="Training &"
         titleEm="development"
         subtitle="A course catalogue employees can browse and enroll in, with certification expiry tracked for real."

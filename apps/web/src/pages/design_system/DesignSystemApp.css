@@ -1,0 +1,506 @@
+/* Hudumika Design System — Token-driven internal documentation & configurator styles.
+   Notice: zero hardcoded hex brand colors or rgba accents here; all surfaces, borders,
+   accents, radii, border widths, heights, and type scale resolve dynamically through CSS variables. */
+
+.dsa-page {
+  display: flex;
+  flex-direction: column;
+  gap: var(--content-gap, 20px);
+  font-family: var(--font);
+  min-width: 0;
+}
+
+.dsa-toolbar-card {
+  background: var(--surface, var(--white));
+  border: var(--card-border, var(--card-border-width, 1px) solid var(--border));
+  border-radius: var(--card-radius, var(--r-lg, 14px));
+  box-shadow: var(--card-shadow, var(--elev-sm));
+  padding: var(--space-md, 16px) var(--space-lg, 20px);
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-sm, 14px);
+}
+
+.dsa-grid-2 {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--content-gap, 16px);
+}
+
+.dsa-grid-3 {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--content-gap, 16px);
+}
+
+.dsa-grid-4 {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: var(--space-sm, 14px);
+}
+
+@media (max-width: 1024px) {
+  .dsa-grid-4,
+  .dsa-grid-3 {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 720px) {
+  .dsa-grid-4,
+  .dsa-grid-3,
+  .dsa-grid-2 {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+.dsa-split-workspace {
+  display: grid;
+  grid-template-columns: minmax(0, 320px) minmax(0, 1fr);
+  gap: var(--content-gap, 18px);
+  align-items: start;
+}
+
+@media (max-width: 960px) {
+  .dsa-split-workspace {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+.dsa-list-rail {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xs, 8px);
+  background: var(--surface, var(--white));
+  border: var(--card-border, var(--card-border-width, 1px) solid var(--border));
+  border-radius: var(--card-radius, var(--r-lg, 14px));
+  box-shadow: var(--card-shadow, var(--elev-sm));
+  padding: var(--space-sm, 14px);
+  min-width: 0;
+}
+
+.dsa-list-scroll {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  max-height: 620px;
+  overflow-y: auto;
+}
+
+.dsa-rail-item {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  min-height: max(36px, var(--ctl-h-sm, 36px));
+  padding: var(--ds-btn-py-sm, 7px) var(--space-sm, 11px);
+  border-radius: var(--r-sm, 8px);
+  border: var(--border-width, 1px) solid transparent;
+  background: transparent;
+  color: var(--ink);
+  text-align: left;
+  font-family: var(--font);
+  font-size: var(--text-sm, 13px);
+  font-weight: 500;
+  cursor: pointer;
+  transition: background var(--dur-fast) var(--ease), border-color var(--dur-fast) var(--ease);
+}
+
+.dsa-rail-item:hover {
+  background: var(--bg);
+}
+
+.dsa-rail-item--active {
+  background: var(--teal-l);
+  border-color: var(--teal-m);
+  color: var(--teal);
+  font-weight: 700;
+}
+
+.dsa-code-block {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size: var(--text-xs, 12px);
+  line-height: 1.55;
+  padding: var(--space-sm, 14px) var(--space-md, 16px);
+  border-radius: var(--r-sm, 8px);
+  background: var(--card-sunken);
+  border: var(--border-width, 1px) solid var(--border);
+  color: var(--ink);
+  overflow-x: auto;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.dsa-stage-shell {
+  border: var(--card-border, var(--card-border-width, 1px) solid var(--border));
+  border-radius: var(--card-radius, var(--r-lg, 14px));
+  box-shadow: var(--card-shadow, var(--elev-sm));
+  background: var(--surface, var(--white));
+  overflow: hidden;
+  min-width: 0;
+}
+
+.dsa-stage-controls {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-xs, 10px);
+  padding: var(--space-xs, 12px) var(--space-md, 16px);
+  background: var(--card-sunken);
+  border-bottom: var(--border-width, 1px) solid var(--border);
+}
+
+.dsa-stage-control-group {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: var(--text-xs, 12px);
+}
+
+.dsa-stage-label {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--ink3);
+}
+
+.dsa-stage-viewport-wrap {
+  padding: var(--space-md, 18px);
+  background: var(--bg);
+  display: flex;
+  justify-content: center;
+  overflow-x: auto;
+}
+
+.dsa-stage-viewport {
+  width: 100%;
+  max-width: 100%;
+  border-radius: var(--r, 12px);
+  border: var(--border-width, 1px) solid var(--border);
+  background: var(--bg);
+  color: var(--ink);
+  padding: var(--space-md, 18px);
+  transition: width var(--dur) var(--ease);
+  box-shadow: var(--elev-sm);
+}
+
+.dsa-waterfall-step {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-sm, 12px);
+  min-height: max(40px, var(--ctl-h, 40px));
+  padding: calc(var(--ds-input-py, 6px) + 3px) var(--space-sm, 12px);
+  border-radius: var(--r, 10px);
+  border: var(--border-width, 1px) solid var(--border);
+  background: var(--surface, var(--white));
+  transition: border-color var(--dur-fast) var(--ease), background var(--dur-fast) var(--ease);
+}
+
+.dsa-waterfall-step--active {
+  border-color: var(--teal);
+  background: var(--teal-l);
+}
+
+.dsa-swatch-chip {
+  width: 24px;
+  height: 24px;
+  border-radius: var(--r-sm, 6px);
+  border: var(--border-width, 1px) solid var(--border);
+  flex-shrink: 0;
+}
+
+.dsa-mini-shell {
+  border: var(--card-border, var(--card-border-width, 1px) solid var(--border));
+  border-radius: var(--card-radius, var(--r, 12px));
+  overflow: hidden;
+  background: var(--bg);
+  color: var(--ink);
+  display: grid;
+  grid-template-columns: 185px minmax(0, 1fr);
+  min-height: 300px;
+}
+
+@media (max-width: 640px) {
+  .dsa-mini-shell {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+.dsa-mini-sidebar {
+  background: var(--surface, var(--white));
+  border-right: var(--border-width, 1px) solid var(--border);
+  padding: var(--space-sm, 12px);
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.dsa-mini-nav-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: var(--ctl-h-sm, 34px);
+  padding: var(--ds-btn-py-sm, 6px) 10px;
+  border-radius: var(--nav-item-r, var(--r-sm, 10px));
+  font-size: var(--text-xs, 12px);
+  font-weight: 500;
+  color: var(--ink2);
+}
+
+.dsa-mini-nav-item--active {
+  background: var(--teal-l);
+  color: var(--teal);
+  font-weight: 700;
+}
+
+.dsa-kbd {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 24px;
+  height: 24px;
+  padding: 0 6px;
+  font-size: 11px;
+  font-weight: 700;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  color: var(--ink);
+  background: var(--card-sunken);
+  border: var(--border-width, 1px) solid var(--border);
+  border-radius: var(--r-sm, 5px);
+}
+
+/* ── Staff Guidance & 2026 Product Design Principles Styles ── */
+
+.dsa-guidance-hero {
+  background: var(--surface, var(--white));
+  border: var(--card-border, var(--card-border-width, 1px) solid var(--border));
+  border-radius: var(--card-radius, var(--r-lg, 14px));
+  box-shadow: var(--card-shadow, var(--elev-sm));
+  padding: var(--space-lg, 24px);
+}
+
+.dsa-guidance-eyebrow {
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--teal);
+  margin-bottom: 6px;
+}
+
+.dsa-guidance-h1 {
+  font-size: var(--text-2xl, 26px);
+  line-height: 1.15;
+  font-weight: 800;
+  letter-spacing: -0.025em;
+  color: var(--ink);
+  margin: 0 0 8px;
+}
+
+.dsa-guidance-lede {
+  font-size: var(--text-md, 15px);
+  line-height: 1.55;
+  color: var(--ink2);
+  max-width: 760px;
+  margin: 0;
+}
+
+.dsa-guidance-tile {
+  background: var(--surface, var(--white));
+  border: var(--border-width, 1px) solid var(--border);
+  border-radius: var(--r, 10px);
+  padding: var(--space-md, 16px);
+  transition: border-color var(--dur-fast) var(--ease), box-shadow var(--dur-fast) var(--ease);
+}
+
+.dsa-guidance-tile:hover {
+  border-color: var(--teal-m);
+  box-shadow: var(--elev-sm);
+}
+
+.dsa-guidance-num {
+  display: inline-grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  flex-shrink: 0;
+  border-radius: var(--r-sm, 8px);
+  border: var(--border-width, 1px) solid var(--teal-m);
+  background: var(--teal-l);
+  color: var(--teal);
+  font-size: var(--text-xs, 12px);
+  font-weight: 800;
+}
+
+.dsa-guidance-callout {
+  padding: var(--space-sm, 14px) var(--space-md, 16px);
+  border-left: 4px solid var(--teal);
+  border-top: var(--border-width, 1px) solid var(--border);
+  border-right: var(--border-width, 1px) solid var(--border);
+  border-bottom: var(--border-width, 1px) solid var(--border);
+  border-radius: 0 var(--r, 10px) var(--r, 10px) 0;
+  background: var(--teal-l);
+  color: var(--ink);
+  font-size: var(--text-sm, 13px);
+  line-height: 1.55;
+}
+
+.dsa-guidance-table {
+  width: 100%;
+  border-collapse: collapse;
+  text-align: left;
+  font-size: var(--text-xs, 12.5px);
+}
+
+.dsa-guidance-table th,
+.dsa-guidance-table td {
+  padding: var(--ds-cell-py, 10px) var(--space-sm, 14px);
+  border-bottom: var(--border-width, 1px) solid var(--border);
+  vertical-align: top;
+}
+
+.dsa-guidance-table th {
+  background: var(--card-sunken);
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--ink2);
+}
+
+.dsa-guidance-table tr:last-child td {
+  border-bottom: none;
+}
+
+.dsa-guidance-table td {
+  color: var(--ink2);
+}
+
+.dsa-guidance-table td strong {
+  color: var(--ink);
+}
+
+/* ── Lock every Design Studio & SectionCard element inside .dsa-page to active tokens ── */
+
+.dsa-page .ds-system-bar {
+  margin-top: 0;
+  justify-content: space-between;
+  border-radius: var(--card-radius, var(--r-lg, 14px));
+  border-width: var(--card-border-width, var(--border-width, 1px));
+  padding: var(--ds-input-py, 8px) var(--space-md, 16px);
+}
+
+.dsa-page .ds-system-bar .ds-global-control-group {
+  flex-wrap: wrap;
+}
+
+.dsa-page .ds-top-switcher-pills,
+.dsa-page .ds-mode-tabs {
+  border-radius: var(--r-sm, 8px);
+  border-width: var(--border-width, 1px);
+}
+
+.dsa-page .ds-top-pill,
+.dsa-page .ds-mode-tab {
+  min-height: max(28px, var(--ctl-h-xs, 28px));
+  padding: var(--ds-btn-py-xs, 3px) var(--space-sm, 10px);
+  border-radius: var(--r-sm, 6px) !important;
+  font-family: var(--font);
+  font-size: var(--text-xs, 12px);
+  transition: all var(--dur-fast) var(--ease);
+}
+
+.dsa-page .ds-card-section,
+.dsa-page .ds-engine-card,
+.dsa-page .ds-form-group-card,
+.dsa-page .ds-interactive-preview-card,
+.dsa-page .ds-generator-hero {
+  background: var(--surface, var(--white));
+  border: var(--card-border, var(--card-border-width, 1px) solid var(--border)) !important;
+  border-radius: var(--card-radius, var(--r-lg, 14px)) !important;
+  box-shadow: var(--card-shadow, var(--elev-sm));
+  padding: var(--space-md, 20px);
+}
+
+.dsa-page div[style*="border-radius: var(--card-radius)"] {
+  border: var(--card-border, var(--card-border-width, 1px) solid var(--border)) !important;
+  border-radius: var(--card-radius, var(--r-lg, 14px)) !important;
+  box-shadow: var(--card-shadow, var(--elev-sm)) !important;
+}
+
+.dsa-page .ds-field-card,
+.dsa-page .ds-number-field-card,
+.dsa-page .ds-version-card,
+.dsa-page .ds-theme-card,
+.dsa-page .ds-variant-card,
+.dsa-page .ds-shadow-card,
+.dsa-page .ds-layout-option-card {
+  border-radius: var(--r, 10px) !important;
+  border-width: var(--border-width, 1px) !important;
+  padding: calc(var(--ds-input-py, 6px) + 5px) var(--space-sm, 14px);
+  transition-duration: var(--dur, 180ms);
+  transition-timing-function: var(--ease, ease);
+}
+
+.dsa-page .ds-number-input-group,
+.dsa-page .ds-color-input-wrap,
+.dsa-page .ds-easing-input {
+  border-radius: var(--r-sm, 8px) !important;
+  border-width: var(--border-width, 1px) !important;
+  min-height: max(32px, var(--ctl-h-sm, 32px));
+}
+
+.dsa-page .ds-number-input-group {
+  height: max(32px, var(--ctl-h-sm, 32px));
+}
+
+.dsa-page .ds-field-badge,
+.dsa-page .ds-engine-badge,
+.dsa-page .ds-theme-active-tag {
+  border-radius: var(--badge-radius, var(--r-sm, 4px)) !important;
+}
+
+.dsa-page .ds-section-heading {
+  font-size: var(--text-lg, 17px);
+  font-family: var(--font);
+}
+
+.dsa-page .ds-section-sub {
+  font-size: var(--text-xs, 12.5px);
+  font-family: var(--font);
+}
+
+.dsa-page .ds-btn-generate,
+.dsa-page .ds-btn-reset {
+  min-height: var(--ctl-h-sm, 36px);
+  border-radius: var(--r-sm, 8px) !important;
+  border-width: var(--border-width, 1px) !important;
+  font-family: var(--font);
+}
+
+@media (max-width: 480px) {
+  .dsa-page .ds-theme-grid,
+  .dsa-page .ds-version-grid,
+  .dsa-page .ds-tokens-grid,
+  .dsa-page .ds-numbers-grid,
+  .dsa-page .ds-variant-cards-grid,
+  .dsa-page .ds-layout-options-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .dsa-page .ds-v2-picker-row {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+}
+
+@media print {
+  .dsa-page .ds-system-bar,
+  .dsa-page .dsa-toolbar-card {
+    display: none;
+  }
+}

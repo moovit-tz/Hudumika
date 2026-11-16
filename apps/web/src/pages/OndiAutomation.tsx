@@ -106,7 +106,7 @@ export const OndiAutomation: React.FC = () => {
           <div style={{ display: 'flex', alignItems: 'flex-start', gap: 14, background: 'var(--green-l)', padding: 16, borderRadius: 'var(--r)', border: '1px solid var(--green)' }}>
             <Icon name="checkCircle" size={20} color="var(--green)" style={{ flexShrink: 0, marginTop: 2 }} />
             <div style={{ fontSize: 13, color: 'var(--green)', lineHeight: 1.55 }}>
-              <strong>Always Active:</strong> The moment an account is deactivated (from Ondi or NexusHR), Ondi instantly revokes its role grants, authorized app tokens, and active sessions. No standing credentials remain on deactivated accounts.
+              <strong>Always Active:</strong> The moment an account is deactivated (from Ondi or Axis), Ondi instantly revokes its role grants, authorized app tokens, and active sessions. No standing credentials remain on deactivated accounts.
             </div>
           </div>
         </SectionCard>

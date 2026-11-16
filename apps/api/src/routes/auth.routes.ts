@@ -1,3 +1,4 @@
+import { loginEmail } from '../lib/login-email.js';
 import type { FastifyInstance } from 'fastify';
 import { z } from 'zod';
 import { issueTokens, issueTwoFaSetupToken, durationSeconds } from '../services/token.service.js';
@@ -105,6 +106,17 @@ function parseDevice(userAgent: string): { label: string; type: string } {
 // the JWT as `device_id` — that's what lets a single session later be
 // "signed out" for real (see hr_devices.revoked_at, checked in middleware/auth.ts).
 export async function recordLogin(tenantId: string, userId: string, status: 'SUCCESS' | 'FAILED', ip: string, userAgent: string): Promise<string | null> {
+  // A worker kept without sign-in (Axis, migration 911) must not get a session
+  // by any route — password, phone code, passkey, Google or SSO all pass
+  // through here. Checked before the try below, which swallows errors: a
+  // swallowed refusal would hand out a session with no device to revoke.
+  if (status === 'SUCCESS') {
+    const who = await withTenant(tenantId, (trx) => trx.selectFrom('users').select('can_login')
+      .where('tenant_id', '=', tenantId).where('id', '=', userId).executeTakeFirst());
+    if (who && who.can_login === false) {
+      throw Object.assign(new Error('This worker record doesn’t have sign-in access. Ask your HR administrator.'), { statusCode: 403 });
+    }
+  }
   try {
     return await withTenant(tenantId, async (trx) => {
       await trx.insertInto('hr_login_history').values({ tenant_id: tenantId, user_id: userId, ip, user_agent: userAgent, status }).execute();
@@ -286,7 +298,7 @@ export async function authRoutes(fastify: FastifyInstance) {
      * .test is reserved by RFC 2606 precisely so it can never resolve, which
      * makes it safe to refuse outright: no real customer can ever hold one.
      */
-    if (env.APP_ENV === 'production' && /@hudumika\.test$/i.test(user.email)) {
+    if (env.APP_ENV === 'production' && /@hudumika\.test$/i.test(user.email ?? '')) {
       await recordLogin(user.tenant_id, user.id, 'FAILED', ip, userAgent);
       return reply.status(403).send({
         error: 'This is a seeded test account and cannot be used in production.',
@@ -349,7 +361,7 @@ export async function authRoutes(fastify: FastifyInstance) {
       // issued instead — accepted by nothing except the 2FA setup/verify
       // routes (see middleware/auth.ts's TWOFA_SETUP_ALLOWED_ROUTES).
       const setupToken = issueTwoFaSetupToken(fastify, {
-        sub: user.id, tenant_id: user.tenant_id, role: user.role, email: user.email, name: user.name,
+        sub: user.id, tenant_id: user.tenant_id, role: user.role, email: loginEmail(user), name: user.name,
       });
       return reply.status(200).send({
         requires_2fa_setup: true,
@@ -371,7 +383,7 @@ export async function authRoutes(fastify: FastifyInstance) {
       sub: user.id,
       tenant_id: user.tenant_id,
       role: user.role,
-      email: user.email,
+      email: loginEmail(user),
       name: user.name,
       ...(deviceId ? { device_id: deviceId } : {}),
     };
@@ -380,7 +392,7 @@ export async function authRoutes(fastify: FastifyInstance) {
     const safeUser: SafeUser = {
       id: user.id,
       tenant_id: user.tenant_id,
-      email: user.email,
+      email: loginEmail(user),
       role: user.role,
       name: user.name,
       phone: user.phone || undefined,
@@ -455,18 +467,18 @@ export async function authRoutes(fastify: FastifyInstance) {
       // role, same as leaver automation already reacts to hr.staff_deactivated.
       await emitDomainEvent(trx, invite.tenant_id, {
         type: 'user.joined', sourceApp: 'auth', entityType: 'user', entityId: newUser.id, actorId: newUser.id,
-        payload: { userId: newUser.id, name: newUser.name, email: newUser.email, role: newUser.role },
+        payload: { userId: newUser.id, name: newUser.name, email: loginEmail(newUser), role: newUser.role },
       });
 
       return { newUser };
     });
 
     const payload: Omit<JWTPayload, 'iat' | 'exp'> = {
-      sub: newUser.id, tenant_id: newUser.tenant_id, role: newUser.role, email: newUser.email, name: newUser.name,
+      sub: newUser.id, tenant_id: newUser.tenant_id, role: newUser.role, email: loginEmail(newUser), name: newUser.name,
     };
     const tokens = issueTokens(fastify, payload as any);
     const safeUser: SafeUser = {
-      id: newUser.id, tenant_id: newUser.tenant_id, email: newUser.email, role: newUser.role, name: newUser.name,
+      id: newUser.id, tenant_id: newUser.tenant_id, email: loginEmail(newUser), role: newUser.role, name: newUser.name,
       phone: newUser.phone || undefined, location_id: newUser.location_id || undefined, active: newUser.active,
       created_at: newUser.created_at.toISOString(), updated_at: newUser.updated_at.toISOString(),
     };
@@ -524,11 +536,11 @@ export async function authRoutes(fastify: FastifyInstance) {
 
     const payload: Omit<JWTPayload, 'iat' | 'exp'> = {
       sub: newUser.id, tenant_id: newUser.tenant_id, role: newUser.role,
-      email: newUser.email, name: newUser.name,
+      email: loginEmail(newUser), name: newUser.name,
     };
     const tokens = issueTokens(fastify, payload as any);
     const safeUser: SafeUser = {
-      id: newUser.id, tenant_id: newUser.tenant_id, email: newUser.email, role: newUser.role, name: newUser.name,
+      id: newUser.id, tenant_id: newUser.tenant_id, email: loginEmail(newUser), role: newUser.role, name: newUser.name,
       active: newUser.active, created_at: newUser.created_at.toISOString(), updated_at: newUser.updated_at.toISOString(),
     };
 
@@ -614,13 +626,14 @@ export async function authRoutes(fastify: FastifyInstance) {
       for (const link of contactLinks) {
         const contactUser = await dbPlatform.selectFrom('users').select(['email', 'name'])
           .where('id', '=', link.contact_user_id).executeTakeFirst();
-        if (!contactUser) continue;
+        // A contact with no email (a worker who never signs in) can't receive the request.
+        if (!contactUser?.email) continue;
         const token = crypto.randomBytes(32).toString('hex');
         await dbPlatform.insertInto('ondi_recovery_requests').values({
           tenant_id: user.tenant_id, user_id: user.id, contact_id: link.id, token,
         }).execute();
         await MailService.enqueueTemplated(user.tenant_id, 'auth.recovery_request', contactUser.email, {
-          requesterName: user.name, requesterEmail: user.email,
+          requesterName: user.name, requesterEmail: user.email ?? '',
         }, 'auth').catch(() => { /* request row still exists; contact can still find it in-app */ });
         notified++;
       }
@@ -880,7 +893,7 @@ export async function authRoutes(fastify: FastifyInstance) {
       sub: target.id,
       tenant_id: target.tenant_id,
       role: target.role,
-      email: target.email,
+      email: loginEmail(target),
       name: target.name,
       ...(deviceId ? { device_id: deviceId } : {}),
       impersonated_by: actor.sub,
@@ -891,7 +904,7 @@ export async function authRoutes(fastify: FastifyInstance) {
     const safeUser: SafeUser = {
       id: target.id,
       tenant_id: target.tenant_id,
-      email: target.email,
+      email: loginEmail(target),
       role: target.role,
       name: target.name,
       phone: target.phone || undefined,
@@ -969,7 +982,7 @@ export async function authRoutes(fastify: FastifyInstance) {
     const payload: Omit<JWTPayload, 'iat' | 'exp'> = linkedUser
       ? {
           sub: linkedUser.id, tenant_id: linkedUser.tenant_id, role: 'CUSTOMER',
-          email: linkedUser.email, name: linkedUser.name,
+          email: loginEmail(linkedUser), name: linkedUser.name,
           ...(deviceId ? { device_id: deviceId } : {}),
           impersonated_by: actor.sub, impersonated_by_name: actor.name,
         }
@@ -982,7 +995,7 @@ export async function authRoutes(fastify: FastifyInstance) {
     const tokens = issueTokens(fastify, payload as any);
     const safeUser: SafeUser = linkedUser
       ? {
-          id: linkedUser.id, tenant_id: linkedUser.tenant_id, email: linkedUser.email, role: 'CUSTOMER',
+          id: linkedUser.id, tenant_id: linkedUser.tenant_id, email: loginEmail(linkedUser), role: 'CUSTOMER',
           name: linkedUser.name, active: linkedUser.active,
           created_at: linkedUser.created_at.toISOString(), updated_at: linkedUser.updated_at.toISOString(),
           impersonated_by: actor.sub, impersonated_by_name: actor.name,
@@ -1078,7 +1091,7 @@ export async function authRoutes(fastify: FastifyInstance) {
     // Re-read the user: a role change, a deactivation or a move between tenants
     // must take effect on refresh rather than riding the old claims for 30 days.
     const user = await dbPlatform.selectFrom('users').selectAll()
-      .where('id', '=', claims.sub).where('active', '=', true).executeTakeFirst();
+      .where('id', '=', claims.sub).where('active', '=', true).where('can_login', '=', true).executeTakeFirst();
     if (!user) return reply.status(401).send({ error: 'This account is no longer active.' });
 
     await dbPlatform.updateTable('hr_devices').set({ last_used_at: new Date() })
@@ -1086,7 +1099,7 @@ export async function authRoutes(fastify: FastifyInstance) {
 
     const tokens = issueTokens(fastify, {
       sub: user.id, tenant_id: user.tenant_id, role: user.role,
-      email: user.email, name: user.name, device_id: claims.device_id,
+      email: loginEmail(user), name: user.name, device_id: claims.device_id,
       // Impersonation is a property of the session (the verified refresh
       // token), not the re-fetched target user — carried through as-is.
       ...(claims.impersonated_by ? { impersonated_by: claims.impersonated_by, impersonated_by_name: claims.impersonated_by_name } : {}),
@@ -1240,7 +1253,7 @@ export async function authRoutes(fastify: FastifyInstance) {
       const safeUser: SafeUser & { profile?: Record<string, any> } = {
         id: updated.id,
         tenant_id: updated.tenant_id,
-        email: updated.email,
+        email: loginEmail(updated),
         role: updated.role,
         name: updated.name,
         phone: updated.phone || undefined,
@@ -1300,7 +1313,7 @@ export async function authRoutes(fastify: FastifyInstance) {
     const safeUser: SafeUser & { profile?: Record<string, any> } = {
       id: updated.id,
       tenant_id: updated.tenant_id,
-      email: updated.email,
+      email: loginEmail(updated),
       role: updated.role,
       name: updated.name,
       phone: updated.phone || undefined,

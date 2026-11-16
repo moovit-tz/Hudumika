@@ -182,7 +182,7 @@ export const ProjectRisksDashboard: React.FC<Props> = ({ projectId, projectName 
         </div>
       ) : view === 'cards' ? (
         <>
-        <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(auto-fill, minmax(360px, 1fr))', gap: 14 }}>
+        <div style={{ display: 'grid', gridTemplateColumns: isMobile ? 'minmax(0, 1fr)' : 'repeat(auto-fill, minmax(360px, 1fr))', gap: 14 }}>
           {paginate(risks, riskPage, riskPageSize).visible.map(risk => {
             const scoreMeta = getScoreBadge(Number(risk.score) || 0);
             return (

@@ -195,12 +195,12 @@ export const FinanceSalesReport: React.FC = () => {
 
         <section className="fsr-kpis" aria-label="Sales summary">
           {[
-            { label: 'Gross sales', value: fmtM(totalSales), icon: 'trendingUp', variant: 'brand' as const, detail: `${invoices.length} sales documents` },
-            { label: 'Collected', value: fmtM(paid), icon: 'checkCircle', variant: 'success' as const, detail: `${collectionRate.toFixed(1)}% collection rate` },
-            { label: 'Outstanding', value: fmtM(outstanding), icon: 'clock', variant: 'warning' as const, detail: `${invoices.length - paidCount} open invoices` },
-            { label: 'Overdue', value: fmtM(overdue), icon: 'alertTriangle', variant: 'error' as const, detail: overdue > 0 ? 'Requires follow-up' : 'No overdue balance' },
+            { label: 'Gross sales', value: fmtM(totalSales), icon: 'trendingUp', variant: 'gray' as const, detail: `${invoices.length} sales documents`, accent: true },
+            { label: 'Collected', value: fmtM(paid), icon: 'checkCircle', variant: 'gray' as const, detail: `${collectionRate.toFixed(1)}% collection rate`, accent: false },
+            { label: 'Outstanding', value: fmtM(outstanding), icon: 'clock', variant: 'gray' as const, detail: `${invoices.length - paidCount} open invoices`, accent: false },
+            { label: 'Overdue', value: fmtM(overdue), icon: 'alertTriangle', variant: overdue > 0 ? 'error' as const : 'gray' as const, detail: overdue > 0 ? 'Requires follow-up' : 'No overdue balance', accent: false },
           ].map(s => (
-            <article key={s.label} className="fsr-kpi" data-finops-accent={s.variant === 'brand' ? '' : undefined}>
+            <article key={s.label} className="fsr-kpi" data-finops-accent={s.accent ? '' : undefined}>
               <FeaturedIcon variant={s.variant} size="md"><Icon name={s.icon as IconName} size={18} /></FeaturedIcon>
               <div className="fsr-kpi-copy">
                 <span>{s.label}</span>
@@ -212,7 +212,7 @@ export const FinanceSalesReport: React.FC = () => {
         </section>
 
         <div className="fsr-insights-grid">
-          <SectionCard title="Revenue trend" collapsible={false} action={<Badge variant="brand">{period}</Badge>}>
+          <SectionCard title="Revenue trend" collapsible={false} action={<Badge variant="gray">{period}</Badge>}>
             <div className="fsr-chart-summary">
               <div><span>Period revenue</span><strong>{fmtFull(totalSales)}</strong></div>
               <div><span>Average invoice</span><strong>{fmtFull(averageInvoice)}</strong></div>

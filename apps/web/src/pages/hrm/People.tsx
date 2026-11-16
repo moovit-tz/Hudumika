@@ -1,4 +1,4 @@
-﻿import React, { useState, useCallback, useEffect } from 'react';
+import React, { useState, useCallback, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useIsMobile } from '../../hooks/useIsMobile.js';
 import { useAuth } from '../../hooks/useAuth.js';
@@ -83,14 +83,9 @@ export function EmployeesPage() {
     { key: 'INACTIVE', label: 'Inactive',      count: employees.filter(e => e.status === 'INACTIVE').length },
   ];
 
-  const ROLE_COLORS: Record<string, { bg: string; color: string }> = {
-    Manager:      { bg: 'var(--purple-l)', color: 'var(--purple)' },
-    Officer:      { bg: 'var(--teal-l)', color: 'var(--teal)' },
-    Finance:      { bg: 'var(--green-l)', color: 'var(--green)' },
-    'Tenant Admin': { bg: 'var(--purple-l)', color: 'var(--purple)' },
-  };
-  function roleColor(role: string) { return ROLE_COLORS[role] || { bg: 'var(--bg)', color: 'var(--ink3)' }; }
-  function statusBar(s: EmpStatus) { return s === 'ACTIVE' ? 'var(--green)' : s === 'ON_LEAVE' ? 'var(--gold)' : 'var(--ink3)'; }
+  function roleColor(_role: string) {
+    return { bg: 'var(--bg)', color: 'var(--ink2)' };
+  }
 
   return (
     <div style={{ flex: 1, overflowY: 'auto' }}>
@@ -99,9 +94,9 @@ export function EmployeesPage() {
       </PageHeader>
 
       <MetricsRow cards={[
-        { title: 'Total Staff',    value: String(staffStats?.total ?? employees.length),   sub1Label: 'ACTIVE',      sub1Value: String(staffStats?.active ?? employees.filter(e => e.status === 'ACTIVE').length), sub2Label: 'ON LEAVE',    sub2Value: String(staffStats?.onLeave ?? onLeaveCount),   barHighlight: 'var(--blue)', loading: !staffStats  },
-        { title: 'New This Month', value: String(staffStats?.hiredThisMonth ?? hiredThisMonth),     sub1Label: 'DEPARTMENTS', sub1Value: String(staffStats?.departments ?? depts.length),                                       sub2Label: 'ROLES',       sub2Value: String(staffStats?.roles ?? roleCount),      barHighlight: 'var(--green)', loading: !staffStats },
-        { title: 'Inactive',       value: String(staffStats?.inactive ?? inactiveCount),      sub1Label: 'ON LEAVE',    sub1Value: String(staffStats?.onLeave ?? onLeaveCount),                                       sub2Label: 'DEPARTMENTS', sub2Value: String(staffStats?.departments ?? depts.length),   barHighlight: 'var(--red)', loading: !staffStats   },
+        { title: 'Total Staff',    value: String(staffStats?.total ?? employees.length),   sub1Label: 'ACTIVE',      sub1Value: String(staffStats?.active ?? employees.filter(e => e.status === 'ACTIVE').length), sub2Label: 'ON LEAVE',    sub2Value: String(staffStats?.onLeave ?? onLeaveCount),   loading: !staffStats  },
+        { title: 'New This Month', value: String(staffStats?.hiredThisMonth ?? hiredThisMonth),     sub1Label: 'DEPARTMENTS', sub1Value: String(staffStats?.departments ?? depts.length),                                       sub2Label: 'ROLES',       sub2Value: String(staffStats?.roles ?? roleCount),      loading: !staffStats },
+        { title: 'Inactive',       value: String(staffStats?.inactive ?? inactiveCount),      sub1Label: 'ON LEAVE',    sub1Value: String(staffStats?.onLeave ?? onLeaveCount),                                       sub2Label: 'DEPARTMENTS', sub2Value: String(staffStats?.departments ?? depts.length),   loading: !staffStats   },
       ]} />
 
       {/* -- Toolbar -- */}
@@ -123,8 +118,8 @@ export function EmployeesPage() {
         {/* Search */}
         <div style={{ position: 'relative', width: 260 }}>
           <Icon name="search" size={13} color="var(--ink3)" style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)' }} />
-          <input data-ui-field="input" value={search} onChange={e => setSearch(e.target.value)} placeholder="Search name or email—"
-            style={{ width: '100%', padding: "var(--ds-input-py) var(--space-md)", border: '1px solid var(--border)', borderRadius: 'var(--r)', fontFamily: 'var(--font)', fontSize: "var(--text-base)", background: 'var(--white)', color: 'var(--ink)', boxSizing: 'border-box' as const }} />
+          <input data-ui-field="input" aria-label="Search staff by name or email" value={search} onChange={e => setSearch(e.target.value)} placeholder="Search name or email—"
+            style={{ width: '100%', padding: "var(--ds-input-py) var(--space-md) var(--ds-input-py) 30px", border: '1px solid var(--border)', borderRadius: 'var(--r)', fontFamily: 'var(--font)', fontSize: "var(--text-base)", background: 'var(--white)', color: 'var(--ink)', boxSizing: 'border-box' as const }} />
         </div>
 
         {/* Dept filter */}
@@ -159,16 +154,15 @@ export function EmployeesPage() {
             const rCol = roleColor(e.role);
             return (
               <Link key={e.id} to={'/nexushr/staff/' + e.id} style={{ display: 'block', background: 'var(--white)', borderRadius: 'var(--r)', border: '1px solid var(--border)', overflow: 'hidden', cursor: 'pointer', textDecoration: 'none', color: 'inherit' }}>
-                <div style={{ height: 3, background: statusBar(e.status) }} />
                 <div style={{ padding: '18px 16px 12px', textAlign: 'center' }}>
                   <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 10 }}>
                     <Avatar name={e.name} size={60} userId={e.id} />
                   </div>
                   <div style={{ fontWeight: 800, fontSize: 14, color: 'var(--ink)', marginBottom: 2 }}>{e.name}</div>
-                  <div style={{ fontSize: 12, color: 'var(--teal)', fontWeight: 600, marginBottom: 8 }}>{e.designation}</div>
+                  <div style={{ fontSize: 12, color: 'var(--ink2)', fontWeight: 500, marginBottom: 8 }}>{e.designation}</div>
                   <div style={{ display: 'flex', gap: 5, justifyContent: 'center', flexWrap: 'wrap', marginBottom: 10 }}>
                     <span style={{ fontSize: 10, padding: '2px 7px', borderRadius: 'var(--r-sm)', background: 'var(--bg)', border: '1px solid var(--border)', color: 'var(--ink3)', fontWeight: 600 }}>{e.dept}</span>
-                    <span style={{ fontSize: 10, padding: '2px 7px', borderRadius: 'var(--r-sm)', background: rCol.bg, color: rCol.color, fontWeight: 700 }}>{e.role}</span>
+                    <span style={{ fontSize: 10, padding: '2px 7px', borderRadius: 'var(--r-sm)', background: rCol.bg, border: '1px solid var(--border)', color: rCol.color, fontWeight: 600 }}>{e.role}</span>
                     <Badge status={e.status} />
                   </div>
                   <div style={{ fontSize: 11, color: 'var(--ink3)', display: 'flex', flexDirection: 'column', gap: 2 }}>
@@ -212,7 +206,7 @@ export function EmployeesPage() {
                   </TD>
                   <TD muted>{e.dept}</TD>
                   <TD>{e.designation}</TD>
-                  <TD><span style={{ fontSize: 11, padding: '2px 8px', borderRadius: 'var(--r-sm)', background: rCol.bg, color: rCol.color, fontWeight: 700 }}>{e.role}</span></TD>
+                  <TD><span style={{ fontSize: 11, padding: '2px 8px', borderRadius: 'var(--r-sm)', background: rCol.bg, border: '1px solid var(--border)', color: rCol.color, fontWeight: 600 }}>{e.role}</span></TD>
                   <TD muted>{new Date(e.hireDate).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}</TD>
                   <TD><Badge status={e.status} /></TD>
                 </tr>

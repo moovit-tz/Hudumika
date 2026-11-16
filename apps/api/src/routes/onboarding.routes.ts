@@ -1,3 +1,4 @@
+import { loginEmail } from '../lib/login-email.js';
 import type { FastifyInstance } from 'fastify';
 import crypto from 'crypto';
 import { z } from 'zod';
@@ -479,7 +480,7 @@ export async function onboardingRoutes(fastify: FastifyInstance) {
       .where('tenant_id', '=', row.completed_tenant_id!).where('role', '=', 'TENANT_ADMIN').executeTakeFirst();
     if (!tenant || !admin) return reply.status(500).send({ error: 'Signup completed but the account could not be loaded' });
 
-    const payload: Omit<JWTPayload, 'iat' | 'exp'> = { sub: admin.id, tenant_id: tenant.id, role: admin.role as JWTPayload['role'], email: admin.email, name: admin.name };
+    const payload: Omit<JWTPayload, 'iat' | 'exp'> = { sub: admin.id, tenant_id: tenant.id, role: admin.role as JWTPayload['role'], email: loginEmail(admin), name: admin.name };
     const accessToken = fastify.jwt.sign(payload as any);
     return {
       status: 'completed',

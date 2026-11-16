@@ -184,7 +184,7 @@ export function PayrollSettingsModal({ onClose }: { onClose: () => void }) {
               <Checkbox checked={timePolicy.restDays.includes(index)} disabled={!canConfigure} onCheckedChange={checked=>updateTimePolicy({restDays:checked?[...new Set([...timePolicy.restDays,index])]:timePolicy.restDays.filter(value=>value!==index)})}/>{day}
             </label>)}</div>
           </div>
-          <p style={{fontSize:11.5,color:'var(--ink3)',margin:0}}>Work timers keep absolute start/end instants and the timezone saved at clock-in; overnight durations are split at workspace-local midnight. Only configured billable NexusHR tasks can be billable. Cross-product work defaults to non-billable. Approved periods stay locked; corrections require an administrator reopen with a reason. Rounding remains to the exact recorded minute.</p>
+          <p style={{fontSize:11.5,color:'var(--ink3)',margin:0}}>Work timers keep absolute start/end instants and the timezone saved at clock-in; overnight durations are split at workspace-local midnight. Only configured billable Axis tasks can be billable. Cross-product work defaults to non-billable. Approved periods stay locked; corrections require an administrator reopen with a reason. Rounding remains to the exact recorded minute.</p>
           {canConfigure && timePolicyDirty && <div style={{display:'flex',justifyContent:'flex-end'}}><Button size="sm" onClick={saveTimePolicy} disabled={savingTimePolicy || timePolicy.restDays.length===0}>{savingTimePolicy?'Saving…':'Save time policy'}</Button></div>}
         </section>}
         {loading ? (

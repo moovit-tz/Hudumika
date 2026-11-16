@@ -564,7 +564,7 @@ export function ClockInPage() {
       
       {/* Shared Standard Page Header */}
       <SharedPageHeader
-        crumbs={['NexusHR', 'Clock-in']}
+        crumbs={['Axis', 'Clock-in']}
         titlePlain="Clock-in"
         titleEm="timesheets"
         subtitle="Live attendance tracking, stopwatch timer, and weekly hours visualizer"

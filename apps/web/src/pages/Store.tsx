@@ -132,7 +132,7 @@ function parseInstalls(s: string): number {
 // Platform apps an addon can be compatible with
 const PLATFORM_APPS: { id: string; label: string; icon: IconName }[] = [
   { id: 'ondi',        label: 'Ondi',         icon: 'shield'        },
-  { id: 'nexushr',     label: 'NexusHR',      icon: 'users'         },
+  { id: 'nexushr',     label: 'Axis',      icon: 'users'         },
   { id: 'clearos',     label: 'ClearOS',      icon: 'package'       },
   { id: 'finops',      label: 'FinOps',       icon: 'dollarSign'    },
   { id: 'crm',         label: 'CRM',          icon: 'briefcase'     },

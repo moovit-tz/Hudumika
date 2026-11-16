@@ -254,12 +254,15 @@ export const ProjectPortfolios: React.FC<ProjectPortfoliosProps> = ({
                 </div>
 
                 <div className="mt-4 pt-4 border-t border-slate-100 dark:border-slate-700/60 space-y-2.5">
-                  <div className="flex items-center justify-between text-xs">
-                    <span className="text-muted-foreground">Allocated Budget:</span>
-                    <span className="font-bold text-foreground">
-                      {money(port.allocated_budget, port.currency)}
-                    </span>
-                  </div>
+                  {/* Budgets come back null for staff who aren't admins or managers. */}
+                  {port.allocated_budget != null && (
+                    <div className="flex items-center justify-between text-xs">
+                      <span className="text-muted-foreground">Allocated Budget:</span>
+                      <span className="font-bold text-foreground">
+                        {money(port.allocated_budget, port.currency)}
+                      </span>
+                    </div>
+                  )}
                   <div className="flex items-center justify-between text-xs">
                     <span className="text-muted-foreground">Target ROI:</span>
                     <span className="font-bold text-emerald-600 dark:text-emerald-400">
@@ -317,12 +320,14 @@ export const ProjectPortfolios: React.FC<ProjectPortfoliosProps> = ({
                 </div>
 
                 <div className="mt-4 pt-4 border-t border-slate-100 dark:border-slate-700/60 space-y-2">
-                  <div className="flex items-center justify-between text-xs">
-                    <span className="text-muted-foreground">Program Budget:</span>
-                    <span className="font-bold text-foreground">
-                      {money(prog.budget, prog.currency)}
-                    </span>
-                  </div>
+                  {prog.budget != null && (
+                    <div className="flex items-center justify-between text-xs">
+                      <span className="text-muted-foreground">Program Budget:</span>
+                      <span className="font-bold text-foreground">
+                        {money(prog.budget, prog.currency)}
+                      </span>
+                    </div>
+                  )}
                   {prog.target_benefits && prog.target_benefits.length > 0 && (
                     <div className="text-[11px] text-slate-600 dark:text-slate-300 bg-slate-50 dark:bg-slate-900/50 p-2 rounded">
                       <span className="font-bold text-slate-700 dark:text-slate-200">Target Benefits: </span>

@@ -1,5 +1,5 @@
-﻿import React, { useState, useEffect } from 'react';
-import { useSearchParams } from 'react-router-dom';
+import React, { useState, useEffect } from 'react';
+import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import {
   useDesignSystem, DesignTokens, NeutralSet, SemanticSet, DesignSystemVersion, DensityId,
   FONT_IDS, FONT_LABELS, DENSITY_IDS, DENSITY_LABELS, SHADOW_IDS, SHADOW_LABELS,
@@ -94,7 +94,13 @@ const SEMANTIC_CONFIG: Record<keyof SemanticSet, { title: string; desc: string; 
 
 // ───────────────────────────────────────────────────────────────────────────
 
-export function DesignSystemView() {
+/**
+ * The platform design settings editor. Mounted in two places:
+ *  - /admin/design-system (SuperAdmin console), section in ?section=
+ *  - /design-system/settings/:section (the Design System app), `embedded`
+ * Both save through the same useDesignSystem / branding calls.
+ */
+export function DesignSystemView({ embedded = false }: { embedded?: boolean } = {}) {
   const { tokens, updateTokens, resetToDefaults, designSystemVersion, updateDesignSystemVersion } = useDesignSystem();
   const [v2ColorDraft, setV2ColorDraft] = useState(designSystemVersion.v2Color);
   useEffect(() => setV2ColorDraft(designSystemVersion.v2Color), [designSystemVersion.v2Color]);
@@ -121,11 +127,20 @@ export function DesignSystemView() {
   const [tabsBadgeDemo, setTabsBadgeDemo] = useState('all');
 
   const [searchParams, setSearchParams] = useSearchParams();
-  const initialSection = SECTIONS.some(s => s.id === searchParams.get('section')) ? searchParams.get('section')! : 'themes';
+  const routeSection = useParams<{ section?: string }>().section;
+  const navigate = useNavigate();
+  const requested = embedded ? routeSection : searchParams.get('section');
+  const initialSection = SECTIONS.some(s => s.id === requested) ? requested! : 'themes';
   const [activeSection, setActiveSectionState] = useState(initialSection);
+  // Embedded: the URL is the source of truth (back/forward, shared links).
+  useEffect(() => {
+    if (embedded && routeSection && routeSection !== activeSection && SECTIONS.some(s => s.id === routeSection)) setActiveSectionState(routeSection);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [embedded, routeSection]);
 
   function setActiveSection(id: string) {
     setActiveSectionState(id);
+    if (embedded) { navigate(`/design-system/settings/${id}`, { replace: true }); return; }
     setSearchParams(prev => {
       const next = new URLSearchParams(prev);
       next.set('section', id);
@@ -380,12 +395,19 @@ export function DesignSystemView() {
     <div className="ds-root">
       {/* Studio Header */}
       <PageHeader
-        crumbs={['Platform Admin', 'Design System']}
-        titlePlain="Design"
-        titleEm="studio"
-        subtitle="Manage platform-wide design tokens, tenant theming engines, layout parameters, and the shared component design system."
+        crumbs={embedded ? ['Design System', 'Settings'] : ['Platform Admin', 'Design System']}
+        titlePlain={embedded ? 'Platform' : 'Design'}
+        titleEm={embedded ? 'settings' : 'studio'}
+        subtitle={embedded
+          ? 'Set the platform theme, colours, type, shape, density, motion, layout, branding, per-app identity and the sign-in screen. Changes save immediately for every workspace.'
+          : 'Manage platform-wide design tokens, tenant theming engines, layout parameters, and the shared component design system.'}
         actions={
           <div className="ds-header-actions">
+            {!embedded && (
+              <Button variant="outline" size="sm" asChild>
+                <Link to="/design-system/settings">Open in Design System app</Link>
+              </Button>
+            )}
             {!PANEL_ONLY_SECTIONS.has(activeSection) && (
               <Button variant="outline" className="ds-btn-reset"
                 type="button"

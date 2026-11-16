@@ -409,7 +409,7 @@ function ListsDemo() {
   return (
     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
       <div className="oscar-list">
-        {['ClearOS Customs', 'NexusHR Payroll', 'ComplyOS Risk', 'HuduFreight', 'FinOps Billing'].map((item, i) => (
+        {['ClearOS Customs', 'Axis Payroll', 'ComplyOS Risk', 'HuduFreight', 'FinOps Billing'].map((item, i) => (
           <div key={i} className="oscar-list-item">
             <span className="oscar-list-index">{i + 1}</span>
             <span className="text-sm flex-1">{item}</span>

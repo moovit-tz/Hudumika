@@ -474,7 +474,7 @@ export async function signRoutes(fastify: FastifyInstance) {
       // Owner name/email — only worth fetching for the admin 'all' view;
       // every other view is already scoped to "documents I own or I'm on,"
       // so the owner is always the viewer themselves and not worth a join.
-      let ownerById = new Map<string, { name: string; email: string }>();
+      let ownerById = new Map<string, { name: string; email: string | null }>();
       if (view === 'all') {
         const creatorIds = [...new Set(envelopes.map(e => e.created_by))];
         const creators = creatorIds.length

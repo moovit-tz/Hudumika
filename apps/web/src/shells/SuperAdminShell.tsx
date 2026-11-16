@@ -56,6 +56,7 @@ const NAV: SidebarSection[] = [
       { label: 'Announcements',     icon: 'bell',      path: '/admin/announcements' },
       { label: 'App Status',        icon: 'shield',   path: '/admin/app-status'     },
       { label: 'CMS Pages',         icon: 'fileText', path: '/admin/cms-pages'      },
+      { label: 'Design System App', icon: 'layers',   path: '/design-system'        },
       { label: 'Design System',     icon: 'sliders',  path: '/admin/design-system'  },
       { label: 'SEO & Analytics',   icon: 'trendingUp', path: '/admin/seo'          },
       { label: 'Platform Settings', icon: 'settings', path: '/admin/settings'       },

@@ -1,4 +1,4 @@
-﻿import React, { useState, useMemo, useEffect } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { Icon } from '../components/Icon.js';
 import { FormPage } from '../components/FormPage.js';
 import { apiFetch } from '../lib/api.js';
@@ -116,7 +116,8 @@ function AccountRow({
         <span>
           {depth === 0 && (
             <span style={{
-              fontSize: 10, fontWeight: 700, color: cfg.color, background: cfg.bg,
+              fontSize: 10, fontWeight: 600, color: 'var(--ink2)', background: 'var(--bg)',
+              border: '1px solid var(--border)',
               padding: '2px 7px', borderRadius: 'var(--r)', textTransform: 'uppercase', letterSpacing: '0.05em',
             }}>
               {cfg.label}
@@ -127,7 +128,7 @@ function AccountRow({
         {/* Normal balance */}
         <span style={{
           fontSize: 11, fontWeight: 600, textAlign: 'center',
-          color: account.normal_balance === 'DEBIT' ? 'var(--blue)' : 'var(--purple)',
+          color: 'var(--ink2)',
         }}>
           {account.normal_balance === 'DEBIT' ? 'Dr' : 'Cr'}
         </span>

@@ -15,12 +15,10 @@
   position: relative;
   overflow: hidden;
   border-radius: var(--card-radius, var(--r-lg, 16px));
-  border: 1px solid color-mix(in srgb, var(--teal) 22%, var(--border));
-  background: radial-gradient(ellipse 70% 90% at 95% -10%, color-mix(in srgb, var(--teal) 12%, transparent), transparent 70%),
-              radial-gradient(ellipse 50% 60% at 5% 110%, color-mix(in srgb, var(--navy) 8%, transparent), transparent 60%),
-              var(--white);
-  box-shadow: var(--shadow-sm, 0 1px 3px rgba(0, 0, 0, 0.05));
-  transition: all 0.2s ease;
+  border: 1px solid var(--border);
+  background: var(--white);
+  box-shadow: var(--card-shadow, var(--shadow-sm, 0 1px 3px rgba(0, 0, 0, 0.05)));
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
 }
 
 .erp-overview-content {
@@ -101,9 +99,9 @@
 }
 
 .erp-foundation-card:hover {
-  transform: translateY(-2px);
-  border-color: color-mix(in srgb, var(--teal) 45%, var(--border));
-  box-shadow: 0 8px 24px -6px color-mix(in srgb, var(--teal) 14%, transparent), var(--shadow-sm);
+  transform: translateY(-1px);
+  border-color: var(--border2);
+  box-shadow: var(--elev-sm, var(--shadow-sm));
 }
 
 .erp-foundation {
@@ -220,15 +218,19 @@
 }
 
 .erp-industry-card:hover {
-  transform: translateY(-3px);
-  border-color: color-mix(in srgb, var(--teal) 50%, var(--border));
-  box-shadow: 0 12px 32px -8px color-mix(in srgb, var(--teal) 16%, transparent), var(--shadow-sm);
+  transform: translateY(-1px);
+  border-color: var(--border2);
+  box-shadow: var(--elev-sm, var(--shadow-sm));
 }
 
 .erp-industry-card--active {
-  border: 1.5px solid color-mix(in srgb, var(--teal) 55%, var(--border));
-  background: radial-gradient(ellipse 70% 40% at 50% 0%, color-mix(in srgb, var(--teal) 6%, transparent), transparent 70%), var(--white);
-  box-shadow: 0 6px 20px -4px color-mix(in srgb, var(--teal) 14%, transparent), var(--shadow-sm);
+  border: 1.5px solid var(--teal);
+  background: var(--white);
+  box-shadow: var(--elev-sm, var(--shadow-sm));
+}
+
+.erp-industry-card--active:hover {
+  border-color: var(--teal);
 }
 
 .erp-card-identity {
@@ -286,8 +288,12 @@
 }
 
 .erp-tool-list svg {
-  color: var(--teal);
+  color: var(--ink3);
   flex-shrink: 0;
+}
+
+.erp-industry-card--active .erp-tool-list svg {
+  color: var(--teal);
 }
 
 .erp-card-footer {
@@ -369,8 +375,8 @@
   gap: var(--space-6, 24px);
   padding: clamp(20px, 3vw, 28px);
   border-radius: var(--card-radius, var(--r-lg, 16px));
-  border: 1px solid color-mix(in srgb, var(--teal) 22%, var(--border));
-  background: radial-gradient(ellipse 70% 100% at 100% 0%, color-mix(in srgb, var(--teal) 10%, transparent), transparent), var(--white);
+  border: 1px solid var(--border);
+  background: var(--white);
 }
 
 .finance-edition-card h2 {
@@ -558,24 +564,24 @@
 .industry-tools a {
   display: grid;
   gap: 2px;
-  color: var(--teal);
+  color: var(--ink);
   text-decoration: none;
   padding: 8px 12px;
   border-radius: var(--r-sm);
-  background: color-mix(in srgb, var(--teal) 6%, transparent);
-  border: 1px solid color-mix(in srgb, var(--teal) 16%, transparent);
-  transition: all 0.15s ease;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  transition: background 0.15s ease, border-color 0.15s ease;
 }
 
 .industry-tools a:hover {
-  background: color-mix(in srgb, var(--teal) 12%, transparent);
-  border-color: var(--teal);
+  background: var(--hover-bg, var(--surface2));
+  border-color: var(--border2);
 }
 
 .industry-tools a strong {
   font-size: 0.875rem;
   font-weight: 650;
-  color: var(--teal);
+  color: var(--ink);
 }
 
 .industry-tools a span {

@@ -131,16 +131,6 @@ export function ProjectTeamPage() {
         titlePlain="Team &"
         titleEm="workload"
         subtitle="Workforce allocation directory — active assignments, cross-project deployments, and task capacity."
-        actions={
-          <div style={{ display: 'flex', gap: 8 }}>
-            <Button variant="outline" size="sm" onClick={() => navigate('/projects/tasks')}>
-              <Icon name="checkCircle" size={13} style={{ marginRight: 6 }} /> My Tasks
-            </Button>
-            <Button variant="outline" size="sm" onClick={() => navigate('/projects/equipment')}>
-              <Icon name="tool" size={13} style={{ marginRight: 6 }} /> Equipment
-            </Button>
-          </div>
-        }
       />
 
       <div style={{ marginTop: 20 }}>
@@ -236,7 +226,7 @@ export function ProjectTeamPage() {
           </div>
         ) : view === 'cards' ? (
           <>
-          <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(auto-fill, minmax(320px, 1fr))', gap: 14 }}>
+          <div style={{ display: 'grid', gridTemplateColumns: isMobile ? 'minmax(0, 1fr)' : 'repeat(auto-fill, minmax(320px, 1fr))', gap: 14 }}>
             {paginate(filteredMembers, teamPage, teamPageSize).visible.map(member => {
               const openTasks = tasks.filter(t => !t.deletedAt && !t.completed && t.assigneeId === member.user_id);
               const taskCount = openTasks.length;

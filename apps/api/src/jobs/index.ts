@@ -6,6 +6,7 @@ import { runDailyStatusJob } from './daily-status.job.js';
 import { sweepStaleCheckIns, sweepStaleClockSessions } from '../services/time-entry.service.js';
 import { runMissingDocReminderJob } from './reminder.job.js';
 import { runComplyRenewalJob, runComplyExpiryReminderJob } from './comply-renewal.job.js';
+import { runEquipmentReminderJob } from './project-equipment-reminders.job.js';
 import { runTRAZReportJob } from './tra-zreport.job.js';
 import { runSupportRulesJob } from './support-rules.job.js';
 import { runGpswoxSyncJob } from './gpswox-sync.job.js';
@@ -31,6 +32,7 @@ import { runPulseJourneyJob } from '../services/pulse-journeys.service.js';
 import { runPulseSocialJob } from '../routes/pulse-social.routes.js';
 import { runPulseAdsJob } from '../routes/pulse-ads.routes.js';
 import { runPulseAbmJob } from '../services/pulse-abm.service.js';
+import { runAxisLifecycleJob } from '../services/axis-lifecycle.service.js';
 import { runImapTicketIngestJob } from './imap-ticket-ingest.job.js';
 import { runImapEmailIngestJob } from './imap-email-ingest.job.js';
 import { runScheduledEmailSendJob } from './scheduled-email-send.job.js';
@@ -288,6 +290,8 @@ function startBullMQ(): void {
           await runDailyStatusJob();
         } else if (job.name === 'comply-renewal') {
           await runComplyRenewalJob();
+        } else if (job.name === 'project-equipment-reminders') {
+          await runEquipmentReminderJob();
         } else if (job.name === 'comply-expiry-reminders') {
           await runComplyExpiryReminderJob();
         } else if (job.name === 'tra-zreport') {
@@ -441,6 +445,10 @@ function startBullMQ(): void {
     const pulseAbmQueue = track(new Queue('pulse-abm', { connection: redisConnection as any }));
     track(new Worker('pulse-abm', async () => { await runPulseAbmJob(); }, { connection: redisConnection as any }));
     pulseAbmQueue.add('hourly', {}, { repeat: { every: 60 * 60 * 1000 }, removeOnComplete: 10, removeOnFail: 10 }).catch(console.error);
+    // Axis: apply job changes, leavings and rehires as their dates arrive.
+    const axisLifecycleQueue = track(new Queue('axis-lifecycle', { connection: redisConnection as any }));
+    track(new Worker('axis-lifecycle', async () => { await runAxisLifecycleJob(); }, { connection: redisConnection as any }));
+    axisLifecycleQueue.add('daily', {}, { repeat: { pattern: '10 0 * * *' }, removeOnComplete: 10, removeOnFail: 10 }).catch(console.error);
     pulseAdsQueue.add('sweep', {}, { repeat: { every: 30 * 60 * 1000 }, removeOnComplete: 10, removeOnFail: 10 }).catch(console.error);
     pulseSocialQueue.add('sweep', {}, { repeat: { every: 60 * 1000 }, removeOnComplete: 20, removeOnFail: 20 }).catch(console.error);
     pulseJourneyQueue.add('sweep', {}, { repeat: { every: 60 * 1000 }, removeOnComplete: 20, removeOnFail: 20 }).catch(console.error);
@@ -587,6 +595,10 @@ function startBullMQ(): void {
     // somebody who forgot at 17:00 is not shown as checked in until midnight.
     reminderQueue.add('stale-checkin', {}, {
       repeat: { pattern: '5 * * * *' } // Every hour, five past
+    }).catch(console.error);
+
+    reminderQueue.add('project-equipment-reminders', {}, {
+      repeat: { pattern: '30 7 * * *' } // Daily at 7:30 AM: certificates, inspections, late returns
     }).catch(console.error);
 
     reminderQueue.add('comply-renewal', {}, {
@@ -893,6 +905,7 @@ function startIntervalFallback(): void {
     runMissingDocReminderJob().catch(console.error);
     runComplyRenewalJob().catch(console.error);
     runComplyExpiryReminderJob().catch(console.error);
+    runEquipmentReminderJob().catch(console.error); // deduplicated per asset and due date
     runTRAZReportJob().catch(console.error);
     runCloudTrashExpiryJob().catch(console.error);
     runPendingSignupsExpiryJob().catch(console.error);
@@ -1030,6 +1043,7 @@ function startIntervalFallback(): void {
   setInterval(() => { runPulseSocialJob().catch(console.error); }, 60 * 1000);
   setInterval(() => { runPulseAdsJob().catch(console.error); }, 30 * 60 * 1000);
   setInterval(() => { runPulseAbmJob().catch(console.error); }, 60 * 60 * 1000);
+  setInterval(() => { runAxisLifecycleJob().catch(console.error); }, 60 * 60 * 1000);
 
   // Mail outbox sweep — every minute. Safe to also run immediately on
   // startup (above): each row is processed exactly once and marked sent/

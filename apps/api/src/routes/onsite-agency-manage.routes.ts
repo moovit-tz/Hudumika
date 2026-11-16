@@ -77,8 +77,8 @@ export async function notifyClientDetached(clientTenantId: string, agencyTenantI
     companyName: client?.name ?? 'your workspace',
     activateUrl: `${env.OPS_BOARD_URL}/onsite/activate`,
   };
-  await Promise.all(admins.map(a =>
-    MailService.enqueueTemplated(clientTenantId, 'agency.client_detached', a.email, vars, 'onsite').catch(() => {})
+  await Promise.all(admins.filter(a => a.email).map(a =>
+    MailService.enqueueTemplated(clientTenantId, 'agency.client_detached', a.email!, vars, 'onsite').catch(() => {})
   ));
 }
 

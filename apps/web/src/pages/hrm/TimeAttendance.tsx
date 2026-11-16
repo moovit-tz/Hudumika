@@ -3,6 +3,7 @@ import { useIsMobile } from '../../hooks/useIsMobile.js';
 import { Icon } from '../../components/Icon.js';
 import { apiFetch } from '../../lib/api.js';
 import { Button } from '../../components/ui/button.js';
+import { Textarea } from '../../components/ui/textarea.js';
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '../../components/ui/sheet.js';
 import { Tabs, TabsList, TabsTrigger } from '../../components/ui/tabs.js';
 import { SectionLoading } from '../../components/ui/spinner.js';
@@ -595,7 +596,8 @@ export function AttendancePage() {
             <span>Dashboard</span> <span style={{ color: 'var(--ink3)' }}>/</span> <span style={{ color: 'var(--ink2)' }}>Attendance</span>
           </div>
           <h1 style={{ fontSize: 22, fontWeight: 800, color: 'var(--ink)', letterSpacing: '-0.02em', margin: 0 }}>
-            Today, {date.toLocaleDateString('en-GB', { day: '2-digit', month: 'long', year: 'numeric' })}
+            {/* `date` is the month grid's anchor (always the 1st), not today. */}
+            Today, {new Date().toLocaleDateString('en-GB', { day: '2-digit', month: 'long', year: 'numeric' })}
           </h1>
         </div>
 
@@ -855,10 +857,11 @@ export function AttendancePage() {
                 const stat = fd.get('status') as AttendanceStatus;
                 const cIn = fd.get('clockIn') as string;
                 const cOut = fd.get('clockOut') as string;
+                const why = String(fd.get('correctionReason') || '').trim();
                 if (emps.length && sDate && eDate && stat) {
                   setShowBulk(false);
                   try {
-                    await apiFetch('/v1/hr/attendance/bulk', { method: 'POST', body: JSON.stringify({ user_ids: emps, from_date: sDate, to_date: eDate, status: toAttStatusApi(stat), clock_in: cIn || null, clock_out: cOut || null }) });
+                    await apiFetch('/v1/hr/attendance/bulk', { method: 'POST', body: JSON.stringify({ user_ids: emps, from_date: sDate, to_date: eDate, status: toAttStatusApi(stat), clock_in: cIn || null, clock_out: cOut || null, correction_reason: why || undefined }) });
                     loadAttendance();
                   } catch (error: any) { showAlert(error?.message || 'Could not mark attendance.', { variant: 'error' }); }
                 }
@@ -906,6 +909,13 @@ export function AttendancePage() {
                     <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: 'var(--ink2)', marginBottom: 6 }}>Clock Out</label>
                     <input data-ui-field="input" type="time" name="clockOut" className="input-field" defaultValue="17:00" />
                   </div>
+                </div>
+
+                <div style={{ marginBottom: 24 }}>
+                  <label htmlFor="bulk-correction-reason" style={{ display: 'block', fontSize: 12, fontWeight: 700, color: 'var(--ink2)', marginBottom: 6 }}>Reason for changes</label>
+                  <Textarea id="bulk-correction-reason" name="correctionReason" rows={2} maxLength={2000}
+                    placeholder="Needed if any of these days already have attendance, e.g. 'Corrected from the signed register'" />
+                  <div style={{ fontSize: 11, color: 'var(--ink3)', marginTop: 4 }}>The original entries are kept with this reason.</div>
                 </div>
 
                 <Button type="submit" className="w-full">Save Attendance</Button>

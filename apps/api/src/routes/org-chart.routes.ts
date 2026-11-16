@@ -189,7 +189,7 @@ export async function orgChartRoutes(fastify: FastifyInstance) {
           await trx.insertInto('org_chart_nodes').values({
             tenant_id: user.tenant_id,
             user_id: s.id,
-            label: s.name || s.email,
+            label: s.name || s.email || 'Unnamed',
             job_title: s.role || 'Officer',
             department: 'Operations',
             email: s.email,

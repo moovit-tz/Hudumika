@@ -58,7 +58,7 @@ const APP_META: Record<string, { label: string; icon: IconName }> = {
   finops:      { label: 'FinOps',    icon: 'dollarSign' },
   complyos:    { label: 'ComplyOS',  icon: 'fileText' },
   gereji:      { label: 'Gereji',    icon: 'tool' },
-  nexushr:     { label: 'NexusHR',   icon: 'userCheck' },
+  nexushr:     { label: 'Axis',      icon: 'userCheck' },
   projects:    { label: 'Projects',  icon: 'folder' },
 };
 

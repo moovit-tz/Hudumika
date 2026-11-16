@@ -67,7 +67,7 @@ export const ALLOWED_TABLES: AllowedTable[] = [
     ],
   },
   {
-    table: 'hr_departments', label: 'Departments', category: 'NexusHR',
+    table: 'hr_departments', label: 'Departments', category: 'Axis',
     columns: [
       col('id', 'ID'), col('tenant_id', 'Tenant'), col('name', 'Name'), col('status', 'Status'),
       col('created_at', 'Created At', 'date'),
@@ -103,7 +103,7 @@ export const ALLOWED_TABLES: AllowedTable[] = [
     ],
   },
   {
-    table: 'hr_payroll', label: 'Payroll', category: 'NexusHR',
+    table: 'hr_payroll', label: 'Payroll', category: 'Axis',
     columns: [
       col('id', 'ID'), col('tenant_id', 'Tenant'), col('user_id', 'Employee'), col('period_month', 'Period Month', 'number'),
       col('period_year', 'Period Year', 'number'), col('basic_pay', 'Basic Pay', 'number'),

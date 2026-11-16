@@ -1,14 +1,17 @@
 import React from 'react';
 import { squirclePath, SQUIRCLE_PATH_40 } from '../lib/squircle.js';
+import { DEFAULT_APP_COLORS } from '../lib/appDefaults.js';
 
 // ── Launcher app list ──────────────────────────────────────────
 // Shared between AppHeader (mobile app icon, collapsed-sidebar icon) and
 // AppLauncher (the switcher panel itself) — kept in its own module so
 // both can use it without one depending on the other's internals.
 
-/** Apps that are internal tooling, not customer-facing. The launcher filters
- *  these out unless the signed-in user is a SuperAdmin. */
+/** Apps that are SuperAdmin-only internal tooling, never shown to customer/staff users. */
 export const INTERNAL_APP_IDS = new Set(['lens']);
+
+/** Internal platform tooling open to all authenticated Hudumika staff (non-customer roles). */
+export const STAFF_INTERNAL_APP_IDS = new Set(['design-system']);
 
 /** Apps only some roles can use. The launcher hides them from everyone else
  *  (the API refuses them too). Zentra: zentra.routes.ts VIEW roles. */
@@ -20,61 +23,64 @@ export const ROLE_GATED_APPS: Record<string, readonly string[]> = {
 export const roleCanOpenApp = (appId: string, role?: string | null) => !ROLE_GATED_APPS[appId] || ROLE_GATED_APPS[appId].includes(role ?? '');
 
 export const LAUNCHER_APPS: Array<{ id: string; name: string; color: string; path: string }> = [
-  { id: 'lens',      name: 'Lens',     color: '#475569', path: '/lens'      },
-  { id: 'clearos',   name: 'ClearOS',  color: '#ea580c', path: '/clearos'   },
-  { id: 'finops',    name: 'FinOps',   color: '#0284c7', path: '/finance'   },
-  { id: 'nexushr',     name: 'NexusHR',  color: '#0d9488', path: '/nexushr'     },
-  { id: 'bliss',     name: 'Bliss',    color: '#7c3aed', path: '/bliss'     },
-  { id: 'complyos',  name: 'ComplyOS', color: '#059669', path: '/complyos'  },
-  { id: 'crm',       name: 'CRM',      color: '#059669', path: '/crm'       },
-  { id: 'cloud',     name: 'Cloud',    color: '#0369a1', path: '/cloud'     },
-  { id: 'email',     name: 'Email',    color: '#0078d4', path: '/email'     },
-  { id: 'contacts',  name: 'Contacts', color: '#1a73e8', path: '/contacts'  },
-  { id: 'store',     name: 'Store',    color: '#8b5cf6', path: '/store'     },
-  { id: 'ondi',     name: 'Account & Security', color: '#4253d1', path: '/ondi/personal' },
-  { id: 'tracking',  name: 'HuduFreight', color: '#0891b2', path: '/tracking'  },
-  { id: 'workspace', name: 'Admin',    color: '#64748b', path: '/workspace' },
-  { id: 'calendar',  name: 'Calendar', color: '#db2777', path: '/calendar'  },
-  { id: 'tasks',     name: 'Tasks',    color: '#0f766e', path: '/tasks'     },
-  { id: 'cargotracker',  name: 'CargoTracker', color: '#4f46e5', path: '/cargotracker' },
-  { id: 'seal',      name: 'SEAL',     color: '#0f766e', path: '/seal'      },
-  { id: 'studio',    name: 'Studio',   color: '#4361ee', path: '/studio'    },
-  { id: 'notes',     name: 'Notes',    color: '#fbbc04', path: '/notes'    },
+  { id: 'design-system', name: 'Design System', color: DEFAULT_APP_COLORS['design-system'], path: '/design-system' },
+  { id: 'lens',      name: 'Lens',     color: DEFAULT_APP_COLORS.lens,     path: '/lens'      },
+  { id: 'clearos',   name: 'ClearOS',  color: DEFAULT_APP_COLORS.clearos,  path: '/clearos'   },
+  { id: 'finops',    name: 'FinOps',   color: DEFAULT_APP_COLORS.finops,   path: '/finance'   },
+  { id: 'nexushr',   name: 'Axis',     color: DEFAULT_APP_COLORS.nexushr,  path: '/nexushr'   },
+  { id: 'bliss',     name: 'Bliss',    color: DEFAULT_APP_COLORS.bliss,    path: '/bliss'     },
+  { id: 'complyos',  name: 'ComplyOS', color: DEFAULT_APP_COLORS.complyos, path: '/complyos'  },
+  { id: 'crm',       name: 'CRM',      color: DEFAULT_APP_COLORS.crm,      path: '/crm'       },
+  { id: 'cloud',     name: 'Cloud',    color: DEFAULT_APP_COLORS.cloud,    path: '/cloud'     },
+  { id: 'email',     name: 'Email',    color: DEFAULT_APP_COLORS.email,    path: '/email'     },
+  { id: 'contacts',  name: 'Contacts', color: DEFAULT_APP_COLORS.contacts, path: '/contacts'  },
+  { id: 'store',     name: 'Store',    color: DEFAULT_APP_COLORS.store,    path: '/store'     },
+  { id: 'ondi',     name: 'Account & Security', color: DEFAULT_APP_COLORS.ondi, path: '/ondi/personal' },
+  { id: 'tracking',  name: 'HuduFreight', color: DEFAULT_APP_COLORS.tracking, path: '/tracking'  },
+  { id: 'workspace', name: 'Admin',    color: DEFAULT_APP_COLORS.workspace, path: '/workspace' },
+  { id: 'calendar',  name: 'Calendar', color: DEFAULT_APP_COLORS.calendar, path: '/calendar'  },
+  { id: 'tasks',     name: 'Tasks',    color: DEFAULT_APP_COLORS.tasks,    path: '/tasks'     },
+  { id: 'cargotracker',  name: 'CargoTracker', color: DEFAULT_APP_COLORS.cargotracker, path: '/cargotracker' },
+  { id: 'seal',      name: 'SEAL',     color: DEFAULT_APP_COLORS.seal,     path: '/seal'      },
+  { id: 'studio',    name: 'Studio',   color: DEFAULT_APP_COLORS.studio,   path: '/studio'    },
+  { id: 'notes',     name: 'Notes',    color: DEFAULT_APP_COLORS.notes,    path: '/notes'     },
   // CMS ('onesite') and Onsite ('onsite') are two separate real apps, one
   // letter apart in their id — CMS is content/website management (/cms,
   // CMSShell.tsx), Onsite is domains/DNS/hosting infrastructure (/onsite).
   // CMS previously had no entry here at all, so it appeared in neither this
   // launcher nor the workspace hub (WorkspaceHome builds its grid from this
   // same list) and was reachable only by typing /cms directly.
-  { id: 'onesite',   name: 'CMS',      color: '#06b6d4', path: '/cms'       },
-  { id: 'onsite',    name: 'Onsite',   color: '#0f172a', path: '/onsite'    },
-  { id: 'hudubi',    name: 'HuduBI',   color: '#18181b', path: '/hudubi'    },
-  { id: 'petti',     name: 'Petti',    color: '#16a34a', path: '/petti'     },
-  { id: 'pos',       name: 'POS',      color: '#1257c6', path: '/pos'       },
-  { id: 'sign',      name: 'eSign',    color: '#2563eb', path: '/sign'      },
-  { id: 'sms',       name: 'SMS',      color: '#1257c6', path: '/sms'       },
-  { id: 'projects',  name: 'Projects', color: '#f59e0b', path: '/projects'  },
-  { id: 'developer', name: 'Developer', color: '#0f766e', path: '/developer' },
-  { id: 'tuma',      name: 'Tuma',      color: '#0891b2', path: import.meta.env.VITE_TUMA_PORTAL_URL?.trim() || (import.meta.env.DEV ? 'http://localhost:3100/en/portal' : '/tuma') },
+  { id: 'onesite',   name: 'CMS',      color: DEFAULT_APP_COLORS.onesite,  path: '/cms'       },
+  { id: 'onsite',    name: 'Onsite',   color: DEFAULT_APP_COLORS.onsite,   path: '/onsite'    },
+  { id: 'hudubi',    name: 'HuduBI',   color: DEFAULT_APP_COLORS.hudubi,   path: '/hudubi'    },
+  { id: 'petti',     name: 'Petti',    color: DEFAULT_APP_COLORS.petti,    path: '/petti'     },
+  { id: 'pos',       name: 'POS',      color: DEFAULT_APP_COLORS.pos,      path: '/pos'       },
+  { id: 'sign',      name: 'eSign',    color: DEFAULT_APP_COLORS.sign,     path: '/sign'      },
+  { id: 'sms',       name: 'SMS',      color: DEFAULT_APP_COLORS.sms,      path: '/sms'       },
+  { id: 'projects',  name: 'Projects', color: DEFAULT_APP_COLORS.projects, path: '/projects'  },
+  { id: 'developer', name: 'Developer', color: DEFAULT_APP_COLORS.developer, path: '/developer' },
+  { id: 'tuma',      name: 'Tuma',      color: DEFAULT_APP_COLORS.tuma,     path: import.meta.env.VITE_TUMA_PORTAL_URL?.trim() || (import.meta.env.DEV ? 'http://localhost:3100/en/portal' : '/tuma') },
   // /sso, not root — LexCore's root ('/') is its public marketing Landing
   // page with no auth check at all; /sso is the auto-start-Ondi entry point
   // (SsoStart.tsx) that actually lands a Hudumika-signed-in user straight
   // into the dashboard, matching Tuma's launcher entry behavior.
-  { id: 'lexcore',   name: 'LexCore',   color: '#7c3aed', path: import.meta.env.VITE_LEXCORE_URL?.trim() || (import.meta.env.DEV ? 'http://localhost:5175/sso' : '/lexcore/sso') },
+  { id: 'lexcore',   name: 'LexCore',   color: DEFAULT_APP_COLORS.lexcore,  path: import.meta.env.VITE_LEXCORE_URL?.trim() || (import.meta.env.DEV ? 'http://localhost:5175/sso' : '/lexcore/sso') },
   // /sso (not the bare origin) — same reasoning as LexCore above: this is
   // the auto-start-Ondi entry point, not a page with its own sign-in click.
   // Ngao is Hudumika's PDPC/GDPR compliance product, a separate codebase
   // (D:\Apps\Ngao) forked from LexCore's scaffold — not an internal route.
-  { id: 'ngao',      name: 'Ngao',      color: '#059669', path: import.meta.env.VITE_NGAO_URL?.trim() || (import.meta.env.DEV ? 'http://localhost:5176/sso' : '/ngao/sso') },
+  { id: 'ngao',      name: 'Ngao',      color: DEFAULT_APP_COLORS.ngao,     path: import.meta.env.VITE_NGAO_URL?.trim() || (import.meta.env.DEV ? 'http://localhost:5176/sso' : '/ngao/sso') },
   ...(import.meta.env.DEV || import.meta.env.VITE_STRIDE_URL?.trim() ? [{ id: 'stride', name: 'Stride', color: '#4f46e5', path: import.meta.env.VITE_STRIDE_URL?.trim() || 'http://localhost:3101/' }] : []),
-  { id: 'gereji',    name: 'Gereji',    color: '#d97706', path: '/gereji'    },
-  { id: 'zentra',    name: 'Zentra',    color: '#0f766e', path: '/zentra'    },
-  { id: 'pulse',     name: 'Pulse',     color: '#e11d48', path: '/pulse'     },
+  { id: 'gereji',    name: 'Gereji',    color: DEFAULT_APP_COLORS.gereji,   path: '/gereji'    },
+  { id: 'zentra',    name: 'Zentra',    color: DEFAULT_APP_COLORS.zentra,   path: '/zentra'    },
+  { id: 'pulse',     name: 'Pulse',     color: DEFAULT_APP_COLORS.pulse,    path: '/pulse'     },
 ];
 
 // ── App SVG icons for launcher ─────────────────────────────────
 
 export const LAUNCHER_SVG_ICONS: Record<string, React.ReactElement> = {
+  // Stacked layers + accent grid: Hudumika Design System internal app.
+  'design-system': (<g stroke="white" strokeWidth="2.2" fill="none" strokeLinecap="round" strokeLinejoin="round"><polygon points="20 7 32 13 20 19 8 13 20 7" fill="white" fillOpacity="0.25"/><polyline points="8 20 20 26 32 20"/><polyline points="8 27 20 33 32 27"/></g>),
   // A heartbeat line: Pulse, the marketing suite.
   pulse:  (<g stroke="white" strokeWidth="2.4" fill="none" strokeLinecap="round" strokeLinejoin="round"><path d="M7 21H13L16 13L21 28L25 17L27 21H33"/></g>),
   zentra: (<g stroke="white" strokeWidth="2.2" fill="none" strokeLinecap="round" strokeLinejoin="round"><path d="M20 7L31 11.5V19.5C31 26 26.5 30.5 20 33C13.5 30.5 9 26 9 19.5V11.5L20 7Z"/><path d="M16 19.5L19 22.5L25 16.5" strokeWidth="2.4"/></g>),

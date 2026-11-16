@@ -560,12 +560,12 @@ export function FinanceIndustries() {
       <div className="erp-overview-card">
         <div className="erp-overview-content">
           <div className="erp-overview-copy">
-            <FeaturedIcon size="lg" variant="brand">
-              <Icon name="sparkle" size={24} color="var(--teal)" />
+            <FeaturedIcon size="lg" variant="gray">
+              <Icon name="sparkle" size={24} color="var(--ink2)" />
             </FeaturedIcon>
             <div>
               <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
-                <Badge variant="brand">Enterprise ERP Workspace</Badge>
+                <Badge variant="gray">Enterprise ERP Workspace</Badge>
                 {capData?.edition && (
                   <Badge variant={capData.edition === 'advanced' ? 'success' : 'gray'}>
                     Finance {capData.edition === 'advanced' ? 'Advanced' : 'Standard'}
@@ -600,8 +600,8 @@ export function FinanceIndustries() {
       <div className="erp-foundation-grid">
         <div className="erp-foundation-card">
           <div className="erp-foundation">
-            <FeaturedIcon variant="brand" size="md">
-              <Icon name="building" size={20} color="var(--teal)" />
+            <FeaturedIcon variant="gray" size="md">
+              <Icon name="building" size={20} color="var(--ink2)" />
             </FeaturedIcon>
             <div>
               <h3>Legal Entities & Multi-Book</h3>
@@ -621,8 +621,8 @@ export function FinanceIndustries() {
 
         <div className="erp-foundation-card">
           <div className="erp-foundation">
-            <FeaturedIcon variant="brand" size="md">
-              <Icon name="layers" size={20} color="var(--teal)" />
+            <FeaturedIcon variant="gray" size="md">
+              <Icon name="layers" size={20} color="var(--ink2)" />
             </FeaturedIcon>
             <div>
               <h3>Business Line Dimensions</h3>
@@ -746,7 +746,7 @@ export function FinanceIndustries() {
                       <ul className="erp-tool-list">
                         {exp.tools.map(tool => (
                           <li key={tool.path}>
-                            <Icon name="checkCircle" size={15} color="var(--teal)" />
+                            <Icon name="checkCircle" size={15} />
                             <span>{tool.label}</span>
                           </li>
                         ))}
@@ -811,8 +811,8 @@ export function FinanceIndustries() {
               <Card>
                 <CardHeader>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                    <FeaturedIcon variant="brand" size="sm">
-                      <Icon name="sparkle" size={16} color="var(--teal)" />
+                    <FeaturedIcon variant="gray" size="sm">
+                      <Icon name="sparkle" size={16} color="var(--ink2)" />
                     </FeaturedIcon>
                     <div>
                       <CardTitle>Recommended Capabilities for Selected Industries</CardTitle>
@@ -1551,13 +1551,13 @@ export function FinanceIndustryWorkDetail() {
               </div>
               <div>
                 <small style={{ color: 'var(--ink3)' }}>Realised Margin</small>
-                <h3 style={{ margin: '4px 0 0', color: 'var(--teal)' }}>
+                <h3 style={{ margin: '4px 0 0', color: Number(work.posted_revenue) - Number(work.posted_cost) < 0 ? 'var(--red)' : 'var(--ink)' }}>
                   {money(Number(work.posted_revenue) - Number(work.posted_cost))}
                 </h3>
               </div>
               <div>
                 <small style={{ color: 'var(--ink3)' }}>Budget Variance</small>
-                <h3 style={{ margin: '4px 0 0', color: 'var(--ink)' }}>
+                <h3 style={{ margin: '4px 0 0', color: Number(work.budget) - Number(work.posted_cost) < 0 ? 'var(--red)' : 'var(--ink)' }}>
                   {money(Number(work.budget) - Number(work.posted_cost))}
                 </h3>
               </div>

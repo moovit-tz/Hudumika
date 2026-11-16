@@ -138,7 +138,7 @@ export function FinanceExpenseReports() {
         <div className="expense-metric-card" data-finops-accent="">
           <div className="expense-metric-top">
             <span className="expense-metric-label">All Reports</span>
-            <div className="expense-metric-icon-wrap" style={{ background: 'var(--teal-l)', color: 'var(--teal)' }}>
+            <div className="expense-metric-icon-wrap" style={{ background: 'var(--bg)', border: '1px solid var(--border)', color: 'var(--ink2)' }}>
               <Icon name="fileText" size={16} />
             </div>
           </div>
@@ -149,33 +149,36 @@ export function FinanceExpenseReports() {
         <div className="expense-metric-card">
           <div className="expense-metric-top">
             <span className="expense-metric-label">Pending Review</span>
-            <div className="expense-metric-icon-wrap" style={{ background: 'var(--gold-l)', color: 'var(--gold)' }}>
+            <div
+              className="expense-metric-icon-wrap"
+              style={submittedCount > 0 ? { background: 'var(--gold-l)', color: 'var(--gold)' } : { background: 'var(--bg)', border: '1px solid var(--border)', color: 'var(--ink2)' }}
+            >
               <Icon name="clock" size={16} />
             </div>
           </div>
-          <div className="expense-metric-val" style={{ color: 'var(--gold)' }}>{submittedCount}</div>
+          <div className="expense-metric-val" style={submittedCount > 0 ? { color: 'var(--gold)' } : undefined}>{submittedCount}</div>
           <span className="expense-metric-sub">Awaiting approval</span>
         </div>
 
         <div className="expense-metric-card">
           <div className="expense-metric-top">
             <span className="expense-metric-label">Approved</span>
-            <div className="expense-metric-icon-wrap" style={{ background: 'var(--blue-l)', color: 'var(--blue)' }}>
+            <div className="expense-metric-icon-wrap" style={{ background: 'var(--bg)', border: '1px solid var(--border)', color: 'var(--ink2)' }}>
               <Icon name="check" size={16} />
             </div>
           </div>
-          <div className="expense-metric-val" style={{ color: 'var(--blue)' }}>{approvedCount}</div>
+          <div className="expense-metric-val">{approvedCount}</div>
           <span className="expense-metric-sub">Ready for payment</span>
         </div>
 
         <div className="expense-metric-card">
           <div className="expense-metric-top">
             <span className="expense-metric-label">Reimbursed</span>
-            <div className="expense-metric-icon-wrap" style={{ background: 'var(--green-l)', color: 'var(--green)' }}>
+            <div className="expense-metric-icon-wrap" style={{ background: 'var(--bg)', border: '1px solid var(--border)', color: 'var(--ink2)' }}>
               <Icon name="wallet" size={16} />
             </div>
           </div>
-          <div className="expense-metric-val" style={{ color: 'var(--green)' }}>{reimbursedCount}</div>
+          <div className="expense-metric-val">{reimbursedCount}</div>
           <span className="expense-metric-sub">Disbursed to staff</span>
         </div>
       </div>

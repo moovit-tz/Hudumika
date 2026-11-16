@@ -132,7 +132,7 @@ export function WorkforcePlanning() {
       {editing && <EditPlanDialog row={editing} onClose={() => setEditing(null)} onSaved={load} />}
 
       <PageHeader
-        crumbs={['NexusHR', 'People']}
+        crumbs={['Axis', 'People']}
         titlePlain="Workforce"
         titleEm="planning"
         subtitle="Approved headcount, who's actually in the seat, and who's already in motion to fill it — three separate numbers, on purpose."

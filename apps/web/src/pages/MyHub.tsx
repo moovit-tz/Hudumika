@@ -164,7 +164,7 @@ export function MyHubPage() {
     <div style={{ flex: 1, overflowY: 'auto', paddingBottom: 50 }}>
       {loadError && <Banner variant="error">{loadError}<Button variant="outline" onClick={loadData}>Retry</Button></Banner>}
       <PageHeader
-        crumbs={['NexusHR', 'My hub']}
+        crumbs={['Axis', 'My hub']}
         titlePlain="My employee"
         titleEm="hub"
         subtitle="Your attendance, leave, payslips, documents, and workplace updates in one place."

@@ -1,3 +1,4 @@
+import { loginEmail } from '../lib/login-email.js';
 import type { FastifyInstance } from 'fastify';
 import * as samlify from 'samlify';
 import { Redis } from 'ioredis';
@@ -317,7 +318,7 @@ export async function ondiSamlRoutes(fastify: FastifyInstance) {
     // it would defeat the point of centralizing auth at the IdP.
     const deviceId = await recordLogin(user.tenant_id, user.id, 'SUCCESS', ip, userAgent);
     const payload: Omit<JWTPayload, 'iat' | 'exp'> = {
-      sub: user.id, tenant_id: user.tenant_id, role: user.role, email: user.email, name: user.name,
+      sub: user.id, tenant_id: user.tenant_id, role: user.role, email: loginEmail(user), name: user.name,
       ...(deviceId ? { device_id: deviceId } : {}),
     };
     const tokens = issueTokens(fastify, payload as any);

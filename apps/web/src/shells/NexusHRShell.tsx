@@ -32,6 +32,8 @@ import { CaseManagement } from '../pages/CaseManagement.js';
 import { HrChecklists } from '../pages/HrChecklists.js';
 import { HrBenefits } from '../pages/HrBenefits.js';
 import { OndiGroups } from '../pages/OndiGroups.js';
+import { AxisJobChangePage, AxisNewWorkerPage, AxisPendingChangesPage } from '../pages/hrm/AxisJobHistory.js';
+import { AxisTimeCorrectionsPage } from '../pages/hrm/AxisTimeCorrections.js';
 import { DPODashboard } from '../pages/DPODashboard.js';
 // Calls (1:1 + group meetings) moved to Bliss, matching Team Chat's own
 // precedent — see BlissShell.tsx. The nav item below now just links out.
@@ -79,6 +81,8 @@ function buildNav(isSuperAdmin: boolean, canCases: boolean, canDocuments: boolea
       { label: 'Groups',          icon: 'users',    path: '/nexushr/groups'          },
       { label: 'Org Chart',       icon: 'layers',   path: '/nexushr/org-chart'       },
       { label: 'Employment',      icon: 'fileText', path: '/nexushr/employment'      },
+      { label: 'Job changes',     icon: 'gitBranch', path: '/nexushr/job-changes'    },
+      { label: 'Add worker without sign-in', icon: 'userPlus', path: '/nexushr/workers/new' },
       { label: 'Workforce Planning', icon: 'target', path: '/nexushr/workforce-planning' },
       { label: 'Recruitment',     icon: 'userPlus', path: '/nexushr/recruitment'     },
       ],
@@ -89,6 +93,7 @@ function buildNav(isSuperAdmin: boolean, canCases: boolean, canDocuments: boolea
       label: 'Time & Leave', icon: 'clock', path: '/nexushr/attendance', children: [
       { label: 'Clock-in & Timesheets', icon: 'clock', path: '/nexushr/clock-in' },
       { label: 'Attendance',     icon: 'check',    path: '/nexushr/attendance' },
+      { label: 'Time corrections', icon: 'edit', path: '/nexushr/time-corrections' },
       { label: 'Attendance Devices', icon: 'fingerprint', path: '/nexushr/devices' },
       { label: 'Leave Requests', icon: 'calendar', path: '/nexushr/leaves'     },
       { label: 'Shift Roster',   icon: 'timer',    path: '/nexushr/shifts'     },
@@ -234,6 +239,10 @@ export function NexusHRShell() {
                   projection for colleagues; sensitive HR/pay data remains
                   server-gated to the employee and authorised managers. */}
               <Route path="staff/:id"         element={<StaffDetail />} />
+              <Route path="staff/:id/job/:action" element={<AxisJobChangePage />} />
+              <Route path="workers/new"       element={<AxisNewWorkerPage />} />
+              <Route path="job-changes"       element={<AxisPendingChangesPage />} />
+              <Route path="time-corrections"  element={<AxisTimeCorrectionsPage />} />
               {/* Moved to Ondi Business (same devices/login-history data Ondi
                   already owns — see OndiItAdmin.tsx's own header comment). */}
               <Route path="it-admin"          element={<Navigate to="/ondi/it-admin" replace />} />

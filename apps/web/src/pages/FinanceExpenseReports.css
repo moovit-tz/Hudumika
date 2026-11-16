@@ -34,7 +34,7 @@
 }
 
 .expense-metric-card:hover {
-  border-color: color-mix(in srgb, var(--teal) 30%, var(--border));
+  border-color: var(--border2);
 }
 
 .expense-metric-top {
@@ -254,8 +254,9 @@
   width: 34px;
   height: 34px;
   border-radius: var(--r-sm);
-  background: var(--teal-l);
-  color: var(--teal);
+  background: var(--bg);
+  border: 1px solid var(--border);
+  color: var(--ink2);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -299,8 +300,8 @@
 
 .expense-report-card:hover {
   transform: translateY(-2px);
-  border-color: color-mix(in srgb, var(--teal) 40%, var(--border));
-  box-shadow: 0 8px 24px -4px rgba(0, 0, 0, 0.08);
+  border-color: var(--border2);
+  box-shadow: var(--elev-sm, 0 8px 24px -4px rgba(0, 0, 0, 0.08));
 }
 
 .expense-report-card-top {
@@ -449,8 +450,7 @@
 
 /* ── Detail Hero Banner ── */
 .expense-detail-hero {
-  background: radial-gradient(ellipse 70% 90% at 95% -10%, color-mix(in srgb, var(--teal) 12%, transparent), transparent 70%),
-              var(--card-bg, #ffffff);
+  background: var(--card-bg, var(--white, #ffffff));
   border: 1px solid var(--border);
   border-radius: var(--card-radius, 14px);
   padding: 22px 26px;

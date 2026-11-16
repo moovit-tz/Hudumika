@@ -114,7 +114,8 @@ describe('NexusHR timesheet and KPI regression scenarios', () => {
   });
 
   it('records whether ClearOS manual time appears on the HR timesheet', async () => {
-    await dbPlatform.updateTable('tenants').set({ plan: 'enterprise' }).where('id', '=', tenant.tenantId).execute();
+    // ClearOS is sold separately now; the scale plan carries both ClearOS and Axis.
+    await dbPlatform.updateTable('tenants').set({ plan: 'scale' }).where('id', '=', tenant.tenantId).execute();
     const customer = await dbPlatform.insertInto('customers').values({ tenant_id: tenant.tenantId, name: 'HR integration audit customer' } as any).returning('id').executeTakeFirstOrThrow();
     const shipment = await withTenant(tenant.tenantId, trx => trx.insertInto('shipment_cases').values({ tenant_id: tenant.tenantId, customer_id: customer.id, ref_number: 'HR-TIME-AUDIT', type: 'SEA_FCL', goods_desc: 'Synthetic', containers: '[]', vessel: 'Synthetic', origin_port: 'Synthetic', dest_port: 'Synthetic' }).returning('id').executeTakeFirstOrThrow());
     const app = await getApp();

@@ -69,6 +69,7 @@ export function AdminShell() {
           { label: 'Team',         icon: 'users' as const,     path: '/workspace/team'      },
         ] : []),
         ...(isAdmin ? [
+          { label: 'Design System', icon: 'layers' as const,  path: '/design-system' },
           { label: 'Tools',        icon: 'tool' as const,      path: '/workspace/utilities' },
         ] : []),
         ...(hasReportsPermission ? [

@@ -62,7 +62,7 @@ const PHASES: Phase[] = [
     ],
   },
   {
-    key: 'people', name: 'People', blurb: 'NexusHR — everyone on the team, formally',
+    key: 'people', name: 'People', blurb: 'Axis — everyone on the team, formally',
     items: [
       { title: 'Departments', desc: 'The structure employee records and approvals hang off.', to: '/nexushr/departments' },
       { title: 'Employees', desc: 'Each teammate’s HR record — role, department, employment details.', to: '/nexushr/employees' },
@@ -80,7 +80,7 @@ const PHASES: Phase[] = [
   {
     key: 'automate', name: 'Automate', blurb: 'Studio — once every department above is real, connect them',
     items: [
-      { title: 'Build a workflow automation', desc: 'ClearOS, SEAL, FinOps, Bliss, HuduFreight, CargoTracker and NexusHR each have their own automation surface.', to: '/studio/templates' },
+      { title: 'Build a workflow automation', desc: 'ClearOS, SEAL, FinOps, Bliss, HuduFreight, CargoTracker and Axis each have their own automation surface.', to: '/studio/templates' },
     ],
   },
 ];

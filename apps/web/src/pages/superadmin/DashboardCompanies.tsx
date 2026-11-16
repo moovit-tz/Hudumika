@@ -209,7 +209,7 @@ const CO_FORM_DEFAULT: CoForm = { name:'', email:'', phone:'', plan:'starter', o
 const TENANT_APPS: { id: string; name: string }[] = [
   { id: 'clearos',   name: 'ClearOS' },
   { id: 'finops',    name: 'FinOps' },
-  { id: 'nexushr',     name: 'NexusHR' },
+  { id: 'nexushr',     name: 'Axis' },
   { id: 'bliss',     name: 'Bliss' },
   { id: 'complyos',  name: 'ComplyOS' },
   { id: 'crm',       name: 'CRM' },

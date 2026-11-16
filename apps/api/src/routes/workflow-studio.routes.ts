@@ -84,7 +84,7 @@ function hydrate(row: any) {
 const APP_META: Record<AppId, { name: string; color: string }> = {
   clearos:      { name: 'ClearOS',      color: '#ea580c' },
   finops:       { name: 'FinOps',       color: '#0284c7' },
-  nexushr:        { name: 'NexusHR',      color: '#0d9488' },
+  nexushr:        { name: 'Axis',      color: '#0d9488' },
   bliss:        { name: 'Bliss',        color: '#7c3aed' },
   complyos:     { name: 'ComplyOS',     color: '#059669' },
   crm:          { name: 'CRM',          color: '#059669' },
@@ -656,11 +656,24 @@ export async function workflowStudioRoutes(server: FastifyInstance) {
         .execute();
     });
 
-    const runs = rawRuns.map(({ worker_token: _workerToken, ...r }) => ({
-      ...r,
-      payload: typeof r.payload === 'string' ? JSON.parse(r.payload) : r.payload,
-      step_results: typeof r.step_results === 'string' ? JSON.parse(r.step_results) : r.step_results,
-    }));
+    // A run's payload is the triggering event (an HR case opened about a named
+    // employee, a payroll approval, a role change) and its step outputs are
+    // whatever the actions returned. Reads here are open to every staff role,
+    // so only workspace administrators — who build these workflows and can see
+    // the source records anyway — get them in full. Everyone else gets the same
+    // execution evidence GET /runs/:id returns.
+    const full = ['SUPER_ADMIN', 'ADMIN', 'TENANT_ADMIN'].includes((request as any).user.role);
+    const runs = rawRuns.map(({ worker_token: _workerToken, workflow_snapshot: _snapshot, ...r }) => {
+      const steps = typeof r.step_results === 'string' ? JSON.parse(r.step_results) : r.step_results;
+      if (full) return { ...r, payload: typeof r.payload === 'string' ? JSON.parse(r.payload) : r.payload, step_results: steps };
+      return {
+        ...r,
+        payload: null,
+        step_results: Array.isArray(steps) ? steps.map((s: any) => ({
+          node_id: s.node_id, node_type: s.node_type, title: s.title, status: s.status, duration_ms: s.duration_ms, error: s.error, iteration: s.iteration,
+        })) : [],
+      };
+    });
 
     return reply.send({ data: runs });
   });

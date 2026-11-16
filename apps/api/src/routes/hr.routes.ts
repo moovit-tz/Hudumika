@@ -24,6 +24,7 @@ import { computeAttendance } from '../services/attendance.service.js';
 import { syncAttendanceFromSessions } from '../services/attendance-recording.service.js';
 import { workforceMetrics } from '../services/workforce-metrics.service.js';
 import { dateOnly, timesheetRange, plannedTime, lockEmployeeTime, canReviewTime } from '../services/timesheet-integrity.service.js';
+import { recordTimeCorrection, assertMayCorrect, requireReason } from '../services/time-correction.service.js';
 export { syncAttendanceFromSessions } from '../services/attendance-recording.service.js';
 import { createEvent, updateEvent, deleteEvent, type Guest } from '../services/calendar-events.service.js';
 import { renderOfferLetterPdf } from '../services/offer-letter-pdf.service.js';
@@ -109,6 +110,14 @@ const hhmm = (d: Date) => `${String(d.getHours()).padStart(2, '0')}:${String(d.g
 // employee may always act on their own; anything targeting someone else needs
 // one of these.
 const TS_MANAGER_ROLES = ['SUPER_ADMIN', 'MANAGER', 'ADMIN', 'TENANT_ADMIN', 'SENIOR'];
+/** What a time correction keeps from the record before and after (migration 912). */
+const SESSION_CORRECTION_FIELDS = ['clock_in_at', 'clock_out_at', 'total_break_minutes', 'worked_minutes', 'project_name', 'status', 'source', 'device_id'];
+const ATTENDANCE_CORRECTION_FIELDS = ['status', 'clock_in', 'clock_out', 'notes'];
+/** clock_in/out are TIME columns ("08:00:00"); forms send "08:00". */
+const attendanceChanged = (a: Record<string, unknown>, b: Record<string, unknown>) => ATTENDANCE_CORRECTION_FIELDS.some(k => {
+  const n = (v: unknown) => { const t = v == null ? '' : String(v); return (k === 'clock_in' || k === 'clock_out') ? t.slice(0, 5) : t; };
+  return n(a[k]) !== n(b[k]);
+});
 
 
 /**
@@ -592,6 +601,7 @@ export async function hrRoutes(fastify: FastifyInstance) {
       clock_in: z.string().optional().nullable(),
       clock_out: z.string().optional().nullable(),
       notes: z.string().max(2000).optional().nullable(),
+      correction_reason: z.string().trim().max(2000).optional(),
     }).parse(req.body);
     const dateStr = dateOnly(body.date);
     return withTenant(user.tenant_id, async (trx) => {
@@ -605,15 +615,33 @@ export async function hrRoutes(fastify: FastifyInstance) {
         .where('date', '=', dateStr)
         .executeTakeFirst();
       if (existing) {
-        return trx.updateTable('hr_attendance').set({
+        const next = {
           status: body.status || existing.status,
           clock_in: body.clock_in ?? existing.clock_in,
           clock_out: body.clock_out ?? existing.clock_out,
           notes: body.notes ?? existing.notes,
-          recorded_by: user.sub,
-          updated_at: new Date(),
-        }).where('id', '=', existing.id).where('tenant_id', '=', user.tenant_id)
+        };
+        // Changing a day already on record is a correction: it needs a reason,
+        // and the original is kept (migration 912). Re-saving the same values
+        // is not.
+        const changed = attendanceChanged(existing, next);
+        if (!changed) return existing;
+        const reason = requireReason(body.correction_reason);
+        const updated = await trx.updateTable('hr_attendance').set({ ...next, recorded_by: user.sub, updated_at: new Date() })
+          .where('id', '=', existing.id).where('tenant_id', '=', user.tenant_id)
           .returningAll().executeTakeFirstOrThrow();
+        await recordTimeCorrection(trx, user, { userId: body.user_id, date: dateStr, recordType: 'ATTENDANCE', recordId: existing.id, before: existing, after: updated, fields: ATTENDANCE_CORRECTION_FIELDS, reason });
+        return updated;
+      }
+      const finalisedRun = await assertMayCorrect(trx, user, dateStr);
+      if (finalisedRun) {
+        const reason = requireReason(body.correction_reason);
+        const created = await trx.insertInto('hr_attendance').values({
+          tenant_id: user.tenant_id, user_id: body.user_id, date: dateStr, status: body.status || 'PRESENT',
+          clock_in: body.clock_in || null, clock_out: body.clock_out || null, notes: body.notes || null, recorded_by: user.sub,
+        }).returningAll().executeTakeFirstOrThrow();
+        await recordTimeCorrection(trx, user, { userId: body.user_id, date: dateStr, recordType: 'ATTENDANCE', recordId: created.id, before: {}, after: created, fields: ATTENDANCE_CORRECTION_FIELDS, reason });
+        return created;
       }
       return trx.insertInto('hr_attendance').values({
         tenant_id: user.tenant_id,
@@ -637,6 +665,7 @@ export async function hrRoutes(fastify: FastifyInstance) {
       status: z.enum(['PRESENT', 'ABSENT', 'LATE', 'HALF_DAY', 'ON_LEAVE']).optional(),
       clock_in: z.string().optional().nullable(),
       clock_out: z.string().optional().nullable(),
+      correction_reason: z.string().trim().max(2000).optional(),
     }).parse(req.body);
     const status = body.status ?? 'PRESENT';
     return withTenant(user.tenant_id, async (trx) => {
@@ -655,21 +684,30 @@ export async function hrRoutes(fastify: FastifyInstance) {
         const d = new Date(from);
         while (d <= to) {
           const dateStr = d.toISOString().split('T')[0];
-          const existing = await trx.selectFrom('hr_attendance').select('id')
+          const existing = await trx.selectFrom('hr_attendance').selectAll()
             .where('tenant_id', '=', user.tenant_id)
             .where('user_id', '=', uid).where('date', '=', dateStr)
             .executeTakeFirst();
+          const next = { status, clock_in: body.clock_in || null, clock_out: body.clock_out || null };
           if (existing) {
-            await trx.updateTable('hr_attendance').set({
-              status, clock_in: body.clock_in || null,
-              clock_out: body.clock_out || null, recorded_by: user.sub, updated_at: new Date(),
-            }).where('id', '=', existing.id).where('tenant_id', '=', user.tenant_id).execute();
+            // Overwriting a day already on record is a correction (migration
+            // 912): one reason covers the batch, and each original is kept.
+            const merged = { ...next, notes: existing.notes };
+            const changed = attendanceChanged(existing, merged);
+            if (changed) {
+              const reason = (() => { try { return requireReason(body.correction_reason); } catch { throw Object.assign(new Error(`Some of these days already have attendance (first: ${dateStr}). Give a reason of at least 10 characters for changing them.`), { statusCode: 400 }); } })();
+              const updated = await trx.updateTable('hr_attendance').set({ ...next, recorded_by: user.sub, updated_at: new Date() })
+                .where('id', '=', existing.id).where('tenant_id', '=', user.tenant_id).returningAll().executeTakeFirstOrThrow();
+              await recordTimeCorrection(trx, user, { userId: uid, date: dateStr, recordType: 'ATTENDANCE', recordId: existing.id, before: existing, after: updated, fields: ATTENDANCE_CORRECTION_FIELDS, reason });
+            }
           } else {
-            await trx.insertInto('hr_attendance').values({
-              tenant_id: user.tenant_id, user_id: uid, date: dateStr,
-              status, clock_in: body.clock_in || null,
-              clock_out: body.clock_out || null, recorded_by: user.sub,
-            }).execute();
+            const finalisedRun = await assertMayCorrect(trx, user, dateStr);
+            const created = await trx.insertInto('hr_attendance').values({
+              tenant_id: user.tenant_id, user_id: uid, date: dateStr, ...next, recorded_by: user.sub,
+            }).returningAll().executeTakeFirstOrThrow();
+            if (finalisedRun) {
+              await recordTimeCorrection(trx, user, { userId: uid, date: dateStr, recordType: 'ATTENDANCE', recordId: created.id, before: {}, after: created, fields: ATTENDANCE_CORRECTION_FIELDS, reason: requireReason(body.correction_reason) });
+            }
           }
           count++;
           d.setUTCDate(d.getUTCDate() + 1);
@@ -1168,6 +1206,8 @@ export async function hrRoutes(fastify: FastifyInstance) {
       const previous = body.session_id ? await trx.selectFrom('hr_clock_sessions').selectAll().where('tenant_id', '=', user.tenant_id).where('user_id', '=', targetUserId).where('id', '=', body.session_id).executeTakeFirst() : null;
       if (body.session_id && (!previous || isoDate(previous.date) !== dateStr)) return reply.status(404).send({ error: 'Session not found on this date.' });
       if (previous && (!body.correction_reason || previous.status !== 'COMPLETED' || (!ADMIN_LIKE_ROLES.includes(user.role) && previous.source !== 'MANUAL'))) return reply.status(403).send({ error: 'A completed manual session and correction reason are required; device/web corrections require HR administration.' });
+      const finalisedRun = await assertMayCorrect(trx, user, dateStr);
+      if (finalisedRun && !previous) requireReason(body.correction_reason);
       const sessionValues = {
         clock_in_at: clockInAt, clock_out_at: clockOutAt, project_name: body.project_name || 'Manual Entry',
         status: 'COMPLETED', total_break_minutes: breakMins, worked_minutes: workedMins, source: 'MANUAL', device_id: null, updated_at: new Date(),
@@ -1192,7 +1232,14 @@ export async function hrRoutes(fastify: FastifyInstance) {
       // just overwritten with this one entry's own values, or adding a
       // second entry silently erases the first one from the admin's view.
       await syncAttendanceFromSessions(trx, user.tenant_id, targetUserId, dateStr, user.sub, body.status);
-      if (previous) await trx.insertInto('hr_activity_log').values({ tenant_id: user.tenant_id, user_id: user.sub, action: 'attendance.corrected', module: 'HR', metadata: { reason: body.correction_reason, previous, corrected: session } }).execute();
+      // The original session is kept in hr_time_corrections (migration 912);
+      // an entry added to a period payroll already approved or paid is
+      // recorded the same way, so payroll sees it.
+      if (previous) {
+        await recordTimeCorrection(trx, user, { userId: targetUserId, date: dateStr, recordType: 'SESSION', recordId: session.id, before: previous, after: session, fields: SESSION_CORRECTION_FIELDS, reason: body.correction_reason! });
+      } else if (finalisedRun) {
+        await recordTimeCorrection(trx, user, { userId: targetUserId, date: dateStr, recordType: 'SESSION', recordId: session.id, before: {}, after: session, fields: SESSION_CORRECTION_FIELDS, reason: requireReason(body.correction_reason) });
+      }
 
       return { ok: true, session };
     });
@@ -3411,9 +3458,9 @@ export async function hrRoutes(fastify: FastifyInstance) {
         if (['tuma.parcel', 'seal.task', 'hudufreight.booking', 'tasks.task', 'clearos.task', 'crm.task', 'support.ticket', 'finops.invoice', 'complyos.obligation'].includes(`${app_id}.${type}`)) {
           if (!z.string().uuid().safeParse(id).success) throw Object.assign(new Error('Invalid work-item ID.'), { statusCode: 400 });
           additionalWorkItem = await resolveAdditionalWorkItem(trx, user.tenant_id, user.sub, user.role, app_id, type, id, TS_MANAGER_ROLES);
-          if (!additionalWorkItem) throw Object.assign(new Error(`Work-item type ${app_id}.${type} is not connected to NexusHR.`), { statusCode: 422 });
+          if (!additionalWorkItem) throw Object.assign(new Error(`Work-item type ${app_id}.${type} is not connected to Axis.`), { statusCode: 422 });
         } else if (app_id === 'nexushr' && type === 'task') {
-          if (!z.string().uuid().safeParse(id).success) throw Object.assign(new Error('Invalid NexusHR task ID.'), { statusCode: 400 });
+          if (!z.string().uuid().safeParse(id).success) throw Object.assign(new Error('Invalid Axis task ID.'), { statusCode: 400 });
           if (taskId && taskId !== id) throw Object.assign(new Error('Conflicting task references.'), { statusCode: 400 });
           taskId = id;
         } else if ((app_id === 'clearos' && type === 'shipment') || (app_id === 'projects' && type === 'project')) {
@@ -3421,7 +3468,7 @@ export async function hrRoutes(fastify: FastifyInstance) {
           if (projectId && projectId !== id) throw Object.assign(new Error('Conflicting work-item references.'), { statusCode: 400 });
           projectId = id;
         } else {
-          throw Object.assign(new Error(`Work-item type ${app_id}.${type} is not connected to NexusHR yet.`), { statusCode: 422 });
+          throw Object.assign(new Error(`Work-item type ${app_id}.${type} is not connected to Axis yet.`), { statusCode: 422 });
         }
       }
 

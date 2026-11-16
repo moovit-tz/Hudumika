@@ -238,7 +238,8 @@ async function handleAssigneeChange(
     tenantId: user.tenant_id, userId: newAssigneeId, app: 'tasks', type: 'task',
     title, message: task.title, link: '/tasks?view=assigned', entityType: 'task', entityId: task.id,
   }).catch(err => console.error('[Tasks] Failed to notify assignee:', err.message));
-  await MailService.sendNow(user.tenant_id, {
+  // No email (a worker without sign-in): the in-app notice above is enough.
+  if (assignee.email) await MailService.sendNow(user.tenant_id, {
     to: assignee.email, subject: title,
     bodyHtml: `<p>Hi ${assignee.name},</p><p>${actorName} assigned you a task: <strong>${task.title}</strong></p>`,
     sourceApp: 'tasks',
@@ -266,7 +267,8 @@ async function notifyCollaboratorAdded(
     tenantId: user.tenant_id, userId: collaboratorUserId, app: 'tasks', type: 'task',
     title, message: task.title, link: '/tasks?view=assigned', entityType: 'task', entityId: task.id,
   }).catch(err => console.error('[Tasks] Failed to notify collaborator:', err.message));
-  await MailService.sendNow(user.tenant_id, {
+  // No email (a worker without sign-in): the in-app notice above is enough.
+  if (recipient.email) await MailService.sendNow(user.tenant_id, {
     to: recipient.email, subject: title,
     bodyHtml: `<p>Hi ${recipient.name},</p><p>${actorName} ${verb}: <strong>${task.title}</strong></p>`,
     sourceApp: 'tasks',
@@ -420,7 +422,8 @@ export async function tasksRoutes(fastify: FastifyInstance) {
             title, message: `You can now ${body.role === 'editor' ? 'view and work on' : 'view'} tasks on this list.`,
             link: '/tasks',
           }).catch(err => console.error('[Tasks] Failed to notify on list share:', err.message));
-          await MailService.sendNow(user.tenant_id, {
+          // No email (a worker without sign-in): the in-app notice above is enough.
+          if (recipient.email) await MailService.sendNow(user.tenant_id, {
             to: recipient.email, subject: title,
             bodyHtml: `<p>Hi ${recipient.name},</p><p>${actorName} shared their "${list.name}" task list with you (${body.role} access).</p>`,
             sourceApp: 'tasks',
@@ -1064,7 +1067,8 @@ export async function tasksRoutes(fastify: FastifyInstance) {
           tenantId: user.tenant_id, userId: uid, app: 'tasks', type: 'mention',
           title, message: body.content.trim(), link: '/tasks?view=assigned', entityType: 'task', entityId: task.id,
         }).catch(err => console.error('[Tasks] Failed to notify on comment:', err.message));
-        await MailService.sendNow(user.tenant_id, {
+        // No email (a worker without sign-in): the in-app notice above is enough.
+        if (recipient.email) await MailService.sendNow(user.tenant_id, {
           to: recipient.email, subject: title,
           bodyHtml: `<p>Hi ${recipient.name},</p><p>${actorName} commented on <strong>${task.title}</strong>:</p><p>${body.content.trim()}</p>`,
           sourceApp: 'tasks',

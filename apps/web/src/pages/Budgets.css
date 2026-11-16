@@ -14,9 +14,9 @@
   gap: 20px;
   padding: 22px 26px;
   overflow: hidden;
-  color: #fff;
-  background: linear-gradient(135deg, #0e1f3d 0%, #1a3260 60%, color-mix(in srgb, var(--teal) 35%, #0e1f3d) 100%);
-  border: 1px solid rgba(255, 255, 255, .1);
+  color: var(--ink);
+  background: var(--card-bg, var(--white));
+  border: 1px solid var(--border);
   border-radius: var(--card-radius);
   box-shadow: var(--card-shadow);
 }

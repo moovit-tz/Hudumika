@@ -1611,7 +1611,7 @@ curl "https://carimagesapi.com/api/v1/signed-url?api_key=${carimages.apiKey}&mak
 const APP_LABELS: Record<string, string> = {
   ai: 'AI', clearos: 'ClearOS', cloud: 'Cloud', complyos: 'ComplyOS',
   contacts: 'Contacts', email: 'Email', finops: 'FinOps', ondi: 'Ondi',
-  nexushr: 'NexusHR', tracking: 'Tracking', demurrage: 'Demurrage', cargotracker: 'CargoTracker',
+  nexushr: 'Axis', tracking: 'Tracking', demurrage: 'Demurrage', cargotracker: 'CargoTracker',
   petti: 'Petti', notes: 'Notes', sign: 'eSign', sms: 'SMS', onsite: 'Onsite', onesite: 'CMS',
   inventory: 'Inventory',
   // Backfilled by migration 395 — these had real feature keys and
