@@ -122,6 +122,7 @@ import { ondiSamlRoutes } from './routes/ondi-saml.routes.js';
 import { ondiSamlIdpRoutes } from './routes/ondi-saml-idp.routes.js';
 import { ondiOauthRoutes } from './routes/ondi-oauth.routes.js';
 import { oidcDiscoveryRoutes } from './routes/oidc-discovery.routes.js';
+import { mcpRoutes } from './routes/mcp.routes.js';
 import { trackingRoutes } from './routes/tracking.routes.js';
 import { trackingDeviceRoutes } from './routes/tracking-device.routes.js';
 import { fleetOpsRoutes } from './routes/fleetOps.routes.js';
@@ -297,6 +298,7 @@ import { bookingPublicRoutes } from './routes/booking.routes.js';
 import { calendarSyncRoutes } from './routes/calendar-sync.routes.js';
 import { smsRoutes, smsWebhookRoutes } from './routes/sms.routes.js';
 import { setupGuideRoutes } from './routes/setup-guide.routes.js';
+import { helpRoutes } from './routes/help.routes.js';
 import { developerRoutes } from './routes/developer.routes.js';
 import { projectOsRoutes } from './routes/project-os.routes.js';
 import { projectEquipmentRoutes } from './routes/project-equipment.routes.js';
@@ -729,6 +731,8 @@ export async function registerApp() {
     await server.register(ondiSamlIdpRoutes, { prefix: '/v1/ondi/saml/idp' });
     await server.register(ondiOauthRoutes, { prefix: '/v1/ondi/oauth' });
     await server.register(oidcDiscoveryRoutes);
+    // MCP gateway: /mcp, its OAuth metadata, /v1/mcp/* (Developer ▸ MCP).
+    await server.register(mcpRoutes);
     await server.register(trackingRoutes, { prefix: '/v1/tracking' });
     await server.register(trackingDeviceRoutes, { prefix: '/v1/tracking/device' });
     await server.register(fleetOpsRoutes, { prefix: '/v1/tracking' });
@@ -832,6 +836,7 @@ export async function registerApp() {
     await server.register(orgRoutes, { prefix: '/v1/org' });
     await server.register(organizationsRoutes, { prefix: '/v1/organizations' });
     await server.register(supportRoutes, { prefix: '/v1/support' });
+    await server.register(helpRoutes, { prefix: '/v1/help' });
     await server.register(supportNetworkRoutes, { prefix: '/v1/support/network' });
     await server.register(platformRoutes, { prefix: '/v1/platform' });
     await server.register(privacyPolicyRoutes, { prefix: '/v1/privacy-policy' });

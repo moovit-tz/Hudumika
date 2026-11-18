@@ -26,6 +26,8 @@ import { hasSnapshot, restorePageState } from './lib/pageState.js';
 import { AppHeader } from './components/AppHeader.js';
 import { PageLayout } from './components/PageLayout.js';
 import { Welcome } from './pages/Welcome.js';
+import { TourProvider } from './components/WalkthroughTour.js';
+
 // Standalone routes use the same shell even when no sidebar has been loaded.
 import './components/AppSidebar.css';
 import { useLandingStyle } from './hooks/useLandingStyle.js';
@@ -77,6 +79,9 @@ const TasksApp = React.lazy(() => import('./pages/TasksApp.js').then(m => ({ def
 const CalendarApp = React.lazy(() => import('./pages/CalendarApp.js').then(m => ({ default: m.CalendarApp })));
 const CustomerDashboard = React.lazy(() => import('./pages/CustomerDashboard.js').then(m => ({ default: m.CustomerDashboard })));
 const CustomerSupport = React.lazy(() => import('./pages/CustomerSupport.js').then(m => ({ default: m.CustomerSupport })));
+// MCP account linking (consent) and the customer's own connected-apps list.
+const McpAuthorize = React.lazy(() => import('./pages/mcp/McpAuthorize.js').then(m => ({ default: m.McpAuthorize })));
+const CustomerConnectedApps = React.lazy(() => import('./pages/mcp/CustomerConnectedApps.js').then(m => ({ default: m.CustomerConnectedApps })));
 const CustomerInvoices = React.lazy(() => import('./pages/CustomerInvoices.js').then(m => ({ default: m.CustomerInvoices })));
 const CustomerDocuments = React.lazy(() => import('./pages/CustomerDocuments.js').then(m => ({ default: m.CustomerDocuments })));
 const CustomerQuotations = React.lazy(() => import('./pages/CustomerQuotations.js').then(m => ({ default: m.CustomerQuotations })));
@@ -128,6 +133,10 @@ const NgaoShell = React.lazy(() => import('./shells/NgaoShell.js').then(m => ({ 
 const GerejiShell = React.lazy(() => import('./shells/GerejiShell.js').then(m => ({ default: m.GerejiShell })));
 const ZentraShell = React.lazy(() => import('./shells/ZentraShell.js').then(m => ({ default: m.ZentraShell })));
 const PulseShell = React.lazy(() => import('./shells/PulseShell.js').then(m => ({ default: m.PulseShell })));
+
+const HelpCentreHome = React.lazy(() => import('./pages/help/HelpCentreHome.js').then(m => ({ default: m.HelpCentreHome })));
+const HelpCategoryView = React.lazy(() => import('./pages/help/HelpCategoryView.js').then(m => ({ default: m.HelpCategoryView })));
+const HelpArticleView = React.lazy(() => import('./pages/help/HelpArticleView.js').then(m => ({ default: m.HelpArticleView })));
 
 /* ── Hub page — shares search state between header and workspace.
    Branches between the Advanced hub (WorkspaceHome, under the shared
@@ -291,6 +300,10 @@ const CustomerShell: React.FC = () => {
           <div style={{ fontSize: 18, fontWeight: 800 }}>{branding.platformName}</div>
         )}
         <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+          <Link to="/connected-apps" title="Connected apps" aria-label="Connected apps"
+            style={{ color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', width: 36, height: 36 }}>
+            <Icon name="link" size={18} color="#fff" />
+          </Link>
           <Link to="/profile" title="Profile"
             style={{
               background: 'rgba(255,255,255,0.2)', border: '1.5px solid rgba(255,255,255,0.3)',
@@ -317,8 +330,10 @@ const CustomerShell: React.FC = () => {
             <Route path="/support/tickets" element={<CustomerSupport />} />
             <Route path="/support"         element={<CustomerSupport />} />
             <Route path="/chat"            element={<Chat />} />
+            <Route path="/mcp/authorize"   element={<McpAuthorize />} />
             <Route element={<PageLayout />}>
               <Route path="/profile" element={<UserProfile />} />
+              <Route path="/connected-apps" element={<CustomerConnectedApps />} />
               <Route path="/pay/invoice/:id" element={<InvoicePaymentPage />} />
             </Route>
             <Route path="/clearance/:id"   element={<ShipmentDetail />} />
@@ -429,6 +444,9 @@ const AppContentBody: React.FC = () => {
         <Route path="/sign/verify"         element={<SignVerifyPage />} />
         {/* Calendly-style booking pages — anyone with the link can book, no account needed */}
         <Route path="/book/:slug"          element={<BookingPublicPage />} />
+        <Route path="/help"                element={<HelpCentreHome />} />
+        <Route path="/help/category/:categoryKey" element={<HelpCategoryView />} />
+        <Route path="/help/article/:slug"  element={<HelpArticleView />} />
         {/* Bliss "join like Zoom/Meet/Teams" guest meeting link — no Hudumika
             account needed, gated by the host's own password/waiting-room
             controls instead (calls-public routes). Mounted here AND in the
@@ -464,6 +482,11 @@ const AppContentBody: React.FC = () => {
             {/* Hub — WorkspaceHome with shared search state */}
             <Route path="/" element={<HubPage />} />
             <Route path="/welcome" element={<Welcome />} />
+            <Route path="/help" element={<HelpCentreHome />} />
+            <Route path="/help/category/:categoryKey" element={<HelpCategoryView />} />
+            <Route path="/help/article/:slug" element={<HelpArticleView />} />
+            {/* MCP account linking — the gateway's authorization_endpoint. */}
+            <Route path="/mcp/authorize" element={<McpAuthorize />} />
 
             {/* Public legal pages — self-contained layout */}
             <Route path="/maintenance"    element={<MaintenancePage />} />
@@ -695,7 +718,9 @@ const App: React.FC = () => (
                       override it. Mounted here so new routes are covered the
                       moment they exist, rather than when someone remembers. */}
                   <AutoSEO />
-                  <AppContent />
+                  <TourProvider>
+                    <AppContent />
+                  </TourProvider>
                 </DesignSystemProvider>
               </WorkspaceProvider>
             </ClockInProvider>

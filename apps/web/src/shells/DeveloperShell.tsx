@@ -9,6 +9,9 @@ import { AppHeader } from '../components/AppHeader.js';
 import { PageLayout } from '../components/PageLayout.js';
 import { DeveloperConsolePage } from '../pages/developer/DeveloperConsolePage.js';
 import { ApiKeysPage } from '../pages/developer/ApiKeysPage.js';
+import { lazyPage } from '../lib/lazyPage.js';
+
+const McpHubPage = lazyPage(() => import('../pages/developer/McpHubPage.js'), 'McpHubPage');
 
 const NAV: SidebarSection[] = [
   {
@@ -17,6 +20,14 @@ const NAV: SidebarSection[] = [
       { label: 'Overview', icon: 'grid', path: '/developer', exact: true },
       { label: 'Projects', icon: 'folder', path: '/developer?tab=projects' },
       { label: 'API Keys', icon: 'key', path: '/developer/keys' },
+    ],
+  },
+  {
+    title: 'MCP',
+    items: [
+      { label: 'Apps & tools', icon: 'grid', path: '/developer/mcp', exact: true },
+      { label: 'My connections', icon: 'link', path: '/developer/mcp?view=mine' },
+      { label: 'Connect a client', icon: 'bookOpen', path: '/developer/mcp?view=setup' },
     ],
   },
   {
@@ -48,6 +59,7 @@ export function DeveloperShell() {
               <Route element={<PageLayout />}>
                 <Route index element={<DeveloperConsolePage />} />
                 <Route path="keys" element={<ApiKeysPage />} />
+                <Route path="mcp" element={<McpHubPage />} />
                 <Route path="*" element={<DeveloperConsolePage />} />
               </Route>
               <Route path="*" element={<Navigate to="/developer" replace />} />

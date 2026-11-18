@@ -1657,7 +1657,7 @@ select.input-field { cursor: pointer; }
 .table-hdr {
   display: flex;
   align-items: center;
-  padding: 6px 16px;
+  padding: 10px 24px;
   background: var(--bg);
   border-bottom: 1px solid var(--border);
   position: sticky;
@@ -1697,7 +1697,7 @@ select.input-field { cursor: pointer; }
   display: flex;
   align-items: center;
   gap: 10px;
-  padding: 10px 16px;
+  padding: 12px 24px;
   background: var(--white);
   cursor: pointer;
   -webkit-user-select: none;
@@ -1849,7 +1849,7 @@ select.input-field { cursor: pointer; }
 .ship-row {
   display: flex;
   align-items: center;
-  padding: 9px 16px;
+  padding: 12px 24px;
   border-bottom: 1px solid var(--border);
   cursor: pointer;
   background: var(--white);
@@ -2122,7 +2122,7 @@ select.input-field { cursor: pointer; }
   background: var(--white);
   border: 1px solid var(--border);
   border-radius: var(--r);
-  padding: 14px 14px 12px;
+  padding: 14px 18px;
   margin-bottom: 8px;
   cursor: pointer;
   transition: border-color 0.18s, box-shadow 0.18s, transform 0.12s;
@@ -2806,11 +2806,15 @@ select.input-field { cursor: pointer; }
   display: flex;
   flex-direction: column;
   background: var(--white);
-  padding: var(--page-pad-y, 8px) var(--page-pad-x, 8px);
+  padding: var(--page-pad-y, 16px) var(--page-pad-x, 20px);
   overflow: hidden;
   min-height: 0;
   width: 100%;
 }
+
+/* When rendered inside PageLayout, avoid nesting a second outer card frame. */
+.page-layout .cc-frame { padding: 0; }
+.page-layout .cc-shell { border: none; border-radius: 0; box-shadow: none; }
 
 /* Primary content column. Horizontal padding, plus a small top padding so
    PageHeader's breadcrumb doesn't sit flush against .cc-shell's own visible
@@ -2827,7 +2831,7 @@ select.input-field { cursor: pointer; }
   overflow: hidden;
   min-width: 0;
   width: 100%;
-  padding: 16px 20px 0;
+  padding: 20px 28px 16px;
 }
 
 /* ── Page Header ── */
@@ -3132,7 +3136,7 @@ select.input-field { cursor: pointer; }
 .cc-pipeline-step {
   flex: 1 1 0;
   min-width: 0;
-  padding: 14px 12px;
+  padding: 16px 20px;
   text-align: center;
   border: 0;
   border-right: 1px solid var(--border);
@@ -3202,6 +3206,7 @@ select.input-field { cursor: pointer; }
 [data-theme="dark"] .cc-pipeline-step--raised { background: var(--red-l); }
 
 @media (max-width: 767px) {
+  .cc-pipeline-step { padding: 14px 16px; }
   .cc-pipeline-num { font-size: 16px; }
 }
 
@@ -7181,7 +7186,8 @@ html[data-expanded="true"] .fin-shell {
     display: none !important;
   }
   .th-desc, .ch-risk-cell, .ch-action-cell, .ch-meta-cell { display: none !important; }
-  .table-hdr, .cust-header { padding-left: 12px; padding-right: 12px; }
+  .cc-main { padding: 14px 16px 12px; }
+  .table-hdr, .cust-header, .ship-row { padding-left: 16px !important; padding-right: 16px !important; }
   .th-ref, .ch-customer-cell { width: auto; flex: 1 1 0; }
   .ch-active-cell, .th-status { width: auto; flex: 0 0 auto; }
   .ch-active-cell { padding-left: 8px; }

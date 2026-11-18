@@ -12,6 +12,7 @@ const UNMETERED_PREFIXES = [
   '/v1/superadmin', '/v1/api-keys', '/v1/tenants', '/v1/permissions', '/v1/platform', '/v1/packages',
   '/v1/tasks', // Tasks + Calendar are personal free utility apps, not plan-gated usage
   '/v1/search',
+  '/v1/mcp', // MCP connection setup/management; tool writes still go through each app's own metered route
 ];
 
 const FREE_CUSTOMS_CALCULATIONS = new Set([

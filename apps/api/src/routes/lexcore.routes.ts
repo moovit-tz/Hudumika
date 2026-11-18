@@ -3,6 +3,9 @@ import { withTenant } from '../db/client.js';
 import { requireEntitlement } from '../middleware/entitlement.js';
 
 export async function lexcoreRoutes(server: FastifyInstance) {
+  // Authenticate first: without it request.user is never set and the
+  // entitlement check 401s every caller, so every /v1/lexcore page failed.
+  server.addHook('preHandler', server.authenticate);
   server.addHook('preHandler', requireEntitlement('lexcore'));
 
   server.get('/matters', async (request) => {

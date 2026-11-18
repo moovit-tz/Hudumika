@@ -23,6 +23,10 @@ export default defineConfig({
     proxy: {
       '/.well-known/openid-configuration': { target: 'http://127.0.0.1:3001', ...API_HOST },
       '/jwks.json': { target: 'http://127.0.0.1:3001', ...API_HOST },
+      // MCP gateway and its OAuth discovery documents (RFC 9728 / RFC 8414).
+      '^/mcp$': { target: 'http://127.0.0.1:3001', ...API_HOST },
+      '/.well-known/oauth-protected-resource': { target: 'http://127.0.0.1:3001', ...API_HOST },
+      '/.well-known/oauth-authorization-server': { target: 'http://127.0.0.1:3001', ...API_HOST },
       '/v1': { target: 'http://127.0.0.1:3001', ...API_HOST },
       '/auth': { target: 'http://127.0.0.1:3001', ...API_HOST },
       '/ws': { target: 'ws://127.0.0.1:3001', ws: true, ...API_HOST },

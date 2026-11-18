@@ -103,13 +103,19 @@ function mapLead(row: any) {
 
 async function assertLeadStageInTenant(trx: any, tenantId: string, stage: string): Promise<void> {
   if ((LEGACY_LEAD_STAGES as readonly string[]).includes(stage)) return;
+  // crm_lead_stages.id is a uuid: any other string would be a Postgres cast error, not a clean 400.
+  if (!STAGE_UUID.test(stage)) throw Object.assign(new Error('Select a valid stage for this workspace.'), { statusCode: 400 });
   const configured = await trx.selectFrom('crm_lead_stages').select('id')
     .where('id', '=', stage).where('tenant_id', '=', tenantId).executeTakeFirst();
   if (!configured) throw Object.assign(new Error('Select a valid stage for this workspace.'), { statusCode: 400 });
 }
 
+const STAGE_UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
 async function leadStageLabel(trx: any, tenantId: string, stage: string): Promise<string> {
-  const configured = await trx.selectFrom('crm_lead_stages').select('label')
+  // Built-in stages (NEW, CONTACTED …) are not rows; querying the uuid column
+  // with them failed the whole stage change inside the transaction.
+  const configured = !STAGE_UUID.test(stage) ? null : await trx.selectFrom('crm_lead_stages').select('label')
     .where('id', '=', stage).where('tenant_id', '=', tenantId).executeTakeFirst();
   if (configured) return configured.label;
   return ({ NEW: 'New', CONTACTED: 'Contacted', QUALIFIED: 'Qualified', PROPOSAL: 'Proposal', NEGOTIATION: 'Negotiation', WON: 'Won', LOST: 'Lost' } as Record<string, string>)[stage] ?? stage;

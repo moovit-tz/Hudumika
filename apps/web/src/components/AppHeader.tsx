@@ -6,6 +6,7 @@ import { useIdleLock } from '../hooks/useIdleLock.js';
 import { PersonAvatar } from './PersonAvatar.js';
 import { NotificationCentre } from './NotificationCentre.js';
 import { HeaderPill } from './HeaderPill.js';
+import { ReportDefectModal } from './ReportDefectModal.js';
 import { useWebSocket } from '../hooks/useWebSocket.js';
 import { Icon, type IconName } from './Icon.js';
 import { APP_COLORS, ActiveAppContext, MobileNavContext } from '../shells/WorkspaceApp.js';
@@ -106,6 +107,7 @@ const SEARCH_CATEGORIES: Record<string, { label: string; icon: IconName }> = {
   web_pages:    { label: 'Website pages',   icon: 'globe' },
   domains:      { label: 'Domains',         icon: 'globe' },
   meetings:     { label: 'My meetings',     icon: 'calendar' },
+  help_guides:  { label: 'Help Guides',     icon: 'compass' },
 };
 
 // ── Main component ─────────────────────────────────────────────
@@ -292,6 +294,9 @@ export function AppHeader({
       setIsFullLayout(prev => !prev);
     }
   }
+
+  // ── Defect Reporting ──
+  const [reportModalOpen, setReportModalOpen] = useState(false);
 
   // ── Notifications ──
   const [notifOpen, setNotifOpen] = useState(false);
@@ -910,6 +915,31 @@ export function AppHeader({
               </button>
             </Tip>
 
+            {/* Help Centre Direct Trigger */}
+            <Tip label="Help Centre & Guides" side="bottom">
+              <Link
+                to="/help"
+                className="app-header-icon-btn"
+                aria-label="Help Centre & Guides"
+                style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', textDecoration: 'none' }}
+              >
+                <Icon name="compass" size={17} />
+              </Link>
+            </Tip>
+
+            {/* Defect / Bug Report Direct Trigger */}
+            <Tip label="Report an Issue / Bug" side="bottom">
+              <button
+                type="button"
+                onClick={() => setReportModalOpen(true)}
+                className="app-header-icon-btn"
+                aria-label="Report an Issue / Bug"
+                data-ui-native-button=""
+              >
+                <Icon name="alertCircle" size={17} />
+              </button>
+            </Tip>
+
             {/* Language switcher */}
             <DropdownMenu>
               <Tip label={t('header.language') || 'Language'} side="bottom">
@@ -1038,6 +1068,25 @@ export function AppHeader({
                   </DropdownMenuItem>
 
                   <DropdownMenuItem asChild>
+                    <Link to="/help" className="ah-menu-item-link">
+                      <div className="ah-menu-icon-box" style={{ '--icon-color': 'var(--teal)', '--icon-bg': 'var(--teal-l)' } as React.CSSProperties}>
+                        <Icon name="compass" size={13} />
+                      </div>
+                      <span className="ah-menu-item-label">Help Centre & Guides</span>
+                    </Link>
+                  </DropdownMenuItem>
+
+                  <DropdownMenuItem
+                    className="ah-menu-item-link cursor-pointer"
+                    onClick={() => setReportModalOpen(true)}
+                  >
+                    <div className="ah-menu-icon-box" style={{ '--icon-color': 'var(--rose, #f43f5e)', '--icon-bg': 'rgba(244, 63, 94, 0.12)' } as React.CSSProperties}>
+                      <Icon name="alertCircle" size={13} />
+                    </div>
+                    <span className="ah-menu-item-label">Report an Issue</span>
+                  </DropdownMenuItem>
+
+                  <DropdownMenuItem asChild>
                     <Link to="/workspace" className="ah-menu-item-link">
                       <div className="ah-menu-icon-box" style={{ '--icon-color': 'var(--blue)', '--icon-bg': 'rgba(59, 130, 246, 0.12)' } as React.CSSProperties}>
                         <Icon name="settings" size={13} />
@@ -1147,6 +1196,8 @@ export function AppHeader({
           </div>
         </div>
       )}
+      {/* Shared Report Defect Modal for all Hudumika apps */}
+      <ReportDefectModal open={reportModalOpen} onOpenChange={setReportModalOpen} />
     </>
   );
 }

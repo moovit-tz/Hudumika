@@ -1,4 +1,4 @@
-﻿import React, { useState, useEffect, useRef, useCallback } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { usePageSEO } from '../hooks/usePageSEO.js';
 import { useNavigate, useSearchParams, Link } from 'react-router-dom';
 import { useIsMobile } from '../hooks/useIsMobile.js';
@@ -282,7 +282,7 @@ function KanbanBoard({ groups, refresh, sortBy }: { groups: any[], refresh: () =
           }}>
             {/* ── Column header: ring icon + label + count pill ── */}
             <div style={{
-              padding: '11px 12px 10px',
+              padding: '12px 18px 10px',
               flexShrink: 0,
               borderBottom: '1px solid var(--cos-column-border)',
             }}>
@@ -293,10 +293,8 @@ function KanbanBoard({ groups, refresh, sortBy }: { groups: any[], refresh: () =
               </div>
             </div>
 
-            {/* ── Card list — horizontal padding matches the column header's
-                (12px) so a card's left/right edge lines up with the column
-                title above it, not sit 4px inboard of it. ── */}
-            <div style={{ overflowY: 'auto', padding: '8px 12px 10px', display: 'flex', flexDirection: 'column', gap: 8 }}>
+            {/* ── Card list — horizontal padding keeps each card comfortably inset inside its column ── */}
+            <div style={{ overflowY: 'auto', padding: '10px 16px 14px', display: 'flex', flexDirection: 'column', gap: 8 }}>
               {ships.map((ship: any) => {
                 const risks = (ship.active_risk_types || []) as string[];
                 const urgent = risks.some(r => RISK_META[r]?.urgent);
@@ -318,7 +316,7 @@ function KanbanBoard({ groups, refresh, sortBy }: { groups: any[], refresh: () =
                       fontFamily: 'var(--font)',
                       textDecoration: 'none',
                       color: 'inherit',
-                      padding: '11px 12px',
+                      padding: '14px 18px',
                     }}
                   >
                     {/* Top line: flag (urgent only) + ref number + DG badge + type badge */}
@@ -993,25 +991,39 @@ export const CommandCenter: React.FC = () => {
         {/* List view: Table header + paginated list */}
         {viewMode === 'list' && (
           <>
-            <TableHeader sortBy={sortBy} setSortBy={setSortBy} />
-            <div className="scroll-body">
-              {loading && (
-                <div style={{ padding: '32px', textAlign: 'center', fontSize: '13px', color: 'var(--ink3)' }}>
-                  Syncing shipment data…
-                </div>
-              )}
-              {!loading && totalGroups === 0 && (
-                <div style={{ padding: '48px', textAlign: 'center', color: 'var(--ink3)', fontSize: '13px' }}>
-                  No shipments match the current filters.
-                </div>
-              )}
-              {!loading && pagedGroups.map((group: any) => (
-                <CustomerGroup
-                  key={group.customer.id}
-                  group={group}
-                  shipmentHref={(ship: ShipmentCase) => `/clearos/clearance/${ship.id}`}
-                />
-              ))}
+            <div
+              style={{
+                marginTop: 14,
+                border: '1px solid var(--border)',
+                borderRadius: 'var(--card-radius, var(--r))',
+                background: 'var(--white)',
+                overflow: 'hidden',
+                display: 'flex',
+                flexDirection: 'column',
+                flex: 1,
+                minHeight: 0,
+              }}
+            >
+              <TableHeader sortBy={sortBy} setSortBy={setSortBy} />
+              <div className="scroll-body">
+                {loading && (
+                  <div style={{ padding: '32px', textAlign: 'center', fontSize: '13px', color: 'var(--ink3)' }}>
+                    Syncing shipment data…
+                  </div>
+                )}
+                {!loading && totalGroups === 0 && (
+                  <div style={{ padding: '48px', textAlign: 'center', color: 'var(--ink3)', fontSize: '13px' }}>
+                    No shipments match the current filters.
+                  </div>
+                )}
+                {!loading && pagedGroups.map((group: any) => (
+                  <CustomerGroup
+                    key={group.customer.id}
+                    group={group}
+                    shipmentHref={(ship: ShipmentCase) => `/clearos/clearance/${ship.id}`}
+                  />
+                ))}
+              </div>
             </div>
 
             {/* Truncation warning + Load more when server has more than we loaded */}

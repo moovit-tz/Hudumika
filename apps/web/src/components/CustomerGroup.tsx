@@ -22,7 +22,7 @@ export const CustomerGroup: React.FC<CustomerGroupProps> = ({ group, shipmentHre
           display: 'flex',
           alignItems: 'center',
           gap: 0,
-          padding: '10px 16px',
+          padding: '12px 24px',
           background: 'var(--bg)',
           cursor: 'pointer',
           userSelect: 'none',
@@ -51,7 +51,7 @@ export const CustomerGroup: React.FC<CustomerGroupProps> = ({ group, shipmentHre
         {/* Customer name → CRM profile, with the CRM category/location under it. */}
         <div className="ch-customer-cell" style={{ display: 'flex', flexDirection: 'column', minWidth: 0 }}>
           <Link
-            to={`/crm/customers?id=${group.customer.id}`}
+            to={`/crm/customers/${group.customer.id}`}
             onClick={(e) => e.stopPropagation()}
             title="Open in CRM"
             className="ch-name"

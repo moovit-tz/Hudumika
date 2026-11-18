@@ -40,6 +40,10 @@ export function DeveloperConsolePage() {
   useEffect(() => {
     setLoading(true);
     apiFetch('/v1/developer/accounts')
+      // Reading the list no longer creates anything; opening the console
+      // creates the personal account explicitly the first time.
+      .then(async (accs: DeveloperAccount[]) => accs.length > 0 ? accs
+        : [await apiFetch('/v1/developer/accounts', { method: 'POST', body: JSON.stringify({ name: 'Personal', type: 'PERSONAL' }) }) as DeveloperAccount])
       .then((accs: DeveloperAccount[]) => {
         setAccounts(accs);
         if (accs.length > 0) {

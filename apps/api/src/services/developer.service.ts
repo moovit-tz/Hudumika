@@ -138,10 +138,9 @@ export class DeveloperService {
   /**
    * List all developer accounts the user owns or belongs to (Personal + Organizations).
    */
-  static async listUserAccounts(userId: string, userName: string): Promise<DeveloperAccount[]> {
-    // Ensure personal account exists
-    await this.getOrCreatePersonalAccount(userId, userName);
-
+  // A read never creates: the console POSTs /accounts the first time it opens.
+  // (Creating here made every list call — including MCP's — a write.)
+  static async listUserAccounts(userId: string, _userName?: string): Promise<DeveloperAccount[]> {
     const owned = await db
       .selectFrom('developer_accounts')
       .selectAll()

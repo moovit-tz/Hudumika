@@ -29,7 +29,7 @@ export function SectionCard({ title, action, padded = true, collapsible = true, 
     <div className={className} style={{ background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 'var(--card-radius)', boxShadow: 'var(--card-shadow, none)', overflow: 'hidden', display: 'flex', flexDirection: 'column', minHeight: 0 }}>
       {title && (
         <div
-          style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '13px 18px', borderBottom: showBody ? '1px solid var(--border)' : 'none', gap: 8, cursor: collapsible ? 'pointer' : 'default', userSelect: collapsible ? 'none' : undefined, background: 'var(--white)' }}
+          style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '14px 24px', borderBottom: showBody ? '1px solid var(--border)' : 'none', gap: 8, cursor: collapsible ? 'pointer' : 'default', userSelect: collapsible ? 'none' : undefined, background: 'var(--white)' }}
           onClick={collapsible ? () => setOpen(o => !o) : undefined}
         >
           <span style={{ display: 'flex', alignItems: 'center', gap: 7, fontSize: 11.5, fontWeight: 700, color: 'var(--ink2)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
@@ -40,7 +40,7 @@ export function SectionCard({ title, action, padded = true, collapsible = true, 
         </div>
       )}
       {showBody && (
-        <div style={{ padding: padded ? '18px' : 0, background: 'var(--card-sunken)', flex: '1 1 auto', minHeight: 0, width: '100%', boxSizing: 'border-box' }}>
+        <div style={{ padding: padded ? '20px 24px' : 0, background: 'var(--card-sunken)', flex: '1 1 auto', minHeight: 0, width: '100%', boxSizing: 'border-box' }}>
           {children}
         </div>
       )}

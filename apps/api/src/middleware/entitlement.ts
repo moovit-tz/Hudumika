@@ -296,3 +296,17 @@ export function requireAnyEntitlement(featureKeys: string[]) {
     return reply.status(firstFailure!.status).send(firstFailure!.body);
   };
 }
+
+/**
+ * The same checkEntitlement() decision for a caller that is not an HTTP
+ * request to an entitlement-gated route — the MCP gateway uses it to decide
+ * which tools to list and, again, before every call. Returns null when the
+ * user may use the feature, else the error the route itself would send.
+ */
+export async function userEntitlementFailure(
+  user: FastifyRequest['user'],
+  featureKey: string,
+): Promise<{ status: number; body: Record<string, unknown> } | null> {
+  const probe = { user, apiKeyScopes: null, method: 'GET', routeOptions: { url: '' } } as unknown as FastifyRequest;
+  return checkEntitlement(probe, featureKey);
+}

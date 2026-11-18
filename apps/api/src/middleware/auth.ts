@@ -248,7 +248,7 @@ export const authPlugin = fp(async (fastify: FastifyInstance) => {
       }
 
       const client = await dbPlatform.selectFrom('ondi_oauth_clients').select('client_id')
-        .where('client_id', '=', claims.aud).executeTakeFirst();
+        .where('client_id', '=', claims.aud).where('registered_via', '!=', 'mcp_dcr').executeTakeFirst();
       if (!client) return reply.status(401).send({ error: 'Unauthorized: Unknown Ondi OAuth client' });
 
       const revoked = await isOauthAccessTokenRevoked(claims.jti);

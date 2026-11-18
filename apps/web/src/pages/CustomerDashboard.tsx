@@ -138,8 +138,10 @@ export const CustomerDashboard: React.FC = () => {
   useEffect(() => {
     if (!user?.id) return;
     Promise.all([
-      apiFetch(`/v1/invoices?customer_id=${user.id}`).catch(() => []),
-      apiFetch(`/v1/payments?customer_id=${user.id}`).catch(() => []),
+      // No customer_id: the server scopes a customer login to its own
+      // customer. Passing the user's own id (not a customers row) was a 403.
+      apiFetch('/v1/invoices').catch(() => []),
+      apiFetch('/v1/payments').catch(() => []),
     ]).then(([inv, pay]) => {
       setInvoices(Array.isArray(inv) ? inv : (inv?.data ?? []));
       setPayments(Array.isArray(pay) ? pay : (pay?.data ?? []));

@@ -362,7 +362,11 @@ export async function signRoutes(fastify: FastifyInstance) {
     const uid = userId(req);
     const query = req.query as Record<string, string>;
     const status = query.status;
-    const view = query.view; // 'inbox' | 'sent' | 'completed' | 'voided' | 'declined' | 'drafts' | 'all' | 'mine'
+    // A customer-portal login only ever sees documents it created or was sent.
+    // Without this, omitting `view` (or sending status only, as the staff
+    // Completed/Voided tabs do) skipped every scoping branch below and
+    // returned the whole tenant's envelopes to a CUSTOMER (found 2026-11-17).
+    const view = userRole(req) === 'CUSTOMER' && query.view !== 'inbox' ? 'mine' : query.view; // 'inbox' | 'sent' | 'completed' | 'voided' | 'declined' | 'drafts' | 'all' | 'mine'
     const search = query.search?.trim();
     // Additive — omitted keeps the pre-existing "first 100, no paging"
     // behavior so no existing caller breaks; a caller that wants page 2+
@@ -430,7 +434,10 @@ export async function signRoutes(fastify: FastifyInstance) {
       // admin-gated 'all' view above, so it doesn't need DOCUMENT_ADMIN_ROLES:
       // it's the same tenant-wide-but-narrowly-filtered shape the Drive
       // 'documents' tab on that same customer record already uses.
-      if (query.client_id) q = q.where('client_id', '=', query.client_id);
+      // customer_id is accepted as an alias: CustomerDetailPage sends that
+      // name, and the filter was silently ignored, listing every envelope.
+      const clientId = query.client_id || query.customer_id;
+      if (clientId) q = q.where('client_id', '=', clientId);
 
       // Real Postgres full-text search (migration 463's generated
       // search_vector + GIN index) over title/message/file_name/

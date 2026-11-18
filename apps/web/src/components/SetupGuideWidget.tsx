@@ -119,6 +119,36 @@ export function SetupGuideWidget() {
         <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
           <h2 className="wh-section-title">Getting started</h2>
           <Badge variant="brand">{doneCount}/{PHASES.length} set up</Badge>
+          <Link
+            to="/welcome"
+            style={{
+              fontSize: 12,
+              fontWeight: 600,
+              color: 'var(--teal)',
+              textDecoration: 'none',
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: 4,
+              marginLeft: 6,
+            }}
+          >
+            Full Checklist <Icon name="arrowRight" size={12} />
+          </Link>
+          <Link
+            to="/help"
+            style={{
+              fontSize: 12,
+              fontWeight: 600,
+              color: 'var(--ink3)',
+              textDecoration: 'none',
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: 4,
+              marginLeft: 8,
+            }}
+          >
+            Help Centre <Icon name="compass" size={12} />
+          </Link>
         </div>
         <button
           type="button"

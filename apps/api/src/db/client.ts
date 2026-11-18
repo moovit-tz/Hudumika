@@ -2985,13 +2985,31 @@ export interface LensItemsTable {
   title: string;
   body: string | null;
   area_id: string | null;
+  project_id: string | null;
+  release_id: string | null;
+  environment: Generated<string>;
   status: Generated<'OPEN' | 'IN_PROGRESS' | 'BLOCKED' | 'DONE' | 'WONTFIX'>;
   severity: Generated<'CRITICAL' | 'HIGH' | 'NORMAL' | 'LOW'>;
+  priority: Generated<'URGENT' | 'HIGH' | 'MEDIUM' | 'LOW'>;
   /** CONFIRMED means somebody ran it. SUSPECTED is a reading of the code. */
   confidence: Generated<'CONFIRMED' | 'SUSPECTED' | 'UNVERIFIED'>;
   /** The proof, not a restatement of the problem. */
   evidence: string | null;
   waiting_on: string | null;
+  assignee_id: string | null;
+  assignee_name: string | null;
+  reproduction_steps: string | null;
+  root_cause: string | null;
+  fix_summary: string | null;
+  verification_evidence: string | null;
+  verification_status: Generated<'UNVERIFIED' | 'VERIFIED' | 'FAILED'>;
+  verified_by: string | null;
+  verified_at: Date | null;
+  reopen_count: Generated<number>;
+  reopen_reason: string | null;
+  merged_into_id: string | null;
+  labels: Generated<unknown>;
+  source_report_id: string | null;
   refs: Generated<unknown>;
   tags: Generated<unknown>;
   created_by: string | null;
@@ -3001,6 +3019,185 @@ export interface LensItemsTable {
   updated_at: Generated<Date>;
   parent_id: string | null;
   cycle_id: string | null;
+}
+
+export interface LensProjectsTable {
+  id: Generated<string>;
+  key: string;
+  name: string;
+  description: string | null;
+  lead_id: string | null;
+  default_area_id: string | null;
+  is_active: Generated<boolean>;
+  created_at: Generated<Date>;
+  updated_at: Generated<Date>;
+}
+
+export interface LensRepositoriesTable {
+  id: Generated<string>;
+  provider: Generated<string>;
+  external_id: string | null;
+  full_name: string;
+  default_branch: Generated<string>;
+  webhook_id: string | null;
+  clone_url: string | null;
+  is_active: Generated<boolean>;
+  created_at: Generated<Date>;
+  updated_at: Generated<Date>;
+}
+
+export interface LensConnectionInstancesTable {
+  id: Generated<string>;
+  provider: string;
+  name: string;
+  site_or_org: string | null;
+  auth_type: Generated<string>;
+  encrypted_credential: string;
+  encrypted_webhook_secret: string | null;
+  key_version: Generated<string>;
+  granted_scopes: Generated<unknown>;
+  config: Generated<unknown>;
+  status: Generated<string>;
+  last_error: string | null;
+  last_sync_at: Date | null;
+  created_by: string | null;
+  created_at: Generated<Date>;
+  updated_at: Generated<Date>;
+}
+
+export interface LensProjectRepositoriesTable {
+  project_id: string;
+  repo_id: string;
+  is_primary: Generated<boolean>;
+}
+
+export interface LensProjectConnectionsTable {
+  project_id: string;
+  connection_id: string;
+  purpose: Generated<string>;
+}
+
+export interface LensReleasesTable {
+  id: Generated<string>;
+  project_id: string | null;
+  version: string;
+  title: string;
+  description: string | null;
+  status: Generated<string>;
+  release_notes: string | null;
+  git_tag: string | null;
+  commit_sha: string | null;
+  released_at: Date | null;
+  released_by: string | null;
+  created_at: Generated<Date>;
+  updated_at: Generated<Date>;
+}
+
+export interface LensReportsTable {
+  id: Generated<string>;
+  source_app: string;
+  source_route: string | null;
+  tenant_id: string | null;
+  reporter_id: string;
+  reporter_email: string | null;
+  reporter_name: string | null;
+  reporter_role: string | null;
+  title: string;
+  summary: string;
+  steps_to_reproduce: string | null;
+  expected_behavior: string | null;
+  actual_behavior: string | null;
+  severity: Generated<'CRITICAL' | 'HIGH' | 'NORMAL' | 'LOW'>;
+  client_context: Generated<unknown>;
+  attachments: Generated<unknown>;
+  status: Generated<'NEW' | 'TRIAGED' | 'LINKED' | 'RESOLVED' | 'REJECTED'>;
+  item_id: string | null;
+  resolution_notes: string | null;
+  created_at: Generated<Date>;
+  updated_at: Generated<Date>;
+}
+
+export interface LensSnapshotsTable {
+  id: Generated<string>;
+  item_id: string | null;
+  repo_id: string | null;
+  snapshot_type: Generated<string>;
+  commit_sha: string | null;
+  branch_label: string | null;
+  storage_path: string;
+  checksum_sha256: string;
+  size_bytes: Generated<number>;
+  manifest: Generated<unknown>;
+  status: Generated<string>;
+  reason: string | null;
+  capture_tool_version: Generated<string>;
+  created_by: string | null;
+  error_message: string | null;
+  created_at: Generated<Date>;
+  updated_at: Generated<Date>;
+}
+
+export interface LensWebhooksInboxTable {
+  id: Generated<string>;
+  connection_id: string | null;
+  provider: string;
+  event_type: string;
+  delivery_id: string;
+  signature: string | null;
+  signature_verified: Generated<boolean>;
+  payload: Generated<unknown>;
+  status: Generated<string>;
+  attempts: Generated<number>;
+  error_message: string | null;
+  processed_at: Date | null;
+  created_at: Generated<Date>;
+}
+
+export interface LensOutboxEventsTable {
+  id: Generated<string>;
+  event_name: string;
+  aggregate_type: Generated<string>;
+  aggregate_id: string;
+  payload: Generated<unknown>;
+  correlation_id: string | null;
+  causation_id: string | null;
+  status: Generated<string>;
+  attempts: Generated<number>;
+  lease_id: string | null;
+  available_at: Generated<Date>;
+  error_message: string | null;
+  created_at: Generated<Date>;
+  updated_at: Generated<Date>;
+}
+
+export interface LensCommentsTable {
+  id: Generated<string>;
+  item_id: string;
+  author_id: string;
+  author_name: string;
+  author_email: string | null;
+  body: string;
+  is_internal: Generated<boolean>;
+  attachments: Generated<unknown>;
+  created_at: Generated<Date>;
+  updated_at: Generated<Date>;
+}
+
+export interface LensItemRelationsTable {
+  id: Generated<string>;
+  item_id: string;
+  target_item_id: string;
+  relation_type: string;
+  created_at: Generated<Date>;
+}
+
+export interface LensSavedFiltersTable {
+  id: Generated<string>;
+  user_id: string;
+  name: string;
+  query_params: Generated<unknown>;
+  is_shared: Generated<boolean>;
+  created_at: Generated<Date>;
 }
 
 export interface LensIntegrationsTable {
@@ -5828,6 +6025,17 @@ export interface SignFieldsTable {
   created_at: Generated<Date>;
 }
 
+export interface UserTourProgressTable {
+  id: Generated<string>;
+  tenant_id: string;
+  user_id: string;
+  completed_tour_ids: Generated<string[]>;
+  completed_step_ids: Generated<string[]>;
+  dismissed_tour_ids: Generated<string[]>;
+  created_at: Generated<Date>;
+  updated_at: Generated<Date>;
+}
+
 export interface SignEventsTable {
   id: Generated<string>;
   envelope_id: string;
@@ -6798,6 +7006,19 @@ export interface Database {
   lens_integrations: LensIntegrationsTable;
   lens_links: LensLinksTable;
   lens_columns: LensColumnsTable;
+  lens_projects: LensProjectsTable;
+  lens_repositories: LensRepositoriesTable;
+  lens_connection_instances: LensConnectionInstancesTable;
+  lens_project_repositories: LensProjectRepositoriesTable;
+  lens_project_connections: LensProjectConnectionsTable;
+  lens_releases: LensReleasesTable;
+  lens_reports: LensReportsTable;
+  lens_snapshots: LensSnapshotsTable;
+  lens_webhooks_inbox: LensWebhooksInboxTable;
+  lens_outbox_events: LensOutboxEventsTable;
+  lens_comments: LensCommentsTable;
+  lens_item_relations: LensItemRelationsTable;
+  lens_saved_filters: LensSavedFiltersTable;
   vat_periods: VatPeriodsTable;
   tax_registrations: TaxRegistrationsTable;
   tax_code_components: TaxCodeComponentsTable;
@@ -6869,6 +7090,7 @@ export interface Database {
   provider_rates: ProviderRatesTable;
   onboarding_journeys: OnboardingJourneysTable;
   tenant_activation_checkpoints: TenantActivationCheckpointsTable;
+  user_tour_progress: UserTourProgressTable;
   implementation_engagements: ImplementationEngagementsTable;
   support_time_entries: SupportTimeEntriesTable;
   support_cost_config: SupportCostConfigTable;
@@ -7000,6 +7222,14 @@ export interface Database {
   ondi_oidc_signing_keys: OndiOidcSigningKeysTable;
   ondi_oauth_clients: OndiOauthClientsTable;
   ondi_oauth_consents: OndiOauthConsentsTable;
+  mcp_workspace_policy: McpWorkspacePolicyTable;
+  mcp_tool_settings: McpToolSettingsTable;
+  mcp_connections: McpConnectionsTable;
+  mcp_call_log: McpCallLogTable;
+  mcp_write_requests: McpWriteRequestsTable;
+  mcp_oauth_codes: McpOauthCodesTable;
+  mcp_refresh_tokens: McpRefreshTokensTable;
+  mcp_sessions: McpSessionsTable;
   ondi_saml_sp_clients: OndiSamlSpClientsTable;
   ondi_saml_idp_signing_keys: OndiSamlIdpSigningKeysTable;
   ondi_saml_idp_sessions: OndiSamlIdpSessionsTable;
@@ -10862,6 +11092,107 @@ export interface OndiOauthClientsTable {
   redirect_uris: Generated<any>;
   first_party: Generated<boolean>;
   created_at: Generated<Date>;
+  registered_via: Generated<'admin' | 'seed' | 'mcp_dcr'>;
+  client_uri: string | null;
+  software_id: string | null;
+}
+
+export interface McpWorkspacePolicyTable {
+  tenant_id: string;
+  staff_enabled: Generated<boolean>;
+  customers_enabled: Generated<boolean>;
+  updated_by: string | null;
+  updated_at: Generated<Date>;
+}
+
+export interface McpToolSettingsTable {
+  tenant_id: string;
+  tool_id: string;
+  enabled: boolean;
+  updated_by: string | null;
+  updated_at: Generated<Date>;
+}
+
+export interface McpConnectionsTable {
+  id: Generated<string>;
+  tenant_id: string;
+  user_id: string;
+  actor_type: 'staff' | 'customer';
+  customer_id: string | null;
+  client_id: string;
+  scopes: Generated<any>;
+  status: Generated<'active' | 'revoked'>;
+  created_at: Generated<Date>;
+  last_used_at: Date | null;
+  revoked_at: Date | null;
+  revoked_by: string | null;
+  revoke_reason: string | null;
+}
+
+export interface McpCallLogTable {
+  id: Generated<string>;
+  tenant_id: string;
+  connection_id: string | null;
+  user_id: string | null;
+  actor_type: string;
+  client_id: string;
+  tool_id: string;
+  app_id: string;
+  outcome: 'ok' | 'denied' | 'invalid' | 'error' | 'confirmation_required' | 'replayed';
+  error_code: string | null;
+  http_status: number | null;
+  duration_ms: number | null;
+  arg_names: Generated<any>;
+  created_at: Generated<Date>;
+}
+
+export interface McpOauthCodesTable {
+  code_hash: string;
+  connection_id: string;
+  tenant_id: string;
+  user_id: string;
+  client_id: string;
+  redirect_uri: string;
+  scope: string;
+  code_challenge: string;
+  expires_at: Date;
+  created_at: Generated<Date>;
+}
+
+export interface McpRefreshTokensTable {
+  token_hash: string;
+  connection_id: string;
+  tenant_id: string;
+  user_id: string;
+  client_id: string;
+  scope: string;
+  expires_at: Date;
+  created_at: Generated<Date>;
+}
+
+export interface McpSessionsTable {
+  id: string;
+  tenant_id: string;
+  connection_id: string;
+  protocol_version: string;
+  created_at: Generated<Date>;
+  last_seen_at: Generated<Date>;
+  ended_at: Date | null;
+}
+
+export interface McpWriteRequestsTable {
+  id: Generated<string>;
+  tenant_id: string;
+  connection_id: string;
+  tool_id: string;
+  idempotency_key: string;
+  args_hash: string;
+  confirmation_hash: string;
+  status: Generated<'pending' | 'executing' | 'done' | 'failed'>;
+  result: any | null;
+  created_at: Generated<Date>;
+  expires_at: Date;
+  completed_at: Date | null;
 }
 
 export interface OndiOauthConsentsTable {

@@ -21,7 +21,7 @@ export const TableHeader: React.FC<TableHeaderProps> = ({ sortBy, setSortBy }) =
       style={{
         display: 'flex',
         alignItems: 'center',
-        padding: '8px 16px',
+        padding: '10px 24px',
         background: 'var(--bg)',
         borderBottom: '1px solid var(--border)',
         position: 'sticky',

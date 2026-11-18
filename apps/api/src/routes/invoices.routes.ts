@@ -266,11 +266,24 @@ export async function invoiceRoutes(fastify: FastifyInstance) {
   // fleet ops, HR, identity/access admin, or tenant configuration) with only
   // an entitlement gate — reachable end-to-end by a CUSTOMER JWT (confirmed
   // live before this fix). Not customer-portal data.
+  //
+  // The customer portal's own invoice list, detail and PDF are the exception:
+  // those three GET routes scope a CUSTOMER login to its own customer's
+  // non-draft invoices (resolveCustomerId), so they are let through here.
+  // Every other invoice route stays staff-only.
+  const CUSTOMER_INVOICE_ROUTES = new Set(['/v1/invoices', '/v1/invoices/', '/v1/invoices/:id', '/v1/invoices/:id/pdf']);
   fastify.addHook('preHandler', async (request: any, reply) => {
-    if (request.user.role === 'CUSTOMER') {
+    if (request.user.role === 'CUSTOMER' && !(request.method === 'GET' && CUSTOMER_INVOICE_ROUTES.has(request.routeOptions?.url))) {
       return reply.status(403).send({ error: 'Not available for this account type.' });
     }
   });
+
+  /** For a CUSTOMER login: true only for its own customer's issued invoices. */
+  async function customerOwnsInvoice(user: any, inv: { customer_id: string | null; status: string | null }): Promise<boolean> {
+    if (user.role !== 'CUSTOMER') return true;
+    const own = await resolveCustomerId(user);
+    return !!own && inv.customer_id === own && inv.status !== 'Draft';
+  }
 
   fastify.get('/stats', { preHandler: requireRole('SUPER_ADMIN', 'ADMIN', 'TENANT_ADMIN', 'MANAGER', 'FINANCE', 'SALES') }, async (request) => {
     const user = request.user;
@@ -515,6 +528,8 @@ export async function invoiceRoutes(fastify: FastifyInstance) {
       if (invoice_number) filtered = filtered.where('invoice_number', '=', invoice_number);
       if (status) filtered = filtered.where('status', '=', status);
       if (scopedCustomerId) filtered = filtered.where('customer_id', '=', scopedCustomerId);
+      // Drafts are internal work in progress, never shown to the customer.
+      if (user.role === 'CUSTOMER') filtered = filtered.where('status', '!=', 'Draft');
       if (mode) filtered = filtered.where('mode', '=', mode);
       if (date_from) filtered = filtered.where('bill_date', '>=', date_from);
       if (date_to) filtered = filtered.where('bill_date', '<=', date_to);
@@ -771,7 +786,7 @@ export async function invoiceRoutes(fastify: FastifyInstance) {
     const { id } = request.params as { id: string };
     return withTenant(user.tenant_id, async (trx) => {
       const inv = await trx.selectFrom('sales_invoices').selectAll().where('id', '=', id).where('tenant_id', '=', user.tenant_id).executeTakeFirst();
-      if (!inv) return reply.status(404).send({ error: 'Invoice not found' });
+      if (!inv || !(await customerOwnsInvoice(user, inv))) return reply.status(404).send({ error: 'Invoice not found' });
       const lines = await trx.selectFrom('sales_invoice_lines').selectAll().where('invoice_id', '=', id).orderBy('sort_order', 'asc').execute();
       const payments = await trx.selectFrom('invoice_payments').selectAll().where('invoice_id', '=', id).orderBy('created_at', 'desc').execute();
 
@@ -814,6 +829,12 @@ export async function invoiceRoutes(fastify: FastifyInstance) {
   fastify.get('/:id/pdf', async (request, reply) => {
     const user = request.user;
     const { id } = request.params as { id: string };
+    if (user.role === 'CUSTOMER') {
+      if (!z.string().uuid().safeParse(id).success) return reply.status(404).send({ error: 'Invoice not found' });
+      const inv = await withTenant(user.tenant_id, trx => trx.selectFrom('sales_invoices').select(['customer_id', 'status'])
+        .where('id', '=', id).where('tenant_id', '=', user.tenant_id).executeTakeFirst());
+      if (!inv || !(await customerOwnsInvoice(user, inv))) return reply.status(404).send({ error: 'Invoice not found' });
+    }
     try {
       const pdf = await renderInvoicePdf(user.tenant_id, id);
       reply.header('Content-Type', 'application/pdf');

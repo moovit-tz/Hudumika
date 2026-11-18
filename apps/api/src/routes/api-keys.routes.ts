@@ -46,7 +46,23 @@ async function getGrantedFeatures(trx: Db, tenantId: string): Promise<Set<string
 
 export async function apiKeysRoutes(fastify: FastifyInstance) {
   fastify.addHook('preHandler', fastify.authenticate);
+  fastify.addHook('preHandler', async (request, reply) => {
+    if (request.apiKeyScopes != null) {
+      return reply.status(403).send({ error: 'Sign in to manage workspace API keys.' });
+    }
+  });
   fastify.addHook('preHandler', requireRoleOrOrgPermission(ORG_PERMISSIONS.API_KEYS_MANAGE, ...MGMT_ROLES));
+  fastify.addHook('onRequest', async (_request, reply) => {
+    reply.header('Cache-Control', 'no-store');
+  });
+
+  fastify.get('/scopes', async (request) => {
+    const { tenant_id } = request.user;
+    return withTenant(tenant_id, async (trx) => {
+      const granted = await getGrantedFeatures(trx, tenant_id);
+      return { scopes: [...granted].filter(scope => !scope.startsWith('finance.') || granted.has('finops')).sort() };
+    });
+  });
 
   // GET /v1/api-keys — list this tenant's keys (never returns the hash or full key)
   fastify.get('/', async (request) => {
@@ -74,10 +90,17 @@ export async function apiKeysRoutes(fastify: FastifyInstance) {
     };
   }>('/', async (request, reply) => {
     const user = request.user;
-    const { name, scopes, expires_in_days, read_only } = request.body;
+    const { name, scopes, expires_in_days, read_only } = request.body ?? {};
 
-    if (!name?.trim()) return reply.status(400).send({ error: 'Name is required' });
-    if (!Array.isArray(scopes) || scopes.length === 0) return reply.status(400).send({ error: 'At least one scope is required' });
+    if (typeof name !== 'string' || !name.trim() || name.trim().length > 120) {
+      return reply.status(400).send({ error: 'Enter a key name between 1 and 120 characters.' });
+    }
+    if (!Array.isArray(scopes) || scopes.length === 0 || scopes.some(scope => typeof scope !== 'string' || !scope)) {
+      return reply.status(400).send({ error: 'Select at least one valid scope.' });
+    }
+    if (read_only !== undefined && typeof read_only !== 'boolean') {
+      return reply.status(400).send({ error: 'read_only must be a boolean.' });
+    }
 
     /**
      * An expiry, if one was asked for.
@@ -115,7 +138,7 @@ export async function apiKeysRoutes(fastify: FastifyInstance) {
           name: name.trim(),
           key_prefix: keyPrefix,
           key_hash: keyHash,
-          scopes: JSON.stringify(scopes) as unknown as string[],
+          scopes: JSON.stringify([...new Set(scopes)]) as unknown as string[],
           acting_role: user.role,
           created_by: user.sub,
           expires_at: expiresAt,
@@ -134,12 +157,16 @@ export async function apiKeysRoutes(fastify: FastifyInstance) {
   fastify.delete<{ Params: { id: string } }>('/:id', async (request, reply) => {
     const user = request.user;
     const { id } = request.params;
+    if (!/^[\da-f]{8}(?:-[\da-f]{4}){3}-[\da-f]{12}$/i.test(id)) {
+      return reply.status(404).send({ error: 'API key not found' });
+    }
 
     return withTenant(user.tenant_id, async (trx) => {
       const key = await trx.selectFrom('api_keys').select('id').where('id', '=', id).where('tenant_id', '=', user.tenant_id).executeTakeFirst();
       if (!key) return reply.status(404).send({ error: 'API key not found' });
 
-      await trx.updateTable('api_keys').set({ revoked_at: new Date() }).where('id', '=', id).where('tenant_id', '=', user.tenant_id).execute();
+      await trx.updateTable('api_keys').set({ revoked_at: new Date() })
+        .where('id', '=', id).where('tenant_id', '=', user.tenant_id).where('revoked_at', 'is', null).execute();
       reply.status(204);
       return null;
     });

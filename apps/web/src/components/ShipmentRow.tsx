@@ -1,4 +1,4 @@
-﻿import React from 'react';
+import React from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import type { ShipmentCase } from '@hudumika/types';
 import { StatusPill, ProgressSegments } from '@hudumika/ui';
@@ -57,7 +57,7 @@ export const ShipmentRow: React.FC<ShipmentRowProps> = ({ shipment, to }) => {
       style={{
         display: 'flex',
         alignItems: 'center',
-        padding: '10px 16px',
+        padding: '12px 24px',
         borderBottom: '1px solid var(--border)',
         cursor: 'pointer',
         background: 'var(--white)',

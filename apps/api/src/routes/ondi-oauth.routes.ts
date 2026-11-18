@@ -55,7 +55,12 @@ const authorizeQuerySchema = z.object({
 });
 
 async function loadClient(clientId: string) {
-  return dbPlatform.selectFrom('ondi_oauth_clients').selectAll().where('client_id', '=', clientId).executeTakeFirst();
+  // Clients from the MCP gateway's open registration endpoint (migration 914)
+  // only ever get MCP tokens from /v1/mcp/oauth/*. Treating them as unknown
+  // here keeps open registration from becoming a way to request the REST API
+  // scopes this provider grants.
+  return dbPlatform.selectFrom('ondi_oauth_clients').selectAll().where('client_id', '=', clientId)
+    .where('registered_via', '!=', 'mcp_dcr').executeTakeFirst();
 }
 
 async function unavailableApiScope(scopes: string[]): Promise<string | null> {

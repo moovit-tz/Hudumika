@@ -1,4 +1,4 @@
-﻿import React, { useState, useEffect, useRef, useCallback, createContext, useContext, useMemo } from 'react';
+import React, { useState, useEffect, useRef, useCallback, createContext, useContext, useMemo } from 'react';
 import { useSearchParams, Link } from 'react-router-dom';
 import { useIsMobile } from '../../hooks/useIsMobile.js';
 import { Icon } from '../../components/Icon.js';
@@ -8,7 +8,6 @@ import type { IconName } from '../../components/Icon.js';
 import { getCompany, setCompany } from '../../data/companyStore.js';
 import { apiFetch } from '../../lib/api.js';
 import { PageHeader } from '../../components/PageHeader.js';
-import { Checkbox } from '../../components/ui/checkbox.js';
 import { MetricsRow } from '../../components/MetricCard.js';
 import type { MetricCardProps } from '../../components/MetricCard.js';
 import { refreshTenantLocale } from '../../lib/tenantLocale.js';
@@ -27,9 +26,7 @@ import { Button } from '../../components/ui/button.js';
 import { Switch } from '../../components/ui/switch.js';
 import { LauncherAppSvg, LAUNCHER_APPS } from '../../components/LauncherApps.js';
 import { SignaturePad } from '../../components/SignaturePad.js';
-import { showAlert } from '../../lib/alert.js';
 import { UpgradeNotice } from '../../components/UpgradeNotice.js';
-import { showConfirm } from '../../lib/confirm.js';
 import { useEntitlements, resetEntitlementsCache } from '../../hooks/useEntitlements.js';
 import { useAuth } from '../../hooks/useAuth.js';
 import { APP_META } from '../Utilities.js';
@@ -131,18 +128,6 @@ export const FreightSection: React.FC = () => {
   );
 };
 
-// -- API Keys (developer / partner access) -----------------------------------
-export const API_SCOPE_OPTIONS = [
-  'ai', 'clearos', 'cloud', 'complyos', 'contacts', 'email', 'finops', 'ondi', 'nexushr', 'tracking',
-  'finance.core', 'finance.accounting.advanced', 'finance.budgets', 'finance.fixed_assets',
-  'finance.multi_currency', 'finance.inventory', 'finance.procurement', 'finance.pos', 'finance.consolidation',
-];
-
-export interface ApiKeyRow {
-  id: string; name: string; key_prefix: string; scopes: string[];
-  last_used_at: string | null; revoked_at: string | null; created_at: string;
-}
-
 // -- section: E-Sign (company stamp) -----------------------------------------
 // The 'other-esign' nav entry existed with no case in renderSection below —
 // it fell through to a placeholder GenericSection. This is the tenant's one
@@ -215,163 +200,6 @@ export const EsignSection: React.FC = () => {
   );
 };
 
-export const ApiKeysSection: React.FC = () => {
-  const [keys, setKeys] = useState<ApiKeyRow[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [showCreate, setShowCreate] = useState(false);
-  const [newName, setNewName] = useState('');
-  const [newScopes, setNewScopes] = useState<string[]>([]);
-  const [creating, setCreating] = useState(false);
-  const [mintedKey, setMintedKey] = useState<string | null>(null);
-  const [usage, setUsage] = useState<{ total_calls: number; error_calls: number; top_endpoints: { endpoint: string; count: number }[] } | null>(null);
-
-  function reload() {
-    apiFetch('/v1/api-keys').then(res => setKeys(res.keys || [])).finally(() => setLoading(false));
-    apiFetch('/v1/api-keys/usage').then(setUsage).catch(() => {});
-  }
-  useEffect(() => { reload(); }, []);
-
-  function toggleScope(scope: string) {
-    setNewScopes(prev => {
-      if (prev.includes(scope)) {
-        return scope === 'finops'
-          ? prev.filter(item => item !== 'finops' && !item.startsWith('finance.'))
-          : prev.filter(item => item !== scope);
-      }
-      if (scope.startsWith('finance.')) return [...new Set([...prev, 'finops', scope])];
-      return [...prev, scope];
-    });
-  }
-
-  async function createKey() {
-    if (!newName.trim() || newScopes.length === 0) return;
-    setCreating(true);
-    try {
-      const res = await apiFetch('/v1/api-keys', { method: 'POST', body: JSON.stringify({ name: newName.trim(), scopes: newScopes }) });
-      setMintedKey(res.key);
-      setNewName(''); setNewScopes([]);
-      reload();
-    } catch (err: any) {
-      showAlert(`Failed to create key: ${err?.message ?? 'Unknown error'}`);
-    } finally {
-      setCreating(false);
-    }
-  }
-
-  async function revokeKey(id: string) {
-    if (!(await showConfirm('Revoke this API key? Any application using it will immediately lose access.', { confirmLabel: 'Revoke' }))) return;
-    await apiFetch(`/v1/api-keys/${id}`, { method: 'DELETE' });
-    setKeys(prev => prev.map(k => k.id === id ? { ...k, revoked_at: new Date().toISOString() } : k));
-  }
-
-  return (
-    <>
-      <Card title="API Keys" desc="Programmatic access for partner integrations and scripts. Each key is scoped to specific features and limited by your plan." action={
-        <Button size="sm" type="button" onClick={() => setShowCreate(true)}>
-          <Icon name="plus" size={13} /> New Key
-        </Button>
-      }>
-        <div className="s-fld--full">
-          {loading ? (
-            <SectionLoading />
-          ) : keys.length === 0 ? (
-            <p style={{ color: 'var(--ink3)' }}>No API keys yet. Create one to get started.</p>
-          ) : (
-            <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
-              <thead>
-                <tr style={{ borderBottom: '2px solid var(--border)' }}>
-                  {['Name', 'Key', 'Scopes', 'Last Used', 'Status', ''].map(h => (
-                    <th key={h} style={{ textAlign: 'left', padding: '8px', color: 'var(--ink3)', fontSize: 11, textTransform: 'uppercase' }}>{h}</th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody>
-                {keys.map(k => (
-                  <tr key={k.id} style={{ borderBottom: '1px solid var(--border)' }}>
-                    <td style={{ padding: '8px', fontWeight: 600, color: 'var(--ink)' }}>{k.name}</td>
-                    <td style={{ padding: '8px', fontFamily: 'var(--font)', color: 'var(--ink3)' }}>{k.key_prefix}…</td>
-                    <td style={{ padding: '8px', color: 'var(--ink2)' }}>{k.scopes.join(', ')}</td>
-                    <td style={{ padding: '8px', color: 'var(--ink3)' }}>{k.last_used_at ? new Date(k.last_used_at).toLocaleDateString() : 'Never'}</td>
-                    <td style={{ padding: '8px' }}>
-                      <span style={{ fontSize: 10, fontWeight: 700, padding: '2px 7px', borderRadius: 'var(--r-sm)', color: k.revoked_at ? 'var(--red)' : 'var(--green)', background: k.revoked_at ? 'var(--red-l)' : 'var(--green-l)' }}>
-                        {k.revoked_at ? 'Revoked' : 'Active'}
-                      </span>
-                    </td>
-                    <td style={{ padding: '8px', textAlign: 'right' }}>
-                      {!k.revoked_at && (
-                        <Button variant="ghost" size="sm" type="button" onClick={() => revokeKey(k.id)}>Revoke</Button>
-                      )}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          )}
-        </div>
-      </Card>
-
-      {usage && (
-        <Card title="Usage (last 30 days)" desc="Calls made across all of this tenant's API keys and sessions.">
-          <div className="s-fld--full" style={{ display: 'flex', gap: 24, marginBottom: 12 }}>
-            <div><div style={{ fontSize: 20, fontWeight: 800, color: 'var(--ink)' }}>{usage.total_calls}</div><div style={{ fontSize: 11, color: 'var(--ink3)' }}>Total calls</div></div>
-            <div><div style={{ fontSize: 20, fontWeight: 800, color: 'var(--red)' }}>{usage.error_calls}</div><div style={{ fontSize: 11, color: 'var(--ink3)' }}>Errors</div></div>
-          </div>
-          {usage.top_endpoints.length > 0 && (
-            <div className="s-fld--full">
-              {usage.top_endpoints.map(e => (
-                <div key={e.endpoint} style={{ display: 'flex', justifyContent: 'space-between', padding: '5px 0', fontSize: 12, color: 'var(--ink2)', borderBottom: '1px solid var(--border)' }}>
-                  <span style={{ fontFamily: 'var(--font)' }}>{e.endpoint}</span>
-                  <span style={{ fontWeight: 700, color: 'var(--ink)' }}>{e.count}</span>
-                </div>
-              ))}
-            </div>
-          )}
-        </Card>
-      )}
-
-      {showCreate && (
-        <div className="modal-overlay" onClick={() => { setShowCreate(false); setMintedKey(null); }}>
-          <div className="card" style={{ width: 440, padding: 26 }} onClick={e => e.stopPropagation()}>
-            {mintedKey ? (
-              <>
-                <div style={{ fontSize: 15, fontWeight: 700, marginBottom: 10 }}>Key created</div>
-                <p style={{ fontSize: 12, color: 'var(--ink3)', marginBottom: 10 }}>Copy this now · it won't be shown again.</p>
-                <div style={{ padding: '10px 12px', background: 'var(--bg)', borderRadius: 'var(--r)', fontFamily: 'var(--font)', fontSize: 12, wordBreak: 'break-all', marginBottom: 16 }}>{mintedKey}</div>
-                <Button size="sm" type="button" onClick={() => { setShowCreate(false); setMintedKey(null); }}>Done</Button>
-              </>
-            ) : (
-              <>
-                <div style={{ fontSize: 15, fontWeight: 700, marginBottom: 14 }}>New API Key</div>
-                <div style={{ marginBottom: 12 }}>
-                  <label style={{ fontSize: 12, fontWeight: 600, color: 'var(--ink2)', display: 'block', marginBottom: 5 }}>Name</label>
-                  <input data-ui-field="input" value={newName} onChange={e => setNewName(e.target.value)} placeholder="e.g. Warehouse integration" className="input-field" style={{ width: '100%' }} />
-                </div>
-                <div style={{ marginBottom: 18 }}>
-                  <label style={{ fontSize: 12, fontWeight: 600, color: 'var(--ink2)', display: 'block', marginBottom: 5 }}>Scopes</label>
-                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2,1fr)', gap: 6 }}>
-                    {API_SCOPE_OPTIONS.map(scope => (
-                      <label key={scope} style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, cursor: 'pointer' }}>
-                        <Checkbox checked={newScopes.includes(scope)} onCheckedChange={() => toggleScope(scope)} />
-                        {scope}
-                      </label>
-                    ))}
-                  </div>
-                </div>
-                <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end' }}>
-                  <Button variant="outline" size="sm" type="button" onClick={() => setShowCreate(false)}>Cancel</Button>
-                  <Button size="sm" type="button" onClick={createKey} loading={creating} disabled={!newName.trim() || newScopes.length === 0} loadingText="Creating…">
-                    Create Key
-                  </Button>
-                </div>
-              </>
-            )}
-          </div>
-        </div>
-      )}
-    </>
-  );
-};
-
 // -- generic fallback --------------------------------------------------------
 export const GenericSection: React.FC<{ title: string }> = ({ title }) => (
   <Card title={title}>
@@ -416,3 +244,4 @@ export const ElsewhereSection: React.FC = () => (
     </div>
   </Card>
 );
+export { ApiKeysSection } from '../developer/ApiKeysSection.js';

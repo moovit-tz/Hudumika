@@ -2262,7 +2262,13 @@ export async function shipmentRoutes(fastify: FastifyInstance) {
     const user = request.user;
     const { id } = request.params as { id: string };
     const { content } = contentSchema.parse(request.body);
+    if (!z.string().uuid().safeParse(id).success) return reply.status(404).send({ error: 'Shipment not found' });
     return withTenant(user.tenant_id, async (trx) => {
+      // The FK alone would accept another workspace's shipment id (FK checks
+      // bypass RLS), so confirm the shipment is in this workspace first.
+      const shipment = await trx.selectFrom('shipment_cases').select('id')
+        .where('id', '=', id).where('tenant_id', '=', user.tenant_id).executeTakeFirst();
+      if (!shipment) return reply.status(404).send({ error: 'Shipment not found' });
       const note = await trx.insertInto('shipment_notes').values({
         tenant_id: user.tenant_id,
         shipment_id: id,

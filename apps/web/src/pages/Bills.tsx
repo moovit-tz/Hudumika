@@ -16,14 +16,19 @@ import { getCompany } from '../data/companyStore.js';
 import { useCurrency } from '../hooks/useCurrency.js';
 import { apiFetch } from '../lib/api.js';
 import { PageHeader } from '../components/PageHeader.js';
+import { SectionCard } from '../components/SectionCard.js';
+import { PaginationBar } from '../components/PaginationBar.js';
+import { PersonAvatar } from '../components/PersonAvatar.js';
+import { FeaturedIcon } from '../components/ui/featured-icon.js';
+import { SkeletonTable } from '../components/ui/skeleton.js';
+import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator } from '../components/ui/dropdown-menu.js';
 import { EntityPicker, PickerItem } from '../components/EntityPicker.js';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '../components/ui/select.js';
 import { Combobox } from '../components/ui/combobox.js';
 import { SingleSelectFilter } from '../components/ui/filter-dropdown.js';
 import { Input } from '../components/ui/input.js';
-import { formatAmount } from '../lib/currency.js';
+import { formatAmount, formatCompact } from '../lib/currency.js';
 import { Button } from '../components/ui/button.js';
-import { SectionLoading } from '../components/ui/spinner.js';
 import { Textarea } from '../components/ui/textarea.js';
 import { DatePicker, parseDateOnly, toDateOnlyString } from '../components/ui/date-picker.js';
 import { Dialog, DialogContent, DialogTitle } from '../components/ui/dialog.js';
@@ -735,99 +740,100 @@ function DetailView({ bill, payments, supplierMap, onBack, onEdit, onPay, onPost
 
   return (
     <div style={{ flex:1, overflowY:'auto', display:'flex', flexDirection:'column' }}>
-      <PageHeader crumbs={['Finance','Bills']} titleEm={bill.bill_number} subtitle={bill.supplier_name || 'Supplier bill'}/>
-      <div style={{ padding:'0 0 20px', borderBottom:'1px solid var(--border)', background:'var(--white)' }}>
-        <Button type="button" variant="ghost" size="sm" onClick={onBack} style={{ marginBottom:14, paddingLeft:0 }}>
-          <Icon name="arrowLeft" size={14} /> All bills
-        </Button>
-        <div style={{ display:'flex', justifyContent:'space-between', alignItems:'flex-start' }}>
-          <div>
-            <div style={{ display:'flex', alignItems:'center', gap:10, marginBottom:4 }}>
-              <span style={{ fontFamily:'var(--font)', fontSize:18, fontWeight:800, color:'var(--teal)' }}>{bill.bill_number}</span>
-              <StatusBadge status={bill.status} />
-              {bill.recurring_id && <Badge variant="brand">Recurring</Badge>}
+      <PageHeader crumbs={[{ label: 'Finance', to: '/finance' }, { label: 'Bills', to: '/finance/bills' }]} titleEm={bill.bill_number} subtitle={bill.supplier_name || 'Supplier bill'} onBack={onBack} backLabel="All bills" />
+      <div style={{ padding:'16px 18px', border:'var(--card-border, 1px solid var(--border))', borderRadius:'var(--card-radius, var(--r))', background:'var(--white)', boxShadow:'var(--card-shadow, none)' }}>
+        <div style={{ display:'flex', justifyContent:'space-between', alignItems:'flex-start', flexWrap:'wrap', gap:14 }}>
+          <div style={{ display:'flex', alignItems:'flex-start', gap:12, minWidth:0 }}>
+            <PersonAvatar kind="suppliers" userId={bill.supplier_id || undefined} name={bill.supplier_name || 'Supplier'} size={36} />
+            <div style={{ minWidth:0 }}>
+              <div style={{ display:'flex', alignItems:'center', gap:8, flexWrap:'wrap', marginBottom:4 }}>
+                <span style={{ fontFamily:'var(--font)', fontSize:16, fontWeight:700, color:'var(--teal)', fontVariantNumeric:'tabular-nums' }}>{bill.bill_number}</span>
+                <StatusBadge status={bill.status} />
+                {bill.recurring_id && <Badge variant="brand">Recurring</Badge>}
+              </div>
+              <div style={{ fontSize:14, fontWeight:600, color:'var(--ink)', marginBottom:2 }}>{bill.supplier_name || 'Unassigned supplier'}</div>
+              <div style={{ fontSize:12.5, color:'var(--ink3)' }}>Billed {fmtDate(bill.bill_date)} · Due {fmtDate(bill.due_date)}{over ? ` — ${daysOverdue(bill.due_date)} days overdue` : ''}</div>
             </div>
-            <div style={{ fontSize:14, fontWeight:700, color:'var(--ink)', marginBottom:2 }}>{bill.supplier_name}</div>
-            <div style={{ fontSize:12.5, color:'var(--ink3)' }}>Billed {fmtDate(bill.bill_date)} · Due {fmtDate(bill.due_date)}{over ? ` — ${daysOverdue(bill.due_date)} days overdue` : ''}</div>
           </div>
-          <div style={{ display:'flex', gap:8, flexWrap:'wrap' }}>
-            {(bill.status === 'DRAFT' || bill.status === 'PENDING_APPROVAL') && <Button type="button" variant="outline" size="sm" onClick={onPost} style={{ borderColor:'var(--blue)', background:'var(--blue-l)', color:'var(--blue)' }}><Icon name="send" size={13} /> {bill.status === 'DRAFT' ? 'Submit' : 'Approve'}</Button>}
-            {(bill.status === 'POSTED'||bill.status === 'PARTIAL'||bill.status === 'OVERDUE') && <Button type="button" size="sm" onClick={onPay}><Icon name="dollarSign" size={13} /> Pay</Button>}
+          <div style={{ display:'flex', gap:8, flexWrap:'wrap', alignItems:'center' }}>
+            {(bill.status === 'DRAFT' || bill.status === 'PENDING_APPROVAL') && <Button type="button" variant="outline" size="sm" onClick={onPost}><Icon name="send" size={13} /> {bill.status === 'DRAFT' ? 'Submit' : 'Approve'}</Button>}
+            {(bill.status === 'POSTED'||bill.status === 'PARTIAL'||bill.status === 'OVERDUE') && <Button type="button" variant="default" size="sm" onClick={onPay}><Icon name="dollarSign" size={13} /> Pay</Button>}
             <Button type="button" variant="outline" size="sm" onClick={onEdit}><Icon name="edit" size={13} /> Edit</Button>
             <FinanceDocumentActions kind="bill" id={bill.id} label={bill.bill_number}/>
-            {bill.status !== 'VOID' && bill.status !== 'PAID' && <Button type="button" variant="outline" size="sm" onClick={onVoid} style={{ borderColor:'var(--red)', background:'var(--red-l)', color:'var(--red)' }}>Void</Button>}
+            {bill.status !== 'VOID' && bill.status !== 'PAID' && <Button type="button" variant="destructive" size="sm" onClick={onVoid}>Void</Button>}
           </div>
         </div>
         {over && <Banner variant="error" className="mt-3">Payment overdue by {daysOverdue(bill.due_date)} days. Balance: {fmt(balance, bill.currency)}</Banner>}
       </div>
 
-      <div style={{ flex:1, display:'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 300px', overflow:'hidden' }}>
+      <div style={{ flex:1, display:'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 310px', gap:20, marginTop:18, alignItems:'start' }}>
         {/* Left */}
-        <div style={{ overflowY:'auto', padding:'22px 28px', borderRight:'1px solid var(--border)' }}>
-          {/* Line items */}
-          <div style={{ marginBottom:24 }}>
-            <div style={{ fontSize:12, fontWeight:700, color:'var(--ink3)', textTransform:'uppercase', letterSpacing:'0.05em', marginBottom:12 }}>Line Items</div>
-            <table style={{ width:'100%', borderCollapse:'collapse', fontSize:13 }}>
-              <thead><tr style={{ background:'var(--bg)' }}>
-                {['Description','Category','Qty','Unit Price','Tax','Total'].map(h => (
-                  <th key={h} style={{ padding:'9px 12px', textAlign: h === 'Total' ? 'right' : 'left', fontWeight:700, color:'var(--ink2)', fontSize:11, textTransform:'uppercase', letterSpacing:'0.03em', borderBottom:'1px solid var(--border)' }}>{h}</th>
-                ))}
-              </tr></thead>
-              <tbody>
-                {bill.lines.map(l => (
-                  <tr key={l._key} style={{ borderBottom:'1px solid var(--border)' }}>
-                    <td style={{ padding:'10px 12px', fontWeight:600 }}>{l.description}</td>
-                    <td style={{ padding:'10px 12px' }}><span style={{ fontSize:11, fontWeight:700, color:CAT_CFG[l.category]?.color ?? 'var(--ink2)' }}>{CAT_CFG[l.category]?.label ?? l.category}</span></td>
-                    <td style={{ padding:'10px 12px', textAlign:'center', color:'var(--ink2)' }}>{l.qty}</td>
-                    <td style={{ padding:'10px 12px', textAlign:'right', color:'var(--ink2)' }}>{fmt(l.unit_price, bill.currency)}</td>
-                    <td style={{ padding:'10px 12px', textAlign:'center', color:'var(--ink3)', fontSize:12 }}>{l.tax_rate > 0 ? `${l.tax_rate}%` : '—'}</td>
-                    <td style={{ padding:'10px 12px', textAlign:'right', fontWeight:700 }}>{fmt(lineTotal(l), bill.currency)}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-            <div style={{ background:'var(--bg)', padding:'12px 16px', display:'flex', flexDirection:'column', gap:5, alignItems:'flex-end', borderTop:'2px solid var(--border)' }}>
-              <div style={{ fontSize:13, color:'var(--ink2)' }}>Subtotal: <strong style={{ color:'var(--ink)', minWidth:100, display:'inline-block', textAlign:'right' }}>{fmt(bill.subtotal, bill.currency)}</strong></div>
-              <div style={{ fontSize:13, color:'var(--ink2)' }}>Tax: <strong style={{ color:'var(--ink)', minWidth:100, display:'inline-block', textAlign:'right' }}>{fmt(bill.tax_amount, bill.currency)}</strong></div>
-              <div style={{ fontSize:16, fontWeight:800, color:'var(--ink)' }}>Total: <span style={{ minWidth:100, display:'inline-block', textAlign:'right', color:'var(--teal)' }}>{fmt(bill.total, bill.currency)}</span></div>
-              {bill.paid_amount > 0 && <div style={{ fontSize:13, color:'var(--green)' }}>Paid: <strong style={{ minWidth:100, display:'inline-block', textAlign:'right' }}>{fmt(bill.paid_amount, bill.currency)}</strong></div>}
-              {(bill.credited_amount ?? 0) > 0 && <div>Supplier credits <strong>{fmt(bill.credited_amount ?? 0, bill.currency)}</strong></div>}
-              {balance > 0 && <div style={{ fontSize:14, fontWeight:800, color: over ? 'var(--red)' : 'var(--gold)' }}>Balance Due: <span style={{ minWidth:100, display:'inline-block', textAlign:'right' }}>{fmt(balance, bill.currency)}</span></div>}
+        <div style={{ minWidth:0, display:'flex', flexDirection:'column', gap:18 }}>
+          <SectionCard title="Line Items" collapsible={false} padded={false}>
+            <div className="rtbl-wrap">
+              <table className="rtbl" style={{ width:'100%', borderCollapse:'collapse', fontSize:13 }}>
+                <thead><tr style={{ background:'var(--bg)' }}>
+                  {['Description','Category','Qty','Unit Price','Tax','Total'].map(h => (
+                    <th key={h} style={{ padding:'9px 12px', textAlign: h === 'Total' ? 'right' : 'left', fontWeight:700, color:'var(--ink2)', fontSize:11, textTransform:'uppercase', letterSpacing:'0.03em', borderBottom:'1px solid var(--border)' }}>{h}</th>
+                  ))}
+                </tr></thead>
+                <tbody>
+                  {bill.lines.map(l => (
+                    <tr key={l._key} style={{ borderBottom:'1px solid var(--border)' }}>
+                      <td style={{ padding:'10px 12px', fontWeight:600 }}>{l.description}</td>
+                      <td style={{ padding:'10px 12px' }}><span style={{ fontSize:11, fontWeight:700, color:CAT_CFG[l.category]?.color ?? 'var(--ink2)' }}>{CAT_CFG[l.category]?.label ?? l.category}</span></td>
+                      <td style={{ padding:'10px 12px', textAlign:'center', color:'var(--ink2)', fontVariantNumeric:'tabular-nums' }}>{l.qty}</td>
+                      <td style={{ padding:'10px 12px', textAlign:'right', color:'var(--ink2)', fontVariantNumeric:'tabular-nums' }}>{fmt(l.unit_price, bill.currency)}</td>
+                      <td style={{ padding:'10px 12px', textAlign:'center', color:'var(--ink3)', fontSize:12, fontVariantNumeric:'tabular-nums' }}>{l.tax_rate > 0 ? `${l.tax_rate}%` : '—'}</td>
+                      <td style={{ padding:'10px 12px', textAlign:'right', fontWeight:700, fontVariantNumeric:'tabular-nums' }}>{fmt(lineTotal(l), bill.currency)}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
             </div>
-          </div>
+            <div style={{ background:'var(--bg)', padding:'14px 18px', display:'flex', flexDirection:'column', gap:5, alignItems:'flex-end', borderTop:'1px solid var(--border)' }}>
+              <div style={{ fontSize:13, color:'var(--ink2)' }}>Subtotal: <strong style={{ color:'var(--ink)', minWidth:110, display:'inline-block', textAlign:'right', fontVariantNumeric:'tabular-nums' }}>{fmt(bill.subtotal, bill.currency)}</strong></div>
+              <div style={{ fontSize:13, color:'var(--ink2)' }}>Tax: <strong style={{ color:'var(--ink)', minWidth:110, display:'inline-block', textAlign:'right', fontVariantNumeric:'tabular-nums' }}>{fmt(bill.tax_amount, bill.currency)}</strong></div>
+              <div style={{ fontSize:16, fontWeight:800, color:'var(--ink)' }}>Total: <span style={{ minWidth:110, display:'inline-block', textAlign:'right', color:'var(--teal)', fontVariantNumeric:'tabular-nums' }}>{fmt(bill.total, bill.currency)}</span></div>
+              {bill.paid_amount > 0 && <div style={{ fontSize:13, color:'var(--green)' }}>Paid: <strong style={{ minWidth:110, display:'inline-block', textAlign:'right', fontVariantNumeric:'tabular-nums' }}>{fmt(bill.paid_amount, bill.currency)}</strong></div>}
+              {(bill.credited_amount ?? 0) > 0 && <div style={{ fontSize:13, color:'var(--ink2)' }}>Supplier credits: <strong style={{ minWidth:110, display:'inline-block', textAlign:'right', fontVariantNumeric:'tabular-nums' }}>{fmt(bill.credited_amount ?? 0, bill.currency)}</strong></div>}
+              {balance > 0 && <div style={{ fontSize:14, fontWeight:800, color: over ? 'var(--red)' : 'var(--ink)' }}>Balance Due: <span style={{ minWidth:110, display:'inline-block', textAlign:'right', fontVariantNumeric:'tabular-nums' }}>{fmt(balance, bill.currency)}</span></div>}
+            </div>
+          </SectionCard>
 
-          {/* Payment History */}
-          <div>
-            <div style={{ fontSize:12, fontWeight:700, color:'var(--ink3)', textTransform:'uppercase', letterSpacing:'0.05em', marginBottom:12 }}>Payment History</div>
+          <SectionCard title="Payment History" collapsible={false}>
             {myPmts.length === 0 ? (
-              <div style={{ padding:'24px', textAlign:'center', background:'var(--bg)', borderRadius: 'var(--r)', fontSize:13, color:'var(--ink3)' }}>No payments recorded yet.</div>
+              <div style={{ padding:'12px', textAlign:'center', fontSize:13, color:'var(--ink3)' }}>No payments recorded yet.</div>
             ) : (
               <div style={{ display:'flex', flexDirection:'column', gap:0 }}>
                 {myPmts.map((p, i) => (
-                  <div key={p.id} style={{ display:'flex', gap:14, paddingBottom:14, position:'relative' }}>
+                  <div key={p.id} style={{ display:'flex', gap:14, paddingBottom: i < myPmts.length - 1 ? 14 : 0, position:'relative' }}>
                     <div style={{ display:'flex', flexDirection:'column', alignItems:'center', flexShrink:0 }}>
                       <div style={{ width:32, height:32, borderRadius:'50%', background:'var(--green-l)', display:'flex', alignItems:'center', justifyContent:'center' }}><Icon name="checkCircle" size={16} color="var(--green)" /></div>
                       {i < myPmts.length - 1 && <div style={{ width:2, flex:1, background:'var(--border)', marginTop:4 }} />}
                     </div>
                     <div style={{ flex:1, paddingTop:4 }}>
                       <div style={{ display:'flex', justifyContent:'space-between', marginBottom:2 }}>
-                        <span style={{ fontWeight:700, fontSize:14, color:'var(--green)' }}>{fmt(p.amount, p.currency)}</span>
+                        <span style={{ fontWeight:700, fontSize:14, color:'var(--green)', fontVariantNumeric:'tabular-nums' }}>{fmt(p.amount, p.currency)}</span>
                         <span style={{ fontSize:12, color:'var(--ink3)' }}>{fmtDate(p.date)}</span>
                       </div>
                       <div style={{ fontSize:12.5, color:'var(--ink2)' }}>{p.method}</div>
-                      <div style={{ fontFamily:'var(--font)', fontSize:11.5, color:'var(--ink3)', marginTop:2 }}>{p.reference}</div>
+                      {p.reference && <div style={{ fontFamily:'var(--font)', fontSize:11.5, color:'var(--ink3)', marginTop:2 }}>{p.reference}</div>}
                       {p.note && <div style={{ fontSize:12, color:'var(--ink3)', marginTop:2, fontStyle:'italic' }}>{p.note}</div>}
                     </div>
                   </div>
                 ))}
               </div>
             )}
-          </div>
-          {bill.notes && <div style={{ marginTop:18, padding:'13px 15px', background:'var(--bg)', borderRadius: 'var(--r)', fontSize:13, color:'var(--ink2)', lineHeight:1.6 }}><strong style={{ color:'var(--ink)' }}>Notes:</strong> {bill.notes}</div>}
+          </SectionCard>
 
-          {/* Activity Log */}
-          <div style={{ marginTop:24 }}>
-            <div style={{ fontSize:12, fontWeight:700, color:'var(--ink3)', textTransform:'uppercase', letterSpacing:'0.05em', marginBottom:12 }}>Activity</div>
+          {bill.notes && (
+            <SectionCard title="Notes" collapsible={false}>
+              <div style={{ fontSize:13, color:'var(--ink2)', lineHeight:1.6 }}>{bill.notes}</div>
+            </SectionCard>
+          )}
+
+          <SectionCard title="Activity" collapsible={false} padded={false}>
             <div className="inv-tab-list">
               {activity.length === 0 && <div className="inv-tab-empty">No activity recorded yet.</div>}
               {activity.map(e => (
@@ -840,45 +846,58 @@ function DetailView({ bill, payments, supplierMap, onBack, onEdit, onPay, onPost
                 </div>
               ))}
             </div>
-          </div>
+          </SectionCard>
         </div>
 
         {/* Right sidebar */}
-        <div style={{ overflowY:'auto', padding:'22px 20px' }}>
-          <div style={{ background:'var(--bg)', borderRadius: 'var(--r)', padding:'16px', marginBottom:14 }}>
-            <div style={{ fontSize:11, fontWeight:700, color:'var(--ink3)', textTransform:'uppercase', letterSpacing:'0.05em', marginBottom:12 }}>Bill Summary</div>
+        <div style={{ display:'flex', flexDirection:'column', gap:14, minWidth:0 }}>
+          <div style={{ background:'var(--white)', border:'var(--card-border, 1px solid var(--border))', borderRadius:'var(--card-radius, var(--r))', padding:'16px', textAlign:'center' }}>
+            <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', gap:8, marginBottom:10 }}>
+              <span style={{ fontSize:11, fontWeight:700, color:'var(--ink3)', textTransform:'uppercase', letterSpacing:'0.05em' }}>
+                {balance === 0 ? 'Settlement Status' : over ? 'Balance Overdue' : 'Balance Due'}
+              </span>
+              <StatusBadge status={bill.status} />
+            </div>
+            <div style={{ fontSize:26, fontWeight:800, color: over ? 'var(--red)' : balance === 0 ? 'var(--green)' : 'var(--ink)', letterSpacing:'-0.5px', fontVariantNumeric:'tabular-nums' }}>
+              {fmt(balance, bill.currency)}
+            </div>
+            <div style={{ fontSize:12, color:'var(--ink3)', marginTop:4, fontVariantNumeric:'tabular-nums' }}>
+              of {fmt(bill.total, bill.currency)} total
+            </div>
+          </div>
+
+          <SectionCard title="Bill Summary" collapsible={false}>
             {[
-              { l:'Supplier',   v: bill.supplier_name },
+              { l:'Supplier',   v: bill.supplier_name || '—' },
               { l:'Bill Date',  v: fmtDate(bill.bill_date) },
               { l:'Due Date',   v: <span style={{ color: over ? 'var(--red)' : 'inherit' }}>{fmtDate(bill.due_date)}</span> },
               { l:'Currency',   v: bill.currency },
               { l:'Business Line', v: businessLine ? `${businessLine.name} (${businessLine.code})` : '—' },
               { l:'PO Ref',     v: bill.po_number ? <span style={{ fontFamily:'var(--font)', fontSize:12 }}>{bill.po_number}</span> : '—' },
-              { l:'Shipment',   v: bill.shipment_ref ? <span style={{ fontFamily:'var(--font)', fontSize:12, color:'var(--blue)' }}>{bill.shipment_ref}</span> : '—' },
-            ].map(r => (
-              <div key={r.l} style={{ display:'flex', justifyContent:'space-between', fontSize:12.5, marginBottom:8 }}>
+              { l:'Shipment',   v: bill.shipment_ref ? <span style={{ fontFamily:'var(--font)', fontSize:12, color:'var(--teal)' }}>{bill.shipment_ref}</span> : '—' },
+            ].map((r, idx, arr) => (
+              <div key={r.l} style={{ display:'flex', justifyContent:'space-between', fontSize:12.5, marginBottom: idx < arr.length - 1 ? 8 : 0, gap:8 }}>
                 <span style={{ color:'var(--ink3)' }}>{r.l}</span>
-                <span style={{ fontWeight:600, color:'var(--ink)', textAlign:'right', maxWidth:'55%' }}>{r.v}</span>
+                <span style={{ fontWeight:600, color:'var(--ink)', textAlign:'right', maxWidth:'58%', overflowWrap:'anywhere' }}>{r.v}</span>
               </div>
             ))}
-          </div>
-          <div style={{ background: over ? 'var(--red-l)' : balance === 0 ? 'var(--green-l)' : 'var(--gold-l)', borderRadius: 'var(--r)', padding:'16px', textAlign:'center' }}>
-            <div style={{ fontSize:11, fontWeight:700, color: over ? 'var(--red)' : balance === 0 ? 'var(--green)' : 'var(--gold)', textTransform:'uppercase', letterSpacing:'0.05em', marginBottom:6 }}>{balance === 0 ? 'Fully Paid' : over ? 'OVERDUE' : 'Balance Due'}</div>
-            <div style={{ fontSize:26, fontWeight:900, color: over ? 'var(--red)' : balance === 0 ? 'var(--green)' : 'var(--ink)', letterSpacing:'-0.5px' }}>{fmt(balance, bill.currency)}</div>
-            <div style={{ fontSize:12, color:'var(--ink3)', marginTop:4 }}>of {fmt(bill.total, bill.currency)} total</div>
-          </div>
+          </SectionCard>
+
           {bill.supplier_id && (
-            <div style={{ marginTop:14, padding:'12px 14px', border:'1px solid var(--border)', borderRadius: 'var(--r)' }}>
-              <div style={{ fontSize:11, fontWeight:700, color:'var(--ink3)', textTransform:'uppercase', letterSpacing:'0.05em', marginBottom:8 }}>Supplier</div>
-              <div style={{ fontWeight:700, fontSize:13, color:'var(--ink)', marginBottom:3 }}>{supplierMap[bill.supplier_id]?.name}</div>
-              <div style={{ fontSize:12, color:'var(--teal)' }}>{supplierMap[bill.supplier_id]?.email}</div>
-              <div style={{ fontSize:12, color:'var(--ink3)', marginTop:2 }}>Terms: {supplierMap[bill.supplier_id]?.terms}</div>
-            </div>
+            <SectionCard title="Supplier" collapsible={false}>
+              <div style={{ display:'flex', alignItems:'center', gap:10 }}>
+                <PersonAvatar kind="suppliers" userId={bill.supplier_id} name={supplierMap[bill.supplier_id]?.name || bill.supplier_name || 'Supplier'} size={36} />
+                <div style={{ minWidth:0 }}>
+                  <div style={{ fontWeight:700, fontSize:13, color:'var(--ink)' }}>{supplierMap[bill.supplier_id]?.name || bill.supplier_name}</div>
+                  {supplierMap[bill.supplier_id]?.email && <div style={{ fontSize:12, color:'var(--teal)', overflowWrap:'anywhere' }}>{supplierMap[bill.supplier_id]?.email}</div>}
+                  <div style={{ fontSize:12, color:'var(--ink3)', marginTop:2 }}>Terms: {supplierMap[bill.supplier_id]?.terms || '—'}</div>
+                </div>
+              </div>
+            </SectionCard>
           )}
 
           {/* EFD/VFD receipt verification against the TRA verify portal */}
-          <div style={{ marginTop:14, padding:'12px 14px', border:'1px solid var(--border)', borderRadius: 'var(--r)' }}>
-            <div style={{ fontSize:11, fontWeight:700, color:'var(--ink3)', textTransform:'uppercase', letterSpacing:'0.05em', marginBottom:8 }}>EFD/VFD Verification</div>
+          <SectionCard title="EFD/VFD Verification" collapsible={false}>
             {bill.efd_verified ? (
               <div style={{ display:'flex', alignItems:'center', gap:6, marginBottom:8 }}>
                 <Icon name="checkCircle" size={14} color="var(--green)" />
@@ -897,13 +916,14 @@ function DetailView({ bill, payments, supplierMap, onBack, onEdit, onPay, onPost
               type="text" placeholder="RCTVNUM from supplier's receipt" value={efdInput}
               onChange={e => setEfdInput(e.target.value)}
               style={{ width:'100%', marginBottom:8 }}
+              aria-label="EFD receipt number"
             />
-            <Button type="button" className="w-full" onClick={runVerify} disabled={!efdInput.trim() || efdChecking}>
+            <Button type="button" size="sm" className="w-full" onClick={runVerify} disabled={!efdInput.trim() || efdChecking}>
               {efdChecking ? 'Checking with TRA…' : 'Verify against TRA'}
             </Button>
             {efdError && <div style={{ marginTop:8, fontSize:11.5, color:'var(--red)' }}>{efdError}</div>}
             {bill.efd_verified_at && <div style={{ marginTop:8, fontSize:11, color:'var(--ink3)' }}>Last checked {fmtDate(bill.efd_verified_at)}</div>}
-          </div>
+          </SectionCard>
         </div>
       </div>
     </div>
@@ -913,81 +933,215 @@ function DetailView({ bill, payments, supplierMap, onBack, onEdit, onPay, onPost
 // ── Recurring Tab ──────────────────────────────────────────────────────────────
 
 interface RecurringSummary { active: number; generated: number; monthly: {currency:string;amount:number}[] }
-function RecurringTab({ recurring, summary, onEdit, onToggle, onGenerate, onDelete, isMobile = false }: {
+function RecurringTab({
+  recurring,
+  totalCount,
+  loading,
+  error,
+  hasActiveFilters,
+  onRetry,
+  onClearFilters,
+  onCreate,
+  onEdit,
+  onToggle,
+  onGenerate,
+  onDelete,
+  page,
+  pageSize,
+  onPageChange,
+  onPageSizeChange,
+}: {
   recurring: RecurringBill[];
-  summary: RecurringSummary;
+  totalCount: number;
+  loading: boolean;
+  error: string;
+  hasActiveFilters: boolean;
+  onRetry: () => void;
+  onClearFilters: () => void;
+  onCreate: () => void;
   onEdit: (r: RecurringBill) => void;
   onToggle: (r: RecurringBill) => void;
   onGenerate: (r: RecurringBill) => void;
   onDelete: (r: RecurringBill) => void;
-  isMobile?: boolean;
+  page: number;
+  pageSize: number;
+  onPageChange: (page: number) => void;
+  onPageSizeChange: (size: number) => void;
 }) {
-
   return (
-    <div>
-      {/* Recurring summary cards */}
-      <div style={{ display:'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(3, 1fr)', gap:14, marginBottom:20 }}>
-        {[
-          { label:'Active Recurring', value:String(summary.active), color:'var(--teal)', bg:'var(--teal-l)', icon:'refresh' as const },
-          { label:'Monthly Commitment', value:summary.monthly.map(item => fmt(item.amount,item.currency)).join(' · ') || '—', color:'var(--blue)', bg:'var(--blue-l)', icon:'dollarSign' as const },
-          { label:'Bills Generated', value:String(summary.generated), color:'var(--green)', bg:'var(--green-l)', icon:'receipt' as const },
-        ].map(c => (
-          <div key={c.label} style={{ background:c.bg, borderRadius: 'var(--r)', padding:'16px 18px', display:'flex', alignItems:'center', gap:12 }}>
-            <div style={{ width:36, height:36, borderRadius: 'var(--r)', background:c.color, display:'flex', alignItems:'center', justifyContent:'center' }}><Icon name={c.icon} size={16} color="#fff" /></div>
-            <div><div style={{ fontWeight:800, fontSize:20, color:c.color }}>{c.value}</div><div style={{ fontSize:12, color:'var(--ink3)', marginTop:1 }}>{c.label}</div></div>
+    <SectionCard collapsible={false} padded={false}>
+      <div style={{ background: 'var(--white)' }}>
+        {loading ? (
+          <SkeletonTable rows={5} cols={8} />
+        ) : error ? (
+          <div className="ds-empty-state" role="alert">
+            <FeaturedIcon variant="error" size="lg" shape="circle">
+              <Icon name="alertTriangle" size={22} />
+            </FeaturedIcon>
+            <h3>Could not load recurring bills</h3>
+            <p>{error}</p>
+            <Button type="button" variant="outline" size="sm" onClick={onRetry}>
+              <Icon name="refresh" size={13} /> Retry
+            </Button>
           </div>
-        ))}
-      </div>
-
-      <div style={{ background:'var(--white)', borderRadius: 'var(--r)', border:'1px solid var(--border)', overflow:'hidden' }}>
-        {recurring.length === 0 ? (
-          <div style={{ padding:'64px 20px', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', textAlign:'center' }}>
-            <div style={{ width: 64, height: 64, borderRadius: '50%', background: 'var(--bg)', border: '1px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 16 }}>
-              <Icon name="refresh" size={32} color="var(--ink3)" />
+        ) : recurring.length === 0 ? (
+          hasActiveFilters ? (
+            <div className="ds-empty-state">
+              <FeaturedIcon variant="gray" size="lg" shape="circle">
+                <Icon name="search" size={22} />
+              </FeaturedIcon>
+              <h3>No recurring templates match your filters</h3>
+              <p>No scheduled supplier bill templates matched your current search or filter selection.</p>
+              <div className="flex flex-wrap items-center justify-center gap-2 mt-1">
+                <Button type="button" variant="outline" size="sm" onClick={onClearFilters}>
+                  <Icon name="x" size={13} /> Clear filters
+                </Button>
+                <Button type="button" size="sm" onClick={onCreate}>
+                  <Icon name="plus" size={14} /> New recurring bill
+                </Button>
+              </div>
             </div>
-            <div style={{ fontSize:15, fontWeight:700, color:'var(--ink)' }}>No recurring bills set up yet</div>
-          </div>
+          ) : (
+            <div className="ds-empty-state">
+              <FeaturedIcon variant="brand" size="lg" shape="squircle">
+                <Icon name="refresh" size={22} />
+              </FeaturedIcon>
+              <h3>No recurring bills set up yet</h3>
+              <p>Automate rent, retainers, subscriptions, and regular supplier invoices on a weekly, monthly, quarterly, or annual cycle.</p>
+              <div className="flex flex-wrap items-center justify-center gap-2 mt-1">
+                <Button type="button" size="sm" onClick={onCreate}>
+                  <Icon name="plus" size={14} /> New recurring bill
+                </Button>
+              </div>
+            </div>
+          )
         ) : (
-          <div className="rtbl-wrap"><table className="rtbl">
-            <thead><tr style={{ background:'var(--bg)' }}>
-              {['Template','Supplier','Frequency','Amount','Category','Next Due','Bills','State',''].map(h => (
-                <th key={h} style={{ padding:'10px 14px', textAlign:'left', fontWeight:700, color:'var(--ink2)', fontSize:11, textTransform:'uppercase', letterSpacing:'0.03em', borderBottom:'1px solid var(--border)', whiteSpace:'nowrap' }}>{h}</th>
-              ))}
-            </tr></thead>
-            <tbody>
-              {recurring.map(r => {
-                const total = r.amount * (1 + r.tax_rate / 100);
-                const dueD  = new Date(r.next_due);
-                const dueSoon = dueD.getTime() - Date.now() < 14 * 86400000;
-                return (
-                  <tr key={r.id} style={{ borderBottom:'1px solid var(--border)', opacity: r.state === 'PAUSED' ? 0.55 : 1 }}>
-                    <td style={{ padding:'12px 14px' }}><div style={{ fontWeight:700, color:'var(--ink)' }}>{r.name}</div><div style={{ fontSize:11.5, color:'var(--ink3)', marginTop:2 }}>{r.description.length > 50 ? r.description.slice(0,50)+'…' : r.description}</div></td>
-                    <td style={{ padding:'12px 14px', fontSize:13, color:'var(--ink2)' }}>{r.supplier_name}</td>
-                    <td style={{ padding:'12px 14px' }}><FreqBadge freq={r.frequency} /></td>
-                    <td style={{ padding:'12px 14px', fontWeight:700 }}>{fmt(total, r.currency)}</td>
-                    <td style={{ padding:'12px 14px' }}><span style={{ fontSize:11, fontWeight:700, color:CAT_CFG[r.category]?.color ?? 'var(--ink2)' }}>{CAT_CFG[r.category]?.label ?? r.category}</span></td>
-                    <td style={{ padding:'12px 14px', color: dueSoon && r.state==='ACTIVE' ? 'var(--gold)' : 'var(--ink2)', fontWeight: dueSoon ? 700 : 400 }}>{fmtDate(r.next_due)}{dueSoon && r.state==='ACTIVE' && <span style={{ fontSize:10, display:'block', color:'var(--gold)' }}>Due soon</span>}</td>
-                    <td style={{ padding:'12px 14px', textAlign:'center', fontWeight:700, color:'var(--ink2)' }}>{r.bills_generated}</td>
-                    <td style={{ padding:'12px 14px' }}><Badge variant={r.state==='ACTIVE'?'success':r.state==='PAUSED'?'warning':'gray'}>{r.state}</Badge></td>
-                    <td style={{ padding:'12px 10px' }}>
-                      <div style={{ display:'flex', gap:2 }}>
-                        <Tip label="Generate bill now"><span><button type="button" aria-label="Generate bill now" onClick={() => onGenerate(r)} disabled={r.state !== 'ACTIVE'}
-                          style={{ background:'none', border:'none', cursor: r.state==='ACTIVE'?'pointer':'default', color: r.state==='ACTIVE'?'var(--teal)':'var(--border)', padding:"var(--action-py) var(--space-md)", borderRadius:'var(--r-sm)', display:'flex' }} data-ui-native-button="">
-                          <Icon name="zap" size={14} />
-                        </button></span></Tip>
-                        <Tip label="Edit recurring bill"><button type="button" aria-label="Edit recurring bill" onClick={() => onEdit(r)} style={{ background:'none', border:'none', cursor:'pointer', color:'var(--ink3)', padding:"var(--action-py) var(--space-md)", borderRadius:'var(--r-sm)', display:'flex' }} data-ui-native-button=""><Icon name="edit" size={14} /></button></Tip>
-                        <Tip label={r.state==='ACTIVE'?'Pause recurring bill':'Resume recurring bill'}><button type="button" aria-label={r.state==='ACTIVE'?'Pause recurring bill':'Resume recurring bill'} onClick={() => onToggle(r)} style={{ background:'none', border:'none', cursor:'pointer', color:'var(--gold)', padding:"var(--action-py) var(--space-md)", borderRadius:'var(--r-sm)', display:'flex' }} data-ui-native-button=""><Icon name={r.state==='ACTIVE' ? 'pause' : 'chevronRight'} size={14} /></button></Tip>
-                        <Tip label="Delete recurring bill"><button type="button" aria-label="Delete recurring bill" onClick={() => onDelete(r)} style={{ background:'none', border:'none', cursor:'pointer', color:'var(--red)', padding:"var(--action-py) var(--space-md)", borderRadius:'var(--r-sm)', display:'flex' }} data-ui-native-button=""><Icon name="trash" size={14} /></button></Tip>
-                      </div>
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table></div>
+          <div className="rtbl-wrap">
+            <table className="rtbl">
+              <thead>
+                <tr style={{ background: 'var(--bg)' }}>
+                  <th style={{ padding: '10px 14px', textAlign: 'left', fontWeight: 700, color: 'var(--ink2)', fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.03em', borderBottom: '1px solid var(--border)', whiteSpace: 'nowrap' }}>Template</th>
+                  <th style={{ padding: '10px 14px', textAlign: 'left', fontWeight: 700, color: 'var(--ink2)', fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.03em', borderBottom: '1px solid var(--border)', whiteSpace: 'nowrap' }}>Supplier</th>
+                  <th style={{ padding: '10px 14px', textAlign: 'left', fontWeight: 700, color: 'var(--ink2)', fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.03em', borderBottom: '1px solid var(--border)', whiteSpace: 'nowrap' }}>Frequency</th>
+                  <th style={{ padding: '10px 14px', textAlign: 'right', fontWeight: 700, color: 'var(--ink2)', fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.03em', borderBottom: '1px solid var(--border)', whiteSpace: 'nowrap' }}>Amount</th>
+                  <th style={{ padding: '10px 14px', textAlign: 'left', fontWeight: 700, color: 'var(--ink2)', fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.03em', borderBottom: '1px solid var(--border)', whiteSpace: 'nowrap' }}>Category</th>
+                  <th style={{ padding: '10px 14px', textAlign: 'left', fontWeight: 700, color: 'var(--ink2)', fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.03em', borderBottom: '1px solid var(--border)', whiteSpace: 'nowrap' }}>Next Due</th>
+                  <th style={{ padding: '10px 14px', textAlign: 'center', fontWeight: 700, color: 'var(--ink2)', fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.03em', borderBottom: '1px solid var(--border)', whiteSpace: 'nowrap' }}>Bills</th>
+                  <th style={{ padding: '10px 14px', textAlign: 'left', fontWeight: 700, color: 'var(--ink2)', fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.03em', borderBottom: '1px solid var(--border)', whiteSpace: 'nowrap' }}>State</th>
+                  <th aria-label="Actions" style={{ padding: '10px 14px', textAlign: 'right', fontWeight: 700, color: 'var(--ink2)', fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.03em', borderBottom: '1px solid var(--border)', whiteSpace: 'nowrap' }} />
+                </tr>
+              </thead>
+              <tbody>
+                {recurring.map(r => {
+                  const total = r.amount * (1 + r.tax_rate / 100);
+                  const dueD = r.next_due ? new Date(r.next_due) : null;
+                  const dueSoon = !!dueD && dueD.getTime() - Date.now() < 14 * 86400000;
+                  return (
+                    <tr key={r.id} style={{ borderBottom: '1px solid var(--border)', opacity: r.state === 'PAUSED' ? 0.65 : 1 }}>
+                      <td style={{ padding: '12px 14px' }}>
+                        <div style={{ fontWeight: 700, color: 'var(--ink)' }}>{r.name || 'Untitled template'}</div>
+                        {r.description && (
+                          <div style={{ fontSize: 11.5, color: 'var(--ink3)', marginTop: 2 }}>
+                            {r.description.length > 50 ? `${r.description.slice(0, 50)}…` : r.description}
+                          </div>
+                        )}
+                      </td>
+                      <td style={{ padding: '12px 14px' }}>
+                        <div className="flex items-center gap-2.5 min-w-0">
+                          <PersonAvatar kind="suppliers" userId={r.supplier_id || undefined} name={r.supplier_name || 'Supplier'} size={26} />
+                          <div className="min-w-0">
+                            <div className="font-medium text-foreground truncate">{r.supplier_name || 'Unassigned supplier'}</div>
+                            {r.payment_terms && <div className="text-[11px] text-muted-foreground">{r.payment_terms}</div>}
+                          </div>
+                        </div>
+                      </td>
+                      <td style={{ padding: '12px 14px' }}><FreqBadge freq={r.frequency} /></td>
+                      <td style={{ padding: '12px 14px', textAlign: 'right', fontWeight: 700, fontVariantNumeric: 'tabular-nums' }}>{fmt(total, r.currency)}</td>
+                      <td style={{ padding: '12px 14px' }}>
+                        <span style={{ fontSize: 11, fontWeight: 700, color: CAT_CFG[r.category]?.color ?? 'var(--ink2)' }}>
+                          {CAT_CFG[r.category]?.label ?? r.category}
+                        </span>
+                      </td>
+                      <td style={{ padding: '12px 14px', color: dueSoon && r.state === 'ACTIVE' ? 'var(--gold)' : 'var(--ink2)', fontWeight: dueSoon && r.state === 'ACTIVE' ? 700 : 400, fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap' }}>
+                        {fmtDate(r.next_due)}
+                        {dueSoon && r.state === 'ACTIVE' && <span style={{ fontSize: 10, display: 'block', color: 'var(--gold)' }}>Due soon</span>}
+                      </td>
+                      <td style={{ padding: '12px 14px', textAlign: 'center', fontWeight: 700, color: 'var(--ink2)', fontVariantNumeric: 'tabular-nums' }}>{r.bills_generated}</td>
+                      <td style={{ padding: '12px 14px' }}><Badge variant={r.state === 'ACTIVE' ? 'success' : r.state === 'PAUSED' ? 'warning' : 'gray'}>{r.state}</Badge></td>
+                      <td style={{ padding: '10px 12px', textAlign: 'right', whiteSpace: 'nowrap' }}>
+                        <div className="inline-flex items-center justify-end gap-1">
+                          <Tip label="Generate bill now">
+                            <span>
+                              <Button
+                                type="button"
+                                variant="ghost"
+                                size="icon"
+                                iconOnly
+                                aria-label={`Generate bill from ${r.name || 'template'}`}
+                                onClick={() => onGenerate(r)}
+                                disabled={r.state !== 'ACTIVE'}
+                              >
+                                <Icon name="zap" size={14} color={r.state === 'ACTIVE' ? 'var(--teal)' : undefined} />
+                              </Button>
+                            </span>
+                          </Tip>
+                          <Tip label="Edit recurring bill">
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="icon"
+                              iconOnly
+                              aria-label={`Edit ${r.name || 'recurring bill'}`}
+                              onClick={() => onEdit(r)}
+                            >
+                              <Icon name="edit" size={14} />
+                            </Button>
+                          </Tip>
+                          <Tip label={r.state === 'ACTIVE' ? 'Pause recurring bill' : 'Resume recurring bill'}>
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="icon"
+                              iconOnly
+                              aria-label={`${r.state === 'ACTIVE' ? 'Pause' : 'Resume'} ${r.name || 'recurring bill'}`}
+                              onClick={() => onToggle(r)}
+                            >
+                              <Icon name={r.state === 'ACTIVE' ? 'pause' : 'chevronRight'} size={14} color="var(--gold)" />
+                            </Button>
+                          </Tip>
+                          <Tip label="Delete recurring bill">
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="icon"
+                              iconOnly
+                              aria-label={`Delete ${r.name || 'recurring bill'}`}
+                              onClick={() => onDelete(r)}
+                            >
+                              <Icon name="trash" size={14} color="var(--red)" />
+                            </Button>
+                          </Tip>
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
         )}
+        <PaginationBar
+          page={page}
+          pageSize={pageSize}
+          total={totalCount}
+          onPageChange={onPageChange}
+          onPageSizeChange={onPageSizeChange}
+          pageSizeOptions={[10, 25, 50, 100]}
+          itemLabel="recurring template"
+          bordered={true}
+        />
       </div>
-    </div>
+    </SectionCard>
   );
 }
 
@@ -995,6 +1149,7 @@ function RecurringTab({ recurring, summary, onEdit, onToggle, onGenerate, onDele
 
 type MainTab  = 'bills'|'recurring';
 type AppView  = 'list'|'detail'|'form';
+type ViewMode = 'table'|'grid';
 
 export const Bills: React.FC = () => {
   const documentRoute=useFinanceDocumentRoute("bills");
@@ -1003,14 +1158,19 @@ export const Bills: React.FC = () => {
   const [bills, setBills]           = useState<Bill[]>([]);
   const [recurring, setRecurring]   = useState<RecurringBill[]>([]);
   const [recurringPage,setRecurringPage] = useState(1);
+  const [recurringPageSize, setRecurringPageSize] = useState(25);
   const [recurringTotal,setRecurringTotal] = useState(0);
   const [recurringSummary,setRecurringSummary] = useState<RecurringSummary>({active:0,generated:0,monthly:[]});
   const [recurringRefresh,setRecurringRefresh] = useState(0);
   const [recurringLoading,setRecurringLoading] = useState(true);
   const [recurringError,setRecurringError] = useState('');
+  const [recurSearch, setRecurSearch] = useState('');
+  const [recurStateFilter, setRecurStateFilter] = useState<'ALL'|RecurState>('ALL');
+  const [recurFreqFilter, setRecurFreqFilter] = useState<'ALL'|RecurFreq>('ALL');
   const [payments, setPayments]     = useState<Payment[]>([]);
   const [suppliers, setSuppliers]   = useState<any[]>([]);
   const [tab, setTab]               = useState<MainTab>('bills');
+  const [viewMode, setViewMode]     = useState<ViewMode>('table');
   const [view, setView]             = useState<AppView>('list');
   const [selected, setSelected]     = useState<Bill | null>(null);
   const [formBill, setFormBill]     = useState<Bill | null>(null);
@@ -1048,17 +1208,18 @@ export const Bills: React.FC = () => {
   }, [qSupplierId, qNew]);
 
   const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(25);
   const [matchCount, setMatchCount] = useState(0);
-  const [loadingBills, setLoadingBills] = useState(false);
+  const [loadingBills, setLoadingBills] = useState(true);
   const [billError, setBillError] = useState('');
   const [billRefresh, setBillRefresh] = useState(0);
   const [billSummary, setBillSummary] = useState<any>(null);
-  const filterKey = JSON.stringify([search, statusFilter, supFilter, sortBy, sortDir]);
+  const filterKey = JSON.stringify([search, statusFilter, supFilter, sortBy, sortDir, pageSize]);
   const previousFilters = useRef(filterKey);
   useEffect(() => {
     if (previousFilters.current !== filterKey) { previousFilters.current = filterKey; setPage(1); }
   }, [filterKey]);
-  const billQuery = new URLSearchParams({ page: String(page), page_size: '25', sort_by: sortBy, sort_dir: sortDir });
+  const billQuery = new URLSearchParams({ page: String(page), page_size: String(pageSize), sort_by: sortBy, sort_dir: sortDir });
   if (search.trim()) billQuery.set('search', search.trim());
   if (statusFilter !== 'ALL') billQuery.set('status', statusFilter);
   if (supFilter !== 'ALL') billQuery.set('supplier_id', supFilter);
@@ -1083,13 +1244,13 @@ export const Bills: React.FC = () => {
   }, [billRefresh]);
   useEffect(() => {
     let active=true;setRecurringLoading(true);setRecurringError('');
-    apiFetch(`/v1/bills/recurring?page=${recurringPage}&page_size=25`).then(data=>{
+    apiFetch(`/v1/bills/recurring?page=${recurringPage}&page_size=${recurringPageSize}`).then(data=>{
       if(!active)return;
       setRecurring(data.items.map(mapApiRecurring));setRecurringTotal(data.total);setRecurringSummary(data.summary);
-      if(recurringPage>1&&!data.items.length)setRecurringPage(Math.max(1,Math.ceil(data.total/25)));
+      if(recurringPage>1&&!data.items.length)setRecurringPage(Math.max(1,Math.ceil(data.total/recurringPageSize)));
     }).catch(error=>{if(active){setRecurring([]);setRecurringError(error.message);}}).finally(()=>{if(active)setRecurringLoading(false);});
     return()=>{active=false;};
-  },[recurringPage,recurringRefresh]);
+  },[recurringPage,recurringPageSize,recurringRefresh]);
   // Load from API on mount
   useEffect(() => {
     apiFetch('/v1/suppliers')
@@ -1112,6 +1273,19 @@ export const Bills: React.FC = () => {
 
   const displayed = loadingBills ? [] : effectiveBills;
 
+  const filteredRecurring = useMemo(() => {
+    const q = recurSearch.trim().toLowerCase();
+    return recurring.filter(r => {
+      if (recurStateFilter !== 'ALL' && r.state !== recurStateFilter) return false;
+      if (recurFreqFilter !== 'ALL' && r.frequency !== recurFreqFilter) return false;
+      if (q) {
+        const hay = `${r.name} ${r.supplier_name} ${CAT_CFG[r.category]?.label ?? r.category} ${r.description}`.toLowerCase();
+        if (!hay.includes(q)) return false;
+      }
+      return true;
+    });
+  }, [recurring, recurSearch, recurStateFilter, recurFreqFilter]);
+
   const openBillSequence = useRef(0);
   async function openBill(id: string, edit = false, syncRoute = true) {
     const sequence = ++openBillSequence.current;
@@ -1131,8 +1305,8 @@ export const Bills: React.FC = () => {
     else { setSortBy(col); setSortDir('asc'); }
   }
   function SortIco({ col }: { col: typeof sortBy }) {
-    if (sortBy !== col) return null;
-    return <Icon name={sortDir==='asc'?'arrowUp':'arrowDown'} size={10} color="var(--teal)" />;
+    if (sortBy !== col) return <Icon name="arrowUpDown" size={11} color="var(--ink3)" duotone={false} />;
+    return <Icon name={sortDir==='asc'?'chevronUp':'chevronDown'} size={11} color="var(--teal)" duotone={false} />;
   }
 
   // ── CRUD ────────────────────────────────────────────────────────────────────
@@ -1261,17 +1435,29 @@ export const Bills: React.FC = () => {
       .catch((err: any) => showAlert(err.message || 'Failed to generate bill'));
   }
 
-  // ── Metrics ─────────────────────────────────────────────────────────────────
+  // ── Metrics & Filters ──────────────────────────────────────────────────────
 
   const totalBills   = billSummary?.total_bills ?? 0;
   const unpaidBills  = effectiveBills.filter(b => b.status === 'POSTED' || b.status === 'PARTIAL' || b.status === 'OVERDUE');
   const overdueBills = effectiveBills.filter(b => b.status === 'OVERDUE');
-  const currentMonthStr = new Date().toISOString().slice(0, 7);
-  const paidThisMonth= effectiveBills.filter(b => b.status === 'PAID' && b.bill_date.startsWith(currentMonthStr));
-  const outstanding  = unpaidBills.reduce((a,b) => a + Math.max(0, b.total - b.paid_amount - (b.credited_amount ?? 0)), 0);
-  const overdueAmt   = overdueBills.reduce((a,b) => a + Math.max(0, b.total - b.paid_amount - (b.credited_amount ?? 0)), 0);
+  const hasActiveBillFilters = Boolean(search.trim() || statusFilter !== 'ALL' || supFilter !== 'ALL');
+  const hasActiveRecurFilters = Boolean(recurSearch.trim() || recurStateFilter !== 'ALL' || recurFreqFilter !== 'ALL');
 
-  const thS: React.CSSProperties = { padding:'10px 14px', textAlign:'left', fontWeight:700, color:'var(--ink2)', fontSize:11, textTransform:'uppercase', letterSpacing:'0.03em', borderBottom:'1px solid var(--border)', whiteSpace:'nowrap', cursor:'pointer', userSelect:'none' };
+  function clearBillFilters() {
+    setSearch('');
+    setStatusFilter('ALL');
+    setSupFilter('ALL');
+    setPage(1);
+  }
+
+  function clearRecurFilters() {
+    setRecurSearch('');
+    setRecurStateFilter('ALL');
+    setRecurFreqFilter('ALL');
+    setRecurringPage(1);
+  }
+
+  const thS: React.CSSProperties = { padding:'10px 12px', textAlign:'left', fontWeight:700, color:'var(--ink2)', fontSize:11, textTransform:'uppercase', letterSpacing:'0.03em', borderBottom:'1px solid var(--border)', whiteSpace:'nowrap', cursor:'pointer', userSelect:'none' };
 
   const uniqueSups = suppliers.map(supplier => supplier.id);
 
@@ -1291,7 +1477,7 @@ export const Bills: React.FC = () => {
   }
 
   return (
-    <div style={{ display:'flex', flexDirection:'column', flex:1, overflow:'hidden' }}>
+    <div style={{ display:'flex', flexDirection:'column', flex:1, minHeight:0 }}>
       {/* Modals */}
       {payTarget && (
         <PayModal bill={payTarget} onClose={() => setPayTarget(null)}
@@ -1303,12 +1489,11 @@ export const Bills: React.FC = () => {
             <>
               <DialogTitle style={{ fontSize:16, fontWeight:700, marginBottom:8 }}>Void Bill</DialogTitle>
               <div style={{ fontSize:13, color:'var(--ink2)', marginBottom:12 }}>Void <strong>{voidTarget.bill_number}</strong>? The related journal entries will be reversed.</div>
-              <Textarea value={voidReason} onChange={e => setVoidReason(e.target.value)} placeholder="Reason for voiding" className="mb-5" />
+              <Textarea value={voidReason} onChange={e => setVoidReason(e.target.value)} placeholder="Reason for voiding" aria-label="Reason for voiding" className="mb-5" />
               <div style={{ display:'flex', gap:8, justifyContent:'flex-end' }}>
                 <Button type="button" variant="outline" onClick={() => setVoidTarget(null)}>Cancel</Button>
                 <Button type="button" variant="destructive" onClick={() => handleVoid(voidTarget)}>Void bill</Button>
               </div>
-
             </>
           )}
         </DialogContent>
@@ -1332,47 +1517,250 @@ export const Bills: React.FC = () => {
           isMobile={isMobile}
         />
       ) : (
-        <div style={{ flex:1, overflowY:'auto', padding: 0 }}>
-          <FinanceDocumentListExport kind="bill"/>
-      <PageHeader
+        <div style={{ flex:1, padding: 0 }}>
+          <PageHeader
             crumbs={['FINANCE', 'BILLS']}
             titlePlain="Supplier"
             titleEm="bills"
             subtitle="Supplier invoices, payment tracking and recurring billing schedules."
+            actions={<FinanceDocumentListExport kind="bill" />}
           />
 
-          {/* Metrics Row matching reference format */}
-          <MetricsRow cards={[
-            { emphasis: 'primary', title:'TOTAL BILLS', value:String(totalBills), sub1Label:'DRAFT', sub1Value:String(billSummary?.status_counts?.DRAFT ?? 0), sub2Label:'PAID', sub2Value:String(billSummary?.status_counts?.PAID ?? 0), barHighlight:'var(--teal)' },
-            { title:'OUTSTANDING · TZS', value:formatAmount(billSummary?.currency_totals?.TZS?.outstanding ?? 0, 'TZS'), invertTrend:true, sub1Label:'UNPAID BILLS', sub1Value:String((billSummary?.status_counts?.POSTED ?? 0) + (billSummary?.status_counts?.PARTIAL ?? 0)), sub2Label:'PARTIAL', sub2Value:String(billSummary?.status_counts?.PARTIAL ?? 0), barHighlight:'var(--gold)' },
-            { title:'OVERDUE · TZS', value:String(billSummary?.currency_totals?.TZS?.overdue_count ?? 0), sub1Label:'OVERDUE AMOUNT', sub1Value:formatAmount(billSummary?.currency_totals?.TZS?.overdue_amount ?? 0, 'TZS'), sub2Label:'CURRENCY', sub2Value:'TZS', barHighlight:'var(--red)' },
-          ]} />
+          {/* 4-Card KPI Overview */}
+          <MetricsRow
+            cards={tab === 'bills' ? [
+              {
+                title: 'TOTAL BILLS',
+                value: String(totalBills),
+                sub1Label: 'DRAFT',
+                sub1Value: String(billSummary?.status_counts?.DRAFT ?? 0),
+                sub2Label: 'POSTED',
+                sub2Value: String(billSummary?.status_counts?.POSTED ?? 0),
+                barHighlight: 'var(--teal)',
+                loading: !billSummary,
+              },
+              {
+                emphasis: 'primary',
+                title: 'OUTSTANDING · TZS',
+                value: formatCompact(billSummary?.currency_totals?.TZS?.outstanding ?? 0, 'TZS'),
+                invertTrend: true,
+                sub1Label: 'UNPAID BILLS',
+                sub1Value: String((billSummary?.status_counts?.POSTED ?? 0) + (billSummary?.status_counts?.PARTIAL ?? 0)),
+                sub2Label: 'PARTIAL',
+                sub2Value: String(billSummary?.status_counts?.PARTIAL ?? 0),
+                barHighlight: 'var(--gold)',
+                loading: !billSummary,
+              },
+              {
+                title: 'OVERDUE · TZS',
+                value: formatCompact(billSummary?.currency_totals?.TZS?.overdue_amount ?? 0, 'TZS'),
+                invertTrend: true,
+                sub1Label: 'OVERDUE BILLS',
+                sub1Value: String(billSummary?.currency_totals?.TZS?.overdue_count ?? 0),
+                sub2Label: 'PENDING APPROVAL',
+                sub2Value: String(billSummary?.status_counts?.PENDING_APPROVAL ?? 0),
+                barHighlight: 'var(--red)',
+                loading: !billSummary,
+              },
+              {
+                title: 'PAID · TZS',
+                value: formatCompact(billSummary?.currency_totals?.TZS?.paid ?? 0, 'TZS'),
+                sub1Label: 'PAID BILLS',
+                sub1Value: String(billSummary?.status_counts?.PAID ?? 0),
+                sub2Label: 'RECURRING ACTIVE',
+                sub2Value: String(recurringSummary.active),
+                barHighlight: 'var(--green)',
+                loading: !billSummary,
+              },
+            ] : [
+              {
+                emphasis: 'primary',
+                title: 'ACTIVE TEMPLATES',
+                value: String(recurringSummary.active),
+                sub1Label: 'TOTAL TEMPLATES',
+                sub1Value: String(recurringTotal),
+                sub2Label: 'INACTIVE / PAUSED',
+                sub2Value: String(Math.max(0, recurringTotal - recurringSummary.active)),
+                barHighlight: 'var(--teal)',
+                loading: recurringLoading,
+              },
+              {
+                title: 'MONTHLY COMMITMENT',
+                value: recurringSummary.monthly.map(item => formatCompact(item.amount, item.currency)).join(' · ') || formatCompact(0, getCompany().currency),
+                sub1Label: 'ACTIVE SCHEDULES',
+                sub1Value: String(recurringSummary.active),
+                sub2Label: 'CYCLE',
+                sub2Value: 'MONTHLY',
+                barHighlight: 'var(--blue)',
+                loading: recurringLoading,
+              },
+              {
+                title: 'BILLS GENERATED',
+                value: String(recurringSummary.generated),
+                sub1Label: 'AUTO-GENERATED',
+                sub1Value: String(recurringSummary.generated),
+                sub2Label: 'TEMPLATES',
+                sub2Value: String(recurringTotal),
+                barHighlight: 'var(--green)',
+                loading: recurringLoading,
+              },
+              {
+                title: 'TOTAL TEMPLATES',
+                value: String(recurringTotal),
+                sub1Label: 'ACTIVE',
+                sub1Value: String(recurringSummary.active),
+                sub2Label: 'GENERATED',
+                sub2Value: String(recurringSummary.generated),
+                barHighlight: 'var(--purple)',
+                loading: recurringLoading,
+              },
+            ]}
+          />
 
-          <div className="mb-4">
-            <Tabs value={tab} onValueChange={v => setTab(v as MainTab)} variant="underline">
-              <TabsList><TabsTrigger value="bills">Bills</TabsTrigger><TabsTrigger value="recurring">Recurring ({recurringTotal})</TabsTrigger></TabsList>
-            </Tabs>
-            <SearchToolbar layout="register"
-              {...(tab === 'bills' ? {search, onSearch: setSearch, placeholder: 'Search bill # or supplier…', quickFilters: [
-                { value: statusFilter === 'ALL' ? null : statusFilter, onChange: (value: string | null) => setStatusFilter((value as BillStatus) ?? 'ALL'), allLabel: 'All statuses', options: (['DRAFT','PENDING_APPROVAL','POSTED','PARTIAL','OVERDUE','PAID','VOID'] as const).map(value => ({value,label: STATUS_CFG[value]?.label ?? value})) },
-                { value: supFilter === 'ALL' ? null : supFilter, onChange: (value: string | null) => setSupFilter(value ?? 'ALL'), allLabel: 'All suppliers', searchable: true, options: uniqueSups.map(id => ({value:id,label:supplierMap[id]?.name ?? id})) },
-              ]} : {})}
-              actions={<Button onClick={() => { if(tab==='recurring'){setFormRecur(null);setShowRecurForm(true);}else{documentRoute.open('new');} }}><Icon name="plus" size={14} />{tab === 'recurring' ? 'New recurring bill' : 'New bill'}</Button>}
-            />
+          {/* Tabs + Search & Filter Toolbar */}
+          <div className="mt-4 mb-3 flex flex-col gap-3">
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <Tabs value={tab} onValueChange={v => setTab(v as MainTab)}>
+                <TabsList>
+                  <TabsTrigger value="bills">Bills ({totalBills})</TabsTrigger>
+                  <TabsTrigger value="recurring">Recurring ({recurringTotal})</TabsTrigger>
+                </TabsList>
+              </Tabs>
+
+              <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                {tab === 'bills' ? (
+                  hasActiveBillFilters ? (
+                    <Button type="button" variant="ghost" size="xs" onClick={clearBillFilters}>
+                      <Icon name="x" size={12} /> Clear filters
+                    </Button>
+                  ) : (
+                    <span>
+                      {totalBills > 0
+                        ? `${unpaidBills.length} open on page · ${overdueBills.length} overdue`
+                        : `${recurringSummary.active} recurring schedules active`}
+                    </span>
+                  )
+                ) : hasActiveRecurFilters ? (
+                  <Button type="button" variant="ghost" size="xs" onClick={clearRecurFilters}>
+                    <Icon name="x" size={12} /> Clear filters
+                  </Button>
+                ) : (
+                  <span>{recurringSummary.active} active · {recurringSummary.generated} generated</span>
+                )}
+              </div>
+            </div>
+
+            {tab === 'bills' ? (
+              <SearchToolbar
+                layout="register"
+                search={search}
+                onSearch={setSearch}
+                placeholder="Search bill #, supplier, PO, or shipment ref…"
+                quickFilters={[
+                  {
+                    label: 'Status',
+                    value: statusFilter === 'ALL' ? null : statusFilter,
+                    onChange: (value: string | null) => setStatusFilter((value as BillStatus) ?? 'ALL'),
+                    allLabel: 'All statuses',
+                    options: (['DRAFT', 'PENDING_APPROVAL', 'POSTED', 'PARTIAL', 'OVERDUE', 'PAID', 'VOID'] as const).map(value => ({
+                      value,
+                      label: STATUS_CFG[value]?.label ?? value,
+                    })),
+                  },
+                  {
+                    label: 'Supplier',
+                    value: supFilter === 'ALL' ? null : supFilter,
+                    onChange: (value: string | null) => setSupFilter(value ?? 'ALL'),
+                    allLabel: 'All suppliers',
+                    searchable: true,
+                    options: uniqueSups.map(id => ({ value: id, label: supplierMap[id]?.name ?? id })),
+                  },
+                ]}
+                actions={
+                  <>
+                    <div className="products-view-toggle" role="group" aria-label="Bills view">
+                      <Tip label="Table view">
+                        <button
+                          type="button"
+                          className={`border-0 bg-transparent cursor-pointer ${viewMode === 'table' ? 'is-active' : ''}`}
+                          onClick={() => setViewMode('table')}
+                          aria-pressed={viewMode === 'table'}
+                          aria-label="Table view"
+                          data-ui-native-button=""
+                        >
+                          <Icon name="list" size={14} />
+                        </button>
+                      </Tip>
+                      <Tip label="Card grid view">
+                        <button
+                          type="button"
+                          className={`border-0 bg-transparent cursor-pointer ${viewMode === 'grid' ? 'is-active' : ''}`}
+                          onClick={() => setViewMode('grid')}
+                          aria-pressed={viewMode === 'grid'}
+                          aria-label="Card grid view"
+                          data-ui-native-button=""
+                        >
+                          <Icon name="layoutGrid" size={14} />
+                        </button>
+                      </Tip>
+                    </div>
+                    <Button type="button" onClick={() => documentRoute.open('new')}>
+                      <Icon name="plus" size={14} /> New bill
+                    </Button>
+                  </>
+                }
+              />
+            ) : (
+              <SearchToolbar
+                layout="register"
+                search={recurSearch}
+                onSearch={setRecurSearch}
+                placeholder="Search recurring template, supplier, or category…"
+                quickFilters={[
+                  {
+                    label: 'State',
+                    value: recurStateFilter === 'ALL' ? null : recurStateFilter,
+                    onChange: (value: string | null) => setRecurStateFilter((value as RecurState) ?? 'ALL'),
+                    allLabel: 'All states',
+                    options: [
+                      { value: 'ACTIVE', label: 'Active' },
+                      { value: 'PAUSED', label: 'Paused' },
+                      { value: 'ENDED', label: 'Ended' },
+                    ],
+                  },
+                  {
+                    label: 'Frequency',
+                    value: recurFreqFilter === 'ALL' ? null : recurFreqFilter,
+                    onChange: (value: string | null) => setRecurFreqFilter((value as RecurFreq) ?? 'ALL'),
+                    allLabel: 'All frequencies',
+                    options: ALL_FREQS.map(fr => ({ value: fr, label: FREQ_CFG[fr].label })),
+                  },
+                ]}
+                actions={
+                  <Button type="button" onClick={() => { setFormRecur(null); setShowRecurForm(true); }}>
+                    <Icon name="plus" size={14} /> New recurring bill
+                  </Button>
+                }
+              />
+            )}
           </div>
 
           {tab === 'recurring' ? (
-            <>
-            {recurringError && <div role="alert">{recurringError} <Button variant="outline" onClick={()=>setRecurringRefresh(value=>value+1)}>Retry</Button></div>}
-            {recurringLoading ? <SectionLoading label="Loading recurring bills…" /> : <RecurringTab
-              recurring={recurring}
-              summary={recurringSummary}
+            <RecurringTab
+              recurring={filteredRecurring}
+              totalCount={recurringTotal}
+              loading={recurringLoading}
+              error={recurringError}
+              hasActiveFilters={hasActiveRecurFilters}
+              onRetry={() => setRecurringRefresh(value => value + 1)}
+              onClearFilters={clearRecurFilters}
+              onCreate={() => { setFormRecur(null); setShowRecurForm(true); }}
               onEdit={r => { setFormRecur(r); setShowRecurForm(true); }}
               onToggle={async r => {
                 const newState = r.state === 'ACTIVE' ? 'PAUSED' : 'ACTIVE';
                 try {
-                  await apiFetch(`/v1/bills/recurring/${r.id}`, { method:'PATCH', body:JSON.stringify({ state:newState }) });
-                  setRecurringRefresh(value=>value+1);
+                  await apiFetch(`/v1/bills/recurring/${r.id}`, { method: 'PATCH', body: JSON.stringify({ state: newState }) });
+                  setRecurringRefresh(value => value + 1);
                 } catch (err) {
                   showAlert(err instanceof Error ? err.message : 'Could not update this recurring bill.');
                 }
@@ -1380,81 +1768,304 @@ export const Bills: React.FC = () => {
               onGenerate={handleGenerate}
               onDelete={async r => {
                 try {
-                  await apiFetch(`/v1/bills/recurring/${r.id}`, { method:'DELETE' });
-                  setRecurringRefresh(value=>value+1);
+                  await apiFetch(`/v1/bills/recurring/${r.id}`, { method: 'DELETE' });
+                  setRecurringRefresh(value => value + 1);
                 } catch (err) {
                   showAlert(err instanceof Error ? err.message : 'Could not delete this recurring bill.');
                 }
               }}
-              isMobile={isMobile}
-            />}
-            <div className="mt-4 flex flex-wrap items-center justify-between gap-3"><span>{recurringTotal} templates · Page {recurringPage} of {Math.max(1,Math.ceil(recurringTotal/25))}</span><div className="flex gap-2"><Button variant="outline" disabled={recurringLoading||recurringPage===1} onClick={()=>setRecurringPage(value=>value-1)}>Previous</Button><Button variant="outline" disabled={recurringLoading||recurringPage*25>=recurringTotal} onClick={()=>setRecurringPage(value=>value+1)}>Next</Button></div></div>
-            </>
+              page={recurringPage}
+              pageSize={recurringPageSize}
+              onPageChange={setRecurringPage}
+              onPageSizeChange={size => { setRecurringPageSize(size); setRecurringPage(1); }}
+            />
           ) : (
-            <>
-              {billError && <div role="alert" className="mb-3 text-sm" style={{color:'var(--red)'}}>{billError} <Button variant="outline" onClick={() => setBillRefresh(value => value + 1)}>Retry</Button></div>}
-              {/* Bills Table */}
-              <div style={{ background:'var(--white)', borderRadius: 'var(--r)', border:'1px solid var(--border)', overflow:'hidden' }}>
-                {displayed.length === 0 ? (
-                  <div style={{ padding:'64px 20px', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', textAlign:'center' }}>
-                    <div style={{ width: 64, height: 64, borderRadius: '50%', background: 'var(--bg)', border: '1px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 16 }}>
-                      <Icon name="receipt" size={32} color="var(--ink3)" />
+            <SectionCard collapsible={false} padded={false}>
+              <div style={{ background: 'var(--white)' }}>
+                {loadingBills ? (
+                  <SkeletonTable rows={6} cols={8} />
+                ) : billError ? (
+                  <div className="ds-empty-state" role="alert">
+                    <FeaturedIcon variant="error" size="lg" shape="circle">
+                      <Icon name="alertTriangle" size={22} />
+                    </FeaturedIcon>
+                    <h3>Could not load bills</h3>
+                    <p>{billError}</p>
+                    <Button type="button" variant="outline" size="sm" onClick={() => setBillRefresh(value => value + 1)}>
+                      <Icon name="refresh" size={13} /> Retry
+                    </Button>
+                  </div>
+                ) : displayed.length === 0 ? (
+                  hasActiveBillFilters ? (
+                    <div className="ds-empty-state">
+                      <FeaturedIcon variant="gray" size="lg" shape="circle">
+                        <Icon name="search" size={22} />
+                      </FeaturedIcon>
+                      <h3>No bills match your filters</h3>
+                      <p>No supplier bills matched your current search or filter selection. Reset filters to view all bills.</p>
+                      <div className="flex flex-wrap items-center justify-center gap-2 mt-1">
+                        <Button type="button" variant="outline" size="sm" onClick={clearBillFilters}>
+                          <Icon name="x" size={13} /> Clear filters
+                        </Button>
+                        <Button type="button" size="sm" onClick={() => documentRoute.open('new')}>
+                          <Icon name="plus" size={14} /> New bill
+                        </Button>
+                      </div>
                     </div>
-                    <div style={{ fontSize:15, fontWeight:700, color:'var(--ink)' }}>{loadingBills ? 'Loading bills…' : billError ? 'Could not load bills' : 'No bills found'}</div>
-                    <div style={{ fontSize:13, color:'var(--ink3)', marginTop:4 }}>Adjust filters or use "+ New bill" above.</div>
+                  ) : (
+                    <div className="ds-empty-state">
+                      <FeaturedIcon variant="brand" size="lg" shape="squircle">
+                        <Icon name="receipt" size={22} />
+                      </FeaturedIcon>
+                      <h3>No supplier bills yet</h3>
+                      <p>Record supplier invoices to track payables, due dates, partial payments, and TRA EFD receipts.</p>
+                      <div className="flex flex-wrap items-center justify-center gap-2 mt-1">
+                        <Button type="button" size="sm" onClick={() => documentRoute.open('new')}>
+                          <Icon name="plus" size={14} /> New bill
+                        </Button>
+                        <Button type="button" variant="outline" size="sm" onClick={() => setTab('recurring')}>
+                          <Icon name="refresh" size={14} /> Recurring schedule
+                        </Button>
+                      </div>
+                    </div>
+                  )
+                ) : viewMode === 'grid' ? (
+                  <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4 p-4">
+                    {displayed.map(b => {
+                      const bal = Math.max(0, b.total - b.paid_amount - (b.credited_amount ?? 0));
+                      const over = b.status === 'OVERDUE';
+                      const canPay = b.status === 'POSTED' || b.status === 'PARTIAL' || b.status === 'OVERDUE';
+                      const canSubmit = b.status === 'DRAFT' || b.status === 'PENDING_APPROVAL';
+                      return (
+                        <div
+                          key={b.id}
+                          onClick={() => void openBill(b.id)}
+                          role="button"
+                          tabIndex={0}
+                          onKeyDown={e => { if (e.target === e.currentTarget && (e.key === 'Enter' || e.key === ' ')) { e.preventDefault(); void openBill(b.id); } }}
+                          style={{
+                            background: 'var(--white)',
+                            border: 'var(--card-border, 1px solid var(--border))',
+                            borderRadius: 'var(--card-radius, var(--r))',
+                            padding: 16,
+                            display: 'flex',
+                            flexDirection: 'column',
+                            gap: 12,
+                            cursor: 'pointer',
+                          }}
+                        >
+                          <div className="flex items-start justify-between gap-2">
+                            <div>
+                              <Link
+                                to={`/finance/bills/${b.id}`}
+                                onClick={e => e.stopPropagation()}
+                                style={{ fontFamily: 'var(--font)', fontSize: 13, fontWeight: 700, color: 'var(--teal)', fontVariantNumeric: 'tabular-nums' }}
+                              >
+                                {b.bill_number}
+                              </Link>
+                              {b.recurring_id && <div style={{ fontSize: 10.5, color: 'var(--purple)', fontWeight: 600, marginTop: 2 }}>↻ Recurring</div>}
+                            </div>
+                            <StatusBadge status={b.status} />
+                          </div>
+
+                          <div className="flex items-center gap-2.5 min-w-0">
+                            <PersonAvatar kind="suppliers" userId={b.supplier_id || undefined} name={b.supplier_name || 'Supplier'} size={28} />
+                            <div className="min-w-0">
+                              <div className="text-sm font-semibold text-foreground truncate">{b.supplier_name || 'Unassigned supplier'}</div>
+                              <div className="text-[11px] text-muted-foreground truncate">
+                                {[b.po_number, supplierMap[b.supplier_id]?.terms, b.shipment_ref].filter(Boolean).join(' · ') || 'No PO / shipment ref'}
+                              </div>
+                            </div>
+                          </div>
+
+                          <div className="grid grid-cols-3 gap-2 border-t border-border pt-2.5 text-xs">
+                            <div>
+                              <div className="text-muted-foreground text-[11px]">Billed</div>
+                              <div className="font-medium tabular-nums mt-0.5">{fmtDate(b.bill_date)}</div>
+                            </div>
+                            <div>
+                              <div className="text-muted-foreground text-[11px]">Due</div>
+                              <div className="tabular-nums mt-0.5" style={{ fontWeight: over ? 700 : 500, color: over ? 'var(--red)' : 'var(--ink)' }}>
+                                {fmtDate(b.due_date)}
+                              </div>
+                            </div>
+                            <div className="text-right">
+                              <div className="text-muted-foreground text-[11px]">Balance</div>
+                              <div className="font-bold tabular-nums mt-0.5" style={{ color: bal > 0 ? (over ? 'var(--red)' : 'var(--ink)') : 'var(--green)' }}>
+                                {bal > 0 ? formatAmount(bal, b.currency) : 'Settled'}
+                              </div>
+                            </div>
+                          </div>
+
+                          <div className="flex items-center justify-between gap-2 border-t border-border pt-2.5" onClick={e => e.stopPropagation()}>
+                            <div className="text-xs text-muted-foreground tabular-nums">
+                              Total <strong className="text-foreground">{formatAmount(b.total, b.currency)}</strong>
+                            </div>
+                            <div className="inline-flex items-center gap-1.5">
+                              {canPay && (
+                                <Button type="button" variant="outline" size="xs" onClick={() => setPayTarget(bills.find(x => x.id === b.id) ?? null)}>
+                                  Pay
+                                </Button>
+                              )}
+                              <DropdownMenu>
+                                <DropdownMenuTrigger asChild>
+                                  <Button type="button" variant="ghost" size="icon" iconOnly aria-label={`Actions for ${b.bill_number}`}>
+                                    <Icon name="moreHorizontal" size={14} />
+                                  </Button>
+                                </DropdownMenuTrigger>
+                                <DropdownMenuContent align="end" className="w-44">
+                                  <DropdownMenuItem onSelect={() => void openBill(b.id)}>
+                                    <Icon name="eye" size={13} className="mr-2" /> View bill
+                                  </DropdownMenuItem>
+                                  {canPay && (
+                                    <DropdownMenuItem onSelect={() => setPayTarget(bills.find(x => x.id === b.id) ?? null)}>
+                                      <Icon name="dollarSign" size={13} className="mr-2" /> Record payment
+                                    </DropdownMenuItem>
+                                  )}
+                                  {canSubmit && (
+                                    <DropdownMenuItem onSelect={() => void handlePost(b)}>
+                                      <Icon name="send" size={13} className="mr-2" /> {b.status === 'DRAFT' ? 'Submit bill' : 'Approve bill'}
+                                    </DropdownMenuItem>
+                                  )}
+                                  <DropdownMenuItem onSelect={() => void openBill(b.id, true)}>
+                                    <Icon name="edit" size={13} className="mr-2" /> Edit bill
+                                  </DropdownMenuItem>
+                                  {b.status !== 'PAID' && b.status !== 'VOID' && (
+                                    <>
+                                      <DropdownMenuSeparator />
+                                      <DropdownMenuItem className="text-destructive focus:text-destructive" onSelect={() => setVoidTarget(bills.find(x => x.id === b.id) ?? null)}>
+                                        <Icon name="xCircle" size={13} className="mr-2" /> Void bill
+                                      </DropdownMenuItem>
+                                    </>
+                                  )}
+                                </DropdownMenuContent>
+                              </DropdownMenu>
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })}
                   </div>
                 ) : (
-                  <>
                   <div className="rtbl-wrap">
                     <table className="rtbl">
                       <thead>
-                        <tr style={{ background:'var(--bg)' }}>
-                          <th style={{ ...thS, cursor:'default' }}>Bill #</th>
-                          <th style={{ ...thS }} onClick={() => toggleSort('supplier')}>Supplier <SortIco col="supplier" /></th>
-                          <th style={{ ...thS }} onClick={() => toggleSort('bill_date')}>Billed <SortIco col="bill_date" /></th>
-                          <th style={{ ...thS }} onClick={() => toggleSort('due_date')}>Due <SortIco col="due_date" /></th>
-                          <th style={{ ...thS, textAlign:'right' }} onClick={() => toggleSort('total')}>Total <SortIco col="total" /></th>
-                          <th style={{ ...thS, textAlign:'right' }}>Paid</th>
-                          <th style={{ ...thS, textAlign:'right' }}>Balance</th>
-                          <th style={{ ...thS, cursor:'default' }}>Ref</th>
-                          <th style={{ ...thS, cursor:'default' }}>Status</th>
-                          <th style={{ ...thS, cursor:'default' }}></th>
+                        <tr style={{ background: 'var(--bg)' }}>
+                          <th style={{ ...thS, cursor: 'default' }}>Bill #</th>
+                          <th style={thS}>
+                            <button type="button" onClick={() => toggleSort('supplier')} className="dt-sort-button">
+                              Supplier <SortIco col="supplier" />
+                            </button>
+                          </th>
+                          <th style={thS}>
+                            <button type="button" onClick={() => toggleSort('bill_date')} className="dt-sort-button">
+                              Billed <SortIco col="bill_date" />
+                            </button>
+                          </th>
+                          <th style={thS}>
+                            <button type="button" onClick={() => toggleSort('due_date')} className="dt-sort-button">
+                              Due <SortIco col="due_date" />
+                            </button>
+                          </th>
+                          <th style={{ ...thS, textAlign: 'right' }}>
+                            <button type="button" onClick={() => toggleSort('total')} className="dt-sort-button" style={{ justifyContent: 'flex-end' }}>
+                              Total <SortIco col="total" />
+                            </button>
+                          </th>
+                          <th style={{ ...thS, textAlign: 'right', cursor: 'default' }}>Balance</th>
+                          <th style={{ ...thS, cursor: 'default' }}>Status</th>
+                          <th aria-label="Actions" style={{ ...thS, textAlign: 'right', cursor: 'default' }} />
                         </tr>
                       </thead>
                       <tbody>
                         {displayed.map(b => {
                           const bal = Math.max(0, b.total - b.paid_amount - (b.credited_amount ?? 0));
                           const over = b.status === 'OVERDUE';
+                          const canPay = b.status === 'POSTED' || b.status === 'PARTIAL' || b.status === 'OVERDUE';
+                          const canSubmit = b.status === 'DRAFT' || b.status === 'PENDING_APPROVAL';
+                          const subMeta = [b.po_number, b.shipment_ref, supplierMap[b.supplier_id]?.terms].filter(Boolean).join(' · ');
                           return (
-                            <tr key={b.id}
+                            <tr
+                              key={b.id}
                               onClick={() => void openBill(b.id)}
-                              style={{ borderBottom:'1px solid var(--border)', cursor:'pointer', transition:'background 0.1s', background: over && bal>0 ? 'rgba(239,68,68,0.02)' : '' }}
+                              tabIndex={0}
+                              onKeyDown={e => { if (e.target === e.currentTarget && (e.key === 'Enter' || e.key === ' ')) { e.preventDefault(); void openBill(b.id); } }}
+                              style={{ borderBottom: '1px solid var(--border)', cursor: 'pointer', transition: 'background 0.1s' }}
                               onMouseEnter={e => (e.currentTarget.style.background = 'var(--hover-bg)')}
-                              onMouseLeave={e => (e.currentTarget.style.background = over && bal>0 ? 'rgba(239,68,68,0.02)' : '')}>
-                              <td style={{ padding:'11px 14px' }}>
-                                <div style={{ fontFamily:'var(--font)', fontSize:12, fontWeight:700, color:'var(--teal)' }}><Link to={`/finance/bills/${b.id}`} onClick={e=>e.stopPropagation()}>{b.bill_number}</Link></div>
-                                {b.recurring_id && <div style={{ fontSize:10, color:'var(--purple)', fontWeight:600, marginTop:2 }}>↻ Recurring</div>}
+                              onMouseLeave={e => (e.currentTarget.style.background = '')}
+                            >
+                              <td style={{ padding: '10px 12px', whiteSpace: 'nowrap' }}>
+                                <div style={{ fontFamily: 'var(--font)', fontSize: 12.5, fontWeight: 700, color: 'var(--teal)', fontVariantNumeric: 'tabular-nums' }}>
+                                  <Link to={`/finance/bills/${b.id}`} onClick={e => e.stopPropagation()}>{b.bill_number}</Link>
+                                </div>
+                                {b.recurring_id && <div style={{ fontSize: 10.5, color: 'var(--purple)', fontWeight: 600, marginTop: 2 }}>↻ Recurring</div>}
                               </td>
-                              <td style={{ padding:'11px 14px' }}>
-                                <div style={{ fontWeight:600, color:'var(--ink)' }}>{b.supplier_name}</div>
-                                {b.po_number && <div style={{ fontSize:11, fontFamily:'var(--font)', color:'var(--ink3)', marginTop:1 }}>{b.po_number}</div>}
+                              <td style={{ padding: '10px 12px' }}>
+                                <div className="flex items-center gap-2.5 min-w-0">
+                                  <PersonAvatar kind="suppliers" userId={b.supplier_id || undefined} name={b.supplier_name || 'Supplier'} size={28} />
+                                  <div className="min-w-0">
+                                    <div style={{ fontWeight: 600, color: 'var(--ink)' }} className="truncate">{b.supplier_name || 'Unassigned supplier'}</div>
+                                    {subMeta && <div style={{ fontSize: 11, fontFamily: 'var(--font)', color: 'var(--ink3)', marginTop: 1 }}>{subMeta}</div>}
+                                  </div>
+                                </div>
                               </td>
-                              <td style={{ padding:'11px 14px', color:'var(--ink2)', fontSize:12.5 }}>{fmtDate(b.bill_date)}</td>
-                              <td style={{ padding:'11px 14px', color: over ? 'var(--red)' : 'var(--ink2)', fontWeight: over ? 700 : 400, fontSize:12.5 }}>
+                              <td style={{ padding: '10px 12px', color: 'var(--ink2)', fontSize: 12.5, whiteSpace: 'nowrap', fontVariantNumeric: 'tabular-nums' }}>{fmtDate(b.bill_date)}</td>
+                              <td style={{ padding: '10px 12px', color: over ? 'var(--red)' : 'var(--ink2)', fontWeight: over ? 700 : 400, fontSize: 12.5, whiteSpace: 'nowrap', fontVariantNumeric: 'tabular-nums' }}>
                                 {fmtDate(b.due_date)}
-                                {over && <div style={{ fontSize:10, color:'var(--red)', fontWeight:600 }}>{daysOverdue(b.due_date)}d late</div>}
+                                {over && <div style={{ fontSize: 10.5, color: 'var(--red)', fontWeight: 600 }}>{daysOverdue(b.due_date)}d overdue</div>}
                               </td>
-                              <td style={{ padding:'11px 14px', textAlign:'right', fontWeight:700 }}>{formatAmount(b.total, b.currency)}</td>
-                              <td style={{ padding:'11px 14px', textAlign:'right', color:'var(--green)', fontWeight: b.paid_amount>0 ? 700 : 400 }}>{b.paid_amount > 0 ? formatAmount(b.paid_amount, b.currency) : '—'}</td>
-                              <td style={{ padding:'11px 14px', textAlign:'right', fontWeight: bal>0 ? 700 : 400, color: bal>0 ? (over ? 'var(--red)' : 'var(--ink)') : 'var(--ink3)' }}>{bal > 0 ? formatAmount(bal, b.currency) : '—'}</td>
-                              <td style={{ padding:'11px 14px', fontFamily:'var(--font)', fontSize:11.5, color:'var(--blue)' }}>{b.shipment_ref || '—'}</td>
-                              <td style={{ padding:'11px 14px' }}><StatusBadge status={b.status} /></td>
-                              <td style={{ padding:'11px 10px' }} onClick={e => e.stopPropagation()}>
-                                <div style={{ display:'flex', gap:2 }}>
-                                  <Tip label="View bill"><button type="button" aria-label="View bill" onClick={() => void openBill(b.id)} style={{ background:'none', border:'none', cursor:'pointer', color:'var(--ink3)', padding:"var(--action-py) var(--space-md)", borderRadius:'var(--r-sm)', display:'flex' }} onMouseEnter={e=>(e.currentTarget.style.background='var(--hover-bg)')} onMouseLeave={e=>(e.currentTarget.style.background='none')} data-ui-native-button=""><Icon name="eye" size={14} /></button></Tip>
-                                  {(b.status==='POSTED'||b.status==='PARTIAL'||b.status==='OVERDUE') && <Tip label="Record payment"><button type="button" aria-label="Record payment" onClick={() => setPayTarget(bills.find(x=>x.id===b.id)??null)} style={{ background:'none', border:'none', cursor:'pointer', color:'var(--teal)', padding:"var(--action-py) var(--space-md)", borderRadius:'var(--r-sm)', display:'flex' }} onMouseEnter={e=>(e.currentTarget.style.background='var(--teal-l)')} onMouseLeave={e=>(e.currentTarget.style.background='none')} data-ui-native-button=""><Icon name="dollarSign" size={14} /></button></Tip>}
-                                  <Tip label="Edit bill"><button type="button" aria-label="Edit bill" onClick={() => void openBill(b.id, true)} style={{ background:'none', border:'none', cursor:'pointer', color:'var(--ink3)', padding:"var(--action-py) var(--space-md)", borderRadius:'var(--r-sm)', display:'flex' }} onMouseEnter={e=>(e.currentTarget.style.background='var(--hover-bg)')} onMouseLeave={e=>(e.currentTarget.style.background='none')} data-ui-native-button=""><Icon name="edit" size={14} /></button></Tip>
-                                  {b.status!=='PAID'&&b.status!=='VOID' && <Tip label="Void bill"><button type="button" aria-label="Void bill" onClick={() => setVoidTarget(bills.find(x=>x.id===b.id)??null)} style={{ background:'none', border:'none', cursor:'pointer', color:'var(--red)', padding:"var(--action-py) var(--space-md)", borderRadius:'var(--r-sm)', display:'flex' }} onMouseEnter={e=>(e.currentTarget.style.background='var(--red-l)')} onMouseLeave={e=>(e.currentTarget.style.background='none')} data-ui-native-button=""><Icon name="xCircle" size={14} /></button></Tip>}
+                              <td style={{ padding: '10px 12px', textAlign: 'right', fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap' }}>
+                                <div style={{ fontWeight: 700, color: 'var(--ink)' }}>{formatAmount(b.total, b.currency)}</div>
+                                {b.paid_amount > 0 && (
+                                  <div style={{ fontSize: 11, color: 'var(--green)', fontWeight: 600, marginTop: 1 }}>
+                                    Paid {formatAmount(b.paid_amount, b.currency)}
+                                  </div>
+                                )}
+                              </td>
+                              <td style={{ padding: '10px 12px', textAlign: 'right', fontWeight: bal > 0 ? 700 : 400, color: bal > 0 ? (over ? 'var(--red)' : 'var(--ink)') : 'var(--ink3)', fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap' }}>
+                                {bal > 0 ? formatAmount(bal, b.currency) : '—'}
+                              </td>
+                              <td style={{ padding: '10px 12px', whiteSpace: 'nowrap' }}><StatusBadge status={b.status} /></td>
+                              <td style={{ padding: '10px 12px', textAlign: 'right', whiteSpace: 'nowrap' }} onClick={e => e.stopPropagation()}>
+                                <div className="inline-flex items-center justify-end gap-1.5">
+                                  {canPay && (
+                                    <Button type="button" variant="outline" size="xs" onClick={() => setPayTarget(bills.find(x => x.id === b.id) ?? null)}>
+                                      Pay
+                                    </Button>
+                                  )}
+                                  <DropdownMenu>
+                                    <DropdownMenuTrigger asChild>
+                                      <Button type="button" variant="ghost" size="icon" iconOnly aria-label={`Actions for ${b.bill_number}`}>
+                                        <Icon name="moreHorizontal" size={14} />
+                                      </Button>
+                                    </DropdownMenuTrigger>
+                                    <DropdownMenuContent align="end" className="w-44">
+                                      <DropdownMenuItem onSelect={() => void openBill(b.id)}>
+                                        <Icon name="eye" size={13} className="mr-2" /> View bill
+                                      </DropdownMenuItem>
+                                      {canPay && (
+                                        <DropdownMenuItem onSelect={() => setPayTarget(bills.find(x => x.id === b.id) ?? null)}>
+                                          <Icon name="dollarSign" size={13} className="mr-2" /> Record payment
+                                        </DropdownMenuItem>
+                                      )}
+                                      {canSubmit && (
+                                        <DropdownMenuItem onSelect={() => void handlePost(b)}>
+                                          <Icon name="send" size={13} className="mr-2" /> {b.status === 'DRAFT' ? 'Submit bill' : 'Approve bill'}
+                                        </DropdownMenuItem>
+                                      )}
+                                      <DropdownMenuItem onSelect={() => void openBill(b.id, true)}>
+                                        <Icon name="edit" size={13} className="mr-2" /> Edit bill
+                                      </DropdownMenuItem>
+                                      {b.status !== 'PAID' && b.status !== 'VOID' && (
+                                        <>
+                                          <DropdownMenuSeparator />
+                                          <DropdownMenuItem className="text-destructive focus:text-destructive" onSelect={() => setVoidTarget(bills.find(x => x.id === b.id) ?? null)}>
+                                            <Icon name="xCircle" size={13} className="mr-2" /> Void bill
+                                          </DropdownMenuItem>
+                                        </>
+                                      )}
+                                    </DropdownMenuContent>
+                                  </DropdownMenu>
                                 </div>
                               </td>
                             </tr>
@@ -1463,21 +2074,19 @@ export const Bills: React.FC = () => {
                       </tbody>
                     </table>
                   </div>
-                  <div style={{ padding:'10px 16px', borderTop:'1px solid var(--border)', fontSize:12, color:'var(--ink3)', display:'flex', justifyContent:'space-between' }}>
-                    <span>Showing {displayed.length} of {matchCount} matching bills</span>
-                    <span>Page records: {overdueBills.length} overdue · {unpaidBills.length} outstanding</span>
-                  </div>
-                  </>
                 )}
+                <PaginationBar
+                  page={page}
+                  pageSize={pageSize}
+                  total={matchCount}
+                  onPageChange={setPage}
+                  onPageSizeChange={size => { setPageSize(size); setPage(1); }}
+                  pageSizeOptions={[10, 25, 50, 100]}
+                  itemLabel="bill"
+                  bordered={true}
+                />
               </div>
-              <div className="flex flex-wrap items-center justify-between gap-3 py-3" aria-label="Bill pagination">
-                <span>Page {page} of {Math.max(1, Math.ceil(matchCount/25))}</span>
-                <div className="flex gap-2">
-                  <Button variant="outline" disabled={loadingBills || page===1} onClick={() => setPage(value => value-1)}>Previous</Button>
-                  <Button variant="outline" disabled={loadingBills || page*25>=matchCount} onClick={() => setPage(value => value+1)}>Next</Button>
-                </div>
-              </div>
-            </>
+            </SectionCard>
           )}
         </div>
       )}

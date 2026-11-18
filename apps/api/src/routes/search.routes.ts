@@ -1,5 +1,6 @@
 import type { FastifyInstance } from 'fastify';
 import { withTenant } from '../db/client.js';
+import { HELP_ARTICLES } from '../services/help-catalog.service.js';
 
 export interface SearchHit {
   id: string;
@@ -61,6 +62,7 @@ const CATEGORY_APP: Record<string, string> = {
   web_pages:    'onesite',
   domains:      'onsite',
   meetings:     'bliss',
+  help_guides:  'workspace',
 };
 
 /**
@@ -69,7 +71,7 @@ const CATEGORY_APP: Record<string, string> = {
  * query below is filtered to the caller's own rows, so "who may see the
  * category" and "which rows" are answered separately.
  */
-const PERSONAL = ['tasks', 'notes', 'files', 'events', 'documents', 'notifications', 'petty_cash', 'meetings'];
+const PERSONAL = ['tasks', 'notes', 'files', 'events', 'documents', 'notifications', 'petty_cash', 'meetings', 'help_guides'];
 
 const MANAGEMENT = new Set(['SUPER_ADMIN', 'ADMIN', 'TENANT_ADMIN', 'MANAGER']);
 function allowedCategories(role: string): Set<string> {
@@ -469,6 +471,27 @@ export async function searchRoutes(fastify: FastifyInstance) {
         sublabel: m.from_name || m.from_email || m.snippet || null,
         path: `/email?q=${encodeURIComponent(q)}`,
       }));
+
+      // Help Guides search matching
+      if (allowed.has('help_guides')) {
+        const queryNorm = q.toLowerCase();
+        const isCustomer = user.role === 'CUSTOMER' || user.role === 'ORG';
+        const matchedArticles = HELP_ARTICLES.filter(a => {
+          if (isCustomer && a.audience === 'admins') return false;
+          return a.title.toLowerCase().includes(queryNorm) ||
+            a.summary.toLowerCase().includes(queryNorm) ||
+            a.keywords.some(k => k.toLowerCase().includes(queryNorm));
+        }).slice(0, cap('help_guides'));
+
+        if (matchedArticles.length) {
+          data.help_guides = matchedArticles.map(a => ({
+            id: a.slug,
+            label: a.title,
+            sublabel: a.summary,
+            path: `/help/article/${a.slug}`,
+          }));
+        }
+      }
 
       /**
        * Explicit order rather than relying on object key order. The client
