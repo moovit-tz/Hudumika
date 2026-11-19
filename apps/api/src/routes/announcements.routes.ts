@@ -1,3 +1,4 @@
+import { registerSuperadminGuard } from '../services/platform-admin-access.js';
 import type { FastifyInstance } from 'fastify';
 import { withTenant, dbPlatform } from '../db/client.js';
 import { requireRole } from '../middleware/rbac.js';
@@ -175,7 +176,7 @@ export async function tenantAnnouncementRoutes(fastify: FastifyInstance) {
  */
 export async function superAdminAnnouncementRoutes(fastify: FastifyInstance) {
   fastify.addHook('preHandler', fastify.authenticate);
-  fastify.addHook('preHandler', requireRole('SUPER_ADMIN'));
+  registerSuperadminGuard(fastify);
 
   fastify.get('/', async () => {
     const rows = await dbPlatform.selectFrom('announcements')

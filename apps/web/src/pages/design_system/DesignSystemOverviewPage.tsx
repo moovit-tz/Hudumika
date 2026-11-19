@@ -21,6 +21,7 @@ import {
   useDesignStudioController,
 } from './helpers.js';
 import './DesignSystemApp.css';
+import { useIsPlatformSuperAdmin } from '../console/console-shared.js';
 
 interface SearchResult {
   id: string;
@@ -109,7 +110,7 @@ export function DesignSystemOverviewPage() {
   const studio = useDesignStudioController();
   const [query, setQuery] = useState('');
 
-  const isSuperAdmin = user?.role === 'SUPER_ADMIN';
+  const isSuperAdmin = useIsPlatformSuperAdmin(user?.role);
   const isWorkspaceAdmin = isSuperAdmin || ['ADMIN', 'TENANT_ADMIN'].includes(user?.role ?? '');
 
   const searchResults = useMemo<SearchResult[]>(() => {

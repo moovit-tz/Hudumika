@@ -27,6 +27,13 @@ const FILE_TYPES = /text\/csv|spreadsheetml|ms-excel|application\/pdf|applicatio
 const PACKAGING_REFUSAL = /PLAN_UPGRADE_REQUIRED|SEAT_LICENSE_REQUIRED|TENANT_SUSPENDED|not enabled for your organization/;
 const SKIP = /^\/(health|auth\/(refresh|me)|v1\/(notifications|presence|avatars?|identity\/avatars))/;
 
+/** App id for a request path, the same mapping telemetry uses (also read by the staff console's monitoring). */
+export function appIdForPath(path: string): string {
+  const seg = path.split('?')[0].split('/').filter(Boolean);
+  const first = seg[0] === 'v1' ? seg[1] : seg[0];
+  return (first && (PREFIX_APP[first] ?? first)).slice(0, 64) || 'workspace';
+}
+
 function appFor(request: FastifyRequest): string {
   const metered = (request as any).meteredAppId as string | undefined;
   if (metered) return metered;

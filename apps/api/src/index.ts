@@ -273,6 +273,8 @@ import { contractsRoutes } from './routes/contracts.routes.js';
 import securityRoutes from './routes/security.routes.js';
 import billingRoutes from './routes/billing.routes.js';
 import platformSupportRoutes from './routes/platform-support.routes.js';
+import { staffConsoleRoutes, staffEntryRoutes } from './routes/staff-console.routes.js';
+import { staffCaseRoutes, customerAccessApprovalRoutes } from './routes/staff-cases.routes.js';
 import publicSupportRoutes from './routes/public-support.routes.js';
 import { workflowStudioRoutes } from './routes/workflow-studio.routes.js';
 import { onsiteRoutes } from './routes/onsite.routes.js';
@@ -482,6 +484,23 @@ export async function registerApp() {
     });
 
     // 2. Decorators & Middlewares
+    // Staff console deployment split (env.API_SURFACE). Decided before any
+    // route runs, from the path only, so a refused surface never reaches auth
+    // or a handler.
+    if (env.API_SURFACE !== 'all') {
+      const STAFF_ONLY = ['/v1/staff', '/v1/staff-entry', '/v1/superadmin', '/v1/lens'];
+      // The former /admin pages (now console tools) also call the package and
+      // add-on catalogue, CMS platform pages and the operator's SMS gateways.
+      const ADMIN_ALLOWED = ['/v1/staff', '/v1/staff-entry', '/v1/superadmin', '/v1/lens', '/v1/packages', '/v1/addons', '/v1/cms/platform-admin', '/v1/sms/gateways', '/auth', '/health', '/v1/platform', '/v1/notifications', '/v1/presence',
+        '/v1/identity', '/v1/avatars', '/v1/search', '/v1/users/me', '/v1/settings/me', '/.well-known/openid-configuration', '/jwks.json',
+        ...env.ADMIN_SURFACE_EXTRA_PREFIXES.split(',').map(s => s.trim()).filter(Boolean)];
+      const under = (path: string, prefixes: string[]) => prefixes.some(p => path === p || path.startsWith(`${p}/`) || path.startsWith(`${p}?`));
+      server.addHook('onRequest', async (request, reply) => {
+        const path = request.url.split('?')[0];
+        if (env.API_SURFACE === 'customer' && under(path, STAFF_ONLY)) return reply.status(404).send({ error: 'Not found' });
+        if (env.API_SURFACE === 'admin' && !under(path, ADMIN_ALLOWED)) return reply.status(404).send({ error: 'Not found' });
+      });
+    }
     await server.register(authPlugin);
 
     // Usage tracking — every request that authenticated (session or API key) gets
@@ -857,6 +876,11 @@ export async function registerApp() {
     await server.register(securityRoutes, { prefix: '/v1/security' });
     await server.register(billingRoutes, { prefix: '/v1/billing' });
     await server.register(platformSupportRoutes, { prefix: '/v1/platform-support' });
+    // Unified staff console (migration 919). Platform staff only; see services/staff-access.service.ts.
+    await server.register(staffConsoleRoutes, { prefix: '/v1/staff' });
+    await server.register(staffEntryRoutes, { prefix: '/v1/staff-entry' });
+    await server.register(staffCaseRoutes, { prefix: '/v1/staff' });
+    await server.register(customerAccessApprovalRoutes, { prefix: '/v1/platform-support' });
     await server.register(publicSupportRoutes, { prefix: '/v1/public-support' });
     await server.register(workflowStudioRoutes, { prefix: '/v1/workflow-studio' });
     await server.register(onsiteRoutes, { prefix: '/v1/onsite' });

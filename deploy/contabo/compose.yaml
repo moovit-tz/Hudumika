@@ -30,6 +30,8 @@ x-api-environment: &api-environment
   SMTP_PASS: ${SMTP_PASS:?Configure real SMTP}
   SMTP_FROM: ${SMTP_FROM:?Configure real SMTP}
   SMS_WEBHOOK_SECRET: ${SMS_WEBHOOK_SECRET:-}
+  # 'customer' once admin-api is deployed, so the public API refuses /v1/staff, /v1/superadmin and /v1/lens.
+  API_SURFACE: ${API_SURFACE:-all}
 
 services:
   db:
@@ -102,6 +104,35 @@ services:
     cap_drop: [ALL]
     healthcheck:
       test: [CMD, node, -e, 'fetch("http://127.0.0.1:3001/health").then(async r=>{const b=await r.json();process.exit(r.ok && b.antivirus === "connected" ? 0 : 1)}).catch(()=>process.exit(1))']
+      interval: 30s
+      timeout: 10s
+      start_period: 60s
+      retries: 5
+
+  # Staff console API (docs/STAFF_CONSOLE.md). Opt-in: `docker compose --profile admin up -d`.
+  # Same image, its own process, resource budget and surface: only staff/console
+  # paths are served. Reached through the admin gateway site, never the public one.
+  admin-api:
+    image: hudumika-api:${RELEASE_TAG:-local}
+    profiles: [admin]
+    restart: unless-stopped
+    init: true
+    environment:
+      <<: *api-environment
+      API_SURFACE: admin
+      CORS_ORIGINS: https://${ADMIN_DOMAIN:?Set ADMIN_DOMAIN for the staff console}
+      PUBLIC_APP_URL: https://${ADMIN_DOMAIN}
+      STAFF_SENSITIVE_REQUIRES_MFA: 'true'
+    depends_on:
+      db: {condition: service_healthy}
+      redis: {condition: service_healthy}
+    networks: [private, edge]
+    security_opt: [no-new-privileges:true]
+    cap_drop: [ALL]
+    mem_limit: ${ADMIN_API_MEMORY:-768m}
+    cpus: ${ADMIN_API_CPUS:-1.0}
+    healthcheck:
+      test: [CMD, node, -e, 'fetch("http://127.0.0.1:3001/health").then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))']
       interval: 30s
       timeout: 10s
       start_period: 60s

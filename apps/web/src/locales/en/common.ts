@@ -124,7 +124,7 @@ export default
     "clockIn": "Clock in",
     "switchTask": "Switch what you're working on",
     "myProfile": "My profile",
-    "adminPanel": "Superadmin",
+    "adminPanel": "Admin Console",
     "lockWorkspace": "Lock workspace",
     "signOut": "Sign out",
     "account": "Account"

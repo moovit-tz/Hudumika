@@ -1,7 +1,7 @@
 import type { FastifyInstance } from 'fastify';
 import { z } from 'zod';
 import { dbPlatform } from '../db/client.js';
-import { requireRole } from '../middleware/rbac.js';
+import { platformAdminRule, auditPlatformAdminMutations } from '../services/platform-admin-access.js';
 import { sql } from 'kysely';
 import { readGlobalSettingKey, getPublicPlatformBranding, invalidatePlatformSettingsCache } from '../lib/platform-settings.js';
 
@@ -38,6 +38,7 @@ const designSystemVersionPatchSchema = z.object({
  * tenant_settings (the same sentinel-row pattern used by /v1/superadmin/settings).
  */
 export async function platformRoutes(fastify: FastifyInstance) {
+  auditPlatformAdminMutations(fastify);
   // Reads of these settings come from a cached snapshot (lib/platform-settings.ts).
   // Any write through this plugin clears it before the response is sent, so the
   // saving admin's next read — and App Configurator's — sees the change at once.
@@ -56,7 +57,7 @@ export async function platformRoutes(fastify: FastifyInstance) {
   fastify.get('/branding', async () => getPublicPlatformBranding());
 
   fastify.put('/branding', {
-    preHandler: [fastify.authenticate, requireRole('SUPER_ADMIN')],
+    preHandler: [fastify.authenticate, platformAdminRule('superadmin')],
   }, async (request, reply) => {
     const body = brandingPatchSchema.parse(request.body);
 
@@ -125,7 +126,7 @@ export async function platformRoutes(fastify: FastifyInstance) {
   });
 
   fastify.put('/design-tokens', {
-    preHandler: [fastify.authenticate, requireRole('SUPER_ADMIN')],
+    preHandler: [fastify.authenticate, platformAdminRule('superadmin')],
   }, async (request, reply) => {
     const body = designTokensPatchSchema.parse(request.body);
 
@@ -163,7 +164,7 @@ export async function platformRoutes(fastify: FastifyInstance) {
   });
 
   fastify.put('/design-system-version', {
-    preHandler: [fastify.authenticate, requireRole('SUPER_ADMIN')],
+    preHandler: [fastify.authenticate, platformAdminRule('superadmin')],
   }, async (request, reply) => {
     const body = designSystemVersionPatchSchema.parse(request.body);
 
@@ -202,7 +203,7 @@ export async function platformRoutes(fastify: FastifyInstance) {
   });
 
   fastify.put('/stirling-pdf', {
-    preHandler: [fastify.authenticate, requireRole('SUPER_ADMIN')],
+    preHandler: [fastify.authenticate, platformAdminRule('superadmin')],
   }, async (request, reply) => {
     const body = stirlingPdfPatchSchema.parse(request.body);
 
@@ -237,7 +238,7 @@ export async function platformRoutes(fastify: FastifyInstance) {
   // customBodyScripts by design (that's the point of a tag-manager feature) —
   // SUPER_ADMIN-only must never be loosened to a tenant/company-admin role.
   fastify.put('/seo', {
-    preHandler: [fastify.authenticate, requireRole('SUPER_ADMIN')],
+    preHandler: [fastify.authenticate, platformAdminRule('superadmin')],
   }, async (request, reply) => {
     const body = seoPatchSchema.parse(request.body);
 
@@ -267,7 +268,7 @@ export async function platformRoutes(fastify: FastifyInstance) {
   });
 
   fastify.put('/workspaces', {
-    preHandler: [fastify.authenticate, requireRole('SUPER_ADMIN')],
+    preHandler: [fastify.authenticate, platformAdminRule('superadmin')],
   }, async (request, reply) => {
     const body = workspacesPatchSchema.parse(request.body);
 

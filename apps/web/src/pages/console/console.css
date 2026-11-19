@@ -1,0 +1,125 @@
+/* Staff console — layout and the shared panel/KPI/fact styles. Colours, radii,
+   type sizes and control heights come from the design tokens, so the
+   SuperAdmin theme, density and shape settings reach every console page. */
+.console-content { display: flex; flex-direction: column; }
+
+/* ── Scope strip (always visible) ── */
+.console-scope {
+  display: flex; flex-wrap: wrap; gap: 6px 10px; align-items: center;
+  padding: 8px 16px; font-size: var(--text-sm, 12px); color: var(--ink2);
+  background: var(--white); border-bottom: 1px solid var(--border);
+}
+.console-scope-chip {
+  display: inline-flex; align-items: center; gap: 6px; padding: 2px 10px;
+  border-radius: 999px; border: 1px solid var(--border); background: var(--bg); color: var(--ink2); font-weight: 600;
+}
+.console-scope-chip-role { color: var(--teal); background: var(--teal-l); border-color: transparent; }
+.console-env { margin-left: auto; padding: 2px 10px; border-radius: 999px; background: var(--teal-l); color: var(--teal); font-weight: 700; }
+.console-env-prod { background: var(--red-l); color: var(--red); }
+
+.console-access-banner {
+  position: sticky; top: 0; z-index: 5; display: flex; flex-wrap: wrap; align-items: center; gap: 10px;
+  padding: 10px 16px; font-size: var(--text-base, 13px); background: var(--gold-l); color: var(--ink); border-bottom: 1px solid var(--border);
+}
+.console-access-purpose { color: var(--ink3); }
+
+/* ── Page states ── */
+.console-state { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 10px; padding: 64px 16px; text-align: center; }
+.console-link-btn { background: none; border: 0; color: var(--teal); cursor: pointer; font: inherit; text-decoration: underline; }
+
+/* ── Page rhythm ── */
+.console-page { display: flex; flex-direction: column; gap: 20px; min-width: 0; }
+.console-stack { display: flex; flex-direction: column; gap: 12px; min-width: 0; }
+.console-two { display: grid; gap: 16px; grid-template-columns: repeat(auto-fit, minmax(min(100%, 380px), 1fr)); align-items: start; }
+.console-main-side { display: grid; gap: 16px; grid-template-columns: minmax(0, 1fr) minmax(0, 360px); align-items: start; }
+@media (max-width: 1100px) { .console-main-side { grid-template-columns: minmax(0, 1fr); } }
+
+/* ── KPI row ── */
+.console-kpis { display: grid; gap: 16px; grid-template-columns: repeat(auto-fill, minmax(min(100%, 220px), 1fr)); }
+@media (max-width: 520px) { .console-kpis { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; } }
+.console-kpi-link { display: flex; color: inherit; text-decoration: none; border-radius: var(--r); }
+.console-kpi-link > .card { transition: box-shadow .15s, border-color .15s; }
+.console-kpi-link:hover > .card { border-color: color-mix(in srgb, var(--teal) 35%, var(--border)); box-shadow: var(--shadow); }
+.console-kpi-link:focus-visible { outline: 2px solid var(--teal); outline-offset: 2px; }
+
+/* ── Panels (.card with a header) ── */
+.console-panel { padding: 0; min-width: 0; display: flex; flex-direction: column; }
+.console-panel-hdr { display: flex; align-items: center; gap: 10px; padding: 16px 20px; border-bottom: 1px solid var(--border); }
+.console-panel-icon { width: 30px; height: 30px; border-radius: var(--r-sm); background: var(--teal-l); display: inline-flex; align-items: center; justify-content: center; flex-shrink: 0; }
+.console-panel-titles { flex: 1; min-width: 0; }
+.console-panel-title { margin: 0; font-size: var(--text-base, 13px); font-weight: 700; color: var(--ink); }
+.console-panel-sub { font-size: var(--text-xs, 11px); color: var(--ink3); margin-top: 2px; }
+.console-panel-action { display: flex; gap: 8px; flex-wrap: wrap; }
+.console-panel-body { padding: 16px 20px; display: flex; flex-direction: column; gap: 12px; min-width: 0; }
+.console-panel-flush { padding: 0; }
+.console-panel-flush .rtbl-wrap { border: 0; border-radius: 0 0 var(--r) var(--r); }
+
+/* ── Lists inside panels ── */
+.console-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; }
+.console-list > li { display: flex; align-items: center; gap: 12px; padding: 12px 20px; border-bottom: 1px solid var(--border); min-width: 0; font-size: var(--text-base, 13px); }
+.console-list > li:last-child { border-bottom: 0; }
+.console-list-main { flex: 1; min-width: 0; }
+.console-list-title { font-weight: 600; color: var(--ink); overflow-wrap: anywhere; }
+.console-list-meta { font-size: var(--text-xs, 11px); color: var(--ink3); margin-top: 2px; }
+.console-list a { color: inherit; text-decoration: none; }
+.console-list a:hover .console-list-title { color: var(--teal); }
+
+/* ── Facts (label / value) ── */
+.console-facts { margin: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 200px), 1fr)); gap: 14px 20px; }
+.console-fact { min-width: 0; }
+.console-fact dt { font-size: var(--text-xs, 11px); font-weight: 700; text-transform: uppercase; letter-spacing: .05em; color: var(--ink3); margin-bottom: 4px; }
+.console-fact dd { margin: 0; font-size: var(--text-base, 13px); color: var(--ink); overflow-wrap: anywhere; display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+
+/* ── Empty / notice ── */
+.console-empty { display: flex; flex-direction: column; align-items: center; text-align: center; gap: 6px; padding: 32px 16px; }
+.console-empty-icon { width: 40px; height: 40px; border-radius: 50%; background: var(--bg); display: inline-flex; align-items: center; justify-content: center; }
+.console-empty-title { font-weight: 600; color: var(--ink2); font-size: var(--text-base, 13px); }
+.console-empty-text { color: var(--ink3); font-size: var(--text-sm, 12px); max-width: 420px; }
+.console-notice { display: flex; align-items: center; gap: 8px; padding: 10px 14px; border-radius: var(--r-sm); font-size: var(--text-base, 13px); }
+.console-notice-ok { background: var(--green-l); color: var(--ink); }
+.console-notice-err { background: var(--red-l); color: var(--ink); }
+
+/* ── Small helpers still used by pages ── */
+.console-row { display: flex; align-items: center; gap: 10px; min-width: 0; flex-wrap: wrap; }
+.console-row > .grow { flex: 1; min-width: 0; }
+.console-muted { color: var(--ink3); font-size: var(--text-sm, 12px); }
+.console-strong { font-weight: 600; color: var(--ink); }
+.console-mono { font-family: var(--font-mono, ui-monospace, monospace); font-size: var(--text-sm, 12px); }
+.console-toolbar { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.console-table-wrap { overflow-x: auto; }
+.console-cell-main { display: flex; align-items: center; gap: 10px; min-width: 0; }
+.console-cell-title { font-weight: 600; color: var(--ink); }
+.console-cell-sub { font-size: var(--text-xs, 11px); color: var(--ink3); }
+.console-cell-main a { color: inherit; text-decoration: none; }
+.console-cell-main a:hover .console-cell-title { color: var(--teal); }
+
+/* ── Conversation ── */
+.console-thread { display: flex; flex-direction: column; gap: 12px; }
+.console-msg { padding: 12px 14px; border: 1px solid var(--border); border-radius: var(--r); font-size: var(--text-base, 13px); background: var(--white); min-width: 0; }
+.console-msg-head { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-bottom: 6px; }
+.console-msg-body { white-space: pre-wrap; overflow-wrap: anywhere; color: var(--ink); }
+.console-msg-internal { background: var(--gold-l); border-color: color-mix(in srgb, var(--gold) 30%, var(--border)); }
+.console-msg-staff { background: color-mix(in srgb, var(--teal) 6%, var(--white)); }
+
+/* ── Forms ── */
+.console-form { display: flex; flex-direction: column; gap: 14px; max-width: 680px; }
+.console-form label, .console-field { display: flex; flex-direction: column; gap: 6px; font-size: var(--text-sm, 12px); font-weight: 600; color: var(--ink2); }
+.console-fields { display: grid; gap: 12px; grid-template-columns: repeat(auto-fill, minmax(min(100%, 170px), 1fr)); }
+
+/* ── Timeline (case history) ── */
+.console-timeline { list-style: none; margin: 0; padding: 0 0 0 14px; border-left: 2px solid var(--border); display: flex; flex-direction: column; gap: 12px; }
+.console-timeline > li { position: relative; font-size: var(--text-sm, 12px); color: var(--ink2); }
+.console-timeline > li::before { content: ''; position: absolute; left: -20px; top: 4px; width: 10px; height: 10px; border-radius: 50%; background: var(--white); border: 2px solid var(--teal); }
+
+/* ── Role matrix ── */
+.console-matrix { border-collapse: collapse; font-size: var(--text-sm, 12px); }
+.console-matrix th, .console-matrix td { border-bottom: 1px solid var(--border); padding: 8px 10px; text-align: center; }
+.console-matrix th { color: var(--ink3); font-weight: 700; font-size: var(--text-xs, 11px); text-transform: uppercase; letter-spacing: .04em; background: var(--bg); }
+.console-matrix th:first-child, .console-matrix td:first-child { text-align: left; position: sticky; left: 0; background: var(--white); }
+.console-matrix th:first-child { background: var(--bg); }
+@media (max-width: 520px) {
+  /* KPICard sets its padding inline; tighten it on phones so two fit per row. */
+  .console-kpis .card { padding: 14px !important; }
+  .console-panel-hdr, .console-panel-body { padding-left: 14px; padding-right: 14px; }
+  .console-list > li { padding-left: 14px; padding-right: 14px; }
+}

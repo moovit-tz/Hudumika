@@ -132,6 +132,13 @@ const envSchema = z.object({
   MEETING_MAX_DURATION_CEILING_MINUTES: z.coerce.number().default(480),
   LOG_LEVEL: z.enum(['fatal', 'error', 'warn', 'info', 'debug', 'trace']).default('debug'),
   CORS_ORIGINS: z.string().default('http://localhost:5180,http://localhost:5173'),
+  // Staff console deployment split (docs/STAFF_CONSOLE.md). 'all' (default)
+  // serves everything, as before. 'customer' refuses the staff/platform APIs so
+  // a public instance never exposes them. 'admin' serves only the staff
+  // console, sign-in and the shared endpoints the console shell uses.
+  API_SURFACE: z.enum(['all', 'customer', 'admin']).default('all'),
+  /** Extra path prefixes the 'admin' surface also serves (comma separated). */
+  ADMIN_SURFACE_EXTRA_PREFIXES: z.string().default(''),
 
   /** Public origin of the web app, used to build links that leave the system
    *  — currently the QR code printed on landed-cost estimates. Deliberately

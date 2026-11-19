@@ -105,6 +105,7 @@ const BlissShell = React.lazy(() => import('./shells/BlissShell.js').then(m => (
 const CloudShell = React.lazy(() => import('./shells/CloudShell.js').then(m => ({ default: m.CloudShell })));
 const AdminShell = React.lazy(() => import('./shells/AdminShell.js').then(m => ({ default: m.AdminShell })));
 const SuperAdminShell = React.lazy(() => import('./shells/SuperAdminShell.js').then(m => ({ default: m.SuperAdminShell })));
+const ConsoleShell = React.lazy(() => import('./shells/ConsoleShell.js').then(m => ({ default: m.ConsoleShell })));
 const ComplyOSShell = React.lazy(() => import('./shells/ComplyOSShell.js').then(m => ({ default: m.ComplyOSShell })));
 const SealShell = React.lazy(() => import('./shells/SealShell.js').then(m => ({ default: m.SealShell })));
 const EmailShell = React.lazy(() => import('./shells/EmailShell.js').then(m => ({ default: m.EmailShell })));
@@ -539,6 +540,8 @@ const AppContentBody: React.FC = () => {
             <Route path="/cloud/*"    element={<CloudShell />} />
             <Route path="/workspace/*"element={<AdminShell />} />
             <Route path="/admin/*"    element={<SuperAdminShell />} />
+            {/* Unified staff console — entry decided by platform staff grants, not the workspace role. */}
+            <Route path="/console/*"  element={<ConsoleShell />} />
             {/* Agentic View & Hub routes */}
             <Route path="/agentic"    element={<Suspense fallback={<SkeletonPage />}><AgenticHome /></Suspense>} />
             <Route path="/ai/*"       element={<Navigate to="/agentic" replace />} />

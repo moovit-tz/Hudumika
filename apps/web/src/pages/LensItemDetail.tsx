@@ -8,9 +8,11 @@ import { SectionCard } from '../components/SectionCard.js';
 import { SectionLoading } from '../components/ui/spinner.js';
 import { Dialog, DialogContent, DialogTitle } from '../components/ui/dialog.js';
 import { apiFetch } from '../lib/api.js';
+import { useIsMobile } from '../hooks/useIsMobile.js';
 import type { LensItem, LensComment } from '@hudumika/types';
 
 export function LensItemDetail() {
+  const isMobile = useIsMobile();
   const { ref } = useParams<{ ref: string }>();
   const navigate = useNavigate();
   const [item, setItem] = useState<(LensItem & { events?: any[]; comments?: LensComment[]; links?: any[]; snapshots?: any[] }) | null>(null);
@@ -159,13 +161,13 @@ export function LensItemDetail() {
   const isClosed = ['DONE', 'WONTFIX'].includes(item.status);
 
   return (
-    <div className="page-layout">
+    <div className="lens-page">
       <PageHeader
         title={`${item.ref}: ${item.title}`}
         subtitle={`Reported in ${item.environment || 'production'} • Opened ${new Date(item.created_at).toLocaleDateString()}`}
         crumbs={[{ label: 'Lens', to: '/lens' }, { label: item.ref }]}
         actions={
-          <div style={{ display: 'flex', gap: 8 }}>
+          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
             <Button variant="outline" onClick={() => navigate('/lens')}>
               <Icon name="arrowLeft" size={14} />
               Board
@@ -194,7 +196,7 @@ export function LensItemDetail() {
       />
 
       {/* Main Grid */}
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 340px', gap: 24 }}>
+      <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 340px', gap: 24, width: '100%', minWidth: 0 }}>
         {/* Left: Content, Reproduction, Evidence, Discussion, Activity */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
           {/* Main Body */}

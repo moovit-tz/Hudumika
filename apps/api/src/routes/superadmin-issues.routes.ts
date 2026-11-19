@@ -1,7 +1,7 @@
+import { registerSuperadminGuard } from '../services/platform-admin-access.js';
 import type { FastifyInstance } from 'fastify';
 import { sql } from 'kysely';
 import { dbPlatform } from '../db/client.js';
-import { requireRole } from '../middleware/rbac.js';
 
 /**
  * The platform's view of what tenants are reporting, and of what they are
@@ -15,7 +15,7 @@ import { requireRole } from '../middleware/rbac.js';
  */
 export async function superAdminIssuesRoutes(fastify: FastifyInstance) {
   fastify.addHook('preHandler', fastify.authenticate);
-  fastify.addHook('preHandler', requireRole('SUPER_ADMIN'));
+  registerSuperadminGuard(fastify);
 
   // ── GET /v1/superadmin/issues ─────────────────────────────────────────────
   // Every reported issue across every tenant: the bug list.

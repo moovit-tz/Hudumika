@@ -1,10 +1,10 @@
+import { registerSuperadminGuard } from '../services/platform-admin-access.js';
 import type { FastifyInstance } from 'fastify';
 import { z } from 'zod';
 import {
   freightBundleKey, freightDiscount, freightDraft, freightPreviewPeriod, freightUnitRate,
   getFreightPilotDraft, getFreightPricingVersions, getFreightUsagePreview, listFreightPilotDrafts, quoteFreightLine,
 } from '../services/freight-usage-preview.service.js';
-import { requireRole } from '../middleware/rbac.js';
 import { dbPlatform, withTenant } from '../db/client.js';
 import { sql } from 'kysely';
 import { GLService } from '../services/gl.service.js';
@@ -69,7 +69,7 @@ const smtpTestSchema = z.object({
 
 export async function superAdminRoutes(fastify: FastifyInstance) {
   fastify.addHook('preHandler', fastify.authenticate);
-  fastify.addHook('preHandler', requireRole('SUPER_ADMIN'));
+  registerSuperadminGuard(fastify);
 
   /** Who is doing this, for the audit trail. Falls back to the email rather
    *  than to a placeholder — an audit row that says "Super Admin" for

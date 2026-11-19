@@ -1,3 +1,4 @@
+import { platformAdminRule, auditPlatformAdminMutations } from '../services/platform-admin-access.js';
 import type { FastifyInstance } from 'fastify';
 import { z } from 'zod';
 import { dbPlatform, withTenant } from '../db/client.js';
@@ -58,6 +59,7 @@ function toAddon(r: any, activeCompanies?: number, purchased?: boolean): Addon {
  * package's own feature list would.
  */
 export async function addonsRoutes(fastify: FastifyInstance) {
+  auditPlatformAdminMutations(fastify);
   /**
    * GET /v1/addons — public catalog, same as GET /v1/packages. SuperAdmin's
    * "Get more with add-ons" section and (once a tenant-facing purchase flow
@@ -168,7 +170,7 @@ export async function addonsRoutes(fastify: FastifyInstance) {
     }
   );
 
-  fastify.post('/', { preHandler: [fastify.authenticate, requireRole('SUPER_ADMIN')] }, async (request, reply) => {
+  fastify.post('/', { preHandler: [fastify.authenticate, platformAdminRule({ perm: 'billing.change' })] }, async (request, reply) => {
     const body = addonCreateSchema.parse(request.body);
     const row = await dbPlatform.insertInto('package_addons')
       .values({
@@ -190,7 +192,7 @@ export async function addonsRoutes(fastify: FastifyInstance) {
 
   fastify.patch<{ Params: { code: string } }>(
     '/:code',
-    { preHandler: [fastify.authenticate, requireRole('SUPER_ADMIN')] },
+    { preHandler: [fastify.authenticate, platformAdminRule({ perm: 'billing.change' })] },
     async (request, reply) => {
       const { code } = request.params;
       const body = addonPatchSchema.parse(request.body);
@@ -218,7 +220,7 @@ export async function addonsRoutes(fastify: FastifyInstance) {
   /** DELETE /v1/addons/:code — soft delete, same convention as packages.routes.ts. */
   fastify.delete<{ Params: { code: string } }>(
     '/:code',
-    { preHandler: [fastify.authenticate, requireRole('SUPER_ADMIN')] },
+    { preHandler: [fastify.authenticate, platformAdminRule({ perm: 'billing.change' })] },
     async (request, reply) => {
       const { code } = request.params;
       const row = await dbPlatform.updateTable('package_addons').set({ is_active: false, updated_at: new Date() })

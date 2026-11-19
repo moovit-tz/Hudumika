@@ -299,7 +299,7 @@ export function SmsSenderIds() {
       ) : allSenderIds.length === 0 ? (
         <SectionCard title="Registered Headers" padded={false} collapsible={false}>
           <div style={{ padding: 48, textAlign: 'center', color: 'var(--ink3)' }}>
-            No SMS Gateways configured. Please ask your platform administrator to add a gateway in <Link to="/admin/sms-gateways" style={{ color: 'var(--teal)' }}>Admin → SMS Gateways</Link>.
+            No SMS Gateways configured. Please ask your platform administrator to add a gateway in <Link to="/console/settings/sms-gateways" style={{ color: 'var(--teal)' }}>Admin → SMS Gateways</Link>.
           </div>
         </SectionCard>
       ) : (

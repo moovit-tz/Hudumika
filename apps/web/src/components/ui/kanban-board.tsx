@@ -84,7 +84,7 @@ export function KanbanBoard<T extends KanbanCardData, S extends string = string>
   }, [items, onDrop]);
 
   return (
-    <div>
+    <div className="kb-board-container">
       {paginated && resolvedPageSizes && (
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: 8, marginBottom: 10 }}>
           <span style={{ fontSize: 12, color: 'var(--ink3)', fontWeight: 600 }}>Tasks per column</span>

@@ -43,7 +43,7 @@ export const MODULE_ROLES: Record<string, UserRole[]> = {
 // Listed from most-specific to least-specific; first match wins.
 const ROUTE_RULES: Array<{ prefix: string; roles: UserRole[] }> = [
   // Super-admin-only
-  { prefix: '/admin',             roles: ['SUPER_ADMIN'] },
+  // /admin/* only redirects into /console now, which checks staff grants itself.
   { prefix: '/tenant-management', roles: ['SUPER_ADMIN'] },
   { prefix: '/system-update',     roles: ['SUPER_ADMIN'] },
   // Management-only

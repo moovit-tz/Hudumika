@@ -1,0 +1,38 @@
+# Staff console on its own host, restricted to staff networks.
+# Append to deploy/contabo/Caddyfile (or import it) once ADMIN_DOMAIN,
+# ADMIN_ALLOWED_CIDRS and the admin-api service (compose profile "admin") exist.
+#
+#   ADMIN_DOMAIN=console.example.com
+#   ADMIN_ALLOWED_CIDRS="203.0.113.0/24 198.51.100.7/32"   # office / VPN egress
+#
+# The public site keeps serving customers; set API_SURFACE=customer on the
+# public api so it refuses /v1/staff, /v1/superadmin and /v1/lens.
+{$ADMIN_DOMAIN} {
+  encode zstd gzip
+  header X-Content-Type-Options nosniff
+  header Referrer-Policy no-referrer
+  header X-Frame-Options DENY
+  header X-Robots-Tag "noindex, nofollow"
+
+  @outside not remote_ip {$ADMIN_ALLOWED_CIDRS}
+  respond @outside "Not found" 404
+
+  @api path /v1/* /auth/* /health /.well-known/openid-configuration /jwks.json
+  handle @api {
+    reverse_proxy admin-api:3001
+  }
+  # Same SPA build; the admin host only routes people into /console.
+  @root path /
+  redir @root /console 302
+  handle /assets/* {
+    root * /srv/web
+    header Cache-Control "public, max-age=31536000, immutable"
+    file_server
+  }
+  handle {
+    root * /srv/web
+    try_files {path} /index.html
+    header Cache-Control "no-cache"
+    file_server
+  }
+}

@@ -1,6 +1,6 @@
+import { registerSuperadminGuard } from '../services/platform-admin-access.js';
 import type { FastifyInstance } from 'fastify';
 import { z } from 'zod';
-import { requireRole } from '../middleware/rbac.js';
 import { dbPlatform } from '../db/client.js';
 import { METRICS, runMetric, type MetricFilters } from '../services/reports.service.js';
 
@@ -21,7 +21,7 @@ const definitionCreateSchema = z.object({
 
 export async function superAdminReportsRoutes(fastify: FastifyInstance) {
   fastify.addHook('preHandler', fastify.authenticate);
-  fastify.addHook('preHandler', requireRole('SUPER_ADMIN'));
+  registerSuperadminGuard(fastify);
 
   // GET /v1/superadmin/reports/metrics — the registry, so the frontend rail
   // builds itself instead of hardcoding the app/metric list twice.

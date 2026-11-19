@@ -7264,6 +7264,27 @@ export interface Database {
   invoice_sequences: InvoiceSequencesTable;
   customer_invoice_sequences: CustomerInvoiceSequencesTable;
   platform_support_tickets: PlatformSupportTicketsTable;
+  staff_roles: StaffRolesTable;
+  staff_members: StaffMembersTable;
+  staff_role_grants: StaffRoleGrantsTable;
+  staff_permission_overrides: StaffPermissionOverridesTable;
+  staff_scope_grants: StaffScopeGrantsTable;
+  staff_teams: StaffTeamsTable;
+  staff_team_members: StaffTeamMembersTable;
+  staff_team_products: StaffTeamProductsTable;
+  staff_team_customers: StaffTeamCustomersTable;
+  staff_customer_accounts: StaffCustomerAccountsTable;
+  staff_customer_contacts: StaffCustomerContactsTable;
+  staff_assignment_history: StaffAssignmentHistoryTable;
+  platform_case_events: PlatformCaseEventsTable;
+  staff_sla_policies: StaffSlaPoliciesTable;
+  staff_business_hours: StaffBusinessHoursTable;
+  staff_routing_rules: StaffRoutingRulesTable;
+  platform_incidents: PlatformIncidentsTable;
+  platform_incident_customers: PlatformIncidentCustomersTable;
+  staff_access_sessions: StaffAccessSessionsTable;
+  staff_access_session_events: StaffAccessSessionEventsTable;
+  staff_audit_log: StaffAuditLogTable;
   platform_support_attachments: PlatformSupportAttachmentsTable;
   platform_support_messages: PlatformSupportMessagesTable;
   // Onsite Infrastructure Platform
@@ -11435,6 +11456,112 @@ export interface PlatformSupportTicketsTable {
   record_id: string | null;
   resolution: string | null;
   resolved_at: Date | null;
+  // Migration 919 — staff console case fields.
+  owner_user_id: string | null;
+  team_id: string | null;
+  severity: Generated<'S1' | 'S2' | 'S3' | 'S4'>;
+  escalated: Generated<boolean>;
+  routing_reason: string | null;
+  first_response_due_at: Date | null;
+  first_response_at: Date | null;
+  resolution_due_at: Date | null;
+  due_at: Date | null;
+  sla_paused_at: Date | null;
+  sla_paused_seconds: Generated<number>;
+  waiting_on: 'customer' | 'engineering' | 'third_party' | null;
+  customer_outcome: Generated<'pending' | 'confirmed' | 'not_resolved'>;
+  outcome_verified_by: string | null;
+  outcome_verified_at: Date | null;
+  incident_id: string | null;
+  version: Generated<number>;
+}
+
+// ── Migration 919 — staff console (platform-scoped; dbPlatform only) ──────
+export interface StaffRolesTable {
+  id: Generated<string>; key: string; name: string; description: Generated<string>;
+  permissions: Generated<string[]>; default_home: Generated<string>; broad_scope: Generated<boolean>;
+  is_template: Generated<boolean>; created_at: Generated<Date>; updated_at: Generated<Date>; updated_by: string | null;
+}
+export interface StaffMembersTable {
+  user_id: string; status: Generated<'active' | 'suspended'>; title: string | null; preferred_home: string | null;
+  available: Generated<boolean>; max_open_cases: Generated<number>; created_by: string | null;
+  created_at: Generated<Date>; updated_at: Generated<Date>;
+}
+interface StaffGrantCommon {
+  id: Generated<string>; user_id: string; starts_at: Generated<Date>; expires_at: Date | null; reason: Generated<string>;
+  granted_by: string | null; granted_at: Generated<Date>; revoked_at: Date | null; revoked_by: string | null;
+}
+export interface StaffRoleGrantsTable extends StaffGrantCommon { role_id: string }
+export interface StaffPermissionOverridesTable extends StaffGrantCommon { permission: string; effect: 'allow' | 'deny' }
+export interface StaffScopeGrantsTable extends StaffGrantCommon {
+  scope_type: 'product' | 'customer' | 'all_products' | 'all_customers'; app_id: string | null; tenant_id: string | null; effect: Generated<'allow' | 'deny'>;
+}
+export interface StaffTeamsTable {
+  id: Generated<string>; name: string; kind: 'product' | 'portfolio' | 'specialist'; description: Generated<string>;
+  all_products: Generated<boolean>; all_customers: Generated<boolean>; is_fallback: Generated<boolean>; active: Generated<boolean>;
+  created_by: string | null; created_at: Generated<Date>; updated_at: Generated<Date>;
+}
+export interface StaffTeamMembersTable {
+  id: Generated<string>; team_id: string; user_id: string; member_role: Generated<'lead' | 'member'>;
+  starts_at: Generated<Date>; expires_at: Date | null; added_by: string | null; added_at: Generated<Date>;
+  removed_at: Date | null; removed_by: string | null;
+}
+export interface StaffTeamProductsTable { team_id: string; app_id: string }
+export interface StaffTeamCustomersTable { team_id: string; tenant_id: string }
+export interface StaffCustomerAccountsTable {
+  tenant_id: string; owner_user_id: string | null; backup_owner_user_id: string | null;
+  standing_authorization: Generated<boolean>; max_session_minutes: Generated<number>; notes: Generated<string>;
+  updated_by: string | null; updated_at: Generated<Date>;
+}
+export interface StaffCustomerContactsTable {
+  id: Generated<string>; tenant_id: string; user_id: string | null; name: string; email: string | null; phone: string | null;
+  contact_role: Generated<'primary' | 'billing' | 'technical' | 'executive' | 'escalation'>; escalation_order: number | null;
+  created_by: string | null; created_at: Generated<Date>;
+}
+export interface StaffAssignmentHistoryTable {
+  id: Generated<string>; subject_type: 'customer' | 'case' | 'incident' | 'team_member' | 'role_grant' | 'scope_grant' | 'permission_override';
+  subject_id: string; action: string; from_user_id: string | null; to_user_id: string | null;
+  from_team_id: string | null; to_team_id: string | null; detail: Generated<unknown>; reason: Generated<string>;
+  actor_user_id: string | null; created_at: Generated<Date>;
+}
+export interface PlatformCaseEventsTable {
+  id: Generated<string>; ticket_id: string; event: string; detail: Generated<unknown>; actor_user_id: string | null; created_at: Generated<Date>;
+}
+export interface StaffSlaPoliciesTable {
+  priority: 'URGENT' | 'HIGH' | 'NORMAL' | 'LOW'; first_response_minutes: number; resolution_minutes: number; business_hours_only: Generated<boolean>;
+}
+export interface StaffBusinessHoursTable {
+  id: Generated<number>; timezone: Generated<string>; work_days: Generated<number[]>; start_minute: Generated<number>;
+  end_minute: Generated<number>; holidays: Generated<string[]>;
+}
+export interface StaffRoutingRulesTable {
+  id: Generated<string>; name: string; position: Generated<number>; app_id: string | null; category: string | null;
+  priority: string | null; tenant_id: string | null; team_id: string; active: Generated<boolean>;
+  created_by: string | null; created_at: Generated<Date>;
+}
+export interface PlatformIncidentsTable {
+  id: Generated<string>; ref: string; app_id: string; title: string; severity: Generated<'S1' | 'S2' | 'S3' | 'S4'>;
+  status: Generated<'investigating' | 'identified' | 'monitoring' | 'resolved'>; lens_item_id: string | null;
+  public_summary: string | null; public_summary_approved_by: string | null; public_summary_approved_at: Date | null;
+  owner_user_id: string | null; team_id: string | null; started_at: Generated<Date>; resolved_at: Date | null;
+  created_by: string | null; created_at: Generated<Date>; updated_at: Generated<Date>;
+}
+export interface PlatformIncidentCustomersTable { incident_id: string; tenant_id: string; added_at: Generated<Date> }
+export interface StaffAccessSessionsTable {
+  id: Generated<string>; staff_user_id: string; tenant_id: string; app_id: string | null; actions: string[]; purpose: string;
+  case_id: string | null; basis: 'customer_approval' | 'standing_authorization';
+  status: 'pending_approval' | 'active' | 'ended' | 'revoked' | 'expired' | 'denied'; requested_minutes: number;
+  approved_by: string | null; approved_at: Date | null; starts_at: Date | null; expires_at: Date; ended_at: Date | null;
+  ended_by: string | null; end_reason: string | null; created_at: Generated<Date>;
+}
+export interface StaffAccessSessionEventsTable {
+  id: Generated<string>; session_id: string; action: string; resource: string | null; outcome: 'ok' | 'denied' | 'error';
+  detail: Generated<unknown>; created_at: Generated<Date>;
+}
+export interface StaffAuditLogTable {
+  id: Generated<string>; actor_user_id: string | null; action: string; target_type: string | null; target_id: string | null;
+  tenant_id: string | null; app_id: string | null; purpose: string | null; outcome: 'ok' | 'denied' | 'error';
+  detail: Generated<unknown>; ip_address: string | null; created_at: Generated<Date>;
 }
 
 export interface PlatformSupportAttachmentsTable {
@@ -11458,6 +11585,7 @@ export interface PlatformSupportMessagesTable {
   is_platform_staff: Generated<boolean>;
   content: string;
   created_at: Generated<Date>;
+  visibility: Generated<'customer' | 'internal'>;
 }
 
 export interface AccountingMarketplaceRequestsTable {

@@ -1,7 +1,7 @@
+import { registerSuperadminGuard } from '../services/platform-admin-access.js';
 import type { FastifyInstance } from 'fastify';
 import { z } from 'zod';
 import { dbPlatform } from '../db/client.js';
-import { requireRole } from '../middleware/rbac.js';
 import { recordAuthEvent } from '../lib/audit-chain.js';
 
 /**
@@ -14,7 +14,7 @@ import { recordAuthEvent } from '../lib/audit-chain.js';
  */
 export async function superAdminKybRoutes(fastify: FastifyInstance) {
   fastify.addHook('preHandler', fastify.authenticate);
-  fastify.addHook('preHandler', requireRole('SUPER_ADMIN'));
+  registerSuperadminGuard(fastify);
 
   fastify.get('/kyb-queue', async () => {
     return dbPlatform.selectFrom('ondi_org_kyb as k')

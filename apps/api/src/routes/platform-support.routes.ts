@@ -1,5 +1,7 @@
 import type { FastifyInstance } from 'fastify';
+import { onCaseCreated } from '../services/staff-cases.service.js';
 import { dbPlatform, withTenant } from '../db/client.js';
+import { sql } from 'kysely';
 import { MinioIntegration } from '../integrations/minio.js';
 
 /** What an attachment may be. A bug report wants a screenshot, a PDF of the
@@ -25,6 +27,11 @@ function authorName(user: { name?: string | null; email?: string | null }): stri
 // off `customers`). This is for the tenant asking Hudumika itself for help
 // (billing questions, technical issues), which Subscription.tsx's Support tab
 // previously rendered as 4 hardcoded fake tickets with no submit path at all.
+/** What a workspace sees of its own case. Staff ownership, routing and
+ *  internal SLA bookkeeping (migration 919) stay on the staff side. */
+const CUSTOMER_TICKET_COLUMNS = ['id', 'tenant_id', 'ref_number', 'created_by', 'subject', 'category', 'priority', 'status', 'created_at', 'updated_at',
+  'app', 'kind', 'context', 'record_id', 'resolution', 'resolved_at', 'first_response_at', 'customer_outcome'] as const;
+
 export default async function platformSupportRoutes(fastify: FastifyInstance) {
   fastify.addHook('preHandler', fastify.authenticate);
   // HUD-0024 continuation: this is the tenant's own conversation with
@@ -40,7 +47,7 @@ export default async function platformSupportRoutes(fastify: FastifyInstance) {
   fastify.get('/tickets', async (request) => {
     const user = request.user;
     return withTenant(user.tenant_id, (trx) =>
-      trx.selectFrom('platform_support_tickets').selectAll()
+      trx.selectFrom('platform_support_tickets').select([...CUSTOMER_TICKET_COLUMNS])
         .where('tenant_id', '=', user.tenant_id)
         .orderBy('created_at', 'desc')
         .execute()
@@ -77,7 +84,7 @@ export default async function platformSupportRoutes(fastify: FastifyInstance) {
         reply.status(400);
         return { error: 'Priority must be LOW, NORMAL, HIGH or URGENT' };
       }
-      return withTenant(user.tenant_id, async (trx) => {
+      const created = await withTenant(user.tenant_id, async (trx) => {
         // Only a record this tenant actually owns. An id supplied by the
         // caller is not evidence of anything, and a bug report is a normal
         // way to smuggle one in and have the platform queue render it.
@@ -106,25 +113,29 @@ export default async function platformSupportRoutes(fastify: FastifyInstance) {
           author_id: user.sub, author_name: authorName(user),
           is_platform_staff: false, content: b.message.trim(),
         }).execute();
-
-        reply.status(201);
         return ticket;
       });
+      // Route and set SLA due times after the case is committed. A routing
+      // failure must never lose the customer's case: it stays Unassigned.
+      await onCaseCreated(created.id).catch(err => console.error('[platform-support] routing failed:', err?.message));
+      reply.status(201);
+      return Object.fromEntries(CUSTOMER_TICKET_COLUMNS.map(k => [k, (created as any)[k]]));
     }
   );
 
   fastify.get<{ Params: { id: string } }>('/tickets/:id', async (request, reply) => {
     const user = request.user;
     return withTenant(user.tenant_id, async (trx) => {
-      const ticket = await trx.selectFrom('platform_support_tickets').selectAll()
+      const ticket = await trx.selectFrom('platform_support_tickets').select([...CUSTOMER_TICKET_COLUMNS])
         .where('id', '=', request.params.id).where('tenant_id', '=', user.tenant_id).executeTakeFirst();
       if (!ticket) {
         reply.status(404);
         return { error: 'Ticket not found' };
       }
       const [messages, attachments] = await Promise.all([
-        trx.selectFrom('platform_support_messages').selectAll()
-          .where('ticket_id', '=', ticket.id).orderBy('created_at', 'asc').execute(),
+        // Internal staff notes are never shown to the workspace.
+        trx.selectFrom('platform_support_messages').select(['id', 'ticket_id', 'tenant_id', 'author_id', 'author_name', 'is_platform_staff', 'content', 'created_at'])
+          .where('ticket_id', '=', ticket.id).where('visibility', '=', 'customer').orderBy('created_at', 'asc').execute(),
         // storage_key deliberately not selected — it is a server-side path,
         // and the download endpoint below is the only way to reach the bytes.
         trx.selectFrom('platform_support_attachments')
@@ -224,6 +235,13 @@ export default async function platformSupportRoutes(fastify: FastifyInstance) {
         is_platform_staff: false, content: request.body.message.trim(),
       }).returningAll().executeTakeFirstOrThrow();
       await trx.updateTable('platform_support_tickets').set({ updated_at: new Date() }).where('id', '=', ticket.id).execute();
+      // The customer answered: a case paused waiting on them resumes, and the
+      // resolution due time moves by the time it spent paused.
+      await trx.updateTable('platform_support_tickets').set({
+        waiting_on: null, sla_paused_at: null,
+        sla_paused_seconds: sql`sla_paused_seconds + extract(epoch FROM now() - sla_paused_at)::int`,
+        resolution_due_at: sql`resolution_due_at + (now() - sla_paused_at)`,
+      } as any).where('id', '=', ticket.id).where('tenant_id', '=', user.tenant_id).where('sla_paused_at', 'is not', null).execute();
       reply.status(201);
       return message;
     });

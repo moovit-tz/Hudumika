@@ -1,0 +1,277 @@
+/* ── Lens Developer Record Responsive Styles ───────────────────────── */
+
+/* 1. Strict containment: Never allow the Lens shell or layout to scroll horizontally */
+[data-lens] .app-shell-content {
+  overflow-x: hidden !important;
+  max-width: 100% !important;
+  width: 100% !important;
+  min-width: 0 !important;
+  box-sizing: border-box;
+}
+
+[data-lens] .page-layout {
+  overflow-x: hidden !important;
+  max-width: 100% !important;
+  width: 100% !important;
+  min-width: 0 !important;
+  box-sizing: border-box;
+}
+
+[data-lens] .page-layout-content {
+  overflow-x: hidden !important;
+  max-width: 100% !important;
+  width: 100% !important;
+  min-width: 0 !important;
+  display: flex !important;
+  flex-direction: column !important;
+  min-height: 0;
+}
+
+/* Neutralize nested .page-layout if any exists */
+[data-lens] .page-layout-content > .page-layout {
+  padding: 0;
+  margin: 0;
+  border: 0;
+  border-radius: 0;
+  box-shadow: none;
+  background: transparent;
+}
+
+@media (max-width: 768px) {
+  [data-lens] .app-shell-content {
+    padding: 6px !important;
+  }
+  [data-lens] .page-layout {
+    padding: 12px 14px !important;
+    row-gap: 12px !important;
+    border-radius: var(--r-md, 8px) !important;
+  }
+}
+
+/* 2. Lens page root container */
+.lens-page {
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+  gap: 14px;
+  box-sizing: border-box;
+  overflow: hidden;
+}
+
+/* 3. Page Header Actions */
+.lens-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+@media (max-width: 768px) {
+  .lens-header-actions {
+    width: 100%;
+    justify-content: space-between;
+    gap: 8px;
+    margin-top: 4px;
+  }
+  .lens-ci-badge {
+    display: none !important;
+  }
+}
+
+/* 4. Filters & Search Toolbar */
+.lens-filters-wrap {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  flex-wrap: wrap;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.lens-filters-controls {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  flex-wrap: wrap;
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.lens-search-wrap {
+  flex: 1 1 240px;
+  min-width: 180px;
+  max-width: 360px;
+  margin-left: auto;
+}
+
+@media (max-width: 768px) {
+  .lens-filters-wrap {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 8px;
+  }
+  .lens-search-wrap {
+    flex: 1 1 100%;
+    min-width: 100%;
+    max-width: 100%;
+    margin-left: 0;
+  }
+  .lens-filters-controls {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+    width: 100%;
+  }
+  .lens-filters-controls .lens-filter-select {
+    min-width: 0 !important;
+    width: 100% !important;
+  }
+  .lens-filters-controls .lens-closed-label {
+    grid-column: 1 / -1;
+  }
+}
+
+/* 5. Column Switcher / Stats Pills (Visible on all screen sizes) */
+.lens-col-tabs {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  padding: 2px 2px 8px;
+  margin-bottom: 2px;
+  scrollbar-width: none;
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
+}
+
+.lens-col-tabs::-webkit-scrollbar {
+  display: none;
+}
+
+.lens-col-tab-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  border-radius: var(--r-full, 9999px);
+  border: 1px solid var(--border);
+  background: var(--white);
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--ink2);
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all 0.15s ease;
+  user-select: none;
+  flex-shrink: 0;
+}
+
+.lens-col-tab-btn:hover {
+  border-color: var(--teal);
+  color: var(--teal);
+}
+
+.lens-col-tab-btn.active {
+  background: var(--teal);
+  color: #ffffff;
+  border-color: var(--teal);
+}
+
+.lens-col-tab-btn.active .lens-tab-count {
+  background: rgba(255, 255, 255, 0.25);
+  color: #ffffff;
+}
+
+.lens-tab-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.lens-tab-count {
+  font-size: 10.5px;
+  font-weight: 700;
+  padding: 1px 6px;
+  border-radius: 10px;
+  background: var(--bg);
+  color: var(--ink3);
+}
+
+/* 6. Board Scroll Wrapper (contains horizontal overflow inside the board canvas only) */
+.lens-board-scroll-wrap {
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+  flex: 1;
+  overflow-x: auto;
+  overflow-y: visible;
+  -webkit-overflow-scrolling: touch;
+  padding-bottom: 12px;
+  box-sizing: border-box;
+}
+
+.lens-board-scroll-wrap::-webkit-scrollbar {
+  height: 7px;
+}
+
+.lens-board-scroll-wrap::-webkit-scrollbar-track {
+  background: var(--bg);
+  border-radius: 4px;
+}
+
+.lens-board-scroll-wrap::-webkit-scrollbar-thumb {
+  background: var(--border);
+  border-radius: 4px;
+}
+
+.lens-board-scroll-wrap::-webkit-scrollbar-thumb:hover {
+  background: var(--ink3);
+}
+
+/* Single column mode */
+.lens-board-single-col .kb-board {
+  display: grid !important;
+  grid-template-columns: 1fr !important;
+  width: 100% !important;
+  max-width: 100% !important;
+  min-width: 0 !important;
+  gap: 12px;
+}
+
+.lens-board-single-col .kb-column {
+  width: 100% !important;
+  max-width: 100% !important;
+  flex: 1 1 100% !important;
+  min-width: 0 !important;
+}
+
+/* Mobile swipeable snap layout when all columns are visible on mobile */
+@media (max-width: 768px) {
+  .lens-board-mobile-swipe .kb-board {
+    display: flex !important;
+    overflow-x: auto !important;
+    scroll-snap-type: x mandatory;
+    gap: 12px;
+    padding-bottom: 10px;
+    -webkit-overflow-scrolling: touch;
+    width: 100%;
+    min-width: 0;
+    max-width: 100%;
+  }
+  .lens-board-mobile-swipe .kb-column {
+    width: calc(100vw - 44px) !important;
+    max-width: 320px !important;
+    min-width: 270px !important;
+    flex: 0 0 calc(100vw - 44px) !important;
+    scroll-snap-align: start;
+    box-sizing: border-box;
+  }
+}

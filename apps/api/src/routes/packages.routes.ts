@@ -1,7 +1,7 @@
+import { platformAdminRule, auditPlatformAdminMutations } from '../services/platform-admin-access.js';
 import type { FastifyInstance } from 'fastify';
 import { z } from 'zod';
 import { dbPlatform } from '../db/client.js';
-import { requireRole } from '../middleware/rbac.js';
 import type { Package, TenantPlan } from '@hudumika/types';
 import { SIGNUP_BASE_PLAN_CODES } from '@hudumika/types';
 
@@ -81,6 +81,7 @@ function toPackage(r: any): Package {
 }
 
 export async function packagesRoutes(fastify: FastifyInstance) {
+  auditPlatformAdminMutations(fastify);
   /**
    * GET /v1/packages
    * Public — the signup wizard and Subscription/SuperAdmin pages fetch this
@@ -111,7 +112,7 @@ export async function packagesRoutes(fastify: FastifyInstance) {
    * sale yet) — but SuperAdmin's own Packages console needs to see and
    * reactivate them, not just the ones already live.
    */
-  fastify.get('/all', { preHandler: [fastify.authenticate, requireRole('SUPER_ADMIN')] }, async () => {
+  fastify.get('/all', { preHandler: [fastify.authenticate, platformAdminRule({ perm: 'billing.view' })] }, async () => {
     const rows = await dbPlatform.selectFrom('packages').selectAll()
       .select(eb => [
         eb.selectFrom('tenants').select(({ fn }) => fn.countAll().as('count'))
@@ -138,7 +139,7 @@ export async function packagesRoutes(fastify: FastifyInstance) {
   /**
    * POST /v1/packages — create a new package (SuperAdmin only).
    */
-  fastify.post('/', { preHandler: [fastify.authenticate, requireRole('SUPER_ADMIN')] }, async (request, reply) => {
+  fastify.post('/', { preHandler: [fastify.authenticate, platformAdminRule({ perm: 'billing.change' })] }, async (request, reply) => {
     const body = packageCreateSchema.parse(request.body);
 
     // HUD-0107: a reused `code` (packages.code is unique — PATCH/DELETE
@@ -189,7 +190,7 @@ export async function packagesRoutes(fastify: FastifyInstance) {
    */
   fastify.patch<{ Params: { code: string } }>(
     '/:code',
-    { preHandler: [fastify.authenticate, requireRole('SUPER_ADMIN')] },
+    { preHandler: [fastify.authenticate, platformAdminRule({ perm: 'billing.change' })] },
     async (request, reply) => {
       const { code } = request.params;
       const body = packagePatchSchema.parse(request.body);
@@ -233,7 +234,7 @@ export async function packagesRoutes(fastify: FastifyInstance) {
    */
   fastify.delete<{ Params: { code: string } }>(
     '/:code',
-    { preHandler: [fastify.authenticate, requireRole('SUPER_ADMIN')] },
+    { preHandler: [fastify.authenticate, platformAdminRule({ perm: 'billing.change' })] },
     async (request, reply) => {
       const { code } = request.params;
       const row = await dbPlatform.updateTable('packages').set({ is_active: false, updated_at: new Date() })

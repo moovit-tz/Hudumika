@@ -130,6 +130,20 @@ export function AppHeader({
   filterControl?: { open: boolean; onToggle: () => void; hasActive?: boolean };
 } = {}) {
   const { user, logout, updateUser } = useAuth();
+  // "Admin Console" link: SUPER_ADMIN accounts always; other users only when
+  // they hold an active staff record (one cheap lookup per user per tab).
+  const [isConsoleStaff, setIsConsoleStaff] = useState(user?.role === 'SUPER_ADMIN');
+  useEffect(() => {
+    if (!user?.id) { setIsConsoleStaff(false); return; }
+    if (user.role === 'SUPER_ADMIN') { setIsConsoleStaff(true); return; }
+    const key = `hudumika_staff_entry:${user.id}`;
+    try { const c = sessionStorage.getItem(key); if (c !== null) { setIsConsoleStaff(c === '1'); return; } } catch { /* storage blocked */ }
+    let live = true;
+    apiFetch('/v1/staff-entry')
+      .then((r: any) => { const v = !!r?.staff; if (live) setIsConsoleStaff(v); try { sessionStorage.setItem(key, v ? '1' : '0'); } catch { /* storage blocked */ } })
+      .catch(() => { if (live) setIsConsoleStaff(false); });
+    return () => { live = false; };
+  }, [user?.id, user?.role]);
   const { lock } = useIdleLock();
 
   /**
@@ -1115,9 +1129,9 @@ export function AppHeader({
                     </DropdownMenuItem>
                   )}
 
-                  {user?.role === 'SUPER_ADMIN' && (
+                  {isConsoleStaff && (
                     <DropdownMenuItem asChild>
-                      <Link to="/admin" className="ah-menu-item-link">
+                      <Link to="/console" className="ah-menu-item-link">
                         <div className="ah-menu-icon-box" style={{ '--icon-color': 'var(--red)', '--icon-bg': 'var(--red-l)' } as React.CSSProperties}>
                           <Icon name="shield" size={13} />
                         </div>

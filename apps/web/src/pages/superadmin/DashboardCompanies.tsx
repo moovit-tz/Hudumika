@@ -241,7 +241,11 @@ interface TenantFinanceOverview {
 
 export function CompaniesView() {
   const isMobile = useIsMobile();
-  const { impersonate, impersonateCustomer } = useAuth();
+  const { user, impersonate, impersonateCustomer } = useAuth();
+  // Legacy "Login As" (full impersonation) stays with SUPER_ADMIN accounts —
+  // the API enforces that. Other console staff get the audited, approved and
+  // time-limited customer access session instead.
+  const canImpersonate = user?.role === 'SUPER_ADMIN';
   const [impersonating, setImpersonating] = useState<string|null>(null);
   const [tenants, setTenants]     = useState<ApiTenant[]>([]);
   const [apiLoaded, setApiLoaded] = useState(false);
@@ -1043,6 +1047,7 @@ export function CompaniesView() {
               <TD nowrap><span style={{ fontSize: compactRows ? 11.5 : 12, color: 'var(--ink3)' }}>{fmtDate(co.created)}</span></TD>
               <TD>
                 <div style={{ display: 'flex', gap: compactRows ? 3 : 6, alignItems: 'center' }}>
+                  {canImpersonate ? (
                   <Tip label={`Sign in as ${co.name}`} side="top">
                     <button
                       type="button"
@@ -1073,6 +1078,11 @@ export function CompaniesView() {
                       {impersonating === co.id ? 'Switching…' : 'Login As'}
                     </button>
                   </Tip>
+                  ) : (
+                    <Link to={`/console/access/new?tenant=${encodeURIComponent(co.id)}`} className="btn btn-outline btn-sm" style={{ whiteSpace: 'nowrap' }}>
+                      <Icon name="key" size={11} color="var(--teal)" /> Request access
+                    </Link>
+                  )}
                   <ActBtn icon="users" title="View customers" size={compactRows ? 12 : 14} onClick={() => openCustomers(co)} />
                   <ActBtn icon="edit" color="var(--teal)" title="Edit company" size={compactRows ? 12 : 14} onClick={() => openEdit(co)} />
                   {co.status === 'active'

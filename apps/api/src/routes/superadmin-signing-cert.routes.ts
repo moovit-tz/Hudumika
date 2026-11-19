@@ -6,8 +6,8 @@
 // Platform-wide, not tenant-scoped, so this lives here rather than under any
 // per-tenant Settings page.
 
+import { registerSuperadminGuard } from '../services/platform-admin-access.js';
 import type { FastifyInstance, FastifyRequest, FastifyReply } from 'fastify';
-import { requireRole } from '../middleware/rbac.js';
 import { dbPlatform } from '../db/client.js';
 import { PlatformAdminService } from '../services/platform-admin.service.js';
 import {
@@ -16,7 +16,7 @@ import {
 
 export async function superAdminSigningCertRoutes(fastify: FastifyInstance) {
   fastify.addHook('preHandler', fastify.authenticate);
-  fastify.addHook('preHandler', requireRole('SUPER_ADMIN'));
+  registerSuperadminGuard(fastify);
 
   const actor = (req: FastifyRequest) => ({
     actorUserId: (req.user as { sub?: string; id?: string })?.sub ?? (req.user as { id?: string })?.id ?? null,

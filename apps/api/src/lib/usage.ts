@@ -13,6 +13,11 @@ const UNMETERED_PREFIXES = [
   '/v1/tasks', // Tasks + Calendar are personal free utility apps, not plan-gated usage
   '/v1/search',
   '/v1/mcp', // MCP connection setup/management; tool writes still go through each app's own metered route
+  // Platform staff work (claims, replies, grants, access sessions) and the
+  // internal Lens record are platform operations, not the staff member's own
+  // workspace using the product — counting them locked staff on small plans
+  // out of the console after ~100 actions a month.
+  '/v1/staff', '/v1/lens',
 ];
 
 const FREE_CUSTOMS_CALCULATIONS = new Set([

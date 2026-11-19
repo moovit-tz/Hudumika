@@ -17,12 +17,13 @@ import { pushBranding } from '../../hooks/useBranding.js';
 import { useAuth } from '../../hooks/useAuth.js';
 import { APP_PALETTE_SLOT } from '../../shells/WorkspaceApp.js';
 import '../DesignSystemView.css';
+import { useIsPlatformSuperAdmin } from '../console/console-shared.js';
 
 export type SidebarStyle = 'dark' | 'light' | 'system';
 
 export function useDesignStudioController() {
   const { user } = useAuth();
-  const isSuperAdmin = user?.role === 'SUPER_ADMIN';
+  const isSuperAdmin = useIsPlatformSuperAdmin(user?.role);
   const { tokens, updateTokens, resetToDefaults, designSystemVersion, updateDesignSystemVersion } = useDesignSystem();
 
   const [v2ColorDraft, setV2ColorDraft] = useState(designSystemVersion.v2Color);

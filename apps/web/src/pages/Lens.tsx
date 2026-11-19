@@ -1,4 +1,4 @@
-﻿import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { PageHeader } from '../components/PageHeader.js';
 import { Checkbox } from '../components/ui/checkbox.js';
 import { MetricsRow } from '../components/MetricCard.js';
@@ -13,6 +13,8 @@ import { Dialog, DialogContent, DialogTitle } from '../components/ui/dialog.js';
 import { Sheet, SheetContent, SheetTitle } from '../components/ui/sheet.js';
 import { KanbanBoard, type KanbanCardData } from '../components/ui/kanban-board.js';
 import { Button } from '../components/ui/button.js';
+import { useIsMobile } from '../hooks/useIsMobile.js';
+import './Lens.css';
 
 type Kind = 'BUG' | 'FEATURE' | 'DEBT' | 'DECISION' | 'QUESTION' | 'RISK';
 type Status = 'OPEN' | 'IN_PROGRESS' | 'BLOCKED' | 'DONE' | 'WONTFIX';
@@ -78,7 +80,9 @@ const label: React.CSSProperties = {
 };
 
 export function Lens() {
+  const isMobile = useIsMobile();
   const [viewMode, setViewMode] = useState<'board' | 'list'>('board');
+  const [activeCol, setActiveCol] = useState<string>('all');
   const [items, setItems] = useState<Item[]>([]);
   const [columns, setColumns] = useState<Column[]>([]);
   const [areas, setAreas] = useState<Area[]>([]);
@@ -94,6 +98,15 @@ export function Lens() {
   const [fConfidence, setFConfidence] = useState('');
   const [q, setQ] = useState('');
   const [showClosed, setShowClosed] = useState(false);
+
+  const hasActiveFilters = Boolean(fKind || fArea || fConfidence || q || showClosed);
+  const clearFilters = () => {
+    setFKind('');
+    setFArea('');
+    setFConfidence('');
+    setQ('');
+    setShowClosed(false);
+  };
 
   // List view only — the board doesn't paginate (a kanban column with a page
   // boundary through it makes drag-and-drop nonsensical), so this drives
@@ -153,7 +166,7 @@ export function Lens() {
 
   async function move(card: Card, status: string) {
     if (card.status === status) return;
-    if (status === 'DONE') { setClosing({ card, status }); setResolution(''); return; }
+    if (status === 'DONE' || status === 'WONTFIX') { setClosing({ card, status }); setResolution(''); return; }
 
     const before = columns;
     setColumns(cols => cols.map(c => ({
@@ -191,17 +204,19 @@ export function Lens() {
       onSaved={(ref) => { setComposing(false); setNotice({ kind: 'ok', text: `${ref} opened.` }); load(); }} />;
   }
 
+  const totalBoardItems = columns.reduce((acc, col) => acc + (col.items?.length || 0), 0);
+
   return (
-    <div className="page-layout" style={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
+    <div className="lens-page">
       <PageHeader
         crumbs={['Lens']}
         titlePlain="Developer"
         titleEm="record"
         subtitle="What is pending, what is broken, and what was decided — across the whole platform."
         actions={
-          <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+          <div className="lens-header-actions">
             {ci?.ok && !ci.empty && (
-              <span title={`Pipeline #${ci.number} · ${ci.vcs ?? ''}`} style={{
+              <span className="lens-ci-badge" title={`Pipeline #${ci.number} · ${ci.vcs ?? ''}`} style={{
                 display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 11.5, fontWeight: 700,
                 padding: '5px 10px', borderRadius: 'var(--r-sm)',
                 background: ci.state === 'created' ? 'var(--blue-l)' : 'var(--bg)',
@@ -214,18 +229,18 @@ export function Lens() {
             <div style={{ display: 'flex', border: '1px solid var(--border)', borderRadius: 'var(--r-sm)', overflow: 'hidden' }}>
               {(['board', 'list'] as const).map(m => (
                 <button key={m} type="button" onClick={() => setViewMode(m)} style={{
-                  padding: "var(--action-py) var(--space-md)", border: 'none', background: viewMode === m ? 'var(--teal)' : 'var(--white)',
+                  padding: isMobile ? "6px 10px" : "var(--action-py) var(--space-md)", border: 'none', background: viewMode === m ? 'var(--teal)' : 'var(--white)',
                   color: viewMode === m ? '#fff' : 'var(--ink3)', cursor: 'pointer', display: 'flex', alignItems: 'center',
-                  fontWeight: 600, fontSize: "var(--text-base)"
+                  fontWeight: 600, fontSize: isMobile ? 12 : "var(--text-base)"
                 }} data-ui-native-button="">
-                  <Icon name={m === 'board' ? 'columns' : 'list'} size={14} style={{ marginRight: 6 }} color={viewMode === m ? '#fff' : 'var(--ink3)'} />
+                  <Icon name={m === 'board' ? 'columns' : 'list'} size={14} style={{ marginRight: isMobile ? 3 : 6 }} color={viewMode === m ? '#fff' : 'var(--ink3)'} />
                   {m === 'board' ? 'Board' : 'List'}
                 </button>
               ))}
             </div>
 
             <Button size="sm" type="button" onClick={() => setComposing(true)}>
-              <Icon name="plus" size={14} color="#fff" /> New item
+              <Icon name="plus" size={14} color="#fff" /> {isMobile ? 'New' : 'New item'}
             </Button>
           </div>
         }
@@ -242,45 +257,80 @@ export function Lens() {
       )}
 
       {/* Filters */}
-      <div style={{ margin: '0 0 16px', flexShrink: 0 }}>
-      <SectionCard>
-        <div style={{ display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap', justifyContent: 'space-between' }}>
-        <div style={{ display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap' }}>
-          <Select value={fKind || '__all__'} onValueChange={v => setFKind(v === '__all__' ? '' : v)}>
-            <SelectTrigger style={{ minWidth: 130, width: 'auto' }}><SelectValue placeholder="All kinds" /></SelectTrigger>
-            <SelectContent>
-              <SelectItem value="__all__">All kinds</SelectItem>
-              {KINDS.map(k => <SelectItem key={k} value={k}>{k}</SelectItem>)}
-            </SelectContent>
-          </Select>
-          <Select value={fArea || '__all__'} onValueChange={v => setFArea(v === '__all__' ? '' : v)}>
-            <SelectTrigger style={{ minWidth: 160, width: 'auto' }}><SelectValue placeholder="All areas" /></SelectTrigger>
-            <SelectContent>
-              <SelectItem value="__all__">All areas</SelectItem>
-              {areas.map(a => <SelectItem key={a.id} value={a.id}>{a.name}</SelectItem>)}
-            </SelectContent>
-          </Select>
-          {viewMode === 'list' && (
-            <Select value={fConfidence || '__all__'} onValueChange={v => setFConfidence(v === '__all__' ? '' : v)}>
-              <SelectTrigger style={{ minWidth: 170, width: 'auto' }}><SelectValue placeholder="Any confidence" /></SelectTrigger>
-              <SelectContent>
-                <SelectItem value="__all__">Any confidence</SelectItem>
-                {CONFIDENCES.map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}
-              </SelectContent>
-            </Select>
-          )}
-          <label style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12.5, color: 'var(--ink2)' }}>
-            <Checkbox checked={showClosed} onCheckedChange={c => setShowClosed(c === true)} />
-            Show closed
-          </label>
-        </div>
+      <div style={{ margin: '0 0 16px', flexShrink: 0, width: '100%' }}>
+        <SectionCard>
+          <div className="lens-filters-wrap">
+            <div className="lens-filters-controls">
+              <Select value={fKind || '__all__'} onValueChange={v => setFKind(v === '__all__' ? '' : v)}>
+                <SelectTrigger className="lens-filter-select" style={{ minWidth: isMobile ? 0 : 130, width: isMobile ? '100%' : 'auto' }}>
+                  <SelectValue placeholder="All kinds" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="__all__">All kinds</SelectItem>
+                  {KINDS.map(k => <SelectItem key={k} value={k}>{k}</SelectItem>)}
+                </SelectContent>
+              </Select>
 
-        <div style={{ flex: '1 1 220px', minWidth: 200, maxWidth: 400, marginLeft: 'auto' }}>
-          <input data-ui-field="input" value={q} onChange={e => setQ(e.target.value)} placeholder="Search title, body, evidence…"
-            style={{ ...input, width: '100%' }} />
-        </div>
-        </div>
-      </SectionCard>
+              <Select value={fArea || '__all__'} onValueChange={v => setFArea(v === '__all__' ? '' : v)}>
+                <SelectTrigger className="lens-filter-select" style={{ minWidth: isMobile ? 0 : 160, width: isMobile ? '100%' : 'auto' }}>
+                  <SelectValue placeholder="All areas" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="__all__">All areas</SelectItem>
+                  {areas.map(a => <SelectItem key={a.id} value={a.id}>{a.name}</SelectItem>)}
+                </SelectContent>
+              </Select>
+
+              {viewMode === 'list' && (
+                <Select value={fConfidence || '__all__'} onValueChange={v => setFConfidence(v === '__all__' ? '' : v)}>
+                  <SelectTrigger className="lens-filter-select" style={{ minWidth: isMobile ? 0 : 170, width: isMobile ? '100%' : 'auto' }}>
+                    <SelectValue placeholder="Any confidence" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="__all__">Any confidence</SelectItem>
+                    {CONFIDENCES.map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              )}
+
+              <label className="lens-closed-label" style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12.5, color: 'var(--ink2)', whiteSpace: 'nowrap' }}>
+                <Checkbox checked={showClosed} onCheckedChange={c => setShowClosed(c === true)} />
+                Show closed
+              </label>
+
+              {hasActiveFilters && (
+                <Button variant="ghost" size="xs" onClick={clearFilters} style={{ fontSize: 11.5, color: 'var(--ink3)' }}>
+                  <Icon name="x" size={12} /> Clear
+                </Button>
+              )}
+            </div>
+
+            <div className="lens-search-wrap">
+              <div style={{ position: 'relative', width: '100%' }}>
+                <span style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)', color: 'var(--ink3)', pointerEvents: 'none', display: 'flex' }}>
+                  <Icon name="search" size={14} />
+                </span>
+                <input
+                  data-ui-field="input"
+                  value={q}
+                  onChange={e => setQ(e.target.value)}
+                  placeholder="Search title, body, evidence…"
+                  style={{ ...input, width: '100%', paddingLeft: 32, paddingRight: q ? 28 : 10 }}
+                />
+                {q && (
+                  <button
+                    type="button"
+                    onClick={() => setQ('')}
+                    style={{ position: 'absolute', right: 8, top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink3)', padding: 2 }}
+                    title="Clear search"
+                  >
+                    <Icon name="x" size={13} />
+                  </button>
+                )}
+              </div>
+            </div>
+          </div>
+        </SectionCard>
       </div>
 
       {loading ? (
@@ -288,44 +338,95 @@ export function Lens() {
       ) : viewMode === 'board' ? (
         (() => {
           const allCards = columns.flatMap(c => c.items.map(card => ({ ...card, id: card.id, columnId: c.status })));
+          const displayedColumns = (activeCol !== 'all')
+            ? columns.filter(c => c.status === activeCol)
+            : columns;
+
           return (
-            <KanbanBoard
-              columns={columns.map(c => ({ id: c.status, label: c.name, color: c.over_wip ? 'var(--red)' : 'var(--ink2)' }))}
-              items={allCards}
-              emptyMessage="No items"
-              onDrop={(itemId, _from, toCol) => {
-                const card = allCards.find(c => c.id === itemId);
-                if (card) move(card, toCol);
-              }}
-              renderCard={(item) => (
-                <div onClick={() => open(item.ref)}>
-                  <div className="kb-card-topline">
-                    <span style={{ fontFamily: 'var(--font)', fontSize: 11, fontWeight: 700, color: 'var(--ink3)' }}>{item.ref}</span>
-                    <Badge variant={KIND_VARIANT[item.kind]}>{item.kind}</Badge>
-                    {item.confidence !== 'CONFIRMED' && (
-                      <Badge variant={CONFIDENCE_VARIANT[item.confidence]}>{item.confidence}</Badge>
-                    )}
-                  </div>
-                  <div className="kb-card-title">{item.title}</div>
-                  {item.waiting_on && (
-                    <div className="kb-card-subtitle">⏳ {item.waiting_on}</div>
+            <div style={{ display: 'flex', flexDirection: 'column', flex: 1, minHeight: 0, width: '100%', minWidth: 0 }}>
+              <div className="lens-col-tabs" role="tablist" aria-label="Kanban columns">
+                <button
+                  type="button"
+                  className={`lens-col-tab-btn${activeCol === 'all' ? ' active' : ''}`}
+                  onClick={() => setActiveCol('all')}
+                >
+                  All <span className="lens-tab-count">{totalBoardItems}</span>
+                </button>
+                {columns.map(c => {
+                  const dotColor = c.status === 'BLOCKED' || c.over_wip ? 'var(--red)' : c.status === 'IN_PROGRESS' ? 'var(--teal)' : c.status === 'DONE' ? 'var(--green)' : 'var(--ink3)';
+                  return (
+                    <button
+                      key={c.status}
+                      type="button"
+                      className={`lens-col-tab-btn${activeCol === c.status ? ' active' : ''}`}
+                      onClick={() => setActiveCol(c.status)}
+                    >
+                      <span className="lens-tab-dot" style={{ background: dotColor }} />
+                      {c.name}
+                      <span className="lens-tab-count">{c.items.length}</span>
+                    </button>
+                  );
+                })}
+              </div>
+
+              <div className={`lens-board-scroll-wrap${activeCol !== 'all' ? ' lens-board-single-col' : isMobile ? ' lens-board-mobile-swipe' : ''}`}>
+                <KanbanBoard
+                  columns={displayedColumns.map(c => ({ id: c.status, label: c.name, color: c.over_wip ? 'var(--red)' : 'var(--ink2)' }))}
+                  items={allCards}
+                  emptyMessage="No items"
+                  onDrop={(itemId, _from, toCol) => {
+                    const card = allCards.find(c => c.id === itemId);
+                    if (card) move(card, toCol);
+                  }}
+                  boardStyle={
+                    activeCol !== 'all'
+                      ? { display: 'grid', gridTemplateColumns: '1fr', width: '100%', gap: 12 }
+                      : isMobile
+                      ? undefined
+                      : {
+                          display: 'grid',
+                          gridTemplateColumns: `repeat(${displayedColumns.length}, minmax(280px, 1fr))`,
+                          minWidth: 'fit-content',
+                          width: '100%',
+                          gap: 14,
+                        }
+                  }
+                  renderCard={(item) => (
+                    <div onClick={() => open(item.ref)}>
+                      <div className="kb-card-topline" style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap', marginBottom: 6 }}>
+                        <span style={{ fontFamily: 'var(--font)', fontSize: 11, fontWeight: 700, color: 'var(--ink3)' }}>{item.ref}</span>
+                        <Badge variant={KIND_VARIANT[item.kind]}>{item.kind}</Badge>
+                        {item.confidence !== 'CONFIRMED' && (
+                          <Badge variant={CONFIDENCE_VARIANT[item.confidence]}>{item.confidence}</Badge>
+                        )}
+                        {(item.severity === 'CRITICAL' || item.severity === 'HIGH') && (
+                          <span style={{ fontSize: 10, fontWeight: 800, color: SEVERITY_COLOR[item.severity], marginLeft: 'auto' }}>
+                            {item.severity}
+                          </span>
+                        )}
+                      </div>
+                      <div className="kb-card-title" style={{ overflowWrap: 'anywhere', wordBreak: 'break-word', lineHeight: 1.4 }}>{item.title}</div>
+                      {item.waiting_on && (
+                        <div className="kb-card-subtitle" style={{ overflowWrap: 'anywhere', wordBreak: 'break-word' }}>⏳ {item.waiting_on}</div>
+                      )}
+                      <div className="kb-card-meta" style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap', marginTop: 8 }}>
+                        {item.area_name && (
+                          <span className="kb-meta-item">{item.area_name}</span>
+                        )}
+                        {item.links.map((l: any) => (
+                          <a key={`${l.provider}-${l.external_id}`} href={l.url ?? '#'} target="_blank" rel="noreferrer"
+                            onClick={e => e.stopPropagation()}
+                            title={`${l.provider} ${l.external_id}${l.external_status ? ` — ${l.external_status}` : ''}`}
+                            className="kb-meta-item" style={{ textDecoration: 'none' }}>
+                            <Icon name={(PROVIDER_ICON[l.provider] ?? 'link') as any} size={11} />
+                          </a>
+                        ))}
+                      </div>
+                    </div>
                   )}
-                  <div className="kb-card-meta">
-                    {item.area_name && (
-                      <span className="kb-meta-item">{item.area_name}</span>
-                    )}
-                    {item.links.map((l: any) => (
-                      <a key={`${l.provider}-${l.external_id}`} href={l.url ?? '#'} target="_blank" rel="noreferrer"
-                        onClick={e => e.stopPropagation()}
-                        title={`${l.provider} ${l.external_id}${l.external_status ? ` — ${l.external_status}` : ''}`}
-                        className="kb-meta-item" style={{ textDecoration: 'none' }}>
-                        <Icon name={(PROVIDER_ICON[l.provider] ?? 'link') as any} size={11} />
-                      </a>
-                    ))}
-                  </div>
-                </div>
-              )}
-            />
+                />
+              </div>
+            </div>
           );
         })()
       ) : (
@@ -365,7 +466,7 @@ export function Lens() {
           </div>
 
           {total > PAGE_SIZE && (
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, padding: '12px 2px 2px', flexShrink: 0 }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, padding: '12px 2px 2px', flexShrink: 0, flexWrap: 'wrap' }}>
               <span style={{ fontSize: 12, color: 'var(--ink3)' }}>
                 {(page - 1) * PAGE_SIZE + 1}–{Math.min(page * PAGE_SIZE, total)} of {total}
               </span>
@@ -390,7 +491,7 @@ export function Lens() {
       {selected && (
         <Detail item={selected} areas={areas} onClose={() => setSelected(null)} onPatch={patch}
           onNote={async (note) => {
-            await apiFetch(`/v1/lens/items/${selected.ref}/events`, { method: 'POST', body: JSON.stringify({ kind: 'NOTE', detail: note }) });
+            await apiFetch(`/v1/lens/items/${selected.ref}/notes`, { method: 'POST', body: JSON.stringify({ note }) });
             open(selected.ref); load();
           }} />
       )}
@@ -424,6 +525,7 @@ export function Lens() {
 function Compose({ areas, onClose, onSaved }: {
   areas: Area[]; onClose: () => void; onSaved: (ref: string) => void;
 }) {
+  const isMobile = useIsMobile();
   const [f, setF] = useState({
     kind: 'BUG' as Kind, title: '', body: '', area_id: '',
     severity: 'NORMAL' as Severity, confidence: 'SUSPECTED' as Confidence,
@@ -447,11 +549,11 @@ function Compose({ areas, onClose, onSaved }: {
   }
 
   return (
-    <div className="page-layout">
+    <div className="lens-page">
       <PageHeader crumbs={['Lens', 'New']} titlePlain="New" titleEm="item"
         subtitle="Say what it is, and say how you know." />
 
-      <div className="card" style={{ maxWidth: 760, display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
+      <div className="card" style={{ maxWidth: 760, width: '100%', display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: 14, boxSizing: 'border-box' }}>
         {err && (
           <div style={{ gridColumn: '1 / -1' }}><Banner variant="error">{err}</Banner></div>
         )}
@@ -555,7 +657,7 @@ function Detail({ item, areas, onClose, onPatch, onNote }: {
             <Badge variant={KIND_VARIANT[item.kind]}>{item.kind}</Badge>
             <Badge variant={CONFIDENCE_VARIANT[item.confidence]}>{item.confidence}</Badge>
           </div>
-          <SheetTitle style={{ fontSize: 16, fontWeight: 700, color: 'var(--ink)', lineHeight: 1.35 }}>{item.title}</SheetTitle>
+          <SheetTitle style={{ fontSize: 16, fontWeight: 700, color: 'var(--ink)', lineHeight: 1.35, wordBreak: 'break-word', overflowWrap: 'anywhere' }}>{item.title}</SheetTitle>
         </div>
 
         <div style={{ padding: '18px 20px', display: 'flex', flexDirection: 'column', gap: 18 }}>

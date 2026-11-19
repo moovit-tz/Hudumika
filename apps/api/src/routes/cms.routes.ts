@@ -1,7 +1,7 @@
 import type { FastifyInstance } from 'fastify';
 import { z } from 'zod';
 import sanitizeHtml from 'sanitize-html';
-import { requireRole } from '../middleware/rbac.js';
+import { platformAdminRule } from '../services/platform-admin-access.js';
 import { requireEntitlement } from '../middleware/entitlement.js';
 import { CMSService, CommentValidationError } from '../services/cms.service.js';
 import { listRevisions, getRevision } from '../services/cms-revisions.service.js';
@@ -291,7 +291,7 @@ export async function cmsRoutes(fastify: FastifyInstance) {
 
   // ── SuperAdmin: manage platform pages ──────────────────────────────────────
   fastify.get('/platform-admin/pages', {
-    preHandler: [fastify.authenticate, requireRole('SUPER_ADMIN')],
+    preHandler: [fastify.authenticate, platformAdminRule('superadmin')],
   }, async (_request, reply) => {
     try {
       return await CMSService.getPlatformPages();
@@ -301,7 +301,7 @@ export async function cmsRoutes(fastify: FastifyInstance) {
   });
 
   fastify.get('/platform-admin/pages/:slug', {
-    preHandler: [fastify.authenticate, requireRole('SUPER_ADMIN')],
+    preHandler: [fastify.authenticate, platformAdminRule('superadmin')],
   }, async (request: any, reply) => {
     try {
       const { slug } = request.params as { slug: string };
@@ -312,7 +312,7 @@ export async function cmsRoutes(fastify: FastifyInstance) {
   });
 
   fastify.put('/platform-admin/pages/:slug', {
-    preHandler: [fastify.authenticate, requireRole('SUPER_ADMIN')],
+    preHandler: [fastify.authenticate, platformAdminRule('superadmin')],
   }, async (request: any, reply) => {
     const { slug } = request.params as { slug: string };
     const body = platformPageUpsertSchema.parse(request.body);

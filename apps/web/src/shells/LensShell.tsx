@@ -58,7 +58,7 @@ const NAV: SidebarSection[] = [
 export function LensShell() {
   return (
     <WorkspaceApp appId="lens">
-      <div className="app-shell">
+      <div className="app-shell" data-lens="">
         <AppSidebar appId="lens" sections={NAV} />
         <div className="app-main">
           <AppHeader />

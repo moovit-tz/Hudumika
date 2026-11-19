@@ -1,11 +1,11 @@
+import { registerSuperadminGuard } from '../services/platform-admin-access.js';
 import type { FastifyInstance } from 'fastify';
-import { requireRole } from '../middleware/rbac.js';
 import { tradeWizardAnalyticsService } from '../services/tradeWizardAnalytics.service.js';
 import type { AnalyticsFilters } from '../services/tradeWizardAnalytics.service.js';
 
 export async function superAdminTradeWizardRoutes(fastify: FastifyInstance) {
   fastify.addHook('preHandler', fastify.authenticate);
-  fastify.addHook('preHandler', requireRole('SUPER_ADMIN'));
+  registerSuperadminGuard(fastify);
 
   function parseFilters(query: Record<string, any>): AnalyticsFilters {
     return { date_from: query.date_from, date_to: query.date_to, tenant_id: query.tenant_id };

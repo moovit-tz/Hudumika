@@ -34,6 +34,7 @@ import {
   useDesignStudioController,
 } from './helpers.js';
 import './DesignSystemApp.css';
+import { useIsPlatformSuperAdmin } from '../console/console-shared.js';
 
 interface ConfigHistoryEntry {
   id: string;
@@ -109,7 +110,7 @@ export function AppConfiguratorPage() {
     CONFIGURABLE_APP_REGISTRY.find(a => a.id === 'finops') ??
     CONFIGURABLE_APP_REGISTRY[0]!;
 
-  const isSuperAdmin = user?.role === 'SUPER_ADMIN';
+  const isSuperAdmin = useIsPlatformSuperAdmin(user?.role);
   const isWorkspaceAdmin = isSuperAdmin || ['ADMIN', 'TENANT_ADMIN'].includes(user?.role ?? '');
 
   // Effective live persisted values + inheritance waterfall

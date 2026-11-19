@@ -1512,10 +1512,10 @@ curl "https://carimagesapi.com/api/v1/signed-url?api_key=${carimages.apiKey}&mak
           Enabling or disabling an app platform-wide (or per tenant), and what each subscription plan includes — feature grants, storage limits, monthly item caps — are configured on their own real, enforced pages rather than duplicated here.
         </div>
         <div style={{ display:'flex', gap:10, flexWrap:'wrap' }}>
-          <Link to="/admin/app-status" className="btn btn-outline btn-sm" style={{ gap:6 }}>
+          <Link to="/console/products/app-status" className="btn btn-outline btn-sm" style={{ gap:6 }}>
             <Icon name="shield" size={13} /> Open App Status
           </Link>
-          <Link to="/admin/packages" className="btn btn-outline btn-sm" style={{ gap:6 }}>
+          <Link to="/console/billing/packages" className="btn btn-outline btn-sm" style={{ gap:6 }}>
             <Icon name="package" size={13} /> Open Packages
           </Link>
         </div>

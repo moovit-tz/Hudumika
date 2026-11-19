@@ -1020,15 +1020,15 @@ function RecurringTab({
             <table className="rtbl">
               <thead>
                 <tr style={{ background: 'var(--bg)' }}>
-                  <th style={{ padding: '10px 14px', textAlign: 'left', fontWeight: 700, color: 'var(--ink2)', fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.03em', borderBottom: '1px solid var(--border)', whiteSpace: 'nowrap' }}>Template</th>
-                  <th style={{ padding: '10px 14px', textAlign: 'left', fontWeight: 700, color: 'var(--ink2)', fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.03em', borderBottom: '1px solid var(--border)', whiteSpace: 'nowrap' }}>Supplier</th>
-                  <th style={{ padding: '10px 14px', textAlign: 'left', fontWeight: 700, color: 'var(--ink2)', fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.03em', borderBottom: '1px solid var(--border)', whiteSpace: 'nowrap' }}>Frequency</th>
-                  <th style={{ padding: '10px 14px', textAlign: 'right', fontWeight: 700, color: 'var(--ink2)', fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.03em', borderBottom: '1px solid var(--border)', whiteSpace: 'nowrap' }}>Amount</th>
-                  <th style={{ padding: '10px 14px', textAlign: 'left', fontWeight: 700, color: 'var(--ink2)', fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.03em', borderBottom: '1px solid var(--border)', whiteSpace: 'nowrap' }}>Category</th>
-                  <th style={{ padding: '10px 14px', textAlign: 'left', fontWeight: 700, color: 'var(--ink2)', fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.03em', borderBottom: '1px solid var(--border)', whiteSpace: 'nowrap' }}>Next Due</th>
-                  <th style={{ padding: '10px 14px', textAlign: 'center', fontWeight: 700, color: 'var(--ink2)', fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.03em', borderBottom: '1px solid var(--border)', whiteSpace: 'nowrap' }}>Bills</th>
-                  <th style={{ padding: '10px 14px', textAlign: 'left', fontWeight: 700, color: 'var(--ink2)', fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.03em', borderBottom: '1px solid var(--border)', whiteSpace: 'nowrap' }}>State</th>
-                  <th aria-label="Actions" style={{ padding: '10px 14px', textAlign: 'right', fontWeight: 700, color: 'var(--ink2)', fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.03em', borderBottom: '1px solid var(--border)', whiteSpace: 'nowrap' }} />
+                  <th style={{ padding: '12px 24px', textAlign: 'left', fontWeight: 700, color: 'var(--ink2)', fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.03em', borderBottom: '1px solid var(--border)', whiteSpace: 'nowrap' }}>Template</th>
+                  <th style={{ padding: '12px 16px', textAlign: 'left', fontWeight: 700, color: 'var(--ink2)', fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.03em', borderBottom: '1px solid var(--border)', whiteSpace: 'nowrap' }}>Supplier</th>
+                  <th style={{ padding: '12px 16px', textAlign: 'left', fontWeight: 700, color: 'var(--ink2)', fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.03em', borderBottom: '1px solid var(--border)', whiteSpace: 'nowrap' }}>Frequency</th>
+                  <th style={{ padding: '12px 16px', textAlign: 'right', fontWeight: 700, color: 'var(--ink2)', fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.03em', borderBottom: '1px solid var(--border)', whiteSpace: 'nowrap' }}>Amount</th>
+                  <th style={{ padding: '12px 16px', textAlign: 'left', fontWeight: 700, color: 'var(--ink2)', fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.03em', borderBottom: '1px solid var(--border)', whiteSpace: 'nowrap' }}>Category</th>
+                  <th style={{ padding: '12px 16px', textAlign: 'left', fontWeight: 700, color: 'var(--ink2)', fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.03em', borderBottom: '1px solid var(--border)', whiteSpace: 'nowrap' }}>Next Due</th>
+                  <th style={{ padding: '12px 16px', textAlign: 'center', fontWeight: 700, color: 'var(--ink2)', fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.03em', borderBottom: '1px solid var(--border)', whiteSpace: 'nowrap' }}>Bills</th>
+                  <th style={{ padding: '12px 16px', textAlign: 'left', fontWeight: 700, color: 'var(--ink2)', fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.03em', borderBottom: '1px solid var(--border)', whiteSpace: 'nowrap' }}>State</th>
+                  <th aria-label="Actions" style={{ padding: '12px 24px 12px 16px', textAlign: 'right', fontWeight: 700, color: 'var(--ink2)', fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.03em', borderBottom: '1px solid var(--border)', whiteSpace: 'nowrap' }} />
                 </tr>
               </thead>
               <tbody>
@@ -1038,7 +1038,7 @@ function RecurringTab({
                   const dueSoon = !!dueD && dueD.getTime() - Date.now() < 14 * 86400000;
                   return (
                     <tr key={r.id} style={{ borderBottom: '1px solid var(--border)', opacity: r.state === 'PAUSED' ? 0.65 : 1 }}>
-                      <td style={{ padding: '12px 14px' }}>
+                      <td style={{ padding: '14px 24px' }}>
                         <div style={{ fontWeight: 700, color: 'var(--ink)' }}>{r.name || 'Untitled template'}</div>
                         {r.description && (
                           <div style={{ fontSize: 11.5, color: 'var(--ink3)', marginTop: 2 }}>
@@ -1046,29 +1046,29 @@ function RecurringTab({
                           </div>
                         )}
                       </td>
-                      <td style={{ padding: '12px 14px' }}>
+                      <td style={{ padding: '14px 16px' }}>
                         <div className="flex items-center gap-2.5 min-w-0">
-                          <PersonAvatar kind="suppliers" userId={r.supplier_id || undefined} name={r.supplier_name || 'Supplier'} size={26} />
+                          <PersonAvatar kind="suppliers" userId={r.supplier_id || undefined} name={r.supplier_name || 'Supplier'} size={28} />
                           <div className="min-w-0">
-                            <div className="font-medium text-foreground truncate">{r.supplier_name || 'Unassigned supplier'}</div>
+                            <div className="font-semibold text-foreground truncate">{r.supplier_name || 'Unassigned supplier'}</div>
                             {r.payment_terms && <div className="text-[11px] text-muted-foreground">{r.payment_terms}</div>}
                           </div>
                         </div>
                       </td>
-                      <td style={{ padding: '12px 14px' }}><FreqBadge freq={r.frequency} /></td>
-                      <td style={{ padding: '12px 14px', textAlign: 'right', fontWeight: 700, fontVariantNumeric: 'tabular-nums' }}>{fmt(total, r.currency)}</td>
-                      <td style={{ padding: '12px 14px' }}>
+                      <td style={{ padding: '14px 16px' }}><FreqBadge freq={r.frequency} /></td>
+                      <td style={{ padding: '14px 16px', textAlign: 'right', fontWeight: 700, fontVariantNumeric: 'tabular-nums' }}>{fmt(total, r.currency)}</td>
+                      <td style={{ padding: '14px 16px' }}>
                         <span style={{ fontSize: 11, fontWeight: 700, color: CAT_CFG[r.category]?.color ?? 'var(--ink2)' }}>
                           {CAT_CFG[r.category]?.label ?? r.category}
                         </span>
                       </td>
-                      <td style={{ padding: '12px 14px', color: dueSoon && r.state === 'ACTIVE' ? 'var(--gold)' : 'var(--ink2)', fontWeight: dueSoon && r.state === 'ACTIVE' ? 700 : 400, fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap' }}>
+                      <td style={{ padding: '14px 16px', color: dueSoon && r.state === 'ACTIVE' ? 'var(--gold)' : 'var(--ink2)', fontWeight: dueSoon && r.state === 'ACTIVE' ? 700 : 400, fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap' }}>
                         {fmtDate(r.next_due)}
                         {dueSoon && r.state === 'ACTIVE' && <span style={{ fontSize: 10, display: 'block', color: 'var(--gold)' }}>Due soon</span>}
                       </td>
-                      <td style={{ padding: '12px 14px', textAlign: 'center', fontWeight: 700, color: 'var(--ink2)', fontVariantNumeric: 'tabular-nums' }}>{r.bills_generated}</td>
-                      <td style={{ padding: '12px 14px' }}><Badge variant={r.state === 'ACTIVE' ? 'success' : r.state === 'PAUSED' ? 'warning' : 'gray'}>{r.state}</Badge></td>
-                      <td style={{ padding: '10px 12px', textAlign: 'right', whiteSpace: 'nowrap' }}>
+                      <td style={{ padding: '14px 16px', textAlign: 'center', fontWeight: 700, color: 'var(--ink2)', fontVariantNumeric: 'tabular-nums' }}>{r.bills_generated}</td>
+                      <td style={{ padding: '14px 16px' }}><Badge variant={r.state === 'ACTIVE' ? 'success' : r.state === 'PAUSED' ? 'warning' : 'gray'}>{r.state}</Badge></td>
+                      <td style={{ padding: '14px 24px 14px 16px', textAlign: 'right', whiteSpace: 'nowrap' }}>
                         <div className="inline-flex items-center justify-end gap-1">
                           <Tip label="Generate bill now">
                             <span>
@@ -1437,16 +1437,49 @@ export const Bills: React.FC = () => {
 
   // ── Metrics & Filters ──────────────────────────────────────────────────────
 
-  const totalBills   = billSummary?.total_bills ?? 0;
+  const totalBills   = billSummary?.total_bills ?? matchCount;
+  const draftCount   = billSummary?.status_counts?.DRAFT ?? 0;
+  const pendingCount = billSummary?.status_counts?.PENDING_APPROVAL ?? 0;
+  const postedCount  = billSummary?.status_counts?.POSTED ?? 0;
+  const partialCount = billSummary?.status_counts?.PARTIAL ?? 0;
+  const paidCount    = billSummary?.status_counts?.PAID ?? 0;
+
   const unpaidBills  = effectiveBills.filter(b => b.status === 'POSTED' || b.status === 'PARTIAL' || b.status === 'OVERDUE');
   const overdueBills = effectiveBills.filter(b => b.status === 'OVERDUE');
+
+  const overdueCount = useMemo(() => {
+    let count = 0;
+    if (billSummary?.currency_totals) {
+      for (const cur of Object.values(billSummary.currency_totals) as any[]) {
+        count += Number(cur?.overdue_count || 0);
+      }
+    }
+    return count || overdueBills.length;
+  }, [billSummary, overdueBills]);
+
+  const dueSoonCount = useMemo(() => {
+    const now = Date.now();
+    const in48h = now + 48 * 3600 * 1000;
+    return effectiveBills.filter(b => {
+      if (b.status === 'PAID' || b.status === 'VOID') return false;
+      const due = new Date(b.due_date).getTime();
+      return due >= now && due <= in48h;
+    }).length;
+  }, [effectiveBills]);
+
+  const totalOutstanding = billSummary?.total_outstanding ?? 0;
+
   const hasActiveBillFilters = Boolean(search.trim() || statusFilter !== 'ALL' || supFilter !== 'ALL');
   const hasActiveRecurFilters = Boolean(recurSearch.trim() || recurStateFilter !== 'ALL' || recurFreqFilter !== 'ALL');
+
+  type Metric = 'active' | 'due_soon' | 'overdue' | 'pending' | 'paid' | 'recurring' | null;
+  const [selectedMetric, setSelectedMetric] = useState<Metric>(null);
 
   function clearBillFilters() {
     setSearch('');
     setStatusFilter('ALL');
     setSupFilter('ALL');
+    setSelectedMetric(null);
     setPage(1);
   }
 
@@ -1454,10 +1487,158 @@ export const Bills: React.FC = () => {
     setRecurSearch('');
     setRecurStateFilter('ALL');
     setRecurFreqFilter('ALL');
+    setSelectedMetric(null);
     setRecurringPage(1);
   }
 
-  const thS: React.CSSProperties = { padding:'10px 12px', textAlign:'left', fontWeight:700, color:'var(--ink2)', fontSize:11, textTransform:'uppercase', letterSpacing:'0.03em', borderBottom:'1px solid var(--border)', whiteSpace:'nowrap', cursor:'pointer', userSelect:'none' };
+  // 7 KPI cells matching ClearOS Shipment Operations metric strip
+  const kpiCells = [
+    {
+      key: 'active',
+      label: 'Active Bills',
+      value: loadingBills && !billSummary ? '—' : String(totalBills),
+      metric: 'active' as Metric,
+      color: 'var(--teal)',
+      bg: 'var(--teal-l)',
+    },
+    {
+      key: 'due_soon',
+      label: 'Due Soon ≤48h',
+      value: loadingBills && !billSummary ? '—' : String(dueSoonCount),
+      metric: 'due_soon' as Metric,
+      color: 'var(--gold)',
+      bg: 'var(--gold-l)',
+      cell: dueSoonCount > 0 ? 'warning' : 'normal',
+    },
+    {
+      key: 'overdue',
+      label: 'Free Time Overdue',
+      value: loadingBills && !billSummary ? '—' : String(overdueCount),
+      metric: 'overdue' as Metric,
+      color: 'var(--red)',
+      bg: 'var(--red-l)',
+      cell: 'alert',
+    },
+    {
+      key: 'pending',
+      label: 'Pending Approval',
+      value: loadingBills && !billSummary ? '—' : String(pendingCount),
+      metric: 'pending' as Metric,
+      color: 'var(--gold)',
+      bg: 'var(--gold-l)',
+      cell: pendingCount > 0 ? 'warning' : 'normal',
+    },
+    {
+      key: 'paid',
+      label: 'Paid This Month',
+      value: loadingBills && !billSummary ? '—' : String(paidCount),
+      metric: 'paid' as Metric,
+      color: 'var(--green)',
+      bg: 'var(--green-l)',
+    },
+    {
+      key: 'outstanding',
+      label: 'Total Outstanding',
+      value: loadingBills && !billSummary ? '—' : formatCompact(totalOutstanding, getCompany().currency),
+      metric: null as Metric,
+      color: 'var(--blue)',
+      bg: 'var(--blue-l)',
+    },
+    {
+      key: 'recurring',
+      label: 'Recurring Active',
+      value: recurringLoading ? '—' : String(recurringSummary.active),
+      metric: 'recurring' as Metric,
+      color: 'var(--purple)',
+      bg: 'var(--purple-l)',
+    },
+  ];
+
+  const kpiCell = (cell: (typeof kpiCells)[number]) => {
+    const clickable = cell.metric !== null;
+    const active = clickable && (
+      cell.metric === 'recurring' ? tab === 'recurring' :
+      cell.metric === 'overdue' ? (tab === 'bills' && statusFilter === 'OVERDUE') :
+      cell.metric === 'pending' ? (tab === 'bills' && statusFilter === 'PENDING_APPROVAL') :
+      cell.metric === 'paid' ? (tab === 'bills' && statusFilter === 'PAID') :
+      cell.metric === 'active' ? (tab === 'bills' && statusFilter === 'ALL') :
+      selectedMetric === cell.metric
+    );
+    // Raised = alert cell with non-zero value (matches ClearOS FREE TIME OVERDUE in Image 2)
+    const raised = cell.cell === 'alert' && cell.value !== '0' && cell.value !== '—';
+    const cls = [
+      'cc-pipeline-step',
+      clickable ? 'cc-pipeline-step--clickable' : '',
+      active ? 'cc-pipeline-step--active' : '',
+      raised ? 'cc-pipeline-step--raised' : '',
+    ].filter(Boolean).join(' ');
+
+    const inner = (
+      <>
+        <span className="cc-pipeline-num">{cell.value}</span>
+        <span className="cc-pipeline-label">{cell.label}</span>
+      </>
+    );
+
+    const handleCellClick = () => {
+      if (cell.metric === 'recurring') {
+        setTab(tab === 'recurring' ? 'bills' : 'recurring');
+        setSelectedMetric(selectedMetric === 'recurring' ? null : 'recurring');
+      } else if (cell.metric === 'overdue') {
+        setTab('bills');
+        const next = statusFilter === 'OVERDUE' ? 'ALL' : 'OVERDUE';
+        setStatusFilter(next);
+        setSelectedMetric(next === 'OVERDUE' ? 'overdue' : null);
+      } else if (cell.metric === 'pending') {
+        setTab('bills');
+        const next = statusFilter === 'PENDING_APPROVAL' ? 'ALL' : 'PENDING_APPROVAL';
+        setStatusFilter(next);
+        setSelectedMetric(next === 'PENDING_APPROVAL' ? 'pending' : null);
+      } else if (cell.metric === 'paid') {
+        setTab('bills');
+        const next = statusFilter === 'PAID' ? 'ALL' : 'PAID';
+        setStatusFilter(next);
+        setSelectedMetric(next === 'PAID' ? 'paid' : null);
+      } else if (cell.metric === 'active') {
+        setTab('bills');
+        setStatusFilter('ALL');
+        setSelectedMetric(null);
+      } else if (cell.metric === 'due_soon') {
+        setTab('bills');
+        setSelectedMetric(selectedMetric === 'due_soon' ? null : 'due_soon');
+      }
+    };
+
+    return clickable ? (
+      <button
+        data-ui-native-button=""
+        key={cell.key}
+        type="button"
+        className={cls}
+        aria-pressed={active}
+        onClick={handleCellClick}
+        title={active ? 'Filtering — click to clear' : 'Click to filter'}
+      >
+        {inner}
+      </button>
+    ) : (
+      <div key={cell.key} className={cls} title={cell.label}>{inner}</div>
+    );
+  };
+
+  const thS: React.CSSProperties = {
+    padding: '12px 16px',
+    textAlign: 'left',
+    fontWeight: 700,
+    color: 'var(--ink2)',
+    fontSize: 11,
+    textTransform: 'uppercase',
+    letterSpacing: '0.05em',
+    borderBottom: '1px solid var(--border)',
+    whiteSpace: 'nowrap',
+    cursor: 'pointer',
+    userSelect: 'none',
+  };
 
   const uniqueSups = suppliers.map(supplier => supplier.id);
 
@@ -1517,233 +1698,272 @@ export const Bills: React.FC = () => {
           isMobile={isMobile}
         />
       ) : (
-        <div style={{ flex:1, padding: 0 }}>
-          <PageHeader
-            crumbs={['FINANCE', 'BILLS']}
-            titlePlain="Supplier"
-            titleEm="bills"
-            subtitle="Supplier invoices, payment tracking and recurring billing schedules."
-            actions={<FinanceDocumentListExport kind="bill" />}
-          />
-
-          {/* 4-Card KPI Overview */}
-          <MetricsRow
-            cards={tab === 'bills' ? [
-              {
-                title: 'TOTAL BILLS',
-                value: String(totalBills),
-                sub1Label: 'DRAFT',
-                sub1Value: String(billSummary?.status_counts?.DRAFT ?? 0),
-                sub2Label: 'POSTED',
-                sub2Value: String(billSummary?.status_counts?.POSTED ?? 0),
-                barHighlight: 'var(--teal)',
-                loading: !billSummary,
-              },
-              {
-                emphasis: 'primary',
-                title: 'OUTSTANDING · TZS',
-                value: formatCompact(billSummary?.currency_totals?.TZS?.outstanding ?? 0, 'TZS'),
-                invertTrend: true,
-                sub1Label: 'UNPAID BILLS',
-                sub1Value: String((billSummary?.status_counts?.POSTED ?? 0) + (billSummary?.status_counts?.PARTIAL ?? 0)),
-                sub2Label: 'PARTIAL',
-                sub2Value: String(billSummary?.status_counts?.PARTIAL ?? 0),
-                barHighlight: 'var(--gold)',
-                loading: !billSummary,
-              },
-              {
-                title: 'OVERDUE · TZS',
-                value: formatCompact(billSummary?.currency_totals?.TZS?.overdue_amount ?? 0, 'TZS'),
-                invertTrend: true,
-                sub1Label: 'OVERDUE BILLS',
-                sub1Value: String(billSummary?.currency_totals?.TZS?.overdue_count ?? 0),
-                sub2Label: 'PENDING APPROVAL',
-                sub2Value: String(billSummary?.status_counts?.PENDING_APPROVAL ?? 0),
-                barHighlight: 'var(--red)',
-                loading: !billSummary,
-              },
-              {
-                title: 'PAID · TZS',
-                value: formatCompact(billSummary?.currency_totals?.TZS?.paid ?? 0, 'TZS'),
-                sub1Label: 'PAID BILLS',
-                sub1Value: String(billSummary?.status_counts?.PAID ?? 0),
-                sub2Label: 'RECURRING ACTIVE',
-                sub2Value: String(recurringSummary.active),
-                barHighlight: 'var(--green)',
-                loading: !billSummary,
-              },
-            ] : [
-              {
-                emphasis: 'primary',
-                title: 'ACTIVE TEMPLATES',
-                value: String(recurringSummary.active),
-                sub1Label: 'TOTAL TEMPLATES',
-                sub1Value: String(recurringTotal),
-                sub2Label: 'INACTIVE / PAUSED',
-                sub2Value: String(Math.max(0, recurringTotal - recurringSummary.active)),
-                barHighlight: 'var(--teal)',
-                loading: recurringLoading,
-              },
-              {
-                title: 'MONTHLY COMMITMENT',
-                value: recurringSummary.monthly.map(item => formatCompact(item.amount, item.currency)).join(' · ') || formatCompact(0, getCompany().currency),
-                sub1Label: 'ACTIVE SCHEDULES',
-                sub1Value: String(recurringSummary.active),
-                sub2Label: 'CYCLE',
-                sub2Value: 'MONTHLY',
-                barHighlight: 'var(--blue)',
-                loading: recurringLoading,
-              },
-              {
-                title: 'BILLS GENERATED',
-                value: String(recurringSummary.generated),
-                sub1Label: 'AUTO-GENERATED',
-                sub1Value: String(recurringSummary.generated),
-                sub2Label: 'TEMPLATES',
-                sub2Value: String(recurringTotal),
-                barHighlight: 'var(--green)',
-                loading: recurringLoading,
-              },
-              {
-                title: 'TOTAL TEMPLATES',
-                value: String(recurringTotal),
-                sub1Label: 'ACTIVE',
-                sub1Value: String(recurringSummary.active),
-                sub2Label: 'GENERATED',
-                sub2Value: String(recurringSummary.generated),
-                barHighlight: 'var(--purple)',
-                loading: recurringLoading,
-              },
-            ]}
-          />
-
-          {/* Tabs + Search & Filter Toolbar */}
-          <div className="mt-4 mb-3 flex flex-col gap-3">
-            <div className="flex flex-wrap items-center justify-between gap-3">
-              <Tabs value={tab} onValueChange={v => setTab(v as MainTab)}>
-                <TabsList>
-                  <TabsTrigger value="bills">Bills ({totalBills})</TabsTrigger>
-                  <TabsTrigger value="recurring">Recurring ({recurringTotal})</TabsTrigger>
-                </TabsList>
-              </Tabs>
-
-              <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                {tab === 'bills' ? (
-                  hasActiveBillFilters ? (
-                    <Button type="button" variant="ghost" size="xs" onClick={clearBillFilters}>
-                      <Icon name="x" size={12} /> Clear filters
-                    </Button>
-                  ) : (
-                    <span>
-                      {totalBills > 0
-                        ? `${unpaidBills.length} open on page · ${overdueBills.length} overdue`
-                        : `${recurringSummary.active} recurring schedules active`}
-                    </span>
-                  )
-                ) : hasActiveRecurFilters ? (
-                  <Button type="button" variant="ghost" size="xs" onClick={clearRecurFilters}>
-                    <Icon name="x" size={12} /> Clear filters
-                  </Button>
-                ) : (
-                  <span>{recurringSummary.active} active · {recurringSummary.generated} generated</span>
-                )}
-              </div>
-            </div>
-
-            {tab === 'bills' ? (
-              <SearchToolbar
-                layout="register"
-                search={search}
-                onSearch={setSearch}
-                placeholder="Search bill #, supplier, PO, or shipment ref…"
-                quickFilters={[
-                  {
-                    label: 'Status',
-                    value: statusFilter === 'ALL' ? null : statusFilter,
-                    onChange: (value: string | null) => setStatusFilter((value as BillStatus) ?? 'ALL'),
-                    allLabel: 'All statuses',
-                    options: (['DRAFT', 'PENDING_APPROVAL', 'POSTED', 'PARTIAL', 'OVERDUE', 'PAID', 'VOID'] as const).map(value => ({
-                      value,
-                      label: STATUS_CFG[value]?.label ?? value,
-                    })),
-                  },
-                  {
-                    label: 'Supplier',
-                    value: supFilter === 'ALL' ? null : supFilter,
-                    onChange: (value: string | null) => setSupFilter(value ?? 'ALL'),
-                    allLabel: 'All suppliers',
-                    searchable: true,
-                    options: uniqueSups.map(id => ({ value: id, label: supplierMap[id]?.name ?? id })),
-                  },
-                ]}
+        <div className="cc-frame">
+          <div className="cc-shell">
+            <div className="cc-main">
+              {/* ── Page Header matching ClearOS Operations ── */}
+              <PageHeader
+                crumbs={['ClearOS', 'Finance']}
+                titlePlain="Supplier"
+                titleEm="bills"
+                subtitle="Every supplier invoice in the pipeline — filter by status or switch to recurring schedules below."
                 actions={
-                  <>
-                    <div className="products-view-toggle" role="group" aria-label="Bills view">
-                      <Tip label="Table view">
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                    <div className="cc-view-toggle">
+                      {(['table', 'grid'] as const).map(m => (
                         <button
+                          key={m}
                           type="button"
-                          className={`border-0 bg-transparent cursor-pointer ${viewMode === 'table' ? 'is-active' : ''}`}
-                          onClick={() => setViewMode('table')}
-                          aria-pressed={viewMode === 'table'}
-                          aria-label="Table view"
+                          title={m === 'table' ? 'List view' : 'Grid view'}
+                          className={`cc-view-btn${viewMode === m ? ' active' : ''}`}
+                          onClick={() => setViewMode(m)}
                           data-ui-native-button=""
                         >
-                          <Icon name="list" size={14} />
+                          {m === 'table' ? (
+                            <><Icon name="list" size={13} />List</>
+                          ) : (
+                            <><Icon name="layoutGrid" size={13} />Grid</>
+                          )}
                         </button>
-                      </Tip>
-                      <Tip label="Card grid view">
-                        <button
-                          type="button"
-                          className={`border-0 bg-transparent cursor-pointer ${viewMode === 'grid' ? 'is-active' : ''}`}
-                          onClick={() => setViewMode('grid')}
-                          aria-pressed={viewMode === 'grid'}
-                          aria-label="Card grid view"
-                          data-ui-native-button=""
-                        >
-                          <Icon name="layoutGrid" size={14} />
-                        </button>
-                      </Tip>
+                      ))}
                     </div>
-                    <Button type="button" onClick={() => documentRoute.open('new')}>
-                      <Icon name="plus" size={14} /> New bill
+
+                    <Button
+                      size="sm"
+                      style={{ background: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))' }}
+                      onClick={() => documentRoute.open('new')}
+                    >
+                      <Icon name="plus" size={13} color="currentColor" />
+                      {isMobile ? 'New' : 'New Bill'}
                     </Button>
-                  </>
+
+                    <FinanceDocumentListExport kind="bill" />
+                  </div>
                 }
               />
-            ) : (
-              <SearchToolbar
-                layout="register"
-                search={recurSearch}
-                onSearch={setRecurSearch}
-                placeholder="Search recurring template, supplier, or category…"
-                quickFilters={[
-                  {
-                    label: 'State',
-                    value: recurStateFilter === 'ALL' ? null : recurStateFilter,
-                    onChange: (value: string | null) => setRecurStateFilter((value as RecurState) ?? 'ALL'),
-                    allLabel: 'All states',
-                    options: [
-                      { value: 'ACTIVE', label: 'Active' },
-                      { value: 'PAUSED', label: 'Paused' },
-                      { value: 'ENDED', label: 'Ended' },
-                    ],
-                  },
-                  {
-                    label: 'Frequency',
-                    value: recurFreqFilter === 'ALL' ? null : recurFreqFilter,
-                    onChange: (value: string | null) => setRecurFreqFilter((value as RecurFreq) ?? 'ALL'),
-                    allLabel: 'All frequencies',
-                    options: ALL_FREQS.map(fr => ({ value: fr, label: FREQ_CFG[fr].label })),
-                  },
-                ]}
-                actions={
-                  <Button type="button" onClick={() => { setFormRecur(null); setShowRecurForm(true); }}>
-                    <Icon name="plus" size={14} /> New recurring bill
+
+              {/* ── ClearOS 7-Cell KPI Pipeline Strip ── */}
+              <div className="cc-pipeline" style={{ marginLeft: 0, marginRight: 0 }}>
+                {kpiCells.map(kpiCell)}
+              </div>
+
+              {/* ── ClearOS Toolbar Row (Pills + Search + Sort & Supplier dropdowns) ── */}
+              <div className="cc-toolbar-row" style={{ paddingLeft: 0, paddingRight: 0, display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '16px', flexWrap: 'wrap', width: '100%' }}>
+                <div className="cc-toolbar-buttons" style={{ flexShrink: 0, overflowX: 'auto', maxWidth: '100%' }}>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="cc-toolbar-button"
+                    aria-pressed={tab === 'bills' && statusFilter === 'ALL'}
+                    onClick={() => { setTab('bills'); setStatusFilter('ALL'); setSelectedMetric('active'); }}
+                  >
+                    Active
+                    <span style={{
+                      fontSize: 10,
+                      padding: '0 6px',
+                      borderRadius: 'var(--r)',
+                      background: (tab === 'bills' && statusFilter === 'ALL') ? 'var(--teal-l)' : 'var(--border)',
+                      color: (tab === 'bills' && statusFilter === 'ALL') ? 'var(--teal)' : 'var(--ink3)',
+                      fontWeight: 700
+                    }}>
+                      {totalBills}
+                    </span>
                   </Button>
-                }
-              />
-            )}
-          </div>
+
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="cc-toolbar-button"
+                    aria-pressed={tab === 'bills' && statusFilter === 'DRAFT'}
+                    onClick={() => { setTab('bills'); setStatusFilter(statusFilter === 'DRAFT' ? 'ALL' : 'DRAFT'); }}
+                  >
+                    Draft
+                    <span style={{
+                      fontSize: 10,
+                      padding: '0 6px',
+                      borderRadius: 'var(--r)',
+                      background: (tab === 'bills' && statusFilter === 'DRAFT') ? 'var(--teal-l)' : 'var(--border)',
+                      color: (tab === 'bills' && statusFilter === 'DRAFT') ? 'var(--teal)' : 'var(--ink3)',
+                      fontWeight: 700
+                    }}>
+                      {draftCount}
+                    </span>
+                  </Button>
+
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="cc-toolbar-button"
+                    aria-pressed={tab === 'bills' && statusFilter === 'PENDING_APPROVAL'}
+                    onClick={() => { setTab('bills'); setStatusFilter(statusFilter === 'PENDING_APPROVAL' ? 'ALL' : 'PENDING_APPROVAL'); }}
+                  >
+                    Pending
+                    <span style={{
+                      fontSize: 10,
+                      padding: '0 6px',
+                      borderRadius: 'var(--r)',
+                      background: (tab === 'bills' && statusFilter === 'PENDING_APPROVAL') ? 'var(--teal-l)' : 'var(--border)',
+                      color: (tab === 'bills' && statusFilter === 'PENDING_APPROVAL') ? 'var(--teal)' : 'var(--ink3)',
+                      fontWeight: 700
+                    }}>
+                      {pendingCount}
+                    </span>
+                  </Button>
+
+                  <div style={{ width: 1, height: 16, background: 'var(--ink3)', opacity: 0.2, alignSelf: 'center', margin: '0 4px' }} />
+
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="cc-toolbar-button"
+                    aria-pressed={tab === 'bills' && statusFilter === 'OVERDUE'}
+                    onClick={() => { setTab('bills'); setStatusFilter(statusFilter === 'OVERDUE' ? 'ALL' : 'OVERDUE'); }}
+                    style={overdueCount > 0 ? { color: 'var(--red)' } : {}}
+                  >
+                    Overdue
+                    {overdueCount > 0 && (
+                      <span style={{
+                        fontSize: 10,
+                        padding: '0 6px',
+                        borderRadius: 'var(--r)',
+                        background: 'var(--red-l)',
+                        color: 'var(--red)',
+                        fontWeight: 700
+                      }}>
+                        {overdueCount}
+                      </span>
+                    )}
+                  </Button>
+
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="cc-toolbar-button"
+                    aria-pressed={tab === 'bills' && statusFilter === 'PAID'}
+                    onClick={() => { setTab('bills'); setStatusFilter(statusFilter === 'PAID' ? 'ALL' : 'PAID'); }}
+                  >
+                    Paid
+                    <span style={{
+                      fontSize: 10,
+                      padding: '0 6px',
+                      borderRadius: 'var(--r)',
+                      background: (tab === 'bills' && statusFilter === 'PAID') ? 'var(--teal-l)' : 'var(--border)',
+                      color: (tab === 'bills' && statusFilter === 'PAID') ? 'var(--teal)' : 'var(--ink3)',
+                      fontWeight: 700
+                    }}>
+                      {paidCount}
+                    </span>
+                  </Button>
+
+                  <div style={{ width: 1, height: 16, background: 'var(--ink3)', opacity: 0.2, alignSelf: 'center', margin: '0 4px' }} />
+
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="cc-toolbar-button"
+                    aria-pressed={tab === 'recurring'}
+                    onClick={() => setTab(tab === 'recurring' ? 'bills' : 'recurring')}
+                  >
+                    Recurring
+                    <span style={{
+                      fontSize: 10,
+                      padding: '0 6px',
+                      borderRadius: 'var(--r)',
+                      background: tab === 'recurring' ? 'var(--teal-l)' : 'var(--border)',
+                      color: tab === 'recurring' ? 'var(--teal)' : 'var(--ink3)',
+                      fontWeight: 700
+                    }}>
+                      {recurringTotal}
+                    </span>
+                  </Button>
+                </div>
+
+                {/* Filter chips / search & dropdowns */}
+                <div className="cc-toolbar-filters" style={{ minWidth: 'auto', flex: 'none' }}>
+                  <div className="filter-chips">
+                    <div className="cc-search" role="search">
+                      <Icon name="search" size={13} />
+                      <input
+                        data-ui-field="input"
+                        type="text"
+                        value={tab === 'bills' ? search : recurSearch}
+                        onChange={e => tab === 'bills' ? setSearch(e.target.value) : setRecurSearch(e.target.value)}
+                        onKeyDown={e => { if (e.key === 'Escape') tab === 'bills' ? setSearch('') : setRecurSearch(''); }}
+                        placeholder="Search bill # or supplier…"
+                        aria-label="Search bills"
+                        autoComplete="off"
+                        spellCheck={false}
+                      />
+                      {(tab === 'bills' ? search : recurSearch) && (
+                        <button
+                          type="button"
+                          onClick={() => tab === 'bills' ? setSearch('') : setRecurSearch('')}
+                          style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink3)', padding: 0 }}
+                          title="Clear search"
+                        >
+                          <Icon name="x" size={12} />
+                        </button>
+                      )}
+                    </div>
+
+                    {/* Sort Dropdown */}
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button variant="outline" size="sm" className="filter-chip-btn">
+                          <Icon name="arrowUpDown" size={12} className="mr-1 text-muted-foreground" />
+                          Sort by
+                          <Icon name="chevronDown" size={12} className="ml-1 text-muted-foreground" />
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end" className="w-48">
+                        <DropdownMenuItem onClick={() => { setSortBy('due_date'); setSortDir('asc'); }}>
+                          Due date (Soonest first)
+                        </DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => { setSortBy('bill_date'); setSortDir('desc'); }}>
+                          Bill date (Newest first)
+                        </DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => { setSortBy('total'); setSortDir('desc'); }}>
+                          Total amount (Highest first)
+                        </DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => { setSortBy('supplier'); setSortDir('asc'); }}>
+                          Supplier name (A-Z)
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+
+                    {/* Supplier Dropdown */}
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button variant="outline" size="sm" className="filter-chip-btn">
+                          <Icon name="filter" size={12} className="mr-1 text-muted-foreground" />
+                          {supFilter !== 'ALL' && supplierMap[supFilter] ? supplierMap[supFilter].name : 'All suppliers'}
+                          <Icon name="chevronDown" size={12} className="ml-1 text-muted-foreground" />
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end" className="w-56 max-h-60 overflow-y-auto">
+                        <DropdownMenuItem onClick={() => setSupFilter('ALL')}>
+                          All suppliers
+                        </DropdownMenuItem>
+                        <DropdownMenuSeparator />
+                        {uniqueSups.map(id => (
+                          <DropdownMenuItem key={id} onClick={() => setSupFilter(id)}>
+                            {supplierMap[id]?.name ?? id}
+                          </DropdownMenuItem>
+                        ))}
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+
+                    {(tab === 'bills' ? hasActiveBillFilters : hasActiveRecurFilters) && (
+                      <Button variant="ghost" size="xs" onClick={tab === 'bills' ? clearBillFilters : clearRecurFilters}>
+                        <Icon name="x" size={12} /> Clear
+                      </Button>
+                    )}
+                  </div>
+                </div>
+              </div>
+
+              {/* ── Content View ── */}
+              <div style={{ marginTop: 16 }}>
 
           {tab === 'recurring' ? (
             <RecurringTab
@@ -1780,57 +2000,82 @@ export const Bills: React.FC = () => {
               onPageSizeChange={size => { setRecurringPageSize(size); setRecurringPage(1); }}
             />
           ) : (
-            <SectionCard collapsible={false} padded={false}>
-              <div style={{ background: 'var(--white)' }}>
-                {loadingBills ? (
-                  <SkeletonTable rows={6} cols={8} />
-                ) : billError ? (
-                  <div className="ds-empty-state" role="alert">
-                    <FeaturedIcon variant="error" size="lg" shape="circle">
-                      <Icon name="alertTriangle" size={22} />
-                    </FeaturedIcon>
-                    <h3>Could not load bills</h3>
-                    <p>{billError}</p>
-                    <Button type="button" variant="outline" size="sm" onClick={() => setBillRefresh(value => value + 1)}>
-                      <Icon name="refresh" size={13} /> Retry
-                    </Button>
+            <div style={{
+              background: 'var(--white)',
+              border: '1px solid var(--border)',
+              borderRadius: 'var(--r)',
+              overflow: 'hidden',
+              boxShadow: 'var(--shadow-sm)',
+            }}>
+              {loadingBills ? (
+                <SkeletonTable rows={6} cols={8} />
+              ) : billError ? (
+                <div className="ds-empty-state" role="alert" style={{ padding: '48px 24px' }}>
+                  <FeaturedIcon variant="error" size="lg" shape="circle">
+                    <Icon name="alertTriangle" size={22} />
+                  </FeaturedIcon>
+                  <h3>Could not load bills</h3>
+                  <p>{billError}</p>
+                  <Button type="button" variant="outline" size="sm" onClick={() => setBillRefresh(value => value + 1)}>
+                    <Icon name="refresh" size={13} /> Retry
+                  </Button>
+                </div>
+              ) : displayed.length === 0 ? (
+                <div style={{
+                  padding: '64px 32px',
+                  textAlign: 'center',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                }}>
+                  <div style={{
+                    width: 58,
+                    height: 58,
+                    borderRadius: '50%',
+                    background: 'var(--blue-l, #f0f9ff)',
+                    border: '1px solid var(--border, #e0f2fe)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    color: 'var(--blue, #0284c7)',
+                    marginBottom: 16,
+                  }}>
+                    <Icon name="fileText" size={26} />
                   </div>
-                ) : displayed.length === 0 ? (
-                  hasActiveBillFilters ? (
-                    <div className="ds-empty-state">
-                      <FeaturedIcon variant="gray" size="lg" shape="circle">
-                        <Icon name="search" size={22} />
-                      </FeaturedIcon>
-                      <h3>No bills match your filters</h3>
-                      <p>No supplier bills matched your current search or filter selection. Reset filters to view all bills.</p>
-                      <div className="flex flex-wrap items-center justify-center gap-2 mt-1">
+                  <h3 style={{ fontSize: 16, fontWeight: 700, color: 'var(--ink)', margin: '0 0 6px' }}>
+                    {hasActiveBillFilters ? 'No bills found' : 'No supplier bills yet'}
+                  </h3>
+                  <p style={{ fontSize: 13, color: 'var(--ink3)', margin: '0 0 20px', maxWidth: 420 }}>
+                    {hasActiveBillFilters
+                      ? 'Adjust filters or use "+ New bill" above.'
+                      : 'Record supplier invoices to track payables, due dates, partial payments, and TRA EFD receipts.'}
+                  </p>
+                  <div style={{ display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap', justifyContent: 'center' }}>
+                    {hasActiveBillFilters ? (
+                      <>
                         <Button type="button" variant="outline" size="sm" onClick={clearBillFilters}>
                           <Icon name="x" size={13} /> Clear filters
                         </Button>
                         <Button type="button" size="sm" onClick={() => documentRoute.open('new')}>
                           <Icon name="plus" size={14} /> New bill
                         </Button>
-                      </div>
-                    </div>
-                  ) : (
-                    <div className="ds-empty-state">
-                      <FeaturedIcon variant="brand" size="lg" shape="squircle">
-                        <Icon name="receipt" size={22} />
-                      </FeaturedIcon>
-                      <h3>No supplier bills yet</h3>
-                      <p>Record supplier invoices to track payables, due dates, partial payments, and TRA EFD receipts.</p>
-                      <div className="flex flex-wrap items-center justify-center gap-2 mt-1">
+                      </>
+                    ) : (
+                      <>
                         <Button type="button" size="sm" onClick={() => documentRoute.open('new')}>
                           <Icon name="plus" size={14} /> New bill
                         </Button>
                         <Button type="button" variant="outline" size="sm" onClick={() => setTab('recurring')}>
                           <Icon name="refresh" size={14} /> Recurring schedule
                         </Button>
-                      </div>
-                    </div>
-                  )
-                ) : viewMode === 'grid' ? (
-                  <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4 p-4">
+                      </>
+                    )}
+                  </div>
+                </div>
+              ) : viewMode === 'grid' ? (
+                <div>
+                  <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4 p-5">
                     {displayed.map(b => {
                       const bal = Math.max(0, b.total - b.paid_amount - (b.credited_amount ?? 0));
                       const over = b.status === 'OVERDUE';
@@ -1845,21 +2090,24 @@ export const Bills: React.FC = () => {
                           onKeyDown={e => { if (e.target === e.currentTarget && (e.key === 'Enter' || e.key === ' ')) { e.preventDefault(); void openBill(b.id); } }}
                           style={{
                             background: 'var(--white)',
-                            border: 'var(--card-border, 1px solid var(--border))',
-                            borderRadius: 'var(--card-radius, var(--r))',
-                            padding: 16,
+                            border: '1px solid var(--border)',
+                            borderRadius: 'var(--r)',
+                            padding: '20px 24px',
                             display: 'flex',
                             flexDirection: 'column',
-                            gap: 12,
+                            gap: 14,
                             cursor: 'pointer',
+                            transition: 'border-color 0.15s ease, box-shadow 0.15s ease',
                           }}
+                          onMouseEnter={e => { e.currentTarget.style.borderColor = 'var(--teal-m)'; e.currentTarget.style.boxShadow = 'var(--shadow-sm)'; }}
+                          onMouseLeave={e => { e.currentTarget.style.borderColor = 'var(--border)'; e.currentTarget.style.boxShadow = 'none'; }}
                         >
                           <div className="flex items-start justify-between gap-2">
                             <div>
                               <Link
                                 to={`/finance/bills/${b.id}`}
                                 onClick={e => e.stopPropagation()}
-                                style={{ fontFamily: 'var(--font)', fontSize: 13, fontWeight: 700, color: 'var(--teal)', fontVariantNumeric: 'tabular-nums' }}
+                                style={{ fontFamily: 'var(--font)', fontSize: 13.5, fontWeight: 700, color: 'var(--teal)', fontVariantNumeric: 'tabular-nums' }}
                               >
                                 {b.bill_number}
                               </Link>
@@ -1868,38 +2116,38 @@ export const Bills: React.FC = () => {
                             <StatusBadge status={b.status} />
                           </div>
 
-                          <div className="flex items-center gap-2.5 min-w-0">
-                            <PersonAvatar kind="suppliers" userId={b.supplier_id || undefined} name={b.supplier_name || 'Supplier'} size={28} />
+                          <div className="flex items-center gap-3 min-w-0">
+                            <PersonAvatar kind="suppliers" userId={b.supplier_id || undefined} name={b.supplier_name || 'Supplier'} size={32} />
                             <div className="min-w-0">
-                              <div className="text-sm font-semibold text-foreground truncate">{b.supplier_name || 'Unassigned supplier'}</div>
-                              <div className="text-[11px] text-muted-foreground truncate">
+                              <div className="text-sm font-bold text-foreground truncate">{b.supplier_name || 'Unassigned supplier'}</div>
+                              <div className="text-xs text-muted-foreground truncate mt-0.5">
                                 {[b.po_number, supplierMap[b.supplier_id]?.terms, b.shipment_ref].filter(Boolean).join(' · ') || 'No PO / shipment ref'}
                               </div>
                             </div>
                           </div>
 
-                          <div className="grid grid-cols-3 gap-2 border-t border-border pt-2.5 text-xs">
+                          <div className="grid grid-cols-3 gap-2 border-t border-border pt-3 text-xs">
                             <div>
-                              <div className="text-muted-foreground text-[11px]">Billed</div>
-                              <div className="font-medium tabular-nums mt-0.5">{fmtDate(b.bill_date)}</div>
+                              <div className="text-muted-foreground text-[11px] font-medium uppercase tracking-wider">Billed</div>
+                              <div className="font-semibold tabular-nums mt-1">{fmtDate(b.bill_date)}</div>
                             </div>
                             <div>
-                              <div className="text-muted-foreground text-[11px]">Due</div>
-                              <div className="tabular-nums mt-0.5" style={{ fontWeight: over ? 700 : 500, color: over ? 'var(--red)' : 'var(--ink)' }}>
+                              <div className="text-muted-foreground text-[11px] font-medium uppercase tracking-wider">Due Date</div>
+                              <div className="tabular-nums mt-1" style={{ fontWeight: over ? 700 : 600, color: over ? 'var(--red)' : 'var(--ink)' }}>
                                 {fmtDate(b.due_date)}
                               </div>
                             </div>
                             <div className="text-right">
-                              <div className="text-muted-foreground text-[11px]">Balance</div>
-                              <div className="font-bold tabular-nums mt-0.5" style={{ color: bal > 0 ? (over ? 'var(--red)' : 'var(--ink)') : 'var(--green)' }}>
+                              <div className="text-muted-foreground text-[11px] font-medium uppercase tracking-wider">Balance</div>
+                              <div className="font-bold tabular-nums mt-1" style={{ color: bal > 0 ? (over ? 'var(--red)' : 'var(--ink)') : 'var(--green)' }}>
                                 {bal > 0 ? formatAmount(bal, b.currency) : 'Settled'}
                               </div>
                             </div>
                           </div>
 
-                          <div className="flex items-center justify-between gap-2 border-t border-border pt-2.5" onClick={e => e.stopPropagation()}>
+                          <div className="flex items-center justify-between gap-2 border-t border-border pt-3" onClick={e => e.stopPropagation()}>
                             <div className="text-xs text-muted-foreground tabular-nums">
-                              Total <strong className="text-foreground">{formatAmount(b.total, b.currency)}</strong>
+                              Total <strong className="text-foreground font-bold">{formatAmount(b.total, b.currency)}</strong>
                             </div>
                             <div className="inline-flex items-center gap-1.5">
                               {canPay && (
@@ -1946,35 +2194,48 @@ export const Bills: React.FC = () => {
                       );
                     })}
                   </div>
-                ) : (
+                  <PaginationBar
+                    page={page}
+                    pageSize={pageSize}
+                    total={matchCount}
+                    onPageChange={setPage}
+                    onPageSizeChange={size => { setPageSize(size); setPage(1); }}
+                    pageSizeOptions={[10, 25, 50, 100]}
+                    itemLabel="bill"
+                    bordered={true}
+                  />
+                </div>
+              ) : (
+                <div>
                   <div className="rtbl-wrap">
-                    <table className="rtbl">
+                    <table className="rtbl" style={{ width: '100%', borderCollapse: 'collapse' }}>
                       <thead>
-                        <tr style={{ background: 'var(--bg)' }}>
-                          <th style={{ ...thS, cursor: 'default' }}>Bill #</th>
-                          <th style={thS}>
+                        <tr style={{ background: 'var(--bg)', borderBottom: '1px solid var(--border)' }}>
+                          <th style={{ width: 44, padding: '12px 14px 12px 24px', textAlign: 'center' }} aria-label="Expand" />
+                          <th style={{ ...thS, padding: '12px 16px' }}>
                             <button type="button" onClick={() => toggleSort('supplier')} className="dt-sort-button">
                               Supplier <SortIco col="supplier" />
                             </button>
                           </th>
-                          <th style={thS}>
+                          <th style={{ ...thS, padding: '12px 16px' }}>Bill &amp; PO Ref</th>
+                          <th style={{ ...thS, padding: '12px 16px' }}>
                             <button type="button" onClick={() => toggleSort('bill_date')} className="dt-sort-button">
                               Billed <SortIco col="bill_date" />
                             </button>
                           </th>
-                          <th style={thS}>
+                          <th style={{ ...thS, padding: '12px 16px' }}>
                             <button type="button" onClick={() => toggleSort('due_date')} className="dt-sort-button">
-                              Due <SortIco col="due_date" />
+                              Due Date <SortIco col="due_date" />
                             </button>
                           </th>
-                          <th style={{ ...thS, textAlign: 'right' }}>
+                          <th style={{ ...thS, padding: '12px 16px', textAlign: 'right' }}>
                             <button type="button" onClick={() => toggleSort('total')} className="dt-sort-button" style={{ justifyContent: 'flex-end' }}>
                               Total <SortIco col="total" />
                             </button>
                           </th>
-                          <th style={{ ...thS, textAlign: 'right', cursor: 'default' }}>Balance</th>
-                          <th style={{ ...thS, cursor: 'default' }}>Status</th>
-                          <th aria-label="Actions" style={{ ...thS, textAlign: 'right', cursor: 'default' }} />
+                          <th style={{ ...thS, padding: '12px 16px', textAlign: 'right', cursor: 'default' }}>Balance</th>
+                          <th style={{ ...thS, padding: '12px 16px', cursor: 'default' }}>Status</th>
+                          <th aria-label="Actions" style={{ ...thS, padding: '12px 24px 12px 16px', textAlign: 'right', cursor: 'default' }} />
                         </tr>
                       </thead>
                       <tbody>
@@ -1990,43 +2251,116 @@ export const Bills: React.FC = () => {
                               onClick={() => void openBill(b.id)}
                               tabIndex={0}
                               onKeyDown={e => { if (e.target === e.currentTarget && (e.key === 'Enter' || e.key === ' ')) { e.preventDefault(); void openBill(b.id); } }}
-                              style={{ borderBottom: '1px solid var(--border)', cursor: 'pointer', transition: 'background 0.1s' }}
+                              style={{
+                                borderBottom: '1px solid var(--border)',
+                                cursor: 'pointer',
+                                transition: 'background 0.12s ease',
+                              }}
                               onMouseEnter={e => (e.currentTarget.style.background = 'var(--hover-bg)')}
                               onMouseLeave={e => (e.currentTarget.style.background = '')}
                             >
-                              <td style={{ padding: '10px 12px', whiteSpace: 'nowrap' }}>
-                                <div style={{ fontFamily: 'var(--font)', fontSize: 12.5, fontWeight: 700, color: 'var(--teal)', fontVariantNumeric: 'tabular-nums' }}>
-                                  <Link to={`/finance/bills/${b.id}`} onClick={e => e.stopPropagation()}>{b.bill_number}</Link>
-                                </div>
-                                {b.recurring_id && <div style={{ fontSize: 10.5, color: 'var(--purple)', fontWeight: 600, marginTop: 2 }}>↻ Recurring</div>}
+                              <td style={{ padding: '14px 8px 14px 24px', textAlign: 'center', width: 44 }} onClick={e => e.stopPropagation()}>
+                                <button
+                                  type="button"
+                                  onClick={() => void openBill(b.id)}
+                                  className="ch-chevron"
+                                  title="View bill details"
+                                  style={{
+                                    border: 'none',
+                                    background: 'none',
+                                    cursor: 'pointer',
+                                    color: 'var(--ink3)',
+                                    padding: 0,
+                                  }}
+                                  data-ui-native-button=""
+                                >
+                                  <Icon name="chevronRight" size={14} />
+                                </button>
                               </td>
-                              <td style={{ padding: '10px 12px' }}>
-                                <div className="flex items-center gap-2.5 min-w-0">
-                                  <PersonAvatar kind="suppliers" userId={b.supplier_id || undefined} name={b.supplier_name || 'Supplier'} size={28} />
+                              <td style={{ padding: '14px 16px' }}>
+                                <div className="flex items-center gap-3 min-w-0">
+                                  <PersonAvatar kind="suppliers" userId={b.supplier_id || undefined} name={b.supplier_name || 'Supplier'} size={32} />
                                   <div className="min-w-0">
-                                    <div style={{ fontWeight: 600, color: 'var(--ink)' }} className="truncate">{b.supplier_name || 'Unassigned supplier'}</div>
-                                    {subMeta && <div style={{ fontSize: 11, fontFamily: 'var(--font)', color: 'var(--ink3)', marginTop: 1 }}>{subMeta}</div>}
+                                    <div style={{ fontWeight: 700, color: 'var(--ink)', fontSize: 13.5 }} className="truncate">
+                                      {b.supplier_name || 'Unassigned supplier'}
+                                    </div>
+                                    {subMeta && (
+                                      <div style={{ fontSize: 11.5, fontFamily: 'var(--font)', color: 'var(--ink3)', marginTop: 2 }} className="truncate">
+                                        {subMeta}
+                                      </div>
+                                    )}
                                   </div>
                                 </div>
                               </td>
-                              <td style={{ padding: '10px 12px', color: 'var(--ink2)', fontSize: 12.5, whiteSpace: 'nowrap', fontVariantNumeric: 'tabular-nums' }}>{fmtDate(b.bill_date)}</td>
-                              <td style={{ padding: '10px 12px', color: over ? 'var(--red)' : 'var(--ink2)', fontWeight: over ? 700 : 400, fontSize: 12.5, whiteSpace: 'nowrap', fontVariantNumeric: 'tabular-nums' }}>
-                                {fmtDate(b.due_date)}
-                                {over && <div style={{ fontSize: 10.5, color: 'var(--red)', fontWeight: 600 }}>{daysOverdue(b.due_date)}d overdue</div>}
+                              <td style={{ padding: '14px 16px', whiteSpace: 'nowrap' }}>
+                                <div style={{ fontFamily: 'var(--font)', fontSize: 13, fontWeight: 700, color: 'var(--teal)', fontVariantNumeric: 'tabular-nums' }}>
+                                  <Link to={`/finance/bills/${b.id}`} onClick={e => e.stopPropagation()}>
+                                    {b.bill_number}
+                                  </Link>
+                                </div>
+                                {b.recurring_id ? (
+                                  <div style={{ fontSize: 11, color: 'var(--purple)', fontWeight: 600, marginTop: 2 }}>↻ Recurring</div>
+                                ) : b.po_number ? (
+                                  <div style={{ fontSize: 11, color: 'var(--ink3)', marginTop: 2 }}>PO: {b.po_number}</div>
+                                ) : null}
                               </td>
-                              <td style={{ padding: '10px 12px', textAlign: 'right', fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap' }}>
-                                <div style={{ fontWeight: 700, color: 'var(--ink)' }}>{formatAmount(b.total, b.currency)}</div>
+                              <td style={{ padding: '14px 16px', color: 'var(--ink2)', fontSize: 13, whiteSpace: 'nowrap', fontVariantNumeric: 'tabular-nums' }}>
+                                {fmtDate(b.bill_date)}
+                              </td>
+                              <td style={{ padding: '14px 16px', whiteSpace: 'nowrap', fontVariantNumeric: 'tabular-nums' }}>
+                                <div style={{ color: over ? 'var(--red)' : 'var(--ink)', fontWeight: over ? 700 : 500, fontSize: 13 }}>
+                                  {fmtDate(b.due_date)}
+                                </div>
+                                {over && (
+                                  <div style={{ marginTop: 3 }}>
+                                    <span style={{
+                                      display: 'inline-flex',
+                                      alignItems: 'center',
+                                      gap: 3,
+                                      fontSize: 10.5,
+                                      fontWeight: 700,
+                                      color: 'var(--red)',
+                                      background: 'var(--red-l)',
+                                      padding: '1px 6px',
+                                      borderRadius: 4,
+                                    }}>
+                                      <Icon name="alertTriangle" size={10} color="var(--red)" />
+                                      {daysOverdue(b.due_date)}d overdue
+                                    </span>
+                                  </div>
+                                )}
+                              </td>
+                              <td style={{ padding: '14px 16px', textAlign: 'right', fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap' }}>
+                                <div style={{ fontWeight: 800, color: 'var(--ink)', fontSize: 13.5 }}>{formatAmount(b.total, b.currency)}</div>
                                 {b.paid_amount > 0 && (
-                                  <div style={{ fontSize: 11, color: 'var(--green)', fontWeight: 600, marginTop: 1 }}>
+                                  <div style={{ fontSize: 11, color: 'var(--green)', fontWeight: 600, marginTop: 2 }}>
                                     Paid {formatAmount(b.paid_amount, b.currency)}
                                   </div>
                                 )}
                               </td>
-                              <td style={{ padding: '10px 12px', textAlign: 'right', fontWeight: bal > 0 ? 700 : 400, color: bal > 0 ? (over ? 'var(--red)' : 'var(--ink)') : 'var(--ink3)', fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap' }}>
-                                {bal > 0 ? formatAmount(bal, b.currency) : '—'}
+                              <td style={{ padding: '14px 16px', textAlign: 'right', fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap' }}>
+                                {bal > 0 ? (
+                                  <div style={{ fontWeight: 700, color: over ? 'var(--red)' : 'var(--ink)', fontSize: 13.5 }}>
+                                    {formatAmount(bal, b.currency)}
+                                  </div>
+                                ) : (
+                                  <span style={{
+                                    display: 'inline-block',
+                                    fontSize: 11,
+                                    fontWeight: 700,
+                                    color: 'var(--green)',
+                                    background: 'var(--green-l)',
+                                    padding: '2px 8px',
+                                    borderRadius: 4,
+                                  }}>
+                                    Settled
+                                  </span>
+                                )}
                               </td>
-                              <td style={{ padding: '10px 12px', whiteSpace: 'nowrap' }}><StatusBadge status={b.status} /></td>
-                              <td style={{ padding: '10px 12px', textAlign: 'right', whiteSpace: 'nowrap' }} onClick={e => e.stopPropagation()}>
+                              <td style={{ padding: '14px 16px', whiteSpace: 'nowrap' }}>
+                                <StatusBadge status={b.status} />
+                              </td>
+                              <td style={{ padding: '14px 24px 14px 16px', textAlign: 'right', whiteSpace: 'nowrap' }} onClick={e => e.stopPropagation()}>
                                 <div className="inline-flex items-center justify-end gap-1.5">
                                   {canPay && (
                                     <Button type="button" variant="outline" size="xs" onClick={() => setPayTarget(bills.find(x => x.id === b.id) ?? null)}>
@@ -2074,20 +2408,23 @@ export const Bills: React.FC = () => {
                       </tbody>
                     </table>
                   </div>
-                )}
-                <PaginationBar
-                  page={page}
-                  pageSize={pageSize}
-                  total={matchCount}
-                  onPageChange={setPage}
-                  onPageSizeChange={size => { setPageSize(size); setPage(1); }}
-                  pageSizeOptions={[10, 25, 50, 100]}
-                  itemLabel="bill"
-                  bordered={true}
-                />
-              </div>
-            </SectionCard>
+                  <PaginationBar
+                    page={page}
+                    pageSize={pageSize}
+                    total={matchCount}
+                    onPageChange={setPage}
+                    onPageSizeChange={size => { setPageSize(size); setPage(1); }}
+                    pageSizeOptions={[10, 25, 50, 100]}
+                    itemLabel="bill"
+                    bordered={true}
+                  />
+                </div>
+              )}
+            </div>
           )}
+              </div>
+            </div>
+          </div>
         </div>
       )}
     </div>

@@ -1,7 +1,7 @@
+import { registerSuperadminGuard } from '../services/platform-admin-access.js';
 import type { FastifyInstance, FastifyRequest, FastifyReply } from 'fastify';
 import { z } from 'zod';
 import { dbPlatform } from '../db/client.js';
-import { requireRole } from '../middleware/rbac.js';
 import { resolveDisbursementProvider, NO_DISBURSEMENT_PROVIDER_MESSAGE } from '../services/referral-payout.service.js';
 
 /**
@@ -11,7 +11,7 @@ import { resolveDisbursementProvider, NO_DISBURSEMENT_PROVIDER_MESSAGE } from '.
  */
 export async function superAdminReferralsRoutes(fastify: FastifyInstance) {
   fastify.addHook('preHandler', fastify.authenticate);
-  fastify.addHook('preHandler', requireRole('SUPER_ADMIN'));
+  registerSuperadminGuard(fastify);
 
   fastify.get('/', async (request: FastifyRequest, reply: FastifyReply) => {
     const q = request.query as { status?: string };

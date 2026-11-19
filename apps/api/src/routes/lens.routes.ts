@@ -1,3 +1,4 @@
+import { loadStaffContext } from '../services/staff-access.service.js';
 import type { FastifyInstance, FastifyRequest, FastifyReply } from 'fastify';
 import { z } from 'zod';
 import { dbPlatform } from '../db/client.js';
@@ -105,8 +106,14 @@ export async function lensRoutes(fastify: FastifyInstance) {
       return;
     }
 
-    // 4. All other Lens routes are strictly SUPER_ADMIN only
+    // 4. All other Lens routes are SUPER_ADMIN only, except that platform
+    //    staff granted `lens.view` (staff console, migration 919) may read.
+    //    Writes stay SUPER_ADMIN-only; staff link cases through /v1/staff.
     if (request.user?.role !== 'SUPER_ADMIN') {
+      if (request.method === 'GET' && !request.user?.impersonated_by) {
+        const staff = await loadStaffContext(request.user!.sub, request.ip);
+        if (staff?.permissions.has('lens.view')) return;
+      }
       return reply.status(403).send({ error: 'SUPER_ADMIN role required for Lens management' });
     }
   });

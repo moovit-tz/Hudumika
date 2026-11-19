@@ -94,8 +94,8 @@ const apps: HudumikaApp[] = [
   // entry only exists here, and the superAdminOnly filter below (existing
   // logic, not new) keeps it out of enabledAndAllowedApps for anyone else.
   {
-    id: 'superadmin', name: 'SuperAdmin', path: '/admin', color: 'var(--ink)',
-    superAdminOnly: true, desc: 'Platform-wide tenant, billing, package & system administration',
+    id: 'superadmin', name: 'Admin Console', path: '/console', color: 'var(--ink)',
+    superAdminOnly: true, desc: 'Platform staff console: customers, cases, billing, security and platform settings',
     category: 'Admin',
   },
 ];
