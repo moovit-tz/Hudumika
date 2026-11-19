@@ -1,12 +1,11 @@
 # Staff console on its own host, restricted to staff networks.
-# Append to deploy/contabo/Caddyfile (or import it) once ADMIN_DOMAIN,
-# ADMIN_ALLOWED_CIDRS and the admin-api service (compose profile "admin") exist.
+# Enabled by gateway-entrypoint.sh when ADMIN_DOMAIN is set in .env.production:
 #
 #   ADMIN_DOMAIN=console.example.com
-#   ADMIN_ALLOWED_CIDRS="203.0.113.0/24 198.51.100.7/32"   # office / VPN egress
+#   ADMIN_ALLOWED_CIDRS='203.0.113.0/24 198.51.100.7/32'   # office / VPN egress
+#   API_SURFACE=customer                                   # public api refuses staff routes
 #
-# The public site keeps serving customers; set API_SURFACE=customer on the
-# public api so it refuses /v1/staff, /v1/superadmin and /v1/lens.
+# init.py --check validates all three; deploy.sh then also releases admin-api.
 {$ADMIN_DOMAIN} {
   encode zstd gzip
   header X-Content-Type-Options nosniff

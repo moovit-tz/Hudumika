@@ -5,17 +5,15 @@
 
 /* ── Scope strip (always visible) ── */
 .console-scope {
-  display: flex; flex-wrap: wrap; gap: 6px 10px; align-items: center;
-  padding: 8px 16px; font-size: var(--text-sm, 12px); color: var(--ink2);
-  background: var(--white); border-bottom: 1px solid var(--border);
+  display: flex; flex-wrap: wrap; align-items: center;
+  gap: var(--space-sm) var(--space-md);
+  padding: var(--space-sm) var(--space-md);
+  font-size: var(--text-sm, 12px); color: var(--ink2);
 }
-.console-scope-chip {
-  display: inline-flex; align-items: center; gap: 6px; padding: 2px 10px;
-  border-radius: 999px; border: 1px solid var(--border); background: var(--bg); color: var(--ink2); font-weight: 600;
-}
-.console-scope-chip-role { color: var(--teal); background: var(--teal-l); border-color: transparent; }
-.console-env { margin-left: auto; padding: 2px 10px; border-radius: 999px; background: var(--teal-l); color: var(--teal); font-weight: 700; }
-.console-env-prod { background: var(--red-l); color: var(--red); }
+.console-scope-chip { display: inline-flex; align-items: center; gap: 6px; font-weight: 500; }
+.console-scope-chip-role { color: var(--teal); }
+.console-env { margin-inline-start: auto; color: var(--ink3); font-weight: 500; }
+.console-env-prod { padding: 2px 10px; border-radius: var(--r-sm); background: var(--red-l); color: var(--red); font-weight: 700; }
 
 .console-access-banner {
   position: sticky; top: 0; z-index: 5; display: flex; flex-wrap: wrap; align-items: center; gap: 10px;
@@ -100,6 +98,10 @@
 .console-msg-body { white-space: pre-wrap; overflow-wrap: anywhere; color: var(--ink); }
 .console-msg-internal { background: var(--gold-l); border-color: color-mix(in srgb, var(--gold) 30%, var(--border)); }
 .console-msg-staff { background: color-mix(in srgb, var(--teal) 6%, var(--white)); }
+.console-attachments { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: 8px; }
+.console-attachments a { display: inline-flex; align-items: center; gap: 6px; max-width: 280px; padding: 6px 10px; border: 1px solid var(--border); border-radius: var(--r-sm); font-size: var(--text-sm, 12px); color: var(--ink); text-decoration: none; background: var(--white); }
+.console-attachments a:hover { border-color: var(--teal); }
+.console-attachment-name { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 
 /* ── Forms ── */
 .console-form { display: flex; flex-direction: column; gap: 14px; max-width: 680px; }
@@ -123,3 +125,204 @@
   .console-panel-hdr, .console-panel-body { padding-left: 14px; padding-right: 14px; }
   .console-list > li { padding-left: 14px; padding-right: 14px; }
 }
+
+/* A single workload total anchors the overview beside its drill-down queues. */
+.overview-work {
+  display: grid;
+  grid-template-columns: minmax(0, 4fr) minmax(0, 5fr);
+  gap: var(--space-lg, 16px);
+}
+.console-overview .overview-focus {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: center;
+  padding: clamp(20px, 3vw, 44px);
+  background: radial-gradient(ellipse at top right, var(--teal-m), transparent 75%), var(--white);
+  border-inline-start: 4px solid var(--teal);
+}
+.overview-focus h2 { display: flex; align-items: center; gap: 10px; color: var(--ink2); font-size: var(--text-lg); font-weight: 600; }
+.overview-total { color: var(--ink); font-size: clamp(3rem, 6vw, 5rem); line-height: 1.1; letter-spacing: -.055em; font-variant-numeric: tabular-nums; }
+.overview-focus p { color: var(--ink2); margin: 4px 0 20px; }
+.overview-queue {
+  display: grid;
+  grid-template-columns: auto 1fr auto auto;
+  align-items: center;
+  gap: 12px;
+  padding: var(--ds-btn-py-md, 8px) var(--space-lg, 16px);
+  color: var(--ink2);
+  text-decoration: none;
+}
+.overview-work .console-panel-flush { gap: 0; }
+.overview-queue + .overview-queue { border-top: 1px solid var(--border); }
+.overview-queue strong { font-variant-numeric: tabular-nums; color: var(--ink); }
+.overview-queue:hover, .overview-queue:focus-visible { color: var(--teal); background: var(--teal-l); }
+.console-overview .console-kpis { grid-template-columns: repeat(auto-fit, minmax(min(100%, 165px), 1fr)); }
+.console-overview .console-kpi-link > .card { width: 100%; }
+@media (max-width: 720px) {
+  .overview-work { grid-template-columns: minmax(0, 1fr); }
+}
+
+/* Shared by native Console pages and embedded platform tools. */
+.console-content .page-header {
+  margin: 0 0 var(--space-md);
+  padding: 0 0 var(--space-md);
+  border-bottom: 1px solid var(--border);
+}
+.console-page > .page-header { margin-bottom: 0; }
+.console-content .page-header-sub { margin-block: var(--space-xs) 0; }
+.console-content .page-header-actions-wrap [data-ui-button][data-size="default"] {
+  min-height: var(--ctl-h);
+  padding-inline: var(--space-md);
+  padding-block: var(--ds-btn-py-xs) !important;
+}
+.console-content .page-header-actions-wrap a[data-variant="ghost"] { color: var(--teal); }
+@media (max-width: 520px) {
+  .console-env { margin-inline-start: 0; }
+  .console-content .page-header-main-row { row-gap: var(--space-xs) !important; }
+}
+
+/* ── Product Health & Operations ── */
+.console-products-toolbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+.console-products-controls {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+.console-product-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 340px), 1fr));
+  gap: 16px;
+}
+.console-product-card {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  padding: 18px 20px;
+  border-radius: var(--r);
+  border: 1px solid var(--border);
+  background: var(--white);
+  box-shadow: var(--elev-sm);
+  transition: transform 0.15s ease, box-shadow 0.15s ease, border-color 0.15s ease;
+  cursor: pointer;
+  position: relative;
+}
+.console-product-card:hover {
+  transform: translateY(-2px);
+  border-color: color-mix(in srgb, var(--teal) 45%, var(--border));
+  box-shadow: var(--elev);
+}
+.console-product-card-top {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+.console-product-badge-wrap {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.console-product-icon {
+  width: 42px;
+  height: 42px;
+  border-radius: var(--r-sm);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+.console-product-title-wrap {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+.console-product-name {
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--ink);
+  line-height: 1.25;
+}
+.console-product-key {
+  font-family: var(--font-mono, monospace);
+  font-size: 11px;
+  color: var(--ink3);
+  text-transform: lowercase;
+  margin-top: 2px;
+}
+.console-product-slogan {
+  font-size: 12.5px;
+  color: var(--ink2);
+  line-height: 1.45;
+  margin-bottom: 14px;
+  min-height: 36px;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+.console-product-notice {
+  font-size: 12px;
+  color: var(--gold-d, #92400e);
+  background: var(--gold-l, #fef3c7);
+  border: 1px solid color-mix(in srgb, var(--gold) 35%, transparent);
+  border-radius: var(--r-sm);
+  padding: 6px 10px;
+  margin-bottom: 12px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.console-product-metrics {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  padding-top: 12px;
+  border-top: 1px solid var(--border-light, #f1f5f9);
+  font-size: 12px;
+}
+.console-product-stat-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 3px 8px;
+  border-radius: var(--r-full);
+  background: var(--bg);
+  color: var(--ink2);
+  font-weight: 500;
+  text-decoration: none;
+  font-size: 12px;
+}
+.console-product-stat-pill.has-cases {
+  background: var(--blue-l);
+  color: var(--blue);
+  font-weight: 600;
+}
+.console-product-stat-pill.has-incidents {
+  background: var(--red-l);
+  color: var(--red);
+  font-weight: 700;
+}
+.console-product-team-tag {
+  color: var(--ink3);
+  font-size: 11.5px;
+}
+.console-product-footer-act {
+  margin-left: auto;
+  color: var(--teal);
+  font-size: 12px;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+

@@ -4,6 +4,9 @@ import { PageHeader } from '../components/PageHeader.js';
 import { Icon } from '../components/Icon.js';
 import { Badge } from '../components/ui/badge.js';
 import { Button } from '../components/ui/button.js';
+import { Input } from '../components/ui/input.js';
+import { Textarea } from '../components/ui/textarea.js';
+import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '../components/ui/select.js';
 import { SectionCard } from '../components/SectionCard.js';
 import { SectionLoading } from '../components/ui/spinner.js';
 import { Dialog, DialogContent, DialogTitle } from '../components/ui/dialog.js';
@@ -28,10 +31,19 @@ export function LensItemDetail() {
   const [targetStatus, setTargetStatus] = useState<string>('DONE');
   const [resolutionText, setResolutionText] = useState('');
   const [reopenReasonText, setReopenReasonText] = useState('');
+  const [statusError, setStatusError] = useState<string | null>(null);
+
+  // Verification modal
+  const [verifyModal, setVerifyModal] = useState(false);
+  const [verifySummary, setVerifySummary] = useState('');
+  const [verifying, setVerifying] = useState(false);
+  const [verifyError, setVerifyError] = useState<string | null>(null);
 
   // Link / Push modal
   const [pushModal, setPushModal] = useState(false);
   const [pushProvider, setPushProvider] = useState('github');
+  const [pushing, setPushing] = useState(false);
+  const [pushError, setPushError] = useState<string | null>(null);
   const [connections, setConnections] = useState<any[]>([]);
 
   const load = useCallback(() => {
@@ -77,9 +89,10 @@ export function LensItemDetail() {
   async function handleStatusChange() {
     if (!ref) return;
     if (['DONE', 'WONTFIX'].includes(targetStatus) && !resolutionText.trim()) {
-      alert('A written resolution is required to close an item.');
+      setStatusError('A written resolution is required to close an item.');
       return;
     }
+    setStatusError(null);
 
     try {
       await apiFetch(`/v1/lens/items/${ref}`, {
@@ -95,31 +108,38 @@ export function LensItemDetail() {
       setReopenReasonText('');
       load();
     } catch (err: any) {
-      alert(err?.message || 'Failed to update status');
+      setStatusError(err?.message || 'Failed to update status');
     }
   }
 
-  async function handleVerifyEvidence() {
-    if (!ref) return;
-    const note = prompt('Enter verification summary (e.g. "Tested on staging build 418 — VAT tax band precision verified"):');
-    if (!note) return;
+  async function handleVerifySubmit(e: React.FormEvent) {
+    e.preventDefault();
+    if (!ref || !verifySummary.trim() || verifying) return;
+    setVerifying(true);
+    setVerifyError(null);
 
     try {
       await apiFetch(`/v1/lens/items/${ref}`, {
         method: 'PATCH',
         body: JSON.stringify({
           verification_status: 'VERIFIED',
-          verification_evidence: note,
+          verification_evidence: verifySummary.trim(),
         }),
       });
+      setVerifyModal(false);
+      setVerifySummary('');
       load();
     } catch (err: any) {
-      alert(err?.message || 'Verification update failed');
+      setVerifyError(err?.message || 'Verification update failed');
+    } finally {
+      setVerifying(false);
     }
   }
 
   async function handlePush() {
     if (!ref) return;
+    setPushing(true);
+    setPushError(null);
     try {
       const conn = connections.find(c => c.provider === pushProvider);
       await apiFetch(`/v1/lens/items/${ref}/push`, {
@@ -132,7 +152,9 @@ export function LensItemDetail() {
       setPushModal(false);
       load();
     } catch (err: any) {
-      alert(err?.message || 'Failed to push to external tracker');
+      setPushError(err?.message || 'Failed to push to external tracker');
+    } finally {
+      setPushing(false);
     }
   }
 
@@ -163,12 +185,13 @@ export function LensItemDetail() {
   return (
     <div className="lens-page">
       <PageHeader
-        title={`${item.ref}: ${item.title}`}
+        titlePlain={item.ref}
+        titleEm={item.title}
         subtitle={`Reported in ${item.environment || 'production'} • Opened ${new Date(item.created_at).toLocaleDateString()}`}
         crumbs={[{ label: 'Lens', to: '/lens' }, { label: item.ref }]}
         actions={
           <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-            <Button variant="outline" onClick={() => navigate('/lens')}>
+            <Button variant="outline" onClick={() => { if (window.history.length > 1) navigate(-1); else navigate('/lens'); }}>
               <Icon name="arrowLeft" size={14} />
               Board
             </Button>
@@ -196,7 +219,7 @@ export function LensItemDetail() {
       />
 
       {/* Main Grid */}
-      <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 340px', gap: 24, width: '100%', minWidth: 0 }}>
+      <div className="lens-detail-grid">
         {/* Left: Content, Reproduction, Evidence, Discussion, Activity */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
           {/* Main Body */}
@@ -242,7 +265,7 @@ export function LensItemDetail() {
                 )}
               </div>
               {item.verification_status !== 'VERIFIED' && (
-                <Button size="sm" variant="default" onClick={handleVerifyEvidence}>
+                <Button size="sm" variant="default" onClick={() => { setVerifySummary(''); setVerifyError(null); setVerifyModal(true); }}>
                   <Icon name="check" size={14} />
                   Record Verification Evidence
                 </Button>
@@ -319,19 +342,12 @@ export function LensItemDetail() {
             </div>
 
             <form onSubmit={handleAddComment} style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-              <textarea
+              <Textarea
+                aria-label="Write a comment"
                 value={commentText}
                 onChange={e => setCommentText(e.target.value)}
                 rows={3}
                 placeholder="Write a comment or engineering observation..."
-                style={{
-                  width: '100%',
-                  padding: '10px 12px',
-                  borderRadius: 6,
-                  border: '1px solid var(--border)',
-                  boxSizing: 'border-box',
-                  fontSize: 13,
-                }}
               />
               <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
                 <Button type="submit" variant="default" size="sm" disabled={submittingComment || !commentText.trim()}>
@@ -486,45 +502,36 @@ export function LensItemDetail() {
         <DialogContent>
           <DialogTitle>{['DONE', 'WONTFIX'].includes(targetStatus) ? 'Close Item with Written Resolution' : 'Reopen Item'}</DialogTitle>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 12, marginTop: 12 }}>
+            {statusError && (
+              <div style={{ padding: '8px 12px', background: 'var(--red-l, #fee2e2)', color: 'var(--red, #b91c1c)', borderRadius: 6, fontSize: 13 }}>
+                {statusError}
+              </div>
+            )}
             {['DONE', 'WONTFIX'].includes(targetStatus) ? (
               <div>
-                <label style={{ display: 'block', fontSize: 12, fontWeight: 700, marginBottom: 4, textTransform: 'uppercase' }}>
+                <label htmlFor="item-resolution-text" style={{ display: 'block', fontSize: 12, fontWeight: 700, marginBottom: 4, textTransform: 'uppercase' }}>
                   Resolution Statement * (How was this settled?)
                 </label>
-                <textarea
+                <Textarea
+                  id="item-resolution-text"
                   value={resolutionText}
                   onChange={e => setResolutionText(e.target.value)}
                   rows={4}
                   required
                   placeholder="e.g. Fixed in commit abc1234 — added VAT registration validation guard. Verified on staging."
-                  style={{
-                    width: '100%',
-                    padding: '8px 12px',
-                    borderRadius: 6,
-                    border: '1px solid var(--border)',
-                    boxSizing: 'border-box',
-                    fontSize: 13,
-                  }}
                 />
               </div>
             ) : (
               <div>
-                <label style={{ display: 'block', fontSize: 12, fontWeight: 700, marginBottom: 4, textTransform: 'uppercase' }}>
+                <label htmlFor="item-reopen-text" style={{ display: 'block', fontSize: 12, fontWeight: 700, marginBottom: 4, textTransform: 'uppercase' }}>
                   Reopen Reason (Why did this recur or fail?)
                 </label>
-                <textarea
+                <Textarea
+                  id="item-reopen-text"
                   value={reopenReasonText}
                   onChange={e => setReopenReasonText(e.target.value)}
                   rows={3}
                   placeholder="e.g. Edge case resurfaced with multi-currency invoices."
-                  style={{
-                    width: '100%',
-                    padding: '8px 12px',
-                    borderRadius: 6,
-                    border: '1px solid var(--border)',
-                    boxSizing: 'border-box',
-                    fontSize: 13,
-                  }}
                 />
               </div>
             )}
@@ -536,34 +543,73 @@ export function LensItemDetail() {
         </DialogContent>
       </Dialog>
 
+      {/* Verification Evidence Dialog */}
+      <Dialog open={verifyModal} onOpenChange={setVerifyModal}>
+        <DialogContent>
+          <DialogTitle>Record Verification Evidence</DialogTitle>
+          <form onSubmit={handleVerifySubmit} style={{ display: 'flex', flexDirection: 'column', gap: 12, marginTop: 12 }}>
+            {verifyError && (
+              <div style={{ padding: '8px 12px', background: 'var(--red-l)', color: 'var(--red)', borderRadius: 'var(--r-sm)', fontSize: 13 }}>
+                {verifyError}
+              </div>
+            )}
+            <div style={{ fontSize: 13, color: 'var(--ink2)', lineHeight: 1.5 }}>
+              Provide reproduction evidence or test suite results proving this issue is verified fixed.
+            </div>
+            <div>
+              <label htmlFor="verify-evidence-summary" style={{ display: 'block', fontSize: 12, fontWeight: 700, marginBottom: 4, textTransform: 'uppercase' }}>
+                Verification Summary *
+              </label>
+              <Textarea
+                id="verify-evidence-summary"
+                value={verifySummary}
+                onChange={e => setVerifySummary(e.target.value)}
+                rows={4}
+                required
+                autoFocus
+                placeholder='e.g. Tested on staging build 418 — VAT tax band precision verified; passed lens-production.test.ts.'
+              />
+            </div>
+            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 10, marginTop: 10 }}>
+              <Button variant="ghost" type="button" onClick={() => setVerifyModal(false)}>Cancel</Button>
+              <Button variant="default" type="submit" disabled={verifying || !verifySummary.trim()}>
+                {verifying ? 'Saving...' : 'Record Evidence'}
+              </Button>
+            </div>
+          </form>
+        </DialogContent>
+      </Dialog>
+
       {/* Push Tracker Dialog */}
-      <Dialog open={pushModal} onOpenChange={setPushModal}>
+      <Dialog open={pushModal} onOpenChange={o => { setPushModal(o); if (!o) setPushError(null); }}>
         <DialogContent>
           <DialogTitle>Push Issue to External Tracker</DialogTitle>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 14, marginTop: 12 }}>
+            {pushError && (
+              <div style={{ padding: '8px 12px', background: 'var(--red-l)', color: 'var(--red)', borderRadius: 'var(--r-sm)', fontSize: 13 }}>
+                {pushError}
+              </div>
+            )}
             <div>
-              <label style={{ display: 'block', fontSize: 12, fontWeight: 700, marginBottom: 4, textTransform: 'uppercase' }}>
+              <label htmlFor="push-tracker-provider" style={{ display: 'block', fontSize: 12, fontWeight: 700, marginBottom: 4, textTransform: 'uppercase' }}>
                 Target Tracker Provider
               </label>
-              <select
-                value={pushProvider}
-                onChange={e => setPushProvider(e.target.value)}
-                style={{
-                  width: '100%',
-                  padding: '8px 12px',
-                  borderRadius: 6,
-                  border: '1px solid var(--border)',
-                  boxSizing: 'border-box',
-                }}
-              >
-                <option value="github">GitHub Issues</option>
-                <option value="linear">Linear</option>
-                <option value="jira">Jira Cloud</option>
-              </select>
+              <Select value={pushProvider} onValueChange={setPushProvider}>
+                <SelectTrigger id="push-tracker-provider">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="github">GitHub Issues</SelectItem>
+                  <SelectItem value="linear">Linear</SelectItem>
+                  <SelectItem value="jira">Jira Cloud</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
             <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 10, marginTop: 10 }}>
-              <Button variant="ghost" onClick={() => setPushModal(false)}>Cancel</Button>
-              <Button variant="default" onClick={handlePush}>Push Issue</Button>
+              <Button variant="ghost" type="button" onClick={() => setPushModal(false)}>Cancel</Button>
+              <Button variant="default" type="button" disabled={pushing} onClick={handlePush}>
+                {pushing ? 'Pushing...' : 'Push Issue'}
+              </Button>
             </div>
           </div>
         </DialogContent>

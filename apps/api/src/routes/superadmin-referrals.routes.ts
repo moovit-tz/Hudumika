@@ -7,7 +7,7 @@ import { resolveDisbursementProvider, NO_DISBURSEMENT_PROVIDER_MESSAGE } from '.
 /**
  * AgencyHost M8 — platform view of every referral commission, across every
  * tenant. Deliberately cross-tenant (dbPlatform, gated on SUPER_ADMIN at the
- * route level), same shape as superadmin-issues.routes.ts.
+ * route level), like the other superadmin routes.
  */
 export async function superAdminReferralsRoutes(fastify: FastifyInstance) {
   fastify.addHook('preHandler', fastify.authenticate);

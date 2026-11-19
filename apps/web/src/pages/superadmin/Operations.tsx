@@ -13,6 +13,9 @@ import { Tip } from '../../components/ui/tooltip.js';
 import { SlidersHorizontal, X } from 'lucide-react';
 import { showAlert } from '../../lib/alert.js';
 import { PaginationBar } from '../../components/PaginationBar.js';
+import { PageHeader } from '../../components/PageHeader.js';
+import { Badge as DsBadge } from '../../components/ui/badge.js';
+import { SectionLoading } from '../../components/ui/spinner.js';
 import '../OndiPages.css';
 import {
   Badge, PLAN_CFG, DOM_CFG, TX_CFG, METHOD_LABELS,
@@ -107,180 +110,289 @@ export function DomainsView() {
     unchecked:domains.filter(d=>d.never_checked).length,
   }),[domains]);
 
-  if (loading) return <div style={{ padding:30, color:'var(--ink3)' }}>Loading domains…</div>;
+  if (loading) return <SectionLoading label="Loading domain records…" />;
 
   return (
     <div>
-      <PageHdr title="Platform Domains" sub="Every way a company is reached: custom domains added here, workspace subdomains from signup, and domains bought or connected in Onsite" />
+      <PageHeader
+        crumbs={[
+          { label: 'Console', to: '/console' },
+          { label: 'Products', to: '/console/products' },
+          { label: 'Domains' },
+        ]}
+        titlePlain="Platform"
+        titleEm="domains"
+        subtitle="Manage custom hostnames, review platform workspace subdomains, and monitor connected Onsite domains."
+        actions={
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => load()}
+              aria-label="Refresh domain records"
+            >
+              <Icon name="refresh" size={14} />
+              <span>Refresh</span>
+            </Button>
+            {tab === 'custom' && (
+              <Button
+                size="sm"
+                type="button"
+                onClick={() => setAdding(a => !a)}
+                aria-label={adding ? 'Cancel adding domain' : 'Add custom domain'}
+              >
+                <Icon name={adding ? 'close' : 'plus'} size={14} />
+                <span>{adding ? 'Cancel' : 'Add domain'}</span>
+              </Button>
+            )}
+          </div>
+        }
+      />
 
       {loadError && (
-        <div style={{ padding:'10px 13px', borderRadius: 'var(--r)', background:'var(--red-l)', color:'var(--red)', fontSize:12.5, marginBottom:14 }}>{loadError}</div>
+        <div style={{ padding: '10px 14px', borderRadius: 'var(--r)', background: 'var(--bg)', border: '1px solid var(--border)', color: 'var(--red)', fontSize: 13, marginBottom: 16, display: 'flex', alignItems: 'center', gap: 8 }}>
+          <Icon name="alertCircle" size={16} color="var(--red)" />
+          <span>{loadError}</span>
+        </div>
       )}
 
       <Tabs value={tab} onValueChange={v => setTab(v as typeof tab)}>
         <TabsList style={{ marginBottom: 18 }}>
-          <TabsTrigger value="custom"><span className="ds-tabs-trigger-label">Custom domains</span> <span style={{ color:'var(--ink3)' }}>{domains.length}</span></TabsTrigger>
-          <TabsTrigger value="subdomains"><span className="ds-tabs-trigger-label">Workspace subdomains</span> <span style={{ color:'var(--ink3)' }}>{subdomains.length}</span></TabsTrigger>
-          <TabsTrigger value="onsite"><span className="ds-tabs-trigger-label">Onsite domains</span> <span style={{ color:'var(--ink3)' }}>{onsiteDomains.length}</span></TabsTrigger>
+          <TabsTrigger value="custom">
+            <span className="ds-tabs-trigger-label">Custom domains</span>
+            <span style={{ color: 'var(--ink3)', marginLeft: 4 }}>({domains.length})</span>
+          </TabsTrigger>
+          <TabsTrigger value="subdomains">
+            <span className="ds-tabs-trigger-label">Workspace subdomains</span>
+            <span style={{ color: 'var(--ink3)', marginLeft: 4 }}>({subdomains.length})</span>
+          </TabsTrigger>
+          <TabsTrigger value="onsite">
+            <span className="ds-tabs-trigger-label">Onsite domains</span>
+            <span style={{ color: 'var(--ink3)', marginLeft: 4 }}>({onsiteDomains.length})</span>
+          </TabsTrigger>
         </TabsList>
-        <TabsContent value="subdomains"><WorkspaceSubdomainsTable rows={subdomains} baseDomain={baseDomain} /></TabsContent>
-        <TabsContent value="onsite"><OnsiteDomainsTable rows={onsiteDomains} /></TabsContent>
+
+        <TabsContent value="subdomains">
+          <WorkspaceSubdomainsTable rows={subdomains} baseDomain={baseDomain} />
+        </TabsContent>
+
+        <TabsContent value="onsite">
+          <OnsiteDomainsTable rows={onsiteDomains} />
+        </TabsContent>
+
         <TabsContent value="custom">
-      <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fit,minmax(160px,1fr))', gap:14, marginBottom:22 }}>
-        <StatCard label="Total Domains"  value={stats.total}     color="var(--teal)"   />
-        <StatCard label="Verified"       value={stats.verified}  color="var(--green)"  />
-        {/* Counts certificates actually seen, not domains someone ticked. */}
-        <StatCard label="Serving TLS"    value={stats.ssl}       color="var(--green)" />
-        <StatCard label="Never checked"  value={stats.unchecked} color="var(--gold)"   />
-      </div>
-
-      <div style={{ marginBottom: 16 }}>
-        <SearchToolbar
-          search={search}
-          onSearch={v => { setSearch(v); setDomPage(1); }}
-          placeholder="Search domains…"
-          quickFilter={{
-            value: statusFilter === 'all' ? null : statusFilter,
-            onChange: v => setStatusFilter((v ?? 'all') as DomainStatus | 'all'),
-            allLabel: 'All Status',
-            columns: 2,
-            options: (Object.keys(DOM_CFG) as DomainStatus[]).map(k => ({
-              value: k,
-              label: DOM_CFG[k].label,
-              icon: <span style={{ width:7, height:7, borderRadius:'50%', background: DOM_CFG[k].color, display:'inline-block' }} />,
-            })),
-          }}
-          activeFilterCount={statusFilter !== 'all' ? 1 : 0}
-          actions={
-            <Button size="sm" type="button" onClick={()=>setAdding(a=>!a)}>
-              {adding ? 'Cancel' : '+ Add domain'}
-            </Button>
-          }
-        />
-      </div>
-
-      {adding && (
-        <div className="card" style={{ padding:16, marginBottom:16, display:'flex', gap:10, flexWrap:'wrap', alignItems:'flex-end' }}>
-          <div style={{ flex:'1 1 240px' }}>
-            <div style={{ fontSize:11, fontWeight:700, textTransform:'uppercase', color:'var(--ink3)', marginBottom:4 }}>Hostname</div>
-            <input data-ui-field="input" className="input-field" value={newHost} onChange={e=>setNewHost(e.target.value)} placeholder="clearance.example.com" />
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: 14, marginBottom: 20 }}>
+            <StatCard label="Registered Domains" value={stats.total} />
+            <StatCard label="Verified" value={stats.verified} />
+            <StatCard label="Serving TLS" value={stats.ssl} />
+            <StatCard label="Pending Verification" value={stats.unchecked} />
           </div>
-          <div style={{ flex:'1 1 200px' }}>
-            <div style={{ fontSize:11, fontWeight:700, textTransform:'uppercase', color:'var(--ink3)', marginBottom:4 }}>Company</div>
-            <Combobox
-              options={tenants.map((t:any) => ({ value: t.id, label: t.name }))}
-              value={newTenant}
-              onChange={setNewTenant}
-              placeholder="Choose a company…"
+
+          <div style={{ marginBottom: 16 }}>
+            <SearchToolbar
+              search={search}
+              onSearch={v => { setSearch(v); setDomPage(1); }}
+              placeholder="Search domains by hostname…"
+              quickFilter={{
+                value: statusFilter === 'all' ? null : statusFilter,
+                onChange: v => setStatusFilter((v ?? 'all') as DomainStatus | 'all'),
+                allLabel: 'All statuses',
+                columns: 2,
+                options: [
+                  { value: 'active', label: 'Verified' },
+                  { value: 'pending', label: 'Unverified' },
+                  { value: 'failed', label: 'Failed' },
+                ],
+              }}
+              activeFilterCount={statusFilter !== 'all' ? 1 : 0}
+              actions={
+                <Button size="sm" type="button" onClick={() => setAdding(a => !a)} aria-label={adding ? 'Cancel adding domain' : 'Add custom domain'}>
+                  {adding ? 'Cancel' : '+ Add domain'}
+                </Button>
+              }
             />
           </div>
-          <Button type="button" disabled={!newHost.trim() || !newTenant || !!busy}
-            onClick={()=>act('add', async () => {
-              await apiFetch('/v1/superadmin/domains', { method:'POST', body: JSON.stringify({ tenant_id:newTenant, domain:newHost.trim() }) });
-              setNewHost(''); setAdding(false);
-            })}>
-            {busy==='add' ? 'Adding…' : 'Add domain'}
-          </Button>
-          <div style={{ flexBasis:'100%', fontSize:11.5, color:'var(--ink3)' }}>
-            Added unverified. The company publishes the TXT token it is given, then Check confirms it — nothing is marked verified before that.
-          </div>
-        </div>
-      )}
 
-      {domains.length === 0 ? (
-        <div className="card" style={{ padding:40, textAlign:'center' }}>
-          <Icon name="globe" size={22} color="var(--ink3)" />
-          <div style={{ fontSize:13.5, color:'var(--ink2)', marginTop:10 }}>No custom domains registered.</div>
-          <div style={{ fontSize:12, color:'var(--ink3)', marginTop:4 }}>Companies reach the platform on its default hostname until one is added here.</div>
-        </div>
-      ) : (
-      <>
-        {selected.size > 0 && (
-          <div style={{ display:'flex', alignItems:'center', gap:12, padding:'0 14px', minHeight:'var(--ctl-h)', marginBottom:8, background:'color-mix(in srgb, var(--teal) 8%, var(--white))', border:'1px solid color-mix(in srgb, var(--teal) 25%, transparent)', borderRadius:'var(--r)', fontSize:13, boxShadow:'0 1px 2px 0 rgba(0,0,0,0.03)' }}>
-            <span style={{ fontWeight:600, color:'var(--teal)' }}>{selected.size} {selected.size === 1 ? 'domain' : 'domains'} selected</span>
-            <div style={{ flex:1 }} />
-            <Button variant="outline" size="sm" type="button" onClick={exportDomains}><Icon name="download" size={12} style={{ marginRight:5 }}/>Export</Button>
-            <Button type="button" variant="ghost" size="sm" onClick={()=>setSelected(new Set())}>Clear</Button>
-          </div>
-        )}
-
-        <DataTable
-          headers={['Domain','Company','TLS certificate','Status','Last checked','Actions']}
-          selectAll={selected.size === domPaginated.length && domPaginated.length > 0}
-          selectAllIndeterminate={selected.size > 0 && selected.size < domPaginated.length}
-          onSelectAll={() => {
-            if (selected.size === domPaginated.length) setSelected(new Set());
-            else setSelected(new Set(domPaginated.map((d:any) => d.id)));
-          }}
-          sortBy={domSortBy} sortDir={domSortDir} onSort={domHandleSort}
-        >
-          {domPaginated.map((d:any)=>(
-            <TR key={d.id} selected={selected.has(d.id)} onSelect={() => setSelected(prev => {
-              const next = new Set(prev); if (next.has(d.id)) next.delete(d.id); else next.add(d.id); return next;
-            })}>
-              <TD>
-                <div style={{ display:'flex', alignItems:'center', gap:8 }}>
-                  <span style={{ display:'inline-flex', alignItems:'center', justifyContent:'center', width:28, height:28, borderRadius: 'var(--r-sm)', background:'var(--bg)' }}>
-                    <Icon name="globe" size={14} color="var(--teal)" />
-                  </span>
-                  <div>
-                    <div style={{ fontFamily:'var(--font)', fontSize:12.5, fontWeight:600, color:'var(--ink)' }}>{d.domain}</div>
-                    {!d.dns_ok && (
-                      <div style={{ fontFamily:'var(--font)', fontSize:10.5, color:'var(--ink3)' }}>TXT {d.verification_token}</div>
-                    )}
-                  </div>
-                </div>
-              </TD>
-              <TD><span style={{ fontSize:13 }}>{d.tenant_name ?? 'company no longer on file'}</span></TD>
-              <TD>
-                {d.ssl_ok
-                  ? <span style={{ display:'inline-flex', alignItems:'center', gap:4, fontSize:11, fontWeight:700, color:'var(--green)', background:'var(--green-l)', padding:'3px 8px', borderRadius:'var(--badge-radius)' }}>
-                      <Icon name="lock" size={10} color="var(--green)" />
-                      expires {d.ssl_expires_at ? fmtDate(d.ssl_expires_at) : 'unknown'}
-                    </span>
-                  : d.never_checked
-                    ? <span style={{ fontSize:11.5, color:'var(--ink3)' }}>not checked yet</span>
-                    : <span style={{ fontSize:11, fontWeight:700, color:'var(--red)', background:'var(--red-l)', padding:'3px 8px', borderRadius:'var(--badge-radius)' }}>no certificate</span>}
-              </TD>
-              <TD>
-                <Badge cfg={DOM_CFG[d.status as DomainStatus]} />
-                {d.last_error && (
-                  <div style={{ fontSize:10.5, color:'var(--ink3)', marginTop:3, maxWidth:260 }}>{d.last_error}</div>
-                )}
-              </TD>
-              <TD nowrap>
-                <span style={{ fontSize:12, color:'var(--ink3)' }}>
-                  {d.last_checked_at ? fmtDate(d.last_checked_at) : 'never'}
-                </span>
-              </TD>
-              <TD>
-                <div style={{ display:'flex', gap:6, alignItems:'center' }}>
-                  <Button type="button" variant="outline" size="xs"
-                    loading={busy==='chk'+d.id} loadingText="Checking…"
-                    onClick={()=>act('chk'+d.id, ()=>apiFetch(`/v1/superadmin/domains/${d.id}/check`, { method:'POST', body:'{}' }))}>
-                    Check
-                  </Button>
-                  <ActBtn icon="trash" color="var(--red)" title="Remove"
-                    onClick={()=>act('del'+d.id, ()=>apiFetch(`/v1/superadmin/domains/${d.id}`, { method:'DELETE' }))} />
-                </div>
-              </TD>
-            </TR>
-          ))}
-          {filtered.length === 0 && (
-            <tr><td colSpan={7} style={{ textAlign:'center', padding:'40px 0', color:'var(--ink3)', fontSize:13 }}>No domains match your filters.</td></tr>
+          {adding && (
+            <div className="card" style={{ padding: 18, marginBottom: 18, display: 'flex', gap: 14, flexWrap: 'wrap', alignItems: 'flex-end', background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 'var(--r)' }}>
+              <div style={{ flex: '1 1 260px' }}>
+                <label htmlFor="new-domain-hostname" style={{ fontSize: 11, fontWeight: 700, textTransform: 'uppercase', color: 'var(--ink3)', letterSpacing: '0.05em', display: 'block', marginBottom: 6 }}>Hostname</label>
+                <Input
+                  id="new-domain-hostname"
+                  aria-label="New hostname"
+                  value={newHost}
+                  onChange={e => setNewHost(e.target.value)}
+                  placeholder="e.g. portal.example.com"
+                />
+              </div>
+              <div style={{ flex: '1 1 240px' }}>
+                <span style={{ fontSize: 11, fontWeight: 700, textTransform: 'uppercase', color: 'var(--ink3)', letterSpacing: '0.05em', display: 'block', marginBottom: 6 }}>Company Tenant</span>
+                <Combobox
+                  aria-label="Company Tenant"
+                  options={tenants.map((t: any) => ({ value: t.id, label: t.name }))}
+                  value={newTenant}
+                  onChange={setNewTenant}
+                  placeholder="Select tenant company…"
+                />
+              </div>
+              <div style={{ display: 'flex', gap: 8 }}>
+                <Button
+                  type="button"
+                  disabled={!newHost.trim() || !newTenant || !!busy}
+                  onClick={() => act('add', async () => {
+                    await apiFetch('/v1/superadmin/domains', { method: 'POST', body: JSON.stringify({ tenant_id: newTenant, domain: newHost.trim() }) });
+                    setNewHost(''); setAdding(false);
+                  })}
+                  aria-label="Add custom domain to platform"
+                >
+                  {busy === 'add' ? 'Adding…' : 'Add Domain'}
+                </Button>
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => setAdding(false)}
+                  aria-label="Cancel adding domain"
+                >
+                  Cancel
+                </Button>
+              </div>
+              <div style={{ flexBasis: '100%', fontSize: 12, color: 'var(--ink3)', lineHeight: 1.5 }}>
+                Custom domains are added unverified. The company publishes the TXT token it is given, then Check confirms DNS resolution and TLS provisioning.
+              </div>
+            </div>
           )}
-        </DataTable>
 
-        {filtered.length > 0 && (
-          <PaginationBar
-            page={domPage} pageSize={domPageSize} total={filtered.length}
-            onPageChange={setDomPage}
-            onPageSizeChange={p => { setDomPageSize(p); setDomPage(1); }}
-            itemLabel="domains" bordered
-          />
-        )}
-      </>
-      )}
+          {domains.length === 0 ? (
+            <div className="card" style={{ padding: 40, textAlign: 'center', background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 'var(--r)' }}>
+              <Icon name="globe" size={24} color="var(--ink3)" />
+              <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--ink)', marginTop: 10 }}>No custom domains registered</div>
+              <div style={{ fontSize: 12.5, color: 'var(--ink3)', marginTop: 4 }}>Companies reach the platform on their default workspace address until a custom domain is configured.</div>
+            </div>
+          ) : (
+            <>
+              {selected.size > 0 && (
+                <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '8px 14px', marginBottom: 12, background: 'var(--bg)', border: '1px solid var(--border)', borderRadius: 'var(--r)', fontSize: 13 }}>
+                  <span style={{ fontWeight: 600, color: 'var(--ink)' }}>{selected.size} {selected.size === 1 ? 'domain' : 'domains'} selected</span>
+                  <div style={{ flex: 1 }} />
+                  <Button variant="outline" size="sm" type="button" onClick={exportDomains} aria-label="Export selected domains to CSV">
+                    <Icon name="download" size={13} style={{ marginRight: 6 }} />
+                    <span>Export CSV</span>
+                  </Button>
+                  <Button type="button" variant="ghost" size="sm" onClick={() => setSelected(new Set())} aria-label="Clear domain selection">
+                    Clear
+                  </Button>
+                </div>
+              )}
+
+              <DataTable
+                headers={['Domain', 'Company', 'TLS certificate', 'Status', 'Last checked', 'Actions']}
+                selectAll={selected.size === domPaginated.length && domPaginated.length > 0}
+                selectAllIndeterminate={selected.size > 0 && selected.size < domPaginated.length}
+                onSelectAll={() => {
+                  if (selected.size === domPaginated.length) setSelected(new Set());
+                  else setSelected(new Set(domPaginated.map((d: any) => d.id)));
+                }}
+                sortBy={domSortBy} sortDir={domSortDir} onSort={domHandleSort}
+              >
+                {domPaginated.map((d: any) => (
+                  <TR key={d.id} selected={selected.has(d.id)} onSelect={() => setSelected(prev => {
+                    const next = new Set(prev); if (next.has(d.id)) next.delete(d.id); else next.add(d.id); return next;
+                  })}>
+                    <TD>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                        <span style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: 28, height: 28, borderRadius: 'var(--r-sm)', background: 'var(--bg)', color: 'var(--ink3)', flexShrink: 0 }}>
+                          <Icon name="globe" size={14} />
+                        </span>
+                        <div>
+                          <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--ink)' }}>{d.domain}</div>
+                          {!d.dns_ok && (
+                            <div className="console-mono" style={{ fontSize: 11, color: 'var(--ink3)', marginTop: 2 }}>TXT {d.verification_token}</div>
+                          )}
+                        </div>
+                      </div>
+                    </TD>
+                    <TD><span style={{ fontSize: 13, color: 'var(--ink2)' }}>{d.tenant_name ?? 'Company no longer on file'}</span></TD>
+                    <TD>
+                      {d.ssl_ok ? (
+                        <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5, fontSize: 12, color: 'var(--ink)' }}>
+                          <Icon name="lock" size={11} color="var(--green)" />
+                          <span>Valid · {d.ssl_expires_at ? `expires ${fmtDate(d.ssl_expires_at)}` : 'active'}</span>
+                        </span>
+                      ) : d.never_checked ? (
+                        <span style={{ fontSize: 12, color: 'var(--ink3)' }}>Not checked yet</span>
+                      ) : (
+                        <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5, fontSize: 12, color: 'var(--red)' }}>
+                          <Icon name="alertTriangle" size={11} color="var(--red)" />
+                          <span>No certificate</span>
+                        </span>
+                      )}
+                    </TD>
+                    <TD>
+                      <DsBadge variant={d.status === 'active' ? 'success' : (d.status === 'failed' ? 'error' : 'gray')}>
+                        {d.status === 'active' ? 'Verified' : (d.status === 'failed' ? 'Failed' : 'Unverified')}
+                      </DsBadge>
+                      {d.last_error && (
+                        <div style={{ fontSize: 11, color: 'var(--ink3)', marginTop: 4, maxWidth: 260 }}>{d.last_error}</div>
+                      )}
+                    </TD>
+                    <TD nowrap>
+                      <span style={{ fontSize: 12, color: 'var(--ink3)' }}>
+                        {d.last_checked_at ? fmtDate(d.last_checked_at) : 'Never'}
+                      </span>
+                    </TD>
+                    <TD>
+                      <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="xs"
+                          loading={busy === 'chk' + d.id}
+                          loadingText="Checking…"
+                          onClick={() => act('chk' + d.id, () => apiFetch(`/v1/superadmin/domains/${d.id}/check`, { method: 'POST', body: '{}' }))}
+                          aria-label={`Check DNS and TLS status for ${d.domain}`}
+                        >
+                          Check
+                        </Button>
+                        <Tip label="Remove domain">
+                          <button
+                            type="button"
+                            aria-label={`Remove domain ${d.domain}`}
+                            onClick={() => act('del' + d.id, () => apiFetch(`/v1/superadmin/domains/${d.id}`, { method: 'DELETE' }))}
+                            style={{
+                              width: 28,
+                              height: 28,
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              border: '1px solid var(--border)',
+                              borderRadius: 'var(--r-sm)',
+                              background: 'var(--white)',
+                              color: 'var(--ink3)',
+                              cursor: 'pointer',
+                            }}
+                          >
+                            <Icon name="trash" size={13} color="var(--ink3)" />
+                          </button>
+                        </Tip>
+                      </div>
+                    </TD>
+                  </TR>
+                ))}
+                {filtered.length === 0 && (
+                  <tr><td colSpan={6} style={{ textAlign: 'center', padding: '40px 0', color: 'var(--ink3)', fontSize: 13 }}>No domains match your filters.</td></tr>
+                )}
+              </DataTable>
+
+              {filtered.length > 0 && (
+                <PaginationBar
+                  page={domPage} pageSize={domPageSize} total={filtered.length}
+                  onPageChange={setDomPage}
+                  onPageSizeChange={p => { setDomPageSize(p); setDomPage(1); }}
+                  itemLabel="domains" bordered
+                />
+              )}
+            </>
+          )}
         </TabsContent>
       </Tabs>
     </div>
@@ -301,10 +413,10 @@ function WorkspaceSubdomainsTable({ rows, baseDomain }: { rows: any[]; baseDomai
   const chosen = rows.filter(r => r.chosen_at_signup).length;
   return (
     <div>
-      <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fit,minmax(180px,1fr))', gap:14, marginBottom:22 }}>
-        <StatCard label="Workspaces"         value={rows.length}          color="var(--teal)" />
-        <StatCard label="Chosen at signup"   value={chosen}               color="var(--green)" />
-        <StatCard label="Reached by slug"    value={rows.length - chosen} color="var(--gold)" />
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: 14, marginBottom: 20 }}>
+        <StatCard label="Workspaces" value={rows.length} />
+        <StatCard label="Chosen at signup" value={chosen} />
+        <StatCard label="Reached by slug" value={rows.length - chosen} />
       </div>
       <div style={{ marginBottom: 16 }}>
         <SearchToolbar search={search} onSearch={v => { setSearch(v); setPage(1); }} placeholder={`Search *.${baseDomain} or company…`} />
@@ -313,24 +425,24 @@ function WorkspaceSubdomainsTable({ rows, baseDomain }: { rows: any[]; baseDomai
         {shown.map(r => (
           <TR key={r.tenant_id}>
             <TD>
-              <div style={{ display:'flex', alignItems:'center', gap:8 }}>
-                <Icon name="globe" size={14} color="var(--teal)" />
-                <span style={{ fontSize:12.5, fontWeight:600, color:'var(--ink)' }}>{r.hostname ?? 'no address'}</span>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                <Icon name="globe" size={14} color="var(--ink3)" />
+                <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--ink)' }}>{r.hostname ?? 'no address'}</span>
               </div>
             </TD>
             <TD>
-              <div style={{ display:'flex', alignItems:'center', gap:8 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                 <CompanyAvatar name={r.tenant_name ?? '?'} logoUrl={r.tenant_logo_url} size={24} shape="square" />
-                <span style={{ fontSize:13 }}>{r.tenant_name}</span>
+                <span style={{ fontSize: 13, color: 'var(--ink2)' }}>{r.tenant_name}</span>
               </div>
             </TD>
-            <TD><span style={{ fontSize:12, color:'var(--ink2)' }}>{r.chosen_at_signup ? 'Chosen at signup' : 'Workspace slug'}</span></TD>
-            <TD><Badge cfg={r.active ? { label:'Active', color:'var(--green)', bg:'var(--green-l)' } : { label:'Suspended', color:'var(--ink3)', bg:'var(--bg)' }} /></TD>
-            <TD nowrap><span style={{ fontSize:12, color:'var(--ink3)' }}>{fmtDate(r.created_at)}</span></TD>
+            <TD><span style={{ fontSize: 12, color: 'var(--ink2)' }}>{r.chosen_at_signup ? 'Chosen at signup' : 'Workspace slug'}</span></TD>
+            <TD><DsBadge variant={r.active ? 'success' : 'gray'}>{r.active ? 'Active' : 'Suspended'}</DsBadge></TD>
+            <TD nowrap><span style={{ fontSize: 12, color: 'var(--ink3)' }}>{fmtDate(r.created_at)}</span></TD>
           </TR>
         ))}
         {filtered.length === 0 && (
-          <tr><td colSpan={5} style={{ textAlign:'center', padding:'40px 0', color:'var(--ink3)', fontSize:13 }}>No workspaces match.</td></tr>
+          <tr><td colSpan={5} style={{ textAlign: 'center', padding: '40px 0', color: 'var(--ink3)', fontSize: 13 }}>No workspaces match.</td></tr>
         )}
       </DataTable>
       {filtered.length > 0 && (
@@ -341,10 +453,10 @@ function WorkspaceSubdomainsTable({ rows, baseDomain }: { rows: any[]; baseDomai
   );
 }
 
-const ORIGIN_CFG: Record<string, { label: string; color: string; bg: string }> = {
-  bought:    { label: 'Bought in Onsite', color: 'var(--green)', bg: 'var(--green-l)' },
-  transfer:  { label: 'Transferred in',   color: 'var(--teal)',  bg: 'color-mix(in srgb, var(--teal) 10%, var(--white))' },
-  connected: { label: 'Connected',        color: 'var(--ink2)',  bg: 'var(--bg)' },
+const ORIGIN_LABELS: Record<string, string> = {
+  bought: 'Bought in Onsite',
+  transfer: 'Transferred in',
+  connected: 'Connected',
 };
 
 /* Read-only: domains customers bought, transferred or connected in Onsite.
@@ -363,18 +475,18 @@ function OnsiteDomainsTable({ rows }: { rows: any[] }) {
   const expiringSoon = rows.filter(r => r.expires_at && Date.parse(r.expires_at) - Date.now() < 30 * 86_400_000).length;
   return (
     <div>
-      <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fit,minmax(160px,1fr))', gap:14, marginBottom:22 }}>
-        <StatCard label="Onsite domains"     value={rows.length} color="var(--teal)" />
-        <StatCard label="Bought in Onsite"   value={rows.filter(r => r.origin === 'bought').length} color="var(--green)" />
-        <StatCard label="Transferred in"     value={rows.filter(r => r.origin === 'transfer').length} color="var(--teal)" />
-        <StatCard label="Expiring in 30 days" value={expiringSoon} color="var(--gold)" />
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: 14, marginBottom: 20 }}>
+        <StatCard label="Onsite domains" value={rows.length} />
+        <StatCard label="Bought in Onsite" value={rows.filter(r => r.origin === 'bought').length} />
+        <StatCard label="Transferred in" value={rows.filter(r => r.origin === 'transfer').length} />
+        <StatCard label="Expiring in 30 days" value={expiringSoon} />
       </div>
       <div style={{ marginBottom: 16 }}>
         <SearchToolbar
           search={search} onSearch={v => { setSearch(v); setPage(1); }} placeholder="Search domains or company…"
           quickFilter={{
             value: origin, onChange: v => { setOrigin(v); setPage(1); }, allLabel: 'All sources',
-            options: Object.entries(ORIGIN_CFG).map(([value, c]) => ({ value, label: c.label })),
+            options: Object.entries(ORIGIN_LABELS).map(([value, label]) => ({ value, label })),
           }}
           activeFilterCount={origin ? 1 : 0}
         />
@@ -383,31 +495,31 @@ function OnsiteDomainsTable({ rows }: { rows: any[] }) {
         {shown.map(r => (
           <TR key={r.id}>
             <TD>
-              <div style={{ display:'flex', alignItems:'center', gap:8 }}>
-                <Icon name="globe" size={14} color="var(--teal)" />
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                <Icon name="globe" size={14} color="var(--ink3)" />
                 <div>
-                  <div style={{ fontSize:12.5, fontWeight:600, color:'var(--ink)' }}>{r.domain}</div>
-                  <div style={{ fontSize:10.5, color:'var(--ink3)' }}>DNS {r.dns_status} · TLS {r.ssl_status}</div>
+                  <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--ink)' }}>{r.domain}</div>
+                  <div style={{ fontSize: 11, color: 'var(--ink3)', marginTop: 2 }}>DNS {r.dns_status} · TLS {r.ssl_status}</div>
                 </div>
               </div>
             </TD>
             <TD>
-              <div style={{ display:'flex', alignItems:'center', gap:8 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                 <CompanyAvatar name={r.tenant_name ?? '?'} logoUrl={r.tenant_logo_url} size={24} shape="square" />
-                <span style={{ fontSize:13 }}>{r.tenant_name ?? 'company no longer on file'}</span>
+                <span style={{ fontSize: 13, color: 'var(--ink2)' }}>{r.tenant_name ?? 'Company no longer on file'}</span>
               </div>
             </TD>
-            <TD><Badge cfg={ORIGIN_CFG[r.origin] ?? ORIGIN_CFG.connected} /></TD>
-            <TD><span style={{ fontSize:12, color:'var(--ink2)' }}>{r.registrar || '—'}</span></TD>
+            <TD><DsBadge variant="gray">{ORIGIN_LABELS[r.origin] ?? 'Connected'}</DsBadge></TD>
+            <TD><span style={{ fontSize: 12, color: 'var(--ink2)' }}>{r.registrar || '—'}</span></TD>
             <TD nowrap>
-              <span style={{ fontSize:12, color:'var(--ink3)' }}>{r.expires_at ? fmtDate(r.expires_at) : 'not recorded'}</span>
-              {r.expires_at && r.auto_renew && <div style={{ fontSize:10.5, color:'var(--ink3)' }}>auto-renews</div>}
+              <span style={{ fontSize: 12, color: 'var(--ink3)' }}>{r.expires_at ? fmtDate(r.expires_at) : 'Not recorded'}</span>
+              {r.expires_at && r.auto_renew && <div style={{ fontSize: 11, color: 'var(--ink3)' }}>auto-renews</div>}
             </TD>
-            <TD><Badge cfg={r.status === 'active' ? { label:'Active', color:'var(--green)', bg:'var(--green-l)' } : { label: String(r.status).replace(/^./, c => c.toUpperCase()), color:'var(--gold)', bg:'var(--gold-l)' }} /></TD>
+            <TD><DsBadge variant={r.status === 'active' ? 'success' : 'gray'}>{r.status === 'active' ? 'Active' : String(r.status)}</DsBadge></TD>
           </TR>
         ))}
         {filtered.length === 0 && (
-          <tr><td colSpan={6} style={{ textAlign:'center', padding:'40px 0', color:'var(--ink3)', fontSize:13 }}>
+          <tr><td colSpan={6} style={{ textAlign: 'center', padding: '40px 0', color: 'var(--ink3)', fontSize: 13 }}>
             {rows.length === 0 ? 'No customer has bought or connected a domain in Onsite yet.' : 'No domains match your filters.'}
           </td></tr>
         )}
@@ -1029,38 +1141,43 @@ function auditCategory(a: any): Exclude<AuditTab, 'all'> {
   return 'config';
 }
 
-function auditRisk(a: any): { label: string; color: string; bg: string } | null {
+function auditRisk(a: any): { label: string; variant: 'error' | 'warning' | 'info' | 'gray' } | null {
   const cat = auditCategory(a);
-  if (cat === 'role')        return { label: 'High Risk',  color: 'var(--red)',  bg: 'var(--red-l)'  };
-  if (cat === 'permissions') return { label: 'High Risk',  color: 'var(--red)',  bg: 'var(--red-l)'  };
-  if (cat === 'tokens')      return { label: 'API Token',  color: 'var(--blue)', bg: 'var(--blue-l)' };
-  if (cat === 'deletions')   return { label: 'Deletion',   color: 'var(--red)',  bg: 'var(--red-l)'  };
-  if (cat === 'config')      return { label: 'Config',     color: 'var(--gold)', bg: 'var(--gold-l)' };
+  if (cat === 'permissions') return { label: 'High Risk', variant: 'error' };
+  if (cat === 'deletions')   return { label: 'Deletion', variant: 'error' };
+  if (cat === 'role')        return { label: 'Role Change', variant: 'warning' };
+  if (cat === 'tokens')      return { label: 'API Key', variant: 'info' };
+  if (cat === 'config')      return { label: 'Config', variant: 'gray' };
   return null;
 }
 
 export function ActivityView() {
-  const [tab,       setTab]       = useState<AuditTab>('all');
-  const [search,    setSearch]    = useState('');
-  const [rows,      setRows]      = useState<any[]>([]);
-  const [loading,   setLoading]   = useState(true);
+  const [tab, setTab] = useState<AuditTab>('all');
+  const [search, setSearch] = useState('');
+  const [rows, setRows] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState('');
-  const [visCount,  setVisCount]  = useState(15);
+  const [visCount, setVisCount] = useState(20);
+  const [expandedIds, setExpandedIds] = useState<Set<string>>(new Set());
+
+  const loadData = useCallback(() => {
+    setLoading(true);
+    setLoadError('');
+    apiFetch('/v1/superadmin/activity?limit=500')
+      .then((a: any) => { setRows(a?.data ?? []); })
+      .catch((e: any) => { setLoadError(e?.message ?? 'Could not load the audit log.'); })
+      .finally(() => { setLoading(false); });
+  }, []);
 
   useEffect(() => {
-    let alive = true;
-    apiFetch('/v1/superadmin/activity?limit=500')
-      .then((a: any) => { if (alive) setRows(a?.data ?? []); })
-      .catch((e: any) => { if (alive) setLoadError(e?.message ?? 'Could not load the audit log.'); })
-      .finally(() => { if (alive) setLoading(false); });
-    return () => { alive = false; };
-  }, []);
+    loadData();
+  }, [loadData]);
 
   const filtered = useMemo(() =>
     rows.filter(a => {
       if (tab !== 'all' && auditCategory(a) !== tab) return false;
-      if (search) {
-        const q = search.toLowerCase();
+      if (search.trim()) {
+        const q = search.toLowerCase().trim();
         if (!(
           (a.actor_name  ?? '').toLowerCase().includes(q) ||
           (a.action      ?? '').toLowerCase().includes(q) ||
@@ -1080,7 +1197,7 @@ export function ActivityView() {
     const weekAgo  = Date.now() - 7 * 24 * 3600_000;
 
     const todayRows = rows.filter(r => new Date(r.created_at).toDateString() === todayStr);
-    const highRisk  = rows.filter(r => { const c = auditCategory(r); return c === 'role' || c === 'permissions'; });
+    const highRisk  = rows.filter(r => { const c = auditCategory(r); return c === 'role' || c === 'permissions' || c === 'deletions'; });
     const weekRows  = rows.filter(r => new Date(r.created_at).getTime() > weekAgo);
     const admins    = new Set(weekRows.map(r => r.actor_user_id).filter(Boolean));
 
@@ -1097,30 +1214,30 @@ export function ActivityView() {
     }
     const topModifiers = [...byActor.values()].sort((a, b) => b.count - a.count).slice(0, 5);
 
-    return { todayCount: todayRows.length, highRiskCount: highRisk.length, activeAdmins: admins.size, byCat, topModifiers };
+    return { total: rows.length, todayCount: todayRows.length, highRiskCount: highRisk.length, activeAdmins: admins.size, byCat, topModifiers };
   }, [rows]);
 
   function exportCsv() {
     const esc = (v: any) => `"${String(v ?? '').replace(/"/g, '""')}"`;
     const csv = [
-      ['When','Actor','Action','Category','Target','Company'].join(','),
+      ['Timestamp', 'Actor', 'Action', 'Category', 'Target', 'Tenant'].join(','),
       ...filtered.map(a => [
-        new Date(a.created_at).toISOString().slice(0,16).replace('T',' '),
+        new Date(a.created_at).toISOString().slice(0, 19).replace('T', ' '),
         a.actor_name, a.action, a.category, a.target_name ?? '', a.tenant_name ?? '',
       ].map(esc).join(',')),
     ].join('\r\n');
-    const url  = URL.createObjectURL(new Blob([csv], { type: 'text/csv;charset=utf-8' }));
+    const url = URL.createObjectURL(new Blob([csv], { type: 'text/csv;charset=utf-8' }));
     const link = document.createElement('a');
-    link.href     = url;
-    link.download = `audit-log-${new Date().toISOString().slice(0,10)}.csv`;
+    link.href = url;
+    link.download = `audit-log-${new Date().toISOString().slice(0, 10)}.csv`;
     link.click();
     URL.revokeObjectURL(url);
   }
 
   function fmtDate(iso: string) {
     const d = new Date(iso);
-    return d.toLocaleDateString('en-GB', { day:'numeric', month:'short', year:'numeric' })
-      + ', ' + d.toLocaleTimeString('en-GB', { hour:'2-digit', minute:'2-digit' });
+    return d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })
+      + ', ' + d.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
   }
 
   function relTime(iso: string) {
@@ -1133,233 +1250,353 @@ export function ActivityView() {
 
   const catTotal = Object.values(stats.byCat).reduce((s, v) => s + v, 0) || 1;
 
-  // ── card helper ────────────────────────────────────────────────────────────
-  function MetricCard({ label, value, icon, color, bg }: { label: string; value: number|string; icon: string; color: string; bg: string }) {
-    return (
-      <div style={{ background:'var(--white)', border:'1px solid var(--border)', borderRadius:'var(--r)', padding:'18px 20px', boxShadow:'var(--elev-sm)', display:'flex', alignItems:'center', gap:14 }}>
-        <div style={{ width:42, height:42, borderRadius:'var(--r)', background:bg, display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0 }}>
-          <Icon name={icon as any} size={18} color={color} />
-        </div>
-        <div>
-          <div style={{ fontSize:22, fontWeight:800, color:'var(--ink)', lineHeight:1 }}>{value}</div>
-          <div style={{ fontSize:12, color:'var(--ink3)', marginTop:4 }}>{label}</div>
-        </div>
-      </div>
-    );
-  }
+  const toggleExpand = (id: string) => {
+    setExpandedIds(prev => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  };
 
   return (
-    <div>
-      <PageHdr
-        title="Audit Log"
-        sub="Security-sensitive changes with before/after comparison"
-        action={
-          <Button variant="outline" size="sm" type="button" style={{ gap:6 }} onClick={exportCsv} disabled={filtered.length === 0}>
-            <Icon name="download" size={12} style={{ marginRight:4 }} />Export CSV
-          </Button>
+    <div className="console-page">
+      <PageHeader
+        crumbs={[
+          { label: 'Console', to: '/console' },
+          { label: 'Audit', to: '/console/audit' },
+          { label: 'Activity log' },
+        ]}
+        titlePlain="Activity"
+        titleEm="log"
+        subtitle="Immutable audit trail of administrative modifications, authorization grants, and system events."
+        actions={
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={loadData}
+              aria-label="Refresh activity log"
+            >
+              <Icon name="refresh" size={14} />
+              <span>Refresh</span>
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={exportCsv}
+              disabled={filtered.length === 0}
+              aria-label="Export activity log to CSV"
+            >
+              <Icon name="download" size={14} />
+              <span>Export CSV</span>
+            </Button>
+          </div>
         }
       />
 
-      <SearchToolbar
-        search={search}
-        onSearch={v => { setSearch(v); setVisCount(15); }}
-        placeholder="Search by actor, action, company…"
-        style={{ marginBottom:20 }}
-      />
-
       {loadError && (
-        <div style={{ padding:'10px 13px', borderRadius:'var(--r)', background:'var(--red-l)', color:'var(--red)', fontSize:12.5, marginBottom:14 }}>{loadError}</div>
+        <div style={{ padding: '10px 14px', borderRadius: 'var(--r)', background: 'var(--bg)', border: '1px solid var(--border)', color: 'var(--red)', fontSize: 13, marginBottom: 16, display: 'flex', alignItems: 'center', gap: 8 }}>
+          <Icon name="alertCircle" size={16} color="var(--red)" />
+          <span>{loadError}</span>
+        </div>
       )}
 
       {/* ── Metric cards ── */}
-      <div style={{ display:'grid', gridTemplateColumns:'repeat(4,1fr)', gap:14, marginBottom:22 }}>
-        <MetricCard label="Changes Today"     value={stats.todayCount}     icon="activity"    color="var(--teal)" bg="var(--teal-l)" />
-        <MetricCard label="High-Risk Changes" value={stats.highRiskCount}  icon="alertTriangle" color="var(--red)"  bg="var(--red-l)"  />
-        <MetricCard label="Restored Values"   value={0}                    icon="refresh"     color="var(--green)" bg="var(--green-l)" />
-        <MetricCard label="Active Admins"     value={stats.activeAdmins}   icon="users"       color="var(--blue)" bg="var(--blue-l)" />
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: 14 }}>
+        <StatCard label="Total Events Logged" value={stats.total} />
+        <StatCard label="Changes Today" value={stats.todayCount} />
+        <StatCard label="High-Risk Actions" value={stats.highRiskCount} />
+        <StatCard label="Active Operators" value={stats.activeAdmins} />
       </div>
 
-      {/* ── Two-column layout ── */}
-      <div style={{ display:'flex', gap:20, alignItems:'flex-start' }}>
-
-        {/* ── Feed ── */}
-        <div style={{ flex:1, minWidth:0 }}>
-          {/* Tab pills */}
-          <div style={{ display:'flex', gap:6, marginBottom:16, flexWrap:'wrap' }} data-ds-tabstrip="">
-            {AUDIT_TABS.map(t => (
-              <button
-                key={t.value}
-                type="button"
-                onClick={() => { setTab(t.value); setVisCount(15); }}
-                style={{
-                  padding:"var(--action-py) var(--space-md)", borderRadius:"var(--r-sm)", fontSize:"var(--text-base)", fontWeight:600, cursor:'pointer',
-                  border:'1px solid var(--border)',
-                  background: tab === t.value ? 'hsl(var(--primary))' : 'var(--white)',
-                  color:      tab === t.value ? 'hsl(var(--primary-foreground))' : 'var(--ink2)',
-                  transition:'background 0.15s, color 0.15s',
-                }}
-               data-ds-selected={tab === t.value} data-ui-native-button="" aria-pressed={tab === t.value}>{t.label}</button>
-            ))}
-          </div>
-
-          {/* Activity list */}
-          <div style={{ display:'flex', flexDirection:'column', gap:10 }}>
-            {loading && (
-              <div style={{ padding:'48px 0', textAlign:'center', color:'var(--ink3)', fontSize:13 }}>Loading audit log…</div>
-            )}
-            {!loading && rows.length === 0 && (
-              <div style={{ padding:'48px 22px', textAlign:'center' }}>
-                <div style={{ fontSize:13.5, color:'var(--ink2)' }}>Nothing has been recorded yet.</div>
-                <div style={{ fontSize:12, color:'var(--ink3)', marginTop:5 }}>
-                  Superadmin actions — creating a company, changing a plan, revoking a token — appear here as they happen.
-                </div>
-              </div>
-            )}
-            {!loading && rows.length > 0 && filtered.length === 0 && (
-              <div style={{ padding:'48px 0', textAlign:'center', color:'var(--ink3)', fontSize:13 }}>
-                No audit entries match your filters.
-              </div>
-            )}
-
-            {visible.map(a => {
-              const risk = auditRisk(a);
-              const isDeletion = auditCategory(a) === 'deletions';
-              const meta   = typeof a.metadata === 'string' ? (() => { try { return JSON.parse(a.metadata); } catch { return {}; } })() : (a.metadata ?? {});
-              const before = meta?.before;
-              const after  = meta?.after;
-              const hasDiff = before !== undefined || after !== undefined;
-
+      {/* ── Toolbar: Tabs & Search ── */}
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap', marginTop: 4 }}>
+        <Tabs value={tab} onValueChange={(v: any) => { setTab(v); setVisCount(20); }}>
+          <TabsList>
+            {AUDIT_TABS.map(t => {
+              const count = t.value === 'all' ? rows.length : (stats.byCat[t.value] ?? 0);
               return (
-                <div key={a.id} style={{ background:'var(--white)', border:'1px solid var(--border)', borderRadius:'var(--r)', padding:'16px 18px', boxShadow:'var(--elev-sm)' }}>
-                  {/* Header row */}
-                  <div style={{ display:'flex', alignItems:'flex-start', gap:10, marginBottom: hasDiff ? 14 : 10 }}>
-                    <PersonAvatar userId={a.actor_user_id ?? undefined} name={a.actor_name} size={34} />
-                    <div style={{ flex:1, minWidth:0 }}>
-                      <div style={{ fontSize:13, lineHeight:1.4 }}>
-                        <span style={{ fontWeight:700, color:'var(--ink)' }}>{a.actor_name}</span>
-                        {' '}
-                        <span style={{ color:'var(--ink2)' }}>{a.action}</span>
-                        {a.target_name && <span style={{ color:'var(--ink3)' }}> · {a.target_name}</span>}
-                      </div>
-                      <div style={{ fontSize:11, color:'var(--ink3)', marginTop:3 }}>
-                        {a.tenant_name ? `${a.tenant_name} · ` : ''}{fmtDate(a.created_at)}
-                        {' '}
-                        <span style={{ opacity:0.7 }}>({relTime(a.created_at)})</span>
-                      </div>
-                    </div>
-                    {risk && (
-                      <span style={{ flexShrink:0, display:'inline-flex', alignItems:'center', gap:5, fontSize:11, fontWeight:700, padding:'3px 10px', borderRadius: 'var(--r-lg)', background:risk.bg, color:risk.color }}>
-                        <span style={{ width:6, height:6, borderRadius:'50%', background:risk.color, display:'inline-block' }} />
-                        {risk.label}
-                      </span>
-                    )}
-                  </div>
-
-                  {/* Before / After diff */}
-                  {hasDiff && (
-                    <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:10, marginBottom:12 }}>
-                      <div style={{ background:'var(--red-l)', borderRadius:'var(--r-sm)', padding:'8px 12px' }}>
-                        <div style={{ fontSize:10, fontWeight:700, color:'var(--red)', textTransform:'uppercase', letterSpacing:'0.07em', marginBottom:4 }}>Before</div>
-                        <div style={{ fontSize:12.5, color:'var(--ink2)', wordBreak:'break-all' }}>
-                          {before !== undefined ? (typeof before === 'object' ? JSON.stringify(before) : String(before)) : '—'}
-                        </div>
-                      </div>
-                      <div style={{ background:'var(--green-l)', borderRadius:'var(--r-sm)', padding:'8px 12px' }}>
-                        <div style={{ fontSize:10, fontWeight:700, color:'var(--green)', textTransform:'uppercase', letterSpacing:'0.07em', marginBottom:4 }}>After</div>
-                        <div style={{ fontSize:12.5, color:'var(--ink2)', wordBreak:'break-all' }}>
-                          {after !== undefined ? (typeof after === 'object' ? JSON.stringify(after) : String(after)) : '—'}
-                        </div>
-                      </div>
-                    </div>
-                  )}
-
-                  {/* Restore button */}
-                  <button
-                    type="button"
-                    onClick={() => showAlert('Restore functionality is coming soon.')}
-                    style={{ display:'inline-flex', alignItems:'center', gap:6, fontSize:"var(--text-base)", fontWeight:600, color:'var(--ink2)', background:'none', border:'1px solid var(--border)', borderRadius:'var(--r-sm)', padding:"var(--action-py) var(--space-md)", cursor:'pointer' }}
-                   data-ui-native-button="">
-                    <Icon name="refresh" size={12} />
-                    {isDeletion && a.target_name ? `Restore ${a.target_name.split(' ')[0]}` : 'Restore Previous Value'}
-                  </button>
-                </div>
+                <TabsTrigger key={t.value} value={t.value}>
+                  <span>{t.label}</span>
+                  <span style={{ color: 'var(--ink3)', marginLeft: 4 }}>({count})</span>
+                </TabsTrigger>
               );
             })}
-          </div>
+          </TabsList>
+        </Tabs>
 
-          {/* Load older */}
+        <div style={{ position: 'relative', width: 280 }}>
+          <Input
+            type="search"
+            aria-label="Search activity by actor, action, or company"
+            placeholder="Search actor, action, company…"
+            value={search}
+            onChange={e => { setSearch(e.target.value); setVisCount(20); }}
+            style={{ paddingLeft: 30 }}
+          />
+          <span
+            style={{
+              position: 'absolute',
+              left: 9,
+              top: '50%',
+              transform: 'translateY(-50%)',
+              pointerEvents: 'none',
+              color: 'var(--ink3)',
+              display: 'flex',
+            }}
+          >
+            <Icon name="search" size={14} />
+          </span>
+        </div>
+      </div>
+
+      {/* ── Main content: Feed & Intelligence Sidebar ── */}
+      <div className="console-main-side" style={{ marginTop: 8 }}>
+        {/* ── Feed column ── */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 10, minWidth: 0 }}>
+          {loading && (
+            <SectionLoading label="Loading audit log entries…" />
+          )}
+
+          {!loading && rows.length === 0 && (
+            <div className="card" style={{ padding: 48, textAlign: 'center', background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 'var(--r)' }}>
+              <Icon name="clock" size={24} color="var(--ink3)" />
+              <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--ink)', marginTop: 10 }}>Nothing has been recorded yet</div>
+              <div style={{ fontSize: 12.5, color: 'var(--ink3)', marginTop: 4 }}>
+                Administrative modifications such as company provisioning, permission assignments, and token revocations appear here in real time.
+              </div>
+            </div>
+          )}
+
+          {!loading && rows.length > 0 && filtered.length === 0 && (
+            <div className="card" style={{ padding: 40, textAlign: 'center', background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 'var(--r)' }}>
+              <Icon name="search" size={20} color="var(--ink3)" />
+              <div style={{ fontSize: 13.5, color: 'var(--ink2)', marginTop: 8 }}>No audit entries match your search filters</div>
+              <Button
+                variant="outline"
+                size="sm"
+                style={{ marginTop: 12 }}
+                onClick={() => { setTab('all'); setSearch(''); }}
+                aria-label="Reset audit log filters"
+              >
+                Reset filters
+              </Button>
+            </div>
+          )}
+
+          {!loading && visible.map(a => {
+            const risk = auditRisk(a);
+            const isExpanded = expandedIds.has(a.id);
+            const meta = typeof a.metadata === 'string'
+              ? (() => { try { return JSON.parse(a.metadata); } catch { return {}; } })()
+              : (a.metadata ?? {});
+            const before = meta?.before;
+            const after = meta?.after;
+            const hasDiff = before !== undefined || after !== undefined;
+
+            return (
+              <article
+                key={a.id}
+                className="card"
+                style={{
+                  background: 'var(--white)',
+                  border: '1px solid var(--border)',
+                  borderRadius: 'var(--r)',
+                  padding: '16px 18px',
+                  boxShadow: 'var(--elev-sm)',
+                  transition: 'border-color 0.15s ease',
+                }}
+              >
+                {/* Header row */}
+                <div style={{ display: 'flex', alignItems: 'flex-start', gap: 12 }}>
+                  <PersonAvatar userId={a.actor_user_id ?? undefined} name={a.actor_name} size={36} />
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ fontSize: 13, lineHeight: 1.45 }}>
+                      <span style={{ fontWeight: 700, color: 'var(--ink)' }}>{a.actor_name}</span>
+                      {' '}
+                      <span style={{ color: 'var(--ink2)' }}>{a.action}</span>
+                      {a.target_name && (
+                        <span
+                          className="console-mono"
+                          style={{
+                            fontSize: 12,
+                            marginLeft: 6,
+                            padding: '1px 6px',
+                            background: 'var(--bg)',
+                            borderRadius: 'var(--r-sm)',
+                            border: '1px solid var(--border)',
+                            color: 'var(--ink)',
+                          }}
+                        >
+                          {a.target_name}
+                        </span>
+                      )}
+                    </div>
+                    <div style={{ fontSize: 11.5, color: 'var(--ink3)', marginTop: 4 }}>
+                      {a.tenant_name ? <span style={{ fontWeight: 500, color: 'var(--ink2)' }}>{a.tenant_name} · </span> : ''}
+                      <span>{fmtDate(a.created_at)}</span>
+                      <span style={{ marginLeft: 6, opacity: 0.8 }}>({relTime(a.created_at)})</span>
+                    </div>
+                  </div>
+
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0 }}>
+                    {risk && (
+                      <DsBadge variant={risk.variant}>
+                        {risk.label}
+                      </DsBadge>
+                    )}
+                  </div>
+                </div>
+
+                {/* Diff comparison */}
+                {hasDiff && (
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 10, marginTop: 14 }}>
+                    <div style={{ background: 'var(--bg)', border: '1px solid var(--border)', borderRadius: 'var(--r-sm)', padding: '10px 12px' }}>
+                      <div style={{ fontSize: 10, fontWeight: 700, color: 'var(--red)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 6 }}>
+                        Previous State
+                      </div>
+                      <div className="console-mono" style={{ fontSize: 12, color: 'var(--ink)', wordBreak: 'break-all', whiteSpace: 'pre-wrap', maxHeight: 180, overflowY: 'auto' }}>
+                        {before !== undefined ? (typeof before === 'object' ? JSON.stringify(before, null, 2) : String(before)) : '—'}
+                      </div>
+                    </div>
+                    <div style={{ background: 'var(--bg)', border: '1px solid var(--border)', borderRadius: 'var(--r-sm)', padding: '10px 12px' }}>
+                      <div style={{ fontSize: 10, fontWeight: 700, color: 'var(--green)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 6 }}>
+                        Updated State
+                      </div>
+                      <div className="console-mono" style={{ fontSize: 12, color: 'var(--ink)', wordBreak: 'break-all', whiteSpace: 'pre-wrap', maxHeight: 180, overflowY: 'auto' }}>
+                        {after !== undefined ? (typeof after === 'object' ? JSON.stringify(after, null, 2) : String(after)) : '—'}
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* Footer action: Inspect metadata payload */}
+                {meta && Object.keys(meta).length > 0 && (
+                  <div style={{ marginTop: 12, paddingTop: 10, borderTop: '1px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                    <button
+                      type="button"
+                      onClick={() => toggleExpand(a.id)}
+                      style={{
+                        background: 'none',
+                        border: 'none',
+                        padding: 0,
+                        fontSize: 12,
+                        fontWeight: 600,
+                        color: 'var(--ink2)',
+                        cursor: 'pointer',
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: 5,
+                      }}
+                      aria-label={`${isExpanded ? 'Hide' : 'View'} metadata payload for event ${a.id}`}
+                    >
+                      <Icon name={isExpanded ? 'chevronUp' : 'chevronDown'} size={12} color="var(--ink3)" />
+                      <span>{isExpanded ? 'Hide payload' : 'Inspect payload'}</span>
+                    </button>
+
+                    <span style={{ fontSize: 11, color: 'var(--ink3)' }} className="console-mono">
+                      ID: {a.id ? a.id.slice(0, 8) : '—'}
+                    </span>
+                  </div>
+                )}
+
+                {/* Expanded metadata JSON */}
+                {isExpanded && (
+                  <div style={{ marginTop: 10, background: 'var(--bg)', border: '1px solid var(--border)', borderRadius: 'var(--r-sm)', padding: '10px 12px' }}>
+                    <pre className="console-mono" style={{ margin: 0, fontSize: 11.5, color: 'var(--ink)', whiteSpace: 'pre-wrap', wordBreak: 'break-all', maxHeight: 240, overflowY: 'auto' }}>
+                      {JSON.stringify(meta, null, 2)}
+                    </pre>
+                  </div>
+                )}
+              </article>
+            );
+          })}
+
+          {/* Load older entries */}
           {!loading && filtered.length > visible.length && (
-            <button
-              type="button"
-              onClick={() => setVisCount(c => c + 15)}
-              style={{ width:'100%', textAlign:'center', padding:"var(--action-py) var(--space-md)", marginTop:14, background:'var(--white)', border:'1px solid var(--border)', borderRadius:'var(--r)', fontSize:"var(--text-base)", fontWeight:600, color:'var(--ink2)', cursor:'pointer' }}
-             data-ui-native-button="">
-              Load Older Changes ({filtered.length - visible.length} remaining)
-            </button>
+            <Button
+              variant="outline"
+              onClick={() => setVisCount(c => c + 20)}
+              style={{ width: '100%', marginTop: 8 }}
+              aria-label="Load more audit entries"
+            >
+              Load Older Entries ({filtered.length - visible.length} remaining)
+            </Button>
           )}
         </div>
 
-        {/* ── Sidebar ── */}
-        <div style={{ width:280, flexShrink:0, display:'flex', flexDirection:'column', gap:14 }}>
-
+        {/* ── Intelligence Sidebar ── */}
+        <aside style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
           {/* Changes by Module */}
-          <div style={{ background:'var(--white)', border:'1px solid var(--border)', borderRadius:'var(--r)', padding:'16px 18px', boxShadow:'var(--elev-sm)' }}>
-            <div style={{ fontWeight:700, fontSize:13, color:'var(--ink)', marginBottom:14 }}>Changes by Module</div>
-            {Object.entries(stats.byCat).sort((a, b) => b[1] - a[1]).map(([cat, count]) => (
-              <div key={cat} style={{ marginBottom:12 }}>
-                <div style={{ display:'flex', justifyContent:'space-between', marginBottom:4 }}>
-                  <span style={{ fontSize:12, fontWeight:600, color:'var(--ink2)' }}>{MODULE_LABELS[cat] ?? cat}</span>
-                  <span style={{ fontSize:11.5, fontWeight:700, color:'var(--ink3)' }}>{Math.round((count / catTotal) * 100)}%</span>
+          <div className="card" style={{ background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 'var(--r)', padding: '16px 18px', boxShadow: 'var(--elev-sm)' }}>
+            <h3 style={{ margin: '0 0 14px 0', fontSize: 13, fontWeight: 700, color: 'var(--ink)' }}>
+              Changes by Module
+            </h3>
+            {Object.entries(stats.byCat).sort((a, b) => b[1] - a[1]).map(([cat, count]) => {
+              const pct = Math.round((count / catTotal) * 100);
+              return (
+                <div key={cat} style={{ marginBottom: 12 }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}>
+                    <span style={{ fontSize: 12, fontWeight: 500, color: 'var(--ink2)' }}>{MODULE_LABELS[cat] ?? cat}</span>
+                    <span style={{ fontSize: 11.5, fontWeight: 600, color: 'var(--ink3)' }}>{count} ({pct}%)</span>
+                  </div>
+                  <div style={{ height: 6, borderRadius: 3, background: 'var(--bg)', overflow: 'hidden' }}>
+                    <div style={{ height: '100%', borderRadius: 3, width: `${pct}%`, background: 'var(--teal)' }} />
+                  </div>
                 </div>
-                <div style={{ height:5, borderRadius:3, background:'var(--bg)' }}>
-                  <div style={{ height:'100%', borderRadius:3, width:`${(count / catTotal) * 100}%`, background:'hsl(var(--primary))' }} />
-                </div>
-              </div>
-            ))}
+              );
+            })}
             {Object.keys(stats.byCat).length === 0 && !loading && (
-              <div style={{ fontSize:12, color:'var(--ink3)', textAlign:'center', padding:'10px 0' }}>No data yet.</div>
+              <div style={{ fontSize: 12, color: 'var(--ink3)', textAlign: 'center', padding: '10px 0' }}>No activity data on record.</div>
             )}
           </div>
 
           {/* Top Modifiers */}
-          <div style={{ background:'var(--white)', border:'1px solid var(--border)', borderRadius:'var(--r)', padding:'16px 18px', boxShadow:'var(--elev-sm)' }}>
-            <div style={{ fontWeight:700, fontSize:13, color:'var(--ink)', marginBottom:14 }}>Top Modifiers</div>
+          <div className="card" style={{ background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 'var(--r)', padding: '16px 18px', boxShadow: 'var(--elev-sm)' }}>
+            <h3 style={{ margin: '0 0 14px 0', fontSize: 13, fontWeight: 700, color: 'var(--ink)' }}>
+              Top Operators (7 Days)
+            </h3>
             {stats.topModifiers.map((m, i) => (
-              <div key={m.name} style={{ display:'flex', alignItems:'center', gap:10, marginBottom: i < stats.topModifiers.length - 1 ? 12 : 0 }}>
+              <div key={m.name} style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: i < stats.topModifiers.length - 1 ? 12 : 0 }}>
                 <PersonAvatar userId={m.userId ?? undefined} name={m.name} size={32} />
-                <div>
-                  <div style={{ fontWeight:700, fontSize:12.5, color:'var(--ink)' }}>{m.name}</div>
-                  <div style={{ fontSize:11, color:'var(--ink3)', marginTop:1 }}>{m.count} change{m.count === 1 ? '' : 's'} this week</div>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ fontWeight: 600, fontSize: 12.5, color: 'var(--ink)' }}>{m.name}</div>
+                  <div style={{ fontSize: 11, color: 'var(--ink3)', marginTop: 1 }}>{m.count} change{m.count === 1 ? '' : 's'} recorded</div>
                 </div>
               </div>
             ))}
             {stats.topModifiers.length === 0 && !loading && (
-              <div style={{ fontSize:12, color:'var(--ink3)', textAlign:'center', padding:'10px 0' }}>No activity this week.</div>
+              <div style={{ fontSize: 12, color: 'var(--ink3)', textAlign: 'center', padding: '10px 0' }}>No admin activity this week.</div>
             )}
           </div>
 
-          {/* AI Risk Summary — only shown when high-risk events exist */}
-          {stats.highRiskCount > 0 && (
-            <div style={{ background:'var(--teal-l)', border:'1px solid var(--teal-m)', borderRadius:'var(--r)', padding:'16px 18px' }}>
-              <div style={{ display:'flex', alignItems:'center', gap:7, marginBottom:8 }}>
-                <Icon name="sparkle" size={14} color="var(--teal)" />
-                <span style={{ fontWeight:700, fontSize:13, color:'var(--ink)' }}>AI Risk Summary</span>
-              </div>
-              <p style={{ fontSize:12.5, color:'var(--ink2)', margin:'0 0 14px', lineHeight:1.55 }}>
-                <strong>{stats.highRiskCount}</strong> permission escalation{stats.highRiskCount === 1 ? '' : 's'} detected this week.
-                These changes granted broader access than the requesting role typically warrants.
-                Consider a quarterly access review.
-              </p>
-              <button
-                type="button"
-                onClick={() => showAlert('Access policy review coming soon.')}
-                style={{ padding:"var(--action-py) var(--space-md)", borderRadius:'var(--r-sm)', border:'1px solid var(--border)', background:'var(--white)', fontSize:"var(--text-base)", fontWeight:600, color:'var(--ink)', cursor:'pointer' }}
-               data-ui-native-button="">
-                Review Access Policy
-              </button>
+          {/* Governance & Policy Notice */}
+          <div className="card" style={{ background: 'var(--bg)', border: '1px solid var(--border)', borderRadius: 'var(--r)', padding: '16px 18px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 7, marginBottom: 8 }}>
+              <Icon name="shield" size={15} color="var(--teal)" />
+              <span style={{ fontWeight: 700, fontSize: 13, color: 'var(--ink)' }}>Audit Governance</span>
             </div>
-          )}
-        </div>
+            <p style={{ fontSize: 12, color: 'var(--ink2)', margin: '0 0 12px', lineHeight: 1.5 }}>
+              Platform activity logs are write-only and tamper-evident. All role assignments, permissions, and entity deletions remain preserved permanently for compliance review.
+            </p>
+            <Link
+              to="/console/security"
+              style={{
+                fontSize: 12,
+                fontWeight: 600,
+                color: 'var(--teal)',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: 4,
+                textDecoration: 'none',
+              }}
+            >
+              <span>Review Security Policy</span>
+              <Icon name="arrowRight" size={12} />
+            </Link>
+          </div>
+        </aside>
       </div>
     </div>
   );

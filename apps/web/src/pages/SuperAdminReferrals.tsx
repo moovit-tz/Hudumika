@@ -12,7 +12,7 @@ import { Button } from '../components/ui/button.js';
 /**
  * AgencyHost M8 — every referral commission across every tenant, in one
  * queue. Cross-tenant by design (dbPlatform, SUPER_ADMIN-gated at the route
- * level), same shape as SuperAdminIssues.tsx.
+ * level).
  */
 
 const STATUS_VARIANT: Record<string, 'gray' | 'error' | 'info' | 'success' | 'warning'> = {

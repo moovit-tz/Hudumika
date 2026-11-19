@@ -14,6 +14,7 @@ import '../pages/OndiPages.css';
 import { OndiUsers } from '../pages/OndiUsers.js';
 import { OndiSSO } from '../pages/OndiSSO.js';
 import { OndiSessions } from '../pages/OndiSessions.js';
+import { OndiSupportAccess } from '../pages/OndiSupportAccess.js';
 import { OndiLoginActivity } from '../pages/OndiLoginActivity.js';
 import { OndiKyc } from '../pages/OndiKyc.js';
 import { OndiRoles } from '../pages/OndiRoles.js';
@@ -256,6 +257,8 @@ export function OndiShell() {
   if (isAdmin) {
     businessNavItems.push({ label: 'IT Admin', icon: 'barChart2' as const, path: '/ondi/it-admin' });
     businessNavItems.push({ label: 'Sessions & Security', icon: 'lock' as const, path: '/ondi/sessions' });
+    // Hudumika support asking for timed access; answered by workspace admins only (not platform staff, not while impersonating).
+    if ((user?.role === 'ADMIN' || user?.role === 'TENANT_ADMIN') && !user?.impersonated_by) businessNavItems.push({ label: 'Support access', icon: 'userCheck' as const, path: '/ondi/support-access' });
     businessNavItems.push({ label: 'Activity', icon: 'activity' as const,    path: '/ondi/activity' });
     // The webhook form itself still lives in Settings.tsx (same generic
     // /v1/settings-backed pattern every other tenant setting uses) — this
@@ -323,6 +326,7 @@ export function OndiShell() {
                 <Route path="sso" element={<RequireRoles roles={[...ADMIN_ROLES]} permissions={['sso_providers.manage']}><OndiSSO /></RequireRoles>} />
                 <Route path="it-admin" element={<RequireRoles roles={[...ADMIN_ROLES]}><OndiItAdmin /></RequireRoles>} />
                 <Route path="sessions" element={<RequireRoles roles={[...ADMIN_ROLES]}><OndiSessions /></RequireRoles>} />
+                <Route path="support-access" element={<RequireRoles roles={['ADMIN', 'TENANT_ADMIN']}><OndiSupportAccess /></RequireRoles>} />
                 <Route path="activity" element={<RequireRoles roles={[...ADMIN_ROLES]}><OndiOrgActivity /></RequireRoles>} />
                 <Route path="trust" element={<RequireRoles roles={[...ADMIN_ROLES]} permissions={['org_trust.view']}><OndiOrgTrust /></RequireRoles>} />
                 <Route path="login-activity" element={<Navigate to="/ondi/activity" replace />} />

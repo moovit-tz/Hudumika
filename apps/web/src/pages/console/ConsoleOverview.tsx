@@ -1,4 +1,5 @@
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
+import { Icon, type IconName } from '../../components/Icon.js';
 import { PageHeader } from '../../components/PageHeader.js';
 import { Tabs, TabsList, TabsTrigger } from '../../components/ui/tabs.js';
 import { Button } from '../../components/ui/button.js';
@@ -14,12 +15,14 @@ export function ConsoleOverview() {
   const canOps = hasPerm(me, 'overview.platform', 'overview.operations', 'security.view', 'billing.view');
   const view = params.get('view') === 'health' && canHealth ? 'health' : canOps ? 'summary' : canHealth ? 'health' : 'summary';
   const platform = hasPerm(me, 'overview.platform');
-  const first = (me?.name ?? '').split(' ')[0];
   return (
-    <div className="console-page">
+    <div className="console-page console-overview">
       <PageHeader crumbs={['Console', 'Overview']} titlePlain={view === 'health' ? 'Service' : platform ? 'Platform' : 'Operations'} titleEm={view === 'health' ? 'health' : 'overview'}
-        subtitle={view === 'health' ? 'Observed product health, deliveries, jobs and changes — with what each number does and does not cover.' : `${first ? `Welcome back, ${first}. ` : ''}Work and customers across your scope.`}
-        actions={platform && me?.tools.includes('platform-dashboard') && view !== 'health' ? <Button asChild variant="outline"><Link to="/console/overview/platform">Revenue & growth dashboard</Link></Button> : undefined} />
+        actions={platform && me?.tools.includes('platform-dashboard') && view !== 'health' ? (
+          <Button asChild variant="ghost" size="xs">
+            <Link to="/console/overview/platform">Revenue &amp; growth <Icon name="arrowRight" size={14} /></Link>
+          </Button>
+        ) : undefined} />
       {canOps && canHealth && (
         <Tabs value={view} onValueChange={v => setParams(p => { const n = new URLSearchParams(p); n.set('view', v); return n; }, { replace: true })}>
           <TabsList>
@@ -33,6 +36,16 @@ export function ConsoleOverview() {
   );
 }
 
+function QueueLink({ to, queue, label, value, icon }: {
+  to?: string; queue?: string; label: string; value: number; icon: IconName;
+}) {
+  return (
+    <Link className="overview-queue" to={to ?? `/console/cases?queue=${queue}`}>
+      <Icon name={icon} size={16} /><span>{label}</span><strong>{value}</strong><Icon name="chevronRight" size={14} />
+    </Link>
+  );
+}
+
 function Summary() {
   const { me } = useStaff();
   const navigate = useNavigate();
@@ -42,24 +55,31 @@ function Summary() {
     <LoadState loading={loading} error={error} onRetry={reload}>
       {data && <>
         {k && (
-          <KpiGrid>
-            <KpiLink to="/console/cases?queue=all" title="Open cases" value={String(k.open)} icon="inbox" color="var(--teal)" hint="Open or in progress in your scope" />
-            <KpiLink to="/console/cases?queue=unassigned" title="Unassigned" value={String(k.unassigned)} icon="userPlus" color="var(--gold)" hint="Waiting for an owner" />
-            <KpiLink to="/console/cases?queue=overdue" title="Overdue" value={String(k.overdue)} icon="clock" color={k.overdue ? 'var(--red)' : 'var(--ink3)'} hint="Past a response or resolution due time" />
-            <KpiLink to="/console/cases?queue=escalated" title="Escalated" value={String(k.escalated)} icon="alertTriangle" color={k.escalated ? 'var(--red)' : 'var(--ink3)'} hint="Flagged for attention" />
-            {hasPerm(me, 'work.own') && <KpiLink to="/console/my-work" title="Assigned to me" value={String(k.mine)} icon="userCheck" color="var(--blue)" hint="Your open cases" />}
-            <KpiLink to="/console/cases?queue=awaiting_outcome" title="Confirm outcome" value={String(k.awaiting_outcome)} icon="checkCircle" color="var(--green)" hint="Resolved, customer outcome not yet confirmed" />
-          </KpiGrid>
+          <div className="overview-work">
+            <section className="card overview-focus">
+              <h2><Icon name="inbox" size={20} /> Open cases</h2>
+              <strong className="overview-total">{k.open}</strong>
+              <p>Open or in progress in your scope</p>
+              <Button asChild variant="outline"><Link to="/console/cases?queue=open">View case queue <Icon name="arrowRight" size={14} /></Link></Button>
+            </section>
+            <Panel title="Case queues" icon="layers" flush>
+              <QueueLink queue="overdue" label="Overdue" value={k.overdue} icon="clock" />
+              <QueueLink queue="unassigned" label="Unassigned" value={k.unassigned} icon="userPlus" />
+              <QueueLink queue="escalated" label="Escalated" value={k.escalated} icon="alertTriangle" />
+              <QueueLink queue="awaiting_outcome" label="Awaiting outcome confirmation" value={k.awaiting_outcome} icon="checkCircle" />
+              {hasPerm(me, 'work.own') && <QueueLink to="/console/my-work" label="Assigned to me" value={k.mine} icon="userCheck" />}
+            </Panel>
+          </div>
         )}
         {(data.customers || data.platform) && (
           <KpiGrid>
             {data.customers && <KpiLink to="/console/customers" title="Customers" value={String(data.customers.customers)} icon="building" color="var(--teal)" hint={`${data.customers.active} active`} />}
-            {data.platform && <KpiLink title="Active users" value={String(data.platform.users)} icon="users" color="var(--blue)" hint="Across all customer workspaces" />}
+            {data.platform && <KpiLink title="Active users" value={String(data.platform.users)} icon="users" color="var(--blue)" hint="All workspaces" />}
             {data.platform && <KpiLink to="/console/products" title="Products" value={String(data.platform.products)} icon="package" color="var(--gold)" hint="On the platform" />}
           </KpiGrid>
         )}
         {Array.isArray(data.incidents) && (
-          <Panel title="Active incidents" sub="Declared incidents on products in your scope" icon="alertTriangle" flush
+          <Panel title="Active incidents" icon="alertTriangle" flush
             action={hasPerm(me, 'incidents.view') ? <Button asChild size="sm" variant="outline"><Link to="/console/cases?tab=incidents">All incidents</Link></Button> : undefined}>
             {data.incidents.length ? (
               <DataTable headers={['Incident', 'Product', 'Severity', 'Status', 'Started']}>
@@ -90,12 +110,13 @@ function ServiceHealth() {
     <LoadState loading={loading} error={error} onRetry={reload}>
       {data && <>
         <KpiGrid>
-          <KpiLink title="Healthy" value={String(count('healthy'))} icon="checkCircle" color="var(--green)" hint="Traffic in the last hour, no server errors" />
-          <KpiLink title="Degraded" value={String(count('degraded'))} icon="alertTriangle" color={count('degraded') ? 'var(--gold)' : 'var(--ink3)'} hint="Some server errors in the last hour" />
-          <KpiLink title="Unavailable" value={String(count('unavailable'))} icon="alertCircle" color={count('unavailable') ? 'var(--red)' : 'var(--ink3)'} hint="Mostly failing in the last hour" />
+          <KpiLink title="Healthy" value={String(count('healthy'))} icon="checkCircle" color="var(--green)" hint="Last hour" />
+          <KpiLink title="Degraded" value={String(count('degraded'))} icon="alertTriangle" color={count('degraded') ? 'var(--gold)' : 'var(--ink3)'} hint="Last hour" />
+          <KpiLink title="Unavailable" value={String(count('unavailable'))} icon="alertCircle" color={count('unavailable') ? 'var(--red)' : 'var(--ink3)'} hint="Last hour" />
+          {count('maintenance') > 0 && <KpiLink title="Maintenance" value={String(count('maintenance'))} icon="tool" color="var(--blue)" hint="Declared maintenance" />}
           <KpiLink title="Unknown" value={String(count('unknown'))} icon="clock" color="var(--ink3)" hint="No traffic to judge from" />
         </KpiGrid>
-        <Panel title="Products" sub="Last hour · maintenance is shown as declared, never as a health reading" icon="activity" flush>
+        <Panel title="Products" sub="Last hour" icon="activity" flush>
           <DataTable headers={['Product', 'State', 'Requests', 'Server errors', 'Client errors', 'p95', 'Last request']}>
             {apps.map((a: any) => (
               <TR key={a.app} onClick={() => navigate(`/console/products/${a.app}`)}>
@@ -127,14 +148,14 @@ function ServiceHealth() {
               <li><span className="console-muted">{data.jobs.scheduler}</span></li>
             </ul>
           </Panel>
-          <Panel title="Recent deployments" sub="Releases recorded in Lens" icon="package" flush>
+          <Panel title="Recent deployments" sub="From Lens" icon="package" flush>
             {data.deployments.length ? (
               <ul className="console-list">
                 {data.deployments.map((d: any) => <li key={d.id}><div className="console-list-main"><div className="console-list-title">{d.version} {d.title}</div><div className="console-list-meta">{fmtDate(d.released_at)}</div></div><span className="console-muted" style={{ textTransform: 'capitalize' }}>{d.status}</span></li>)}
               </ul>
             ) : <Empty icon="package" title="No releases recorded in Lens" />}
           </Panel>
-          <Panel title="Configuration changes" sub="Recent platform setting changes" icon="settings" flush>
+          <Panel title="Configuration changes" icon="settings" flush>
             {data.configChanges.length ? (
               <ul className="console-list">
                 {data.configChanges.map((c: any) => <li key={c.id}><div className="console-list-main"><div className="console-list-title">{c.action} {c.target_name ?? ''}</div><div className="console-list-meta">{c.actor_name} · {fmtRel(c.created_at)}</div></div></li>)}
@@ -142,7 +163,7 @@ function ServiceHealth() {
             ) : <Empty icon="settings" title="No recorded configuration changes" />}
           </Panel>
         </div>
-        <Panel title="What these numbers mean" sub="Definition, source, window, refresh and coverage for every metric above" icon="fileText" flush>
+        <Panel title="What these numbers mean" icon="fileText" flush>
           <DataTable headers={['Metric', 'Definition', 'Source', 'Window', 'Coverage']}>
             {data.definitions.map((d: any) => (
               <TR key={d.metric}>

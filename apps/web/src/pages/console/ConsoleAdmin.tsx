@@ -1,9 +1,9 @@
 import { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
+import { PaginationBar } from '../../components/PaginationBar.js';
 import { PageHeader } from '../../components/PageHeader.js';
 import { Button } from '../../components/ui/button.js';
 import { Input } from '../../components/ui/input.js';
-import { Switch } from '../../components/ui/switch.js';
 import { SearchToolbar } from '../../components/ui/filter-dropdown.js';
 import { PersonAvatar, CompanyAvatar } from '../../components/PersonAvatar.js';
 import { apiDownload, apiFetch } from '../../lib/api.js';
@@ -29,20 +29,19 @@ export function ConsoleSecurity() {
   const activeSessions = (data?.accessSessions ?? []).filter((s: any) => s.status === 'active' || s.status === 'pending_approval');
   return (
     <div className="console-page">
-      <PageHeader crumbs={['Console', 'Identity & Security']} titlePlain="Identity &" titleEm="security"
-        subtitle="Staff sign-in posture, customer access sessions and recent sign-in events." />
+      <PageHeader crumbs={['Console', 'Identity & Security']} titlePlain="Identity &" titleEm="security" />
       <Notice msg={msg} />
       <LoadState loading={loading} error={error} onRetry={reload}>
         {data && <>
           <KpiGrid>
-            {data.staffMfa && <KpiLink title="Staff with 2FA" value={`${mfaOn} / ${data.staffMfa.length}`} icon="shield" color={mfaOn === data.staffMfa.length ? 'var(--green)' : 'var(--gold)'} hint="Active staff with two-factor sign-in" />}
-            {data.staffSessions && <KpiLink title="Staff sessions" value={String(data.staffSessions.length)} icon="key" color="var(--teal)" hint="Signed-in staff devices" />}
-            {data.accessSessions && <KpiLink title="Customer access open" value={String(activeSessions.length)} icon="eye" color={activeSessions.length ? 'var(--gold)' : 'var(--ink3)'} hint="Active or awaiting the customer’s approval" />}
+            {data.staffMfa && <KpiLink title="Staff with 2FA" value={`${mfaOn} / ${data.staffMfa.length}`} icon="shield" color={mfaOn === data.staffMfa.length ? 'var(--green)' : 'var(--gold)'} hint="Active staff" />}
+            {data.staffSessions && <KpiLink title="Staff sessions" value={String(data.staffSessions.length)} icon="key" color="var(--teal)" hint="Signed-in devices" />}
+            {data.accessSessions && <KpiLink title="Customer access open" value={String(activeSessions.length)} icon="eye" color={activeSessions.length ? 'var(--gold)' : 'var(--ink3)'} hint="Active or awaiting approval" />}
             {data.authEvents && <KpiLink title="Sign-in events" value={String(data.authEvents.length)} icon="activity" color="var(--blue)" hint="Last 7 days, your customers" />}
           </KpiGrid>
 
           {data.accessSessions && (
-            <Panel title="Customer access sessions" sub="Staff acting inside a customer’s records — always as themselves, always logged" icon="eye" flush>
+            <Panel title="Customer access sessions" sub="Every action is logged" icon="eye" flush>
               {data.accessSessions.length ? (
                 <DataTable headers={['Staff', 'Customer', 'Scope', 'Purpose', 'Status', '']}>
                   {data.accessSessions.map((s: any) => (
@@ -70,7 +69,7 @@ export function ConsoleSecurity() {
                   ))}
                 </ul>
               </Panel>
-              <Panel title="Staff sign-in sessions" sub="Revoking signs that device out" icon="key" flush>
+              <Panel title="Staff sign-in sessions" icon="key" flush>
                 {data.staffSessions.length ? (
                   <ul className="console-list">
                     {data.staffSessions.map((d: any) => (
@@ -87,7 +86,7 @@ export function ConsoleSecurity() {
           )}
 
           {data.authEvents && (
-            <Panel title="Sign-in events" sub="Last 7 days, customers in your scope" icon="activity" flush>
+            <Panel title="Sign-in events" sub="Last 7 days" icon="activity" flush>
               {data.authEvents.length ? (
                 <DataTable headers={['Event', 'User', 'When']}>
                   {data.authEvents.map((e: any) => (
@@ -112,7 +111,6 @@ export function ConsoleBilling() {
   return (
     <div className="console-page">
       <PageHeader crumbs={['Console', 'Billing & Subscriptions']} titlePlain="Billing" titleEm="overview"
-        subtitle="Plans across your customers and recent subscription invoices. Subscriptions, packages and transactions are under this section in the sidebar."
         actions={<div className="console-row">
           {hasPerm(me, 'billing.export') && <Button variant="outline" onClick={() => apiDownload('/v1/staff/billing/export', 'subscription-invoices.csv')}>Export CSV</Button>}
           {me?.tools.includes('subscriptions') && <Button asChild><Link to="/console/billing/subscriptions">Manage subscriptions</Link></Button>}
@@ -120,7 +118,7 @@ export function ConsoleBilling() {
       <LoadState loading={loading} error={error} onRetry={reload}>
         {data && <>
           <KpiGrid>
-            {data.plans.map((p: any) => <KpiLink key={p.plan} title={String(p.plan ?? 'No plan')} value={String(p.customers)} icon="creditCard" color="var(--teal)" hint="customers on this plan" />)}
+            {data.plans.map((p: any) => <KpiLink key={p.plan} title={String(p.plan ?? 'No plan')} value={String(p.customers)} icon="creditCard" color="var(--teal)" hint="Customers" />)}
           </KpiGrid>
           <Panel title="Recent subscription invoices" sub={`${invoices.length} in your scope`} icon="fileText" flush>
             {invoices.length ? (
@@ -135,7 +133,7 @@ export function ConsoleBilling() {
                   </TR>
                 ))}
               </DataTable>
-            ) : <Empty icon="fileText" title="No subscription invoices in your scope" />}
+            ) : <Empty icon="fileText" title="No subscription invoices" />}
           </Panel>
         </>}
       </LoadState>
@@ -148,22 +146,42 @@ export function ConsoleAudit() {
   const { me } = useStaff();
   const [action, setAction] = useState('');
   const [applied, setApplied] = useState('');
-  useEffect(() => { const t = setTimeout(() => setApplied(action.trim()), 400); return () => clearTimeout(t); }, [action]);
+  const [staffPage, setStaffPage] = useState(1);
+  const [operatorPage, setOperatorPage] = useState(1);
+  const pageSize = 20;
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      if (action.trim() !== applied) { setApplied(action.trim()); setStaffPage(1); }
+    }, 400);
+    return () => clearTimeout(timer);
+  }, [action, applied]);
   const qs = applied ? `?action=${encodeURIComponent(applied)}` : '';
-  const { data, loading, error, reload } = useStaffData<any>(`/v1/staff/audit${qs}`);
-  const staffActions: any[] = data?.staffActions ?? [];
+  const params = new URLSearchParams({ action: applied, limit: String(pageSize), operatorLimit: String(pageSize),
+    offset: String((staffPage - 1) * pageSize), operatorOffset: String((operatorPage - 1) * pageSize) });
   return (
     <div className="console-page">
       <PageHeader crumbs={['Console', 'Reports & Audit']} titlePlain="Audit" titleEm="history"
-        subtitle="Every consequential staff action — who, what, for which customer, why and with what result. Sensitive fields are redacted."
         actions={hasPerm(me, 'audit.export') ? <Button variant="outline" onClick={() => apiDownload(`/v1/staff/audit/export${qs}`, 'staff-audit.csv')}>Export CSV</Button> : undefined} />
-      <SearchToolbar search={action} onSearch={setAction} placeholder="Filter by action, e.g. staff. or access. or platform_admin."
+      <SearchToolbar search={action} onSearch={setAction} placeholder="Filter by action…"
         quickFilter={{ label: 'Area', allLabel: 'All actions', value: ['staff.', 'access.', 'case.', 'platform_admin.'].includes(applied) ? applied : null,
           options: [{ value: 'staff.', label: 'Staff grants' }, { value: 'access.', label: 'Customer access' }, { value: 'case.', label: 'Cases' }, { value: 'platform_admin.', label: 'Platform tools' }],
           onChange: v => setAction(v ?? '') }} />
+      <AuditResults key={params.toString()} query={params.toString()} staffPage={staffPage} operatorPage={operatorPage}
+        pageSize={pageSize} onStaffPage={setStaffPage} onOperatorPage={setOperatorPage} />
+    </div>
+  );
+}
+
+function AuditResults({ query, staffPage, operatorPage, pageSize, onStaffPage, onOperatorPage }: {
+  query: string; staffPage: number; operatorPage: number; pageSize: number;
+  onStaffPage: (page: number) => void; onOperatorPage: (page: number) => void;
+}) {
+  const { data, loading, error, reload } = useStaffData<any>(`/v1/staff/audit?${query}`);
+  const staffActions: any[] = data?.staffActions ?? [];
+  return (
       <LoadState loading={loading} error={error} onRetry={reload}>
         {data && <>
-          <Panel title="Staff actions" sub={`${staffActions.length} most recent${applied ? ` matching “${applied}”` : ''}`} icon="fileText" flush>
+          <Panel title="Staff actions" icon="fileText" flush>
             {staffActions.length ? (
               <DataTable headers={['When', 'Who', 'Action', 'Target', 'Purpose', 'Result']}>
                 {staffActions.map((a: any) => (
@@ -178,8 +196,9 @@ export function ConsoleAudit() {
                 ))}
               </DataTable>
             ) : <Empty icon="fileText" title="No staff actions recorded" />}
+            {data.staffTotal > 0 && <PaginationBar page={staffPage} pageSize={pageSize} total={data.staffTotal} onPageChange={onStaffPage} itemLabel="action" />}
           </Panel>
-          <Panel title="Operator actions on customer workspaces" sub="Impersonation and other direct operator actions" icon="eye" flush>
+          <Panel title="Operator actions" sub="In customer workspaces" icon="eye" flush>
             {data.operatorActions.length ? (
               <ul className="console-list">
                 {data.operatorActions.map((a: any) => (
@@ -187,11 +206,10 @@ export function ConsoleAudit() {
                 ))}
               </ul>
             ) : <Empty icon="eye" title="None recorded" />}
+            {data.operatorTotal > 0 && <PaginationBar page={operatorPage} pageSize={pageSize} total={data.operatorTotal} onPageChange={onOperatorPage} itemLabel="action" />}
           </Panel>
-          {data.note && <div className="console-muted">{data.note}</div>}
         </>}
       </LoadState>
-    </div>
   );
 }
 
@@ -208,14 +226,12 @@ export function ConsoleSettings() {
   const manage = hasPerm(me, 'settings.manage');
   return (
     <div className="console-page">
-      <PageHeader crumbs={['Console', 'Platform Settings']} titlePlain="Console" titleEm="settings"
-        subtitle="How cases are timed and routed, and which products are in maintenance. Platform configuration, branding and integrations are under this section in the sidebar." />
+      <PageHeader crumbs={['Console', 'Platform Settings']} titlePlain="Console" titleEm="settings" />
       <Notice msg={msg} />
       <LoadState loading={loading} error={error} onRetry={reload}>
         {data && <>
-          {hasPerm(me, 'settings.view') && (
-            <div className="console-two">
-              <Panel title="SLA targets" sub="Per priority. Minutes count business hours unless marked 24/7." icon="clock" flush>
+          <div className="console-two">
+              <Panel title="SLA targets" sub="Minutes, per priority" icon="clock" flush>
                 <DataTable headers={['Priority', 'First response', 'Resolution', 'Clock', ...(manage ? [''] : [])]}>
                   {data.sla.map((p: any) => {
                     const v = sla[p.priority] ?? { f: String(p.first_response_minutes), r: String(p.resolution_minutes) };
@@ -232,7 +248,7 @@ export function ConsoleSettings() {
                   })}
                 </DataTable>
               </Panel>
-              <Panel title="Business hours" sub="Waiting on the customer pauses the resolution clock; the due time moves by the paused time" icon="calendar">
+              <Panel title="Business hours" sub="Waiting on the customer pauses the clock" icon="calendar">
                 {data.businessHours ? <Facts items={[
                   ['Time zone', data.businessHours.timezone],
                   ['Working days', data.businessHours.work_days.map((d: number) => DAY[d]).join(', ')],
@@ -240,10 +256,8 @@ export function ConsoleSettings() {
                   ['Holidays', data.businessHours.holidays.length ? data.businessHours.holidays.join(', ') : 'None'],
                 ]} /> : <Empty icon="clock" title="No business hours set" />}
               </Panel>
-            </div>
-          )}
-          {hasPerm(me, 'settings.view') && (
-            <Panel title="Routing rules" sub="First matching rule wins. With no match: a team covering the product, then the customer, then the fallback team, then Unassigned." icon="link" flush>
+          </div>
+          <Panel title="Routing rules" sub="First match wins" icon="link" flush>
               {data.routingRules.length ? (
                 <DataTable headers={['#', 'Rule', 'Matches', 'Sends to', 'State', ...(manage ? [''] : [])]}>
                   {data.routingRules.map((r: any) => (
@@ -257,22 +271,8 @@ export function ConsoleSettings() {
                     </TR>
                   ))}
                 </DataTable>
-              ) : <Empty icon="link" title="No routing rules yet">Cases still route by team coverage and the fallback team.</Empty>}
-            </Panel>
-          )}
-          {hasPerm(me, 'maintenance.manage') && (
-            <Panel title="Maintenance" sub="A declared state — service health never reads it as healthy or unavailable" icon="shield" flush>
-              <ul className="console-list">
-                {data.appStatus.map((a: any) => (
-                  <li key={a.app_id}>
-                    <div className="console-list-main"><div className="console-list-title">{appName(a.app_id)}</div>{a.message && <div className="console-list-meta">{a.message}</div>}</div>
-                    {a.status === 'maintenance' && <Pill kind="health" value="maintenance" />}
-                    <Switch aria-label={`Maintenance for ${appName(a.app_id)}`} checked={a.status === 'maintenance'} onCheckedChange={v => act(() => apiFetch(`/v1/staff/settings/maintenance/${a.app_id}`, { method: 'PUT', body: JSON.stringify({ maintenance: v, reason: v ? 'Maintenance started from the staff console' : 'Maintenance ended from the staff console' }) }), v ? `${appName(a.app_id)} is in maintenance.` : `${appName(a.app_id)} maintenance ended.`)} />
-                  </li>
-                ))}
-              </ul>
-            </Panel>
-          )}
+              ) : <Empty icon="link" title="No routing rules">Cases route by team coverage.</Empty>}
+          </Panel>
         </>}
       </LoadState>
     </div>

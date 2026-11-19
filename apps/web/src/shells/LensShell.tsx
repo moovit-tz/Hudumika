@@ -14,6 +14,7 @@ import { LensReports } from '../pages/LensReports.js';
 import { LensIntegrations } from '../pages/LensIntegrations.js';
 import LensRoadmap from '../pages/LensRoadmap.js';
 import LensCycles from '../pages/LensCycles.js';
+import '../pages/Lens.css';
 
 /**
  * Lens — the internal developer and engineering management system.

@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { PageHeader } from '../components/PageHeader.js';
 import { Checkbox } from '../components/ui/checkbox.js';
 import { MetricsRow } from '../components/MetricCard.js';
@@ -10,9 +11,10 @@ import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '.
 import { apiFetch } from '../lib/api.js';
 import { SectionCard } from '../components/SectionCard.js';
 import { Dialog, DialogContent, DialogTitle } from '../components/ui/dialog.js';
-import { Sheet, SheetContent, SheetTitle } from '../components/ui/sheet.js';
 import { KanbanBoard, type KanbanCardData } from '../components/ui/kanban-board.js';
 import { Button } from '../components/ui/button.js';
+import { Input } from '../components/ui/input.js';
+import { Textarea } from '../components/ui/textarea.js';
 import { useIsMobile } from '../hooks/useIsMobile.js';
 import './Lens.css';
 
@@ -38,6 +40,7 @@ interface Item {
   resolution: string | null; created_at: string;
 }
 interface Area { id: string; name: string; kind: string; description: string | null }
+interface Project { id: string; name: string; key: string; description: string | null }
 interface Stats {
   total: number; open: number; unproven: number;
   by_kind: Record<string, number>; by_severity: Record<string, number>;
@@ -59,6 +62,110 @@ const CONFIDENCE_HINT: Record<Confidence, string> = {
   SUSPECTED: 'A reading of the code. Nobody has reproduced it yet.',
   UNVERIFIED: 'Reported, not yet looked at.',
 };
+
+function renderPriorityBadge(severity: string) {
+  if (severity === 'CRITICAL') {
+    return (
+      <span className="lens-prio-wrap lens-prio-critical" title="Critical Priority">
+        <svg width="10" height="10" viewBox="0 0 16 16" fill="currentColor">
+          <path d="M8 1a7 7 0 100 14A7 7 0 008 1zm0 2.5a.75.75 0 01.75.75v5a.75.75 0 01-1.5 0v-5A.75.75 0 018 3.5zm0 8.5a1 1 0 110-2 1 1 0 010 2z"/>
+        </svg>
+        <span>CRITICAL</span>
+      </span>
+    );
+  }
+  if (severity === 'HIGH') {
+    return (
+      <span className="lens-prio-wrap lens-prio-high" title="High Priority">
+        <svg width="10" height="10" viewBox="0 0 12 12" fill="none">
+          <rect x="1" y="7" width="2.2" height="4" rx="0.5" fill="currentColor"/>
+          <rect x="5" y="4" width="2.2" height="7" rx="0.5" fill="currentColor"/>
+          <rect x="9" y="1" width="2.2" height="10" rx="0.5" fill="currentColor"/>
+        </svg>
+        <span>HIGH</span>
+      </span>
+    );
+  }
+  return null;
+}
+
+function renderKindTag(kind: Kind) {
+  const k = (kind || 'FEATURE').toLowerCase();
+  return (
+    <span className={`lens-kind-badge kind-${k}`}>
+      <span className="lens-kind-dot" />
+      {kind}
+    </span>
+  );
+}
+
+function renderConfidenceTag(confidence: Confidence) {
+  if (confidence === 'CONFIRMED') return null;
+  const isUnverified = confidence === 'UNVERIFIED';
+  return (
+    <span
+      className={`lens-conf-badge ${isUnverified ? 'conf-unverified' : ''}`}
+      title={CONFIDENCE_HINT[confidence]}
+    >
+      <span style={{ fontSize: 9 }}>{isUnverified ? '⚠️' : '👁️'}</span>
+      {isUnverified ? 'Unverified' : 'Suspected'}
+    </span>
+  );
+}
+
+function renderLensColumnHeader(col: { id: string; label: string; color?: string }, count: number) {
+  let iconSvg: React.ReactNode;
+  switch (col.id) {
+    case 'OPEN':
+      iconSvg = (
+        <svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="var(--ink3)" strokeWidth="2">
+          <circle cx="8" cy="8" r="6" strokeDasharray="3.5 2.5" />
+        </svg>
+      );
+      break;
+    case 'IN_PROGRESS':
+      iconSvg = (
+        <svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="var(--teal)" strokeWidth="2">
+          <circle cx="8" cy="8" r="6" />
+          <path d="M8 2a6 6 0 0 1 6 6h-6V2z" fill="var(--teal)" />
+        </svg>
+      );
+      break;
+    case 'BLOCKED':
+      iconSvg = (
+        <svg width="13" height="13" viewBox="0 0 16 16" fill="none">
+          <polygon points="5,2 11,2 14,5 14,11 11,14 5,14 2,11 2,5" fill="var(--red-l)" stroke="var(--red)" strokeWidth="1.5" />
+          <line x1="5.5" y1="8" x2="10.5" y2="8" stroke="var(--red)" strokeWidth="2" strokeLinecap="round" />
+        </svg>
+      );
+      break;
+    case 'DONE':
+      iconSvg = (
+        <svg width="13" height="13" viewBox="0 0 16 16" fill="none">
+          <circle cx="8" cy="8" r="6.5" fill="var(--green)" />
+          <path d="M5 8.2l2 2 4.2-4.4" stroke="#ffffff" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+        </svg>
+      );
+      break;
+    default:
+      iconSvg = (
+        <svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="var(--ink3)" strokeWidth="2">
+          <circle cx="8" cy="8" r="6" />
+        </svg>
+      );
+  }
+
+  return (
+    <div className="lens-col-header-custom">
+      <div className="lens-col-title-wrap">
+        <span className="lens-col-icon">{iconSvg}</span>
+        <span className="lens-col-name">{col.label}</span>
+      </div>
+      <span className="lens-col-badge">{count}</span>
+    </div>
+  );
+}
+
 const PROVIDER_ICON: Record<string, string> = {
   github: 'gitBranch', slack: 'chatBubble', jira: 'layers', linear: 'list', circleci: 'refresh',
 };
@@ -81,32 +188,49 @@ const label: React.CSSProperties = {
 
 export function Lens() {
   const isMobile = useIsMobile();
+  const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const initialProjectId = searchParams.get('project_id') || '';
+
   const [viewMode, setViewMode] = useState<'board' | 'list'>('board');
   const [activeCol, setActiveCol] = useState<string>('all');
   const [items, setItems] = useState<Item[]>([]);
   const [columns, setColumns] = useState<Column[]>([]);
   const [areas, setAreas] = useState<Area[]>([]);
+  const [projects, setProjects] = useState<Project[]>([]);
   const [stats, setStats] = useState<Stats | null>(null);
   const [loading, setLoading] = useState(true);
   const [ci, setCi] = useState<any>(null);
-  const [selected, setSelected] = useState<(Item & { events?: Event[] }) | null>(null);
   const [composing, setComposing] = useState(false);
   const [notice, setNotice] = useState<{ kind: 'ok' | 'err'; text: string } | null>(null);
 
+  const [fProject, setFProject] = useState(initialProjectId);
   const [fKind, setFKind] = useState('');
   const [fArea, setFArea] = useState('');
   const [fConfidence, setFConfidence] = useState('');
   const [q, setQ] = useState('');
   const [showClosed, setShowClosed] = useState(false);
 
-  const hasActiveFilters = Boolean(fKind || fArea || fConfidence || q || showClosed);
+  const hasActiveFilters = Boolean(fProject || fKind || fArea || fConfidence || q || showClosed);
   const clearFilters = () => {
+    setFProject('');
     setFKind('');
     setFArea('');
     setFConfidence('');
     setQ('');
     setShowClosed(false);
+    setSearchParams(prev => {
+      const p = new URLSearchParams(prev);
+      p.delete('project_id');
+      return p;
+    });
   };
+
+  // Sync state if URL changes externally
+  useEffect(() => {
+    const p = searchParams.get('project_id') || '';
+    if (p !== fProject) setFProject(p);
+  }, [searchParams]);
 
   // List view only — the board doesn't paginate (a kanban column with a page
   // boundary through it makes drag-and-drop nonsensical), so this drives
@@ -122,6 +246,7 @@ export function Lens() {
   const load = useCallback(() => {
     setLoading(true);
     const params = new URLSearchParams();
+    if (fProject) params.set('project_id', fProject);
     if (fKind) params.set('kind', fKind);
     if (fArea) params.set('area', fArea);
     if (fConfidence) params.set('confidence', fConfidence);
@@ -134,34 +259,31 @@ export function Lens() {
       apiFetch(`/v1/lens/items?${itemParams}`),
       apiFetch(`/v1/lens/board?${params}`),
       apiFetch('/v1/lens/areas'),
-      apiFetch('/v1/lens/stats'),
+      apiFetch(`/v1/lens/stats${params.toString() ? `?${params}` : ''}`),
+      apiFetch('/v1/lens/projects'),
     ])
-      .then(([i, b, a, s]: any[]) => { setItems(i?.data ?? []); setTotal(i?.total ?? 0); setColumns(b ?? []); setAreas(a ?? []); setStats(s ?? null); })
+      .then(([i, b, a, s, p]: any[]) => {
+        setItems(i?.data ?? []);
+        setTotal(i?.total ?? 0);
+        setColumns(b ?? []);
+        setAreas(a ?? []);
+        setStats(s ?? null);
+        setProjects(Array.isArray(p) ? p : []);
+      })
       .catch(() => { setItems([]); setTotal(0); setColumns([]); })
       .finally(() => setLoading(false));
 
     apiFetch('/v1/lens/ci').then(setCi).catch(() => setCi(null));
-  }, [fKind, fArea, fConfidence, q, showClosed, page]);
+  }, [fProject, fKind, fArea, fConfidence, q, showClosed, page]);
 
   useEffect(() => { load(); }, [load]);
   // A filter/search change makes the current page number meaningless against
   // the new result set — back to page 1 rather than showing a page that may
   // no longer exist (or silently skipping matches on pages 1..n-1).
-  useEffect(() => { setPage(1); }, [fKind, fArea, fConfidence, q, showClosed]);
+  useEffect(() => { setPage(1); }, [fProject, fKind, fArea, fConfidence, q, showClosed]);
 
-  async function open(ref: string) {
-    try { setSelected(await apiFetch(`/v1/lens/items/${ref}`)); }
-    catch { setNotice({ kind: 'err', text: `Could not open ${ref}` }); }
-  }
-
-  async function patch(ref: string, body: Record<string, unknown>) {
-    try {
-      await apiFetch(`/v1/lens/items/${ref}`, { method: 'PATCH', body: JSON.stringify(body) });
-      await open(ref); load();
-      setNotice({ kind: 'ok', text: `${ref} updated.` });
-    } catch (e: any) {
-      setNotice({ kind: 'err', text: e?.message || 'Could not update that item' });
-    }
+  function open(ref: string) {
+    navigate(`/lens/items/${ref}`);
   }
 
   async function move(card: Card, status: string) {
@@ -206,13 +328,15 @@ export function Lens() {
 
   const totalBoardItems = columns.reduce((acc, col) => acc + (col.items?.length || 0), 0);
 
+  const activeProject = projects.find(p => p.id === fProject);
+
   return (
     <div className="lens-page">
       <PageHeader
-        crumbs={['Lens']}
-        titlePlain="Developer"
-        titleEm="record"
-        subtitle="What is pending, what is broken, and what was decided — across the whole platform."
+        crumbs={activeProject ? ['Lens', activeProject.name] : ['Lens']}
+        titlePlain={activeProject ? activeProject.name : "Developer"}
+        titleEm={activeProject ? activeProject.key : "record"}
+        subtitle={activeProject ? `Project record: what is pending, broken, or decided in ${activeProject.name}.` : "What is pending, what is broken, and what was decided — across the whole platform."}
         actions={
           <div className="lens-header-actions">
             {ci?.ok && !ci.empty && (
@@ -225,7 +349,7 @@ export function Lens() {
                 <Icon name="refresh" size={12} /> CI #{ci.number} · {ci.state}
               </span>
             )}
-            
+
             <div style={{ display: 'flex', border: '1px solid var(--border)', borderRadius: 'var(--r-sm)', overflow: 'hidden' }}>
               {(['board', 'list'] as const).map(m => (
                 <button key={m} type="button" onClick={() => setViewMode(m)} style={{
@@ -261,6 +385,25 @@ export function Lens() {
         <SectionCard>
           <div className="lens-filters-wrap">
             <div className="lens-filters-controls">
+              <Select value={fProject || '__all__'} onValueChange={v => {
+                const next = v === '__all__' ? '' : v;
+                setFProject(next);
+                setSearchParams(prev => {
+                  const p = new URLSearchParams(prev);
+                  if (next) p.set('project_id', next);
+                  else p.delete('project_id');
+                  return p;
+                });
+              }}>
+                <SelectTrigger className="lens-filter-select" style={{ minWidth: isMobile ? 0 : 160, width: isMobile ? '100%' : 'auto' }}>
+                  <SelectValue placeholder="All projects" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="__all__">All projects</SelectItem>
+                  {projects.map(p => <SelectItem key={p.id} value={p.id}>{p.name} ({p.key})</SelectItem>)}
+                </SelectContent>
+              </Select>
+
               <Select value={fKind || '__all__'} onValueChange={v => setFKind(v === '__all__' ? '' : v)}>
                 <SelectTrigger className="lens-filter-select" style={{ minWidth: isMobile ? 0 : 130, width: isMobile ? '100%' : 'auto' }}>
                   <SelectValue placeholder="All kinds" />
@@ -307,15 +450,16 @@ export function Lens() {
 
             <div className="lens-search-wrap">
               <div style={{ position: 'relative', width: '100%' }}>
-                <span style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)', color: 'var(--ink3)', pointerEvents: 'none', display: 'flex' }}>
+                <span style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)', color: 'var(--ink3)', pointerEvents: 'none', display: 'flex', zIndex: 1 }}>
                   <Icon name="search" size={14} />
                 </span>
-                <input
-                  data-ui-field="input"
+                <Input
+                  type="search"
+                  aria-label="Search title, body, evidence"
                   value={q}
                   onChange={e => setQ(e.target.value)}
                   placeholder="Search title, body, evidence…"
-                  style={{ ...input, width: '100%', paddingLeft: 32, paddingRight: q ? 28 : 10 }}
+                  style={{ paddingLeft: 32, paddingRight: q ? 28 : 10 }}
                 />
                 {q && (
                   <button
@@ -344,36 +488,40 @@ export function Lens() {
 
           return (
             <div style={{ display: 'flex', flexDirection: 'column', flex: 1, minHeight: 0, width: '100%', minWidth: 0 }}>
-              <div className="lens-col-tabs" role="tablist" aria-label="Kanban columns">
-                <button
-                  type="button"
-                  className={`lens-col-tab-btn${activeCol === 'all' ? ' active' : ''}`}
-                  onClick={() => setActiveCol('all')}
-                >
-                  All <span className="lens-tab-count">{totalBoardItems}</span>
-                </button>
-                {columns.map(c => {
-                  const dotColor = c.status === 'BLOCKED' || c.over_wip ? 'var(--red)' : c.status === 'IN_PROGRESS' ? 'var(--teal)' : c.status === 'DONE' ? 'var(--green)' : 'var(--ink3)';
-                  return (
-                    <button
-                      key={c.status}
-                      type="button"
-                      className={`lens-col-tab-btn${activeCol === c.status ? ' active' : ''}`}
-                      onClick={() => setActiveCol(c.status)}
-                    >
-                      <span className="lens-tab-dot" style={{ background: dotColor }} />
-                      {c.name}
-                      <span className="lens-tab-count">{c.items.length}</span>
-                    </button>
-                  );
-                })}
-              </div>
-
               <div className={`lens-board-scroll-wrap${activeCol !== 'all' ? ' lens-board-single-col' : isMobile ? ' lens-board-mobile-swipe' : ''}`}>
                 <KanbanBoard
                   columns={displayedColumns.map(c => ({ id: c.status, label: c.name, color: c.over_wip ? 'var(--red)' : 'var(--ink2)' }))}
                   items={allCards}
-                  emptyMessage="No items"
+                  emptyMessage="No items in this column"
+                  defaultPageSize={8}
+                  pageSizeOptions={[8, 16, 32]}
+                  renderColumnHeader={renderLensColumnHeader}
+                  toolbarLeft={
+                    <div className="lens-col-tabs" role="tablist" aria-label="Kanban columns">
+                      <button
+                        type="button"
+                        className={`lens-col-tab-btn${activeCol === 'all' ? ' active' : ''}`}
+                        onClick={() => setActiveCol('all')}
+                      >
+                        All <span className="lens-tab-count">{totalBoardItems}</span>
+                      </button>
+                      {columns.map(c => {
+                        const dotColor = c.status === 'BLOCKED' || c.over_wip ? 'var(--red)' : c.status === 'IN_PROGRESS' ? 'var(--teal)' : c.status === 'DONE' ? 'var(--green)' : 'var(--ink3)';
+                        return (
+                          <button
+                            key={c.status}
+                            type="button"
+                            className={`lens-col-tab-btn${activeCol === c.status ? ' active' : ''}`}
+                            onClick={() => setActiveCol(c.status)}
+                          >
+                            <span className="lens-tab-dot" style={{ background: dotColor }} />
+                            {c.name}
+                            <span className="lens-tab-count">{c.items.length}</span>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  }
                   onDrop={(itemId, _from, toCol) => {
                     const card = allCards.find(c => c.id === itemId);
                     if (card) move(card, toCol);
@@ -382,8 +530,8 @@ export function Lens() {
                     activeCol !== 'all'
                       ? { display: 'grid', gridTemplateColumns: '1fr', width: '100%', gap: 12 }
                       : isMobile
-                      ? undefined
-                      : {
+                        ? undefined
+                        : {
                           display: 'grid',
                           gridTemplateColumns: `repeat(${displayedColumns.length}, minmax(280px, 1fr))`,
                           minWidth: 'fit-content',
@@ -392,36 +540,49 @@ export function Lens() {
                         }
                   }
                   renderCard={(item) => (
-                    <div onClick={() => open(item.ref)}>
-                      <div className="kb-card-topline" style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap', marginBottom: 6 }}>
-                        <span style={{ fontFamily: 'var(--font)', fontSize: 11, fontWeight: 700, color: 'var(--ink3)' }}>{item.ref}</span>
-                        <Badge variant={KIND_VARIANT[item.kind]}>{item.kind}</Badge>
-                        {item.confidence !== 'CONFIRMED' && (
-                          <Badge variant={CONFIDENCE_VARIANT[item.confidence]}>{item.confidence}</Badge>
-                        )}
-                        {(item.severity === 'CRITICAL' || item.severity === 'HIGH') && (
-                          <span style={{ fontSize: 10, fontWeight: 800, color: SEVERITY_COLOR[item.severity], marginLeft: 'auto' }}>
-                            {item.severity}
-                          </span>
-                        )}
+                    <div onClick={() => open(item.ref)} style={{ cursor: 'pointer' }}>
+                      <div className="lens-card-header">
+                        <div className="lens-card-id-wrap">
+                          <span className="lens-card-ref">{item.ref}</span>
+                          {renderKindTag(item.kind)}
+                          {renderConfidenceTag(item.confidence)}
+                        </div>
+                        {renderPriorityBadge(item.severity)}
                       </div>
-                      <div className="kb-card-title" style={{ overflowWrap: 'anywhere', wordBreak: 'break-word', lineHeight: 1.4 }}>{item.title}</div>
+
+                      <div className="lens-card-title">{item.title}</div>
+
                       {item.waiting_on && (
-                        <div className="kb-card-subtitle" style={{ overflowWrap: 'anywhere', wordBreak: 'break-word' }}>⏳ {item.waiting_on}</div>
+                        <div className="lens-card-waiting">
+                          <span style={{ fontSize: 10, flexShrink: 0, marginTop: 1 }}>⏳</span>
+                          <span style={{ minWidth: 0, overflowWrap: 'anywhere' }}>{item.waiting_on}</span>
+                        </div>
                       )}
-                      <div className="kb-card-meta" style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap', marginTop: 8 }}>
-                        {item.area_name && (
-                          <span className="kb-meta-item">{item.area_name}</span>
-                        )}
-                        {item.links.map((l: any) => (
-                          <a key={`${l.provider}-${l.external_id}`} href={l.url ?? '#'} target="_blank" rel="noreferrer"
-                            onClick={e => e.stopPropagation()}
-                            title={`${l.provider} ${l.external_id}${l.external_status ? ` — ${l.external_status}` : ''}`}
-                            className="kb-meta-item" style={{ textDecoration: 'none' }}>
-                            <Icon name={(PROVIDER_ICON[l.provider] ?? 'link') as any} size={11} />
-                          </a>
-                        ))}
-                      </div>
+
+                      {(item.area_name || (item.links && item.links.length > 0)) && (
+                        <div className="lens-card-footer">
+                          {item.area_name && (
+                            <span className="lens-area-tag">#{item.area_name}</span>
+                          )}
+                          {item.links && item.links.length > 0 && (
+                            <div className="lens-card-links">
+                              {item.links.map((l: any) => (
+                                <a
+                                  key={`${l.provider}-${l.external_id}`}
+                                  href={l.url ?? '#'}
+                                  target="_blank"
+                                  rel="noreferrer"
+                                  onClick={e => e.stopPropagation()}
+                                  title={`${l.provider}: ${l.external_id}${l.external_status ? ` (${l.external_status})` : ''}`}
+                                  style={{ color: 'var(--ink3)', textDecoration: 'none', display: 'flex' }}
+                                >
+                                  <Icon name={(PROVIDER_ICON[l.provider] ?? 'link') as any} size={11} />
+                                </a>
+                              ))}
+                            </div>
+                          )}
+                        </div>
+                      )}
                     </div>
                   )}
                 />
@@ -446,18 +607,19 @@ export function Lens() {
                       padding: "var(--action-py) var(--space-md)", fontFamily: 'var(--font)',
                     }} data-ui-native-button="">
                     <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap', marginBottom: 4 }}>
-                      <span style={{ fontFamily: 'var(--font)', fontSize: 11.5, fontWeight: 700, color: 'var(--ink3)' }}>{it.ref}</span>
-                      <Badge variant={KIND_VARIANT[it.kind]}>{it.kind}</Badge>
-                      <Badge variant={CONFIDENCE_VARIANT[it.confidence]}>{it.confidence}</Badge>
+                      <span className="lens-card-ref">{it.ref}</span>
+                      {renderKindTag(it.kind)}
+                      {renderConfidenceTag(it.confidence)}
                       {it.status !== 'OPEN' && <Badge variant="gray">{it.status.replace('_', ' ')}</Badge>}
-                      {it.area_name && <Badge variant="info">{it.area_name}</Badge>}
-                      {(it.severity === 'CRITICAL' || it.severity === 'HIGH') && (
-                        <span style={{ fontSize: 11, fontWeight: 700, color: SEVERITY_COLOR[it.severity] }}>{it.severity}</span>
-                      )}
+                      {it.area_name && <span className="lens-area-tag">#{it.area_name}</span>}
+                      {renderPriorityBadge(it.severity)}
                     </div>
                     <div style={{ fontSize: 13.5, fontWeight: 600, color: 'var(--ink)', lineHeight: 1.4 }}>{it.title}</div>
                     {it.waiting_on && (
-                      <div style={{ fontSize: 11.5, color: 'var(--ink3)', marginTop: 3 }}>Waiting on: {it.waiting_on}</div>
+                      <div className="lens-card-waiting" style={{ marginTop: 6, display: 'inline-flex' }}>
+                        <span>⏳</span>
+                        <span>Waiting on: {it.waiting_on}</span>
+                      </div>
                     )}
                   </button>
                 ))}
@@ -488,14 +650,6 @@ export function Lens() {
         </div>
       )}
 
-      {selected && (
-        <Detail item={selected} areas={areas} onClose={() => setSelected(null)} onPatch={patch}
-          onNote={async (note) => {
-            await apiFetch(`/v1/lens/items/${selected.ref}/notes`, { method: 'POST', body: JSON.stringify({ note }) });
-            open(selected.ref); load();
-          }} />
-      )}
-
       <Dialog open={!!closing} onOpenChange={o => { if (!o) setClosing(null); }}>
         <DialogContent className="max-w-105 gap-0">
           {closing && (
@@ -504,11 +658,14 @@ export function Lens() {
               <div style={{ fontSize: 13, color: 'var(--ink2)', marginBottom: 16, lineHeight: 1.5 }}>
                 Closing an item requires a resolution. What happened here? Was it fixed, proven false, or abandoned?
               </div>
-              <textarea data-ui-field="textarea"
+              <Textarea
+                aria-label="Resolution"
                 autoFocus
-                value={resolution} onChange={e => setResolution(e.target.value)}
+                value={resolution}
+                onChange={e => setResolution(e.target.value)}
                 placeholder="e.g. Fixed in #123"
-                style={{ ...input, width: '100%', minHeight: 80, marginBottom: 16, resize: 'vertical' }}
+                rows={3}
+                style={{ marginBottom: 16 }}
               />
               <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 10 }}>
                 <Button variant="outline" type="button" onClick={() => setClosing(null)}>Cancel</Button>
@@ -559,22 +716,27 @@ function Compose({ areas, onClose, onSaved }: {
         )}
 
         <div style={{ gridColumn: '1 / -1' }}>
-          <label style={label}>Title *</label>
-          <input data-ui-field="input" style={input} value={f.title} onChange={e => setF({ ...f, title: e.target.value })}
-            placeholder="What is wrong, or what is missing" />
+          <label htmlFor="compose-title" style={label}>Title *</label>
+          <Input
+            id="compose-title"
+            value={f.title}
+            onChange={e => setF({ ...f, title: e.target.value })}
+            placeholder="What is wrong, or what is missing"
+            required
+          />
         </div>
 
         <div>
-          <label style={label}>Kind</label>
+          <label htmlFor="compose-kind" style={label}>Kind</label>
           <Select value={f.kind} onValueChange={v => setF({ ...f, kind: v as Kind })}>
-            <SelectTrigger><SelectValue /></SelectTrigger>
+            <SelectTrigger id="compose-kind"><SelectValue /></SelectTrigger>
             <SelectContent>{KINDS.map(k => <SelectItem key={k} value={k}>{k}</SelectItem>)}</SelectContent>
           </Select>
         </div>
         <div>
-          <label style={label}>Area</label>
+          <label htmlFor="compose-area" style={label}>Area</label>
           <Select value={f.area_id || '__none__'} onValueChange={v => setF({ ...f, area_id: v === '__none__' ? '' : v })}>
-            <SelectTrigger><SelectValue placeholder="Unassigned" /></SelectTrigger>
+            <SelectTrigger id="compose-area"><SelectValue placeholder="Unassigned" /></SelectTrigger>
             <SelectContent>
               <SelectItem value="__none__">Unassigned</SelectItem>
               {areas.map(a => <SelectItem key={a.id} value={a.id}>{a.name}</SelectItem>)}
@@ -583,16 +745,16 @@ function Compose({ areas, onClose, onSaved }: {
         </div>
 
         <div>
-          <label style={label}>Severity</label>
+          <label htmlFor="compose-severity" style={label}>Severity</label>
           <Select value={f.severity} onValueChange={v => setF({ ...f, severity: v as Severity })}>
-            <SelectTrigger><SelectValue /></SelectTrigger>
+            <SelectTrigger id="compose-severity"><SelectValue /></SelectTrigger>
             <SelectContent>{SEVERITIES.map(s => <SelectItem key={s} value={s}>{s}</SelectItem>)}</SelectContent>
           </Select>
         </div>
         <div>
-          <label style={label}>Confidence</label>
+          <label htmlFor="compose-confidence" style={label}>Confidence</label>
           <Select value={f.confidence} onValueChange={v => setF({ ...f, confidence: v as Confidence })}>
-            <SelectTrigger><SelectValue /></SelectTrigger>
+            <SelectTrigger id="compose-confidence"><SelectValue /></SelectTrigger>
             <SelectContent>{CONFIDENCES.map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}</SelectContent>
           </Select>
           <div style={{ fontSize: 11, color: 'var(--ink3)', lineHeight: 1.45, marginTop: 3 }}>
@@ -601,26 +763,38 @@ function Compose({ areas, onClose, onSaved }: {
         </div>
 
         <div style={{ gridColumn: '1 / -1' }}>
-          <label style={label}>What it is</label>
-          <textarea data-ui-field="textarea" style={{ ...input, minHeight: 96, resize: 'vertical' } as React.CSSProperties}
-            value={f.body} onChange={e => setF({ ...f, body: e.target.value })}
-            placeholder="What happens, where, and what it costs." />
+          <label htmlFor="compose-body" style={label}>What it is</label>
+          <Textarea
+            id="compose-body"
+            rows={4}
+            value={f.body}
+            onChange={e => setF({ ...f, body: e.target.value })}
+            placeholder="What happens, where, and what it costs."
+          />
         </div>
 
         {/* Asked separately from the description on purpose. "What it does" and
             "how you know" are different claims, and conflating them is how a
             reading of the code becomes a reported fact. */}
         <div style={{ gridColumn: '1 / -1' }}>
-          <label style={label}>How you know</label>
-          <textarea data-ui-field="textarea" style={{ ...input, minHeight: 84, resize: 'vertical', fontFamily: 'var(--font)' } as React.CSSProperties}
-            value={f.evidence} onChange={e => setF({ ...f, evidence: e.target.value })}
-            placeholder="The command you ran, the figures that came back, the query that returned the row. Leave blank if you have not reproduced it — that is what SUSPECTED means." />
+          <label htmlFor="compose-evidence" style={label}>How you know</label>
+          <Textarea
+            id="compose-evidence"
+            rows={3}
+            value={f.evidence}
+            onChange={e => setF({ ...f, evidence: e.target.value })}
+            placeholder="The command you ran, the figures that came back, the query that returned the row. Leave blank if you have not reproduced it — that is what SUSPECTED means."
+          />
         </div>
 
         <div style={{ gridColumn: '1 / -1' }}>
-          <label style={label}>Waiting on</label>
-          <input data-ui-field="input" style={input} value={f.waiting_on} onChange={e => setF({ ...f, waiting_on: e.target.value })}
-            placeholder="A person, a decision, an authority — anything blocking it" />
+          <label htmlFor="compose-waiting" style={label}>Waiting on</label>
+          <Input
+            id="compose-waiting"
+            value={f.waiting_on}
+            onChange={e => setF({ ...f, waiting_on: e.target.value })}
+            placeholder="A person, a decision, an authority — anything blocking it"
+          />
         </div>
 
         <div style={{ gridColumn: '1 / -1', display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
@@ -634,142 +808,4 @@ function Compose({ areas, onClose, onSaved }: {
   );
 }
 
-function Detail({ item, areas, onClose, onPatch, onNote }: {
-  item: Item & { events?: Event[] };
-  areas: Area[];
-  onClose: () => void;
-  onPatch: (ref: string, body: Record<string, unknown>) => void;
-  onNote: (note: string) => Promise<void>;
-}) {
-  const [note, setNote] = useState('');
-  const [resolution, setResolution] = useState(item.resolution ?? '');
-  const [closing, setClosing] = useState<Status | null>(null);
-
-  const refs = Array.isArray(item.refs) ? item.refs : [];
-  const tags = Array.isArray(item.tags) ? item.tags : [];
-
-  return (
-    <Sheet open onOpenChange={o => { if (!o) onClose(); }}>
-      <SheetContent className="w-full sm:max-w-170 flex flex-col p-0 gap-0" style={{ overflowY: 'auto' }}>
-        <div style={{ padding: '16px 20px', borderBottom: '1px solid var(--border)' }}>
-          <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap', marginBottom: 6 }}>
-            <span style={{ fontFamily: 'var(--font)', fontSize: 12, fontWeight: 700, color: 'var(--ink3)' }}>{item.ref}</span>
-            <Badge variant={KIND_VARIANT[item.kind]}>{item.kind}</Badge>
-            <Badge variant={CONFIDENCE_VARIANT[item.confidence]}>{item.confidence}</Badge>
-          </div>
-          <SheetTitle style={{ fontSize: 16, fontWeight: 700, color: 'var(--ink)', lineHeight: 1.35, wordBreak: 'break-word', overflowWrap: 'anywhere' }}>{item.title}</SheetTitle>
-        </div>
-
-        <div style={{ padding: '18px 20px', display: 'flex', flexDirection: 'column', gap: 18 }}>
-          {item.body && (
-            <div style={{ fontSize: 13, color: 'var(--ink2)', lineHeight: 1.65, whiteSpace: 'pre-wrap' }}>{item.body}</div>
-          )}
-
-          {/* The proof, given its own place — it is the point of the record. */}
-          <div>
-            <div style={label}>How it is known — {CONFIDENCE_HINT[item.confidence]}</div>
-            <div style={{
-              fontSize: 12.5, color: item.evidence ? 'var(--ink2)' : 'var(--gold)', lineHeight: 1.6,
-              whiteSpace: 'pre-wrap', padding: '10px 12px', background: 'var(--bg)',
-              border: '1px solid var(--border)', borderRadius: 'var(--r-sm)', fontFamily: 'var(--font)',
-            }}>
-              {item.evidence ?? 'No evidence recorded. Nothing here has been reproduced.'}
-            </div>
-          </div>
-
-          <div style={{ display: 'flex', gap: 20, flexWrap: 'wrap', fontSize: 12.5, color: 'var(--ink2)' }}>
-            <div><span style={{ color: 'var(--ink3)' }}>Area</span> · {item.area_name ?? '—'}</div>
-            <div><span style={{ color: 'var(--ink3)' }}>Severity</span> · {item.severity}</div>
-            <div><span style={{ color: 'var(--ink3)' }}>Status</span> · {item.status.replace('_', ' ')}</div>
-            {item.waiting_on && <div><span style={{ color: 'var(--ink3)' }}>Waiting on</span> · {item.waiting_on}</div>}
-          </div>
-
-          {(refs.length > 0 || tags.length > 0) && (
-            <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
-              {refs.map(r => (
-                <span key={r} style={{ fontFamily: 'var(--font)', fontSize: 11, padding: '3px 8px', background: 'var(--bg)', border: '1px solid var(--border)', borderRadius: 'var(--r-sm)', color: 'var(--ink2)' }}>{r}</span>
-              ))}
-              {tags.map(t => <Badge key={t} variant="gray">{t}</Badge>)}
-            </div>
-          )}
-
-          {/* Moving confidence is the most meaningful edit here, so it is one click. */}
-          <div>
-            <div style={label}>Confidence</div>
-            <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
-              {CONFIDENCES.map(c => (
-                <button key={c} type="button"
-                  className={item.confidence === c ? 'btn btn-primary btn-sm' : 'btn btn-secondary btn-sm'}
-                  onClick={() => onPatch(item.ref, { confidence: c })} data-ui-native-button="">{c}</button>
-              ))}
-            </div>
-          </div>
-
-          <div>
-            <div style={label}>Status</div>
-            <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
-              {STATUSES.map(st => (
-                <button key={st} type="button"
-                  className={item.status === st ? 'btn btn-primary btn-sm' : 'btn btn-secondary btn-sm'}
-                  onClick={() => {
-                    // Closing demands a resolution — the same rule the database
-                    // enforces, asked here rather than rejected later.
-                    if (st === 'DONE' || st === 'WONTFIX') { setClosing(st); return; }
-                    onPatch(item.ref, { status: st });
-                  }} data-ui-native-button="">{st.replace('_', ' ')}</button>
-              ))}
-            </div>
-          </div>
-
-          {closing && (
-            <div style={{ padding: '12px 14px', background: 'var(--gold-l)', border: '1px solid var(--gold)', borderRadius: 'var(--r)' }}>
-              <div style={{ fontSize: 12.5, color: 'var(--ink2)', marginBottom: 8 }}>
-                How was it settled? An item closed without saying is the one you find a year later and cannot use.
-              </div>
-              <textarea data-ui-field="textarea" value={resolution} onChange={e => setResolution(e.target.value)} rows={3}
-                style={{ ...input, resize: 'vertical' } as React.CSSProperties}
-                placeholder="e.g. Fixed in a1b2c3d; verified by re-running the period close." />
-              <div style={{ display: 'flex', gap: 8, marginTop: 8 }}>
-                <Button size="sm" type="button" disabled={!resolution.trim()}
-                  onClick={() => { onPatch(item.ref, { status: closing, resolution }); setClosing(null); }}>
-                  Close as {closing}
-                </Button>
-                <Button variant="outline" size="sm" type="button" onClick={() => setClosing(null)}>Cancel</Button>
-              </div>
-            </div>
-          )}
-
-          {item.resolution && (
-            <div>
-              <div style={label}>Resolution</div>
-              <div style={{ fontSize: 12.5, color: 'var(--ink2)', lineHeight: 1.6 }}>{item.resolution}</div>
-            </div>
-          )}
-
-          {/* Append-only, like every other trail here. */}
-          <div>
-            <div style={label}>History</div>
-            <textarea data-ui-field="textarea" value={note} onChange={e => setNote(e.target.value)} rows={2}
-              placeholder="Add an observation — kept forever, never overwritten."
-              style={{ ...input, resize: 'vertical', marginBottom: 8 } as React.CSSProperties} />
-            <Button variant="outline" size="sm" type="button" disabled={!note.trim()}
-              onClick={async () => { await onNote(note.trim()); setNote(''); }}>Add note</Button>
-
-            <div style={{ marginTop: 12 }}>
-              {(item.events ?? []).map(e => (
-                <div key={e.id} style={{ padding: '8px 0', borderTop: '1px solid var(--border)', fontSize: 12.5, color: 'var(--ink2)', lineHeight: 1.5 }}>
-                  <div style={{ fontSize: 11, color: 'var(--ink3)' }}>
-                    {new Date(e.created_at).toLocaleString()} · {e.actor_name ?? 'system'} · {e.kind}
-                  </div>
-                  {e.detail}
-                </div>
-              ))}
-            </div>
-          </div>
-        </div>
-      </SheetContent>
-    </Sheet>
-  );
-}
-
-/* ── New item ───────────────────────────────────────────────────────────── */
+/* ── New item ───────────────────────────────────────────────────────────── */

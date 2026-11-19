@@ -26,7 +26,7 @@ interface KybRow {
  * Platform review of tenants' own business-registration (KYB) submissions
  * — cross-tenant by nature (a tenant can't verify its own business
  * identity), gated on SUPER_ADMIN at the API route level, same convention
- * as SuperAdminIssues.tsx.
+ * as the other superadmin pages.
  */
 export const SuperAdminKyb: React.FC = () => {
   const [queue, setQueue] = useState<KybRow[] | null>(null);

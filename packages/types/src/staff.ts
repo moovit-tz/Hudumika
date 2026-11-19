@@ -127,7 +127,7 @@ export const STAFF_SECTIONS: StaffSection[] = [
   { id: 'security', label: 'Identity & Security', path: '/console/security', icon: 'shield', anyOf: ['security.view', 'access.oversee'] },
   { id: 'billing', label: 'Billing & Subscriptions', path: '/console/billing', icon: 'creditCard', anyOf: ['billing.view'] },
   { id: 'audit', label: 'Reports & Audit', path: '/console/audit', icon: 'fileText', anyOf: ['audit.view'] },
-  { id: 'settings', label: 'Platform Settings', path: '/console/settings', icon: 'settings', anyOf: ['settings.view', 'maintenance.manage'] },
+  { id: 'settings', label: 'Platform Settings', path: '/console/settings', icon: 'settings', anyOf: ['settings.view'] },
 ];
 
 // ── Platform tools (the former /admin pages, now inside the console) ─────

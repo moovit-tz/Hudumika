@@ -22,3 +22,6 @@
     file_server
   }
 }
+
+# Staff console site; empty unless ADMIN_DOMAIN is set (gateway-entrypoint.sh).
+import /etc/caddy/admin-site.caddy

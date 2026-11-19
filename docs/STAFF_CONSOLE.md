@@ -16,7 +16,8 @@ Status (2026-11-18): built and verified locally. Not committed or deployed.
 | API: cases, incidents, access sessions, customer approvals | `apps/api/src/routes/staff-cases.routes.ts` (`/v1/staff`, `/v1/platform-support/access-requests`) |
 | Console UI | `apps/web/src/shells/ConsoleShell.tsx`, `apps/web/src/pages/console/*` |
 | Tests | `apps/api/src/tests/staff-console.test.ts` |
-| Deployment | `deploy/contabo/compose.yaml` (`admin-api`, profile `admin`), `deploy/contabo/admin-console.Caddyfile.example` |
+| Deployment | `deploy/contabo/compose.yaml` (`admin-api`, profile `admin`), `admin-console.Caddyfile`, `gateway-entrypoint.sh`, `init.py`, `deploy.sh` |
+| Customer approval screen | Ondi ▸ Support access (`apps/web/src/pages/OndiSupportAccess.tsx`) |
 
 ## What existed before, and what was reused
 
@@ -171,7 +172,9 @@ A Lens item marked done never resolves or closes a case. The case page shows the
 - the basis (`customer_approval`, or `standing_authorization` when the customer's service terms allow it).
 
 **Approval.**
-- A customer-approval request is pending until one of the customer's workspace ADMIN or TENANT_ADMIN users approves it (`/v1/platform-support/access-requests`). Pending requests lapse after 24 hours.
+- A customer-approval request is pending until one of the customer's workspace ADMIN or TENANT_ADMIN users approves it. They do this in **Ondi ▸ Support access** (`/ondi/support-access`, API `/v1/platform-support/access-requests`), which shows the staff member, purpose, actions, product, duration and when the request lapses. Pending requests lapse after 24 hours.
+- The decision is one conditional UPDATE (still pending, unexpired, same workspace, not the requester's own). Of two competing decisions exactly one succeeds; the other gets 409. The session clock is set in the database from `requested_minutes`.
+- The same page lets the customer **End now** an approved session (status `revoked`, audited as `access.customer_ended`).
 - A standing-authorization session starts immediately.
 
 **While a session is open:**
@@ -182,7 +185,7 @@ A Lens item marked done never resolves or closes a case. The case page shows the
 
 **Records available:** workspace users (no credentials), and product switches (read; or change with `configure`).
 
-**Sessions end when** they expire, the operator ends them, `access.oversee` revokes them, or the access behind them goes away. Losing the role, the customer scope or the product scope revokes the session on the operator's next request.
+**Sessions end when** they expire, the operator ends them, the customer ends them, `access.oversee` revokes them, or the access behind them goes away. Losing the role, the customer scope or the product scope revokes the session on the operator's next request.
 
 **Queued actions.** None exist: every access-session action runs synchronously in the request. A future background action must call `currentAccessSession` again when it runs and drop its work if the session is no longer active.
 
@@ -274,6 +277,22 @@ Layout and type sizes in `console.css` use tokens only.
 
 **Quota fix found in the browser pass.** `/v1/staff` and `/v1/lens` are now unmetered in `lib/usage.ts`. Before, every console write counted against the staff member's own workspace plan quota, which locked staff on small plans out after about 100 actions a month.
 
+## Duplicate pages removed (2026-11-19)
+
+Each removal was checked feature by feature first; anything the surviving page lacked was moved into it.
+
+| Removed | Now lives in | Moved over first |
+|---|---|---|
+| SuperAdmin Issues page (`SuperAdminIssues.tsx`) and its API (`superadmin-issues.routes.ts`) | Cases & Incidents | Attachments (`GET /v1/staff/cases/:id/attachments/:attId`, scoped like the case), report context (page, browser, screen; a whitelist, not the raw blob), the linked landed-cost calculation, the customer-visible resolution note, type / status / product filters. Old Lens links (`/admin/issues?ticket=REF`) open the queue searched for that reference. |
+| Old design editor (`DesignSystemView.tsx`) | The Design System app (`/design-system`) | Nothing — the app already had every section and redirects the old `?section=` links. Settings ▸ Design system now opens the app; the duplicate "Design System app" nav link is gone. |
+| Maintenance list on Console settings | App status (all products) and each product's page (Maintenance switch + customer notice) | The product page keeps it usable for product-scoped staff. Settings now needs `settings.view`. |
+
+**Bugs found while doing it.**
+- Ending maintenance from the console wrote `status = 'live'`, which `app_status`'s CHECK constraint rejects, so it always failed. It now writes `active`, and keeps the notice unless a new one is sent.
+- The "All open" case queue returned resolved and closed cases too. It is now "All cases", with a separate "Open" queue that the "Open cases" cards link to.
+
+Page texts were cut to short labels; explanations that repeated what the page shows were removed.
+
 ## Deployment
 
 **Locally,** everything runs in the existing API and web dev servers; open `/console`.
@@ -284,13 +303,18 @@ Layout and type sizes in `console.css` use tokens only.
   - `customer` refuses `/v1/staff`, `/v1/superadmin` and `/v1/lens` before any route runs;
   - `admin` serves only the console API, sign-in and the shared endpoints the console shell uses. Add more with `ADMIN_SURFACE_EXTRA_PREFIXES`.
 - **`admin-api`** compose service (profile `admin`): same image, `API_SURFACE=admin`, its own CORS origin and public URL, two-factor required for sensitive actions, `mem_limit` / `cpus` budget (`ADMIN_API_MEMORY`, `ADMIN_API_CPUS`), `no-new-privileges`, all capabilities dropped. Validated with `docker compose --profile admin config`.
-- **`admin-console.Caddyfile.example`:** an admin host restricted by `remote_ip {$ADMIN_ALLOWED_CIDRS}`, with no-index and no-frame headers. It proxies the API only to `admin-api` and redirects `/` to `/console`.
+- **`admin-console.Caddyfile`:** an admin host restricted by `remote_ip {$ADMIN_ALLOWED_CIDRS}`, with no-index and no-frame headers. It proxies the API only to `admin-api` and redirects `/` to `/console`. The gateway image's `gateway-entrypoint.sh` installs it only when `ADMIN_DOMAIN` is set; otherwise the imported site file is empty.
+- **Shared files:** `admin-api` mounts the same `uploads` volume as `api` (or both use S3 when `S3_*` is set), so attachments customers upload open for staff on the admin host.
+- **Validation (`init.py --check`):** with `ADMIN_DOMAIN` set, it must be its own public hostname (not `APP_DOMAIN`), `ADMIN_ALLOWED_CIDRS` must be valid networks (not `0.0.0.0/0`), and `API_SURFACE` must be `customer`. Without it, `API_SURFACE` must stay `all`. Compose validates with the admin profile on or off.
+- **Release (`deploy.sh`):** with `ADMIN_DOMAIN` set, `admin-api` is started, health-checked and rolled back with `api` and `gateway` (`rollback.yaml` covers it). After rollout it checks that the public host answers `/v1/staff/me` with 404 and that `admin-api` refuses a customer route.
 
 **To turn it on in production:**
-1. Set `ADMIN_DOMAIN` and `ADMIN_ALLOWED_CIDRS`, and point DNS at the server.
-2. Append the example to the Caddyfile and run `docker compose --profile admin up -d admin-api gateway`.
-3. Set `API_SURFACE=customer` on the public `api` and restart it.
-4. Make sure every staff member has two-factor sign-in turned on.
+1. In `.env.production` set `ADMIN_DOMAIN`, `ADMIN_ALLOWED_CIDRS` (space-separated office/VPN networks) and `API_SURFACE=customer`; point DNS for `ADMIN_DOMAIN` at the server.
+2. Run `deploy.sh`.
+3. Make sure every staff member has two-factor sign-in turned on.
+4. On staging first: sign in from an allowed network, confirm an outside network gets 404, upload an attachment as a customer and open it as staff on the admin host, then roll back once.
+
+**Open decision (MFA freshness).** In production, sensitive staff actions require that the operator's account *has* two-factor sign-in turned on (`assertStepUp`). They do not require a recent two-factor challenge in the current session. If fresh authentication is wanted before opening customer records, that is still to be built.
 
 **Not done (needs a decision or external configuration):**
 - **Separate frontend bundle.** The admin host serves the same SPA build. Only the API and the host are separated. A separate Vite entry would be needed for release independence of the UI.
@@ -300,7 +324,7 @@ Layout and type sizes in `console.css` use tokens only.
 
 ## Verification (2026-11-18)
 
-- **`staff-console.test.ts`: 14/14 passing.** It runs through the real routes, with disposable tenants that are removed afterwards and a check that nothing survives. It covers:
+- **`staff-console.test.ts`: 20/20 passing (2026-11-19, three consecutive runs).** It runs through the real routes, with disposable tenants that are removed afterwards and a check that nothing survives. It covers:
   - **Migration:** the SuperAdmin bootstrap, due times on existing cases, and role templates seeded.
   - **Entry:** workspace ADMIN and MANAGER refused; a `users.role` SUPER_ADMIN without a grant refused while `/v1/superadmin` keeps working; a staff SuperAdmin doesn't widen `/v1/superadmin`; impersonation refused.
   - **Landing:** every role lands on its home with the right sections; no role means no sections.
@@ -314,6 +338,8 @@ Layout and type sizes in `console.css` use tokens only.
   - **Lens separation:** done ≠ resolved; outcome needs resolution; internal notes hidden from the workspace; staff-only fields hidden; Lens read-only for `lens.view`.
   - **SLA:** business hours including a holiday; pause and resume through a customer reply.
   - **Access sessions:** approval by the right customer only; read vs configure; logging; scope removal revokes; standing authorization; expiry; oversight revoke.
+  - **Customer decisions:** concurrent approve + deny → exactly one 200 and one 409, with no fields from the loser; a later answer cannot flip it; session length equals the requested minutes; the customer's End now stops staff access at once; another workspace cannot end it.
+  - **Console cleanup (2026-11-19):** maintenance on/off keeps the notice; case detail shows whitelisted report context and attachments.
   - **Audit:** entries for consequential actions, with no secrets.
 - **Browser (headless Chromium, 63/63)** against the dev servers, with a disposable fixture (removed afterwards). Signed in through `/auth/login` as each role:
   - landing URL, navigation and scope banner per role;
@@ -324,7 +350,10 @@ Layout and type sizes in `console.css` use tokens only.
   - keyboard reaches content; no page errors; controls named.
 - **`npm run typecheck`** (API, web, trigger, design-system and encoding checks): passes. **`npm run build`**: passes.
 
+- **Customer approval screen (2026-11-19, headless Chromium, 11/11):** a workspace admin sees the request with staff, actions, product and duration; Approve makes the staff session active; End now removes it; Deny works at 390 px with no horizontal scroll; a staff member without a workspace admin role sees no requests.
+- **Deployment configuration (2026-11-19):** `docker compose config` passes with the admin host off (no `ADMIN_DOMAIN`) and on, and with the rollback override; `init.py --check` accepts both setups and rejects each unsafe one (surface not `customer`, no or invalid CIDRs, `0.0.0.0/0`, same host as the app, `customer` without an admin host).
+
 **Not verified:**
 - the last-SuperAdmin guard (the shared dev database has three real SuperAdmins, which I didn't touch);
 - live email, SMS or WhatsApp effects (none are sent by the console);
-- deployment on a server.
+- the gateway's Caddy config was not run (Docker's engine wasn't running locally), and nothing was deployed to a server. On 2026-11-19 the 63-check authenticated browser matrix was re-run (63/63) and `npm run build` passes. Also on 2026-11-19 `tsc --noEmit` passes for `apps/api`; `apps/web` errors only in another session's Lens pages.

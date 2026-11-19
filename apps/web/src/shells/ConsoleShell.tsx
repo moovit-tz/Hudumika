@@ -39,7 +39,14 @@ const AccessRecords = React.lazy(() => import('../pages/console/ConsoleAccess.js
 // same rule in services/platform-admin-access.ts.
 const lazyNamed = (load: () => Promise<any>, name: string) => React.lazy(() => load().then(m => ({ default: m[name] })));
 const loadSA = () => import('../pages/SuperAdmin.js');
-const TOOL_ELEMENTS: Record<string, React.LazyExoticComponent<React.ComponentType<any>>> = {
+/** Design tokens and branding live in the Design System app; old ?section= links keep working. */
+function DesignSystemRedirect() {
+  const [params] = useSearchParams();
+  const s = params.get('section');
+  return <Navigate to={s ? `/design-system/settings/${encodeURIComponent(s)}` : '/design-system'} replace />;
+}
+
+const TOOL_ELEMENTS: Record<string, React.ComponentType<any>> = {
   'platform-dashboard': lazyNamed(loadSA, 'DashboardView'),
   companies: lazyNamed(loadSA, 'CompaniesView'),
   subscriptions: lazyNamed(loadSA, 'SubscriptionsView'),
@@ -54,7 +61,7 @@ const TOOL_ELEMENTS: Record<string, React.LazyExoticComponent<React.ComponentTyp
   kyb: lazyNamed(() => import('../pages/SuperAdminKyb.js'), 'SuperAdminKyb'),
   referrals: lazyNamed(() => import('../pages/SuperAdminReferrals.js'), 'SuperAdminReferrals'),
   announcements: lazyNamed(() => import('../pages/SuperAdminAnnouncements.js'), 'SuperAdminAnnouncements'),
-  'design-system': lazyNamed(() => import('../pages/DesignSystemView.js'), 'DesignSystemView'),
+  'design-system': DesignSystemRedirect,
   seo: lazyNamed(() => import('../pages/SeoAnalyticsView.js'), 'SeoAnalyticsView'),
   'cms-pages': lazyNamed(() => import('../pages/AdminCMSPages.js'), 'AdminCMSPages'),
   'sms-gateways': lazyNamed(() => import('../pages/sms/SmsGateways.js'), 'SmsGateways'),
@@ -73,7 +80,7 @@ function Landing() {
     <div className="console-state" role="status">
       <span className="console-empty-icon" style={{ width: 52, height: 52 }}><Icon name="userCheck" size={24} color="var(--teal)" /></span>
       <h1 className="console-panel-title" style={{ fontSize: 'var(--text-lg, 18px)' }}>Your staff access is being set up</h1>
-      <p className="console-empty-text" style={{ margin: 0 }}>You are a staff member, but no role or assignment gives you a console section yet. An administrator needs to grant you a role.</p>
+      <p className="console-empty-text" style={{ margin: 0 }}>An administrator needs to grant you a role.</p>
     </div>
   );
 }
@@ -146,7 +153,7 @@ function ConsoleNav() {
         : item;
     }),
   }];
-  if (me?.isSuperAdmin) sections.push({ title: 'ENGINEERING', items: [{ label: 'Lens', icon: 'activity', path: '/lens' }, { label: 'Design System app', icon: 'layers', path: '/design-system' }] });
+  if (me?.isSuperAdmin) sections.push({ title: 'ENGINEERING', items: [{ label: 'Lens', icon: 'activity', path: '/lens' }] });
   return <AppSidebar appId="admin" sections={sections} loading={!me} />;
 }
 

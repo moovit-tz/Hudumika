@@ -13,18 +13,44 @@
 
 /* Column */
 .kb-column {
-  background: color-mix(in srgb, var(--bg-subtle) 70%, transparent);
-  backdrop-filter: blur(8px);
-  -webkit-backdrop-filter: blur(8px);
-  border-radius: var(--r-lg);
+  background: var(--card-sunken, #f8fafc);
+  border-radius: var(--r-sm);
   border: 1px solid var(--border);
   transition: background 0.15s ease, border-color 0.15s ease;
   display: flex;
   flex-direction: column;
   min-height: 200px;
+  max-height: calc(100vh - 280px);
   padding: 10px;
   min-width: 0;
   box-sizing: border-box;
+}
+
+.kb-column-cards {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  padding-right: 4px;
+}
+
+.kb-column-cards::-webkit-scrollbar {
+  width: 5px;
+}
+
+.kb-column-cards::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.kb-column-cards::-webkit-scrollbar-thumb {
+  background: var(--border);
+  border-radius: 4px;
+}
+
+.kb-column-cards::-webkit-scrollbar-thumb:hover {
+  background: var(--ink3);
 }
 
 .kb-column--over {
@@ -78,14 +104,14 @@
 .kb-card {
   background: var(--white);
   border: 1px solid var(--border);
-  border-radius: var(--r);
-  box-shadow: var(--elev-sm);
-  transition: transform 0.22s cubic-bezier(0.34, 1.56, 0.64, 1),
-              box-shadow 0.22s ease,
+  border-radius: var(--r-sm);
+  box-shadow: 0 1px 2px 0 rgba(15, 23, 42, 0.04);
+  transition: transform 0.15s ease,
+              box-shadow 0.15s ease,
               border-color 0.15s ease;
   cursor: grab;
   position: relative;
-  padding: 11px 12px;
+  padding: 10px 12px;
   display: block;
   overflow: hidden;
   text-decoration: none;
@@ -94,23 +120,28 @@
   box-sizing: border-box;
 }
 
+.kb-card::before {
+  display: none !important;
+}
+
 .kb-card:hover {
-  box-shadow: var(--elev);
+  box-shadow: 0 2px 8px 0 rgba(15, 23, 42, 0.08);
   border-color: var(--teal);
-  transform: translateY(-3px);
+  transform: translateY(-1px);
 }
 
 .kb-card:active { cursor: grabbing; }
 
 .kb-card--dragging {
-  transform: translateY(-4px) rotate(-2deg) scale(1.03);
+  transform: translateY(-2px) rotate(-1deg);
   box-shadow: var(--elev-lg);
   cursor: grabbing;
-  opacity: 0.92;
+  opacity: 0.95;
+  border-color: var(--teal);
 }
 
 .kb-card--static { cursor: pointer; }
-.kb-card--static:hover { transform: translateY(-2px); }
+.kb-card--static:hover { transform: translateY(-1px); }
 
 /* Card anatomy */
 .kb-card-topline {

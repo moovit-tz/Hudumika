@@ -173,6 +173,35 @@ describe('staff console', () => {
     expect(await used()).toBe(before);
   });
 
+  it('maintenance can be turned on and off from the console; the notice is kept', async () => {
+    const appId = 'sign';
+    const before = await dbPlatform.selectFrom('app_status').selectAll().where('app_id', '=', appId).executeTakeFirst();
+    try {
+      ok(await send('sa', 'PUT', `/v1/staff/settings/maintenance/${appId}`, { maintenance: true, message: `Back soon ${tag}`, reason: 'test' }));
+      expect(ok(await get('sa', `/v1/staff/products/${appId}`)).status).toBe('maintenance');
+      // Ending it must write a value app_status allows ('active'), and keep the notice.
+      ok(await send('sa', 'PUT', `/v1/staff/settings/maintenance/${appId}`, { maintenance: false, reason: 'test' }));
+      const row = await dbPlatform.selectFrom('app_status').selectAll().where('app_id', '=', appId).executeTakeFirstOrThrow();
+      expect(row.status).toBe('active');
+      expect(row.message).toBe(`Back soon ${tag}`);
+    } finally {
+      if (before) await dbPlatform.updateTable('app_status').set({ status: before.status, message: before.message, updated_by: before.updated_by, updated_at: before.updated_at }).where('app_id', '=', appId).execute();
+      else await dbPlatform.deleteFrom('app_status').where('app_id', '=', appId).execute();
+    }
+  });
+
+  it('case detail shows the report context and attachments, never the raw context blob', async () => {
+    await dbPlatform.updateTable('platform_support_tickets').set({ kind: 'bug', context: JSON.stringify({ area: 'ClearOS', route: '/clearos/x', viewport: '1440×900', user_agent: 'Mozilla/5.0 (Windows NT 10.0) Chrome/131.0', secret: 'nope' }) as any })
+      .where('id', '=', ids.c1Clear).execute();
+    const d = ok(await get('sa', `/v1/staff/cases/${ids.c1Clear}`));
+    expect(d.case.context).toBeUndefined();
+    expect(d.reportedFrom).toEqual({ area: 'ClearOS', route: '/clearos/x', viewport: '1440×900', user_agent: 'Mozilla/5.0 (Windows NT 10.0) Chrome/131.0' });
+    expect(Array.isArray(d.attachments)).toBe(true);
+    expect((await get('sa', `/v1/staff/cases/${ids.c1Clear}/attachments/${crypto.randomUUID()}`)).statusCode).toBe(404);
+    expect(ok(await get('sa', `/v1/staff/cases?queue=all&kind=bug&tenant_id=${C1.tenantId}`)).items.map((c: any) => c.id)).toContain(ids.c1Clear);
+    expect(ok(await get('sa', `/v1/staff/cases?queue=all&kind=general&tenant_id=${C1.tenantId}`)).items.map((c: any) => c.id)).not.toContain(ids.c1Clear);
+  });
+
   it('former /admin URLs redirect to their console pages', () => {
     expect(consolePathForLegacyAdmin('/admin/companies')).toBe('/console/customers/companies');
     expect(consolePathForLegacyAdmin('/admin/issues')).toBe('/console/cases');
@@ -419,6 +448,58 @@ describe('staff console', () => {
     expect((await send('csm', 'POST', `/v1/staff/access-sessions/${s3.id}/revoke`, { reason: 'not my job' })).statusCode).toBe(403); // not oversight
     ok(await send('security', 'POST', `/v1/staff/access-sessions/${s3.id}/revoke`, { reason: 'security review' }));
     expect((await get('csm', `/v1/staff/access-sessions/${s3.id}/records/users`)).statusCode).toBe(403);
+  });
+
+  it('customer decisions are atomic: of two competing answers exactly one wins; the customer can end access early', async () => {
+    ok(await send('sa', 'PUT', `/v1/staff/customers/${C3.tenantId}/ownership`, { owner_user_id: U.csm.userId, standing_authorization: false, reason: 'approval per session' }));
+    const ask = async (purpose: string) => {
+      const r = ok(await send('csm', 'POST', '/v1/staff/access-sessions', { tenant_id: C3.tenantId, actions: ['read'], purpose, minutes: 20 }));
+      expect(r.status).toBe('pending_approval');
+      return r.id as string;
+    };
+    // Approve and deny arrive together.
+    const id = await ask(`Race check ${tag}`);
+    const [a, d] = await Promise.all([
+      send('c3Admin', 'POST', `/v1/platform-support/access-requests/${id}/approve`),
+      send('c3Admin', 'POST', `/v1/platform-support/access-requests/${id}/deny`),
+    ]);
+    expect([a.statusCode, d.statusCode].sort()).toEqual([200, 409]);
+    const winner = a.statusCode === 200 ? 'active' : 'denied';
+    const row = await dbPlatform.selectFrom('staff_access_sessions').select(['status', 'approved_by', 'ended_by']).where('id', '=', id).executeTakeFirstOrThrow();
+    expect(row.status).toBe(winner);
+    // The loser did not leave its fields behind on the winner's row.
+    if (winner === 'active') expect(row.ended_by).toBeNull(); else expect(row.approved_by).toBeNull();
+    // A later answer cannot flip it either.
+    expect((await send('c3Admin', 'POST', `/v1/platform-support/access-requests/${id}/${winner === 'active' ? 'deny' : 'approve'}`)).statusCode).toBe(409);
+
+    // Customer ends an approved session: staff lose access at once; a second end is refused.
+    let live = id;
+    if (winner === 'denied') {
+      live = await ask(`Race check follow-up ${tag}`);
+      ok(await send('c3Admin', 'POST', `/v1/platform-support/access-requests/${live}/approve`));
+    }
+    const approved = await dbPlatform.selectFrom('staff_access_sessions').select(['starts_at', 'expires_at']).where('id', '=', live).executeTakeFirstOrThrow();
+    expect(new Date(approved.expires_at).getTime() - new Date(approved.starts_at!).getTime()).toBe(20 * 60000);
+    ok(await get('csm', `/v1/staff/access-sessions/${live}/records/users`));
+    expect((await send('c1Admin', 'POST', `/v1/platform-support/access-requests/${live}/end`)).statusCode).toBe(409); // another customer
+    ok(await send('c3Admin', 'POST', `/v1/platform-support/access-requests/${live}/end`));
+    expect((await get('csm', `/v1/staff/access-sessions/${live}/records/users`)).statusCode).toBe(403);
+    expect((await send('c3Admin', 'POST', `/v1/platform-support/access-requests/${live}/end`)).statusCode).toBe(409);
+    const list = ok(await get('c3Admin', '/v1/platform-support/access-requests'));
+    expect(list.find((r: any) => r.id === live)).toMatchObject({ status: 'revoked', staff_user_id: U.csm.userId });
+  });
+
+  it('pages filtered audit actions with a stable total and independent operator history', async () => {
+    const url = '/v1/staff/audit?action=staff.&limit=1&operatorLimit=1';
+    const first = ok(await get('sa', url));
+    const second = ok(await get('sa', url + '&offset=1'));
+    expect(first.staffTotal).toBeGreaterThan(1);
+    expect(second.staffTotal).toBe(first.staffTotal);
+    expect(first.staffActions).toHaveLength(1);
+    expect(second.staffActions).toHaveLength(1);
+    expect(second.staffActions[0].id).not.toBe(first.staffActions[0].id);
+    expect(second.operatorActions).toEqual(first.operatorActions);
+    expect((await get('sa', url + '&offset=-1')).statusCode).toBe(400);
   });
 
   it('consequential actions are audited with actor, target and purpose, without secrets', async () => {

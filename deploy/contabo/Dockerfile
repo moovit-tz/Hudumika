@@ -33,6 +33,9 @@ CMD ["node", "--conditions=production", "dist/index.js"]
 FROM caddy:2-alpine AS web
 COPY --from=build /app/apps/web/dist /srv/web
 COPY deploy/contabo/Caddyfile /etc/caddy/Caddyfile
+COPY deploy/contabo/admin-console.Caddyfile /etc/caddy/admin-console.Caddyfile
+COPY deploy/contabo/gateway-entrypoint.sh /usr/local/bin/gateway-entrypoint
+ENTRYPOINT ["sh", "/usr/local/bin/gateway-entrypoint"]
 
 FROM postgres:16-bookworm AS backup
 RUN apt-get update && apt-get install -y --no-install-recommends restic ca-certificates && rm -rf /var/lib/apt/lists/*

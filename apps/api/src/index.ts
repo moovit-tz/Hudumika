@@ -211,7 +211,6 @@ import { superAdminRoutes } from './routes/superadmin.routes.js';
 import { superAdminSigningCertRoutes } from './routes/superadmin-signing-cert.routes.js';
 import { superAdminReportsRoutes } from './routes/superadmin-reports.routes.js';
 import { superAdminTradeWizardRoutes } from './routes/superadmin-trade-wizard.routes.js';
-import { superAdminIssuesRoutes } from './routes/superadmin-issues.routes.js';
 import { superAdminKybRoutes } from './routes/superadmin-kyb.routes.js';
 import { superAdminReferralsRoutes } from './routes/superadmin-referrals.routes.js';
 import { referralsRoutes } from './routes/referrals.routes.js';
@@ -676,7 +675,6 @@ export async function registerApp() {
     await server.register(superAdminSigningCertRoutes, { prefix: '/v1/superadmin' });
     await server.register(superAdminReportsRoutes, { prefix: '/v1/superadmin/reports' });
     await server.register(superAdminTradeWizardRoutes, { prefix: '/v1/superadmin/trade-wizard' });
-    await server.register(superAdminIssuesRoutes, { prefix: '/v1/superadmin' });
     await server.register(superAdminKybRoutes, { prefix: '/v1/superadmin' });
     await server.register(superAdminReferralsRoutes, { prefix: '/v1/superadmin/referrals' });
     await server.register(referralsRoutes, { prefix: '/v1/referrals' });

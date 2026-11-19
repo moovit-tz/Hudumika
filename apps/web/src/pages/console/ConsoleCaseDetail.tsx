@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import React, { useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { PageHeader } from '../../components/PageHeader.js';
 import { Button } from '../../components/ui/button.js';
@@ -7,7 +7,8 @@ import { Textarea } from '../../components/ui/textarea.js';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../../components/ui/select.js';
 import { Tabs, TabsList, TabsTrigger } from '../../components/ui/tabs.js';
 import { PersonAvatar, CompanyAvatar } from '../../components/PersonAvatar.js';
-import { apiFetch } from '../../lib/api.js';
+import { BASE_URL, apiFetch } from '../../lib/api.js';
+import { Icon } from '../../components/Icon.js';
 import { LoadState, fmtDate, fmtRel, hasPerm, useStaff, useStaffData } from './console-shared.js';
 import { Empty, Facts, Notice, Panel, Pill, appName } from './console-ui.js';
 
@@ -29,6 +30,16 @@ const EVENT_LABEL: Record<string, string> = {
   outcome_confirmed: 'Customer outcome confirmed', outcome_not_resolved: 'Customer said not resolved',
 };
 
+/** "Chrome 131 · Windows" from a user-agent string. */
+function browserOf(ua?: string) {
+  if (!ua) return '—';
+  const m = (re: RegExp) => re.exec(ua)?.[1];
+  const b = m(/Edg\/(\d+)/) ? `Edge ${m(/Edg\/(\d+)/)}` : m(/Firefox\/(\d+)/) ? `Firefox ${m(/Firefox\/(\d+)/)}`
+    : m(/Chrome\/(\d+)/) ? `Chrome ${m(/Chrome\/(\d+)/)}` : m(/Version\/(\d+).*Safari/) ? `Safari ${m(/Version\/(\d+)/)}` : 'Browser';
+  const os = /Windows/.test(ua) ? 'Windows' : /Android/.test(ua) ? 'Android' : /iPhone|iPad/.test(ua) ? 'iOS' : /Mac OS/.test(ua) ? 'macOS' : /Linux/.test(ua) ? 'Linux' : '';
+  return os ? `${b} · ${os}` : b;
+}
+
 export function ConsoleCaseDetail() {
   const { id } = useParams();
   const { me } = useStaff();
@@ -40,6 +51,7 @@ export function ConsoleCaseDetail() {
   const [lensId, setLensId] = useState('');
   const [assignTo, setAssignTo] = useState('');
   const [reason, setReason] = useState('');
+  const [resolution, setResolution] = useState<string | null>(null);
   const [busy, setBusy] = useState<string | null>(null);
   const [msg, setMsg] = useState<{ ok: boolean; text: string } | null>(null);
   const c = data?.case;
@@ -79,7 +91,7 @@ export function ConsoleCaseDetail() {
         <div className="console-main-side">
           {/* ── Main column: the conversation and the outcome ── */}
           <div className="console-page">
-            <Panel title="Conversation" sub={`${data.messages.length} message${data.messages.length === 1 ? '' : 's'} · internal notes are never shown to the customer`} icon="messageSquare">
+            <Panel title="Conversation" sub={`${data.messages.length} message${data.messages.length === 1 ? '' : 's'}`} icon="messageSquare">
               <div className="console-thread">
                 {data.messages.length ? data.messages.map((m: any) => (
                   <article key={m.id} className={`console-msg ${m.visibility === 'internal' ? 'console-msg-internal' : m.is_platform_staff ? 'console-msg-staff' : ''}`}>
@@ -92,6 +104,16 @@ export function ConsoleCaseDetail() {
                   </article>
                 )) : <Empty icon="messageSquare" title="No messages yet" />}
               </div>
+              {data.attachments.length > 0 && (
+                <ul className="console-attachments" aria-label="Attachments">
+                  {data.attachments.map((a: any) => (
+                    <li key={a.id}><a href={`${BASE_URL}/v1/staff/cases/${id}/attachments/${a.id}`} target="_blank" rel="noreferrer" data-native-link>
+                      <Icon name={String(a.mime_type).startsWith('image/') ? 'image' : 'paperclip'} size={14} color="var(--teal)" />
+                      <span className="console-attachment-name">{a.filename}</span><span className="console-muted">{Math.max(1, Math.round(a.size_bytes / 1024))} KB</span>
+                    </a></li>
+                  ))}
+                </ul>
+              )}
               {(data.allowed.reply || data.allowed.notes) && (
                 <form className="console-stack" style={{ borderTop: '1px solid var(--border)', paddingTop: 14 }}
                   onSubmit={async e => { e.preventDefault(); const path = mode === 'reply' ? 'reply' : 'notes'; if (await act('send', mode === 'reply' ? 'Reply sent to the customer.' : 'Note added.', () => apiFetch(`/v1/staff/cases/${id}/${path}`, { method: 'POST', body: JSON.stringify({ content: text }) }))) setText(''); }}>
@@ -104,7 +126,7 @@ export function ConsoleCaseDetail() {
                     </Tabs>
                   )}
                   <Textarea aria-label={mode === 'reply' ? 'Reply' : 'Internal note'} value={text} onChange={e => setText(e.target.value)} rows={4}
-                    placeholder={mode === 'reply' ? 'Write a reply — the customer will see this.' : 'Write a note — only staff with internal-note access see this.'} />
+                    placeholder={mode === 'reply' ? 'Reply to the customer…' : 'Internal note, staff only…'} />
                   <div className="console-row" style={{ justifyContent: 'flex-end' }}>
                     <Button type="submit" disabled={!text.trim()} loading={busy === 'send'}>{mode === 'reply' ? 'Send reply' : 'Add note'}</Button>
                   </div>
@@ -113,11 +135,11 @@ export function ConsoleCaseDetail() {
             </Panel>
 
             {data.allowed.verify && (
-              <Panel title="Customer outcome" sub="Record what the customer actually confirmed. This is never set automatically — not even when Lens marks a fix done." icon="checkCircle">
-                <Textarea aria-label="Outcome note" rows={2} value={outcomeNote} onChange={e => setOutcomeNote(e.target.value)} placeholder="How the customer confirmed (call, email, in-app reply)…" />
+              <Panel title="Customer outcome" sub="Only the customer can confirm a fix" icon="checkCircle">
+                <Textarea aria-label="Outcome note" rows={2} value={outcomeNote} onChange={e => setOutcomeNote(e.target.value)} placeholder="How they confirmed (call, email, reply)…" />
                 <div className="console-row">
                   <Button disabled={outcomeNote.trim().length < 3} loading={busy === 'ok'} onClick={() => act('ok', 'Outcome recorded.', () => apiFetch(`/v1/staff/cases/${id}/outcome`, { method: 'POST', body: JSON.stringify({ outcome: 'confirmed', note: outcomeNote }) }))}>Customer confirmed</Button>
-                  <Button variant="outline" disabled={outcomeNote.trim().length < 3} loading={busy === 'no'} onClick={() => act('no', 'Reopened — the customer still has the problem.', () => apiFetch(`/v1/staff/cases/${id}/outcome`, { method: 'POST', body: JSON.stringify({ outcome: 'not_resolved', note: outcomeNote }) }))}>Not resolved for them</Button>
+                  <Button variant="outline" disabled={outcomeNote.trim().length < 3} loading={busy === 'no'} onClick={() => act('no', 'Reopened.', () => apiFetch(`/v1/staff/cases/${id}/outcome`, { method: 'POST', body: JSON.stringify({ outcome: 'not_resolved', note: outcomeNote }) }))}>Not resolved</Button>
                 </div>
               </Panel>
             )}
@@ -132,23 +154,42 @@ export function ConsoleCaseDetail() {
                 ['First response', c.first_response_at ? <>{fmtDate(c.first_response_at)}{c.sla.firstResponseBreached ? <Pill kind="sla" value="breached" /> : null}</> : `Due ${fmtRel(c.first_response_due_at)}`],
                 ['Resolution', c.resolved_at ? fmtDate(c.resolved_at) : c.sla.paused ? `Paused — waiting on customer since ${fmtRel(c.sla_paused_at)}` : <>Due {fmtRel(c.resolution_due_at)}{c.sla.resolutionBreached ? <Pill kind="sla" value="breached" /> : null}</>],
               ]} />
-              <div className="console-muted" style={{ borderTop: '1px solid var(--border)', paddingTop: 10 }}><strong style={{ color: 'var(--ink2)' }}>Why it was routed here: </strong>{c.routing_reason ?? '—'}</div>
+              <div className="console-muted" style={{ borderTop: '1px solid var(--border)', paddingTop: 10 }}><strong style={{ color: 'var(--ink2)' }}>Routed: </strong>{c.routing_reason ?? '—'}</div>
               {data.allowed.update && (
                 <div className="console-fields" style={{ borderTop: '1px solid var(--border)', paddingTop: 12 }}>
                   <Choice label="Status" value={c.status} options={[['OPEN', 'Open'], ['IN_PROGRESS', 'In progress'], ['RESOLVED', 'Resolved'], ['CLOSED', 'Closed']]} onChange={v => patch({ status: v })} />
                   <Choice label="Priority" value={c.priority} options={[['URGENT', 'Urgent'], ['HIGH', 'High'], ['NORMAL', 'Normal'], ['LOW', 'Low']]} onChange={v => patch({ priority: v })} />
                   <Choice label="Severity" value={c.severity} options={[['S1', 'S1 · Critical'], ['S2', 'S2 · Major'], ['S3', 'S3 · Minor'], ['S4', 'S4 · Low']]} onChange={v => patch({ severity: v })} />
-                  <Choice label="Waiting on" value={c.waiting_on ?? 'none'} options={[['none', 'Us'], ['customer', 'Customer (pauses SLA)'], ['engineering', 'Engineering'], ['third_party', 'Third party']]} onChange={v => patch({ waiting_on: v === 'none' ? null : v })} />
+                  <Choice label="Waiting on" value={c.waiting_on ?? 'none'} options={[['none', 'Us'], ['customer', 'Customer · pauses SLA'], ['engineering', 'Engineering'], ['third_party', 'Third party']]} onChange={v => patch({ waiting_on: v === 'none' ? null : v })} />
                 </div>
               )}
               {data.allowed.update && <div><Button variant="outline" size="sm" onClick={() => patch({ escalated: !c.escalated })}>{c.escalated ? 'Remove escalation' : 'Escalate'}</Button></div>}
+              {data.allowed.update ? (
+                <form className="console-stack" style={{ borderTop: '1px solid var(--border)', paddingTop: 12 }}
+                  onSubmit={e => { e.preventDefault(); patch({ resolution: resolution ?? '' }).then(ok => ok && setResolution(null)); }}>
+                  <label className="console-field">Resolution · customer sees this
+                    <Textarea rows={2} value={resolution ?? c.resolution ?? ''} onChange={e => setResolution(e.target.value)} placeholder="What was done" />
+                  </label>
+                  <div><Button size="sm" variant="outline" type="submit" disabled={resolution === null || resolution === (c.resolution ?? '')}>Save resolution</Button></div>
+                </form>
+              ) : c.resolution ? <div className="console-muted" style={{ borderTop: '1px solid var(--border)', paddingTop: 10 }}><strong style={{ color: 'var(--ink2)' }}>Resolution: </strong>{c.resolution}</div> : null}
+            </Panel>
+
+            <Panel title="Report" icon="info">
+              <Facts items={[
+                ['Type', c.kind === 'bug' ? 'Bug report' : 'Support request'],
+                ['Category', c.category ?? '—'],
+                ...(data.reportedFrom?.route ? [['Page', <span className="console-mono" style={{ overflowWrap: 'anywhere' }}>{data.reportedFrom.route}</span>] as [string, React.ReactNode]] : []),
+                ...(data.reportedFrom?.user_agent ? [['Device', `${browserOf(data.reportedFrom.user_agent)}${data.reportedFrom.viewport ? ` · ${data.reportedFrom.viewport}` : ''}`] as [string, React.ReactNode]] : []),
+                ...(data.record ? [['Calculation', <>{data.record.description ?? 'Landed cost'}<div className="console-cell-sub">{data.record.hs_code ?? '—'} · TZS {Number(data.record.total_tzs ?? 0).toLocaleString()} · {fmtDate(data.record.created_at)}</div></>] as [string, React.ReactNode]] : []),
+              ]} />
             </Panel>
 
             {data.allowed.assign && (
-              <Panel title="Assign or hand off" sub="The change and its reason go into the case history" icon="users">
+              <Panel title="Assign or hand off" icon="users">
                 <form className="console-stack" onSubmit={e => { e.preventDefault(); act('assign', 'Reassigned.', () => apiFetch(`/v1/staff/cases/${id}/assign`, { method: 'POST', body: JSON.stringify({ owner_user_id: assignTo === 'none' || !assignTo ? null : assignTo, version: c.version, reason }) })).then(ok => ok && setReason('')); }}>
                   <Choice label="New owner" value={assignTo || 'none'} options={[['none', 'Unassigned (team queue)'], ...((staff.data?.items ?? []).filter((s: any) => s.status === 'active').map((s: any) => [s.user_id, `${s.name} · ${s.open_cases} open`] as [string, string]))]} onChange={setAssignTo} />
-                  <label className="console-field">Reason<Input required minLength={3} value={reason} onChange={e => setReason(e.target.value)} placeholder="e.g. Covering while Amani is on leave" /></label>
+                  <label className="console-field">Reason<Input required minLength={3} value={reason} onChange={e => setReason(e.target.value)} placeholder="Why" /></label>
                   <div className="console-row">
                     <Button type="submit" size="sm" loading={busy === 'assign'}>Reassign</Button>
                     <Button size="sm" variant="outline" type="button" loading={busy === 'route'} onClick={() => act('route', 'Routing applied.', () => apiFetch(`/v1/staff/cases/${id}/route`, { method: 'POST', body: JSON.stringify({ apply: true, version: c.version }) }))}>Re-run routing</Button>
@@ -157,8 +198,8 @@ export function ConsoleCaseDetail() {
               </Panel>
             )}
 
-            <Panel title="Engineering" sub="Lens issues have their own lifecycle — a fix does not close this case" icon="activity">
-              {data.lens?.restricted ? <span className="console-muted">Engineering issues are not visible with your access.</span> : (
+            <Panel title="Engineering" sub="A Lens fix doesn't close the case" icon="activity">
+              {data.lens?.restricted ? <span className="console-muted">Not visible with your access.</span> : (
                 <>
                   {data.lens.length ? (
                     <ul className="console-list" style={{ margin: '-4px -20px' }}>
@@ -169,11 +210,11 @@ export function ConsoleCaseDetail() {
                         </li>
                       ))}
                     </ul>
-                  ) : <span className="console-muted">No linked engineering issue.</span>}
-                  {data.allowed.link && !data.lens.length && <div><Button size="sm" variant="outline" loading={busy === 'lens'} onClick={() => act('lens', 'Sent to Lens as a new bug.', () => apiFetch(`/v1/staff/cases/${id}/lens/new`, { method: 'POST' }))}>Send to Lens as a new bug</Button></div>}
+                  ) : <span className="console-muted">No linked Lens item.</span>}
+                  {data.allowed.link && !data.lens.length && <div><Button size="sm" variant="outline" loading={busy === 'lens'} onClick={() => act('lens', 'Sent to Lens as a new bug.', () => apiFetch(`/v1/staff/cases/${id}/lens/new`, { method: 'POST' }))}>Send to Lens</Button></div>}
                   {data.allowed.link && (
                     <form className="console-row" onSubmit={e => { e.preventDefault(); act('link', 'Linked.', () => apiFetch(`/v1/staff/cases/${id}/lens`, { method: 'POST', body: JSON.stringify({ lens_item_id: lensId.trim() }) })); }}>
-                      <Input aria-label="Existing Lens item id" placeholder="Link an existing Lens item id" value={lensId} onChange={e => setLensId(e.target.value)} style={{ flex: 1, minWidth: 0 }} />
+                      <Input aria-label="Existing Lens item id" placeholder="Existing Lens item id" value={lensId} onChange={e => setLensId(e.target.value)} style={{ flex: 1, minWidth: 0 }} />
                       <Button size="sm" variant="outline" type="submit" disabled={!lensId.trim()}>Link</Button>
                     </form>
                   )}
@@ -182,7 +223,7 @@ export function ConsoleCaseDetail() {
               {data.incident && <div className="console-muted" style={{ borderTop: '1px solid var(--border)', paddingTop: 10 }}>Part of incident <strong style={{ color: 'var(--ink)' }}>{data.incident.ref}</strong> — {data.incident.title} <Pill kind="incident" value={data.incident.status} /></div>}
             </Panel>
 
-            <Panel title="History" sub="Assignment, routing and status changes" icon="clock">
+            <Panel title="History" icon="clock">
               {data.events.length ? (
                 <ol className="console-timeline">
                   {data.events.map((e: any) => (

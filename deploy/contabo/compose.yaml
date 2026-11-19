@@ -30,7 +30,8 @@ x-api-environment: &api-environment
   SMTP_PASS: ${SMTP_PASS:?Configure real SMTP}
   SMTP_FROM: ${SMTP_FROM:?Configure real SMTP}
   SMS_WEBHOOK_SECRET: ${SMS_WEBHOOK_SECRET:-}
-  # 'customer' once admin-api is deployed, so the public API refuses /v1/staff, /v1/superadmin and /v1/lens.
+  # init.py requires 'customer' whenever ADMIN_DOMAIN is set, so the public API
+  # refuses /v1/staff, /v1/superadmin and /v1/lens once the admin host exists.
   API_SURFACE: ${API_SURFACE:-all}
 
 services:
@@ -109,9 +110,11 @@ services:
       start_period: 60s
       retries: 5
 
-  # Staff console API (docs/STAFF_CONSOLE.md). Opt-in: `docker compose --profile admin up -d`.
-  # Same image, its own process, resource budget and surface: only staff/console
-  # paths are served. Reached through the admin gateway site, never the public one.
+  # Staff console API (docs/STAFF_CONSOLE.md). deploy.sh enables profile "admin"
+  # when ADMIN_DOMAIN is set. Same image, its own process, resource budget and
+  # surface: only staff/console paths are served, through the admin site only.
+  # ADMIN_DOMAIN uses :- (not :?) so the file still validates with the profile
+  # off; init.py --check enforces it when the admin host is on.
   admin-api:
     image: hudumika-api:${RELEASE_TAG:-local}
     profiles: [admin]
@@ -120,12 +123,16 @@ services:
     environment:
       <<: *api-environment
       API_SURFACE: admin
-      CORS_ORIGINS: https://${ADMIN_DOMAIN:?Set ADMIN_DOMAIN for the staff console}
-      PUBLIC_APP_URL: https://${ADMIN_DOMAIN}
+      CORS_ORIGINS: https://${ADMIN_DOMAIN:-}
+      PUBLIC_APP_URL: https://${ADMIN_DOMAIN:-}
       STAFF_SENSITIVE_REQUIRES_MFA: 'true'
+    # Same files as the public api: case attachments uploaded by customers must
+    # open for staff here. With S3_* set both services use the bucket instead.
+    volumes: [uploads:/app/apps/api/uploads]
     depends_on:
       db: {condition: service_healthy}
       redis: {condition: service_healthy}
+      clamav: {condition: service_healthy}
     networks: [private, edge]
     security_opt: [no-new-privileges:true]
     cap_drop: [ALL]
@@ -157,7 +164,8 @@ services:
     image: hudumika-web:${RELEASE_TAG:-local}
     build: {context: ../.., dockerfile: deploy/contabo/Dockerfile, target: web}
     restart: unless-stopped
-    environment: {APP_DOMAIN: '${APP_DOMAIN}', ACME_EMAIL: '${ACME_EMAIL:?Set certificate email}'}
+    # ADMIN_DOMAIN empty = no admin site (see gateway-entrypoint.sh).
+    environment: {APP_DOMAIN: '${APP_DOMAIN}', ACME_EMAIL: '${ACME_EMAIL:?Set certificate email}', ADMIN_DOMAIN: '${ADMIN_DOMAIN:-}', ADMIN_ALLOWED_CIDRS: '${ADMIN_ALLOWED_CIDRS:-}'}
     ports: ['80:80', '443:443', '443:443/udp']
     volumes: [caddy_data:/data, caddy_config:/config]
     depends_on: {api: {condition: service_healthy}}

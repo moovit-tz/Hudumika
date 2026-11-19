@@ -46,8 +46,7 @@ export function ConsoleTeams() {
   const tab = params.get('tab') === 'staff' && canStaff ? 'staff' : params.get('tab') === 'roles' && canStaff ? 'roles' : canTeams ? 'teams' : 'staff';
   return (
     <div className="console-page">
-      <PageHeader crumbs={['Console', 'Teams & Assignments']} titlePlain="Teams &" titleEm="assignments"
-        subtitle="Who covers which products and customers, and what each staff member may do. Workspace roles never grant staff access." />
+      <PageHeader crumbs={['Console', 'Teams & Assignments']} titlePlain="Teams &" titleEm="assignments" />
       <Tabs value={tab} onValueChange={v => setParams({ tab: v }, { replace: true })}>
         <TabsList>
           {canTeams && <TabsTrigger value="teams"><span className="ds-tabs-trigger-label">Teams</span></TabsTrigger>}
@@ -72,7 +71,7 @@ function TeamsTab() {
     setMsg(null);
     try {
       const r = await fn();
-      setMsg({ ok: true, text: r?.openCasesNeedingReassignment?.length ? `Removed. ${r.openCasesNeedingReassignment.length} open case(s) they still own need reassignment — see My Work ▸ Needs reassignment.` : ok });
+      setMsg({ ok: true, text: r?.openCasesNeedingReassignment?.length ? `Removed. ${r.openCasesNeedingReassignment.length} open case(s) need a new owner.` : ok });
       teams.reload(); return true;
     } catch (e: any) { setMsg({ ok: false, text: e?.message ?? 'That did not work.' }); return false; }
   };
@@ -87,7 +86,7 @@ function TeamsTab() {
         <KpiLink title="Open cases" value={String(items.reduce((s, t) => s + (t.openCases ?? 0), 0))} icon="inbox" color="var(--gold)" hint="Routed to these teams" />
       </KpiGrid>
       {manage && (creating ? (
-        <Panel title="New team" sub="Add products, customers and members after creating it" icon="plus" action={<Button size="sm" variant="ghost" onClick={() => setCreating(false)}>Cancel</Button>}>
+        <Panel title="New team" icon="plus" action={<Button size="sm" variant="ghost" onClick={() => setCreating(false)}>Cancel</Button>}>
           <form className="console-stack" onSubmit={async e => { e.preventDefault(); if (await act(() => apiFetch('/v1/staff/teams', { method: 'POST', body: JSON.stringify(newTeam) }), 'Team created.')) { setCreating(false); setNewTeam({ name: '', kind: 'product', is_fallback: false }); } }}>
             <div className="console-fields">
               <label className="console-field">Team name<Input required minLength={2} value={newTeam.name} onChange={e => setNewTeam({ ...newTeam, name: e.target.value })} placeholder="e.g. Finance Operations" /></label>
@@ -142,7 +141,7 @@ function TeamsTab() {
               </Panel>
             ))}
           </div>
-        ) : <Panel title="Teams" icon="users"><Empty icon="users" title="No teams yet">Create a product, customer-portfolio or specialist team to start routing cases.</Empty></Panel>}
+        ) : <Panel title="Teams" icon="users"><Empty icon="users" title="No teams yet">Create a team to start routing cases.</Empty></Panel>}
       </LoadState>
     </div>
   );
@@ -168,9 +167,9 @@ function StaffTab() {
     <div className="console-stack">
       <Notice msg={msg} />
       {manage && (
-        <Panel title="Add a staff member" sub="Staff membership alone grants nothing — grant a role after adding them" icon="userPlus">
+        <Panel title="Add a staff member" sub="Then grant a role" icon="userPlus">
           <form className="console-row" onSubmit={async e => { e.preventDefault(); if (await act(() => apiFetch('/v1/staff/staff', { method: 'POST', body: JSON.stringify({ email }) }), 'Added as staff. Grant a role to give them access.')) setEmail(''); }}>
-            <Input aria-label="Email of an existing account" type="email" placeholder="Email of an existing Hudumika account" required value={email} onChange={e => setEmail(e.target.value)} style={{ flex: 1, minWidth: 220 }} />
+            <Input aria-label="Email of an existing account" type="email" placeholder="Account email" required value={email} onChange={e => setEmail(e.target.value)} style={{ flex: 1, minWidth: 220 }} />
             <Button type="submit">Add staff member</Button>
           </form>
         </Panel>
@@ -209,7 +208,7 @@ function StaffTab() {
                 <span className="grow console-muted">{r.expires_at ? `until ${fmtDate(r.expires_at)}` : 'no expiry'} · {r.reason}</span>
                 {manage && open.user_id !== me?.userId && <Button size="sm" variant="outline" aria-label={`Revoke ${r.name} from ${open.name}`} onClick={() => act(() => apiFetch(`/v1/staff/staff/${open.user_id}/roles/${r.id}`, { method: 'DELETE' }), 'Role revoked.')}>Revoke</Button>}
               </div>
-            )) : <span className="console-muted">No roles — this person can open the console but sees an “access being set up” page.</span>}
+            )) : <span className="console-muted">No roles yet.</span>}
             {open.scopes.map((x: any) => <div key={x.id} className="console-muted">{x.effect === 'deny' ? 'Excluded' : 'Scope'}: {String(x.scope_type).replace(/_/g, ' ')}{x.app_id ? ` · ${appName(x.app_id)}` : ''}{x.tenant_id ? ` · customer ${x.tenant_id.slice(0, 8)}…` : ''}</div>)}
             {open.overrides.map((x: any) => <div key={x.id} className="console-muted">{x.effect === 'deny' ? 'Denied' : 'Also allowed'}: {x.permission}</div>)}
           </div>
@@ -237,7 +236,7 @@ function RolesTab() {
     <LoadState loading={roles.loading} error={roles.error} onRetry={roles.reload}>
       {roles.data && (
         <Panel title="Permissions by role" icon="shield" flush
-          sub="Several roles combine as a union · an explicit deny on a person always wins · ★ broad scope covers every product and customer; other roles see only their teams’ and direct assignments">
+          sub="Roles add up · a deny always wins · ★ all customers and products">
           <div className="console-table-wrap">
             <table className="console-matrix">
               <thead><tr><th scope="col">Permission</th>{roles.data.roles.map((r: any) => <th key={r.key} scope="col">{r.name}{r.broad_scope ? ' ★' : ''}</th>)}</tr></thead>

@@ -10,7 +10,7 @@ import { recordAuthEvent } from '../lib/audit-chain.js';
  * SuperAdmin queue rather than a tenant-admin one: a tenant certifying its
  * own business identity isn't verification, so the reviewer has to sit
  * outside the tenant being reviewed. Cross-tenant by nature, same
- * SUPER_ADMIN-at-the-route-level pattern as superadmin-issues.routes.ts.
+ * SUPER_ADMIN-at-the-route-level pattern as the other superadmin routes.
  */
 export async function superAdminKybRoutes(fastify: FastifyInstance) {
   fastify.addHook('preHandler', fastify.authenticate);

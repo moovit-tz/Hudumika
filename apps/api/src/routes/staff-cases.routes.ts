@@ -21,6 +21,7 @@ import { z } from 'zod';
 import { sql } from 'kysely';
 import { ALL_APP_IDS, type StaffAccessSessionView } from '@hudumika/types';
 import { dbPlatform, withTenant } from '../db/client.js';
+import { MinioIntegration } from '../integrations/minio.js';
 import {
   StaffAccessError, assertCan, can, canCase, canCustomer, canProduct, caseScopeSql, loadStaffContext, productsInScope,
   requireStaffMember, staffAudit, staffErrorReply, type StaffContext,
@@ -109,7 +110,8 @@ export async function staffCaseRoutes(fastify: FastifyInstance) {
       .where(caseScopeSql(ctx, 't.tenant_id', 't.app'));
     const queue = q.queue ?? 'all';
     const open = (s: typeof sel) => s.where('t.status', 'in', [...OPEN]);
-    if (queue === 'mine') sel = open(sel).where('t.owner_user_id', '=', ctx.userId);
+    if (queue === 'open') sel = open(sel);
+    else if (queue === 'mine') sel = open(sel).where('t.owner_user_id', '=', ctx.userId);
     else if (queue === 'team') { const ids = ctx.teams.map(t => t.id); sel = ids.length ? open(sel).where('t.team_id', 'in', ids) : sel.where(sql<boolean>`false`); }
     else if (queue === 'unassigned') sel = open(sel).where('t.owner_user_id', 'is', null);
     else if (queue === 'onboarding') sel = open(sel).where('t.category', '=', 'onboarding');
@@ -119,6 +121,7 @@ export async function staffCaseRoutes(fastify: FastifyInstance) {
     else if (queue === 'incidents') sel = open(sel).where('t.incident_id', 'is not', null);
     if (q.team_id && uuid.safeParse(q.team_id).success) sel = sel.where('t.team_id', '=', q.team_id);
     if (q.app && APP_IDS.has(q.app)) sel = sel.where('t.app', '=', q.app);
+    if (q.kind === 'bug' || q.kind === 'general') sel = sel.where('t.kind', '=', q.kind);
     if (q.tenant_id && uuid.safeParse(q.tenant_id).success) sel = sel.where('t.tenant_id', '=', q.tenant_id);
     if (q.status && ['OPEN', 'IN_PROGRESS', 'RESOLVED', 'CLOSED'].includes(q.status)) sel = sel.where('t.status', '=', q.status as any);
     if (q.q?.trim()) { const like = `%${q.q.trim().replace(/[\\%_]/g, '\\$&')}%`; sel = sel.where(eb => eb.or([eb('t.subject', 'ilike', like), eb('t.ref_number', 'ilike', like), eb('c.name', 'ilike', like)])); }
@@ -149,7 +152,7 @@ export async function staffCaseRoutes(fastify: FastifyInstance) {
     const ctx = S(req); assertCan(ctx, 'cases.view', 'work.own');
     const t = await loadCase(ctx, uuid.parse((req.params as any).id));
     if (!can(ctx, 'cases.view') && t.owner_user_id !== ctx.userId) throw new StaffAccessError(404, 'Case not found.');
-    const [customer, owner, team, messages, events, history, lens, incident] = await Promise.all([
+    const [customer, owner, team, messages, events, history, lens, incident, attachments, record] = await Promise.all([
       dbPlatform.selectFrom('tenants').select(['id', 'name', 'logo_url', 'plan']).where('id', '=', t.tenant_id).executeTakeFirst(),
       t.owner_user_id ? dbPlatform.selectFrom('users').select(['id', 'name', 'avatar_url']).where('id', '=', t.owner_user_id).executeTakeFirst() : null,
       t.team_id ? dbPlatform.selectFrom('staff_teams').select(['id', 'name']).where('id', '=', t.team_id).executeTakeFirst() : null,
@@ -165,14 +168,36 @@ export async function staffCaseRoutes(fastify: FastifyInstance) {
         .select(['i.id', 'i.ref', 'i.title', 'i.kind', 'i.status', 'i.severity', 'i.verification_status', 'i.release_id', 'i.assignee_name'])
         .where('l.provider', '=', 'hudumika_issue').where('l.external_id', '=', t.id).execute() : null,
       t.incident_id ? dbPlatform.selectFrom('platform_incidents').select(['id', 'ref', 'title', 'status', 'severity', 'app_id']).where('id', '=', t.incident_id).executeTakeFirst() : null,
+      dbPlatform.selectFrom('platform_support_attachments').select(['id', 'filename', 'mime_type', 'size_bytes', 'created_at']).where('ticket_id', '=', t.id).orderBy('created_at').execute(),
+      // The calculation the reporter attached, read inside the customer's own tenant.
+      t.record_id ? withTenant(t.tenant_id, trx => trx.selectFrom('landed_cost_records').select(['id', 'description', 'hs_code', 'total_tzs', 'created_at'])
+        .where('id', '=', t.record_id!).where('tenant_id', '=', t.tenant_id).executeTakeFirst()) : null,
     ]);
+    // Only the page facts the reporter chose to send — never the raw blob.
+    const raw = (typeof t.context === 'string' ? (() => { try { return JSON.parse(t.context as any); } catch { return null; } })() : t.context) as Record<string, unknown> | null;
+    const reportedFrom = raw ? Object.fromEntries((['area', 'route', 'viewport', 'user_agent', 'reported_at'] as const).filter(k => typeof raw[k] === 'string').map(k => [k, raw[k] as string])) : null;
     return {
-      case: { ...t, context: undefined, sla: slaState(t as any) }, customer, owner, team, messages, events, history,
+      case: { ...t, context: undefined, sla: slaState(t as any) }, customer, owner, team, messages, events, history, attachments, record: record ?? null, reportedFrom,
       // Engineering state is shown beside the case, never instead of the customer outcome.
       lens: lens ?? { restricted: true }, incident,
       allowed: { claim: can(ctx, 'cases.claim') && !t.owner_user_id, assign: can(ctx, 'cases.assign'), update: can(ctx, 'cases.update'), notes: can(ctx, 'cases.internal_notes'),
         reply: can(ctx, 'cases.reply'), verify: can(ctx, 'cases.verify_outcome'), link: can(ctx, 'lens.link') },
     };
+  }));
+
+  /** Attachment bytes for a case the caller can see. */
+  fastify.get('/cases/:id/attachments/:attId', h(async (req, reply) => {
+    const ctx = S(req); assertCan(ctx, 'cases.view', 'work.own');
+    const p = req.params as any;
+    const t = await loadCase(ctx, uuid.parse(p.id));
+    if (!can(ctx, 'cases.view') && t.owner_user_id !== ctx.userId) throw new StaffAccessError(404, 'Case not found.');
+    const att = await dbPlatform.selectFrom('platform_support_attachments').selectAll().where('id', '=', uuid.parse(p.attId)).where('ticket_id', '=', t.id).executeTakeFirst();
+    if (!att) return reply.status(404).send({ error: 'Attachment not found.' });
+    const buf = await MinioIntegration.readFile(att.storage_key);
+    if (!buf) return reply.status(404).send({ error: 'Attachment content is no longer on disk.' });
+    reply.header('Content-Type', att.mime_type || 'application/octet-stream');
+    reply.header('Content-Disposition', `inline; filename="${att.filename.replace(/["\r\n]/g, '')}"`);
+    return reply.send(buf);
   }));
 
   /** Atomic: of two operators claiming the same case at once, exactly one wins. */
@@ -522,7 +547,7 @@ export async function customerAccessApprovalRoutes(fastify: FastifyInstance) {
   fastify.get('/access-requests', async (request: any) => {
     const tenantId = request.user.tenant_id;
     return dbPlatform.selectFrom('staff_access_sessions as s').innerJoin('users as u', 'u.id', 's.staff_user_id')
-      .select(['s.id', 's.status', 's.purpose', 's.actions', 's.app_id', 's.requested_minutes', 's.basis', 's.starts_at', 's.expires_at', 's.created_at', 'u.name as staff_name', 'u.avatar_url as staff_avatar_url'])
+      .select(['s.id', 's.status', 's.purpose', 's.actions', 's.app_id', 's.requested_minutes', 's.basis', 's.starts_at', 's.expires_at', 's.created_at', 's.staff_user_id', 'u.name as staff_name', 'u.avatar_url as staff_avatar_url'])
       .where('s.tenant_id', '=', tenantId).orderBy('s.created_at', 'desc').limit(50).execute();
   });
   fastify.post('/access-requests/:id/:decision(approve|deny)', async (request: any, reply) => {
@@ -530,14 +555,36 @@ export async function customerAccessApprovalRoutes(fastify: FastifyInstance) {
     const id = uuid.safeParse(request.params.id);
     if (!id.success) return reply.status(404).send({ error: 'Not found' });
     const approve = request.params.decision === 'approve';
-    const pending = await dbPlatform.selectFrom('staff_access_sessions').select(['id', 'requested_minutes', 'staff_user_id']).where('id', '=', id.data).where('tenant_id', '=', tenantId)
-      .where('status', '=', 'pending_approval').where('expires_at', '>', new Date()).executeTakeFirst();
-    if (!pending) return reply.status(404).send({ error: 'No pending request with that id.' });
-    const now = new Date();
-    await dbPlatform.updateTable('staff_access_sessions').set(approve
-      ? { status: 'active', approved_by: request.user.sub, approved_at: now, starts_at: now, expires_at: new Date(now.getTime() + pending.requested_minutes * 60000) }
-      : { status: 'denied', ended_at: now, ended_by: request.user.sub, end_reason: 'Denied by the customer' }).where('id', '=', pending.id).execute();
-    await staffAudit({ userId: request.user.sub, ip: request.ip }, { action: approve ? 'access.customer_approved' : 'access.customer_denied', targetType: 'access_session', targetId: pending.id, tenantId, detail: { staff_user_id: pending.staff_user_id } });
-    return { status: approve ? 'active' : 'denied' };
+    // One conditional UPDATE: only a request that is still pending and unexpired
+    // changes, so of two competing decisions exactly one wins and the other gets
+    // 409. The session clock is computed in the database from the same row.
+    const decided = await dbPlatform.updateTable('staff_access_sessions').set(approve
+      ? { status: 'active', approved_by: request.user.sub, approved_at: sql`now()`, starts_at: sql`now()`, expires_at: sql`now() + make_interval(mins => requested_minutes)` }
+      : { status: 'denied', ended_at: sql`now()`, ended_by: request.user.sub, end_reason: 'Denied by the customer' })
+      .where('id', '=', id.data).where('tenant_id', '=', tenantId).where('status', '=', 'pending_approval').where('expires_at', '>', sql<Date>`now()`)
+      // The requester can never answer their own request, even as a workspace admin.
+      .where('staff_user_id', '!=', request.user.sub)
+      .returning(['id', 'staff_user_id', 'status', 'expires_at']).executeTakeFirst();
+    if (!decided) {
+      const existing = await dbPlatform.selectFrom('staff_access_sessions').select(['status', 'staff_user_id']).where('id', '=', id.data).where('tenant_id', '=', tenantId).executeTakeFirst();
+      if (!existing) return reply.status(404).send({ error: 'No request with that id.' });
+      if (existing.staff_user_id === request.user.sub) return reply.status(403).send({ error: 'You cannot answer your own access request.' });
+      return reply.status(409).send({ error: existing.status === 'pending_approval' ? 'This request has lapsed.' : 'This request was already answered.', status: existing.status });
+    }
+    await staffAudit({ userId: request.user.sub, ip: request.ip }, { action: approve ? 'access.customer_approved' : 'access.customer_denied', targetType: 'access_session', targetId: decided.id, tenantId, detail: { staff_user_id: decided.staff_user_id } });
+    return { status: decided.status, expiresAt: approve ? new Date(decided.expires_at).toISOString() : null };
+  });
+  /** The customer can stop an approved session before it expires. */
+  fastify.post('/access-requests/:id/end', async (request: any, reply) => {
+    const tenantId = request.user.tenant_id;
+    const id = uuid.safeParse(request.params.id);
+    if (!id.success) return reply.status(404).send({ error: 'Not found' });
+    const ended = await dbPlatform.updateTable('staff_access_sessions')
+      .set({ status: 'revoked', ended_at: sql`now()`, ended_by: request.user.sub, end_reason: 'Ended by the customer' })
+      .where('id', '=', id.data).where('tenant_id', '=', tenantId).where('status', '=', 'active').where('expires_at', '>', sql<Date>`now()`)
+      .returning(['id', 'staff_user_id']).executeTakeFirst();
+    if (!ended) return reply.status(409).send({ error: 'This session is not active.' });
+    await staffAudit({ userId: request.user.sub, ip: request.ip }, { action: 'access.customer_ended', targetType: 'access_session', targetId: ended.id, tenantId, detail: { staff_user_id: ended.staff_user_id } });
+    return { status: 'revoked' };
   });
 }

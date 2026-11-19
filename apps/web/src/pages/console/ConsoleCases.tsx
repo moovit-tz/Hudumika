@@ -76,7 +76,7 @@ export function CaseTable({ items, onClaimed, emptyTitle = 'No cases here', empt
 }
 
 const QUEUES = [
-  { value: 'all', label: 'All open' }, { value: 'team', label: 'My teams' }, { value: 'unassigned', label: 'Unassigned' }, { value: 'onboarding', label: 'Onboarding' },
+  { value: 'all', label: 'All cases' }, { value: 'open', label: 'Open' }, { value: 'team', label: 'My teams' }, { value: 'unassigned', label: 'Unassigned' }, { value: 'onboarding', label: 'Onboarding' },
   { value: 'escalated', label: 'Escalations' }, { value: 'overdue', label: 'Overdue' }, { value: 'awaiting_outcome', label: 'Confirm outcome' }, { value: 'incidents', label: 'Incident cases' },
 ];
 
@@ -85,12 +85,19 @@ export function ConsoleCases() {
   const [params, setParams] = useSearchParams();
   const tab = params.get('tab') === 'incidents' && hasPerm(me, 'incidents.view') ? 'incidents' : hasPerm(me, 'cases.view') ? 'cases' : 'incidents';
   const queue = params.get('queue') ?? 'all';
-  const search = params.get('q') ?? '';
+  // `ticket` comes from links made by the former /admin/issues page.
+  const search = params.get('q') ?? params.get('ticket') ?? '';
+  const app = params.get('app');
+  const kind = params.get('kind');
+  const status = params.get('status');
   const [q, setQ] = useState(search);
   const set = (k: string, v: string | null) => setParams(p => { const n = new URLSearchParams(p); if (v) n.set(k, v); else n.delete(k); return n; }, { replace: true });
   // Search applies after a short pause in typing.
-  useEffect(() => { const t = setTimeout(() => { if (q !== search) set('q', q.trim() || null); }, 350); return () => clearTimeout(t); }, [q]); // eslint-disable-line react-hooks/exhaustive-deps
-  const path = tab === 'cases' ? `/v1/staff/cases?${new URLSearchParams({ queue, ...(search ? { q: search } : {}) })}` : null;
+  useEffect(() => { const t = setTimeout(() => { if (q !== search) setParams(p => { const n = new URLSearchParams(p); n.delete('ticket'); if (q.trim()) n.set('q', q.trim()); else n.delete('q'); return n; }, { replace: true }); }, 350); return () => clearTimeout(t); }, [q]); // eslint-disable-line react-hooks/exhaustive-deps
+  const filters = { queue, ...(search ? { q: search } : {}), ...(app ? { app } : {}), ...(kind ? { kind } : {}), ...(status ? { status } : {}) };
+  const path = tab === 'cases' ? `/v1/staff/cases?${new URLSearchParams(filters)}` : null;
+  const products = useStaffData<any>(tab === 'cases' && hasPerm(me, 'products.view') ? '/v1/staff/products' : null);
+  const productOptions = (products.data?.items ?? []).map((p: any) => ({ value: p.app, label: appName(p.app) }));
   const cases = useStaffData<any>(path);
   const overview = useStaffData<any>(tab === 'cases' && hasPerm(me, 'overview.platform', 'overview.operations') ? '/v1/staff/overview' : null);
   const k = overview.data?.cases;
@@ -98,8 +105,7 @@ export function ConsoleCases() {
   return (
     <div className="console-page">
       <PageHeader crumbs={['Console', 'Cases & Incidents']} titlePlain="Cases &" titleEm="incidents"
-        subtitle="Customer cases and product incidents in your scope."
-        actions={tab === 'cases' && hasPerm(me, 'cases.export') ? <Button variant="outline" onClick={() => apiDownload(`/v1/staff/cases/export?queue=${queue}`, 'cases.csv')}>Export CSV</Button> : undefined} />
+        actions={tab === 'cases' && hasPerm(me, 'cases.export') ? <Button variant="outline" onClick={() => apiDownload(`/v1/staff/cases/export?${new URLSearchParams(filters)}`, 'cases.csv')}>Export CSV</Button> : undefined} />
       {hasPerm(me, 'cases.view') && hasPerm(me, 'incidents.view') && (
         <Tabs value={tab} onValueChange={v => set('tab', v)}>
           <TabsList>
@@ -112,15 +118,20 @@ export function ConsoleCases() {
         <>
           {k && (
             <KpiGrid>
-              <KpiLink to="/console/cases?queue=all" title="Open cases" value={String(k.open)} icon="inbox" color="var(--teal)" hint="Open or in progress" />
+              <KpiLink to="/console/cases?queue=open" title="Open cases" value={String(k.open)} icon="inbox" color="var(--teal)" hint="Open or in progress" />
               <KpiLink to="/console/cases?queue=unassigned" title="Unassigned" value={String(k.unassigned)} icon="userPlus" color="var(--gold)" hint="Waiting for an owner" />
-              <KpiLink to="/console/cases?queue=overdue" title="Overdue" value={String(k.overdue)} icon="clock" color="var(--red)" hint="Past a response or resolution due time" />
-              <KpiLink to="/console/cases?queue=awaiting_outcome" title="Confirm outcome" value={String(k.awaiting_outcome)} icon="checkCircle" color="var(--green)" hint="Resolved, customer outcome not yet confirmed" />
+              <KpiLink to="/console/cases?queue=overdue" title="Overdue" value={String(k.overdue)} icon="clock" color="var(--red)" hint="Past due" />
+              <KpiLink to="/console/cases?queue=awaiting_outcome" title="Confirm outcome" value={String(k.awaiting_outcome)} icon="checkCircle" color="var(--green)" hint="Resolved, not confirmed" />
             </KpiGrid>
           )}
           <SearchToolbar
-            search={q} onSearch={setQ} placeholder="Search reference, subject or customer…"
-            quickFilter={{ label: 'Queue', allLabel: 'All open', value: queue === 'all' ? null : queue, options: QUEUES.filter(x => x.value !== 'all'), onChange: v => set('queue', v ?? 'all'), columns: 2 }}
+            search={q} onSearch={setQ} placeholder="Search cases…"
+            quickFilters={[
+              { label: 'Queue', allLabel: 'All cases', value: queue === 'all' ? null : queue, options: QUEUES.filter(x => x.value !== 'all'), onChange: v => set('queue', v ?? 'all'), columns: 2 },
+              { label: 'Status', allLabel: 'Any status', value: status, options: [{ value: 'OPEN', label: 'Open' }, { value: 'IN_PROGRESS', label: 'In progress' }, { value: 'RESOLVED', label: 'Resolved' }, { value: 'CLOSED', label: 'Closed' }], onChange: v => set('status', v) },
+              { label: 'Type', allLabel: 'All types', value: kind, options: [{ value: 'bug', label: 'Bug reports' }, { value: 'general', label: 'Support requests' }], onChange: v => set('kind', v) },
+              ...(productOptions.length ? [{ label: 'Product', allLabel: 'All products', value: app, options: productOptions, onChange: (v: string | null) => set('app', v), columns: 2 }] : []),
+            ]}
           />
           <Panel title={queueLabel} sub={cases.data?.items ? `${cases.data.items.length} case${cases.data.items.length === 1 ? '' : 's'}${search ? ` matching “${search}”` : ''}` : undefined} icon="inbox" flush>
             <LoadState loading={cases.loading} error={cases.error} onRetry={cases.reload}>
@@ -144,27 +155,27 @@ export function ConsoleMyWork() {
   return (
     <div className="console-page">
       <PageHeader crumbs={['Console', 'My Work']} titlePlain="My" titleEm="work"
-        subtitle={me?.teams.length ? `Your teams: ${me.teams.map(t => t.name).join(', ')}` : 'You are not on a team yet — ask an Operations Manager to add you.'} />
+        subtitle={me?.teams.length ? `Your teams: ${me.teams.map(t => t.name).join(', ')}` : 'Not on a team yet.'} />
       <KpiGrid>
         <KpiLink title="Assigned to me" value={mine.loading ? '…' : String(mineItems.length)} icon="userCheck" color="var(--teal)" hint="Open cases you own" />
         <KpiLink title="Overdue" value={mine.loading ? '…' : String(mineItems.filter(c => c.sla?.overdue).length)} icon="clock" color="var(--red)" hint="Of the cases you own" />
         <KpiLink title="Waiting on customer" value={mine.loading ? '…' : String(mineItems.filter(c => c.sla?.paused).length)} icon="messageSquare" color="var(--gold)" hint="SLA paused until they reply" />
         {me?.teams.length ? <KpiLink to="/console/cases?queue=team" title="Unclaimed in my teams" value={team.loading ? '…' : String(teamUnassigned.length)} icon="inbox" color="var(--blue)" hint="Ready to claim" /> : null}
       </KpiGrid>
-      <Panel title="Assigned to me" sub="Your open cases, most urgent first" icon="userCheck" flush>
+      <Panel title="Assigned to me" sub="Most urgent first" icon="userCheck" flush>
         <LoadState loading={mine.loading} error={mine.error} onRetry={mine.reload}>
           <CaseTable items={mineItems} onClaimed={mine.reload} emptyTitle="Nothing assigned to you" emptyText="Claim a case from your teams’ queue below." />
         </LoadState>
       </Panel>
       {me?.teams.length ? (
-        <Panel title="My teams’ queue" sub="Open cases routed to your teams" icon="users" flush>
+        <Panel title="My teams’ queue" icon="users" flush>
           <LoadState loading={team.loading} error={team.error} onRetry={team.reload}>
             <CaseTable items={team.data?.items ?? []} onClaimed={() => { team.reload(); mine.reload(); }} emptyTitle="Your teams’ queues are clear" />
           </LoadState>
         </Panel>
       ) : null}
       {hasPerm(me, 'cases.assign') && (
-        <Panel title="Needs reassignment" sub="Open work whose owner is no longer available" icon="alertTriangle" flush>
+        <Panel title="Needs reassignment" sub="Owner no longer available" icon="alertTriangle" flush>
           <LoadState loading={reassign.loading} error={reassign.error} onRetry={reassign.reload}>
             {(reassign.data?.items ?? []).length ? (
               <ul className="console-list">
@@ -205,7 +216,7 @@ function Incidents() {
     <div className="console-stack">
       <Notice msg={msg} />
       {hasPerm(me, 'incidents.manage') && open && (
-        <Panel title="Declare an incident" sub="Affected customers are found from the product’s active subscriptions" icon="alertTriangle"
+        <Panel title="Declare an incident" icon="alertTriangle"
           action={<Button size="sm" variant="ghost" onClick={() => setOpen(false)}>Cancel</Button>}>
           <form className="console-form" onSubmit={declare}>
             <div className="console-fields">
@@ -222,7 +233,7 @@ function Incidents() {
                 </Select>
               </label>
             </div>
-            <label>What is happening<Input required minLength={3} value={form.title} onChange={e => setForm({ ...form, title: e.target.value })} placeholder="e.g. Declarations failing to submit" /></label>
+            <label>What is happening<Input required minLength={3} value={form.title} onChange={e => setForm({ ...form, title: e.target.value })} placeholder="Incident title" /></label>
             <div><Button type="submit" disabled={!form.app_id}>Declare incident</Button></div>
           </form>
         </Panel>

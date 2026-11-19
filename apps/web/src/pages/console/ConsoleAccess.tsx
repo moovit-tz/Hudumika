@@ -32,7 +32,7 @@ export function ConsoleAccessNew() {
   if (!tenant) return (
     <div className="console-page">
       <PageHeader crumbs={['Console', 'Request access']} titlePlain="Request customer" titleEm="access" />
-      <Panel title="Choose a customer first" icon="building"><Empty icon="building" title="No customer selected">Open a customer or a case, then choose Request customer access.</Empty>
+      <Panel title="Choose a customer first" icon="building"><Empty icon="building" title="No customer selected">Start from a customer or a case.</Empty>
         <div><Button asChild variant="outline"><Link to="/console/customers">Go to customers</Link></Button></div></Panel>
     </div>
   );
@@ -53,9 +53,9 @@ export function ConsoleAccessNew() {
       <PageHeader crumbs={['Console', 'Customers', c?.name ?? 'Customer', 'Request access']} titlePlain="Request customer" titleEm="access"
         subtitle={c ? <span className="console-row"><CompanyAvatar name={c.name} logoUrl={c.logo_url} size={20} /><strong style={{ color: 'var(--ink2)' }}>{c.name}</strong>{caseId ? <span>· for a linked case</span> : null}</span> : undefined} />
       <div className="console-main-side">
-        <Panel title="What you need" sub="Everything you open is logged with your name and this purpose" icon="key">
+        <Panel title="What you need" sub="Logged with your name and purpose" icon="key">
           <form className="console-stack" onSubmit={submit}>
-            <label className="console-field">Purpose<Textarea required minLength={5} rows={3} value={form.purpose} onChange={e => setForm({ ...form, purpose: e.target.value })} placeholder="What you need to check or change, and why" /></label>
+            <label className="console-field">Purpose<Textarea required minLength={5} rows={3} value={form.purpose} onChange={e => setForm({ ...form, purpose: e.target.value })} placeholder="What and why" /></label>
             <div className="console-fields">
               <label className="console-field">Product
                 <Select value={form.app} onValueChange={v => setForm({ ...form, app: v })}>
@@ -84,13 +84,13 @@ export function ConsoleAccessNew() {
           <div className="console-row" style={{ alignItems: 'flex-start', flexWrap: 'nowrap' }}>
             <Icon name={own?.standing_authorization ? 'checkCircle' : 'clock'} size={16} color={own?.standing_authorization ? 'var(--green)' : 'var(--gold)'} />
             <span style={{ fontSize: 'var(--text-base, 13px)' }}>{own?.standing_authorization
-              ? 'This customer has a standing service authorization, so the session starts as soon as you open it.'
-              : 'This customer approves each session. It starts when one of their administrators approves it.'}</span>
+              ? 'Standing authorization: starts at once.'
+              : 'Starts when the customer approves it.'}</span>
           </div>
           <ul className="console-muted" style={{ margin: 0, paddingLeft: 18, display: 'flex', flexDirection: 'column', gap: 4 }}>
             <li>You act as yourself — never as a customer user.</li>
-            <li>A banner shows the customer, product and time left while it runs.</li>
-            <li>It ends on expiry, when you end it, when security revokes it, or as soon as you lose the access that justified it.</li>
+            <li>A banner shows the time left.</li>
+            <li>Ends on expiry, when you end it, or when it is revoked.</li>
           </ul>
         </Panel>
       </div>
@@ -109,7 +109,7 @@ export function ConsoleAccessRecords() {
   if (!live) return (
     <div className="console-page">
       <Panel title="Access session not active" icon="key">
-        <Empty icon="key" title="This session is not active">It ended, expired, was revoked, or is still waiting for the customer’s approval.</Empty>
+        <Empty icon="key" title="This session is not active">Ended, expired, revoked or awaiting approval.</Empty>
         <div><Button asChild variant="outline"><Link to="/console">Back to the console</Link></Button></div>
       </Panel>
     </div>
@@ -141,7 +141,7 @@ export function ConsoleAccessRecords() {
                   </li>
                 ))}
               </ul>
-            ) : <Empty icon="package" title="No product overrides">This workspace’s plan decides which products are on.</Empty>}
+            ) : <Empty icon="package" title="No product overrides">The plan decides which products are on.</Empty>}
           </LoadState>
         </Panel>
         <Panel title="Workspace users" sub="Read-only" icon="users" flush>

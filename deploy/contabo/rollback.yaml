@@ -3,3 +3,5 @@ services:
     image: hudumika-api:rollback
   gateway:
     image: hudumika-web:rollback
+  admin-api:
+    image: hudumika-api:rollback

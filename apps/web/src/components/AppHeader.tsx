@@ -243,7 +243,7 @@ export function AppHeader({
 
 
   // ── Layout Customizer prefs (navbar type / skin / semi-dark / direction) ──
-  // Set from /admin/design-system (DesignSystemView.tsx), which writes these
+  // Set from the Design System app (pages/design_system), which writes these
   // localStorage keys directly. AppHeader is what actually applies them as
   // <html> attributes, mirroring the isFullLayout/data-layout pattern above —
   // run once on mount here since, unlike isFullLayout, nothing on this page

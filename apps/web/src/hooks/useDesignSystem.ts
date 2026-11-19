@@ -388,7 +388,7 @@ export const DESIGN_TOKENS_DEFAULTS: DesignTokens = {
 // click instead of picking every field individually — each one sets BOTH the
 // single shared brand.primary (global chrome: buttons, links, focus rings)
 // AND a per-app cycling palette (branding.apps.{id}.color), applied together
-// by applyPlatformTheme() in DesignSystemView.tsx. Deliberately scoped to
+// by applyPlatformTheme() in pages/design_system/helpers.tsx. Deliberately scoped to
 // brand.primary + semantic.navy/navy2 (the header/sidebar tone) — never
 // neutral.*, since that's the ink/bg/border scale everything else depends on
 // for readability, and a bad preset there could make text unreadable.

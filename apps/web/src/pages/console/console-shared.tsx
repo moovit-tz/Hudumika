@@ -69,7 +69,7 @@ export function ToolGuard({ id, children }: { id: string; children: React.ReactN
   if (!me.tools.includes(id)) {
     const why = tool?.requires === 'superadmin'
       ? 'the SuperAdmin role'
-      : !me.platformWide ? 'platform-wide scope (every customer and product)' : null;
+      : !me.platformWide ? 'platform-wide scope' : null;
     return <AccessDenied what={`${tool?.label ?? 'this tool'}${why ? ` — it needs ${why}` : ''}`} />;
   }
   return <>{children}</>;
@@ -81,7 +81,7 @@ export function AccessDenied({ what }: { what: string }) {
     <div role="alert" style={stateBox}>
       <Icon name="lock" size={22} color="var(--ink3)" />
       <div style={{ fontWeight: 600, color: 'var(--ink)' }}>You don’t have access to {what}</div>
-      <div style={{ color: 'var(--ink3)', maxWidth: 460 }}>Your staff roles and assignments don’t include it. Ask an administrator if you need it.</div>
+      <div style={{ color: 'var(--ink3)', maxWidth: 460 }}>Ask an administrator for access.</div>
       {me?.homePath && <Button asChild size="sm" variant="outline"><Link to={me.homePath}>Go to your home</Link></Button>}
     </div>
   );

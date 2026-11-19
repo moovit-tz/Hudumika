@@ -26,6 +26,8 @@ interface KanbanBoardProps<T extends KanbanCardData, S extends string = string> 
   /** When provided, each status column paginates independently. */
   pageSizeOptions?: number[];
   defaultPageSize?: number;
+  renderColumnHeader?: (col: KanbanColumn<S>, count: number) => ReactNode;
+  toolbarLeft?: ReactNode;
 }
 
 export function KanbanBoard<T extends KanbanCardData, S extends string = string>({
@@ -38,6 +40,8 @@ export function KanbanBoard<T extends KanbanCardData, S extends string = string>
   emptyMessage = 'No items',
   pageSizeOptions,
   defaultPageSize,
+  renderColumnHeader,
+  toolbarLeft,
 }: KanbanBoardProps<T, S>) {
   const [draggingId, setDraggingId] = useState<string | null>(null);
   const [overColumn, setOverColumn] = useState<string | null>(null);
@@ -86,19 +90,22 @@ export function KanbanBoard<T extends KanbanCardData, S extends string = string>
   return (
     <div className="kb-board-container">
       {paginated && resolvedPageSizes && (
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: 8, marginBottom: 10 }}>
-          <span style={{ fontSize: 12, color: 'var(--ink3)', fontWeight: 600 }}>Tasks per column</span>
-          <Select value={String(pageSize)} onValueChange={value => {
-            setPageSize(Number(value));
-            setColumnPages({});
-          }}>
-            <SelectTrigger className="h-8 w-20 text-xs" aria-label="Tasks per Kanban column">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              {resolvedPageSizes.map(size => <SelectItem key={size} value={String(size)}>{size}</SelectItem>)}
-            </SelectContent>
-          </Select>
+        <div className="kb-toolbar" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 10, marginBottom: 12 }}>
+          {toolbarLeft ? <div style={{ flex: '1 1 auto', minWidth: 0 }}>{toolbarLeft}</div> : <div />}
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0, marginLeft: 'auto' }}>
+            <span style={{ fontSize: 12, color: 'var(--ink3)', fontWeight: 600 }}>Tasks per column</span>
+            <Select value={String(pageSize)} onValueChange={value => {
+              setPageSize(Number(value));
+              setColumnPages({});
+            }}>
+              <SelectTrigger className="h-8 w-20 text-xs" aria-label="Tasks per Kanban column">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {resolvedPageSizes.map(size => <SelectItem key={size} value={String(size)}>{size}</SelectItem>)}
+              </SelectContent>
+            </Select>
+          </div>
         </div>
       )}
       <div
@@ -128,12 +135,16 @@ export function KanbanBoard<T extends KanbanCardData, S extends string = string>
             onDragLeave={draggable ? handleDragLeave : undefined}
             onDrop={draggable ? e => handleDrop(e, col.id) : undefined}
           >
-            <div className="kb-col-header">
-              <span className="kb-col-ring" style={{ color: col.color || 'var(--teal)' }} />
-              <span className="kb-col-label">{col.label}</span>
-              <span className="kb-col-count">{colItems.length}</span>
-            </div>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 8, flex: 1 }}>
+            {renderColumnHeader ? (
+              renderColumnHeader(col, colItems.length)
+            ) : (
+              <div className="kb-col-header">
+                <span className="kb-col-ring" style={{ color: col.color || 'var(--teal)' }} />
+                <span className="kb-col-label">{col.label}</span>
+                <span className="kb-col-count">{colItems.length}</span>
+              </div>
+            )}
+            <div className="kb-column-cards">
               {visibleItems.map(item => {
                 const isDragging = draggingId === item.id;
                 return (

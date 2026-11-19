@@ -31,7 +31,7 @@ export function ConsoleCustomers() {
       <PageHeader crumbs={['Console', 'Customers']} titlePlain={mine ? 'My' : 'Customer'} titleEm={mine ? 'customers' : 'profiles'}
         subtitle={mine ? 'Customers you own or back up.' : 'Every customer in your scope, with its owner and open work.'}
         actions={hasPerm(me, 'customers.export') ? <Button variant="outline" onClick={() => apiDownload(`/v1/staff/customers/export?${qs}`, 'customers.csv')}>Export CSV</Button> : undefined} />
-      <SearchToolbar search={q} onSearch={setQ} placeholder="Search customers by name or slug…"
+      <SearchToolbar search={q} onSearch={setQ} placeholder="Search customers…"
         quickFilter={{ label: 'Show', allLabel: 'All in my scope', value: mine ? 'mine' : null, options: [{ value: 'mine', label: 'Only customers I own' }], onChange: v => set('mine', v ? '1' : null) }} />
       <Panel title={mine ? 'Customers I own' : 'Customers'} sub={loading ? undefined : `Showing ${items.length ? `${offset + 1}–${offset + items.length}` : 0}${search ? ` matching “${search}”` : ''}`} icon="building" flush
         action={(offset > 0 || data?.hasMore) ? <div className="console-row">
@@ -60,7 +60,7 @@ export function ConsoleCustomers() {
               ))}
             </DataTable>
           ) : <Empty icon="building" title={mine ? 'You do not own any customers yet' : search ? 'No matching customers' : 'No customers in your scope'}>
-            {mine ? 'An Operations Manager assigns customer ownership from a customer’s profile.' : search ? 'Try a different name.' : 'Your teams and assignments do not cover any customer yet.'}
+            {mine ? 'Ownership is set on each customer’s profile.' : search ? 'Try a different name.' : 'Your teams and assignments do not cover any customer yet.'}
           </Empty>}
         </LoadState>
       </Panel>
@@ -107,7 +107,7 @@ export function ConsoleCustomerProfile() {
         </KpiGrid>
 
         <div className="console-two">
-          <Panel title="Ownership & teams" sub="Who is accountable for this customer" icon="userCheck"
+          <Panel title="Ownership & teams" icon="userCheck"
             action={hasPerm(me, 'customers.manage') && !edit ? <Button size="sm" variant="outline" onClick={() => setEdit({ owner: own?.owner_user_id ?? 'none', backup: own?.backup_owner_user_id ?? 'none', reason: '', standing: own?.standing_authorization ?? false })}>Change</Button> : undefined}>
             {edit ? (
               <form className="console-stack" onSubmit={e => { e.preventDefault(); save(); }}>
@@ -121,7 +121,7 @@ export function ConsoleCustomerProfile() {
                     Standing authorization — staff access sessions start without asking the customer each time
                   </label>
                 )}
-                <label className="console-field">Reason for the change<Input required minLength={3} value={edit.reason} onChange={e => setEdit({ ...edit, reason: e.target.value })} placeholder="Recorded in the customer’s history" /></label>
+                <label className="console-field">Reason for the change<Input required minLength={3} value={edit.reason} onChange={e => setEdit({ ...edit, reason: e.target.value })} placeholder="Reason" /></label>
                 <div className="console-row"><Button type="submit" size="sm" loading={saving}>Save</Button><Button size="sm" variant="outline" type="button" onClick={() => setEdit(null)}>Cancel</Button></div>
               </form>
             ) : (
@@ -134,7 +134,7 @@ export function ConsoleCustomerProfile() {
             )}
           </Panel>
 
-          <Panel title="Contacts" sub="Customer-side people and escalation order" icon="users" flush>
+          <Panel title="Contacts" sub="Escalation order" icon="users" flush>
             {data.contacts.length ? (
               <ul className="console-list">
                 {data.contacts.map((c: any) => (
@@ -150,7 +150,7 @@ export function ConsoleCustomerProfile() {
         </div>
 
         <Panel title="Products" icon="package" flush
-          sub="Entitled = the plan or a grant includes it · Activated = used at least once · Health = observed server errors in the last 24 hours (unknown with no traffic)">
+          sub="Health is from the last 24 hours">
           <DataTable headers={['Product', 'Entitled', 'Activated', 'Health (24 h)', 'Requests (24 h)']}>
             {data.products.map((p: any) => (
               <TR key={p.app} onClick={() => navigate(`/console/products/${p.app}`)}>
@@ -164,7 +164,7 @@ export function ConsoleCustomerProfile() {
           </DataTable>
         </Panel>
 
-        <Panel title="Cases" sub="Cases for this customer that your scope covers" icon="inbox" flush>
+        <Panel title="Cases" icon="inbox" flush>
           {data.cases.length ? (
             <DataTable headers={['Case', 'Product', 'Status', 'Priority', 'Owner', 'Opened']}>
               {data.cases.map((c: any) => (
@@ -182,8 +182,8 @@ export function ConsoleCustomerProfile() {
         </Panel>
 
         <div className="console-two">
-          <Panel title="Billing" sub="Subscriptions and recent invoices" icon="creditCard" flush>
-            {data.billing.restricted ? <Empty icon="lock" title="Billing is not visible with your access" /> : (
+          <Panel title="Billing" icon="creditCard" flush>
+            {data.billing.restricted ? <Empty icon="lock" title="Billing not visible" /> : (
               (data.billing.subscriptions.length || data.billing.invoices.length) ? (
                 <ul className="console-list">
                   {data.billing.subscriptions.map((s: any) => <li key={s.id}><div className="console-list-main"><div className="console-list-title">{s.commercial_product_id}</div><div className="console-list-meta">Subscription</div></div><Pill kind="active" value={String(s.status === 'active')} /></li>)}
@@ -192,7 +192,7 @@ export function ConsoleCustomerProfile() {
               ) : <Empty icon="creditCard" title="No subscription records" />
             )}
           </Panel>
-          <Panel title="Staff access & administrative history" sub="Every access session and ownership change" icon="key" flush>
+          <Panel title="Staff access history" icon="key" flush>
             {(data.accessSessions.length || data.history.length) ? (
               <ul className="console-list">
                 {data.accessSessions.map((s: any) => (
@@ -206,7 +206,7 @@ export function ConsoleCustomerProfile() {
                   <li key={h.id}><div className="console-list-main"><div className="console-list-title" style={{ textTransform: 'capitalize' }}>{h.action.replace(/_/g, ' ')}</div><div className="console-list-meta">{h.reason ? `${h.reason} · ` : ''}{fmtDate(h.created_at)}</div></div></li>
                 ))}
               </ul>
-            ) : <Empty icon="key" title="No staff access or ownership changes yet" />}
+            ) : <Empty icon="key" title="No history yet" />}
           </Panel>
         </div>
       </div>}

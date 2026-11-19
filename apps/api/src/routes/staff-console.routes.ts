@@ -279,7 +279,7 @@ export async function staffConsoleRoutes(fastify: FastifyInstance) {
     const m = <T extends { [k: string]: any }>(rows: T[], k: string) => new Map(rows.map(r => [r[k], r]));
     const cBy = m(cases, 'app'), iBy = m(incidents, 'app_id'), sBy = m(status, 'app_id');
     return { items: products.map(app => ({ app, openCases: cBy.get(app)?.open ?? 0, activeIncidents: iBy.get(app)?.n ?? 0,
-      status: sBy.get(app)?.status ?? 'live', statusMessage: sBy.get(app)?.message ?? null, teams: teams.filter(t => t.app_id === app).map(t => ({ id: t.id, name: t.name })) })) };
+      status: sBy.get(app)?.status ?? 'active', statusMessage: sBy.get(app)?.message ?? null, teams: teams.filter(t => t.app_id === app).map(t => ({ id: t.id, name: t.name })) })) };
   }));
 
   /** Product → affected customers → cases: the same case rows as Customer → products → cases. */
@@ -287,11 +287,12 @@ export async function staffConsoleRoutes(fastify: FastifyInstance) {
     const ctx = S(req); assertCan(ctx, 'products.view');
     const app = appId.parse((req.params as any).app);
     if (!canProduct(ctx, app)) throw new StaffAccessError(404, 'Product not found.');
-    const [cases, incidents] = await Promise.all([
+    const [cases, incidents, appStatus] = await Promise.all([
       dbPlatform.selectFrom('platform_support_tickets as t').innerJoin('tenants as c', 'c.id', 't.tenant_id').leftJoin('users as o', 'o.id', 't.owner_user_id')
         .select(['t.id', 't.ref_number', 't.subject', 't.tenant_id', 'c.name as customer_name', 't.status', 't.priority', 't.severity', 'o.name as owner_name', 't.customer_outcome', 't.created_at'])
         .where('t.app', '=', app).where(caseScopeSql(ctx, 't.tenant_id', 't.app')).orderBy('t.created_at', 'desc').limit(100).execute(),
       dbPlatform.selectFrom('platform_incidents').selectAll().where('app_id', '=', app).orderBy('started_at', 'desc').limit(20).execute(),
+      dbPlatform.selectFrom('app_status').select(['status', 'message', 'updated_at']).where('app_id', '=', app).executeTakeFirst(),
     ]);
     const incidentIds = incidents.map(i => i.id);
     const incidentCustomers = incidentIds.length ? await dbPlatform.selectFrom('platform_incident_customers as ic').innerJoin('tenants as c', 'c.id', 'ic.tenant_id')
@@ -299,7 +300,7 @@ export async function staffConsoleRoutes(fastify: FastifyInstance) {
     const affected = new Map<string, { tenant_id: string; name: string; openCases: number; incidents: number }>();
     for (const c of cases) { const a = affected.get(c.tenant_id) ?? { tenant_id: c.tenant_id, name: c.customer_name, openCases: 0, incidents: 0 }; if (OPEN.includes(c.status as any)) a.openCases++; affected.set(c.tenant_id, a); }
     for (const ic of incidentCustomers) { const a = affected.get(ic.tenant_id) ?? { tenant_id: ic.tenant_id, name: ic.name, openCases: 0, incidents: 0 }; a.incidents++; affected.set(ic.tenant_id, a); }
-    return { app, cases, incidents: incidents.map(i => ({ ...i, customers: incidentCustomers.filter(c => c.incident_id === i.id).map(c => ({ tenant_id: c.tenant_id, name: c.name })) })), affectedCustomers: [...affected.values()] };
+    return { app, status: appStatus?.status ?? 'active', statusMessage: appStatus?.message ?? null, cases, incidents: incidents.map(i => ({ ...i, customers: incidentCustomers.filter(c => c.incident_id === i.id).map(c => ({ tenant_id: c.tenant_id, name: c.name })) })), affectedCustomers: [...affected.values()] };
   }));
 
   // ── Teams ───────────────────────────────────────────────────────────────
@@ -592,7 +593,7 @@ export async function staffConsoleRoutes(fastify: FastifyInstance) {
       const s = statusBy.get(app); const m = per.get(app);
       // Maintenance is a declared state, not a measurement; health comes only from observed requests.
       const state = s?.status === 'maintenance' ? 'maintenance' : !m ? 'unknown' : m.server_errors / m.requests >= 0.25 ? 'unavailable' : m.server_errors / m.requests >= 0.02 ? 'degraded' : 'healthy';
-      return { app, state, requests1h: m?.requests ?? 0, serverErrors1h: m?.server_errors ?? 0, clientErrors1h: m?.client_errors ?? 0, p95Ms: m?.p95_ms ?? null, lastRequestAt: m?.last_seen ?? null, declaredStatus: s?.status ?? 'live', statusMessage: s?.message ?? null };
+      return { app, state, requests1h: m?.requests ?? 0, serverErrors1h: m?.server_errors ?? 0, clientErrors1h: m?.client_errors ?? 0, p95Ms: m?.p95_ms ?? null, lastRequestAt: m?.last_seen ?? null, declaredStatus: s?.status ?? 'active', statusMessage: s?.message ?? null };
     });
     return {
       apps,
@@ -674,8 +675,7 @@ export async function staffConsoleRoutes(fastify: FastifyInstance) {
   }));
 
   // ── Audit ───────────────────────────────────────────────────────────────
-  const auditRows = async (ctx: StaffContext, q: { actor?: string; action?: string; tenant?: string; limit?: string }) => {
-    const limit = Math.min(Math.max(Number(q.limit) || 100, 1), 1000);
+  const auditQuery = (ctx: StaffContext, q: { actor?: string; action?: string; tenant?: string }) => {
     let sel = dbPlatform.selectFrom('staff_audit_log as a').leftJoin('users as u', 'u.id', 'a.actor_user_id')
       .select(['a.id', 'a.action', 'a.actor_user_id', 'u.name as actor_name', 'u.avatar_url as actor_avatar_url', 'a.target_type', 'a.target_id', 'a.tenant_id', 'a.app_id', 'a.purpose', 'a.outcome', 'a.detail', 'a.created_at'])
       // Platform-wide entries (no customer) need broad customer scope.
@@ -683,21 +683,33 @@ export async function staffConsoleRoutes(fastify: FastifyInstance) {
     if (q.actor && uuid.safeParse(q.actor).success) sel = sel.where('a.actor_user_id', '=', q.actor);
     if (q.tenant && uuid.safeParse(q.tenant).success) sel = sel.where('a.tenant_id', '=', q.tenant);
     if (q.action) sel = sel.where('a.action', 'like', `${q.action.replace(/[\\%_]/g, '\\$&')}%`);
-    return sel.orderBy('a.created_at', 'desc').limit(limit).execute();
+    return sel;
   };
   fastify.get('/audit', h(async req => {
     const ctx = S(req); assertCan(ctx, 'audit.view');
-    const [staff, operator] = await Promise.all([
-      auditRows(ctx, req.query as any),
-      dbPlatform.selectFrom('platform_operator_audit as p').leftJoin('users as u', 'u.id', 'p.operator_id')
-        .select(['p.id', 'p.action', 'p.operator_id', 'u.name as operator_name', 'p.affected_tenant_id', 'p.resource_type', 'p.reason', 'p.created_at'])
-        .where(customerScopeSql(ctx, 'p.affected_tenant_id')).orderBy('p.created_at', 'desc').limit(100).execute(),
+    const q = z.object({
+      action: z.string().optional(), actor: z.string().optional(), tenant: z.string().optional(),
+      limit: z.coerce.number().int().min(1).max(1000).default(100),
+      operatorLimit: z.coerce.number().int().min(1).max(100).default(100),
+      offset: z.coerce.number().int().nonnegative().max(Number.MAX_SAFE_INTEGER).default(0),
+      operatorOffset: z.coerce.number().int().nonnegative().max(Number.MAX_SAFE_INTEGER).default(0),
+    }).parse(req.query);
+    const staff = auditQuery(ctx, q);
+    const operators = dbPlatform.selectFrom('platform_operator_audit as p').leftJoin('users as u', 'u.id', 'p.operator_id')
+      .where(customerScopeSql(ctx, 'p.affected_tenant_id'));
+    const [staffActions, operatorActions, staffCount, operatorCount] = await Promise.all([
+      staff.orderBy('a.created_at', 'desc').orderBy('a.id', 'desc').offset(q.offset).limit(q.limit).execute(),
+      operators.select(['p.id', 'p.action', 'p.operator_id', 'u.name as operator_name', 'p.affected_tenant_id', 'p.resource_type', 'p.reason', 'p.created_at'])
+        .orderBy('p.created_at', 'desc').orderBy('p.id', 'desc').offset(q.operatorOffset).limit(q.operatorLimit).execute(),
+      staff.clearSelect().select(eb => eb.fn.countAll().as('total')).executeTakeFirstOrThrow(),
+      operators.select(eb => eb.fn.countAll().as('total')).executeTakeFirstOrThrow(),
     ]);
-    return { staffActions: staff, operatorActions: operator, note: 'Operational telemetry (Service health), audit history (here) and business analytics (/admin/analytics) are kept separately.' };
+    return { staffActions, operatorActions, staffTotal: Number(staffCount.total), operatorTotal: Number(operatorCount.total) };
   }));
   fastify.get('/audit/export', h(async (req, reply) => {
     const ctx = S(req); assertCan(ctx, 'audit.export');
-    const rows = await auditRows(ctx, { ...(req.query as any), limit: '1000' });
+    const rows = await auditQuery(ctx, req.query as { actor?: string; action?: string; tenant?: string })
+      .orderBy('a.created_at', 'desc').orderBy('a.id', 'desc').limit(1000).execute();
     await staffAudit(ctx, { action: 'audit.export', targetType: 'staff_audit_log', detail: { rows: rows.length } });
     const esc = (v: unknown) => `"${String(v instanceof Date ? v.toISOString() : typeof v === 'object' && v ? JSON.stringify(v) : v ?? '').replace(/"/g, '""')}"`;
     reply.header('Content-Type', 'text/csv; charset=utf-8').header('Content-Disposition', 'attachment; filename="staff-audit.csv"');
@@ -706,7 +718,7 @@ export async function staffConsoleRoutes(fastify: FastifyInstance) {
 
   // ── Platform settings (operations) ──────────────────────────────────────
   fastify.get('/settings', h(async req => {
-    const ctx = S(req); assertCan(ctx, 'settings.view', 'maintenance.manage');
+    const ctx = S(req); assertCan(ctx, 'settings.view');
     const [sla, hours, rules, appStatus, teams] = await Promise.all([
       dbPlatform.selectFrom('staff_sla_policies').selectAll().execute(),
       dbPlatform.selectFrom('staff_business_hours').selectAll().where('id', '=', 1).executeTakeFirst(),
@@ -714,7 +726,7 @@ export async function staffConsoleRoutes(fastify: FastifyInstance) {
       dbPlatform.selectFrom('app_status').select(['app_id', 'status', 'message', 'updated_at']).execute(),
       dbPlatform.selectFrom('staff_teams').select(['id', 'name']).where('active', '=', true).execute(),
     ]);
-    return { sla, businessHours: hours, routingRules: rules, appStatus, teams, superAdminTools: ctx.isSuperAdmin ? '/admin/settings' : null };
+    return { sla, businessHours: hours, routingRules: rules, appStatus, teams };
   }));
 
   fastify.put('/settings/sla/:priority', h(async req => {
@@ -759,9 +771,10 @@ export async function staffConsoleRoutes(fastify: FastifyInstance) {
     const app = appId.parse((req.params as any).app);
     if (!canProduct(ctx, app)) throw new StaffAccessError(404, 'Product not found.');
     const b = z.object({ maintenance: z.boolean(), message: z.string().max(500).optional(), reason: z.string().trim().min(3).max(500) }).parse(req.body);
-    const status = b.maintenance ? 'maintenance' : 'live';
+    // app_status allows only 'active' | 'maintenance'. A notice set elsewhere is kept unless a new one is sent.
+    const status = b.maintenance ? 'maintenance' : 'active';
     await dbPlatform.insertInto('app_status').values({ app_id: app, status, message: b.message ?? null, updated_by: ctx.userId, updated_at: new Date() })
-      .onConflict(oc => oc.column('app_id').doUpdateSet({ status, message: b.message ?? null, updated_by: ctx.userId, updated_at: new Date() })).execute();
+      .onConflict(oc => oc.column('app_id').doUpdateSet({ status, ...(b.message !== undefined ? { message: b.message || null } : {}), updated_by: ctx.userId, updated_at: new Date() })).execute();
     await staffAudit(ctx, { action: b.maintenance ? 'maintenance.started' : 'maintenance.ended', targetType: 'product', targetId: app, appId: app, purpose: b.reason });
     return { app, status };
   }));
